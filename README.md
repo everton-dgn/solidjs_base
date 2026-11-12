@@ -8,7 +8,7 @@ atualização de versão, sem copiar o código para dentro do próprio repositó
 
 | Pacote                       | Conteúdo                                                        |
 | ---------------------------- | --------------------------------------------------------------- |
-| `@devinsights/solid-tooling` | Lint, formatador, regras próprias de lint e base do TypeScript. |
+| `@everton-dgn/solid-tooling` | Lint, formatador, regras próprias de lint e base do TypeScript. |
 
 O código de `packages/solid-tooling/src` veio do `tooling/` do
 `boilerplate_solidjs`, no commit `31de7bf`.
@@ -34,8 +34,8 @@ Os testes das regras que passam pelo CLI carregam os plugins a partir de
 
 ```ts
 // vite.config.ts
-import { fmt } from '@devinsights/solid-tooling/fmt'
-import { lint } from '@devinsights/solid-tooling/lint'
+import { fmt } from '@everton-dgn/solid-tooling/fmt'
+import { lint } from '@everton-dgn/solid-tooling/lint'
 import { defineConfig } from 'vite-plus'
 
 export default defineConfig({ fmt, lint })
@@ -44,7 +44,7 @@ export default defineConfig({ fmt, lint })
 ```json
 // tsconfig.json
 {
-  "extends": "@devinsights/solid-tooling/tsconfig.base.json"
+  "extends": "@everton-dgn/solid-tooling/tsconfig.base.json"
 }
 ```
 
@@ -56,7 +56,7 @@ Paraglide precisa acompanhar a versão que ela usa. O `eslint-plugin-solid` vem
 como dependência do pacote e dispensa declaração.
 
 O lint de CSS da aplicação importa a regra de nome de arquivo de
-`@devinsights/solid-tooling/css-filename`.
+`@everton-dgn/solid-tooling/css-filename`.
 
 O pacote é distribuído compilado: o Node recusa TypeScript dentro de
 `node_modules`, e o Vite+ carrega a configuração em Node.

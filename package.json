@@ -16,7 +16,7 @@
     "validate": "vp run build && vp run check && vp run test && vp run test:tarball"
   },
   "devDependencies": {
-    "@devinsights/solid-tooling": "workspace:*",
+    "@everton-dgn/solid-tooling": "workspace:*",
     "@inlang/paraglide-js": "3.2.2",
     "@types/node": "24.19.2",
     "typescript": "7.0.2",

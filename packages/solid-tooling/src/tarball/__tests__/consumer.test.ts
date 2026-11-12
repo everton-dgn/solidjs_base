@@ -24,7 +24,7 @@ type ErrorQuery = { diagnostics: Diagnostic[]; expected: Expected }
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, '../../..')
 const WORKSPACE_ROOT = path.resolve(PACKAGE_ROOT, '../..')
 const FIXTURE = path.join(WORKSPACE_ROOT, 'fixtures/consumer')
-const PACKAGE_NAME = '@devinsights/solid-tooling'
+const PACKAGE_NAME = '@everton-dgn/solid-tooling'
 const COMMAND_TIMEOUT = 120_000
 // Estes protocolos só resolvem dentro do workspace; num pacote publicado a
 // instalação da aplicação falharia.

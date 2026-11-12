@@ -30,18 +30,18 @@ export const lint: NonNullable<UserConfig['lint']> = {
   jsPlugins: [
     {
       name: 'project',
-      specifier: '@devinsights/solid-tooling/project-plugin'
+      specifier: '@everton-dgn/solid-tooling/project-plugin'
     },
     {
       name: 'backend',
-      specifier: '@devinsights/solid-tooling/backend-plugin'
+      specifier: '@everton-dgn/solid-tooling/backend-plugin'
     },
     {
       name: 'architecture',
-      specifier: '@devinsights/solid-tooling/architecture-plugin'
+      specifier: '@everton-dgn/solid-tooling/architecture-plugin'
     },
     { name: 'paraglide', specifier: '@inlang/paraglide-js/eslint' },
-    { name: 'solid', specifier: '@devinsights/solid-tooling/solid-plugin' },
+    { name: 'solid', specifier: '@everton-dgn/solid-tooling/solid-plugin' },
     { name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' }
   ],
   options: {

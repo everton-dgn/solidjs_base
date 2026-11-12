@@ -1,5 +1,5 @@
 {
-  "name": "@devinsights/solid-tooling",
+  "name": "@everton-dgn/solid-tooling",
   "version": "0.0.0",
   "private": true,
   "description": "Lint, formatter and TypeScript presets for SolidJS applications built with Vite+.",

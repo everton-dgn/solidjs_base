@@ -1,5 +1,5 @@
-import { fmt } from '@devinsights/solid-tooling/fmt'
-import { lint } from '@devinsights/solid-tooling/lint'
+import { fmt } from '@everton-dgn/solid-tooling/fmt'
+import { lint } from '@everton-dgn/solid-tooling/lint'
 import { defineConfig } from 'vite-plus'
 
 export default defineConfig({ fmt, lint })

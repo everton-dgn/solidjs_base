@@ -37,6 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -60,8 +61,22 @@ jobs:
       - name: Validate
         run: vp run validate
 
-      - name: Publish to npm
-        working-directory: ${{ matrix.path }}
+      - name: Check the npm version
         env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: vp pm publish
+          REQUIRED_NPM: 11.5.1
+        run: |
+          current="$(npm --version)"
+          oldest="$(printf '%s\n' "$REQUIRED_NPM" "$current" | sort -V | head -n 1)"
+          if [ "$oldest" != "$REQUIRED_NPM" ]; then
+            echo "npm $current is older than $REQUIRED_NPM, the minimum for trusted publishing" >&2
+            exit 1
+          fi
+
+      # WHY: the Bun pack resolves `catalog:` and `workspace:`, and only npm
+      # exchanges the OIDC token of the trusted publisher.
+      - name: Pack
+        working-directory: ${{ matrix.path }}
+        run: vp pm pack --pack-destination "$RUNNER_TEMP/release"
+
+      - name: Publish to npm
+        run: npm publish "$RUNNER_TEMP"/release/*.tgz --access public

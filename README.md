@@ -90,10 +90,10 @@ não falha por isso.
 Para publicar fora do workflow, a partir de uma árvore limpa:
 
 ```bash
+vp pm login
 vp run validate
-cd packages/solid-tooling
-bun publish --dry-run
-bun publish
+vp -C packages/solid-tooling pm publish --dry-run
+vp -C packages/solid-tooling pm publish
 ```
 
 `prepublishOnly` compila o pacote antes do envio.

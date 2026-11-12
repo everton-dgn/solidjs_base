@@ -37,8 +37,9 @@
   },
   "scripts": {
     "build": "vp pack",
-    "test": "vp pack && node --test --test-timeout=60000 'src/__tests__/*.test.ts' 'src/!(tarball)/**/__tests__/*.test.ts'",
-    "test:tarball": "vp pack && node --test --test-timeout=300000 src/tarball/__tests__/consumer.test.ts",
+    "dev": "vp pack --watch",
+    "test": "vp run test-rules",
+    "test:tarball": "vp run test-tarball",
     "prepublishOnly": "vp pack"
   },
   "dependencies": {

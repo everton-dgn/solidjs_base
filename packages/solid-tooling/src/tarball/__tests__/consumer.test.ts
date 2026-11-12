@@ -24,6 +24,7 @@ type ErrorQuery = { diagnostics: Diagnostic[]; expected: Expected }
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, '../../..')
 const WORKSPACE_ROOT = path.resolve(PACKAGE_ROOT, '../..')
 const FIXTURE = path.join(WORKSPACE_ROOT, 'fixtures/consumer')
+const VP = path.join(WORKSPACE_ROOT, 'node_modules/.bin/vp')
 const PACKAGE_NAME = '@everton-dgn/solid-tooling'
 const COMMAND_TIMEOUT = 120_000
 // Estes protocolos só resolvem dentro do workspace; num pacote publicado a
@@ -84,12 +85,12 @@ function readManifest(source: string): v.InferOutput<typeof manifestSchema> {
 function pack(directory: string): string {
   const destination = path.join(directory, 'pack')
   run({
-    file: 'bun',
-    args: ['pm', 'pack', '--destination', destination],
+    file: VP,
+    args: ['pm', 'pack', '--pack-destination', destination],
     cwd: PACKAGE_ROOT
   })
   const tarball = readdirSync(destination).find(name => name.endsWith('.tgz'))
-  assert.ok(tarball, 'O bun pm pack não gerou o tarball.')
+  assert.ok(tarball, 'O vp pm pack não gerou o tarball.')
   return path.join(destination, tarball)
 }
 
@@ -130,7 +131,7 @@ function install({ app, tarball }: Installation): void {
       devDependencies: { ...devDependencies, [PACKAGE_NAME]: tarball }
     })
   )
-  run({ file: 'bun', args: ['install'], cwd: app })
+  run({ file: VP, args: ['install'], cwd: app })
 }
 
 function lint(app: string): Diagnostic[] {

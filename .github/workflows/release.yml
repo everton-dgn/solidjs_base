@@ -64,4 +64,4 @@ jobs:
         working-directory: ${{ matrix.path }}
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: bun publish
+        run: vp pm publish

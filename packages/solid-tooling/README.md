@@ -1,4 +1,4 @@
-# @everton-dgn/solid-tooling
+# @evertondgn/solid-tooling
 
 Lint, formatador e base do TypeScript para aplicações SolidJS construídas com
 Vite+. O pacote é distribuído compilado: o Node recusa TypeScript dentro de
@@ -7,7 +7,7 @@ Vite+. O pacote é distribuído compilado: o Node recusa TypeScript dentro de
 ## Instalação
 
 ```bash
-vp add -D @everton-dgn/solid-tooling
+vp add -D @evertondgn/solid-tooling
 ```
 
 A aplicação também declara o `vite-plus` e o `@inlang/paraglide-js`. O Oxlint
@@ -19,8 +19,8 @@ como dependência do pacote e dispensa declaração.
 
 ```ts
 // vite.config.ts
-import { fmt } from '@everton-dgn/solid-tooling/fmt'
-import { lint } from '@everton-dgn/solid-tooling/lint'
+import { fmt } from '@evertondgn/solid-tooling/fmt'
+import { lint } from '@evertondgn/solid-tooling/lint'
 import { defineConfig } from 'vite-plus'
 
 export default defineConfig({ fmt, lint })
@@ -29,7 +29,7 @@ export default defineConfig({ fmt, lint })
 ```json
 // tsconfig.json
 {
-  "extends": "@everton-dgn/solid-tooling/tsconfig.base.json"
+  "extends": "@evertondgn/solid-tooling/tsconfig.base.json"
 }
 ```
 

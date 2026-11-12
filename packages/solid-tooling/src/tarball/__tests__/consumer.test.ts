@@ -25,7 +25,7 @@ const PACKAGE_ROOT = path.resolve(import.meta.dirname, '../../..')
 const WORKSPACE_ROOT = path.resolve(PACKAGE_ROOT, '../..')
 const FIXTURE = path.join(WORKSPACE_ROOT, 'fixtures/consumer')
 const VP = path.join(WORKSPACE_ROOT, 'node_modules/.bin/vp')
-const PACKAGE_NAME = '@everton-dgn/solid-tooling'
+const PACKAGE_NAME = '@evertondgn/solid-tooling'
 const COMMAND_TIMEOUT = 120_000
 // Estes protocolos só resolvem dentro do workspace; num pacote publicado a
 // instalação da aplicação falharia.

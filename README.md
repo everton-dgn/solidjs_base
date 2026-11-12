@@ -6,9 +6,9 @@ atualização de versão, sem copiar o código para dentro do próprio repositó
 
 ## Pacotes
 
-| Pacote                       | Conteúdo                                                        |
-| ---------------------------- | --------------------------------------------------------------- |
-| `@everton-dgn/solid-tooling` | Lint, formatador, regras próprias de lint e base do TypeScript. |
+| Pacote                      | Conteúdo                                                        |
+| --------------------------- | --------------------------------------------------------------- |
+| `@evertondgn/solid-tooling` | Lint, formatador, regras próprias de lint e base do TypeScript. |
 
 O código de `packages/solid-tooling/src` veio do `tooling/` do
 `boilerplate_solidjs`, no commit `31de7bf`.
@@ -38,7 +38,7 @@ Instalação, configuração e entradas estão no
 ## Versionamento e publicação
 
 Cada pacote tem a própria versão, no `package.json` dele, e é publicado de forma
-independente no npm público, no escopo `@everton-dgn`. A raiz do workspace é
+independente no npm público, no escopo `@evertondgn`. A raiz do workspace é
 privada e não tem versão publicável.
 
 O [release-please](https://github.com/googleapis/release-please) cuida das
@@ -51,7 +51,10 @@ versões a partir dos Conventional Commits. Ele roda só no CI, pelo workflow
 2. O workflow mantém aberto um PR de release por pacote, com a versão nova e o
    `CHANGELOG.md` do pacote.
 3. O merge desse PR cria a tag, no formato `solid-tooling@0.2.0`, e a GitHub
-   Release. Em seguida o workflow valida o workspace e publica o pacote.
+   Release. Em seguida o workflow valida o workspace, empacota e publica o
+   pacote, sem token: o npm autentica o workflow por OIDC
+   ([publicação confiável](https://docs.npmjs.com/trusted-publishers)) e anexa a
+   proveniência do build à versão.
 
 | Commit                                             | Incremento com versão abaixo de 1.0.0 |
 | -------------------------------------------------- | ------------------------------------- |
@@ -70,13 +73,37 @@ A partir da 1.0.0, uma mudança incompatível passa a subir a major.
   pacote. O release-please o atualiza; a edição manual só cabe ao incluir um
   pacote que já tem versão publicada.
 
-### Configuração do repositório no GitHub
+### Configuração feita uma vez
 
-O workflow depende de duas configurações feitas uma vez:
+No GitHub, ligue a opção "Allow GitHub Actions to create and approve pull
+requests", em Settings > Actions > General. Sem ela o release-please não abre o
+PR de release.
 
-- o segredo `NPM_TOKEN`, com um token do npm que possa publicar no escopo;
-- a opção "Allow GitHub Actions to create and approve pull requests", em
-  Settings > Actions > General.
+No npmjs.com, cada pacote recebe um publicador confiável em Packages > pacote >
+Settings > Trusted publishing, com o provedor GitHub Actions:
+
+| Campo                | Valor          |
+| -------------------- | -------------- |
+| Organization or user | `everton-dgn`  |
+| Repository           | `solidjs_base` |
+| Workflow filename    | `release.yml`  |
+| Environment name     | vazio          |
+| Allowed actions      | `npm publish`  |
+
+O npm não confere esses valores ao salvar, e os campos diferenciam maiúsculas de
+minúsculas. A configuração expira se a primeira publicação pelo workflow não
+acontecer em até dois dias: crie-a quando já houver um `fix` ou `feat` do pacote
+pronto para entrar na `main`. Se expirar, apague e crie outra.
+
+O `repository.url` do `package.json` do pacote precisa apontar para este
+repositório, e o job de publicação exige a versão mínima do npm que faz a troca
+do token.
+
+### Pacote novo
+
+O publicador confiável fica nas configurações do pacote, então o pacote precisa
+existir no registry antes. A primeira versão de cada pacote sai pela
+[publicação manual](#publicação-manual); as seguintes, pelo workflow.
 
 ### Limite conhecido
 
@@ -90,10 +117,18 @@ não falha por isso.
 Para publicar fora do workflow, a partir de uma árvore limpa:
 
 ```bash
-vp pm login
+npm login
 vp run validate
-vp -C packages/solid-tooling pm publish --dry-run
-vp -C packages/solid-tooling pm publish
+vp -C packages/solid-tooling pm pack --pack-destination /tmp/solid-tooling
+npm publish /tmp/solid-tooling/evertondgn-solid-tooling-0.1.0.tgz --access public
 ```
 
-`prepublishOnly` compila o pacote antes do envio.
+O `vp run validate` compila o pacote antes do empacotamento. O `vp pm pack`
+troca `catalog:` e `workspace:` pelas versões reais, o que o `npm publish` feito
+direto na pasta do pacote não faz. A conta do npm precisa de autenticação em
+dois fatores: o `npm publish` mostra um link e espera a confirmação no
+navegador, por isso deve rodar num terminal interativo.
+
+Depois de publicar a primeira versão, crie a tag no commit publicado, no formato
+`solid-tooling@0.1.0`. O release-please parte dela para calcular a versão
+seguinte.

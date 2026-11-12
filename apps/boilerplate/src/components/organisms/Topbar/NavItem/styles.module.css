@@ -1,0 +1,28 @@
+.link {
+  position: relative;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: var(--font-size-14);
+  color: var(--color-muted-foreground);
+  transition: color 0.18s ease;
+
+  &:hover,
+  &[aria-current='page'] {
+    color: var(--color-foreground);
+  }
+}
+
+.indicator {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: -4px;
+  height: 2px;
+  border-radius: var(--radius-9999);
+  background: var(--color-foreground);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+
+  .link[aria-current='page'] & {
+    opacity: 1;
+  }
+}

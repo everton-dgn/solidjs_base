@@ -1,0 +1,267 @@
+import {
+  configureServerErrors,
+  createRequestEvent,
+  redirect,
+  respond,
+  type RequestEvent,
+  type RequestEventLocals,
+  type ServerErrorHook
+} from '@solidjs/web'
+import {
+  configureServerFunctionsServer,
+  type WrapInvocationHook
+} from '@solidjs/web/server-functions/server'
+import { NotReadyError } from 'solid-js'
+
+import type {
+  createPublicError,
+  isPublicError
+} from '@/infra/server/publicErrors/index.ts'
+import type { createRenderIntegrity } from '@/infra/server/renderIntegrity/index.ts'
+import {
+  hostileValue,
+  throwValue
+} from '@/tests/helpers/failureValues/index.ts'
+import { readLog } from '@/tests/helpers/readLog/index.ts'
+
+vi.mock(import('@solidjs/web'), async importOriginal => ({
+  ...(await importOriginal()),
+  configureServerErrors: vi.fn<typeof configureServerErrors>()
+}))
+vi.mock(import('@solidjs/web/server-functions/server'), () => ({
+  configureServerFunctionsServer: vi.fn<typeof configureServerFunctionsServer>()
+}))
+
+// Sem o contexto de idioma do paraglide, a mensagem sai no idioma base.
+const PUBLIC_MESSAGE = 'The request could not be completed.'
+const LOG_MESSAGE = '[server-error] Unexpected failure; private details omitted'
+const HTTP_NOT_FOUND = 404
+
+type PublicErrors = {
+  createPublicError: typeof createPublicError
+  isPublicError: typeof isPublicError
+}
+
+type RenderState = NonNullable<RequestEventLocals['ssrRenderState']>
+type RenderProbe = { event: RequestEvent; state: RenderState }
+type CreateRenderIntegrity = typeof createRenderIntegrity
+
+// O wrapper ignora o contexto da invocação; o registro só precisa de run.
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- ServerFunctionEvent não é construível fora do runtime do Solid.
+const context = {} as Parameters<WrapInvocationHook>[1]
+// O hook ignora o contexto; os campos só descrevem onde a falha apareceu.
+const site: Parameters<ServerErrorHook>[1] = {
+  kind: 'render',
+  handling: 'fallback'
+}
+
+function invoke(wrap: WrapInvocationHook, run: () => unknown): unknown {
+  try {
+    return wrap(run, context)
+  } catch (error) {
+    return error
+  }
+}
+
+function logUnavailable(): never {
+  throw new Error('stderr indisponível')
+}
+
+function registeredHook(): ServerErrorHook {
+  const [errors] = vi.mocked(configureServerErrors).mock.lastCall ?? []
+  const hook = errors?.onError
+  if (!hook) throw new Error('onError não registrado')
+  return hook
+}
+
+// O registro é recarregado com resetModules; a fábrica precisa ser a da mesma
+// carga do hook que marca o estado.
+function renderProbe(createIntegrity: CreateRenderIntegrity): RenderProbe {
+  const event = createRequestEvent(new Request('http://localhost/'))
+  const { state } = createIntegrity()
+  event.locals.ssrRenderState = state
+  return { event, state }
+}
+
+async function loadRegistration() {
+  vi.resetModules()
+  vi.mocked(configureServerErrors).mockClear()
+  vi.mocked(configureServerFunctionsServer).mockClear()
+  await import('../index.ts')
+}
+
+describe('registro central da política de erros', () => {
+  let config: Parameters<typeof configureServerFunctionsServer>[0]
+  let wrap: WrapInvocationHook
+  let onError: ServerErrorHook
+  // O registro é recarregado com resetModules; o módulo de erros públicos
+  // precisa ser a mesma instância que o hook usa.
+  let publicErrors: PublicErrors
+  let createIntegrity: CreateRenderIntegrity
+
+  beforeAll(async () => {
+    vi.stubEnv('DEV', false)
+    await loadRegistration()
+    const [registered] =
+      vi.mocked(configureServerFunctionsServer).mock.calls[0] ?? []
+    if (!registered?.wrapInvocation) {
+      throw new Error('wrapInvocation não registrado')
+    }
+    config = registered
+    wrap = registered.wrapInvocation
+    onError = registeredHook()
+    publicErrors = await import('@/infra/server/publicErrors/index.ts')
+    ;({ createRenderIntegrity: createIntegrity } =
+      await import('@/infra/server/renderIntegrity/index.ts'))
+  })
+  // O unstubEnvs desfaz o stub do beforeAll antes de cada caso; ele só fixa o
+  // modo lido na carga do registro.
+  beforeEach(() => {
+    vi.stubEnv('DEV', false)
+    vi.spyOn(console, 'error').mockImplementation(vi.fn())
+  })
+
+  it('registra somente wrapInvocation e preserva sinais de controle', () => {
+    expect(Object.keys(config ?? {})).toStrictEqual(['wrapInvocation'])
+    const control = redirect('/')
+    expect(invoke(wrap, () => throwValue(control))).toBe(control)
+    const envelope = respond({ ok: true })
+    expect(invoke(wrap, () => envelope)).toMatchObject({ value: { ok: true } })
+  })
+
+  it('substitui falhas inesperadas por erro público com log filtrado', () => {
+    const failure = invoke(wrap, () => throwValue(new Error('PRIVATE')))
+    expect(failure).toBeInstanceOf(Error)
+    expect(failure).toHaveProperty('message', PUBLIC_MESSAGE)
+    expect(readLog(console.error)).toStrictEqual({
+      heads: [
+        [
+          '[server-operation] Unexpected failure; private details omitted',
+          'Error'
+        ]
+      ],
+      leaks: []
+    })
+  })
+
+  it('deixa sinais de controle com a política padrão do runtime', () => {
+    for (const control of [
+      redirect('/'),
+      respond({ ok: true }),
+      new NotReadyError(Promise.resolve('pronto'))
+    ]) {
+      expect(onError(control, site)).toBeUndefined()
+    }
+    expect(console.error).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['um Error', new Error('PRIVATE', { cause: 'CAUSE_PRIVATE' }), ['Error']],
+    ['um primitivo', 'PRIVATE', []],
+    ['uma Response com corpo', new Response('PRIVATE'), []],
+    ['uma Response.error(), com status 0', Response.error(), []],
+    ['um objeto cuja inspeção falha', hostileValue(), []]
+  ])(
+    'troca %s por erro público novo com log filtrado',
+    (_label, failure, details) => {
+      const mapped = onError(failure, site)
+
+      // A igualdade estrita de Error compara mensagem, cause e propriedades.
+      expect(mapped).toStrictEqual(new Error(PUBLIC_MESSAGE))
+      expect(publicErrors.isPublicError(mapped)).toBe(true)
+      expect(readLog(console.error)).toStrictEqual({
+        heads: [[LOG_MESSAGE, ...details]],
+        leaks: []
+      })
+    }
+  )
+
+  it('recria o erro público sem registrar um log duplicado', () => {
+    const tampered = Object.assign(publicErrors.createPublicError(), {
+      cause: 'CAUSE_PRIVATE',
+      internalContext: 'PRIVATE'
+    })
+
+    const mapped = onError(tampered, { ...site, handling: 'failed' })
+
+    expect(mapped).not.toBe(tampered)
+    expect(mapped).toStrictEqual(new Error(PUBLIC_MESSAGE))
+    expect(console.error).not.toHaveBeenCalled()
+  })
+
+  // A segunda tentativa grava só a linha fixa, sem o erro.
+  it('registra a linha fixa mesmo quando a primeira tentativa falha', () => {
+    vi.mocked(console.error).mockImplementationOnce(() => {
+      throw new Error('stderr indisponível')
+    })
+
+    const mapped = onError(new Error('PRIVATE'), site)
+
+    expect(mapped).toStrictEqual(new Error(PUBLIC_MESSAGE))
+    expect(readLog(console.error)).toStrictEqual({
+      heads: [[LOG_MESSAGE, 'Error'], [LOG_MESSAGE]],
+      leaks: []
+    })
+  })
+
+  it('devolve o erro público mesmo sem destino de log', () => {
+    // As duas tentativas do hook falham; o mock volta ao normal depois, para
+    // não afetar os logs do próprio Vitest.
+    vi.mocked(console.error)
+      .mockImplementationOnce(logUnavailable)
+      .mockImplementationOnce(logUnavailable)
+
+    const mapped = onError(new Error('PRIVATE'), site)
+
+    expect(mapped).toStrictEqual(new Error(PUBLIC_MESSAGE))
+    expect(readLog(console.error)).toStrictEqual({
+      heads: [[LOG_MESSAGE, 'Error'], [LOG_MESSAGE]],
+      leaks: []
+    })
+  })
+
+  it('marca o estado do render só nas falhas de render', () => {
+    const { event, state } = renderProbe(createIntegrity)
+
+    onError(new Error('PRIVATE'), {
+      kind: 'server-function',
+      handling: 'thrown',
+      event
+    })
+    expect(state.hasErrors).toBe(false)
+    onError(new Error('PRIVATE'), { ...site, event })
+    expect(state.hasErrors).toBe(true)
+  })
+
+  it.each([
+    ['um redirect()', redirect('/')],
+    ['um respond()', respond({ ok: true }, { status: HTTP_NOT_FOUND })]
+  ])('marca o estado do render também com %s', (_name, control) => {
+    const { event, state } = renderProbe(createIntegrity)
+
+    expect(onError(control, { ...site, event })).toBeUndefined()
+    expect(state.hasErrors).toBe(true)
+    expect(console.error).not.toHaveBeenCalled()
+  })
+
+  it('instala o hook em desenvolvimento e imprime o erro original', async () => {
+    vi.stubEnv('DEV', true)
+    await loadRegistration()
+    const { createRenderIntegrity: createFresh } =
+      await import('@/infra/server/renderIntegrity/index.ts')
+    const { event, state } = renderProbe(createFresh)
+    const failure = new Error('PRIVATE')
+
+    expect(registeredHook()(failure, { ...site, event })).toBeUndefined()
+    expect(state.hasErrors).toBe(true)
+    // O log filtrado vem primeiro; o original volta ao terminal só em dev.
+    expect(readLog(console.error).heads[0]).toStrictEqual([
+      LOG_MESSAGE,
+      'Error'
+    ])
+    expect(vi.mocked(console.error).mock.calls.slice(1)).toStrictEqual([
+      [failure]
+    ])
+    expect(configureServerFunctionsServer).toHaveBeenCalledOnce()
+  })
+})

@@ -1,0 +1,392 @@
+# Testes
+
+[Voltar ao README](../README.md)
+
+## Organização e critérios
+
+Os arquivos de teste ficam em pastas `__tests__` ao lado do código que exercitam
+(`src/__tests__/`, pastas dos módulos, `tooling/release/__tests__/`). Os testes
+E2E são a exceção e vivem em `src/tests/pages/`, fora dos projetos do Vitest.
+
+A regra de lint `project/test-filename`, em
+`packages/solid-tooling/src/test-filename.ts`, na raiz do monorepo, confere os
+nomes: `Nome[.qualificador].ambiente.test.ts(x)` em `src`, com o ambiente
+`node`, `dom`, `browser` ou `e2e`; `Nome[.qualificador].test-d.ts(x)` para
+testes só de tipos; e `Nome[.qualificador].test.ts` em `tooling`. `Nome` é o
+assunto exato, que por padrão é a pasta que contém `__tests__`, como `isTheme`
+em `helpers/isTheme/__tests__/isTheme.node.test.ts`; assuntos com ponto, como
+`llms.txt`, também valem. Qualificadores são separados por ponto, começam com
+minúscula e seguem em camelCase, como em `Home.themeCss.e2e.test.ts`. Suítes sem
+módulo colocalizado, como as de `src/__tests__/` e `tooling/__tests__/`, e cada
+página em `src/tests/pages/<Pasta>/` declaram seus assuntos no mapa `subjects`
+desse arquivo. A primeira suíte E2E de uma página nova exige a entrada
+correspondente, e os arquivos dessas pastas usam só o ambiente `e2e`.
+
+Suítes extensas podem ser divididas por responsabilidade usando os
+qualificadores do nome. A preparação compartilhada fica em `fixtures.ts` dentro
+do mesmo `__tests__`; tipos e constantes compartilhados podem ficar em
+`types.ts` e `constants.ts`. Esses três módulos de apoio não são arquivos
+executáveis de teste. A exceção de nomes não se aplica às pastas de páginas E2E
+nem dispensa as regras de colocalização. Preserve o isolamento por arquivo e a
+limpeza dos recursos da fixture ao dividir uma suíte.
+
+O Knip mantém `src/**/__tests__/` fora do inventário de produção, e a cobertura
+exclui a mesma pasta: fixtures e módulos de apoio não entram nos percentuais da
+aplicação, embora os testes continuem executando seus helpers.
+
+Teste regras e resultados observáveis: recuperação após erro, navegação,
+seleção, persistência e sincronização. Componentes de apresentação simples não
+precisam de suíte própria para conferir montagem, textos estáticos, classes ou o
+funcionamento nativo de botões. Escolha o ambiente que cobre o comportamento e
+evite repetir o mesmo cenário em outro nível.
+
+Os testes em `tooling/**/__tests__/` usam a API `node:test`. O comando
+`vp run test:tooling` executa os módulos em Node, exceto `tooling/release/`, que
+roda em Bun com `vp run test:release`, o mesmo runtime da publicação. Ambos os
+comandos rodam em `validate` e no `pre-push`, fora dos comandos do Vitest:
+teste, cobertura, UI e watch. No CI, a suíte Node roda em toda execução, exceto
+no push da `main` cuja
+[prova de reaproveitamento](development.md#reutilização-da-validação-do-pr-na-main)
+dispensa o job `Tooling`; os testes de release rodam somente quando a automação
+ou suas dependências mudam, conforme o
+[guia de release](../tooling/release/README.md#validação-local-e-no-ci).
+
+## Ambientes
+
+O `vite.config.ts` define três projetos do Vitest, escolhidos pelo sufixo do
+arquivo:
+
+| Sufixo                    | Ambiente      | Uso                                         |
+| ------------------------- | ------------- | ------------------------------------------- |
+| `*.node.test.{ts,tsx}`    | Node          | Server functions, middleware, utilitários   |
+| `*.dom.test.{ts,tsx}`     | happy-dom     | Componentes sem dependência de browser real |
+| `*.browser.test.{ts,tsx}` | Chromium real | Interação, layout e APIs de browser         |
+
+Testes só de tipos (`expectTypeOf`) usam `Nome[.qualificador].test-d.ts`. Nenhum
+projeto do Vitest inclui esse sufixo, e o `vp run check:ci` verifica esses
+arquivos. Rodar um deles no Vitest falharia no `expect.requireAssertions`,
+porque `expectTypeOf` não conta como asserção em runtime.
+
+Os projetos `node` e `dom` usam `pool: 'threads'` e `css: false`. O projeto
+`node` não carrega happy-dom nem os plugins de componentes. O projeto `dom`
+carrega happy-dom, Solid e ícones, sem Nitro ou a configuração de SSR. O
+`@solidjs/vite-plugin` registra os matchers do `@testing-library/jest-dom` nesse
+projeto, sem `setupFiles` próprio, e os tipos vêm do `tsconfig.json`. A injeção
+só acontece em projetos de DOM fora do browser mode, como `happy-dom`, e é
+pulada quando algum `setupFiles` tem `jest-dom` no caminho. O projeto `browser`
+usa Chromium com CSS habilitado e o mesmo Lightning CSS da aplicação. Importe o
+CSS no teste quando precisar validar estilos.
+
+Localmente, os testes de navegador e E2E usam o Chromium instalado pelo
+Playwright. Com `CI=true`, usam o Chrome do runner pelo canal `chrome`.
+
+No modo `test`, o `vite.config.ts` carrega o `.env.test` versionado em
+`process.env` antes de iniciar o Vitest, então todas as variáveis do arquivo,
+com ou sem o prefixo `VITE_`, chegam aos workers dos projetos `node` e `dom`.
+`BASE_URL_TEST`, `HOST` e `PORT` também seguem por `test.env`, que o projeto
+`browser` expõe em `import.meta.env`; uma variável que os testes de navegador
+precisem ler entra nessa lista. O `tooling/playwright.ts` carrega o mesmo
+arquivo para os testes E2E. Nos dois casos, variáveis já exportadas no shell têm
+precedência sobre o arquivo. Sem o `.env.test`, o Vitest segue só com o ambiente
+do shell.
+
+## Isolamento e diagnóstico
+
+A configuração compartilhada limpa o histórico de mocks e, antes de cada teste,
+restaura spies, globais e variáveis de ambiente substituídos (`restoreMocks`,
+`unstubGlobals` e `unstubEnvs`), então os testes não precisam de `afterEach`
+para isso. `expect.requireAssertions` faz falhar o teste que termina sem nenhuma
+asserção. `expect.poll.interval` baixa de 50ms para 10ms o intervalo entre
+checagens de `expect.poll` e `expect.element`; `vi.waitUntil` não lê essa opção
+e recebe o intervalo em cada chamada. `fsModuleCache`, ativo por padrão no
+Vitest, guarda as transformações em `node_modules/.vitest-cache`, então só a
+primeira execução após uma mudança paga o custo. O isolamento por arquivo
+(`isolate`, padrão do Vitest) é intencional: não use `isolate: false`, mesmo
+quando o Vitest sugerir o ganho de tempo. Sem esse isolamento, arquivos passam a
+compartilhar `document` e o estado dos módulos, e um teste pode passar ou falhar
+conforme a ordem. No Browser Mode, o contexto ainda preserva cookies entre
+arquivos. O setup `src/tests/setup/browser/index.ts` restaura o idioma base
+antes de cada teste com `setLocale(baseLocale, { reload: false })`; cada teste
+pode escolher outro idioma durante sua execução. Os projetos DOM e browser
+começam em inglês. No GitHub Actions, o reporter `github-actions` anota as
+falhas no PR. Os `include` dos projetos exigem os sufixos `node`, `dom` e
+`browser`, então os arquivos E2E ficam de fora sem exclusão própria. Essas
+opções ficam na configuração raiz, e os projetos as herdam pelo `extends` padrão
+do Vitest, declarando só o que muda.
+
+Nos testes, importe de `vite-plus/test` em vez de `vitest` (a regra
+`vite-plus/prefer-vite-plus-imports` bloqueia o import direto). O linker isolado
+do Bun cria mais de uma cópia de `vitest` e dos pacotes `@vitest/*` no store,
+por causa do ciclo de peers entre eles
+([oven-sh/bun#46208](https://github.com/oven-sh/bun/issues/46208)): as cópias de
+`@vitest/browser-playwright` e `@vitest/coverage-v8` ligadas na raiz apontam
+para um `vitest` diferente do que roda. Pelo `vite-plus`, cada processo carrega
+uma só cópia de `vitest`; por isso o provider vem de
+`vite-plus/test/browser-playwright`, e um import direto de
+`@vitest/browser-playwright` traria a segunda. Várias entradas `vitest@` em
+`node_modules/.bun` são esperadas até o Bun publicar a correção
+([oven-sh/bun#46454](https://github.com/oven-sh/bun/pull/46454)). O contexto de
+requisição dos middlewares é testado com `provideRequestEvent` de
+`@solidjs/web/storage`. Cada middleware de `src/middleware/` tem a própria suíte
+em `__tests__/`, e `src/middleware/__tests__/middleware.node.test.ts` cobre o
+export padrão e a cadeia montada por `createMiddleware`.
+
+## Testes da aplicação completa
+
+`vp run test:e2e` executa os testes em `src/tests/pages/**/*.e2e.test.ts`,
+exceto os arquivos `*.production.e2e.test.ts` e a suíte isolada de carga
+`PublicationLoad.e2e.test.ts`, com Chromium. O Playwright gera o build e inicia
+o servidor de produção em `http://127.0.0.1:4317`, encerrando-o ao terminar. A
+porta precisa estar livre. Os cenários cobrem a página inicial, hidratação do
+seletor de tema, teclado, persistência e sincronização entre abas, cores no HTML
+inicial, layout e resposta 404 com navegação de volta ao início. Também cobrem a
+confidencialidade de erros do servidor: HTTP 500 de um backend local, exceção
+após a leitura, `Error` dentro do resultado, erro público e sucesso, cada um em
+SSR inicial, chamada pelo navegador e streaming, além de recarregamento ainda
+com falha, recuperação após o backend voltar e isolamento do bundle cliente. O
+SSR inicial também é verificado com JavaScript desativado. O detalhe está em
+[docs/server-errors.md](server-errors.md); o CI executa a suíte inteira, exceto
+quando a
+[prova de reaproveitamento](development.md#reutilização-da-validação-do-pr-na-main)
+dispensa `E2E (fixtures)`.
+
+### Carga da publicação
+
+Os testes funcionais de Markdown usam o projeto `markdown`, com um worker. O
+caso de isolamento de idiomas mantém 12 consultas, em pares concorrentes, para
+respeitar as duas vagas padrão. A suíte de carga verifica separadamente a recusa
+acima desse limite. O teardown dos logs aguarda os dois projetos.
+
+Execute `TEST_PUBLICATION_LOAD=true vp run test:e2e` para o piloto HTTP de
+publicação. A configuração seleciona somente `PublicationLoad`, com um worker,
+build próprio de fixtures e backend controlável. A flag é incompatível com rotas
+de produção. A suíte não roda junto dos demais E2E: suas requisições bloqueadas
+ocupam deliberadamente a capacidade de publicação e interfeririam nos outros
+testes. Esse piloto é uma execução explícita, fora da suíte padrão da CI.
+
+O primeiro cenário mantém renders de Markdown aguardando o backend até que a
+origem recuse uma requisição com 503. Confere no backend que a requisição
+recusada não começou o trabalho, consulta HTML normal durante a saturação e
+libera as operações para verificar recuperação e devolução das reservas. Uma
+segunda instância do mesmo build, na porta da primeira acrescida de dois, usa o
+mesmo backend e aceita trabalho enquanto a primeira está saturada. Os contadores
+de cada processo mostram por que o limite local se multiplica na frota.
+
+O segundo cenário converte um documento sintético com mais de 1 MB enquanto
+consulta páginas HTML. O endpoint `publication-probe`, exclusivo das fixtures,
+observa o atraso do event loop no processo do servidor, memória e contadores
+agregados. O gerador de carga roda em outro processo. Os anexos JSON dos testes
+preservam as amostras, o tamanho do corpo e os critérios definidos antes da
+medição: atraso máximo do event loop abaixo de 250 ms e maior duração das
+consultas HTML abaixo do maior valor da linha de base acrescido de 500 ms. Esses
+critérios são uma referência local inicial, não um SLO de produção.
+
+Rode o piloto sem outros benchmarks ou builds concorrentes. Comece com uma
+execução e investigue uma falha antes de repetir. As poucas amostras servem para
+detectar bloqueio e custo excessivo; não sustentam p99, capacidade da frota,
+comportamento do CDN ou cancelamento de sockets na Vercel. O pico de RSS é do
+processo inteiro, incluindo o runtime. O monitor é desativado no encerramento do
+teste, e o Playwright encerra os servidores que iniciou. A coleta só é válida
+quando o monitor confirma amostras antes e depois da carga. O estado do monitor
+fica em módulo compartilhado: o roteador empacota cada método HTTP
+separadamente.
+
+Outros dois cenários desconectam um cliente durante o render e pausam a leitura
+de uma resposta de 16 MiB. O primeiro confere que o backend pendente ainda ocupa
+a vaga após a desconexão e que ela é liberada quando o backend termina. O
+segundo observa a reserva de saída com produtor já encerrado, a recusa por falta
+de bytes e a liberação no prazo da fixture. Esses testes usam sockets locais;
+não medem a retenção do CDN da Vercel.
+
+Os dois últimos cenários consultam GET e HEAD da mesma parte em paralelo e
+removem uma parte após obter o índice, restaurando-a em seguida. Conferem corpos
+independentes, metadados equivalentes, 404 sem cache durante a ausência e
+recuperação após a restauração. A fonte controlável existe somente nas fixtures.
+
+`hydrationFinished()` lê o atributo `data-hydration-ended` do `<html>`,
+publicado pela API pública experimental `onHydrationEnd` do Solid. O registro
+fica dentro do callback de `hydrate()`, após construir a árvore: a entrada
+`async` pode executar antes do fim do shell, e o preload dos módulos pode adiar
+a passagem raiz. Registrar logo depois da chamada a `hydrate()` permite que o
+callback rode cedo demais. O SSR não publica o atributo; uma falha de preload
+que impede a execução da raiz também deixa o documento sem marcador.
+
+O atributo informa que a raiz executou e a fase de hidratação terminou. Isso
+inclui cancelamento e recuperação de erro, sem garantir conteúdo completo ou
+interação correta. Os testes também verificam conteúdo, controles e erros do
+navegador. No truncamento do stream, o runtime pode encerrar a fase e buscar os
+dados novamente no cliente, mantendo `Loading` enquanto essa nova busca espera.
+O marcador permanece em navegações no mesmo documento; um documento novo começa
+sem ele. Não o use para controlar a UI: preserve `isHydrating()` e `onSettled`
+nos componentes que precisam distinguir SSR e estado do cliente. O contrato
+atual considera uma única raiz de hidratação.
+
+Os E2E que conferem erros da página ou violações de CSP importam `test` e
+`expect` de `src/tests/helpers/pageWatchers/`. Os fixtures `pageErrors` e
+`cspViolations` começam a coletar antes do corpo do teste, então nenhum erro da
+primeira navegação escapa, e o teste só confere as listas. Páginas abertas com
+`context.newPage()` registram a própria coleta.
+
+Um fragmento cortado pelo truncamento é renderizado do zero no cliente e adota
+por id o que o servidor já tinha enviado
+([solidjs/solid#4319](https://github.com/solidjs/solid/pull/4319)). Os registros
+que o stream nunca assentou saem do registro antes dessa renderização
+([solidjs/solid#4414](https://github.com/solidjs/solid/pull/4414)), então só as
+leituras sem resposta do servidor são refeitas. Os casos de truncamento de
+`Hydration.parser.e2e.test.ts` cobrem essa nova busca, e o teste de erro contido
+de `Hydration.streaming.e2e.test.ts` confere que rejeições enviadas pelo
+servidor continuam adotadas, sem nova busca. Isso vale também para uma raiz que
+só começa a hidratar depois do `DOMContentLoaded`
+([solidjs/solid#4416](https://github.com/solidjs/solid/pull/4416)).
+
+`Hydration/` testa HTML bruto, JavaScript desligado, bundle retido ou abortado,
+recarga, replay de clique e navegação. Os cenários de parser e preload usam o
+evento `load` do módulo de entrada como prova de avaliação. Um proxy retém o
+corpo após `</head>`; outros casos encerram o stream antes dos fragmentos e
+antes do fim do shell, com o `hydrate()` estacionado até o `DOMContentLoaded`. A
+fixture de dois `Loading` usa gates do backend, liberados pelo teste, para
+conferir resolução fora de ordem, erro contido, descarte por navegação e
+recuperação após truncamento. As provas usam o build real, sem mock do Solid, e
+verificam a CSP nos caminhos de streaming.
+
+O build E2E usa `--mode e2e` com otimizações de produção e substitui
+`src/routes/` pela árvore `src/tests/fixtures/e2e/routes/`. As páginas e os
+endpoints reais que os E2E exercitam entram nela por reexport, como
+`export { default, route } from '@/routes/(base)/(home)/index.tsx'` e
+`export { GET } from '@/routes/(seo)/robots.txt/index.ts'`; uma página nova de
+`src/routes/` só aparece nessa suíte depois de ganhar o reexport correspondente.
+O backend simulado escuta somente em `127.0.0.1:4318` e é iniciado e encerrado
+pelo Playwright. O build normal (`vp run build`) usa apenas `src/routes/` e não
+inclui as fixtures nem o backend simulado. As portas 4317 e 4318 precisam estar
+livres.
+
+O reexport de páginas tem um custo nesse build. O manifesto pede só o `route` ao
+wrapper, mas o `?pick=` do filesystem-routing vale apenas para o módulo em que é
+aplicado, e o reexport aponta para a página sem esse filtro
+([solidjs/filesystem-routing#26](https://github.com/solidjs/filesystem-routing/issues/26#issuecomment-6719362377)).
+Por isso home, about, contact e privacy entram no carregamento inicial do build
+E2E com o componente e o CSS, enquanto no build normal continuam sob demanda. Os
+E2E dessas páginas não verificam a divisão de chunks. Um app que precise
+reexportar páginas sem esse custo deve declarar o `route` num módulo próprio,
+sem o componente, e reexportá-lo tanto da página quanto do wrapper.
+
+`vp run test:e2e:production` executa os arquivos `*.production.e2e.test.ts`
+contra um build normal, com a árvore real de `src/routes/`. Essa suíte verifica
+por HTTP que `/robots.txt`, `/llms.txt` e `/sitemap.xml` respondem sem
+redirecionamento, com conteúdo e headers esperados, e que os helpers locais não
+viram endpoints públicos. Também verifica a ausência de uma rota das fixtures e
+que a Home recebe os cabeçalhos de segurança do middleware real, já que o build
+E2E monta a cadeia pela fábrica `createMiddleware`. Os testes de Markdown
+verificam por HTTP a negociação e o `.md` de cada página.
+`AgentReadiness.build.production.e2e.test.ts` compara essas respostas com os
+arquivos gerados em `.vercel/output/static`, confere a precedência das rotas em
+`.vercel/output/config.json`, os cabeçalhos de segurança que as `routeRules`
+gravam nos estáticos e o `Content-Type` dos `.md` no `vercel.json`; por isso,
+depende dos artefatos do build local. `BuildOutput.production.e2e.test.ts`
+também lê esses artefatos: confere que `/.vite/` não sai no estático e que o
+build ID das server functions é o mesmo no client e no servidor. O
+`Hydration.preload` lê o manifesto do Vite em `.vercel/output/static/.vite/`,
+que só o build do modo `e2e` mantém. Os testes Node do middleware cobrem filtros
+semânticos, links relativos, links com esquema de script ou de dados, imagens
+sem `alt`, negociação, HEAD, erros, limites de tamanho e cancelamento. A
+elegibilidade compartilhada tem regressão para herança de noindex com override
+explícito do filho. As fixtures E2E exercitam páginas parametrizadas, resolução
+assíncrona e isolamento de idiomas. O teste de serialização do Markdown roda o
+render real com o hook instalado e cobre falhas de serialização, `onCleanup` que
+lança e fallback de `<Errored>` com HTML 200, inclusive por um `redirect()`; os
+E2E de streaming do Markdown cobrem renders com falha no servidor.
+
+A publicação também é conferida pelo inventário completo dos Markdown estáticos
+e pelos destinos internos do `llms.txt`. A verificação deduplica requisições e
+limita a concorrência; não busca links externos. Esses conjuntos não precisam
+coincidir com o sitemap: a seleção editorial, a elegibilidade de Markdown e a
+indexação têm controles próprios. O critério de tamanho do conteúdo da
+demonstração permanece separado dessa verificação, para aceitar páginas curtas
+nas aplicações derivadas.
+
+Os testes de tooling exercitam MIME incorreto, `.md.html`, redirects, omissões,
+UTF-8, corpo vazio e exemplos legítimos de HTML no Markdown. O agregado
+`llms-full.txt` exige seleção determinística, corpos completos, deduplicação,
+limite de bytes, caminhos contidos e publicação somente após a conclusão. Zero
+documentos selecionados deve omitir tanto o arquivo quanto seu anúncio; um
+agregado residual nessa condição deve falhar o build e preservar o arquivo para
+diagnóstico.
+
+No sitemap, os cenários de contagem e bytes são independentes, para que um teto
+não esconda o outro. Os testes cobrem grupos de idiomas indivisíveis, URLs
+localizadas longas, propriedade da rota pelo matcher nativo e fontes com
+timeout, cancelamento, entradas inválidas ou vazias. A fixture particionada
+exercita o índice e as partes por HTTP; uma consulta de parte deve ler somente
+seu lote. Mudanças entre requisições são testadas como consistência eventual,
+incluindo 404 com `no-store` depois de remover uma parte anunciada.
+
+Essas verificações cobrem o build e o preview local. Cache e regras de domínio
+da Vercel continuam exigindo conferência no site publicado.
+
+`AgentReadiness.content.production.e2e.test.ts` verifica a apresentação compacta
+da home, sem subtítulos nem rodapé no `main`, e preserva a exigência de conteúdo
+detalhado, com subtítulos, nas páginas internas. O HTML inicial e os links da
+topbar são inspecionados nos três idiomas. Após a hidratação, os links ficam
+visíveis e nomeados; a navegação, em telas estreitas e largas, mantém tema,
+idioma e o mesmo cabeçalho, sem alargar o documento. Em 375 px, os links
+transbordam e rolam dentro da barra, e os botões de tema e idioma, fora dela,
+continuam visíveis. O Markdown da home traz o título e nenhuma seção de segundo
+nível.
+
+`Home.csp.production.e2e.test.ts` confere que a CSP traz um nonce que muda a
+cada requisição, que todos os `<script>` e `modulepreload` do HTML bruto trazem
+esse nonce e que a Home hidrata sem violação de CSP no console, também com o
+tema `dark` ou `light` no cookie, sem atributo `style` no `<html>`. O comando
+usa a mesma `BASE_URL_TEST`, carrega as variáveis públicas no modo `production`
+e dispensa o backend simulado. No mesmo checkout local, execute as duas suítes
+em sequência, pois compartilham a porta e os artefatos de build. O CI executa
+ambas em paralelo, em runners separados para isolar portas e builds; a suíte de
+produção também valida o build final e é a única que roda quando a prova de
+reaproveitamento dispensa `E2E (fixtures)`.
+
+No push para `main`, o job de E2E de produção testa o build da Vercel que o
+deploy publica, conforme a
+[integração com a Vercel](../tooling/release/README.md#integração-com-a-vercel).
+O Playwright recebe somente as variáveis públicas `VITE_*` do arquivo de
+ambiente obtido da Vercel, preservando valores já definidos no processo;
+credenciais de backend desse arquivo não são repassadas ao preview. Com
+`TEST_PREBUILT=true`, o Playwright inicia somente o preview.
+
+PRs, inclusive de forks, mantêm os builds locais sem credenciais da Vercel. Os
+comandos locais também continuam compilando por padrão. Para conferir um build
+de produção já gerado, use `TEST_PREBUILT=true vp run test:e2e:production`. O
+modo exige rotas de produção; usá-lo com a suíte de fixtures causa erro. Um
+build do modo `e2e` em `.vercel/output`, deixado por um `vp run test:e2e`
+anterior, é recusado antes de o preview iniciar. Os testes de
+`tooling/__tests__/playwright.test.ts` executam os comandos de startup com um
+CLI simulado e verificam a quantidade de builds em cada modo.
+
+Use `vp run test:e2e:ui` para abrir a interface interativa do Playwright. Com
+`CI=true`, os E2E usam dois workers; localmente, mantêm o paralelismo padrão.
+`OutsideError.e2e.test.ts`, que confere a contagem exata de linhas no log do
+servidor, roda no projeto `server-logs`, declarado como `teardown` do `chromium`
+em `tooling/playwright.ts`: começa depois que os demais testes terminam, mesmo
+quando algum falha, e executa o arquivo em ordem num único worker. Uma execução
+filtrada com testes do `chromium` também roda esse arquivo no fim, e `--no-deps`
+o dispensa; para rodar só ele, passe o caminho do arquivo ou da pasta
+`OutsideError`. Uma linha gravada com atraso por uma requisição anterior ainda
+alteraria a contagem. Para comparar tempos ou investigar uma falha de
+concorrência, use `CI=true vp run test:e2e --workers=1` e
+`CI=true vp run test:e2e --workers=2`.
+
+Os relatórios HTML ficam em `playwright-report/e2e/` e
+`playwright-report/production/`. Com `CI` definido, eles guardam só os testes
+que falharam, ficaram instáveis ou foram interrompidos; sem a variável, incluem
+todos. Nas execuções locais com `CI=true`, `PLAYWRIGHT_HTML_ONLY_FAILURES=false`
+devolve o relatório completo. Os traces de falhas ficam em `test-results/e2e/` e
+`test-results/e2e-production/`, respectivamente. Os testes do Vitest Browser
+Mode guardam traces de falhas em `test-results/browser-traces/` e os screenshots
+de falha em `.vitest/attachments/`. Quando o job `Quality` falha, o CI envia os
+dois diretórios como artefato. Esses artefatos são ignorados pelo Git. Os E2E
+têm comando separado e não fazem parte de `vp run test` ou `vp run validate`.
+
+## Conferência em dispositivo físico
+
+Para conferir a interface em um celular na mesma rede, execute
+`vp run dev:phone` e abra a URL de rede exibida pelo Vite. Esse comando
+disponibiliza o servidor de desenvolvimento nas interfaces de rede da máquina.

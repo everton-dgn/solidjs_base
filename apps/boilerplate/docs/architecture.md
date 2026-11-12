@@ -1,0 +1,186 @@
+# Arquitetura e convenções
+
+[Voltar ao README](../README.md)
+
+## Rotas e organização
+
+As páginas em `src/routes` usam `export default` e são descobertas pelo
+`filesystem-routing`. `index.tsx` define `/`, `[id].tsx` define um parâmetro
+dinâmico e `[...404]/index.tsx` captura caminhos desconhecidos. O
+`export const route` define opções como `preload`, usado pelo fallback para
+responder com HTTP 404. Componentes e outros módulos usados por uma única rota
+ficam na pasta dela, com dois ou mais auxiliares agrupados em `helpers/`: sem
+`export default` nem handler HTTP, eles não são registrados como páginas. Não é
+necessário editar `src/router.ts` ao adicionar uma página.
+
+O arquivo `src/routes/(base).tsx` define o layout compartilhado com `Topbar` e
+renderiza `props.children` com `RouteSectionProps`. Sua pasta `(base)/` contém
+`(home)/index.tsx`, `about/index.tsx`, `contact/index.tsx`, `privacy/index.tsx`
+e `[...404]/index.tsx`. Os grupos entre parênteses não aparecem na URL. O router
+usa o caminho sem idioma para matching; a Home responde em `/pt`, `/en` e `/es`,
+e o fallback mantém a barra de navegação. `App.tsx` mantém o provider, o SEO e a
+boundary global, que também captura falhas no layout. As fixtures E2E têm sua
+própria árvore e reexportam esse layout para as páginas, incluindo Home e 404.
+
+Rotas de API são módulos de `src/routes` que exportam `GET`, `POST` ou outro
+método HTTP em vez de `export default`. O `createAPIHandler` em
+`src/middleware/index.ts` responde a essas requisições antes do SSR e deixa
+passar as demais. Depois dele, `restrictPageMethods` responde 405, com
+`Allow: GET, HEAD`, a qualquer outro método, como POST ou OPTIONS, em caminhos
+de página sem handler: o render trataria o pedido como um GET no idioma base.
+Numa rota de API sem handler para o método, como `POST /robots.txt`, o 405 traz
+no `Allow` os métodos que a rota atende. O caminho relativo a `src/routes` vira
+a URL sem a extensão, o segmento `index` e os grupos entre parênteses. Assim,
+`(seo)/sitemap.xml/index.ts` atende `/sitemap.xml`; colchetes continuam
+indicando parâmetros dinâmicos. Uma rota pode devolver `Response.redirect()`:
+como os headers dessa resposta são imutáveis, o middleware grava os cabeçalhos
+de segurança numa cópia.
+
+Para correlacionar os eventos de uma requisição, use `getTraceContext()` de
+`@solidjs/web`: ele continua o `traceparent` W3C recebido ou cria um trace para
+a requisição.
+
+O plugin gera `src/@types/routes.d.ts` com os caminhos tipados durante o build
+ou desenvolvimento. Mantenha essa declaração versionada e atualizada ao mudar as
+rotas, para permitir typecheck antes de iniciar o Vite.
+
+O [tsconfig.json](../tsconfig.json) mantém TypeScript em modo estrito, com
+`erasableSyntaxOnly` para restringir a sintaxe TypeScript que exige
+transformação além da remoção de tipos.
+
+Tipos, estilos específicos, testes e primitives usados por um único componente
+ficam junto dele, incluindo `Button/styles.module.css`. As utilidades globais
+ficam em `theme/class/`, e `theme/tokens/` concentra os valores visuais
+consumidos pelo CSS. `helpers/` contém funções puras compartilhadas; um módulo
+usado por uma única rota fica ao lado dela em `routes/`, sem export default nem
+handler HTTP, e por isso não vira rota. `infra/adapters/` isola as APIs do
+navegador, e `infra/server/` concentra o transporte de backend, a proteção das
+operações, a criação de erros públicos e o estado de integridade do render. Os
+módulos de servidor usam `server-only`; consulte o
+[contrato de erros no servidor](server-errors.md). Nas primitives e nos helpers
+do cliente, o prefixo `make` identifica utilitários sem estado reativo próprio,
+como `makeThemeChannel`, que devolve seu descarte, e o prefixo `create`
+identifica primitives com estado ou efeitos reativos, como `createTheme`. No
+servidor, nas rotas e em `infra/`, `create` continua nomeando fábricas sem
+reatividade, como `createIndexRoute` e `createPublicationController`.
+
+`entry-client/` reúne os módulos que só o `entry-client.tsx` consome e que rodam
+uma vez, no boot do navegador, antes de `hydrate()`. O prefixo `install`
+identifica quem registra ouvintes e ganchos globais, como o evento
+`vite:preloadError` e as vagas únicas de `configureClientErrors` e do cliente de
+server functions, e devolve a função que desfaz o registro:
+`installLocaleHistoryGuard` e `installOutdatedPageDetection`. Diferente de
+`create`, não tem estado reativo nem owner; diferente de `make`, configura o
+`window` ou um runtime inteiro em vez de abrir um recurso isolado. O
+`entry-client.tsx` reúne os descartes em um único `import.meta.hot.dispose`. A
+pasta pertence à camada de entrada, e `helpers`, `infra` e `primitives` não a
+importam.
+
+Imports de CSS Modules usam o nome `S`, por exemplo,
+`import S from './styles.module.css'`. A regra local
+`project/css-modules-import` do lint exige esse formato.
+
+## Coesão dos módulos de tooling
+
+A divisão segue a
+[regra de coesão do AGENTS.md](../AGENTS.md#coesão-e-tamanho-dos-módulos).
+`packages/solid-tooling/src/lint.ts`, na raiz do monorepo, monta a configuração
+e seus overrides. Os grupos em `packages/solid-tooling/src/lint/rules/` reúnem
+as regras de JavaScript, imports, TypeScript, Unicorn, testes e integrações com
+o ambiente. Os valores das regras e a ordem dos overrides pertencem ao mesmo
+contrato, mesmo quando vivem em módulos distintos.
+
+`tooling/release/automatic-release.ts` coordena a preparação e a publicação. Os
+módulos e os limites dos jobs estão no
+[guia de release](../tooling/release/README.md). Em
+`tooling/ciReuse/decideReuse/`, a validação da evidência fica na entrada;
+`hasMainCaches/` verifica a disponibilidade dos caches, e `types.ts` concentra
+os contratos extensos usados nessa decisão.
+
+## Dados e infraestrutura
+
+A publicação de conteúdo mantém a coordenação nas entradas dos módulos.
+`middleware/markdownContent/` decide a representação da requisição; seus helpers
+locais cuidam do roteamento Markdown, da renderização, das respostas HTTP e do
+inventário estático. Em `routes/(seo)/sitemap/helpers/sitemapService/`, os
+helpers reúnem o registro das fontes, a leitura e validação das entradas, o
+planejamento do índice e a publicação das respostas. O cache permanece junto do
+registro que o utiliza.
+
+`infra/server/publication/` mantém juntos os contadores e o ciclo de vida que
+retém capacidade até o término do produtor e das operações filhas. O consumo e
+cancelamento dos corpos HTTP ficam em um helper local. Os limites pequenos
+usados apenas pelo controlador permanecem no próprio arquivo.
+
+`data/formatters/` (formatação de datas, moedas e números) e `data/errorApi/`
+(normalização de erros de domínio de APIs) são convenções para os primeiros
+consumidores e ainda não contêm módulos. Erros públicos exclusivos do servidor
+ficam em
+[`infra/server/publicErrors/`](../src/infra/server/publicErrors/index.ts), junto
+da proteção das operações de backend; requisições e persistência ficam em
+`infra/`.
+
+## Camadas dos componentes
+
+`src/components/` usa as três primeiras camadas do
+[Atomic Design](https://atomicdesign.bradfrost.com/chapter-2/). A camada sai dos
+componentes que cada um junta, conferidos pelos imports e pelos exports. O
+tamanho do arquivo e a quantidade de marcação interna não mudam a camada.
+
+- `atoms/` não renderizam outro componente. Podem importar estilos, contexto,
+  primitives e helpers: o `Textarea` reaproveita o CSS do `Input` e continua
+  atom. A marcação própria também não conta, então o `DropdownMenu`, que recebe
+  o gatilho pronto, e o `ToastProvider` ficam aqui, com `Button`, `Input`,
+  `LocalizedLink` e `PageBadge`.
+- `molecules/` juntam atoms numa unidade com uma função. O `ThemeToggle` e o
+  `LocaleSwitcher` montam `Button` e `DropdownMenu`, o `OutdatedPageNotice` e o
+  `Dialog` montam `Button`, o `SiteContent` monta `LocalizedLink` e o `Provider`
+  monta o `ToastProvider`. Um componente que exporta as próprias peças para o
+  consumidor montar também entra aqui: o `PageHero` junta o `PageHeroTitle` e o
+  `PageHeroDescription`, que só funcionam dentro dele.
+- `organisms/` juntam molecules, com ou sem atoms, numa seção distinta da
+  interface. O `Topbar` é o cabeçalho, o `SiteArticle` monta o corpo das páginas
+  de conteúdo e o `ErrorFallback` monta a tela de erro sobre o `PageHero`.
+
+A regra `architecture/layer-imports` confere só a direção dos imports, descrita
+na próxima seção. A camada de cada componente é conferida na revisão: escolha a
+camada ao criar o componente e, quando ele passar a renderizar outro da mesma
+camada, mova a pasta uma camada acima e atualize os imports.
+
+## Dependências entre camadas
+
+`architecture/layer-imports`, em
+`packages/solid-tooling/src/architecturePolicy/index.ts`, verifica as
+dependências diretas de imports e reexportações pelos caminhos locais. As
+restrições são:
+
+| Origem                                                                          | Dependências proibidas                                       |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `helpers`, `constants`, `@types`, `data`, `infra`, `theme`, `i18n`, `paraglide` | `primitives`, `components`, `routes` e entradas da aplicação |
+| `primitives`                                                                    | `components`, `routes` e entradas da aplicação               |
+| `components/atoms`                                                              | `components/molecules` e `components/organisms`              |
+| `components/molecules`                                                          | `components/organisms`                                       |
+| Qualquer módulo de produção em `src`                                            | Testes, fixtures de `src/tests` e `tooling`                  |
+
+As entradas são `App`, `Document`, `entry-server`, `entry-client`, `router` e
+`middleware`. A classificação parte da raiz de `src`: primitives colocalizadas
+dentro de um componente continuam na camada desse componente. Testes
+(`*.test.*`, `__tests__` e `src/tests`) podem importar as camadas que verificam.
+A declaração gerada `src/@types/routes.d.ts` continua excluída do lint.
+
+Nos diagnósticos, `base` identifica as pastas da primeira linha, `entry`
+identifica as entradas e `source` os demais módulos de `src`.
+
+A regra normaliza `@/`, `/src/` e caminhos relativos. Verifica reexportações,
+imports só de tipo e `import()` com string ou template sem interpolação. Pacotes
+externos, módulos virtuais e caminhos calculados não são resolvidos. Cada
+declaração é verificada no arquivo que a contém, sem seguir a cadeia de módulos
+importados. `import.meta.glob` e outros carregadores exigem revisão. Ao criar
+uma camada ou alias, atualize a classificação e os testes. O lint de camadas não
+substitui o contrato de [erros de servidor](server-errors.md).
+
+A implementação usa `defineRule` e `definePlugin` de `vite-plus/lint/plugins`,
+com `RuleTester` de `vite-plus/lint/plugins-dev`, sem dependência adicional.
+Execute os comandos a partir da raiz do projeto. `vp run check:ci` verifica o
+código atual; `vp run test:tooling` testa a política, seu registro no lint e as
+restrições de backend. Os dois comandos rodam no CI.

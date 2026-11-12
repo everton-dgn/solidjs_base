@@ -1,0 +1,46 @@
+import type { JSX } from '@solidjs/web'
+
+type DropdownMenuAlign = 'start' | 'end'
+
+type DropdownMenuOption<Value extends string = string> = {
+  value: Value
+  label: string
+  icon?: JSX.Element
+  disabled?: boolean
+}
+
+export type DropdownMenuTriggerProps = {
+  ref: (element: HTMLButtonElement) => void
+  id: string
+  type: 'button'
+  'aria-haspopup': 'menu'
+  'aria-expanded': 'true' | 'false'
+  'aria-controls': string | undefined
+  onClick: (event: MouseEvent) => void
+  onKeyDown: (event: KeyboardEvent) => void
+}
+
+export type DropdownMenuProps<Value extends string = string> = {
+  trigger: (props: DropdownMenuTriggerProps) => JSX.Element
+  label?: string
+  align?: DropdownMenuAlign
+  class?: string
+  contentClass?: string
+  items?: readonly DropdownMenuOption<Value>[]
+  value?: Value
+  onChange?: (value: Value) => void
+}
+
+export type DropdownMenuRefs = {
+  trigger?: HTMLButtonElement
+  content?: HTMLElement
+}
+
+export type DropdownMenuState = {
+  id: string
+  isOpen: () => boolean
+  refs: DropdownMenuRefs
+  close: (shouldRestoreFocus: boolean) => void
+  focusAt: (index: number) => void
+  openAt: (index: number) => void
+}

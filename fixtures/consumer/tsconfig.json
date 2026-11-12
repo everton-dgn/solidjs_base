@@ -1,5 +1,5 @@
 {
-  "extends": "@everton-dgn/solid-tooling/tsconfig.base.json",
+  "extends": "@evertondgn/solid-tooling/tsconfig.base.json",
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"]

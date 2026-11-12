@@ -6,9 +6,9 @@ atualização de versão, sem copiar o código para dentro do próprio repositó
 
 ## Pacotes
 
-| Pacote                       | Conteúdo                                                        |
-| ---------------------------- | --------------------------------------------------------------- |
-| `@everton-dgn/solid-tooling` | Lint, formatador, regras próprias de lint e base do TypeScript. |
+| Pacote                      | Conteúdo                                                        |
+| --------------------------- | --------------------------------------------------------------- |
+| `@evertondgn/solid-tooling` | Lint, formatador, regras próprias de lint e base do TypeScript. |
 
 O código de `packages/solid-tooling/src` veio do `tooling/` do
 `boilerplate_solidjs`, no commit `31de7bf`.
@@ -38,7 +38,7 @@ Instalação, configuração e entradas estão no
 ## Versionamento e publicação
 
 Cada pacote tem a própria versão, no `package.json` dele, e é publicado de forma
-independente no npm público, no escopo `@everton-dgn`. A raiz do workspace é
+independente no npm público, no escopo `@evertondgn`. A raiz do workspace é
 privada e não tem versão publicável.
 
 O [release-please](https://github.com/googleapis/release-please) cuida das

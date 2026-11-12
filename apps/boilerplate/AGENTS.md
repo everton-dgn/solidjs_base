@@ -1,0 +1,559 @@
+<!--VITE PLUS START-->
+
+# Using Vite+, the Unified Toolchain for the Web
+
+This project is using Vite+, a unified toolchain built on top of Vite, Rolldown, Vitest, tsdown, Oxlint, Oxfmt, and Vite Task. Vite+ wraps runtime management, package management, and frontend tooling in a single global CLI called `vp`. Vite+ is distinct from Vite, and it invokes Vite through `vp dev` and `vp build`. Run `vp help` to print a list of commands and `vp <command> --help` for information about a specific command.
+
+Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.dev/guide/.
+
+## Built-in Commands vs Scripts
+
+`vp <name>` runs a built-in command. `vp run <name>` runs a `package.json` script or a `vite.config.ts` task. Scripts cannot overwrite built-ins, so `vp dev` and `vp run dev` may do different things. Check `package.json` and `vite.config.ts` first, and run `vp run <name>` when the project defines a script or task with that name.
+
+## Running Scripts
+
+Run TypeScript and JavaScript files with `vpx <file>`, for example `vpx ./scripts/seed.ts --dry-run`. It handles enums, decorators, JSX, and tsconfig `paths`, so do not add `tsx` or `ts-node` to run scripts. `vpx --watch <file>` reruns the file when a file it uses changes, in place of `tsx watch`. `vp node <file>` runs plain Node.js.
+
+## Tool Versions
+
+Run `vp toolchain` to show versions and relationships in the active Vite+
+release. Add a tool name to select part of the graph. For example, run
+`vp toolchain vite`. Use `--global` to ignore the local `vite-plus` package. Use
+`vp why <package>` to show the package-manager dependency graph.
+
+## Review Checklist
+
+- [ ] Run `vp install` after pulling remote changes and before getting started.
+- [ ] Run `vp check` and `vp test` to format, lint, type check and test changes.
+- [ ] Check if there are `vite.config.ts` tasks or `package.json` scripts necessary for validation, run via `vp run <script>`.
+- [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
+
+<!--VITE PLUS END-->
+
+## Esta cópia no monorepo
+
+- Esta pasta é uma cópia do `boilerplate_solidjs` no commit `31de7bf`, usada
+  para testar os pacotes do monorepo numa aplicação completa. O `README.md`
+  desta pasta lista o que mudou em relação ao original.
+- As regras de lint, o formatador e o tsconfig base vêm do pacote
+  `@evertondgn/solid-tooling`. Os caminhos `packages/solid-tooling/src/...`
+  citados aqui ficam na raiz do monorepo. Ao mudar uma regra, mude no pacote
+  e rode `vp run test` na raiz do monorepo.
+- As seções sobre automação de release, workflow de CI, hooks de Git e deploy
+  na Vercel descrevem o repositório original e não valem nesta cópia.
+
+## Dimensionamento das aplicações derivadas
+
+- Este repositório é um boilerplate para aplicações de qualquer porte. As
+  páginas, os dados e o tráfego demonstrativos não representam o tamanho das
+  aplicações que serão construídas com ele. Nunca use o tamanho atual da
+  demonstração como justificativa para descartar requisitos de escala.
+- Ao escolher uma solução, examine o crescimento do volume de dados, da
+  concorrência e do número de idiomas. Identifique custo por requisição e por
+  build, memória, armazenamento e limites do ambiente de execução. Declare
+  quais custos crescem com o conjunto inteiro e quais ficam limitados por lote
+  ou operação.
+- Considere aplicações pequenas e grandes, com dados estáticos ou dinâmicos,
+  múltiplas instâncias e atualizações concorrentes quando esses cenários
+  afetarem o contrato. Limites operacionais devem ser explícitos e
+  configuráveis quando pertinente, com comportamento definido ao excedê-los.
+  Não prometa capacidade ilimitada.
+- Prefira caminhos que funcionem com a configuração padrão e permitam crescer
+  sem reescrever o contrato público. Se determinada escala exigir paginação,
+  processamento fora da requisição ou persistência compartilhada, implemente
+  o contrato necessário ao escopo e documente a responsabilidade da aplicação
+  derivada. Não trate cache por processo como persistência compartilhada.
+- Dimensione a validação pelos riscos e pelas fronteiras reais, incluindo
+  falhas e concorrência. Use cenários determinísticos para correção e medições
+  isoladas para custo; meça um piloto antes de ampliar a carga. Os testes da
+  demonstração não comprovam capacidade de produção.
+- Considerar aplicações de qualquer porte não autoriza infraestrutura
+  especulativa, dependências novas ou ampliação de escopo. Explicite o limite
+  da solução atual e a mudança concreta exigida para ultrapassá-lo.
+
+## Runtime dos comandos
+
+- Use `vp run dev` e `vp run build`: os scripts chamam o CLI local do Vite+
+  com Bun explicitamente. Os comandos embutidos `vp dev` e `vp build` seguem
+  a seleção de Node do CLI global.
+- Preserve Node no Vitest, nos testes de tooling fora de `tooling/release/` e
+  no SSR de produção até as incompatibilidades descritas em
+  [desenvolvimento](docs/development.md) serem resolvidas e verificadas.
+  O Nitro escolhe o runtime da função Vercel pelo `engines.node`, então
+  executar o build em Bun não troca a função para Bun.
+- O Knip, o lint de CSS, o backend simulado de E2E e a automação de release executam
+  em Bun. Valide a automação com `vp run test:release`, também executado no
+  pre-push. No CI, essa suíte roda quando a automação ou suas dependências
+  mudam; a publicação mantém as verificações reais sem repetir os testes.
+  Só o job de plano da release instala dependências e importa o Vite+
+  (`tooling/release/plan-release.ts`); os jobs com escrita usam apenas Git,
+  `gh` e módulos `node:`. O pre-push roda o Knip (`vp run dead-code`) em
+  paralelo com `test:tooling` e `test:release`; no CI, o Knip roda no job
+  `Quality`.
+- As tarefas do `vite.config.ts` que executam arquivos de `tooling/`, como o
+  `i18n:generate` e o lint de CSS, usam `bun tooling/<arquivo>.ts`. O `vpx`
+  recomendado no bloco gerenciado acima vale para scripts avulsos, fora desses
+  fluxos.
+- Para validar mudanças, use `vp run check:ci` e `vp run test`, não os
+  comandos embutidos `vp check` e `vp test` citados acima: eles pulam o
+  `i18n:generate` e o lint de CSS.
+
+## Documentação de dependências
+
+- Não repita números de versões de dependências em guias, instruções ou
+  comentários. Consulte `package.json`, `bun.lock`
+  e o workflow responsável por ferramentas instaladas no CI.
+- Documente o contrato, os limites e os comandos de validação. Ao atualizar
+  dependências, revise o comportamento e mantenha os números nos arquivos que
+  controlam a instalação.
+
+## Arquivos gerados do i18n
+
+- O CLI oficial do Paraglide pode substituir e remover módulos em
+  `paraglide/`. Temporários produzidos pelo gerador em `.paraglide/`
+  também podem ser removidos diretamente, assim como as raízes temporárias
+  criadas pelos testes de `tooling/i18n/`. A dispensa de lixeira vale somente
+  para esses artefatos; catálogos autorais em `src/**/i18n/` continuam
+  seguindo a regra de exclusão pela lixeira.
+
+## Nomes de arquivos e pastas de módulos
+
+- Quando um módulo exportar uma única função, componente ou classe, use o
+  mesmo nome e capitalização no arquivo ou na pasta que contém seu `index`:
+  `makeSystemTheme/index.ts`, `Button/index.tsx` ou `readBackend/index.ts`.
+  Arquivo solto fora de uma pasta `index` segue o kebab-case exigido por
+  `unicorn/filename-case`.
+- Módulos com várias exportações relacionadas são exceção. Use um nome que
+  descreva a responsabilidade compartilhada, como `themeStorage` para
+  `readTheme` e `saveTheme`. Quando houver uma exportação principal e funções
+  auxiliares relacionadas, o módulo pode manter o nome da principal, como
+  `createMenuState` com `queryMenuItems`.
+- Tipos e constantes auxiliares não tornam, por si só, um módulo de função
+  única uma exceção. Funções internas não exportadas também não interferem
+  na escolha do nome.
+- Não separe exportações relacionadas apenas para satisfazer esta convenção
+  nem acrescente exportações artificiais para evitar uma renomeação.
+  Exportações sem responsabilidade comum devem ser avaliadas separadamente;
+  a regra de nomes não autoriza uma reorganização automática.
+- Preserve nomes exigidos pelo framework, pelo roteamento ou por ferramentas,
+  além de arquivos gerados e módulos de suporte como `types.ts`, `constants.ts`
+  e `context.ts`. Esta regra não exige renomear pastas organizacionais.
+- Ao renomear um módulo, atualize seus imports, referências documentais e
+  nomes dos testes correspondentes, preservando os sufixos de ambiente.
+
+## JavaScript e renderização no servidor
+
+- A aplicação exige JavaScript para os controles interativos. Não crie
+  fallbacks de navegação em `noscript`, classes ou scripts para ocultar
+  controles quando JavaScript estiver desativado, nem suporte alternativo
+  específico para esse cenário.
+- Preserve SSR, SEO e testes do HTML inicial: eles verificam o conteúdo entregue
+  pelo servidor e a hidratação, sem prometer operação da aplicação sem JavaScript.
+
+## Traduções
+
+- Idiomas e idioma base vêm de `project.inlang/settings.json`. Cada consumidor
+  mantém `i18n/{pt,en,es}.json` colocalizados. Compartilhe em
+  `src/i18n/` somente a partir do segundo consumidor de produção.
+- Use IDs globais com prefixo do dono e os mesmos parâmetros nos três idiomas.
+  Importe `m` de `@paraglide/messages.js` e `Locale` de
+  `@paraglide/runtime.js`; não edite `paraglide/` nem `.paraglide/`.
+- Chame mensagens no componente ou em getters. Não capture idioma nem texto
+  traduzido no topo de módulo compartilhado entre requisições SSR.
+- Links de páginas usam `LocalizedLink`, a navegação programática usa
+  `createLocalizedNavigate()` e os redirects usam `localizedRedirect()`.
+  `localizeHref()` fica para compor URLs de SEO e de índices. `paths` mantém
+  os caminhos tipados sem idioma. Endpoints e assets ficam sem prefixo
+  (`shouldLocalize: false`).
+- Preserve `AsyncLocalStorage`, o corpo original das server functions, a
+  navegação de documento na troca de idioma e a tolerância a cookies bloqueados.
+- Rode `vp run i18n:generate` para conferir paridade, duplicatas e parâmetros.
+  Mudanças de integração exigem typecheck, tooling, testes e os E2E de i18n.
+  A divisão é por página e mensagem; cada módulo inclui os três idiomas usados.
+
+## Tipos TypeScript
+
+- Nunca escreva tipagens inline grandes ou estruturadas em parâmetros,
+  retornos, callbacks ou anotações de variáveis, inclusive nos testes. Extraia
+  um `type` nomeado antes de usar. Considere estruturada uma tipagem com
+  múltiplas propriedades, objetos aninhados ou membros que sejam funções;
+  caber em uma linha não libera a tipagem inline.
+- Por exemplo, use `create(context: Context): RuleListeners`, com
+  `type RuleListeners = { Program: (node: object) => void }` declarado à parte.
+  Não use `create(context: Context): { Program: (node: object) => void }`.
+- Tipos simples como `string`, `Theme`, `Theme[]` e `string | undefined`
+  podem permanecer inline. Antes de entregar, revise as assinaturas e
+  anotações adicionadas para extrair estruturas inline. Lint aprovado não
+  dispensa essa revisão. Siga a seção "Localização de tipos" ao extraí-las.
+- Use `type` para declarar tipos de objetos, props e contratos em código e
+  testes. O lint aplica `typescript/consistent-type-definitions` com `type`.
+- Preserve `interface` quando houver necessidade de mesclagem de declarações:
+  `RequestEventLocals` em `src/@types/solid.d.ts`, `ImportMetaEnv` em
+  `src/@types/env.d.ts` e `RouteInfo` em `src/@types/router.d.ts` estendem
+  interfaces de terceiros. Mantenha a exceção do lint restrita aos arquivos
+  que precisam desse comportamento.
+- Não edite declarações geradas para trocar `interface` por `type`.
+  `src/@types/routes.d.ts` pertence ao gerador `filesystem-routing` e permanece
+  excluído do lint.
+
+## Localização de tipos
+
+- Declare tipos pequenos e exclusivos de um arquivo no próprio arquivo,
+  próximos do código que os utiliza.
+- O critério para criar `types.ts` é o número de arquivos que importam o tipo.
+  Com um único consumidor, declare no próprio arquivo e não exporte. O
+  `types.ts` começa a valer a partir de dois consumidores, ou quando o bloco
+  passar de cerca de 30 linhas e atrapalhar a leitura da implementação.
+- Não exporte um tipo local apenas para permitir que outro arquivo o importe
+  de um componente, hook, serviço ou outra implementação.
+- Quando um tipo precisar ser compartilhado, mova-o para um arquivo de tipos
+  próximo da funcionalidade e atualize os consumidores.
+- Separe também tipos extensos quando suas declarações dificultarem a leitura
+  da implementação, mesmo que tenham apenas um consumidor.
+- Não crie um arquivo separado para cada tipo pequeno nem concentre tipos
+  sem relação em um `types.ts` global.
+- Preserve os tipos que precisam ser exportados como parte de uma API pública
+  intencional.
+
+## Localização de módulos
+
+- O critério de consumidores vale para qualquer módulo, não só para funções:
+  helpers, constantes, configurações, schemas, builders e tipos. As pastas
+  globais `src/helpers/`, `src/constants/` e os tipos compartilhados em
+  `src/@types/` recebem só módulos com dois ou mais consumidores de produção.
+  Um módulo usado por uma única rota fica dentro da pasta dela em
+  `src/routes/`, e um módulo usado por um único componente fica dentro da
+  pasta do componente.
+- Constante de consumidor único fica no próprio arquivo que a usa. Quando for
+  configuração que o projeto edita, vai para um `constants.ts` na pasta do
+  consumidor, como `DropdownMenu/constants.ts` e
+  `(seo)/robots.txt/constants.ts`. Nunca em `src/constants/` antes do segundo
+  consumidor.
+- Extraia constantes para expressar significado de domínio, configuração ou
+  um contrato compartilhado. Dois consumidores, por si só, não justificam um
+  módulo compartilhado: valores idiomáticos como o `-1` de `.at(-1)` ficam no
+  ponto de uso. Não crie um nome, arquivo ou comentário apenas para explicar
+  a semântica evidente de uma API nativa.
+- Códigos HTTP usados pela aplicação ficam em `src/constants/http.ts`, mesmo
+  quando um código ainda tiver um único consumidor. O arquivo reúne os status
+  do protocolo; acrescente apenas códigos efetivamente usados. Testes podem
+  manter valores esperados literais para validar o contrato de forma independente.
+- Rota que passa a precisar de módulos locais vira pasta com `index.ts`:
+  `robots.txt.ts` passa a `robots.txt/index.ts`, e o que a rota consome fica
+  dentro dessa pasta. `sitemap.xml/`, `llms.txt/` e `robots.txt/` seguem esse
+  formato.
+- Quando uma rota ou componente tiver dois ou mais módulos auxiliares locais,
+  agrupe-os em uma pasta `helpers/` dentro da pasta da rota ou componente.
+  Com apenas um helper local, mantenha-o diretamente na pasta do consumidor.
+  `constants.ts` e `types.ts` são módulos de suporte e não entram nessa
+  contagem. Essa organização não muda o critério de compartilhamento das
+  pastas globais.
+- Pasta ou arquivo em `src/routes/` só vira rota com `export default` ou com
+  um handler HTTP (`GET`, `POST` e os demais métodos reconhecidos). Módulos
+  colocalizados não exportam esses nomes.
+- Previsão de reuso não justifica a extração. Mova para a pasta global
+  correspondente quando o segundo consumidor aparecer, atualizando imports,
+  testes e os guias correspondentes em `docs/`.
+- Testes não decidem a localização. Um módulo colocalizado mantém seus
+  testes em `__tests__/` ao lado dele.
+
+## Coesão e tamanho dos módulos
+
+- Use o número de linhas como sinal para examinar responsabilidades e custo de
+  leitura, sem impor um teto de linhas para dividir arquivos.
+- Extraia blocos coesos que possam ser compreendidos e alterados juntos, como
+  preparação e publicação de release ou consulta de caches. Mantenha na entrada
+  a sequência que coordena essas operações e as decisões principais do fluxo.
+- Agrupe configurações extensas por responsabilidade, preservando os valores,
+  a precedência dos overrides e a ordem de avaliação que tenha efeito.
+- Preserve juntas as operações que dependem do mesmo contexto local. Evite
+  arquivos com wrappers que apenas encaminham chamadas, fragmentos sem sentido
+  próprio ou um arquivo por função só para reduzir a contagem de linhas.
+- Declare os contratos compartilhados perto da funcionalidade e mantenha os
+  tipos privados junto de seu único consumidor, respeitando as exceções de
+  tamanho da seção "Localização de tipos".
+
+## Módulos de página
+
+- Metadados próprios da página ficam em `seo.ts`, ao lado de `index.tsx`.
+  Exporte o objeto `seo` com `satisfies SeoRouteInfo` e importe-o para
+  `route.info.seo`. A página continua declarando `llms`, `markdown` e os demais
+  controles da rota explicitamente.
+- Declare `route.info.markdown: true` na folha para publicar a representação
+  derivada do HTML assentado: o build gera um `.md` estático por idioma. Use
+  `'dynamic'` quando o conteúdo depender da requisição; a conversão acontece a
+  cada pedido. O SEO efetivo precisa permitir indexação.
+  Não crie produtores `markdown.ts`, manifestos ou conteúdo exclusivo de Markdown.
+- Páginas parametrizadas ficam fora do build e usam o matching nativo na
+  requisição. A enumeração finita de sitemap e llms.txt é um contrato separado.
+- Textos e links localizados são getters ou chamadas no componente: não capture
+  idioma no topo do módulo. Objetos usados pelo HTML podem permanecer como dados
+  de UI; não precisam implementar um contrato de publicação.
+- `seo.ts` fica ao lado de `index.tsx`, sem entrar na contagem de helpers.
+  Não exporte componente padrão nem handlers HTTP nesse módulo.
+- O corpo da página (os textos e dados que o componente renderiza, como o
+  `content` de about, contact e privacy) fica em `index.tsx`, nunca em `seo.ts`.
+  O manifesto de rotas importa o `route` de cada página no bundle inicial, e
+  tudo o que `seo.ts` importa vai junto: um `content` exportado de lá leva os
+  textos de todas as páginas, nos três idiomas, para o bundle inicial. Os getters
+  de `seo` chamam as mensagens direto, sem ler o objeto da página. Não mova o
+  `content` para `seo.ts`, para um módulo que o `seo.ts` importe nem para outro
+  que o `route` alcance. A regra `project/seo-module`
+  (`packages/solid-tooling/src/seoModule/index.ts`) recusa no lint qualquer
+  export além de `seo` e
+  qualquer import local como valor em `seo.ts`, e o `I18n.production.e2e`
+  confere o resultado no build; detalhes em [SEO](docs/seo.md). Ao mudar a
+  regra, rode `vp run test` na raiz do monorepo.
+- Markdown usa main semântico e filtros do conversor. Use `data-md-exclude`
+  para excluir conteúdo; CSS calculado não é interpretado. Preserve citações
+  contextuais em footer dentro de main.
+- Antes de publicar HTML convertido, exija estado de integridade do render
+  presente, concluído e sem erros. O hook global marca esse estado; não passe
+  `onError` local ao `renderToStream`, que o desviaria. Preserve o sinal de
+  cancelamento até `renderToStream` e o streaming do HTML normal.
+
+## Parâmetros de função
+
+- Prefira um único parâmetro nas funções do projeto. Quando houver vários
+  valores, prefira um objeto nomeado: `makeBroadcastChannel({ name, receive })`.
+  Desestruture na assinatura e nomeie o tipo do objeto conforme a seção
+  "Localização de tipos".
+- O lint permite até dois parâmetros. Esse limite mantém espaço para
+  assinaturas de bibliotecas, sem mudar a preferência por um argumento.
+- O motivo é o ponto de chamada. Com dois argumentos posicionais, um booleano
+  ou uma string solta não dizem o que significam: `publish('dark', true)` exige
+  abrir a assinatura, enquanto `publish({ theme: 'dark', persisted: true })` se
+  explica sozinho.
+- Um parâmetro só permanece posicional. Não crie objeto para envolver um
+  argumento único.
+- A preferência vale para as funções do projeto. Assinaturas ditadas por terceiros
+  ficam como o contrato exige, sem adaptação: middlewares `(request, next)` em
+  `src/middleware/`, callbacks de teste e hooks de plugin do Vite.
+
+## Eventos em JSX
+
+- Handlers de eventos DOM e de props de componentes podem permanecer inline
+  quando descrevem uma ação local curta. Construir um objeto de argumentos ou
+  usar uma guarda simples não exige extração por si só.
+- Extraia uma função nomeada quando houver lógica complexa, várias etapas,
+  reuso ou um nome que esclareça a intenção. Evite criar uma sequência de
+  handlers que apenas repassam chamadas e obrigam alternar entre as declarações
+  e o JSX para entender o elemento.
+- No `ToastProvider`, mantenha junto ao JSX os callbacks curtos de pausa e
+  fechamento que usam o `id` de cada item do `For`. O handler da seção que lê a
+  origem do foco usa `makeFocusOriginHandler`, compartilhado com
+  `OutdatedPageNotice`, e atualiza `focusOrigin` no callback local. Preserve
+  funções próprias para encontrar o vizinho e devolver o foco.
+- Callbacks de `ref` com uma chamada simples podem permanecer inline. Quando
+  houver atribuição com `=` ou lógica adicional, extraia uma função nomeada.
+  Callbacks de renderização e outras props seguem seus contratos próprios.
+- Aplique a regra em código novo e nos trechos alterados, sem refatoração em
+  massa de componentes existentes. A escolha entre inline e função nomeada é
+  conferida na revisão; o lint atual não impõe essa decisão.
+
+## Condicionais e fluxo de controle
+
+- Evite ao máximo encadear condições com `else if`. Prefira guard clauses
+  (cláusulas de guarda) e retornos antecipados quando cada ramo puder encerrar
+  o fluxo. `if` isolado e `if/else` simples continuam permitidos.
+- Para selecionar valores por uma chave, prefira mapas de consulta quando a
+  correspondência for direta. Considere `switch` para vários casos discretos
+  da mesma expressão, quando isso deixar a decisão mais clara.
+- Preserve a ordem de avaliação e a exclusividade dos ramos. Não transforme
+  uma cadeia de `else if` em vários `if` independentes que possam executar
+  mais de um ramo, nem em ternários aninhados ou abstrações artificiais.
+- Mantenha `else if` quando as alternativas prejudicarem a clareza ou exigirem
+  duplicar trabalho comum necessário após os ramos.
+- Aplique a regra em código novo e nos trechos alterados pela tarefa. Ela não
+  autoriza refatoração em massa de código adjacente.
+
+## Exports
+
+- Exporte na própria declaração: `export function`, `export const`,
+  `export type` e `export default`. Não use lista local como `export { x }`,
+  `export { x as y }` ou `export type { T }`.
+- Lista de exports só vale em reexport com `from`, como
+  `export { default, route } from '@/routes/(base)/(home)/index.tsx'` nas
+  fixtures E2E, porque não há declaração local para marcar.
+- `export {}` vazio também é recusado. Para transformar em módulo um `.d.ts`
+  que só tem `declare global`, use um `import` real, como
+  `import 'vite/client'` em `src/@types/env.d.ts`.
+- `import/exports-last` exige os exports no fim do arquivo. Declare antes
+  deles os tipos, constantes e helpers privados. Quando um valor exportado
+  precisar existir antes do código privado que o consome, mova-o para um
+  módulo próprio, como `packages/solid-tooling/src/backendPolicy/constants.ts`,
+  em vez de exportar os helpers.
+- A regra `project/no-export-list`
+  (`packages/solid-tooling/src/noExportList/index.ts`, registrada no plugin de
+  `packages/solid-tooling/src/project-plugin.ts`) aplica a convenção. Valide
+  com `vp run check:ci` e, ao mudar a regra, com `vp run test` na raiz do
+  monorepo.
+
+## Funções que retornam Promise
+
+- Quando uma função apenas repassar uma Promise, retorne-a diretamente, sem
+  `async`, preservando o tipo de retorno `Promise<T>` quando explícito.
+  Isso também vale para handlers HTTP como `GET`.
+- Use `async` quando precisar de `await` para consumir o resultado ou tratar
+  a rejeição com `try/catch`. Preserve também `async` quando o contrato exigir
+  que erros síncronos do corpo sejam convertidos em rejeições da Promise.
+- O lint mantém `typescript/promise-function-async` desativada para permitir
+  esse retorno direto. Preserve `typescript/require-await` e
+  `typescript/return-await`; não adicione `await` ou comentários de disable
+  apenas para satisfazer a antiga exigência de `async`.
+
+## Comentários no código
+
+- Não acrescente comentários que repitam nomes, tipos, condições ou passos
+  visíveis no código. Isso vale também para JSDoc, cabeçalhos de funções e
+  resumos inseridos por agentes de IA.
+- Comente apenas um motivo ou restrição que o código não esclarece, como uma
+  exigência de segurança, uma incompatibilidade de biblioteca ou uma condição
+  de corrida. Use o menor comentário que preserve essa informação.
+- Guias de uso, decisões de arquitetura e explicações extensas ficam na
+  documentação. Não copie esses textos para cada implementação.
+- Preserve diretivas de ferramentas, licenças e contratos relevantes. Ao
+  editar, remova comentários redundantes ou desatualizados no trecho alterado.
+
+## Nomes de booleanos
+
+- Booleanos próprios do projeto usam um prefixo que expresse seu significado:
+  `is` para estado (`isOpen`), `has` para presença (`hasErrors`), `can` para
+  capacidade (`canSubmit`) e `should` para uma decisão (`shouldLocalize`).
+  Prefira nomes afirmativos, sem dupla negação.
+- A convenção vale para variáveis, parâmetros, propriedades e getters de
+  signals booleanos. O setter acompanha o getter: `[isOpen, setIsOpen]`.
+- Preserve nomes de contratos externos, atributos HTML, propriedades ARIA,
+  APIs de bibliotecas e código gerado, como `disabled`, `checked` e `reload`.
+  Uma função que executa uma ação e retorna sucesso continua com nome de ação,
+  como `saveTheme`; o retorno booleano não a transforma em uma consulta.
+- Esta convenção é conferida na revisão. O lint atual não verifica nomes pelo
+  tipo booleano; não crie exceções genéricas nem afirme cobertura automática.
+
+## Nomes de signal
+
+- O par desestruturado de `createSignal` usa `[x, setX]`: o nome do setter é o
+  do getter com prefixo `set`. `[isOpen, setIsOpen]`, `[isReady, setIsReady]`.
+  Nunca `[theme, setPreference]` nem `[systemTheme, setSystem]`.
+- Quando o nome interno e o nome público divergem, renomeie o getter, não o
+  setter, e exponha o alias no retorno. Em `createTheme` o signal interno é
+  `[themePreference, setThemePreference]` e o retorno publica
+  `theme: themePreference`.
+- O mesmo vale para `createStore` e qualquer primitive que devolva o par.
+
+## Classes CSS
+
+- Use snake_case em todas as classes CSS do projeto, incluindo CSS Modules e
+  utilitários globais: `.home_link`, `.radio_indicator` e `.sr_only`. Nomes de
+  uma palavra, como `.btn`, continuam válidos.
+- Em componentes com variantes ou tamanhos, use classes independentes da classe
+  base, com os prefixos `variant_` e `size_`: `.variant_default`, `.size_sm`.
+  Concatene o prefixo com o valor da prop no acesso ao CSS Module, sem criar
+  mapas de constantes apenas para selecionar classes.
+- Use nesting para estados e media queries de cada classe. As classes de
+  variantes e tamanhos ficam no nível superior, fora da classe base.
+- Importe CSS Modules como `S`. O Stylelint exige snake_case em `src/**/*.css`;
+  valide mudanças com `vp run lint:css` e `vp run test:tooling`.
+- Os tokens de `src/theme/tokens/` são a paleta do boilerplate para as
+  aplicações derivadas. Não aponte nem remova um token por não ter consumidor na
+  demonstração; revise apenas valor, nome ou uso incorretos.
+
+## Prop `label` do `Button`
+
+- A prop `label` de `src/components/atoms/Button/index.tsx` é um atalho
+  intencional para botão só com texto: `<Button label={m.save()} />`. Ela já
+  foi removida e restaurada mais de uma vez. Não a remova, não a aponte como
+  duplicação de `children` e não a trate como prop sem consumidor; detalhes em
+  [UI](docs/ui.md#botões).
+
+## Dependências entre camadas
+
+- Preserve `architecture/layer-imports` em
+  `packages/solid-tooling/src/architecturePolicy/index.ts`.
+  `helpers`, `constants`, `@types`, `data`, `infra`, `theme`, `i18n` e
+  `paraglide` não dependem de UI, primitives, rotas ou entradas (`App`,
+  `Document`, `entry-server`, `entry-client`, `router`, `middleware`).
+  Primitives globais não dependem de UI, rotas ou entradas; atoms não dependem
+  de molecules/organisms, e molecules não dependem de organisms.
+- A camada de cada componente sai do que ele junta: atom não renderiza outro
+  componente; molecule junta atoms numa unidade, inclusive quando exporta as
+  próprias peças, como o `PageHero`; organism junta molecules numa seção da
+  interface, como o `Topbar`. O lint confere só a direção dos imports. Escolha
+  a camada ao criar o componente e, quando ele passar a renderizar outro da
+  mesma camada, mova a pasta uma camada acima. Critério e exemplos em
+  [arquitetura](docs/architecture.md#camadas-dos-componentes).
+- Produção em `src` não importa testes, fixtures de `src/tests` ou `tooling`.
+  A exceção de testes vale como origem, inclusive para fixtures E2E.
+  Primitives colocalizadas pertencem à camada do componente que as contém.
+- Imports de tipo e reexportações também respeitam as camadas. Caminhos
+  calculados e outros carregadores exigem revisão; não contorne a política
+  com imports dinâmicos ou comentários de disable.
+- Ao criar camada ou alias, atualize a regra e seus testes. Use as APIs de
+  `vite-plus/lint/plugins` e `vite-plus/lint/plugins-dev`, sem instalar outra
+  cópia de Oxlint. Rode `vp run test` na raiz do monorepo e `vp run check:ci`.
+  Consulte a
+  matriz e os limites em [arquitetura](docs/architecture.md#dependências-entre-camadas).
+
+## Cabeçalhos de segurança e CSP
+
+- Antes de alterar cabeçalhos, CSP, nonce ou as entradas de renderização, leia
+  [docs/security.md](docs/security.md). Os cabeçalhos saem do middleware, com
+  os valores em `src/middleware/securityHeaders/constants.ts`; não devolva a
+  CSP nem os demais cabeçalhos das respostas da função ao `vercel.json`. Os
+  estáticos não passam pela função: as `routeRules` do Nitro no
+  `vite.config.ts` gravam neles `Strict-Transport-Security`,
+  `X-Content-Type-Options` e `Cross-Origin-Resource-Policy`, lidos de
+  `SECURITY_HEADERS`. Ao publicar um
+  novo tipo de estático, acrescente o caminho a `STATIC_FILE_PATHS`, sem
+  sobreposição parcial com os outros padrões nem com as demais `routeRules`.
+  Os `.md` entram por idioma; ao mudar o `urlPatterns` do Paraglide, revise
+  esses padrões. O
+  `vercel.json` guarda só o `Content-Type` dos `.md`, que numa route rule
+  também sobrescreveria os erros da função
+  ([limites conhecidos](docs/security.md#limites-conhecidos)).
+- Não acrescente `'unsafe-inline'`, `'unsafe-eval'` nem hosts ao `script-src`,
+  nem `'unsafe-inline'` ao `style-src`.
+- Não renderize `<style>` nem use a prop `style` em JSX renderizado no SSR: a
+  CSP bloqueia o atributo. Use classes.
+- Todo `<script>` do `Document` recebe `nonce={nonce}`, e o
+  `src/entry-server.tsx` repassa `event.nonce` ao `renderToStream`.
+- Preserve o par de entradas autorais, com a mesma árvore em
+  `src/entry-server.tsx` e `src/entry-client.tsx`, e a regressão `FragmentCss`,
+  da fixture `/fragment-css` descrita no guia.
+- A CSP não é enviada em desenvolvimento. Confira mudanças de CSP com
+  `vp run test:e2e:production`.
+
+## Erros no servidor e chamadas de backend
+
+- Antes de alterar backend, server functions ou tratamento SSR, leia
+  [docs/server-errors.md](docs/server-errors.md) e o guia correspondente:
+  [chamadas de backend](docs/server-errors/backend.md) ou
+  [integridade do SSR](docs/server-errors/ssr-integrity.md). Toda operação deve
+  terminar em dados públicos ou em um erro público novo antes de chegar ao Solid.
+- HTTP usa `requestJson`. SDK e banco exigem adapter em `src/infra/server/`,
+  com `server-only` e `protectServerOperation({ run })` envolvendo leitura,
+  validação e saída. `allowControl` pertence somente ao registro global de
+  server functions.
+- O schema seleciona os campos públicos: a verificação estrutural do wrapper
+  não identifica dados confidenciais em strings. Não retorne erros, promises
+  aninhadas ou trabalho adiado sem contrato específico.
+- Erro público só nasce de `createPublicError()`, importado de
+  `@/infra/server/publicErrors/index.ts`; somente esse módulo pode chamar
+  `markSafeError`. Nunca publique mensagem, causa, propriedades, corpo ou
+  headers de um erro upstream, inclusive dentro de um resultado.
+- Não registre erro original, headers, cookies, argumentos, corpos ou
+  credenciais; logs detalhados exigem remoção de dados sensíveis definida antes.
+  O `console` fica reservado a `logServerFailure`.
+- Preserve as restrições de `packages/solid-tooling/src/backendPolicy`. Um SDK
+  novo exige
+  restrição do pacote no lint, com exceção só para o adapter. Não contorne o
+  contrato com disable, imports calculados ou as demais lacunas listadas no
+  guia.
+- Após mudar essa fronteira, rode `vp run test` na raiz do monorepo,
+  `vp run test:tooling`, os testes Node
+  pertinentes e `vp run test:e2e src/tests/pages/BackendError
+  src/tests/pages/OutsideError src/tests/pages/OutdatedPage`. Preserve no CI a
+  verificação do corpo completo em SSR inicial, streaming e chamada HTTP.
+- Em atualizações do Solid ou do plugin, siga o roteiro "Atualizar o Solid" do
+  guia: só retire o wrapper quando uma reprodução sem essa interceptação provar
+  a cobertura na versão instalada.

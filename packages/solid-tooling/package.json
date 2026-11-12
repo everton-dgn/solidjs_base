@@ -1,0 +1,53 @@
+{
+  "name": "@devinsights/solid-tooling",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lint, formatter and TypeScript presets for SolidJS applications built with Vite+.",
+  "type": "module",
+  "files": [
+    "dist",
+    "tsconfig.base.json"
+  ],
+  "exports": {
+    "./lint": {
+      "types": "./dist/lint.d.mts",
+      "default": "./dist/lint.mjs"
+    },
+    "./fmt": {
+      "types": "./dist/fmt.d.mts",
+      "default": "./dist/fmt.mjs"
+    },
+    "./project-plugin": {
+      "types": "./dist/project-plugin.d.mts",
+      "default": "./dist/project-plugin.mjs"
+    },
+    "./backend-plugin": {
+      "types": "./dist/backend-plugin.d.mts",
+      "default": "./dist/backend-plugin.mjs"
+    },
+    "./architecture-plugin": {
+      "types": "./dist/architecture-plugin.d.mts",
+      "default": "./dist/architecture-plugin.mjs"
+    },
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "vp pack && node --test --test-timeout=60000 'src/__tests__/*.test.ts' 'src/!(tarball)/**/__tests__/*.test.ts'",
+    "test:tarball": "vp pack && node --test --test-timeout=300000 src/tarball/__tests__/consumer.test.ts"
+  },
+  "peerDependencies": {
+    "@inlang/paraglide-js": "3.2.2",
+    "eslint-plugin-solid": "0.19.0",
+    "vite-plus": "1.6.0"
+  },
+  "devDependencies": {
+    "@inlang/paraglide-js": "3.2.2",
+    "@types/node": "24.19.2",
+    "eslint-plugin-solid": "0.19.0",
+    "typescript": "7.0.2",
+    "valibot": "1.5.0",
+    "vite-plus": "catalog:"
+  }
+}

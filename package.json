@@ -1,0 +1,45 @@
+{
+  "name": "solidjs_base",
+  "version": "0.0.0",
+  "private": true,
+  "author": "Éverton Toffanetto",
+  "description": "Shared packages for SolidJS applications built with Vite+.",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "vp run -r build",
+    "check": "vp check",
+    "test": "vp run -r test",
+    "test:tarball": "vp run -r test:tarball",
+    "validate": "vp run build && vp run check && vp run test && vp run test:tarball"
+  },
+  "devDependencies": {
+    "@devinsights/solid-tooling": "workspace:*",
+    "@inlang/paraglide-js": "3.2.2",
+    "@types/node": "24.19.2",
+    "eslint-plugin-solid": "0.19.0",
+    "typescript": "7.0.2",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "overrides": {
+    "vite": "catalog:"
+  },
+  "packageManager": "bun@1.4.4",
+  "engines": {
+    "node": ">=24.22.1 <25"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.22.3",
+      "onFail": "download"
+    }
+  },
+  "catalog": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
+    "vite-plus": "1.6.0"
+  }
+}

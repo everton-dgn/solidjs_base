@@ -74,9 +74,10 @@ Run its commands from `apps/boilerplate`:
 | `vp run build`          | Build the application                                                    |
 | `vp run test:e2e`       | Playwright end-to-end tests                                              |
 
-`check:ci`, `typecheck:node` and `dead-code` build `@evertondgn/solid-tooling`
-first. The other commands load `vite.config.ts`, which imports the compiled
-presets, so run `vp run build` at the root after changing the package.
+Every command loads the application's `vite.config.ts`, which imports the
+compiled presets from `dist/`. Run `vp run build` at the root first, and again
+after changing the package. Once `dist/` exists, `check:ci`, `typecheck:node`
+and `dead-code` rebuild the package before they run.
 
 In a Vite+ monorepo, `vp check` always uses the `lint` and `fmt` blocks of the
 root `vite.config.ts`. The root config ignores `apps/`, and the application runs
@@ -114,7 +115,8 @@ commit in this section and in `apps/boilerplate/AGENTS.md`.
 `.github/workflows/ci.yml` runs on every pull request and on pushes to `main`:
 
 - **Packages**: `vp run validate`, the same command as the publish job.
-- **Boilerplate app**: the commands of the table above, in that order.
+- **Boilerplate app**: `vp run build` at the root, then the commands of the
+  table above, in that order.
 
 The browser and end-to-end tests use the Chrome installed on the GitHub runner,
 as in the original repository.

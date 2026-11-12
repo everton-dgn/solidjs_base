@@ -62,8 +62,12 @@ jobs:
         working-directory: .
         run: vp install --frozen-lockfile
 
-      # The app tasks build @evertondgn/solid-tooling first, so the app uses
-      # the compiled package as an application installed from npm would.
+      # WHY: the app's vite.config.ts imports the compiled presets from dist/,
+      # and Vite+ loads it before any task, so no task can build them first.
+      - name: Build the packages
+        working-directory: .
+        run: vp run build
+
       - name: Check
         run: vp run check:ci
 

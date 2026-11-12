@@ -1,0 +1,16 @@
+{
+  "name": "consumer-fixture",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@devinsights/solid-tooling": "0.0.0",
+    "@inlang/paraglide-js": "3.2.2",
+    "typescript": "7.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
+    "vite-plus": "1.6.0"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0"
+  },
+  "packageManager": "bun@1.4.4"
+}

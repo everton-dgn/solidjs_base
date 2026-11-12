@@ -1,0 +1,10 @@
+{
+  "extends": "@devinsights/solid-tooling/tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "types": []
+  },
+  "include": ["src", "vite.config.ts"]
+}

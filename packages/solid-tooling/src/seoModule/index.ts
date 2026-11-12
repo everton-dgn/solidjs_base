@@ -39,9 +39,9 @@ export const seoModule = defineRule({
     schema: [],
     messages: {
       onlySeo:
-        'seo.ts exports only the seo object. The page body stays in index.tsx, because seo.ts reaches the initial bundle through route (see the page modules section of AGENTS.md).',
+        'seo.ts may export only seo. The route manifest loads the route export of every page in the initial bundle, and seo.ts goes with it, so keep the page body in index.tsx (see the page modules section of AGENTS.md).',
       localImport:
-        'seo.ts must not import local modules as values: whatever it imports reaches the initial bundle with route. Keep the page body in index.tsx (see the page modules section of AGENTS.md).',
+        'seo.ts must not import values from relative paths or from src/routes/: whatever it imports goes into the initial bundle. Use import type, or keep the code in index.tsx (see the page modules section of AGENTS.md).',
       computedImport:
         'seo.ts must not use import() with a computed path: the rule cannot tell whether the target is local. Keep the page body in index.tsx (see the page modules section of AGENTS.md).',
       globImport:

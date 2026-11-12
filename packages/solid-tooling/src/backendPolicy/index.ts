@@ -25,7 +25,8 @@ const SAFE_ERRORS: ImportPath = {
 const SERVER_ERROR_HOOK: ImportPath = {
   name: '@solidjs/web',
   importNames: ['configureServerErrors'],
-  message: 'Keep the policy registration in configureServerErrors.'
+  message:
+    'Only src/infra/server/configureServerErrors/index.ts may import this: server error handling is configured in that module.'
 }
 // The subpath without the suffix exposes the same configuration and dispatch
 // surface in the server runtime; the restriction has to cover both specifiers.
@@ -34,7 +35,8 @@ const SERVER_CONFIG: ImportPath[] = [
   '@solidjs/web/server-functions/server'
 ].map(name => ({
   name,
-  message: 'Keep the policy registration in configureServerErrors.'
+  message:
+    'Only src/infra/server/configureServerErrors/index.ts may import this: server error handling is configured in that module.'
 }))
 // After this call the render state starts without errors; it is only valid in
 // the registration that installs the hook able to mark it.
@@ -48,7 +50,8 @@ const TRANSPORTS = ['http', 'https', 'http2', 'net', 'tls', 'undici']
   .flatMap(name => [name, `node:${name}`])
   .map(name => ({
     name,
-    message: 'Integrate backend transports through a protected adapter.'
+    message:
+      'Node transports cannot be imported in src/. Use requestJson for HTTP, or an adapter in src/infra/server/ wrapped in protectServerOperation.'
   }))
 
 function imports({
@@ -88,7 +91,7 @@ function globals({
           message:
             property === 'console'
               ? 'Log failures only through logServerFailure.'
-              : 'Use requestJson or a protected backend adapter.'
+              : 'Call the backend through requestJson, or through an adapter in src/infra/server/ wrapped in protectServerOperation.'
         }))
       )
     ]

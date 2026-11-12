@@ -39,12 +39,12 @@ const backendPlugin = definePlugin({
       matches: specifier =>
         specifier === '@solidjs/web' || specifier.startsWith('@solidjs/web/'),
       message:
-        'Use a static import of @solidjs/web and its subpaths to keep the restrictions on privileged APIs.'
+        'Use a static import for @solidjs/web and its subpaths: the import restrictions on markSafeError and configureServerErrors cannot check import().'
     }),
     'static-render-integrity-imports': staticImportRule({
       matches: specifier => RENDER_INTEGRITY.test(specifier),
       message:
-        'Use a static import of renderIntegrity to keep the restriction on observeRenderFailures.'
+        'Use a static import for renderIntegrity: the import restriction on observeRenderFailures cannot check import().'
     })
   }
 })

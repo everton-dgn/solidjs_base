@@ -91,7 +91,7 @@ export function testFilenameError(file: string): string | undefined {
         candidate
       )
   if (!match?.groups) {
-    return 'Use Name[.qualifier].environment.test.ts(x) or Name[.qualifier].test-d.ts(x) for types in src, or Name[.qualifier].test.ts in tooling.'
+    return 'In src/, name the test Name[.qualifier].<node|dom|browser|e2e>.test.ts(x), or Name[.qualifier].test-d.ts(x) for a type test. In tooling/, use Name[.qualifier].test.ts.'
   }
   const { environment } = match.groups
   const subject = dotted ?? match.groups.subject
@@ -99,10 +99,10 @@ export function testFilenameError(file: string): string | undefined {
     return 'Page tests must use the e2e environment.'
   }
   if (environment === 'e2e' && (!inPages || !subjects[directory])) {
-    return 'Place e2e tests in src/tests/pages/PageName and declare the page in the subject mapping of the test-filename rule.'
+    return 'Place e2e tests in src/tests/pages/<Page>/. The accepted pages are listed in @evertondgn/solid-tooling; for another page, turn off project/test-filename for its folder in lint.overrides.'
   }
   if (!expected) {
-    return 'Place the test in __tests__ next to its module or declare the suite in the subject mapping of the test-filename rule.'
+    return 'Place the test in a __tests__ folder inside the module folder, as in Button/__tests__/Button.dom.test.tsx. For a test folder without a module, turn off project/test-filename for its files in lint.overrides.'
   }
   if (!subject || !expected.includes(subject)) {
     return `Use the exact name of the subject under test: ${expected.join(', ')}. Qualifiers use a dot and camelCase.`

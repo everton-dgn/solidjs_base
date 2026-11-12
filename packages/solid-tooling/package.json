@@ -29,6 +29,10 @@
       "types": "./dist/architecture-plugin.d.mts",
       "default": "./dist/architecture-plugin.mjs"
     },
+    "./css-filename": {
+      "types": "./dist/css-filename.d.mts",
+      "default": "./dist/css-filename.mjs"
+    },
     "./solid-plugin": {
       "types": "./dist/solid-plugin.d.mts",
       "default": "./dist/solid-plugin.mjs"

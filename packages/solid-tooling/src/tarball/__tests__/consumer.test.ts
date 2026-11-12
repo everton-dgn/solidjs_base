@@ -37,16 +37,24 @@ const EXPECTED: Expected[] = [
     code: 'backend(static-solid-imports)'
   },
   { filename: 'src/helpers/layer.ts', code: 'architecture(layer-imports)' },
-  { filename: 'src/helpers/type-error.ts', code: 'typescript(TS2322)' }
+  { filename: 'src/helpers/type-error.ts', code: 'typescript(TS2322)' },
+  {
+    filename: 'src/components/atoms/greeting.tsx',
+    code: 'solid(no-destructure)'
+  }
 ]
-const CLEAN_FILE = 'src/helpers/clean.ts'
+// O vite.config.ts importa o preset: sem diagnósticos, as declarações do
+// pacote resolveram na aplicação.
+const CLEAN_FILES = ['src/helpers/clean.ts', 'vite.config.ts']
 
 const versionsSchema = v.optional(v.record(v.string(), v.string()), {})
 const manifestSchema = v.object({
   dependencies: versionsSchema,
   devDependencies: versionsSchema,
   peerDependencies: versionsSchema,
-  catalog: versionsSchema
+  catalog: versionsSchema,
+  engines: v.optional(v.unknown()),
+  devEngines: v.optional(v.unknown())
 })
 const diagnosticSchema = v.object({
   filename: v.string(),
@@ -163,6 +171,8 @@ test('a fixture declara as mesmas versões do workspace', () => {
     const expected = workspace.catalog[name] ?? workspace.devDependencies[name]
     assert.equal(fixture.devDependencies[name], expected, name)
   }
+  assert.deepEqual(fixture.engines, workspace.engines)
+  assert.deepEqual(fixture.devEngines, workspace.devEngines)
 })
 
 test('a aplicação instala o pacote empacotado e o lint aplica os plugins', context => {
@@ -183,7 +193,9 @@ test('a aplicação instala o pacote empacotado e o lint aplica os plugins', con
     )
   }
   assert.deepEqual(
-    diagnostics.filter(diagnostic => isFile(diagnostic, CLEAN_FILE)),
+    diagnostics.filter(diagnostic =>
+      CLEAN_FILES.some(filename => isFile(diagnostic, filename))
+    ),
     []
   )
 })

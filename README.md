@@ -50,5 +50,13 @@ export default defineConfig({ fmt, lint })
 
 `paths`, `include` e `types` continuam no `tsconfig.json` da aplicação.
 
+A aplicação declara o pacote, o `vite-plus` e o `@inlang/paraglide-js`. O Oxlint
+resolve os plugins a partir da configuração da aplicação, e o plugin do
+Paraglide precisa acompanhar a versão que ela usa. O `eslint-plugin-solid` vem
+como dependência do pacote e dispensa declaração.
+
+O lint de CSS da aplicação importa a regra de nome de arquivo de
+`@devinsights/solid-tooling/css-filename`.
+
 O pacote é distribuído compilado: o Node recusa TypeScript dentro de
 `node_modules`, e o Vite+ carrega a configuração em Node.

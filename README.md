@@ -127,25 +127,35 @@ If the trusted publisher expires, delete it and create another one.
 ### When the publish job fails
 
 The release job runs before the publish job. If publishing fails, the tag and
-the GitHub Release already exist and npm has no new version. Pushing a new
-commit does not publish it: release-please finds the tag and creates no release,
-so the publish job is skipped.
+the GitHub Release already exist. Pushing a new commit does not publish the
+version: release-please finds the tag and creates no release, so the publish job
+is skipped.
 
-A re-run checks out the same commit as the failed run, so a fix pushed to the
-repository does not reach it. What to do depends on where the cause is:
+npm can accept the upload even when the job reports a failure, so first check
+whether the version is on the registry:
+
+```bash
+npm view @evertondgn/solid-tooling@0.2.0 version
+```
+
+If it prints the version, there is nothing to recover. Otherwise, keep in mind
+that a re-run checks out the same commit as the failed run, so a fix pushed to
+the repository does not reach it. What to do depends on where the cause is:
 
 - On npmjs.com, such as a missing or expired trusted publisher, or a field that
   does not match the table in [One-time setup](#one-time-setup): fix it there,
   then open the failed run on GitHub and choose "Re-run failed jobs". The
   publish job runs again with the output of the release job from the first
   attempt. GitHub allows this for 30 days.
-- In the workflow, such as the npm version check, which runs after validation:
-  the code in the tag passed validation. Fix the workflow on `main`, check out
-  the tag (`git checkout solid-tooling@0.2.0`) and
+- In a workflow step after validation, such as the npm version check: the code
+  in the tag passed validation. Fix the workflow on `main`, check out the tag
+  (`git checkout solid-tooling@0.2.0`) and
   [publish it by hand](#publishing-by-hand).
-- In the package code, when validation fails: do not publish the tag. Merge a
-  `fix` for the package. release-please releases the next version with it, and
-  the failed version is never published.
+- In validation (`vp run validate`): the tag holds code that did not pass, so do
+  not publish it. Fix what failed, in the package or in the workspace
+  configuration. release-please opens a release only for commits that change
+  files in the package folder, so a fix outside it ships with the next `fix` or
+  `feat` of the package. The failed version is never published.
 
 ### Known limit
 

@@ -17,36 +17,15 @@
     "tsconfig.base.json"
   ],
   "exports": {
-    "./lint": {
-      "types": "./dist/lint.d.mts",
-      "default": "./dist/lint.mjs"
-    },
-    "./fmt": {
-      "types": "./dist/fmt.d.mts",
-      "default": "./dist/fmt.mjs"
-    },
-    "./project-plugin": {
-      "types": "./dist/project-plugin.d.mts",
-      "default": "./dist/project-plugin.mjs"
-    },
-    "./backend-plugin": {
-      "types": "./dist/backend-plugin.d.mts",
-      "default": "./dist/backend-plugin.mjs"
-    },
-    "./architecture-plugin": {
-      "types": "./dist/architecture-plugin.d.mts",
-      "default": "./dist/architecture-plugin.mjs"
-    },
-    "./css-filename": {
-      "types": "./dist/css-filename.d.mts",
-      "default": "./dist/css-filename.mjs"
-    },
-    "./solid-plugin": {
-      "types": "./dist/solid-plugin.d.mts",
-      "default": "./dist/solid-plugin.mjs"
-    },
-    "./tsconfig.base.json": "./tsconfig.base.json",
-    "./package.json": "./package.json"
+    "./architecture-plugin": "./dist/architecture-plugin.mjs",
+    "./backend-plugin": "./dist/backend-plugin.mjs",
+    "./css-filename": "./dist/css-filename.mjs",
+    "./fmt": "./dist/fmt.mjs",
+    "./lint": "./dist/lint.mjs",
+    "./project-plugin": "./dist/project-plugin.mjs",
+    "./solid-plugin": "./dist/solid-plugin.mjs",
+    "./package.json": "./package.json",
+    "./tsconfig.base.json": "./tsconfig.base.json"
   },
   "publishConfig": {
     "access": "public"

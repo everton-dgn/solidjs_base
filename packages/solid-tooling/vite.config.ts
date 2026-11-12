@@ -12,6 +12,12 @@ export default defineConfig({
       'solid-plugin': 'src/solid-plugin.ts'
     },
     format: ['esm'],
-    dts: { generator: 'tsgo' }
+    dts: { generator: 'tsgo' },
+    exports: {
+      customExports: exports => ({
+        ...exports,
+        './tsconfig.base.json': './tsconfig.base.json'
+      })
+    }
   }
 })

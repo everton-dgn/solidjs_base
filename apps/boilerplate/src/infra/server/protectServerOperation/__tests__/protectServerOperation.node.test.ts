@@ -1,0 +1,409 @@
+import { isResponseEnvelope, redirect, reload, respond } from '@solidjs/web'
+import { NotReadyError } from 'solid-js'
+
+import { createPublicError } from '@/infra/server/publicErrors/index.ts'
+import { throwValue } from '@/tests/helpers/failureValues/index.ts'
+import { readLog } from '@/tests/helpers/readLog/index.ts'
+
+import { protectServerOperation } from '../index.ts'
+
+type Invocation = { run: () => unknown; allowControl?: boolean }
+type CyclicData = { self?: CyclicData }
+type VisitCount = { visits: number }
+type CountedNode = { node: object; count: VisitCount }
+
+const HTTP_CREATED = 201
+const HTTP_NO_CONTENT = 204
+const HTTP_RESET_CONTENT = 205
+const HTTP_NOT_MODIFIED = 304
+const DIAMOND_DEPTH = 16
+const REJECTED_SHAPES = 4
+const LOG_MESSAGE =
+  '[server-operation] Unexpected failure; private details omitted'
+// Sem o contexto de idioma do paraglide, a mensagem sai no idioma base.
+const PUBLIC_MESSAGE = 'The request could not be completed.'
+
+function thrownValue(invocation: Invocation): unknown {
+  try {
+    protectServerOperation(invocation)
+  } catch (error) {
+    return error
+  }
+  throw new Error('Expected operation to throw')
+}
+
+// Conta quantas vezes a verificação lista as chaves de cada nó.
+function countedNode({ node, count }: CountedNode): object {
+  return new Proxy(node, {
+    ownKeys(target) {
+      count.visits += 1
+      return Reflect.ownKeys(target)
+    }
+  })
+}
+
+function logUnavailable(): never {
+  throw new Error('stderr indisponível')
+}
+
+function expectPublicFailure(error: unknown): void {
+  expect(error).toBeInstanceOf(Error)
+  if (!(error instanceof Error)) throw new TypeError('Expected Error')
+  expect(error.message).toBe(PUBLIC_MESSAGE)
+  expect(error.cause).toBeUndefined()
+  expect(Object.keys(error)).toStrictEqual([])
+  expect(Object.getOwnPropertyNames(error).toSorted()).toStrictEqual([
+    'message',
+    'stack'
+  ])
+}
+
+// O Vitest roda com DEV verdadeiro; os casos conferem o log de produção.
+function mockProductionLog(): void {
+  vi.stubEnv('DEV', false)
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+}
+
+describe('proteção de operações no servidor', () => {
+  beforeEach(mockProductionLog)
+
+  it('preserva o retorno síncrono e remove detalhes de exceções', () => {
+    const data = { ok: true }
+    expect(protectServerOperation({ run: () => data })).toBe(data)
+    const internal = Object.assign(
+      new Error('PRIVATE_MESSAGE', { cause: 'PRIVATE_CAUSE' }),
+      {
+        internalContext: 'PRIVATE_CONTEXT'
+      }
+    )
+    const error = thrownValue({ run: () => throwValue(internal) })
+    expectPublicFailure(error)
+    expect(error).not.toBe(internal)
+    expect(readLog(console.error)).toStrictEqual({
+      heads: [[LOG_MESSAGE, 'Error']],
+      leaks: []
+    })
+  })
+
+  it('captura rejeições e preserva sucesso assíncrono', async () => {
+    const error = Object.assign(new Error('PRIVATE'), {
+      internalContext: 'PRIVATE_CONTEXT'
+    })
+    await expect(
+      protectServerOperation({ run: () => Promise.reject(error) })
+    ).rejects.toThrow(PUBLIC_MESSAGE)
+    await expect(
+      protectServerOperation({ run: () => Promise.resolve({ ok: true }) })
+    ).resolves.toStrictEqual({ ok: true })
+    expect(readLog(console.error)).toStrictEqual({
+      heads: [[LOG_MESSAGE, 'Error']],
+      leaks: []
+    })
+  })
+
+  it('rejeita erros, classes, ciclos e fontes adiadas dentro de resultados', async () => {
+    const cyclic: CyclicData = {}
+    cyclic.self = cyclic
+    for (const value of [
+      new Error('PRIVATE'),
+      { error: new Error('PRIVATE') },
+      { deferred: Promise.resolve('PRIVATE') },
+      new Date(),
+      cyclic
+    ]) {
+      expectPublicFailure(thrownValue({ run: () => value }))
+      await expect(
+        protectServerOperation({ run: () => Promise.resolve({ value }) })
+      ).rejects.toThrow(PUBLIC_MESSAGE)
+    }
+  })
+
+  it('rejeita getters sem executá-los e aceita campos públicos resolvidos', () => {
+    const getter = vi.fn<() => string>(() => 'PRIVATE')
+    const data = Object.defineProperty({}, 'private', {
+      get: getter,
+      enumerable: true
+    })
+    expectPublicFailure(thrownValue({ run: () => data }))
+    expect(getter).not.toHaveBeenCalled()
+    expect(
+      protectServerOperation({
+        run: () => [null, undefined, true, 1, 'public', { ok: true }]
+      })
+    ).toStrictEqual([null, undefined, true, 1, 'public', { ok: true }])
+  })
+
+  it('recusa subclasses de Array sem executar a serialização herdada', async () => {
+    const serialize = vi.fn<() => string[]>(() => ['PRIVATE_SERIALIZER'])
+    class Rows extends Array<string> {
+      public toJSON(): string[] {
+        return serialize()
+      }
+    }
+    const rows = new Rows('public')
+    // O status sem corpo evita serializar a fixture antes de chegar ao wrapper.
+    const envelope = respond(rows, { status: 204 })
+    for (const value of [rows, { rows }, envelope]) {
+      expectPublicFailure(thrownValue({ run: () => value, allowControl: true }))
+      await expect(
+        protectServerOperation({
+          run: () => Promise.resolve(value),
+          allowControl: true
+        })
+      ).rejects.toThrow(PUBLIC_MESSAGE)
+    }
+    expect(serialize).not.toHaveBeenCalled()
+    const plain = ['public']
+    expect(protectServerOperation({ run: () => plain })).toBe(plain)
+  })
+
+  it('sempre cria um erro público novo, mesmo se o anterior foi adulterado', () => {
+    const original = createPublicError()
+    const first = thrownValue({ run: () => throwValue(original) })
+    expectPublicFailure(first)
+    expect(first).not.toBe(original)
+    original.message = 'PRIVATE'
+    Object.assign(original, {
+      cause: 'PRIVATE_CAUSE',
+      internalContext: 'PRIVATE_CONTEXT'
+    })
+    expectPublicFailure(thrownValue({ run: () => throwValue(original) }))
+    expect(console.error).not.toHaveBeenCalled()
+  })
+
+  it('preserva sinais do Solid somente quando a invocação permite controle', async () => {
+    const pending = new NotReadyError(Promise.resolve('ready'))
+    for (const control of [redirect('/'), reload(), pending]) {
+      const run = () => throwValue(control)
+      const logged = vi.mocked(console.error).mock.calls.length
+      expect(thrownValue({ run, allowControl: true })).toBe(control)
+      await expect(
+        protectServerOperation({
+          run: async () => throwValue(await Promise.resolve(control)),
+          allowControl: true
+        })
+      ).rejects.toBe(control)
+      expect(console.error).toHaveBeenCalledTimes(logged)
+      expectPublicFailure(thrownValue({ run }))
+    }
+    const response = redirect('/')
+    expect(
+      protectServerOperation({ run: () => response, allowControl: true })
+    ).toBe(response)
+    expectPublicFailure(thrownValue({ run: () => response }))
+  })
+
+  it('recusa Response.error() como controle, lançada ou devolvida', () => {
+    const failure = Response.error()
+
+    expectPublicFailure(
+      thrownValue({ run: () => throwValue(failure), allowControl: true })
+    )
+    expectPublicFailure(thrownValue({ run: () => failure, allowControl: true }))
+    // A lançada não é um Error; a devolvida falha na verificação estrutural,
+    // que lança um Error próprio.
+    expect(readLog(console.error)).toStrictEqual({
+      heads: [[LOG_MESSAGE], [LOG_MESSAGE, 'Error']],
+      leaks: []
+    })
+  })
+
+  it('verifica valores de envelopes e rejeita corpos upstream', () => {
+    const response = respond(
+      { ok: true },
+      {
+        status: HTTP_CREATED,
+        headers: { 'x-public': 'yes' },
+        revalidate: 'users'
+      }
+    )
+    const rebuilt: unknown = protectServerOperation({
+      run: () => response,
+      allowControl: true
+    })
+    if (!isResponseEnvelope(rebuilt)) throw new TypeError('Expected envelope')
+    expect(rebuilt.value).toStrictEqual({ ok: true })
+    expect(rebuilt.response?.status).toBe(HTTP_CREATED)
+    expect(rebuilt.response?.headers.get('x-public')).toBe('yes')
+    expect(rebuilt.response?.headers.get('x-revalidate')).toBe('users')
+    const control = thrownValue({
+      run: () => throwValue(response),
+      allowControl: true
+    })
+    expect(control).toMatchObject({ value: { ok: true } })
+    const invalid = respond({ error: new Error('PRIVATE') })
+    expectPublicFailure(
+      thrownValue({ run: () => throwValue(invalid), allowControl: true })
+    )
+    const upstream = new Response('PRIVATE')
+    expectPublicFailure(
+      thrownValue({ run: () => upstream, allowControl: true })
+    )
+    expectPublicFailure(
+      thrownValue({ run: () => throwValue(upstream), allowControl: true })
+    )
+  })
+
+  it('não mistura resultados de operações simultâneas', async () => {
+    const results = await Promise.allSettled([
+      protectServerOperation({
+        run: () => Promise.reject(new Error('PRIVATE_A'))
+      }),
+      protectServerOperation({
+        run: () => Promise.resolve({ message: 'public B' })
+      }),
+      protectServerOperation({
+        run: () => Promise.reject(new Error('PRIVATE_C'))
+      })
+    ])
+    expect(results[1]).toStrictEqual({
+      status: 'fulfilled',
+      value: { message: 'public B' }
+    })
+    for (const result of results) {
+      if (result.status === 'rejected') expectPublicFailure(result.reason)
+    }
+  })
+})
+
+describe('reconstrução de envelopes', () => {
+  // respond() serializa no corpo o valor recebido na criação. Um valor trocado
+  // depois disso passa pela verificação, mas o corpo original ainda sairia.
+  it('reconstrói o envelope e o corpo a partir dos dados verificados', async () => {
+    const envelope = respond(
+      { secret: 'PRIVATE_BODY' },
+      { status: HTTP_CREATED, headers: { 'x-public': 'yes' } }
+    )
+    Object.assign(envelope, { value: { ok: true } })
+
+    const rebuilt: unknown = protectServerOperation({
+      run: () => envelope,
+      allowControl: true
+    })
+
+    if (!isResponseEnvelope(rebuilt)) throw new TypeError('Expected envelope')
+    expect(rebuilt).not.toBe(envelope)
+    expect(rebuilt.value).toStrictEqual({ ok: true })
+    expect(rebuilt.status).toBe(HTTP_CREATED)
+    expect(rebuilt.headers.get('x-public')).toBe('yes')
+    await expect(rebuilt.text()).resolves.toBe('{"ok":true}')
+  })
+})
+
+describe('envelopes sem corpo', () => {
+  beforeEach(mockProductionLog)
+
+  it.each([HTTP_NO_CONTENT, HTTP_RESET_CONTENT, HTTP_NOT_MODIFIED])(
+    'valida dados privados no envelope com status %s',
+    status => {
+      const envelope = respond({ error: new Error('PRIVATE') }, { status })
+      expect(envelope).toBeInstanceOf(Response)
+      expectPublicFailure(
+        thrownValue({ run: () => envelope, allowControl: true })
+      )
+      expectPublicFailure(
+        thrownValue({
+          run: () => throwValue(envelope),
+          allowControl: true
+        })
+      )
+    }
+  )
+})
+
+describe('log da proteção de operações', () => {
+  beforeEach(mockProductionLog)
+
+  it('lança o erro público mesmo quando o log falha', async () => {
+    // O log falha no caminho síncrono e no assíncrono; o mock volta ao normal
+    // depois, para não afetar os logs do próprio Vitest.
+    vi.mocked(console.error)
+      .mockImplementationOnce(logUnavailable)
+      .mockImplementationOnce(logUnavailable)
+      .mockImplementationOnce(logUnavailable)
+      .mockImplementationOnce(logUnavailable)
+
+    expectPublicFailure(
+      thrownValue({ run: () => throwValue(new Error('PRIVATE_SYNC')) })
+    )
+    await expect(
+      protectServerOperation({
+        run: () => Promise.reject(new Error('PRIVATE_ASYNC'))
+      })
+    ).rejects.toThrow(PUBLIC_MESSAGE)
+    expect(readLog(console.error)).toStrictEqual({
+      heads: [
+        [LOG_MESSAGE, 'Error'],
+        [LOG_MESSAGE],
+        [LOG_MESSAGE, 'Error'],
+        [LOG_MESSAGE]
+      ],
+      leaks: []
+    })
+  })
+
+  it('imprime o erro original depois da linha filtrada em desenvolvimento', () => {
+    vi.stubEnv('DEV', true)
+    const failure = new Error('PRIVATE')
+
+    expectPublicFailure(thrownValue({ run: () => throwValue(failure) }))
+    expect(readLog(console.error).heads[0]).toStrictEqual([
+      LOG_MESSAGE,
+      'Error'
+    ])
+    expect(vi.mocked(console.error).mock.calls.slice(1)).toStrictEqual([
+      [failure]
+    ])
+  })
+})
+
+describe('estrutura dos dados públicos', () => {
+  beforeEach(mockProductionLog)
+
+  it('inspeciona setters, chaves Symbol e propriedades não enumeráveis', () => {
+    const secret = Symbol('secret')
+    const setter = vi.fn<(value: string) => void>()
+    for (const value of [
+      // oxlint-disable-next-line eslint/accessor-pairs -- O setter isolado é exatamente o caso que o guard precisa recusar.
+      Object.defineProperty({}, 'private', { set: setter, enumerable: true }),
+      { [secret]: new Error('PRIVATE') },
+      { [secret]: Object.defineProperty({}, 'private', { get: () => 'X' }) },
+      Object.defineProperty({}, 'private', {
+        value: new Error('PRIVATE'),
+        enumerable: false
+      })
+    ]) {
+      expectPublicFailure(thrownValue({ run: () => value }))
+    }
+    expect(setter).not.toHaveBeenCalled()
+    expect(console.error).toHaveBeenCalledTimes(REJECTED_SHAPES)
+  })
+
+  it('aceita referências compartilhadas visitando cada nó uma vez e recusa ciclos profundos', () => {
+    const shared = { id: 1 }
+    const dag = { a: shared, b: [shared, { c: shared }] }
+    expect(protectServerOperation({ run: () => dag })).toBe(dag)
+    // Um losango por nível dobra os caminhos até a folha: sem memória de nós
+    // já verificados, 16 níveis custariam 2^17 - 1 visitas em vez de 17. A
+    // contagem não depende da velocidade da máquina.
+    const count: VisitCount = { visits: 0 }
+    let diamond = countedNode({ node: { leaf: true }, count })
+    for (let depth = 0; depth < DIAMOND_DEPTH; depth += 1) {
+      diamond = countedNode({
+        node: { left: diamond, right: diamond },
+        count
+      })
+    }
+    expect(protectServerOperation({ run: () => diamond })).toBe(diamond)
+    expect(count.visits).toBe(DIAMOND_DEPTH + 1)
+    const nested: CyclicData = {}
+    nested.self = nested
+    expectPublicFailure(
+      thrownValue({ run: () => ({ level: { nested }, shared }) })
+    )
+    expect(readLog(console.error)).toStrictEqual({
+      heads: [[LOG_MESSAGE, 'Error']],
+      leaks: []
+    })
+  })
+})

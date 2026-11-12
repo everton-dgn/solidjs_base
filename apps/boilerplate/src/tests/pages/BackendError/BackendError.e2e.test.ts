@@ -1,0 +1,278 @@
+import { readdir, readFile } from 'node:fs/promises'
+
+import type { Page } from '@playwright/test'
+
+import {
+  markBackendRecovered,
+  readBackendState,
+  releaseFixtureGate,
+  waitForGate
+} from '@/tests/helpers/fixtureGate/index.ts'
+import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+
+test.use({ locale: 'pt-BR' })
+
+const HTTP_OK = 200
+const HTTP_FOUND = 302
+const HTTP_INTERNAL_SERVER_ERROR = 500
+const ATTEMPTS_AFTER_RETRY = 2
+// A mensagem pública segue o idioma da requisição; o navegador, com pt-BR, abre
+// a página e chama as server functions em pt.
+const PUBLIC_MESSAGE = 'Não foi possível concluir a solicitação.'
+type ServerResponse = {
+  body: string
+  headers: Record<string, string>
+  status: number
+}
+
+async function captureServerFunctions(page: Page): Promise<ServerResponse[]> {
+  const responses: ServerResponse[] = []
+  // O decoder cancela o stream HTTP ao receber a exceção. Capturamos o corpo
+  // real antes de entregá-lo ao browser, sem substituir dados ou status.
+  await page.route('**/_server/**', async route => {
+    const response = await route.fetch()
+    responses.push({
+      body: await response.text(),
+      headers: response.headers(),
+      status: response.status()
+    })
+    await route.fulfill({ response })
+  })
+  return responses
+}
+
+const SCENARIOS = [
+  { phase: 'ssr', javaScriptEnabled: true },
+  { phase: 'action', javaScriptEnabled: true },
+  { phase: 'stream', javaScriptEnabled: true },
+  { phase: 'ssr', javaScriptEnabled: false }
+] as const
+
+test('o bundle cliente não inclui a implementação do servidor', async () => {
+  const directory = new URL(
+    '../../../../.vercel/output/static/',
+    import.meta.url
+  )
+  const entries = await readdir(directory, { recursive: true })
+  const files = entries.filter(file => file.endsWith('.js'))
+  expect(files.length).toBeGreaterThan(0)
+  for (const file of files) {
+    const source = await readFile(new URL(file, directory), 'utf8')
+    expect(source).not.toContain('[server-operation]')
+    expect(source).not.toContain('[server-error]')
+    expect(source).not.toContain('127.0.0.1:4318')
+  }
+})
+
+test('um redirect lançado por server function no SSR continua redirecionando', async ({
+  page,
+  request
+}) => {
+  const response = await request.get('/pt/control-signal', { maxRedirects: 0 })
+  expect(response.status()).toBe(HTTP_FOUND)
+  expect(response.headers().location).toBe('/pt?from=control-signal')
+  await page.goto('/control-signal')
+  await expect(page).toHaveURL(/\/pt\?from=control-signal$/u)
+})
+
+test('um envelope devolvido por server function no SSR entrega o valor', async ({
+  request
+}) => {
+  const response = await request.get('/control-signal?kind=envelope-return')
+  expect(response.status()).toBe(HTTP_OK)
+  // O parágrafo renderizado, não só o valor serializado para a hidratação.
+  expect(await response.text()).toMatch(/<p[^>]*>Envelope retornado<\/p>/u)
+})
+
+// Regressão do @solidjs/router (https://github.com/solidjs/solid-router/issues/633):
+// query() não copia mais os headers de corpo do envelope, como o content-type,
+// para a página.
+for (const kind of ['envelope-return', 'envelope-throw']) {
+  test(`o documento com ${kind} por query no SSR continua HTML`, async ({
+    request
+  }) => {
+    const response = await request.get(
+      `/control-signal?kind=${kind}&id=throw:${crypto.randomUUID()}`
+    )
+    expect(response.headers()['content-type']).toBe('text/html; charset=utf-8')
+  })
+}
+
+// O hook recebe o envelope lançado como controle; o router então lança o valor
+// do envelope no render, que vira falha de render com ou sem o hook. O teste
+// confere a resposta bruta, fora do navegador.
+test('um envelope lançado por server function no SSR vira falha de render sem expor o valor', async ({
+  request
+}) => {
+  const id = `throw:${crypto.randomUUID()}`
+  const { marker } = await readBackendState({ request, id })
+  const response = await request.get(
+    `/control-signal?kind=envelope-throw&id=${id}`
+  )
+  const document = await response.text()
+  expect(response.status()).toBe(HTTP_INTERNAL_SERVER_ERROR)
+  expect(document).not.toContain(marker)
+  expect(response.headers()['content-language']).toBe('en')
+  expect(document).toContain('Something went wrong!')
+  // Controle positivo: a server function leu o marcador antes de lançar.
+  const after = await readBackendState({ request, id })
+  expect(after.attempts).toBe(1)
+})
+
+for (const { phase, javaScriptEnabled } of SCENARIOS) {
+  test.describe(`erro de backend: ${phase}, JavaScript ${javaScriptEnabled ? 'ativo' : 'desativado'}`, () => {
+    test.use({ javaScriptEnabled })
+
+    test('recarrega a página com falha e após o backend voltar', async ({
+      page,
+      request,
+      pageErrors
+    }) => {
+      const id = crypto.randomUUID()
+      const { marker: privateMarker } = await readBackendState({ request, id })
+      const serverResponses = await captureServerFunctions(page)
+
+      const response = await page.goto(`/backend-error?phase=${phase}&id=${id}`)
+      expect(await response?.text()).not.toContain(privateMarker)
+      expect(JSON.stringify(response?.headers())).not.toContain(privateMarker)
+      const pageUrl = page.url()
+      expect(response?.status()).toBe(
+        phase === 'ssr' ? HTTP_INTERNAL_SERVER_ERROR : HTTP_OK
+      )
+      if (phase === 'action') {
+        await expect(page.getByText('Pronto para consultar')).toBeVisible()
+        await page.getByRole('button', { name: 'Consultar backend' }).click()
+      }
+
+      await expect(
+        page.getByRole('heading', { name: 'Algo deu errado!' })
+      ).toBeVisible()
+      await expect(page.locator('header')).toHaveCount(0)
+
+      // Uma navegação completa precisa funcionar sem hidratação nem invalidação de query.
+      const retryResponse = page.waitForResponse(candidate =>
+        candidate.request().isNavigationRequest()
+      )
+      await page.getByRole('link', { name: 'Recarregar página' }).click()
+      const failedReload = await retryResponse
+      expect(await failedReload.text()).not.toContain(privateMarker)
+      expect(JSON.stringify(failedReload.headers())).not.toContain(
+        privateMarker
+      )
+      expect(failedReload.status()).toBe(
+        phase === 'ssr' ? HTTP_INTERNAL_SERVER_ERROR : HTTP_OK
+      )
+      await expect(page).toHaveURL(pageUrl)
+      if (phase === 'action') {
+        await expect(page.getByText('Pronto para consultar')).toBeVisible()
+        await page.getByRole('button', { name: 'Consultar backend' }).click()
+      }
+      await expect
+        .poll(async () => {
+          const state = await readBackendState({ request, id })
+          return state.attempts
+        })
+        .toBe(ATTEMPTS_AFTER_RETRY)
+      await expect(
+        page.getByRole('heading', { name: 'Algo deu errado!' })
+      ).toBeVisible()
+
+      // A exceção pública pode se repetir ao hidratar o fallback, no payload
+      // inicial e no stream. Ao atualizar o runtime, reproduza
+      // com Emulation.setCPUThrottlingRate em 20x e remova esta exceção se o
+      // erro não chegar mais ao navegador.
+      const rendersOnServer = phase !== 'action'
+      expect(
+        pageErrors.filter(
+          message => !rendersOnServer || message !== PUBLIC_MESSAGE
+        )
+      ).toStrictEqual([])
+      pageErrors.length = 0
+
+      await markBackendRecovered({ request, id })
+      const recoveryResponse = page.waitForResponse(candidate =>
+        candidate.request().isNavigationRequest()
+      )
+      await page.getByRole('link', { name: 'Recarregar página' }).click()
+      const recoveredReload = await recoveryResponse
+      expect(await recoveredReload.text()).not.toContain(privateMarker)
+      expect(recoveredReload.status()).toBe(HTTP_OK)
+      if (phase === 'action') {
+        await expect(page.getByText('Pronto para consultar')).toBeVisible()
+        await page.getByRole('button', { name: 'Consultar backend' }).click()
+      }
+      await expect(
+        page.getByText('Backend recuperado', { exact: true })
+      ).toBeVisible()
+      await expect(page.locator('[data-error-variant="runtime"]')).toHaveCount(
+        0
+      )
+      expect(pageErrors).toStrictEqual([])
+      if (phase === 'action') {
+        expect(serverResponses).toHaveLength(ATTEMPTS_AFTER_RETRY + 1)
+      }
+      expect(JSON.stringify(serverResponses)).not.toContain(privateMarker)
+    })
+  })
+}
+
+for (const phase of ['ssr', 'stream', 'action']) {
+  for (const failure of ['http', 'throw', 'result', 'public', 'success']) {
+    test(`confidencialidade: ${phase}, ${failure}`, async ({
+      page,
+      request,
+      pageErrors
+    }) => {
+      // No streaming, o backend segura /data até o teste ver o fallback. Uma
+      // resposta anterior ao shell embutiria o conteúdo no documento.
+      const isStream = phase === 'stream'
+      const id = `${failure}:${crypto.randomUUID()}${isStream ? ':gated' : ''}`
+      const { marker } = await readBackendState({ request, id })
+      const serverResponses = await captureServerFunctions(page)
+      const response = await page.goto(
+        `/backend-error?phase=${phase}&id=${id}`,
+        { waitUntil: isStream ? 'commit' : 'load' }
+      )
+      if (isStream) {
+        await expect(
+          page.getByText('Carregando dados...', { exact: true })
+        ).toBeVisible()
+        await waitForGate({ request, id })
+        await releaseFixtureGate({ request, id })
+      }
+      // Lido só depois da liberação: o corpo termina quando /data responde.
+      const document = await response?.text()
+      expect(document).not.toContain(marker)
+      expect(JSON.stringify(response?.headers())).not.toContain(marker)
+      expect(response?.status()).toBe(
+        phase === 'ssr' && failure !== 'success'
+          ? HTTP_INTERNAL_SERVER_ERROR
+          : HTTP_OK
+      )
+      if (isStream) expect(document).toContain('Carregando dados...')
+      if (phase === 'action') {
+        await page.getByRole('button', { name: 'Consultar backend' }).click()
+      }
+      const content =
+        failure === 'success'
+          ? page.getByText('Backend recuperado', { exact: true })
+          : page.getByRole('heading', { name: 'Algo deu errado!' })
+      await expect(content).toBeVisible()
+      expect(await page.content()).not.toContain(marker)
+      if (phase === 'action') {
+        expect(serverResponses).toHaveLength(1)
+        expect(serverResponses[0]?.status).toBe(
+          failure === 'success' ? HTTP_OK : HTTP_INTERNAL_SERVER_ERROR
+        )
+      }
+      expect(JSON.stringify(serverResponses)).not.toContain(marker)
+      expect(pageErrors.join(' ')).not.toContain(marker)
+      // A hidratação tolera somente a repetição da mensagem pública fixa.
+      expect(
+        pageErrors.filter(
+          message => phase === 'action' || message !== PUBLIC_MESSAGE
+        )
+      ).toStrictEqual([])
+    })
+  }
+}

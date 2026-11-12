@@ -1,0 +1,55 @@
+import { expect, test } from '@playwright/test'
+
+const HTTP_OK = 200
+const HTTP_NOT_FOUND = 404
+const MENU_TRIGGERS = 2
+
+test.describe('layout na árvore de produção', () => {
+  test.use({ javaScriptEnabled: false })
+
+  test('renderiza Home e 404 com barra no SSR', async ({ page }) => {
+    const home = await page.goto('/pt')
+    expect(home?.status()).toBe(HTTP_OK)
+    await expect(page.getByRole('banner')).toHaveCount(1)
+    await expect(
+      page.getByRole('heading', {
+        name: 'SolidJS Boilerplate para aplicações web'
+      })
+    ).toBeVisible()
+    const menuTriggers = page
+      .getByRole('banner')
+      .locator('button[aria-haspopup="menu"]')
+    await expect(menuTriggers).toHaveCount(MENU_TRIGGERS)
+    await expect(page.locator('head link[rel="canonical"]')).toHaveCount(1)
+
+    const missing = await page.goto('/pt/pagina-inexistente')
+    expect(missing?.status()).toBe(HTTP_NOT_FOUND)
+    await expect(page.getByRole('banner')).toHaveCount(1)
+    await expect(page).toHaveTitle('Página não encontrada')
+    await expect(page.locator('head meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex'
+    )
+    await expect(page.locator('head link[rel="canonical"]')).toHaveCount(0)
+  })
+})
+
+// O build E2E monta a cadeia pela fábrica; aqui passa o export padrão real.
+test.describe('middleware na entrada de produção', () => {
+  test('aplica os cabeçalhos de segurança', async ({ request }) => {
+    const response = await request.get('/')
+
+    expect(response.status()).toBe(HTTP_OK)
+    expect(response.headers()).toMatchObject({
+      'strict-transport-security': 'max-age=63072000; includeSubDomains',
+      'x-frame-options': 'DENY',
+      'x-content-type-options': 'nosniff',
+      'referrer-policy': 'strict-origin-when-cross-origin',
+      'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+      'cross-origin-opener-policy': 'same-origin',
+      'cross-origin-embedder-policy': 'require-corp',
+      'cross-origin-resource-policy': 'same-origin',
+      'content-security-policy': expect.stringContaining("script-src 'nonce-")
+    })
+  })
+})

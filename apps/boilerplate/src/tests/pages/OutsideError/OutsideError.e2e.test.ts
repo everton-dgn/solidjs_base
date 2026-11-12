@@ -1,0 +1,333 @@
+import { readFile } from 'node:fs/promises'
+import { env } from 'node:process'
+
+import type { APIRequestContext } from '@playwright/test'
+
+import {
+  readBackendState,
+  readGatedBody,
+  releaseFixtureGate,
+  waitForGate
+} from '@/tests/helpers/fixtureGate/index.ts'
+import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+
+test.use({ locale: 'pt-BR' })
+
+const HTTP_OK = 200
+const HTTP_INTERNAL_SERVER_ERROR = 500
+// Um servidor que pare de emitir bytes falha na leitura, e não no timeout
+// genérico do runner.
+const REQUEST_TIMEOUT = 15_000
+const LOADING_TEXT = 'Carregando fixture...'
+// A mensagem pública segue o idioma da requisição. O fetch do Node não pede um
+// idioma suportado e recebe o idioma base; o navegador, com pt-BR, abre a
+// página em pt.
+const PUBLIC_MESSAGE = 'The request could not be completed.'
+const PAGE_PUBLIC_MESSAGE = 'Não foi possível concluir a solicitação.'
+// Mensagens que o navegador pode lançar ao hidratar, conforme a ordem entre a
+// hidratação e a chegada do fragmento rejeitado: a lista admite cada uma sem
+// exigi-la. A rejeição da fonte assíncrona é serializada com a política
+// padrão do runtime antes de qualquer hook; o fragmento do boundary leva a
+// mensagem pública definida pelo hook.
+const RUNTIME_MESSAGE = 'Internal Server Error'
+const MIDDLEWARE_LOG =
+  '[middleware] Unexpected failure; private details omitted'
+const SERVER_ERROR_LOG =
+  '[server-error] Unexpected failure; private details omitted'
+
+type Gate = 'none' | 'before' | 'stream'
+type FixtureCase = {
+  name: string
+  gate: Gate
+  status: number
+  content: string
+  pageErrors: string[]
+}
+type RawRequest = {
+  request: APIRequestContext
+  id: string
+  baseURL: string
+  fixture: FixtureCase
+}
+type RawResponse = { body: string; headers: string; status: number }
+type LogCount = { file: string; message: string }
+
+const CASES: FixtureCase[] = [
+  {
+    name: 'render-local',
+    gate: 'none',
+    status: HTTP_OK,
+    content: 'Falha contida',
+    pageErrors: []
+  },
+  {
+    name: 'render-root',
+    gate: 'none',
+    status: HTTP_INTERNAL_SERVER_ERROR,
+    content: 'Algo deu errado!',
+    pageErrors: []
+  },
+  {
+    name: 'render-stream',
+    gate: 'stream',
+    status: HTTP_OK,
+    content: 'Algo deu errado!',
+    pageErrors: [PAGE_PUBLIC_MESSAGE]
+  },
+  {
+    name: 'async-ssr',
+    gate: 'before',
+    status: HTTP_INTERNAL_SERVER_ERROR,
+    content: 'Algo deu errado!',
+    pageErrors: [RUNTIME_MESSAGE]
+  },
+  {
+    name: 'async-direct',
+    gate: 'stream',
+    status: HTTP_OK,
+    content: 'Algo deu errado!',
+    pageErrors: [RUNTIME_MESSAGE, PAGE_PUBLIC_MESSAGE]
+  },
+  {
+    name: 'async-element',
+    gate: 'stream',
+    status: HTTP_OK,
+    content: 'Algo deu errado!',
+    pageErrors: [RUNTIME_MESSAGE, PAGE_PUBLIC_MESSAGE]
+  }
+]
+
+// Lê o documento bruto fora do navegador. No streaming, a falha só é liberada
+// depois que a fixture chegou à fonte assíncrona.
+async function readRawDocument({
+  request,
+  id,
+  baseURL,
+  fixture
+}: RawRequest): Promise<RawResponse> {
+  if (fixture.gate === 'before') await releaseFixtureGate({ request, id })
+  const response = await fetch(
+    `${baseURL}/outside-error?case=${fixture.name}&id=${id}`,
+    { signal: AbortSignal.timeout(REQUEST_TIMEOUT) }
+  )
+  const body =
+    fixture.gate === 'stream'
+      ? await readGatedBody({
+          request,
+          id,
+          response,
+          shellText: LOADING_TEXT,
+          shouldWaitForGate: true
+        })
+      : await response.text()
+  return {
+    body,
+    headers: JSON.stringify(Object.fromEntries(response.headers)),
+    status: response.status
+  }
+}
+
+// O projeto server-logs roda este arquivo sozinho e em ordem, depois dos demais
+// (tooling/playwright.ts): nenhuma outra requisição grava linhas durante uma
+// contagem.
+async function countLogLines({ file, message }: LogCount): Promise<number> {
+  const log = await readFile(file, 'utf8')
+  return log.split('\n').filter(line => line.includes(message)).length
+}
+
+for (const fixture of CASES) {
+  test.describe(`erro fora de server function: ${fixture.name}`, () => {
+    test('o documento bruto não leva o marcador', async ({
+      request,
+      baseURL
+    }) => {
+      if (!baseURL) throw new Error('baseURL is required')
+      const id = `outside:${crypto.randomUUID()}`
+      const { marker } = await readBackendState({ request, id })
+      // O throw no render da raiz passa pelo hook de erros de produção, que
+      // grava uma linha fixa [server-error] por requisição.
+      const logFile =
+        fixture.name === 'render-root' ? env.SERVER_LOG_FILE : undefined
+      if (fixture.name === 'render-root' && !logFile) {
+        throw new Error('E2E environment is incomplete')
+      }
+      const hookLogBefore = logFile
+        ? await countLogLines({ file: logFile, message: SERVER_ERROR_LOG })
+        : 0
+
+      const raw = await readRawDocument({ request, id, baseURL, fixture })
+
+      if (logFile) {
+        await expect
+          .poll(async () =>
+            countLogLines({ file: logFile, message: SERVER_ERROR_LOG })
+          )
+          .toBe(hookLogBefore + 1)
+      }
+
+      expect(raw.status).toBe(fixture.status)
+      expect(raw.body).not.toContain(marker)
+      // O hook de erros troca o erro que o boundary serializa pela mensagem
+      // pública. A fonte assíncrona ainda leva a mensagem do runtime.
+      expect(raw.body).toContain(PUBLIC_MESSAGE)
+      expect(raw.headers).not.toContain(marker)
+      // Controles positivos: a fixture recebeu o marcador, lançou com ele e,
+      // nos casos com gate, só falhou depois da liberação. Sem streaming o
+      // registro volta num header; com gate, pelo backend sintético.
+      expect(raw.headers).toContain('"x-fixture-marker":"loaded"')
+      const state = await readBackendState({ request, id })
+      expect(state.attempts).toBe(1)
+      expect(state.gate).toBe(fixture.gate === 'none' ? 'none' : 'released')
+      if (fixture.gate === 'none') {
+        expect(raw.headers).toContain('"x-fixture-thrown":"real"')
+      } else {
+        expect(state.real).toBe(true)
+      }
+      if (fixture.gate === 'stream') expect(raw.body).toContain(LOADING_TEXT)
+    })
+
+    test('o navegador mostra o fallback sem o marcador', async ({
+      page,
+      request,
+      pageErrors
+    }) => {
+      const id = `outside:${crypto.randomUUID()}`
+      const { marker } = await readBackendState({ request, id })
+      if (fixture.gate === 'before') await releaseFixtureGate({ request, id })
+
+      const response = await page.goto(
+        `/outside-error?case=${fixture.name}&id=${id}`,
+        { waitUntil: fixture.gate === 'stream' ? 'commit' : 'load' }
+      )
+      if (fixture.gate === 'stream') {
+        await expect(page.getByText(LOADING_TEXT)).toBeVisible()
+        await waitForGate({ request, id })
+        await releaseFixtureGate({ request, id })
+      }
+
+      await expect(page.getByText(fixture.content)).toBeVisible()
+      expect(await page.content()).not.toContain(marker)
+      expect(pageErrors.join(' ')).not.toContain(marker)
+      expect(
+        pageErrors.filter(message => !fixture.pageErrors.includes(message))
+      ).toStrictEqual([])
+      const state = await readBackendState({ request, id })
+      if (fixture.gate === 'none') {
+        expect(response?.headers()['x-fixture-thrown']).toBe('real')
+      } else {
+        expect(state.real).toBe(true)
+      }
+    })
+  })
+}
+
+// hasErrorPage: a navegação recebe a página de erro do app. Depois de next() o
+// render já aconteceu e o plugin não permite outro, então a resposta é o 500
+// em texto, como fora de navegação.
+type MiddlewareCase = {
+  phase: 'before' | 'after'
+  isNavigation: boolean
+  hasErrorPage: boolean
+}
+
+const MIDDLEWARE_CASES: MiddlewareCase[] = [
+  { phase: 'before', isNavigation: true, hasErrorPage: true },
+  { phase: 'after', isNavigation: true, hasErrorPage: false },
+  { phase: 'before', isNavigation: false, hasErrorPage: false }
+]
+
+test.describe('exceções no middleware', () => {
+  for (const { phase, isNavigation, hasErrorPage } of MIDDLEWARE_CASES) {
+    test(`exceção ${phase === 'before' ? 'antes' : 'depois'} de next() ${isNavigation ? 'numa navegação' : 'fora de navegação'} ${hasErrorPage ? 'mostra a página de erro' : 'vira 500 em texto'}`, async ({
+      request,
+      baseURL
+    }) => {
+      const logFile = env.SERVER_LOG_FILE
+      if (!baseURL || !logFile) throw new Error('E2E environment is incomplete')
+      const id = `outside:${crypto.randomUUID()}`
+      const { marker } = await readBackendState({ request, id })
+      const logBefore = await countLogLines({
+        file: logFile,
+        message: MIDDLEWARE_LOG
+      })
+
+      const response = await fetch(
+        `${baseURL}/outside-error?case=middleware-${phase}&id=${id}`,
+        { headers: { accept: isNavigation ? 'text/html' : 'application/json' } }
+      )
+      const body = await response.text()
+
+      expect(response.status).toBe(HTTP_INTERNAL_SERVER_ERROR)
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff')
+      if (hasErrorPage) {
+        expect(response.headers.get('content-type')).toContain('text/html')
+        expect(response.headers.get('content-language')).toBe('en')
+        expect(body).toContain('Something went wrong!')
+      } else {
+        expect(body).toBe(PUBLIC_MESSAGE)
+      }
+      expect(body).not.toContain(marker)
+      expect(
+        JSON.stringify(Object.fromEntries(response.headers))
+      ).not.toContain(marker)
+      // Controle positivo: a fixture lançou com o marcador carregado.
+      const state = await readBackendState({ request, id })
+      expect(state.attempts).toBe(1)
+      expect(state.real).toBe(true)
+      // Uma linha fixa do middleware por requisição. O teardown global recusa
+      // o marcador em todo o arquivo depois da suíte.
+      await expect
+        .poll(async () =>
+          countLogLines({ file: logFile, message: MIDDLEWARE_LOG })
+        )
+        .toBe(logBefore + 1)
+    })
+  }
+
+  // O render de erro chamaria o dispatcher do plugin, que executa server
+  // functions e responde rotas de API com o próprio corpo.
+  for (const path of ['/robots.txt', '/_server/fixture']) {
+    test(`exceção antes de next() em ${path} vira 500 em texto mesmo com accept de HTML`, async ({
+      request,
+      baseURL
+    }) => {
+      if (!baseURL) throw new Error('baseURL is required')
+      const id = `outside:${crypto.randomUUID()}`
+
+      const response = await fetch(
+        `${baseURL}${path}?case=middleware-before&id=${id}`,
+        { headers: { accept: 'text/html' } }
+      )
+
+      expect(response.status).toBe(HTTP_INTERNAL_SERVER_ERROR)
+      await expect(response.text()).resolves.toBe(PUBLIC_MESSAGE)
+      const state = await readBackendState({ request, id })
+      expect(state.real).toBe(true)
+    })
+  }
+
+  test('a página de erro do middleware hidrata no navegador', async ({
+    page,
+    request,
+    pageErrors
+  }) => {
+    const id = `outside:${crypto.randomUUID()}`
+    const { marker } = await readBackendState({ request, id })
+
+    const response = await page.goto(
+      `/outside-error?case=middleware-before&id=${id}`
+    )
+
+    expect(response?.status()).toBe(HTTP_INTERNAL_SERVER_ERROR)
+    await expect(
+      page.getByRole('link', { name: 'Recarregar página' })
+    ).toBeVisible()
+    await expect.poll(async () => hydrationFinished(page)).toBe(true)
+    expect(await page.content()).not.toContain(marker)
+    // Só a mensagem pública pode reaparecer ao hidratar o fallback.
+    expect(
+      pageErrors.filter(message => message !== PAGE_PUBLIC_MESSAGE)
+    ).toStrictEqual([])
+  })
+})

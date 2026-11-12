@@ -1,0 +1,7 @@
+.code {
+  margin-inline-end: -4px;
+
+  &::after {
+    content: ' -';
+  }
+}

@@ -1,0 +1,30 @@
+.home_link {
+  margin-block-start: 40px;
+  min-width: 160px;
+  border-radius: var(--radius-9999);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding-inline: 24px;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-500);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  transition: background-color 0.18s ease;
+
+  &:hover {
+    background: var(--color-primary-hover);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--ring-focus);
+  }
+
+  & svg {
+    width: 16px;
+    height: 16px;
+  }
+}

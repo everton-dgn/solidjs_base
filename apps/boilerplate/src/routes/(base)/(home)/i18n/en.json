@@ -1,0 +1,6 @@
+{
+  "home_title": "SolidJS Boilerplate for web applications",
+  "home_description": "Start your next project with {framework}, {toolchain} and {language}. Server-side rendering and light, dark or system theme preferences are already configured.",
+  "home_seoTitle": "SolidJS Boilerplate | Web applications with SSR",
+  "home_features": "You start with pages in Portuguese, English and Spanish, SEO defined per route and user interface components ready to adapt. Automated unit, component and browser tests accompany the source code, while backend calls handle errors without exposing server details."
+}

@@ -164,8 +164,8 @@ the release. `0.2.0` was published this way after validation rejected the
 changelog that release-please had generated.
 
 1. Open the fix as a pull request and keep it unmerged.
-2. Check that the package folder and the root `package.json` are the same in
-   the tag, in `main` and in the fix branch. The root `package.json` holds the
+2. Check that the package folder and the root `package.json` are the same in the
+   tag, in `main` and in the fix branch. The root `package.json` holds the
    catalog versions that `vp pm pack` writes into the published manifest. Both
    commands must print nothing:
 

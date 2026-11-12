@@ -4,6 +4,7 @@
   "private": true,
   "author": "Éverton Toffanetto",
   "license": "MIT",
+  "repository": "https://github.com/everton-dgn/solidjs_base",
   "description": "Shared packages for SolidJS applications built with Vite+.",
   "type": "module",
   "workspaces": [

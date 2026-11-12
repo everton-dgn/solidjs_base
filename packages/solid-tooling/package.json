@@ -4,6 +4,11 @@
   "description": "Lint, formatter and TypeScript presets for SolidJS applications built with Vite+.",
   "author": "Éverton Toffanetto",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/everton-dgn/solidjs_base.git",
+    "directory": "packages/solid-tooling"
+  },
   "keywords": [
     "solidjs",
     "vite-plus",

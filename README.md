@@ -147,15 +147,54 @@ the repository does not reach it. What to do depends on where the cause is:
   then open the failed run on GitHub and choose "Re-run failed jobs". The
   publish job runs again with the output of the release job from the first
   attempt. GitHub allows this for 30 days.
-- In a workflow step after validation, such as the npm version check: the code
-  in the tag passed validation. Fix the workflow on `main`, check out the tag
-  (`git checkout solid-tooling@0.2.0`) and
-  [publish it by hand](#publishing-by-hand).
-- In validation (`vp run validate`): the tag holds code that did not pass, so do
-  not publish it. Fix what failed, in the package or in the workspace
-  configuration. release-please opens a release only for commits that change
-  files in the package folder, so a fix outside it ships with the next `fix` or
-  `feat` of the package. The failed version is never published.
+- Outside the package folder, such as a workflow step or the workspace
+  configuration that validation uses: open the fix as a pull request, keep it
+  unmerged, and
+  [publish the same version again](#publishing-a-failed-version-again).
+- In the package folder, when validation fails on the package code: do not
+  publish the tag, because it holds code that did not pass. The fix ships as the
+  next version, and the failed version is never published.
+
+### Publishing a failed version again
+
+The publish job builds the commit that started the workflow run, not the commit
+of the tag. So once a fix outside the package folder is ready, the workflow can
+publish the failed version, as long as the package folder did not change since
+the release. `0.2.0` was published this way after validation rejected the
+changelog that release-please had generated.
+
+1. Open the fix as a pull request and keep it unmerged.
+2. Check that the package folder and the root `package.json` are the same in the
+   tag, in `main` and in the fix branch. The root `package.json` holds the
+   catalog versions that `vp pm pack` writes into the published manifest. Both
+   commands must print nothing:
+
+   ```bash
+   git fetch origin
+   git diff --stat solid-tooling@0.2.0 origin/main -- packages/solid-tooling package.json
+   git diff --stat origin/main...origin/<fix-branch> -- packages/solid-tooling package.json
+   ```
+
+3. Delete the GitHub Release and the tag:
+
+   ```bash
+   gh release delete solid-tooling@0.2.0 --cleanup-tag --yes
+   ```
+
+4. On the release pull request that was merged, swap the release-please label:
+
+   ```bash
+   gh pr edit <release-pr> --remove-label "autorelease: tagged" --add-label "autorelease: pending"
+   ```
+
+5. Merge the fix. The push to `main` runs the workflow: release-please creates
+   the tag on the merge commit of the release pull request and the GitHub
+   Release again, and the publish job validates and publishes the version.
+
+Run steps 3 to 5 together. Any push to `main` after step 4 starts the release,
+and if the fix is not on `main` yet, the publish job fails again. release-please
+writes the release notes again from the release pull request, so copy them
+before step 3 if someone edited them on GitHub.
 
 ### Known limits
 
@@ -167,6 +206,11 @@ fail because of this.
 release-please writes `CHANGELOG.md` in its own format, so the workspace format
 check skips every `CHANGELOG.md`. Edit those files by hand only to fix an entry,
 never to reformat them.
+
+GitHub always puts the pull request title in a merge commit, either in its title
+or in its body, and release-please reads it as one more commit. A merged pull
+request titled `feat` or `fix` therefore adds its title to the changelog, next
+to the entries of its own commits. No repository setting removes it.
 
 ### Publishing by hand
 

@@ -148,7 +148,8 @@ the repository does not reach it. What to do depends on where the cause is:
   publish job runs again with the output of the release job from the first
   attempt. GitHub allows this for 30 days.
 - Outside the package folder, such as a workflow step or the workspace
-  configuration that validation uses: fix it on `main` and
+  configuration that validation uses: open the fix as a pull request, keep it
+  unmerged, and
   [publish the same version again](#publishing-a-failed-version-again).
 - In the package folder, when validation fails on the package code: do not
   publish the tag, because it holds code that did not pass. The fix ships as the
@@ -163,13 +164,15 @@ the release. `0.2.0` was published this way after validation rejected the
 changelog that release-please had generated.
 
 1. Open the fix as a pull request and keep it unmerged.
-2. Check that the package folder in the tag matches `main` and the fix branch.
-   Both commands must print nothing:
+2. Check that the package folder and the root `package.json` are the same in
+   the tag, in `main` and in the fix branch. The root `package.json` holds the
+   catalog versions that `vp pm pack` writes into the published manifest. Both
+   commands must print nothing:
 
    ```bash
    git fetch origin
-   git diff --stat solid-tooling@0.2.0 origin/main -- packages/solid-tooling
-   git diff --stat origin/main...origin/<fix-branch> -- packages/solid-tooling
+   git diff --stat solid-tooling@0.2.0 origin/main -- packages/solid-tooling package.json
+   git diff --stat origin/main...origin/<fix-branch> -- packages/solid-tooling package.json
    ```
 
 3. Delete the GitHub Release and the tag:

@@ -5,7 +5,6 @@
 
 ### Features
 
-* **tooling:** write rule messages and documentation in English ([9eed889](https://github.com/everton-dgn/solidjs_base/commit/9eed889735451c8718a40621902540607210e57a))
 * **tooling:** write rule messages in English ([379e750](https://github.com/everton-dgn/solidjs_base/commit/379e750be87ca5e63f7d9a535e80501478718d14))
 
 

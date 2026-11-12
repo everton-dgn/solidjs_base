@@ -41,7 +41,7 @@ export const lint: NonNullable<UserConfig['lint']> = {
       specifier: '@devinsights/solid-tooling/architecture-plugin'
     },
     { name: 'paraglide', specifier: '@inlang/paraglide-js/eslint' },
-    { name: 'solid', specifier: 'eslint-plugin-solid' },
+    { name: 'solid', specifier: '@devinsights/solid-tooling/solid-plugin' },
     { name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' }
   ],
   options: {

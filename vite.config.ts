@@ -9,7 +9,8 @@ const TOOLING_SOURCE = './packages/solid-tooling/src'
 const SOURCE_PLUGINS: Record<string, string> = {
   project: `${TOOLING_SOURCE}/project-plugin.ts`,
   backend: `${TOOLING_SOURCE}/backendPolicy/plugin.ts`,
-  architecture: `${TOOLING_SOURCE}/architecturePolicy/index.ts`
+  architecture: `${TOOLING_SOURCE}/architecturePolicy/index.ts`,
+  solid: `${TOOLING_SOURCE}/solid-plugin.ts`
 }
 const APP_TOOLING_PREFIX = 'tooling/'
 const PACKAGE_SOURCE_PREFIX = 'packages/*/src/'
@@ -39,6 +40,5 @@ export default defineConfig({
     ignorePatterns: [...(lint.ignorePatterns ?? []), 'fixtures/**'],
     jsPlugins,
     overrides: [...(lint.overrides ?? []), ...packageOverrides]
-  },
-  run: { cache: true }
+  }
 })

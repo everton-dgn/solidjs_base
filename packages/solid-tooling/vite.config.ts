@@ -7,7 +7,8 @@ export default defineConfig({
       fmt: 'src/fmt.ts',
       'project-plugin': 'src/project-plugin.ts',
       'backend-plugin': 'src/backendPolicy/plugin.ts',
-      'architecture-plugin': 'src/architecturePolicy/index.ts'
+      'architecture-plugin': 'src/architecturePolicy/index.ts',
+      'solid-plugin': 'src/solid-plugin.ts'
     },
     format: ['esm'],
     dts: { generator: 'tsgo' }

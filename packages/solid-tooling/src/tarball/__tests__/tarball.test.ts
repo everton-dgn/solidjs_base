@@ -1,4 +1,4 @@
-/* oxlint-disable node/no-sync -- O teste monta a aplicação em sequência e aguarda os CLIs reais. */
+/* oxlint-disable node/no-sync -- The test builds the application step by step and waits for the real CLIs. */
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import {
@@ -27,8 +27,8 @@ const FIXTURE = path.join(WORKSPACE_ROOT, 'fixtures/consumer')
 const VP = path.join(WORKSPACE_ROOT, 'node_modules/.bin/vp')
 const PACKAGE_NAME = '@evertondgn/solid-tooling'
 const COMMAND_TIMEOUT = 120_000
-// Estes protocolos só resolvem dentro do workspace; num pacote publicado a
-// instalação da aplicação falharia.
+// These protocols only resolve inside the workspace; in a published package
+// the application install would fail.
 const WORKSPACE_PROTOCOLS = ['catalog:', 'workspace:']
 const SHARED_VERSIONS = ['typescript', 'vite-plus', '@inlang/paraglide-js']
 const EXPECTED: Expected[] = [
@@ -44,8 +44,8 @@ const EXPECTED: Expected[] = [
     code: 'solid(no-destructure)'
   }
 ]
-// O vite.config.ts importa o preset: sem diagnósticos, as declarações do
-// pacote resolveram na aplicação.
+// vite.config.ts imports the preset: with no diagnostics, the package
+// declarations resolved in the application.
 const CLEAN_FILES = ['src/helpers/clean.ts', 'vite.config.ts']
 
 const versionsSchema = v.optional(v.record(v.string(), v.string()), {})
@@ -90,7 +90,7 @@ function pack(directory: string): string {
     cwd: PACKAGE_ROOT
   })
   const tarball = readdirSync(destination).find(name => name.endsWith('.tgz'))
-  assert.ok(tarball, 'O vp pm pack não gerou o tarball.')
+  assert.ok(tarball, 'vp pm pack did not produce the tarball.')
   return path.join(destination, tarball)
 }
 
@@ -110,7 +110,7 @@ function assertInstallable(tarball: string): void {
   for (const [name, version] of versions) {
     assert.ok(
       !WORKSPACE_PROTOCOLS.some(protocol => version.startsWith(protocol)),
-      `${name} saiu no pacote com ${version}.`
+      `${name} was packed with ${version}.`
     )
   }
 }
@@ -135,7 +135,7 @@ function install({ app, tarball }: Installation): void {
 }
 
 function lint(app: string): Diagnostic[] {
-  // As violações deliberadas fazem o lint sair com código diferente de zero.
+  // The deliberate violations make lint exit with a non-zero code.
   const result = spawnSync(
     path.join(app, 'node_modules/.bin/vp'),
     ['lint', 'src', 'vite.config.ts', '--format', 'json'],
@@ -161,7 +161,7 @@ function hasError({ diagnostics, expected }: ErrorQuery): boolean {
   )
 }
 
-test('a fixture declara as mesmas versões do workspace', () => {
+test('the fixture declares the same versions as the workspace', () => {
   const workspace = readManifest(
     readFileSync(path.join(WORKSPACE_ROOT, 'package.json'), 'utf8')
   )
@@ -176,9 +176,9 @@ test('a fixture declara as mesmas versões do workspace', () => {
   assert.deepEqual(fixture.devEngines, workspace.devEngines)
 })
 
-test('a aplicação instala o pacote empacotado e o lint aplica os plugins', context => {
+test('the application installs the packed package and lint applies the plugins', context => {
   const directory = mkdtempSync(path.join(tmpdir(), 'solid-tooling-consumer-'))
-  // Sandbox criado pelo próprio teste: a remoção direta é o descarte correto.
+  // Sandbox created by this test: removing it directly is the right cleanup.
   context.after(() => rmSync(directory, { recursive: true, force: true }))
   const tarball = pack(directory)
   assertInstallable(tarball)
@@ -190,7 +190,7 @@ test('a aplicação instala o pacote empacotado e o lint aplica os plugins', con
   for (const expected of EXPECTED) {
     assert.ok(
       hasError({ diagnostics, expected }),
-      `${expected.code} não foi reportado em ${expected.filename}.`
+      `${expected.code} was not reported in ${expected.filename}.`
     )
   }
   assert.deepEqual(

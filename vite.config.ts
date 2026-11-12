@@ -4,8 +4,8 @@ import { fmt } from './packages/solid-tooling/src/fmt.ts'
 import { lint } from './packages/solid-tooling/src/lint.ts'
 
 const TOOLING_SOURCE = './packages/solid-tooling/src'
-// O workspace carrega os plugins próprios a partir dos fontes, para o lint não
-// depender do build do pacote.
+// The workspace loads its own plugins from the sources, so lint does not
+// depend on the package build.
 const SOURCE_PLUGINS: Record<string, string> = {
   project: `${TOOLING_SOURCE}/project-plugin.ts`,
   backend: `${TOOLING_SOURCE}/backendPolicy/plugin.ts`,
@@ -24,8 +24,8 @@ const jsPlugins = (lint.jsPlugins ?? []).map(plugin =>
       }
 )
 
-// Os fontes dos pacotes recebem as exceções que o preset reserva ao tooling
-// das aplicações: usam node:test e módulos do Node.
+// Package sources get the exceptions the preset reserves for application
+// tooling: they use node:test and Node modules.
 const packageOverrides = (lint.overrides ?? []).flatMap(override => {
   const files = override.files
     .filter(pattern => pattern.startsWith(APP_TOOLING_PREFIX))

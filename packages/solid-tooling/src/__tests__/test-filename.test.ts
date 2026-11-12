@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readdir } from 'node:fs/promises'
 import path from 'node:path'
 import { describe, it } from 'node:test'
 
@@ -97,6 +98,21 @@ describe('test filename policy', () => {
     })
   }
 
+  // WHY: lint runs from the workspace root, where the rule only sees src/ and
+  // tooling/. The workspace treats package sources as the application's
+  // tooling/, so the package tests are checked here with the same function.
+  it('names every test of this package as the rule requires', async () => {
+    const source = path.resolve(import.meta.dirname, '..')
+    const files = await readdir(source, { recursive: true })
+    const errors = files.flatMap(file => {
+      const error = testFilenameError(
+        path.posix.join('tooling', file.split(path.sep).join('/'))
+      )
+      return error ? [`${file}: ${error}`] : []
+    })
+    assert.deepEqual(errors, [])
+  })
+
   it('ignores production, fixtures and paths outside the project scope', () => {
     for (const ignoredPath of ignoredPaths) {
       assert.equal(testFilenameError(ignoredPath), undefined)
@@ -123,7 +139,7 @@ describe('test filename policy', () => {
             errors: [
               {
                 message:
-                  'Use o nome exato do assunto testado: Button. Qualificadores usam ponto e camelCase.'
+                  'Use the exact name of the subject under test: Button. Qualifiers use a dot and camelCase.'
               }
             ]
           }

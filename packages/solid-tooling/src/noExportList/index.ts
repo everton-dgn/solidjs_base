@@ -1,15 +1,15 @@
 import { defineRule } from 'vite-plus/lint/plugins'
 
-// Exports ficam na própria declaração. Uma lista sem `from` separa o nome
-// exportado da declaração; o reexport com `from` continua permitido porque
-// não há declaração local para marcar.
+// Exports stay on the declaration itself. A list without `from` separates the
+// exported name from its declaration; a re-export with `from` is still allowed
+// because there is no local declaration to mark.
 export const noExportList = defineRule({
   meta: {
     type: 'suggestion',
     schema: [],
     messages: {
       inlineExport:
-        'Declare o export junto da declaração (export function, export const, export type) em vez de usar export { ... }. Lista de exports só vale em reexport com from.'
+        'Export on the declaration itself (export function, export const, export type) instead of using export { ... }. An export list is only allowed in a re-export with from.'
     }
   },
   create(context) {

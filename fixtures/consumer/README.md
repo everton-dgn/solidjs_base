@@ -1,6 +1,6 @@
 # Test application
 
-The test in `packages/solid-tooling/src/tarball/__tests__/consumer.test.ts`
+The test in `packages/solid-tooling/src/tarball/__tests__/tarball.test.ts`
 copies this folder to a temporary directory, installs the packed package and
 runs lint.
 

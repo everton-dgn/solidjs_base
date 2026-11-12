@@ -13,7 +13,7 @@ export default defineConfig({
       },
       'test-tarball': {
         command:
-          'node --test --test-timeout=300000 src/tarball/__tests__/consumer.test.ts',
+          'node --test --test-timeout=300000 src/tarball/__tests__/tarball.test.ts',
         dependsOn: ['build'],
         cache: false
       }

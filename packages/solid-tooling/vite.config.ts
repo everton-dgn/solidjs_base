@@ -3,8 +3,8 @@ import { defineConfig } from 'vite-plus'
 export default defineConfig({
   run: {
     tasks: {
-      // Os testes criam fixtures em diretórios temporários que o cache não
-      // rastreia; cada execução precisa rodar de verdade.
+      // The tests create fixtures in temporary directories that the cache does
+      // not track; every run has to execute for real.
       'test-rules': {
         command:
           "node --test --test-timeout=60000 'src/__tests__/*.test.ts' 'src/!(tarball)/**/__tests__/*.test.ts'",

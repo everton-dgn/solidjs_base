@@ -1,4 +1,4 @@
-// WHY: o Oxlint resolve jsPlugins a partir da configuração da aplicação, e o
-// linker isolado do Bun só expõe ali as dependências diretas dela. Este módulo
-// resolve o plugin a partir do pacote, que o declara como dependência.
+// WHY: Oxlint resolves jsPlugins from the application's config, and Bun's
+// isolated linker only exposes the application's direct dependencies there.
+// This module resolves the plugin from the package, which depends on it.
 export { default } from 'eslint-plugin-solid'

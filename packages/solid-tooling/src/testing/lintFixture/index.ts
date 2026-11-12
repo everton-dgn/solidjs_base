@@ -1,4 +1,4 @@
-/* oxlint-disable node/no-sync -- A fixture é montada em sequência e o teste aguarda o CLI real. */
+/* oxlint-disable node/no-sync -- The fixture is built step by step and the test waits for the real CLI. */
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process'
 import {
   mkdirSync,
@@ -19,9 +19,9 @@ type LintFixture = {
 
 const ROOT = path.resolve(import.meta.dirname, '../../..')
 const WORKSPACE_ROOT = path.resolve(ROOT, '../..')
-// O lint do projeto vem de ./tooling, ligado aos fontes do pacote. Os plugins
-// chegam pelo especificador do pacote, resolvido no node_modules do workspace,
-// que aponta para o dist: a suíte depende do build.
+// The project lint config comes from ./tooling, linked to the package sources.
+// The plugins come through the package specifier, resolved in the workspace
+// node_modules, which points to dist: the suite depends on the build.
 const LINK_TARGETS: Record<string, string> = {
   node_modules: path.join(WORKSPACE_ROOT, 'node_modules'),
   tooling: path.join(ROOT, 'src')
@@ -35,13 +35,13 @@ export function lintFixture({
   config
 }: LintFixture): SpawnSyncReturns<string> {
   const directory = mkdtempSync(path.join(tmpdir(), 'solid-lint-fixture-'))
-  // Sandbox criado pelo próprio teste: a remoção direta é o descarte correto.
+  // Sandbox created by this test: removing it directly is the right cleanup.
   context.after(() => rmSync(directory, { recursive: true, force: true }))
   const links =
     config === undefined ? ['node_modules', 'tooling'] : ['node_modules']
   for (const name of links) {
     const target = LINK_TARGETS[name]
-    if (target === undefined) throw new Error(`Link sem destino: ${name}`)
+    if (target === undefined) throw new Error(`Link without a target: ${name}`)
     symlinkSync(target, path.join(directory, name), 'dir')
   }
   writeFileSync(
@@ -55,9 +55,9 @@ export function lintFixture({
     { flag: 'wx' }
   )
   for (const [filename, source] of Object.entries(sources)) {
-    // Com o lint do projeto, tooling aponta para o repositório real.
+    // With the project lint config, tooling points to the real repository.
     if (config === undefined && filename.startsWith('tooling/')) {
-      throw new Error(`${filename} exige uma config própria na fixture.`)
+      throw new Error(`${filename} requires its own config in the fixture.`)
     }
     const destination = path.join(directory, filename)
     mkdirSync(path.dirname(destination), { recursive: true })

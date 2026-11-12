@@ -123,7 +123,7 @@ describe('test filename policy', () => {
             errors: [
               {
                 message:
-                  'Use o nome exato do assunto testado: Button. Qualificadores usam ponto e camelCase.'
+                  'Use the exact name of the subject under test: Button. Qualifiers use a dot and camelCase.'
               }
             ]
           }

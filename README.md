@@ -35,6 +35,16 @@ Os testes das regras que passam pelo CLI carregam os plugins a partir de
 Instalação, configuração e entradas estão no
 [README do pacote](packages/solid-tooling/README.md).
 
+## Versionamento
+
+Cada pacote tem a própria versão, no `package.json` dele, e é publicado de forma
+independente. A raiz do workspace é privada e não tem versão publicável.
+
+- O escopo do commit identifica o pacote: `feat(tooling): ...` pertence ao
+  `solid-tooling`. Mudanças que não tocam pacote nenhum ficam sem escopo.
+- A tag de uma publicação leva o nome do pacote: `solid-tooling@0.1.0`.
+- Um pacote só sobe de versão quando o conteúdo publicado dele muda.
+
 ## Publicação
 
 Os pacotes vão para o npm público, no escopo `@everton-dgn`. A publicação é

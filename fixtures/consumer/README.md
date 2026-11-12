@@ -1,11 +1,13 @@
-# Aplicação de teste
+# Test application
 
-Esta pasta é copiada para um diretório temporário pelo teste
-`packages/solid-tooling/src/tarball/__tests__/consumer.test.ts`, que instala o
-pacote empacotado e roda o lint. Os arquivos de `src/` trazem violações
-deliberadas: uma por plugin próprio, uma do plugin do Solid e uma de tipo.
-`clean.ts` e `vite.config.ts` são os controles sem diagnósticos.
+The test in `packages/solid-tooling/src/tarball/__tests__/consumer.test.ts`
+copies this folder to a temporary directory, installs the packed package and
+runs lint.
 
-A fixture declara só o que uma aplicação teria de declarar. Com o linker isolado
-do Bun, uma dependência a menos aqui revela o que o pacote deixou de resolver
-sozinho.
+The files in `src/` break rules on purpose: one for each plugin of the package,
+one from the Solid plugin and one type error. `clean.ts` and `vite.config.ts`
+are the controls and must produce no diagnostics.
+
+The fixture declares only what an application has to declare. Bun's isolated
+linker does not hoist dependencies, so if the package uses a dependency it does
+not declare itself, the test fails here.

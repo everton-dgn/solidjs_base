@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+reviews:
+  # WHY: apps/boilerplate copies boilerplate_solidjs, which is reviewed in its
+  # own repository. Updating the copy changes hundreds of files, over the limit
+  # of files per review, and the limit counts files after these exclusions. The
+  # files adapted for this repository stay in the review.
+  path_filters:
+    - '!apps/boilerplate/src/**'
+    - '!apps/boilerplate/public/**'
+    - '!apps/boilerplate/docs/**'
+    - '!apps/boilerplate/AGENTS.md'
+    - '!apps/boilerplate/project.inlang/**'
+    - '!apps/boilerplate/patches/**'
+    - '!apps/boilerplate/tooling/i18n/**'
+    - '!apps/boilerplate/tooling/markdownPrerender/**'
+    - '!apps/boilerplate/tooling/publicationArtifacts/**'
+    - '!apps/boilerplate/tooling/lightningCssModules/**'

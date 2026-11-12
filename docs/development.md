@@ -121,5 +121,11 @@ commit in this section and in `apps/boilerplate/AGENTS.md`.
 The browser and end-to-end tests use the Chrome installed on the GitHub runner,
 as in the original repository.
 
+CodeRabbit reviews at most 100 files per pull request. `.coderabbit.yaml` leaves
+out the files of `apps/boilerplate` copied unchanged from the original, so an
+update of the copy stays under that limit. Codex has no such filter: it reviews
+every file when a pull request is opened or marked ready for review, or when
+someone comments `@codex review`.
+
 `.github/workflows/release.yml` versions and publishes the packages. See
 [Releasing](releasing.md).

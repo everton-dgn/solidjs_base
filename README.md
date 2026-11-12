@@ -157,12 +157,16 @@ the repository does not reach it. What to do depends on where the cause is:
   files in the package folder, so a fix outside it ships with the next `fix` or
   `feat` of the package. The failed version is never published.
 
-### Known limit
+### Known limits
 
 `bun.lock` records the version of each workspace package, and release-please
 does not update it. After a release the line stays one version behind until the
 next `vp install`, which fixes it. The frozen-lockfile install in CI does not
 fail because of this.
+
+release-please writes `CHANGELOG.md` in its own format, so the workspace format
+check skips every `CHANGELOG.md`. Edit those files by hand only to fix an entry,
+never to reformat them.
 
 ### Publishing by hand
 

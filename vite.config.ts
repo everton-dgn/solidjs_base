@@ -34,7 +34,12 @@ const packageOverrides = (lint.overrides ?? []).flatMap(override => {
 })
 
 export default defineConfig({
-  fmt,
+  // WHY: release-please writes CHANGELOG.md in its own format on every release,
+  // and the publish job validates the workspace after that.
+  fmt: {
+    ...fmt,
+    ignorePatterns: [...(fmt.ignorePatterns ?? []), '**/CHANGELOG.md']
+  },
   lint: {
     ...lint,
     ignorePatterns: [...(lint.ignorePatterns ?? []), 'fixtures/**'],

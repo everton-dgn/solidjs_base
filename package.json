@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "author": "Éverton Toffanetto",
+  "license": "MIT",
   "description": "Shared packages for SolidJS applications built with Vite+.",
   "type": "module",
   "workspaces": [

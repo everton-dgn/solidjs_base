@@ -32,31 +32,20 @@ Os testes das regras que passam pelo CLI carregam os plugins a partir de
 
 ## Uso numa aplicação
 
-```ts
-// vite.config.ts
-import { fmt } from '@everton-dgn/solid-tooling/fmt'
-import { lint } from '@everton-dgn/solid-tooling/lint'
-import { defineConfig } from 'vite-plus'
+Instalação, configuração e entradas estão no
+[README do pacote](packages/solid-tooling/README.md).
 
-export default defineConfig({ fmt, lint })
+## Publicação
+
+Os pacotes vão para o npm público, no escopo `@everton-dgn`. A publicação é
+manual e parte de uma árvore limpa:
+
+```bash
+vp run validate
+cd packages/solid-tooling
+bun publish --dry-run
+bun publish
 ```
 
-```json
-// tsconfig.json
-{
-  "extends": "@everton-dgn/solid-tooling/tsconfig.base.json"
-}
-```
-
-`paths`, `include` e `types` continuam no `tsconfig.json` da aplicação.
-
-A aplicação declara o pacote, o `vite-plus` e o `@inlang/paraglide-js`. O Oxlint
-resolve os plugins a partir da configuração da aplicação, e o plugin do
-Paraglide precisa acompanhar a versão que ela usa. O `eslint-plugin-solid` vem
-como dependência do pacote e dispensa declaração.
-
-O lint de CSS da aplicação importa a regra de nome de arquivo de
-`@everton-dgn/solid-tooling/css-filename`.
-
-O pacote é distribuído compilado: o Node recusa TypeScript dentro de
-`node_modules`, e o Vite+ carrega a configuração em Node.
+`prepublishOnly` compila o pacote antes do envio. Suba a versão no
+`package.json` do pacote antes de publicar; o npm recusa repetir uma versão.

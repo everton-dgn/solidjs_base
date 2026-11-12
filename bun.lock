@@ -15,7 +15,7 @@
     },
     "packages/solid-tooling": {
       "name": "@everton-dgn/solid-tooling",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "dependencies": {
         "eslint-plugin-solid": "0.19.0",
       },

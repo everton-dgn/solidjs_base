@@ -1,8 +1,16 @@
 {
   "name": "@everton-dgn/solid-tooling",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "Lint, formatter and TypeScript presets for SolidJS applications built with Vite+.",
+  "author": "Éverton Toffanetto",
+  "license": "MIT",
+  "keywords": [
+    "solidjs",
+    "vite-plus",
+    "oxlint",
+    "lint",
+    "tsconfig"
+  ],
   "type": "module",
   "files": [
     "dist",
@@ -40,10 +48,14 @@
     "./tsconfig.base.json": "./tsconfig.base.json",
     "./package.json": "./package.json"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "vp pack",
     "test": "vp pack && node --test --test-timeout=60000 'src/__tests__/*.test.ts' 'src/!(tarball)/**/__tests__/*.test.ts'",
-    "test:tarball": "vp pack && node --test --test-timeout=300000 src/tarball/__tests__/consumer.test.ts"
+    "test:tarball": "vp pack && node --test --test-timeout=300000 src/tarball/__tests__/consumer.test.ts",
+    "prepublishOnly": "vp pack"
   },
   "dependencies": {
     "eslint-plugin-solid": "0.19.0"

@@ -125,3 +125,12 @@ The tests run in the Vitest of the package, with stand-ins for `server-only` and
 the virtual modules of the Solid and routing plugins, and with the coverage
 thresholds of an application. `vp run test` at the root runs them with the other
 packages; `vp test run --coverage` runs them from this folder.
+
+The package is checked from this folder as an application. The `check` script
+runs `vp lint`, which applies the lint preset of `@evertondgn/solid-tooling`,
+loaded from its sources, and checks the types. The `dead-code` script runs Knip,
+which takes the entries from `exports`. The `test:tarball` script packs the
+package, extracts it to the `node_modules` of a temporary folder and checks that
+the header constants load in plain Node, that every target of `exports` is in
+the tarball and that no `__tests__` folder is published. At the root,
+`vp run validate` runs all of them with the other packages.

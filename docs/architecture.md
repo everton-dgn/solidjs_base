@@ -125,13 +125,18 @@ points.
 
 ## How the packages are tested
 
-| Level                   | What it proves                                                                                   | Command                                               |
-| ----------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| Rule tests              | Each rule accepts and rejects the expected code, through `RuleTester` and through the Oxlint CLI | `vp run test`                                         |
-| Runtime tests           | The middleware steps of the runtime package, in its own Vitest                                   | `vp run test`                                         |
-| Tarball test            | The packed package installs in a separate application and its plugins load                       | `vp run test:tarball`                                 |
-| Boilerplate application | A complete application passes its check, unit, browser, build and end-to-end suites              | See [Development](development.md#the-boilerplate-app) |
+| Level                   | What it proves                                                                                                 | Command                                               |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Rule tests              | Each rule accepts and rejects the expected code, through `RuleTester` and through the Oxlint CLI               | `vp run test`                                         |
+| Runtime tests           | The middleware steps of the runtime package, in its own Vitest                                                 | `vp run test`                                         |
+| Runtime checks          | Lint, types and unused code of the runtime package, checked in its folder as in an application                 | `vp run check`, `vp run dead-code`                    |
+| Tooling tarball test    | The packed tooling package installs in a separate application and its plugins load                             | `vp run test:tarball`                                 |
+| Runtime tarball test    | The packed runtime package holds every target of `exports` and no tests, and its header constants load in Node | `vp run test:tarball`                                 |
+| Boilerplate application | A complete application passes its check, unit, browser, build and end-to-end suites                            | See [Development](development.md#the-boilerplate-app) |
 
-The tarball test exists because a workspace link hides one failure: Node refuses
+The tarball tests exist because a workspace link hides one failure: Node refuses
 to run TypeScript from `node_modules`, so a package that only works through the
-link breaks once it is installed from npm.
+link breaks once it is installed from npm. The runtime tarball test does not
+compile the `.ts` entries: Node cannot run them, and the boilerplate copy
+compiles them through the workspace link
+([ADR 0020](ADRs/0020-runtime-package-checks-in-its-own-folder.md)).

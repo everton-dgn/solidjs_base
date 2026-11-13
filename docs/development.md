@@ -37,30 +37,42 @@ there, and the patch files stay in `apps/boilerplate/patches/`.
 Run them from the root. The scripts select `./packages/*` only, because the
 publish job runs `vp run validate` and must not run the application suites.
 
-| Command               | What it does                                                   |
-| --------------------- | -------------------------------------------------------------- |
-| `vp run build`        | Compile the packages to `dist/`                                |
-| `vp run check`        | Check format, lint and types of the packages                   |
-| `vp run test`         | Run the rule tests with `node:test` and the runtime tests      |
-| `vp run test:tarball` | Pack the package, install it in a copy of the fixture, lint it |
-| `vp run validate`     | Build, check, package tests and tarball test, in this order    |
+| Command               | What it does                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------- |
+| `vp run build`        | Compile the packages to `dist/`                                                       |
+| `vp run check`        | Check format, lint and types at the root, then lint the runtime package in its folder |
+| `vp run dead-code`    | Find unused files, exports and dependencies of the runtime package with Knip          |
+| `vp run test`         | Run the rule tests with `node:test` and the runtime tests                             |
+| `vp run test:tarball` | Pack each package and install it in a temporary folder                                |
+| `vp run validate`     | Build, check, dead code, package tests and tarball tests, in this order               |
 
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so
 `vp run test` builds the package first. The runtime tests run in the Vitest of
 `packages/solid-runtime` (`vp test run --coverage` in that folder), with the
 stand-ins and the coverage thresholds that `solidTest` gives to an application.
-The runtime package has no build and no tarball test, so the filtered `build`
-and `test:tarball` skip it.
+The runtime package has no build, so the filtered `build` skips it, and the
+tooling package has no `check` or `dead-code` script, so those skip it.
 
-The root `vite.config.ts` lints the package sources with the same preset,
+The root `vite.config.ts` lints the tooling sources with the same preset,
 loading the plugins from `src/` instead of `dist/`, so a change to a rule is
-checked on the next run without a build. Each package takes the overrides the
-preset writes for the folder it stands for. The tooling sources get the ones of
-an application's `tooling/` folder. The runtime sources are application code and
-get the ones of `src/`: the backend policy and the test exceptions. The
-architecture rule reads paths under the `src/` of the folder where lint runs, so
-it does not reach the packages. The type check of the runtime reads
-`packages/solid-runtime/tsconfig.json`.
+checked on the next run without a build. The tooling sources get the overrides
+the preset writes for an application's `tooling/` folder.
+
+The runtime package runs its own checks
+([ADR 0020](ADRs/0020-runtime-package-checks-in-its-own-folder.md)). Its `check`
+script runs `vp lint` in `packages/solid-runtime`, whose `vite.config.ts` loads
+the same preset from the sources. From that folder its `src/` is the `src/` of
+an application, so the backend policy, the test exceptions, the architecture
+rule and the other rules that read paths apply as they do in an application, and
+the type check reads `packages/solid-runtime/tsconfig.json`. The root lint
+ignores the package, so each file is linted once. The script is not `vp check`,
+which in a workspace package uses the `lint` and `fmt` blocks of the root. The
+formatter stays at the root, which covers the package. The `dead-code` script
+runs Knip in the default and `--strict` modes; Knip reads the entries from the
+`exports` of the package. The tarball test packs the package, extracts it to the
+`node_modules` of a temporary folder and checks that the header constants load
+in Node, that every target of `exports` is in the tarball and that no
+`__tests__` folder is published.
 
 ## The boilerplate app
 

@@ -1,5 +1,9 @@
 # Solid Base
 
+[![CI workflow status](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml/badge.svg)](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml)
+[![Latest solid-tooling version on npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling?label=%40evertondgn%2Fsolid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling)
+[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Stop maintaining the same tooling in every Solid app.
 
 Lint rules, application config, test setups and Git hooks for SolidJS 2 with
@@ -13,19 +17,11 @@ layout. SolidJS 2 is still a release candidate, and the package is tested with
 it. Start with lint and formatting, and adopt the full application config when
 you are ready.
 
-[![CI workflow status](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml/badge.svg)](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml)
-[![Latest solid-tooling version on npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling?label=%40evertondgn%2Fsolid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling)
-[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
 [Quick start](#quick-start) · [Before and after](#before-and-after) ·
 [What you get](#what-you-get) · [Only what you use](#only-what-you-use) ·
 [How it is verified](#how-it-is-verified) · [Documentation](#documentation)
 
-![Three application windows connected to one shared foundation](docs/assets/readme/hero.webp)
-
 ## Fix the base once
-
-![Separate configuration copies drift and need repeated repairs, while one shared package supplies all applications](docs/assets/readme/drift.webp)
 
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs) is a
 complete starter with SSR, Nitro, Paraglide translations and a Vercel deploy.
@@ -129,8 +125,6 @@ the package.
 | Knip config and Stylelint with a CSS token policy                                                                   | Your entry points, components, theme and tokens                               |
 | Commitlint config and Lefthook hooks                                                                                | Your application scripts and hook customizations                              |
 
-![A toolbox with a gear, a ruler and a check mark connects to an application window](docs/assets/readme/ownership.webp)
-
 The presets expect the boilerplate's folder layout. Peer dependencies use exact
 versions, and SSR uses Nitro with the Vercel preset. Read the
 [requirements and limits](docs/tooling/limits.md) before adopting the full
@@ -167,8 +161,6 @@ You provide your middleware and header values. Add your own plugins through
 | Publication      | Set `publication: true`                                               | Adds header rules for published files such as the sitemap, `robots.txt`, `llms.txt` and Markdown pages                    |
 | Translations     | Keep `project.inlang/settings.json` and install Paraglide when needed | The settings file enables the generation task and browser test setup; the lint plugin loads only where Paraglide resolves |
 
-![Independent feature modules connect to an application through switches, with unused modules detached](docs/assets/readme/optional.webp)
-
 A client-only application can use this config after installing the
 [required tools](docs/tooling/limits.md#requirements):
 
@@ -190,8 +182,6 @@ and the measurements.
 | Complete boilerplate in CI         | Package changes run against the application, with more than 1,000 Vitest tests and more than 300 end-to-end tests                              |
 | Installation outside the workspace | Before each release, the tarball test packs the package, installs it in a separate application and checks the installed exports and lint rules |
 | Workflow publication               | npm receives signed provenance through trusted publishing, without a stored npm token                                                          |
-
-![A package moves through installation in a separate application, a test gate and release](docs/assets/readme/verified.webp)
 
 The [development guide](docs/development.md#ci) describes which CI jobs run for
 each change. The [release guide](docs/releasing.md) documents validation and

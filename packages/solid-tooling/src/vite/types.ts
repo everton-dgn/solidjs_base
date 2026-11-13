@@ -16,6 +16,16 @@ type StaticAssetDir = PublicAssetDir & { baseURL: string }
 
 type RouteRule = NonNullable<NitroConfig['routeRules']>[string]
 
+type SharedOptions = {
+  root: string
+  icons?: Record<string, string>
+  extend?: (
+    context: ExtensionContext
+  ) => SolidAppExtension | Promise<SolidAppExtension>
+  workspace?: WorkspaceOptions
+  tasks?: Record<string, RunTask>
+}
+
 export type RunTask = NonNullable<
   NonNullable<UserConfig['run']>['tasks']
 >[string]
@@ -27,19 +37,21 @@ export type SolidAppExtension = {
   nitroModules?: NitroModuleInput[]
 }
 
-export type SolidAppOptions = {
-  root: string
+export type ServerAppOptions = SharedOptions & {
+  ssr?: true
   middleware?: string
   serverSetup?: string
   e2e?: E2eOptions
-  icons?: Record<string, string>
   securityHeaders: StaticSecurityHeaders
   publicAssets?: StaticAssetDir[]
   staticPaths?: string[]
   routeRules?: Record<string, RouteRule>
-  extend?: (
-    context: ExtensionContext
-  ) => SolidAppExtension | Promise<SolidAppExtension>
-  workspace?: WorkspaceOptions
-  tasks?: Record<string, RunTask>
+  publication?: boolean
 }
+
+export type ClientAppOptions = SharedOptions & {
+  ssr: false
+  e2e?: Pick<E2eOptions, 'routes'>
+}
+
+export type SolidAppOptions = ServerAppOptions | ClientAppOptions

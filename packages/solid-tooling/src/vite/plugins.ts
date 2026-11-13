@@ -3,17 +3,26 @@ import path from 'node:path'
 
 import { lazyPlugins, type PluginOption } from 'vite-plus'
 
+import { I18N_SETTINGS } from '../has-i18n.ts'
 import type {
   ExtensionContext,
+  ServerAppOptions,
   SolidAppExtension,
   SolidAppOptions
 } from './types.ts'
 
 type PluginModules = Awaited<ReturnType<typeof loadPluginModules>>
 type TargetInput = { options: SolidAppOptions; mode: string }
+type ServerTargetInput = { options: ServerAppOptions; mode: string }
 type ExtensionInput = TargetInput & Pick<ExtensionContext, 'target'>
+type PluginSetup = {
+  modules: PluginModules
+  extension: SolidAppExtension
+  options: SolidAppOptions
+  mode: string
+}
 type IconsInput = { modules: PluginModules; options: SolidAppOptions }
-type StaticPathsInput = { options: SolidAppOptions; locales: string[] }
+type StaticPathsInput = { options: ServerAppOptions; locales: string[] }
 type LocalePathInput = { staticPath: string; locales: string[] }
 
 const ROUTE_TYPES = 'src/@types/routes.d.ts'
@@ -52,16 +61,27 @@ async function readExtension({
 }
 
 // The locales come from the same file as the Paraglide compiler, so the rules
-// of the published Markdown follow a new locale without another option.
+// of the published Markdown follow a new locale without another option. An
+// application without Paraglide publishes no locale folder.
 async function readLocales(root: string): Promise<string[]> {
+  let source: string
+  try {
+    source = await readFile(path.join(root, I18N_SETTINGS), 'utf8')
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      return []
+    }
+    throw new Error(
+      `defineSolidApp: cannot read the locales from ${I18N_SETTINGS}.`,
+      { cause: error }
+    )
+  }
   let settings: unknown
   try {
-    settings = JSON.parse(
-      await readFile(path.join(root, 'project.inlang/settings.json'), 'utf8')
-    )
+    settings = JSON.parse(source)
   } catch (error) {
     throw new Error(
-      'defineSolidApp: cannot read the locales from project.inlang/settings.json.',
+      `defineSolidApp: cannot read the locales from ${I18N_SETTINGS}.`,
       { cause: error }
     )
   }
@@ -74,7 +94,7 @@ async function readLocales(root: string): Promise<string[]> {
     !locales.every(locale => typeof locale === 'string')
   ) {
     throw new Error(
-      'defineSolidApp: project.inlang/settings.json must list its locales as strings.'
+      `defineSolidApp: ${I18N_SETTINGS} must list its locales as strings.`
     )
   }
   return locales
@@ -102,12 +122,10 @@ function staticFilePaths({ options, locales }: StaticPathsInput): string[] {
       `defineSolidApp: the static path ${collision} is inside a locale folder; move it out of /${collision.split('/')[1]}/.`
     )
   }
-  return [
-    '/assets/**',
-    ...appPaths,
-    ...locales.map(locale => `/${locale}/**.md`),
-    ...SEO_FILE_PATHS
-  ]
+  const publishedPaths = options.publication
+    ? [...locales.map(locale => `/${locale}/**.md`), ...SEO_FILE_PATHS]
+    : []
+  return ['/assets/**', ...appPaths, ...publishedPaths]
 }
 
 function iconsPlugin({ modules, options }: IconsInput) {
@@ -126,7 +144,7 @@ function iconsPlugin({ modules, options }: IconsInput) {
   })
 }
 
-function staticHeaders({ securityHeaders }: SolidAppOptions) {
+function staticHeaders({ securityHeaders }: ServerAppOptions) {
   return {
     'strict-transport-security': securityHeaders['strict-transport-security'],
     'x-content-type-options': securityHeaders['x-content-type-options'],
@@ -135,60 +153,92 @@ function staticHeaders({ securityHeaders }: SolidAppOptions) {
   }
 }
 
+function clientPlugins({
+  modules,
+  extension,
+  options,
+  mode
+}: PluginSetup): PluginOption[] {
+  const e2eRoutes = mode === 'e2e' ? options.e2e?.routes : undefined
+  return [
+    ...(extension.plugins ?? []),
+    iconsPlugin({ modules, options }),
+    modules.solid({ ssr: false }),
+    modules.fileRoutes(
+      e2eRoutes
+        ? { dir: e2eRoutes, httpMethods: true }
+        : { types: ROUTE_TYPES, httpMethods: true }
+    )
+  ]
+}
+
+async function serverPlugins({
+  options,
+  mode
+}: ServerTargetInput): Promise<PluginOption[]> {
+  const [modules, { nitro }, extension, locales] = await Promise.all([
+    loadPluginModules(),
+    import('nitro/vite'),
+    readExtension({ options, target: 'app', mode }),
+    options.publication ? readLocales(options.root) : []
+  ])
+  const isE2e = mode === 'e2e'
+  const middleware = isE2e
+    ? (options.e2e?.middleware ?? options.middleware)
+    : options.middleware
+  const e2eRoutes = isE2e ? options.e2e?.routes : undefined
+  const headers = staticHeaders(options)
+  return [
+    ...(extension.plugins ?? []),
+    iconsPlugin({ modules, options }),
+    modules.solid({
+      start: middleware ? { middleware } : {},
+      ssr: true,
+      serverFunctions: options.serverSetup
+        ? { serverSetup: options.serverSetup }
+        : true
+    }),
+    modules.fileRoutes(
+      e2eRoutes
+        ? { dir: e2eRoutes, httpMethods: true }
+        : { types: ROUTE_TYPES, httpMethods: true }
+    ),
+    // The Vercel function runs the Node of engines.node. The SSR stays on
+    // Node until Bun keeps the contracts of Response and of the failure log.
+    nitro({
+      serverEntry: false,
+      preset: 'vercel',
+      modules: extension.nitroModules ?? [],
+      // Nitro already registers the assetsDir of Vite, which serves /assets/.
+      publicAssets: options.publicAssets ?? [],
+      // The static files leave the CDN without going through the middleware,
+      // so these rules give them the headers the middleware writes on the
+      // responses of the function.
+      routeRules: {
+        ...Object.fromEntries(
+          staticFilePaths({ options, locales }).map(staticPath => [
+            staticPath,
+            { headers }
+          ])
+        ),
+        ...options.routeRules
+      }
+    })
+  ]
+}
+
+// A client-only application imports neither Nitro nor reads the locales.
 export function appPlugins({
   options,
   mode
 }: TargetInput): PluginOption[] | undefined {
   return lazyPlugins(async () => {
-    const [modules, { nitro }, extension, locales] = await Promise.all([
+    if (options.ssr !== false) return serverPlugins({ options, mode })
+    const [modules, extension] = await Promise.all([
       loadPluginModules(),
-      import('nitro/vite'),
-      readExtension({ options, target: 'app', mode }),
-      readLocales(options.root)
+      readExtension({ options, target: 'app', mode })
     ])
-    const isE2e = mode === 'e2e'
-    const middleware = isE2e
-      ? (options.e2e?.middleware ?? options.middleware)
-      : options.middleware
-    const e2eRoutes = isE2e ? options.e2e?.routes : undefined
-    const headers = staticHeaders(options)
-    return [
-      ...(extension.plugins ?? []),
-      iconsPlugin({ modules, options }),
-      modules.solid({
-        start: middleware ? { middleware } : {},
-        ssr: true,
-        serverFunctions: options.serverSetup
-          ? { serverSetup: options.serverSetup }
-          : true
-      }),
-      modules.fileRoutes(
-        e2eRoutes
-          ? { dir: e2eRoutes, httpMethods: true }
-          : { types: ROUTE_TYPES, httpMethods: true }
-      ),
-      // The Vercel function runs the Node of engines.node. The SSR stays on
-      // Node until Bun keeps the contracts of Response and of the failure log.
-      nitro({
-        serverEntry: false,
-        preset: 'vercel',
-        modules: extension.nitroModules ?? [],
-        // Nitro already registers the assetsDir of Vite, which serves /assets/.
-        publicAssets: options.publicAssets ?? [],
-        // The static files leave the CDN without going through the middleware,
-        // so these rules give them the headers the middleware writes on the
-        // responses of the function.
-        routeRules: {
-          ...Object.fromEntries(
-            staticFilePaths({ options, locales }).map(staticPath => [
-              staticPath,
-              { headers }
-            ])
-          ),
-          ...options.routeRules
-        }
-      })
-    ]
+    return clientPlugins({ modules, extension, options, mode })
   })
 }
 
@@ -207,7 +257,7 @@ export function testPlugins({
     return [
       ...(extension.plugins ?? []),
       iconsPlugin({ modules, options }),
-      modules.solid({ serverFunctions: true }),
+      modules.solid(options.ssr === false ? {} : { serverFunctions: true }),
       modules.fileRoutes({ types: ROUTE_TYPES, httpMethods: true })
     ]
   })

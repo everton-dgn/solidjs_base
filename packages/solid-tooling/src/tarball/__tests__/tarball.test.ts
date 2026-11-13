@@ -33,7 +33,7 @@ const COMMAND_TIMEOUT = 120_000
 // These protocols only resolve inside the workspace; in a published package
 // the application install would fail.
 const WORKSPACE_PROTOCOLS = ['catalog:', 'workspace:']
-const SHARED_VERSIONS = ['typescript', 'vite-plus', '@inlang/paraglide-js']
+const SHARED_VERSIONS = ['typescript', 'vite-plus']
 const EXPECTED: Expected[] = [
   { filename: 'src/helpers/export-list.ts', code: 'project(no-export-list)' },
   {

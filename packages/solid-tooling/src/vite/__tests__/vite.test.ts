@@ -21,6 +21,7 @@ type Summary = v.InferOutput<typeof summarySchema>
 type CallQuery = { summary: Summary; name: string }
 type KeyQuery = { value: unknown; key: string }
 type WorkspaceGlob = { pattern: string; base: string }
+type RootOptions = { hasI18n?: boolean }
 
 const PRESET = new URL('../../../dist/vite.mjs', import.meta.url).href
 const exec = promisify(execFile)
@@ -153,15 +154,20 @@ const nitroModulesSchema = v.object({
   publicAssets: v.array(v.unknown())
 })
 
-async function createRoot(context: TestContext): Promise<string> {
+async function createRoot(
+  context: TestContext,
+  { hasI18n = true }: RootOptions = {}
+): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), 'solid-app-root-'))
   // Sandbox created by this test: removing it directly is the right cleanup.
   context.after(() => rm(root, { recursive: true, force: true }))
-  await mkdir(path.join(root, 'project.inlang'))
-  await writeFile(
-    path.join(root, 'project.inlang/settings.json'),
-    JSON.stringify({ baseLocale: 'en', locales: LOCALES })
-  )
+  if (hasI18n) {
+    await mkdir(path.join(root, 'project.inlang'))
+    await writeFile(
+      path.join(root, 'project.inlang/settings.json'),
+      JSON.stringify({ baseLocale: 'en', locales: LOCALES })
+    )
+  }
   await writeFile(path.join(root, '.env'), 'HOST=127.0.0.1\nPORT=4999\n')
   await writeFile(path.join(root, '.env.test'), 'SOLID_APP_TEST_PROBE=loaded\n')
   return root
@@ -300,6 +306,7 @@ it('writes the security headers on the static files in a fixed order', async con
   const summary = await readSummary({
     options: {
       root,
+      publication: true,
       publicAssets: [
         { baseURL: '/images', dir: 'public/images', fallthrough: false }
       ],
@@ -544,9 +551,15 @@ it('refuses a static path without a leading slash', async context => {
 it('refuses a static path inside a locale folder', async context => {
   const root = await createRoot(context)
   const [staticPath, asset] = await Promise.all([
-    readSummary({ options: { root, staticPaths: ['/en/docs/**'] } }),
     readSummary({
-      options: { root, publicAssets: [{ baseURL: '/pt', dir: 'public/pt' }] }
+      options: { root, publication: true, staticPaths: ['/en/docs/**'] }
+    }),
+    readSummary({
+      options: {
+        root,
+        publication: true,
+        publicAssets: [{ baseURL: '/pt', dir: 'public/pt' }]
+      }
     })
   ])
   assert.match(
@@ -558,17 +571,92 @@ it('refuses a static path inside a locale folder', async context => {
 
 it('names the settings file when it cannot read the locales', async context => {
   const root = await createRoot(context)
-  const settings = path.join(root, 'project.inlang/settings.json')
-  await writeFile(settings, '{ locales')
-  const invalid = await readSummary({ options: { root } })
-  await rm(settings)
-  const missing = await readSummary({ options: { root } })
-  for (const summary of [invalid, missing]) {
-    assert.match(
-      summary.error ?? '',
-      /defineSolidApp: cannot read the locales from project\.inlang\/settings\.json/u
-    )
-  }
+  await writeFile(path.join(root, 'project.inlang/settings.json'), '{ locales')
+  const summary = await readSummary({ options: { root, publication: true } })
+  assert.match(
+    summary.error ?? '',
+    /defineSolidApp: cannot read the locales from project\.inlang\/settings\.json/u
+  )
+})
+
+it('publishes no locale folder without the Paraglide settings', async context => {
+  const root = await createRoot(context, { hasI18n: false })
+  const summary = await readSummary({
+    options: { root, publication: true, staticPaths: ['/en/docs/**'] }
+  })
+  assert.equal(summary.error, null)
+  const [nitro] = optionsOf({ summary, name: 'nitro' })
+  const { routeRules } = v.parse(nitroSchema, nitro)
+  assert.deepEqual(Object.keys(routeRules), [
+    '/assets/**',
+    '/en/docs/**',
+    '/llms.txt',
+    '/llms-full.txt',
+    '/sitemap.xml',
+    '/sitemaps/pages/**',
+    '/_markdown/static.json'
+  ])
+})
+
+it('writes no rule for published files without publication', async context => {
+  const root = await createRoot(context)
+  const summary = await readSummary({
+    options: { root, staticPaths: ['/en/docs/**'] }
+  })
+  assert.equal(summary.error, null)
+  const [nitro] = optionsOf({ summary, name: 'nitro' })
+  const { routeRules } = v.parse(nitroSchema, nitro)
+  assert.deepEqual(Object.keys(routeRules), ['/assets/**', '/en/docs/**'])
+})
+
+it('builds a client-only application without Nitro or server functions', async context => {
+  const root = await createRoot(context, { hasI18n: false })
+  const summary = await readSummary({
+    options: { root, ssr: false, securityHeaders: undefined }
+  })
+  assert.equal(summary.error, null)
+  assert.deepEqual(summary.plugins, {
+    app: ['extension:app', 'icons', 'solid', 'fileRoutes'],
+    dom: ['extension:test', 'icons', 'solid', 'fileRoutes'],
+    browser: ['extension:test', 'icons', 'solid', 'fileRoutes']
+  })
+  assert.deepEqual(splitSolidCalls(summary), [{ ssr: false }, [{}, {}]])
+  assert.equal(importsOf(summary).includes('nitro'), false)
+})
+
+it('refuses the server options in a client-only application', async context => {
+  const root = await createRoot(context)
+  const cases = [
+    { middleware: './src/middleware/index.ts' },
+    { securityHeaders: HEADERS },
+    { publication: true },
+    { e2e: { middleware: './e2e/middleware.ts' } }
+  ]
+  const errors = await Promise.all(
+    cases.map(async extra => {
+      const summary = await readSummary({
+        options: { root, ssr: false, securityHeaders: undefined, ...extra }
+      })
+      return summary.error
+    })
+  )
+  assert.deepEqual(errors, [
+    'defineSolidApp: middleware needs SSR; remove it or remove ssr: false.',
+    'defineSolidApp: securityHeaders needs SSR; remove it or remove ssr: false.',
+    'defineSolidApp: publication needs SSR; remove it or remove ssr: false.',
+    'defineSolidApp: e2e.middleware needs SSR; remove it or remove ssr: false.'
+  ])
+})
+
+it('leaves out the i18n task and the Paraglide setup without its settings', async context => {
+  const root = await createRoot(context, { hasI18n: false })
+  const summary = await readSummary({ options: { root } })
+  assert.equal(summary.error, null)
+  assert.deepEqual(
+    Object.keys(summary.tasks),
+    TASKS.filter(name => name !== 'i18n-generate')
+  )
+  assert.deepEqual(summary.setupFiles, [])
 })
 
 it('loads the real plugins from the package dependencies', async context => {
@@ -593,4 +681,21 @@ it('loads the real plugins from the package dependencies', async context => {
   )
   assert.equal(summary.plugins.dom.includes('nitro:init'), false)
   await Promise.all(summary.setupFiles.map(file => access(file)))
+})
+
+it('loads no Nitro plugin for a client-only application', async context => {
+  const root = await createRoot(context, { hasI18n: false })
+  const summary = await readSummary({
+    options: { root, ssr: false, securityHeaders: undefined },
+    hasStubs: false
+  })
+  assert.equal(summary.error, null)
+  assert.ok(
+    summary.plugins.app.includes('solid'),
+    summary.plugins.app.join(', ')
+  )
+  assert.equal(
+    summary.plugins.app.some(name => name.startsWith('nitro')),
+    false
+  )
 })

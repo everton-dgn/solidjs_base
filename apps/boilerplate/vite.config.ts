@@ -12,6 +12,9 @@ export default defineSolidApp({
   },
   icons: { 'my-images': './src/assets/images' },
   securityHeaders: SECURITY_HEADERS,
+  // Sitemap, robots.txt, llms.txt e as páginas em Markdown recebem os cabeçalhos
+  // dos estáticos.
+  publication: true,
   // Sem fallthrough, um arquivo ausente em /images/ recebe o 404 no-store do
   // Nitro em vez da página SSR com o cache imutável.
   publicAssets: [

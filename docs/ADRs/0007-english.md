@@ -1,6 +1,7 @@
 # 0007. Packages and repository documentation are written in English
 
-- Status: Accepted
+- Status: Accepted, partly superseded by
+  [0014](0014-boilerplate-copy-docs-in-english.md)
 - Date: 2026-11-12
 
 ## Context

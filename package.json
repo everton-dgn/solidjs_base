@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "build": "vp run --filter './packages/*' build",
-    "check": "vp check",
+    "check": "vp check && vp run --filter './packages/*' check",
     "test": "vp run --filter './packages/*' test",
     "test:tarball": "vp run --filter './packages/*' test:tarball",
     "validate": "vp run build && vp run check && vp run test && vp run test:tarball"

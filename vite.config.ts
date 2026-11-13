@@ -23,8 +23,8 @@ const jsPlugins = (lint.jsPlugins ?? []).map(plugin =>
       }
 )
 
-// The preset writes its overrides for the folders of an application. Each
-// package takes the ones of the folder it stands for, in the same order.
+// The preset writes its overrides for the folders of an application. The
+// tooling package takes the ones of the folder it stands for, in the same order.
 function presetOverrides({ from, to }: PrefixMap): typeof lint.overrides {
   return (lint.overrides ?? []).flatMap(override => {
     const files = override.files
@@ -39,12 +39,6 @@ function presetOverrides({ from, to }: PrefixMap): typeof lint.overrides {
 const toolingOverrides = presetOverrides({
   from: 'tooling/',
   to: 'packages/solid-tooling/src/'
-})
-// The runtime sources are application code: they get the backend policy and
-// the test exceptions of src/.
-const runtimeOverrides = presetOverrides({
-  from: 'src/',
-  to: 'packages/solid-runtime/src/'
 })
 
 export default defineConfig({
@@ -61,12 +55,18 @@ export default defineConfig({
   },
   lint: {
     ...lint,
-    ignorePatterns: [...(lint.ignorePatterns ?? []), 'fixtures/**', 'apps/**'],
+    ignorePatterns: [
+      ...(lint.ignorePatterns ?? []),
+      'fixtures/**',
+      'apps/**',
+      // The runtime package runs vp lint in its own folder, where the rules
+      // read its src/ as the src/ of an application.
+      'packages/solid-runtime/**'
+    ],
     jsPlugins,
     overrides: [
       ...(lint.overrides ?? []),
       ...(toolingOverrides ?? []),
-      ...(runtimeOverrides ?? []),
       {
         // An ambient module declaration only works in a script file; an import
         // would turn it into an augmentation of a module that is missing here.

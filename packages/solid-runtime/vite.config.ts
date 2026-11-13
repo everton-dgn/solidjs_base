@@ -1,5 +1,24 @@
 import { defineConfig, type Plugin } from 'vite-plus'
 
+import { lint } from '../solid-tooling/src/lint.ts'
+
+const TOOLING_SOURCE = '../solid-tooling/src'
+// Repeated from the root config: each config writes the paths from its folder.
+const SOURCE_PLUGINS: Record<string, string> = {
+  project: `${TOOLING_SOURCE}/project-plugin.ts`,
+  backend: `${TOOLING_SOURCE}/backendPolicy/plugin.ts`,
+  architecture: `${TOOLING_SOURCE}/architecturePolicy/index.ts`,
+  solid: `${TOOLING_SOURCE}/solid-plugin.ts`
+}
+const jsPlugins = (lint.jsPlugins ?? []).map(plugin =>
+  typeof plugin === 'string'
+    ? plugin
+    : {
+        name: plugin.name,
+        specifier: SOURCE_PLUGINS[plugin.name] ?? plugin.specifier
+      }
+)
+
 const STUB_PREFIX = '\0solid-runtime-stub:'
 // The stand-ins that solidTest serves to the node project of an application:
 // the Solid and routing plugins provide these modules only in a real build.
@@ -25,6 +44,9 @@ function nodeStubs(): Plugin {
 }
 
 export default defineConfig({
+  // vp lint reads this block from the package folder; vp check and the
+  // formatter use the root config.
+  lint: { ...lint, jsPlugins },
   plugins: [nodeStubs()],
   test: {
     pool: 'threads',

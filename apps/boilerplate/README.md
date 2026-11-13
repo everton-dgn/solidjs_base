@@ -35,6 +35,7 @@ vp run test:e2e
 The [development guide](../../docs/development.md#the-boilerplate-app) lists
 every command, what changed from the original and how to update the copy.
 
-The code, `AGENTS.md` and the guides in `docs/` are in Portuguese, as in the
-original. Their sections about releases, CI, Git hooks and the Vercel deploy
-describe the original repository.
+`AGENTS.md` and the guides in `docs/` are in English. The code comments and the
+test titles are in Portuguese, as in the original. The sections of the guides
+about releases, CI, Git hooks and the Vercel deploy describe the original
+repository.

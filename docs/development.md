@@ -116,16 +116,22 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
 - `tooling/knip.ts` excludes the `catalogReferences` check: Knip runs in the
   application folder and does not see the root catalog. `bun install` already
   fails on a catalog entry that does not exist.
-- `docs/` and `AGENTS.md` point the rule paths to `packages/solid-tooling/src/`.
-  Their sections about releases, CI, Git hooks and the Vercel deploy describe
-  the original repository.
+- `docs/` and `AGENTS.md` point the rule paths to `packages/solid-tooling/src/`
+  and are in English
+  ([ADR 0014](ADRs/0014-boilerplate-copy-docs-in-english.md)). Their sections
+  about releases, CI, Git hooks and the Vercel deploy describe the original
+  repository.
 
 ### Updating the copy
 
 The copy does not follow boilerplate_solidjs on its own. To bring it up to date,
 take the new commit of the original, apply it over `apps/boilerplate` and keep
-the changes listed above. Then run the commands of the table and record the new
-commit in this section and in `apps/boilerplate/AGENTS.md`.
+the changes listed above. The guides of the original are in Portuguese:
+translate the parts the new commit changes, and keep the headings in step with
+the links that point to them. Then run the commands of the table and record the
+new commit in this guide, in `apps/boilerplate/README.md`, in
+`apps/boilerplate/AGENTS.md` and in the links of the guides that point to files
+of the original at the copied commit.
 
 ## CI
 
@@ -134,11 +140,11 @@ hand. On a pull request, the `Changes` job reads the list of changed files and
 starts only the jobs those files affect. Pushes to `main` and manual runs start
 every job.
 
-| Changed files                                                                                      | Jobs                                           |
-| -------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| Only Markdown, `docs/`, `LICENSE`, issue templates, `.coderabbit.yaml` or `.github/dependabot.yml` | Docs                                           |
-| Only `apps/boilerplate/`                                                                           | Boilerplate app, Boilerplate app E2E           |
-| Anything else: packages, fixtures, root config, lockfile, workflows                                | Packages, Boilerplate app, Boilerplate app E2E |
+| Changed files                                                            | Jobs                                           |
+| ------------------------------------------------------------------------ | ---------------------------------------------- |
+| Only Markdown, `docs/`, `LICENSE`, issue templates or `.coderabbit.yaml` | Docs                                           |
+| Only `apps/boilerplate/`                                                 | Boilerplate app, Boilerplate app E2E           |
+| Anything else: packages, fixtures, root config, lockfile, workflows      | Packages, Boilerplate app, Boilerplate app E2E |
 
 A pull request that touches more than one group runs the jobs of each.
 

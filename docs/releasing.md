@@ -25,6 +25,14 @@ run** in the pull request
 commit pushed to the release branch from a person's account starts the CI at
 once, without the approval.
 
+From a terminal, list the held runs and approve each one:
+
+```bash
+gh run list --branch release-please--branches--main--components--solid-tooling \
+  --status action_required --json databaseId,workflowName
+gh api -X POST repos/everton-dgn/solidjs_base/actions/runs/<run-id>/approve
+```
+
 The publish step uses no token. npm authenticates the workflow through OIDC
 ([trusted publishing](https://docs.npmjs.com/trusted-publishers)) and attaches
 the build provenance to the version.

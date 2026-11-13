@@ -53,7 +53,7 @@ export function installOutdatedPageDetection(): () => void {
   // precedência: um monitor de erros precisa ser composto aqui.
   configureClientErrors({ onError: announceOutdatedFallback })
   // O runtime guarda um único responseHandler; server components ocupariam a
-  // mesma vaga (docs/server-errors.md#página-desatualizada-após-um-deploy).
+  // mesma vaga (docs/server-errors.md#outdated-page-after-a-deploy).
   configureServerFunctionsClient({
     responseHandler: {
       // Leituras do render (computação rastreada) e as declaradas com GET,

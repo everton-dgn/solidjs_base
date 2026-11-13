@@ -63,7 +63,8 @@ installed by tarball, moved the middleware steps to the package and measured:
   packages through their `solid` condition, to the real path of the file,
   without adding the condition to the whole project. It looks the package up
   from the application folder upwards, as Node does, and does nothing when the
-  package is not installed.
+  package is not installed. It takes only an entry that points `solid` straight
+  to a file; an entry that nests other conditions under `solid` stays with Vite.
 - `tsconfig.app.json` sets `customConditions: ["solid"]`, so TypeScript reads
   the same files.
 

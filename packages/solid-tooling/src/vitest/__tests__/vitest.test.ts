@@ -110,7 +110,11 @@ async function installSourcePackage({
       name,
       exports: {
         './headers': { solid: './src/headers.ts' },
-        './constants': { default: './src/constants.js' }
+        './constants': { default: './src/constants.js' },
+        './nested': {
+          solid: { import: './src/headers.ts' },
+          default: './src/constants.js'
+        }
       }
     })
   )
@@ -211,6 +215,13 @@ it('leaves the other conditions and unknown subpaths to Vite', async context => 
     ids: [`${RUNTIME}/constants`, `${RUNTIME}/missing`, RUNTIME, 'solid-js']
   })
   assert.deepEqual(resolved, [null, null, null, null])
+})
+
+it('leaves a solid condition that nests other conditions to Vite', async context => {
+  const root = await createRoot(context)
+  await installSourcePackage({ context, folder: root, name: RUNTIME })
+  const resolved = await resolveIds({ root, ids: [`${RUNTIME}/nested`] })
+  assert.deepEqual(resolved, [null])
 })
 
 it('finds the package in a parent folder, as Node does', async context => {

@@ -55,6 +55,9 @@ export function sourcePackages({
     }
     const found = await lookup
     const entry = found?.exports[`.${source.slice(name.length)}`]
+    // Only an entry that points solid straight to a file is taken. A nested
+    // condition would need the whole condition set of the project, which Vite
+    // owns, so it stays with Vite.
     if (!found || !isRecord(entry) || typeof entry.solid !== 'string') {
       return null
     }

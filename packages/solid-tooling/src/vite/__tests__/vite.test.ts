@@ -556,6 +556,21 @@ it('refuses a static path inside a locale folder', async context => {
   assert.match(asset.error ?? '', /\/pt\/\*\* is inside a locale folder/u)
 })
 
+it('names the settings file when it cannot read the locales', async context => {
+  const root = await createRoot(context)
+  const settings = path.join(root, 'project.inlang/settings.json')
+  await writeFile(settings, '{ locales')
+  const invalid = await readSummary({ options: { root } })
+  await rm(settings)
+  const missing = await readSummary({ options: { root } })
+  for (const summary of [invalid, missing]) {
+    assert.match(
+      summary.error ?? '',
+      /defineSolidApp: cannot read the locales from project\.inlang\/settings\.json/u
+    )
+  }
+})
+
 it('loads the real plugins from the package dependencies', async context => {
   const root = await createRoot(context)
   const summary = await readSummary({ options: { root }, hasStubs: false })

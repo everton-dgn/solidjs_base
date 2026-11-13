@@ -4,7 +4,7 @@ import { describe, it, type TestContext } from 'node:test'
 
 import stylelint from 'stylelint'
 
-import { createAppFixture } from '../../testing/appFixture/index.ts'
+import { createAppFixture } from '../../testing/createAppFixture/index.ts'
 import { defineStylelintConfig } from '../index.ts'
 
 type LinterOptions = { context: TestContext; file?: string }
@@ -168,7 +168,7 @@ describe('stylelint token policy', () => {
       '/* stylelint-disable-next-line declaration-property-value-allowed-list'
     assert.deepEqual(
       await lint(
-        `.a {\n  ${disable} -- ícone externo exige 13px */\n  font-size: 13px;\n}`
+        `.a {\n  ${disable} -- the external icon needs 13px */\n  font-size: 13px;\n}`
       ),
       []
     )

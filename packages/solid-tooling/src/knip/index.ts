@@ -15,10 +15,13 @@ type AppSettings = Pick<
   'ignoreBinaries' | 'ignoreDependencies' | 'ignoreIssues' | 'exclude'
 >
 
+type SolidPluginImport = 'lazy' | 'static'
+
 type KnipOptions = AppSettings & {
   root: string
   configFile?: string
   entry?: string[]
+  solidPluginImport?: SolidPluginImport
 }
 
 type ConfigureKnip = () => Promise<KnipConfiguration>
@@ -30,18 +33,21 @@ type RouteDirectory = {
 
 type RouteScan = RouteDirectory & { root: string }
 
+type ConventionScan = { root: string; patterns: string[] }
+
 const DEFAULT_CONFIG_FILE = 'tooling/knip.ts'
 // The Solid Vite plugin loads the entry pair and the middleware by path, and
-// Knip only reads solid() when vite.config.ts imports it statically
-// (webpro-nl/knip#2147). Paraglide's runtime loads the URLPattern polyfill,
-// and the plugin reads env.ts to build virtual:solid-env.
-const CONVENTION_ENTRIES = [
+// reads env.ts to build virtual:solid-env. Knip's Solid plugin finds them only
+// when vite.config.ts imports solid() statically (webpro-nl/knip#2147); listed
+// again, they become redundant-entry hints.
+const SOLID_ENTRIES = [
   'src/entry-server.tsx',
   'src/entry-client.tsx',
-  'paraglide/runtime.js',
   'src/middleware/index.ts',
   'env.ts'
 ]
+// Paraglide's runtime loads the URLPattern polyfill of the package.
+const RUNTIME_ENTRIES = ['paraglide/runtime.js']
 const ROUTE_DIRECTORIES: RouteDirectory[] = [
   { directory: 'src/routes', isProduction: true },
   { directory: 'src/tests/fixtures/routes', isProduction: false },
@@ -86,9 +92,12 @@ async function discoverRouteModules({
 
 // With treatConfigHintsAsErrors, an entry or project pattern without a file
 // fails the run, so the defaults only list what the application has.
-async function conventionEntries(root: string): Promise<string[]> {
+async function conventionEntries({
+  root,
+  patterns
+}: ConventionScan): Promise<string[]> {
   const entries = await Promise.all(
-    CONVENTION_ENTRIES.map(async pattern =>
+    patterns.map(async pattern =>
       (await hasMatch({ root, pattern })) ? [`${pattern}!`] : []
     )
   )
@@ -99,14 +108,19 @@ export function defineKnipConfig({
   root,
   configFile = DEFAULT_CONFIG_FILE,
   entry = [],
+  solidPluginImport = 'lazy',
   ignoreBinaries,
   ignoreDependencies,
   ignoreIssues = {},
   exclude
 }: KnipOptions): ConfigureKnip {
+  const patterns =
+    solidPluginImport === 'static'
+      ? RUNTIME_ENTRIES
+      : [...SOLID_ENTRIES, ...RUNTIME_ENTRIES]
   return async function configureKnip() {
     const [conventions, routes, hasTooling] = await Promise.all([
-      conventionEntries(root),
+      conventionEntries({ root, patterns }),
       Promise.all(
         ROUTE_DIRECTORIES.map(route => discoverRouteModules({ root, ...route }))
       ),

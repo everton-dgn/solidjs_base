@@ -6,7 +6,7 @@ import { promisify } from 'node:util'
 
 import * as v from 'valibot'
 
-import { createAppFixture } from '../../testing/appFixture/index.ts'
+import { createAppFixture } from '../../testing/createAppFixture/index.ts'
 
 type Summary = v.InferOutput<typeof summarySchema>
 
@@ -82,6 +82,22 @@ it('lists the convention entries, the routes and the fixture routes', async cont
     'src/tests/fixtures/routes/index.tsx'
   ])
   assert.ok(config.project.includes('tooling/**/*.ts'))
+})
+
+it('leaves the Solid entries to Knip when vite.config.ts imports solid() statically', async context => {
+  const config = await readConfig({
+    root: await createApp(context),
+    options: { solidPluginImport: 'static' }
+  })
+  assert.ok(config.entry.includes('paraglide/runtime.js!'))
+  for (const entry of [
+    'src/entry-server.tsx!',
+    'src/entry-client.tsx!',
+    'src/middleware/index.ts!',
+    'env.ts!'
+  ]) {
+    assert.ok(!config.entry.includes(entry), entry)
+  }
 })
 
 it('leaves out the defaults the application does not have', async context => {

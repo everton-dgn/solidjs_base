@@ -54,9 +54,17 @@ async function readExtension({
 // The locales come from the same file as the Paraglide compiler, so the rules
 // of the published Markdown follow a new locale without another option.
 async function readLocales(root: string): Promise<string[]> {
-  const settings: unknown = JSON.parse(
-    await readFile(path.join(root, 'project.inlang/settings.json'), 'utf8')
-  )
+  let settings: unknown
+  try {
+    settings = JSON.parse(
+      await readFile(path.join(root, 'project.inlang/settings.json'), 'utf8')
+    )
+  } catch (error) {
+    throw new Error(
+      'defineSolidApp: cannot read the locales from project.inlang/settings.json.',
+      { cause: error }
+    )
+  }
   const locales =
     settings !== null && typeof settings === 'object' && 'locales' in settings
       ? settings.locales

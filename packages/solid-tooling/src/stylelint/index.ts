@@ -42,6 +42,9 @@ const REFERENCE_FILES = [
   'src/theme/tokens/**/*.css',
   'src/theme/class/animation.css'
 ]
+// The type check skips values with a var() it cannot resolve; matching by name
+// reaches fallbacks and custom properties. The list has the deprecated system
+// colors and the WebKit ones.
 const SYSTEM_COLORS = `
   AccentColor AccentColorText ActiveText ButtonBorder ButtonFace ButtonText
   Canvas CanvasText Field FieldText GrayText Highlight HighlightText LinkText
@@ -113,7 +116,9 @@ async function filenameDiagnostics(
   })
 }
 
-export async function defineStylelintConfig(root: string): Promise<Config> {
+export async function defineStylelintConfig(appRoot: string): Promise<Config> {
+  // Stylelint matches globs and overrides against absolute paths.
+  const root = path.resolve(appRoot)
   return {
     referenceFiles: await referenceFiles(root),
     reportDescriptionlessDisables: true,
@@ -230,7 +235,8 @@ export async function defineStylelintConfig(root: string): Promise<Config> {
   }
 }
 
-export async function checkCss(root: string): Promise<CssCheck> {
+export async function checkCss(appRoot: string): Promise<CssCheck> {
+  const root = path.resolve(appRoot)
   const config = await defineStylelintConfig(root)
   const [filenames, result] = await Promise.all([
     filenameDiagnostics(root),

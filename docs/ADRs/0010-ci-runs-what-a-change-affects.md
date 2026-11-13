@@ -1,6 +1,6 @@
 # 0010. The CI runs only the jobs a change affects
 
-- Status: Accepted
+- Status: Accepted, amended by [0017](0017-main-reuses-the-pull-request-run.md)
 - Date: 2026-11-13
 
 ## Context

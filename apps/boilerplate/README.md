@@ -2,7 +2,7 @@
 
 A copy of
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs) at
-commit `31de7bf`, used to test the packages of this repository in a complete
+commit `6145493`, used to test the packages of this repository in a complete
 application. It is never published or deployed.
 
 It takes its lint preset, lint rules, formatter settings and TypeScript base

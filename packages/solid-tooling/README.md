@@ -228,7 +228,7 @@ same.
 export default defineSolidApp({
   root: import.meta.dirname,
   securityHeaders: SECURITY_HEADERS,
-  async extend({ target }) {
+  async extend() {
     const { i18nPlugin } = await import('./tooling/i18n/i18nPlugin/index.ts')
     return { plugins: [i18nPlugin()] }
   }
@@ -237,15 +237,15 @@ export default defineSolidApp({
 
 ### Tasks
 
-| Task                | Command                                                                       |
-| ------------------- | ----------------------------------------------------------------------------- |
-| `i18n-generate`     | `bun tooling/i18n/generate.ts`                                                |
-| `lint-css`          | `bun tooling/css/check.ts`                                                    |
-| `dead-code-project` | `knip-bun --config tooling/knip.ts`, then again with `--strict`               |
-| `lint-project`      | `vp lint`, after `lint-css`                                                   |
-| `check-project`     | `vp fmt --check && vp lint`, after `lint-css`                                 |
-| `typecheck-node`    | `tsc --project tsconfig.node.json`                                            |
-| `test-tooling`      | `node --test` over `tooling/**/__tests__`, three workers on CI, with no cache |
+| Task                | Command                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `i18n-generate`     | `bun tooling/i18n/generate.ts`                                                                          |
+| `lint-css`          | `bun tooling/css/check.ts`                                                                              |
+| `dead-code-project` | `knip-bun --config tooling/knip.ts`, then again with `--strict`                                         |
+| `lint-project`      | `vp lint`, after `lint-css`                                                                             |
+| `check-project`     | `vp fmt --check && vp lint`, after `lint-css`                                                           |
+| `typecheck-node`    | `tsc --project tsconfig.node.json`                                                                      |
+| `test-tooling`      | `node --test` over `tooling/**/__tests__` except `tooling/release/`, three workers on CI, with no cache |
 
 The commands run the scripts of the boilerplate layout. An application without
 one of them replaces the task through `tasks`. Knip reads task commands only
@@ -303,7 +303,10 @@ config lists:
 - `src/entry-server.tsx`, `src/entry-client.tsx`, `src/middleware/index.ts`,
   `env.ts` and `paraglide/runtime.js` as production entries. The Solid plugin
   and the Paraglide runtime load them by path, and Knip does not read the Solid
-  plugin when `vite.config.ts` imports it with `import()`.
+  plugin when `vite.config.ts` imports it with `import()`, as `./vite` does. An
+  application that imports `solid()` statically, with `start`, passes
+  `solidPluginImport: 'static'`: Knip's Solid plugin then finds the first four
+  itself, and listing them again would be a configuration hint.
 - Every page and HTTP handler that `filesystem-routing` finds in `src/routes/`,
   as production entries, and in `src/tests/fixtures/routes/` and
   `src/tests/fixtures/e2e/routes/`, as test entries. The `filesystem-routing`
@@ -321,6 +324,7 @@ enters only when the application has the file or the folder.
 | `root`               | required          | The application folder                                         |
 | `configFile`         | `tooling/knip.ts` | Path of the config file, relative to `root`                    |
 | `entry`              | none              | More entries, such as a public API that only test fixtures use |
+| `solidPluginImport`  | `'lazy'`          | `'static'` when `vite.config.ts` imports `solid()` statically  |
 | `ignoreBinaries`     | none              | Passed to Knip as is                                           |
 | `ignoreDependencies` | none              | Passed to Knip as is                                           |
 | `ignoreIssues`       | none              | Passed to Knip, merged with the entry for `configFile`         |

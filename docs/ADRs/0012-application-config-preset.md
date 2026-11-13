@@ -36,7 +36,8 @@ copy outside the workspace with the package installed from its tarball:
 | `.vercel/output/config.json` of the production and `e2e` builds                                                                                      | Same                                                                                                 |
 | Files in `.vercel/output/static`                                                                                                                     | Same, except three hashed chunks that also change between two builds of the same source              |
 | Status, headers and body of 11 requests to the dev server and to the preview                                                                         | Same                                                                                                 |
-| Check, Node type check, Knip, Vitest, tooling tests, build and end-to-end suites                                                                     | Pass in the monorepo and in the tarball copy                                                         |
+| Check, Node type check, Knip, Vitest, tooling tests, build and the `e2e` end-to-end suite                                                            | Pass in the monorepo and in the tarball copy                                                         |
+| Production end-to-end suite (headers and CSP)                                                                                                        | Passes in the monorepo                                                                               |
 
 ## Decision
 
@@ -94,3 +95,7 @@ and an application config of about 20 lines.
   version tested with it.
 - The modules that `extend` imports from the application are still bundled with
   the config by every command, as before.
+- The tarball test checks that the files of `./vite` exist, not that it loads
+  from an installed package, as with `./vitest` in
+  [ADR 0011](0011-test-configs-in-the-tooling-package.md). A copy of the
+  application installed from the tarball covers that before a release.

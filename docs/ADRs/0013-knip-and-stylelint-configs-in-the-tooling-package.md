@@ -59,3 +59,9 @@ that matches nothing, as configuration hints, which fail the run with
 - The CSS lint messages of the copy changed from Portuguese to English.
 - A missing default is silent: if an application deletes its middleware, Knip
   stops listing it instead of reporting an empty entry.
+- The convention entries assume that `vite.config.ts` loads the Solid plugin
+  with `import()`, as `./vite` does. An application that imports it statically
+  sets `solidPluginImport: 'static'`, so Knip's Solid plugin lists them instead.
+- The tarball test checks that the files of `./knip` and `./stylelint` exist,
+  not that they run from an installed package. A copy of the application
+  installed from the tarball covers that before a release.

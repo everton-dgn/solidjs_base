@@ -139,11 +139,11 @@ hand. On a pull request, the `Changes` job reads the list of changed files and
 starts only the jobs those files affect. Pushes to `main` and manual runs start
 every job.
 
-| Changed files                                                                                      | Jobs                                           |
-| -------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| Only Markdown, `docs/`, `LICENSE`, issue templates, `.coderabbit.yaml` or `.github/dependabot.yml` | Docs                                           |
-| Only `apps/boilerplate/`                                                                           | Boilerplate app, Boilerplate app E2E           |
-| Anything else: packages, fixtures, root config, lockfile, workflows                                | Packages, Boilerplate app, Boilerplate app E2E |
+| Changed files                                                            | Jobs                                           |
+| ------------------------------------------------------------------------ | ---------------------------------------------- |
+| Only Markdown, `docs/`, `LICENSE`, issue templates or `.coderabbit.yaml` | Docs                                           |
+| Only `apps/boilerplate/`                                                 | Boilerplate app, Boilerplate app E2E           |
+| Anything else: packages, fixtures, root config, lockfile, workflows      | Packages, Boilerplate app, Boilerplate app E2E |
 
 A pull request that touches more than one group runs the jobs of each.
 

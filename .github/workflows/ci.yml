@@ -46,7 +46,7 @@ jobs:
           while IFS= read -r file; do
             case "$file" in
               apps/boilerplate/*) app=true ;;
-              *.md | docs/* | LICENSE | .coderabbit.yaml | .github/ISSUE_TEMPLATE/* | .github/dependabot.yml) docs=true ;;
+              *.md | docs/* | LICENSE | .coderabbit.yaml | .github/ISSUE_TEMPLATE/*) docs=true ;;
               *)
                 packages=true
                 app=true

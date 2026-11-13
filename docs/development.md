@@ -102,6 +102,10 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
 - `docs/` and `AGENTS.md` point the rule paths to `packages/solid-tooling/src/`.
   Their sections about releases, CI, Git hooks and the Vercel deploy describe
   the original repository.
+- `src/components/molecules/Dialog/index.tsx` and
+  `src/components/atoms/DropdownMenu/index.tsx` save their element in named ref
+  functions, as the `AGENTS.md` rule for ref callbacks with an assignment asks.
+  The original still has the inline callbacks.
 
 ### Updating the copy
 

@@ -104,9 +104,14 @@ steps, so translations and Markdown stay optional
 - Each module has its own entry point, with only the `solid` condition, pointing
   to the `.ts` file. There is no barrel, so a module the application does not
   import never enters its build.
-- The security header constants are the exception: `constants.js` with
-  `constants.d.ts`, under `types` and `default`, because `vite.config.ts`
-  imports them through Node, which refuses TypeScript inside `node_modules`.
+- The security step is a factory, `createSecurityHeaders`, whose `headers` and
+  `cspDirectives` options replace the default values. The application calls it
+  once and every step that writes a response uses that instance
+  ([ADR 0019](ADRs/0019-runtime-security-headers-options.md)).
+- The default header values are the exception to the `.ts` entries:
+  `constants.js` with `constants.d.ts`, under `types` and `default`, because the
+  application module that spreads them is loaded by `vite.config.ts` through
+  Node, which refuses TypeScript inside `node_modules`.
 - `sideEffects` is an empty list. A module with an intended effect, such as a
   client entry, has to enter it; `false` would let the build drop that module
   without an error.

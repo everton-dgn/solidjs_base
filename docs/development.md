@@ -131,8 +131,15 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
   `@evertondgn/solid-runtime` with their tests, and `apiRoutes` from the package
   replaces the `createAPIHandler(routes)` call of `src/middleware/index.ts`. The
   locale, Markdown and failure steps and the chain stay in `src/middleware/` and
-  import the moved steps by package specifier, as does `vite.config.ts` for
-  `SECURITY_HEADERS` ([ADR 0018](ADRs/0018-runtime-package-middleware.md)).
+  import the moved steps by package specifier
+  ([ADR 0018](ADRs/0018-runtime-package-middleware.md)).
+- `src/middleware/securityHeaders/constants.ts` holds the header values and the
+  CSP directives of the copy, spread from the package defaults, and
+  `src/middleware/securityHeaders/index.ts` holds the only
+  `createSecurityHeaders` call. The chain, the failure containment, the locale
+  step, the uncached Markdown responses and `vite.config.ts` read from that
+  folder; `requestNonce` comes from the package
+  ([ADR 0019](ADRs/0019-runtime-security-headers-options.md)).
 - `src/constants/http.ts` lost `HTTP_METHOD_NOT_ALLOWED`, used only by
   `restrictPageMethods`, and `tooling/knip.ts` lost the ignore of the moved
   `securityHeaders` test. The `workspace` option of `vite.config.ts` lists

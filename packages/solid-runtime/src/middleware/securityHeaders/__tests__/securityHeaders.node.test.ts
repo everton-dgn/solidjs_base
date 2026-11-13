@@ -385,18 +385,18 @@ describe('creation of the security headers', () => {
     }
   )
 
-  it('refuses a directive with a character that a header value cannot carry', () => {
-    expect(() =>
-      createSecurityHeaders({
-        cspDirectives: [
-          ...CSP_DIRECTIVES,
-          "img-src 'self'\nhttps://cdn.example"
-        ]
-      })
-    ).toThrow(
-      'createSecurityHeaders: cspDirectives has a character that a header value cannot carry.'
-    )
-  })
+  // Headers trims the ends of a value: a line break that closes the last item
+  // passes alone and fails once the script-src of the package follows it.
+  it.each(["img-src 'self'\nhttps://cdn.example", "img-src 'self'\n"])(
+    'refuses the last directive %j, which a header value cannot carry',
+    directive => {
+      expect(() =>
+        createSecurityHeaders({ cspDirectives: [...CSP_DIRECTIVES, directive] })
+      ).toThrow(
+        'createSecurityHeaders: cspDirectives has a character that a header value cannot carry.'
+      )
+    }
+  )
 })
 
 describe('instances of the security headers', () => {

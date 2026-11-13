@@ -10,6 +10,8 @@ type HeaderUpdate = { response: Response; headers: HeaderValues }
 
 type HeaderEntry = { name: string; value: string }
 
+type Policy = { directives: readonly string[]; scriptSrc: string }
+
 type SecurityHeadersOptions = {
   headers?: HeaderValues
   cspDirectives?: readonly string[]
@@ -21,6 +23,7 @@ type SecurityHeaders = {
 }
 
 const NONCE_BYTES = 16
+const NO_SCRIPTS = "script-src 'none'"
 const SCRIPT_DIRECTIVES = new Set([
   'script-src',
   'script-src-elem',
@@ -34,6 +37,10 @@ function createNonce(): string {
 
 function directiveName(directive: string): string {
   return directive.trim().split(/\s+/u)[0]?.toLowerCase() ?? ''
+}
+
+function joinPolicy({ directives, scriptSrc }: Policy): string {
+  return [...directives, scriptSrc].join('; ')
 }
 
 // Headers refuses a name or a value it cannot send. Checking at creation makes
@@ -70,7 +77,10 @@ function checkDirectives(directives: readonly string[]): void {
     }
     names.add(name)
   }
-  const policy = directives.join('; ')
+  // WHY: the probe is the policy as a response sends it, with the script-src
+  // at the end. Headers trims the ends of a value, so a line break that closes
+  // the last item would pass alone and fail in every response.
+  const policy = joinPolicy({ directives, scriptSrc: NO_SCRIPTS })
   if (!isSendable({ name: 'content-security-policy', value: policy })) {
     throw new Error(
       'createSecurityHeaders: cspDirectives has a character that a header value cannot carry.'
@@ -142,10 +152,12 @@ export function createSecurityHeaders({
   // With the nonce, only the scripts that carry it run, and 'strict-dynamic'
   // allows the modules they load. Without a nonce, no script runs.
   function contentSecurityPolicy(nonce: string | undefined): string {
-    const scriptSrc = nonce
-      ? `script-src 'nonce-${nonce}' 'strict-dynamic'`
-      : "script-src 'none'"
-    return [...directives, scriptSrc].join('; ')
+    return joinPolicy({
+      directives,
+      scriptSrc: nonce
+        ? `script-src 'nonce-${nonce}' 'strict-dynamic'`
+        : NO_SCRIPTS
+    })
   }
 
   // Development uses the inline styles of HMR; the production policy only

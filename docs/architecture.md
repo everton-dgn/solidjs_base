@@ -4,11 +4,11 @@
 
 An application built from boilerplate_solidjs takes code from three places.
 
-| Place                       | Content                                                                                                                                         | Shipped as                          |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `@evertondgn/solid-tooling` | Lint preset, the `project`, `backend`, `architecture` and `solid` lint plugins, formatter preset, TypeScript base                               | Compiled JavaScript with type files |
-| Runtime package (planned)   | Middleware, security headers, server errors, i18n runtime, primitives, and the sitemap, robots and llms.txt handlers as factories               | TypeScript source                   |
-| The application             | Pages, UI components, message catalogs, `App`, `Document`, the `entry-*` pair, a thin middleware, one-line SEO routes, version pins and patches | Its own repository                  |
+| Place                       | Content                                                                                                                                                                                                                                                         | Shipped as                          |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `@evertondgn/solid-tooling` | Lint preset, the `project`, `backend`, `architecture` and `solid` lint plugins, formatter preset, TypeScript base. Planned: a `defineSolidApp()` preset for Vite, Nitro, Vitest and Playwright, and shared configs for Knip, Stylelint, commitlint and Lefthook | Compiled JavaScript with type files |
+| Runtime package (planned)   | Middleware, security headers and CSP, server errors, i18n runtime, theme logic, primitives, SEO, Markdown pages, and the sitemap, robots and llms.txt handlers as factories                                                                                     | TypeScript source                   |
+| The application             | Pages, UI components, message catalogs, the theme palette, `App`, `Document`, the `entry-*` pair, a thin middleware, one-line SEO routes, version pins and patches                                                                                              | Its own repository                  |
 
 The two packages ship in different forms because of how each one runs. See
 [ADR 0002](ADRs/0002-compiled-tooling-package.md) and
@@ -22,8 +22,11 @@ Some files cannot move to a package:
   plugin requires their paths to be inside the Vite root.
 - Version pins and patches: Bun reads `overrides` and `patchedDependencies` only
   from the root `package.json` of the project that installs.
-- Pages, UI components and message catalogs: they are what makes one application
-  different from another.
+- Pages, UI components, message catalogs and the theme palette: they are what
+  makes one application different from another.
+
+The [roadmap](../README.md#roadmap) lists the order in which the rest moves to
+the packages.
 
 ## `@evertondgn/solid-tooling`
 

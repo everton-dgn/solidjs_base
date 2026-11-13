@@ -137,9 +137,11 @@ of the original at the copied commit.
 ## CI
 
 `.github/workflows/ci.yml` runs on pull requests, on pushes to `main` and by
-hand. On a pull request, the `Changes` job reads the list of changed files and
-starts only the jobs those files affect. Pushes to `main` and manual runs start
-every job.
+hand. The `Changes` job reads the list of changed files and starts only the jobs
+those files affect. A push to `main` that merges an up-to-date pull request with
+a passed `CI required` starts no job, because the pull request run checked the
+same tree ([ADR 0017](ADRs/0017-main-reuses-the-pull-request-run.md)). Manual
+runs start every job.
 
 | Changed files                                                            | Jobs                                           |
 | ------------------------------------------------------------------------ | ---------------------------------------------- |

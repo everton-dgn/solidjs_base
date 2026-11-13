@@ -25,7 +25,11 @@ run** in the pull request
 commit pushed to the release branch from a person's account starts the CI at
 once, without the approval.
 
-From a terminal, list the held runs and approve each one:
+release-please rewrites the release pull request after every merge that changes
+the next version, and each rewrite holds a new run. Approve only the run of the
+head you are about to merge: an approved run starts every job.
+
+From a terminal, list the held runs and approve the one of that head:
 
 ```bash
 gh run list --branch release-please--branches--main--components--solid-tooling \

@@ -4,11 +4,16 @@ import { env, loadEnvFile } from 'node:process'
 import { defineConfig, loadEnv, type ViteUserConfigFnObject } from 'vite-plus'
 
 import { fmt } from '../fmt.ts'
+import { hasI18n } from '../has-i18n.ts'
 import { lint } from '../lint.ts'
 import { solidTest } from '../vitest/index.ts'
 import { appPlugins, testPlugins } from './plugins.ts'
 import { createTasks } from './tasks.ts'
-import type { SolidAppOptions } from './types.ts'
+import type {
+  ClientAppOptions,
+  ServerAppOptions,
+  SolidAppOptions
+} from './types.ts'
 
 // A baseURL of "/" or with a trailing slash would turn the static rule into
 // /** or //**, which catches every route of the application.
@@ -21,7 +26,17 @@ function isPathPrefix(baseURL: string | undefined): boolean {
   )
 }
 
-function validateOptions(options: SolidAppOptions): void {
+const SERVER_OPTIONS = [
+  'middleware',
+  'serverSetup',
+  'securityHeaders',
+  'publicAssets',
+  'staticPaths',
+  'routeRules',
+  'publication'
+]
+
+function validateServerOptions(options: ServerAppOptions): void {
   const asset = (options.publicAssets ?? []).find(
     ({ baseURL }) => !isPathPrefix(baseURL)
   )
@@ -40,6 +55,28 @@ function validateOptions(options: SolidAppOptions): void {
   }
 }
 
+// The types already refuse these options; the check covers JavaScript configs,
+// where a server option would be ignored without a word.
+function validateClientOptions(options: ClientAppOptions): void {
+  const serverOption = [
+    ...SERVER_OPTIONS.filter(key => key in options),
+    ...('middleware' in (options.e2e ?? {}) ? ['e2e.middleware'] : [])
+  ].at(0)
+  if (serverOption !== undefined) {
+    throw new Error(
+      `defineSolidApp: ${serverOption} needs SSR; remove it or remove ssr: false.`
+    )
+  }
+}
+
+function validateOptions(options: SolidAppOptions): void {
+  if (options.ssr === false) {
+    validateClientOptions(options)
+    return
+  }
+  validateServerOptions(options)
+}
+
 function loadTestEnvFile(root: string): void {
   try {
     loadEnvFile(path.join(root, '.env.test'))
@@ -50,7 +87,11 @@ function loadTestEnvFile(root: string): void {
   }
 }
 
-export type { SolidAppOptions } from './types.ts'
+export type {
+  ClientAppOptions,
+  ServerAppOptions,
+  SolidAppOptions
+} from './types.ts'
 
 export function defineSolidApp(
   options: SolidAppOptions
@@ -74,7 +115,8 @@ export function defineSolidApp(
         tasks: {
           ...createTasks({
             workspace: options.workspace,
-            isCi: Boolean(env.CI)
+            isCi: Boolean(env.CI),
+            hasI18n: hasI18n(root)
           }),
           ...options.tasks
         }

@@ -96,10 +96,11 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
   `paths`.
 - `vite.config.ts` calls `defineSolidApp` from `./vite`: the plugins, the
   headers of the static files, the build, CSS, server and preview blocks and the
-  `vp run` tasks come from the package. The i18n plugin and the publication
-  artifacts still come from `tooling/`, through the `extend` option. The
-  `workspace` option points `bun.lock`, `bunfig.toml` and the package build to
-  the monorepo root; a copy outside the workspace leaves it out.
+  `vp run` tasks come from the package, with `publication: true` for the headers
+  of the published files. The i18n plugin and the publication artifacts still
+  come from `tooling/`, through the `extend` option. The `workspace` option
+  points `bun.lock`, `bunfig.toml` and the package build to the monorepo root; a
+  copy outside the workspace leaves it out.
 - `tooling/knip.ts` and `tooling/css/check.ts` call `defineKnipConfig` and
   `checkCss` from the package and pass only what is the application's own: the
   public API entries, the fixture middleware and the ignores below. The

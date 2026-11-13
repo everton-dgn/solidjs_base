@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 import type { Plugin, TestUserConfig, ViteUserConfig } from 'vite-plus'
 import { playwright } from 'vite-plus/test/browser-playwright'
 
+import { hasI18n } from '../has-i18n.ts'
+
 type SolidTestOptions = {
   root: string
   // WHY: a factory, because each project starts its own Vite server and a
@@ -56,6 +58,7 @@ function readTestEnv(): Record<string, string> {
 }
 
 export function solidTest({ root, plugins }: SolidTestOptions): TestUserConfig {
+  const hasParaglide = hasI18n(root)
   return {
     pool: 'threads',
     maxWorkers: env.CI ? CI_WORKERS : undefined,
@@ -107,20 +110,26 @@ export function solidTest({ root, plugins }: SolidTestOptions): TestUserConfig {
       },
       {
         plugins: plugins(),
-        // WHY: the setup file lives in node_modules, where the tsconfig paths
-        // of the application do not apply.
-        resolve: {
-          alias: [
-            {
-              find: /^@paraglide\//u,
-              replacement: `${path.join(root, 'paraglide')}/`
-            }
-          ]
-        },
+        ...(hasParaglide && {
+          // WHY: the setup file lives in node_modules, where the tsconfig paths
+          // of the application do not apply.
+          resolve: {
+            alias: [
+              {
+                find: /^@paraglide\//u,
+                replacement: `${path.join(root, 'paraglide')}/`
+              }
+            ]
+          }
+        }),
         test: {
           css: true,
           name: { label: 'browser', color: 'yellow' },
-          setupFiles: [packageFile('vitest-setup/browser.mjs')],
+          // The setup resets the Paraglide locale, so it needs the application's
+          // compiled messages.
+          setupFiles: hasParaglide
+            ? [packageFile('vitest-setup/browser.mjs')]
+            : [],
           include: ['src/**/*.browser.test.{ts,tsx}'],
           browser: {
             enabled: true,

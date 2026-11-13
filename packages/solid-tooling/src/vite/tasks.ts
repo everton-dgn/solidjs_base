@@ -3,7 +3,10 @@ import type { RunTask, SolidAppOptions } from './types.ts'
 type Task = Exclude<RunTask, string | string[]>
 type TaskCacheConfig = Exclude<Task['cache'], boolean | undefined>
 type TaskInput = NonNullable<TaskCacheConfig['input']>[number]
-type TaskOptions = Pick<SolidAppOptions, 'workspace'> & { isCi: boolean }
+type TaskOptions = Pick<SolidAppOptions, 'workspace'> & {
+  isCi: boolean
+  hasI18n: boolean
+}
 
 const TOOLING_CI_TEST_WORKERS = 3
 
@@ -20,7 +23,8 @@ function installInputs({ workspace }: Pick<TaskOptions, 'workspace'>) {
 
 export function createTasks({
   workspace,
-  isCi
+  isCi,
+  hasI18n
 }: TaskOptions): Record<string, Task> {
   const install = installInputs({ workspace })
   const lockfile = workspace ? fromWorkspace('bun.lock') : 'bun.lock'
@@ -44,20 +48,22 @@ export function createTasks({
     : ''
 
   return {
-    'i18n-generate': {
-      command: 'bun tooling/i18n/generate.ts',
-      cache: {
-        input: [
-          'src/**/i18n/*.json',
-          'tooling/i18n/**',
-          'project.inlang/settings.json',
-          'project.inlang/paraglide.config.ts',
-          'package.json',
-          lockfile
-        ],
-        output: ['paraglide/**', '.paraglide/messages/**']
+    ...(hasI18n && {
+      'i18n-generate': {
+        command: 'bun tooling/i18n/generate.ts',
+        cache: {
+          input: [
+            'src/**/i18n/*.json',
+            'tooling/i18n/**',
+            'project.inlang/settings.json',
+            'project.inlang/paraglide.config.ts',
+            'package.json',
+            lockfile
+          ],
+          output: ['paraglide/**', '.paraglide/messages/**']
+        }
       }
-    },
+    }),
     // The explicit inputs keep the cache of the CSS lint independent of how
     // each operating system tracks the reads of the runtime.
     'lint-css': {

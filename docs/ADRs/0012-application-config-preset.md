@@ -1,6 +1,6 @@
 # 0012. A preset builds the application Vite config
 
-- Status: Accepted
+- Status: Accepted, amended by [0016](0016-optional-application-features.md)
 - Date: 2026-11-13
 
 ## Context

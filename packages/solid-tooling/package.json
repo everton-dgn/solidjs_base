@@ -102,6 +102,9 @@
     "@commitlint/cli": {
       "optional": true
     },
+    "@inlang/paraglide-js": {
+      "optional": true
+    },
     "@playwright/test": {
       "optional": true
     },

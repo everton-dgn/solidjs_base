@@ -1,3 +1,7 @@
+import { createRequire } from 'node:module'
+import path from 'node:path'
+import { cwd } from 'node:process'
+
 import type { UserConfig } from 'vite-plus'
 
 import backendPolicy from './backendPolicy/index.ts'
@@ -7,8 +11,41 @@ import { javascriptRules } from './lint/rules/javascript.ts'
 import { testRules } from './lint/rules/testing.ts'
 import { typescriptRules } from './lint/rules/typescript.ts'
 import { unicornRules } from './lint/rules/unicorn.ts'
+import type { LintRules } from './lint/types.ts'
+
+type JsPlugin = { name: string; specifier: string }
 
 const TEST_FILES = ['**/*.test.{ts,tsx}', '**/*.test-d.{ts,tsx}', '**/tests/**']
+const PARAGLIDE_PLUGIN = '@inlang/paraglide-js/eslint'
+
+// Oxlint loads the plugins by specifier from the folder where lint runs. An
+// application without Paraglide gets neither its plugin nor its rule.
+function resolvesFromApplication(specifier: string): boolean {
+  try {
+    createRequire(path.join(cwd(), 'package.json')).resolve(specifier)
+    return true
+  } catch {
+    return false
+  }
+}
+
+const hasParaglide = resolvesFromApplication(PARAGLIDE_PLUGIN)
+const paraglidePlugins: JsPlugin[] = hasParaglide
+  ? [{ name: 'paraglide', specifier: PARAGLIDE_PLUGIN }]
+  : []
+const paraglideRules: LintRules = hasParaglide
+  ? {
+      'paraglide/no-dynamic-message-access': [
+        'error',
+        {
+          messageModules: [
+            '@paraglide/messages.js',
+            '@paraglide/messages/_index.js'
+          ]
+        }
+      ]
+    }
+  : {}
 
 export const lint: NonNullable<UserConfig['lint']> = {
   ignorePatterns: [
@@ -40,7 +77,7 @@ export const lint: NonNullable<UserConfig['lint']> = {
       name: 'architecture',
       specifier: '@evertondgn/solid-tooling/architecture-plugin'
     },
-    { name: 'paraglide', specifier: '@inlang/paraglide-js/eslint' },
+    ...paraglidePlugins,
     { name: 'solid', specifier: '@evertondgn/solid-tooling/solid-plugin' },
     { name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' }
   ],
@@ -195,7 +232,8 @@ export const lint: NonNullable<UserConfig['lint']> = {
     ...importRules,
     ...typescriptRules,
     ...unicornRules,
-    ...testRules
+    ...testRules,
+    ...paraglideRules
   },
   settings: {
     'jsx-a11y': {

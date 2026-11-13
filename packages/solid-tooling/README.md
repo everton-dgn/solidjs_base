@@ -14,18 +14,21 @@ update.
 
 ## Requirements
 
-The application installs three packages next to this one:
+The application installs two packages next to this one:
 
-| Package                | Why                                                         |
-| ---------------------- | ----------------------------------------------------------- |
-| `vite-plus`            | Runs lint and format, and provides the Oxlint plugin API    |
-| `@inlang/paraglide-js` | The preset registers its lint plugin, resolved from the app |
-| `typescript`           | The preset turns on type-aware linting and type checking    |
+| Package      | Why                                                      |
+| ------------ | -------------------------------------------------------- |
+| `vite-plus`  | Runs lint and format, and provides the Oxlint plugin API |
+| `typescript` | The preset turns on type-aware linting and type checking |
 
-`vite-plus` and `@inlang/paraglide-js` are peer dependencies, pinned to the
-exact versions the package is tested with. Install the versions listed in its
-`peerDependencies`. `typescript` is not a peer dependency: the package is tested
-with the version in its `devDependencies`.
+`vite-plus` is a peer dependency, pinned to the exact version the package is
+tested with. Install the version listed in its `peerDependencies`. `typescript`
+is not a peer dependency: the package is tested with the version in its
+`devDependencies`.
+
+An application with translations also installs `@inlang/paraglide-js`, an
+optional peer dependency pinned the same way. The lint preset then registers its
+plugin.
 
 `eslint-plugin-solid`, `stylelint` and `stylelint-use-nesting` come with the
 package, so the application does not declare them.
@@ -57,8 +60,8 @@ and `typescript`, so it only adds this package:
 vp add -D @evertondgn/solid-tooling
 ```
 
-An application without `@inlang/paraglide-js` adds it too, in the version the
-package asks for:
+An application with translations and without `@inlang/paraglide-js` adds it too,
+in the version the package asks for:
 
 ```bash
 npm view @evertondgn/solid-tooling peerDependencies
@@ -162,6 +165,18 @@ application: the Solid, routing, icons and Nitro plugins, the headers of the
 static files, the build, CSS, server and preview blocks, the `vp run` tasks, and
 `lint`, `fmt` and `test` from the presets above.
 
+Each feature is turned on only when the application uses it, so nothing it does
+not use reaches its build:
+
+- `ssr: false` builds a client-only application, such as an Electron renderer or
+  a static site: no Nitro, no server functions and no server bundle.
+- The rules for the published files (sitemap, `robots.txt`, `llms.txt` and the
+  Markdown pages) need `publication: true`.
+- Without `project.inlang/settings.json`, there is no `i18n-generate` task, no
+  Paraglide setup in the browser tests and no locale folder in the rules. The
+  lint preset registers the Paraglide plugin and its rule only where
+  `@inlang/paraglide-js` resolves.
+
 ```ts
 // vite.config.ts
 import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
@@ -179,7 +194,9 @@ export default defineSolidApp({
 | Option            | Default                 | Use                                                                                                                              |
 | ----------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `root`            | required                | Application folder. `.env`, `.env.test`, `project.inlang/settings.json` and the icon folders resolve from it                     |
-| `securityHeaders` | required                | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files          |
+| `ssr`             | `true`                  | `false` for a client-only application, which takes only `root`, `icons`, `e2e.routes`, `extend`, `tasks` and `workspace`         |
+| `securityHeaders` | required with SSR       | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files          |
+| `publication`     | `false`                 | `true` when the application publishes the sitemap, `robots.txt`, `llms.txt` or Markdown pages, so their files get the headers    |
 | `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                              |
 | `serverSetup`     | `serverFunctions: true` | `serverFunctions.serverSetup` of the Solid plugin                                                                                |
 | `e2e`             | production paths        | `{ middleware, routes }` for `--mode e2e`: the middleware chain and the route folder of the fixtures, without route types        |
@@ -200,12 +217,15 @@ The preset fixes the rest:
   `browser` test projects get the `extend` plugins, the icons, Solid with server
   functions only and the routes. The `test` mode loads no application plugin and
   reads `.env.test` into `process.env`.
-- The static headers go to `/assets/**`, each `publicAssets` folder, the
-  `staticPaths`, `/<locale>/**.md` for each locale of
-  `project.inlang/settings.json`, `/llms.txt`, `/llms-full.txt`, `/sitemap.xml`,
-  `/sitemaps/pages/**` and `/_markdown/static.json`. The static files leave the
-  CDN without going through the middleware, so these rules give them the headers
-  the middleware writes on the other responses.
+- The static headers go to `/assets/**`, each `publicAssets` folder and the
+  `staticPaths`. With `publication`, also to `/<locale>/**.md` for each locale
+  of `project.inlang/settings.json`, `/llms.txt`, `/llms-full.txt`,
+  `/sitemap.xml`, `/sitemaps/pages/**` and `/_markdown/static.json`. The static
+  files leave the CDN without going through the middleware, so these rules give
+  them the headers the middleware writes on the other responses.
+- With `ssr: false`, the plugins are the `extend` plugins, the icons, the Solid
+  plugin with `ssr: false` and the routes; the test projects load Solid without
+  server functions. The build writes `dist/` with the page and its assets.
 - `build.manifest` only in the `e2e` mode, which the `TEST_PREBUILT` check of
   `./playwright` relies on, and no comments in the output.
 - Lightning CSS, with CSS Modules classes named `[content-hash]_[local]`.
@@ -218,10 +238,11 @@ The plugins are imported inside `lazyPlugins`, so `vp lint`, `vp fmt` and
 Nitro compiles the route rules with the `preMerge` of h3, which refuses rules
 that overlap in part, such as `/pt/blog/**` next to `/pt/**.md`, and falls back
 to its simple mode, with the same result and a warning. `defineSolidApp` throws
-when a `publicAssets` entry has no `baseURL`, or one with a trailing slash, and
-when a static path does not start with `/`. Build, dev and preview fail to load
-the plugins when a `publicAssets` folder or a static path sits inside a locale
-folder.
+when a `publicAssets` entry has no `baseURL`, or one with a trailing slash, when
+a static path does not start with `/`, and when a client-only application sets
+an option that needs SSR. With `publication`, build, dev and preview fail to
+load the plugins when a `publicAssets` folder or a static path sits inside a
+locale folder.
 
 ### `extend`
 
@@ -250,7 +271,7 @@ export default defineSolidApp({
 
 | Task                | Command                                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| `i18n-generate`     | `bun tooling/i18n/generate.ts`                                                                          |
+| `i18n-generate`     | `bun tooling/i18n/generate.ts`, only with `project.inlang/settings.json`                                |
 | `lint-css`          | `bun tooling/css/check.ts`                                                                              |
 | `dead-code-project` | `knip-bun --config tooling/knip.ts`, then again with `--strict`                                         |
 | `lint-project`      | `vp lint`, after `lint-css`                                                                             |
@@ -481,8 +502,9 @@ override the rules that do not fit. See
 
 - Oxlint plugins: `import`, `jsx-a11y`, `node`, `oxc`, `promise`, `typescript`,
   `unicorn` and `vitest`.
-- JavaScript plugins: `solid`, `paraglide`, `vite-plus` and the three plugins of
-  this package (`project`, `backend`, `architecture`).
+- JavaScript plugins: `solid`, `vite-plus` and the three plugins of this package
+  (`project`, `backend`, `architecture`), plus `paraglide` when
+  `@inlang/paraglide-js` resolves from the folder where lint runs.
 - Type-aware rules and type checking (`typeAware`, `typeCheck`).
 - Warnings fail the run (`denyWarnings`), and an unused disable directive is an
   error.
@@ -671,8 +693,6 @@ break the `@/` imports of the end-to-end tests.
   names used in boilerplate_solidjs. For any other folder of that kind, turn the
   rule off in `lint.overrides`, as shown in
   [Changing the preset](#changing-the-preset).
-- The Paraglide plugin is always registered, so `@inlang/paraglide-js` has to be
-  installed even in an application without translations.
 - Some rule messages point to `docs/architecture.md` and `AGENTS.md`. Those
   files belong to the application created from boilerplate_solidjs.
 - The test presets expect the boilerplate layout: tests named by suffix

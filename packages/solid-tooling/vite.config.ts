@@ -28,6 +28,7 @@ export default defineConfig({
       'architecture-plugin': 'src/architecturePolicy/index.ts',
       'css-filename': 'src/css/css-filename.ts',
       'solid-plugin': 'src/solid-plugin.ts',
+      vite: 'src/vite/index.ts',
       vitest: 'src/vitest/index.ts',
       'vitest-setup/browser': 'src/vitest/setup/browser.ts',
       playwright: 'src/playwright/index.ts',

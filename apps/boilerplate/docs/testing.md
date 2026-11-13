@@ -85,10 +85,11 @@ No modo `test`, o `vite.config.ts` carrega o `.env.test` versionado em
 com ou sem o prefixo `VITE_`, chegam aos workers dos projetos `node` e `dom`.
 `BASE_URL_TEST`, `HOST` e `PORT` também seguem por `test.env`, que o projeto
 `browser` expõe em `import.meta.env`; uma variável que os testes de navegador
-precisem ler entra nessa lista. O `tooling/playwright.ts` carrega o mesmo
-arquivo para os testes E2E. Nos dois casos, variáveis já exportadas no shell têm
-precedência sobre o arquivo. Sem o `.env.test`, o Vitest segue só com o ambiente
-do shell.
+precisem ler entra nessa lista. A config do Playwright, que o
+`playwright.config.ts` monta com `definePlaywrightConfig` do
+`@evertondgn/solid-tooling`, carrega o mesmo arquivo para os testes E2E. Nos
+dois casos, variáveis já exportadas no shell têm precedência sobre o arquivo.
+Sem o `.env.test`, o Vitest segue só com o ambiente do shell.
 
 ## Isolamento e diagnóstico
 
@@ -105,14 +106,14 @@ primeira execução após uma mudança paga o custo. O isolamento por arquivo
 quando o Vitest sugerir o ganho de tempo. Sem esse isolamento, arquivos passam a
 compartilhar `document` e o estado dos módulos, e um teste pode passar ou falhar
 conforme a ordem. No Browser Mode, o contexto ainda preserva cookies entre
-arquivos. O setup `src/tests/setup/browser/index.ts` restaura o idioma base
-antes de cada teste com `setLocale(baseLocale, { reload: false })`; cada teste
-pode escolher outro idioma durante sua execução. Os projetos DOM e browser
-começam em inglês. No GitHub Actions, o reporter `github-actions` anota as
-falhas no PR. Os `include` dos projetos exigem os sufixos `node`, `dom` e
-`browser`, então os arquivos E2E ficam de fora sem exclusão própria. Essas
-opções ficam na configuração raiz, e os projetos as herdam pelo `extends` padrão
-do Vitest, declarando só o que muda.
+arquivos. O setup do projeto browser, que vem do `@evertondgn/solid-tooling`,
+restaura o idioma base antes de cada teste com
+`setLocale(baseLocale, { reload: false })`; cada teste pode escolher outro
+idioma durante sua execução. Os projetos DOM e browser começam em inglês. No
+GitHub Actions, o reporter `github-actions` anota as falhas no PR. Os `include`
+dos projetos exigem os sufixos `node`, `dom` e `browser`, então os arquivos E2E
+ficam de fora sem exclusão própria. Essas opções ficam na configuração raiz, e
+os projetos as herdam pelo `extends` padrão do Vitest, declarando só o que muda.
 
 Nos testes, importe de `vite-plus/test` em vez de `vitest` (a regra
 `vite-plus/prefer-vite-plus-imports` bloqueia o import direto). O linker isolado
@@ -365,14 +366,14 @@ Use `vp run test:e2e:ui` para abrir a interface interativa do Playwright. Com
 `CI=true`, os E2E usam dois workers; localmente, mantêm o paralelismo padrão.
 `OutsideError.e2e.test.ts`, que confere a contagem exata de linhas no log do
 servidor, roda no projeto `server-logs`, declarado como `teardown` do `chromium`
-em `tooling/playwright.ts`: começa depois que os demais testes terminam, mesmo
-quando algum falha, e executa o arquivo em ordem num único worker. Uma execução
-filtrada com testes do `chromium` também roda esse arquivo no fim, e `--no-deps`
-o dispensa; para rodar só ele, passe o caminho do arquivo ou da pasta
-`OutsideError`. Uma linha gravada com atraso por uma requisição anterior ainda
-alteraria a contagem. Para comparar tempos ou investigar uma falha de
-concorrência, use `CI=true vp run test:e2e --workers=1` e
-`CI=true vp run test:e2e --workers=2`.
+pela opção `suites.serverLogs` do `playwright.config.ts`: começa depois que os
+demais testes terminam, mesmo quando algum falha, e executa o arquivo em ordem
+num único worker. Uma execução filtrada com testes do `chromium` também roda
+esse arquivo no fim, e `--no-deps` o dispensa; para rodar só ele, passe o
+caminho do arquivo ou da pasta `OutsideError`. Uma linha gravada com atraso por
+uma requisição anterior ainda alteraria a contagem. Para comparar tempos ou
+investigar uma falha de concorrência, use `CI=true vp run test:e2e --workers=1`
+e `CI=true vp run test:e2e --workers=2`.
 
 Os relatórios HTML ficam em `playwright-report/e2e/` e
 `playwright-report/production/`. Com `CI` definido, eles guardam só os testes

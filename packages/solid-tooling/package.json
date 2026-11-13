@@ -34,11 +34,13 @@
   "files": [
     "dist",
     "tsconfig.base.json",
-    "tsconfig.app.json"
+    "tsconfig.app.json",
+    "lefthook.yml"
   ],
   "exports": {
     "./architecture-plugin": "./dist/architecture-plugin.mjs",
     "./backend-plugin": "./dist/backend-plugin.mjs",
+    "./commitlint": "./dist/commitlint.mjs",
     "./css-filename": "./dist/css-filename.mjs",
     "./fmt": "./dist/fmt.mjs",
     "./knip": "./dist/knip.mjs",
@@ -53,7 +55,8 @@
     "./vitest-setup/browser": "./dist/vitest-setup/browser.mjs",
     "./package.json": "./package.json",
     "./tsconfig.base.json": "./tsconfig.base.json",
-    "./tsconfig.app.json": "./tsconfig.app.json"
+    "./tsconfig.app.json": "./tsconfig.app.json",
+    "./lefthook.yml": "./lefthook.yml"
   },
   "publishConfig": {
     "access": "public"
@@ -65,6 +68,7 @@
     "test:tarball": "vp run test-tarball"
   },
   "dependencies": {
+    "@commitlint/config-conventional": "21.2.4",
     "eslint-plugin-solid": "0.19.0",
     "stylelint": "18.0.0",
     "stylelint-use-nesting": "6.0.2"
@@ -77,7 +81,9 @@
     "filesystem-routing": "0.5.0",
     "knip": "6.45.1",
     "nitro": "3.0.261103-rc",
-    "unplugin-icons": "24.0.0"
+    "unplugin-icons": "24.0.0",
+    "@commitlint/cli": "21.2.4",
+    "lefthook": "2.2.2"
   },
   "devDependencies": {
     "@inlang/paraglide-js": "3.2.2",
@@ -93,6 +99,9 @@
     "unplugin-icons": "24.0.0"
   },
   "peerDependenciesMeta": {
+    "@commitlint/cli": {
+      "optional": true
+    },
     "@playwright/test": {
       "optional": true
     },
@@ -103,6 +112,9 @@
       "optional": true
     },
     "knip": {
+      "optional": true
+    },
+    "lefthook": {
       "optional": true
     },
     "nitro": {

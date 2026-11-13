@@ -1,6 +1,6 @@
 /* oxlint-disable node/no-sync -- The test builds the application step by step and waits for the real CLIs. */
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
+import { type SpawnSyncReturns, spawnSync } from 'node:child_process'
 import {
   cpSync,
   existsSync,
@@ -12,6 +12,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { env } from 'node:process'
 import { test } from 'node:test'
 
 import * as v from 'valibot'
@@ -21,6 +22,7 @@ type Expected = { filename: string; code: string }
 type Diagnostic = v.InferOutput<typeof diagnosticSchema>
 type Installation = { app: string; tarball: string }
 type ErrorQuery = { diagnostics: Diagnostic[]; expected: Expected }
+type CommitMessage = { app: string; message: string }
 
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, '../../..')
 const WORKSPACE_ROOT = path.resolve(PACKAGE_ROOT, '../..')
@@ -48,6 +50,11 @@ const EXPECTED: Expected[] = [
 // vite.config.ts imports the preset: with no diagnostics, the package
 // declarations resolved in the application.
 const CLEAN_FILES = ['src/helpers/clean.ts', 'vite.config.ts']
+// The `!` header needs the parser preset of config-conventional, which only the
+// package installs.
+const ACCEPTED_MESSAGE = 'feat(tooling)!: drop the old preset'
+const REJECTED_MESSAGE = 'fix: Add the preset.'
+const SHARED_HOOKS = ['commit-msg', 'pre-commit', 'pre-push']
 
 const versionsSchema = v.optional(v.record(v.string(), v.string()), {})
 const manifestSchema = v.object({
@@ -65,6 +72,7 @@ const diagnosticSchema = v.object({
 })
 const reportSchema = v.object({ diagnostics: v.array(diagnosticSchema) })
 const exportsSchema = v.object({ exports: v.record(v.string(), v.string()) })
+const hooksSchema = v.record(v.string(), v.unknown())
 
 function run({ file, args, cwd }: Command): string {
   const result = spawnSync(file, args, {
@@ -158,6 +166,31 @@ function missingExports(app: string): string[] {
   )
 }
 
+function lefthook(app: string, args: string[]): SpawnSyncReturns<string> {
+  const binaries = path.join(app, 'node_modules/.bin')
+  // The shared jobs call `vp`: the application's own binary answers, with or
+  // without the global CLI on the machine.
+  return spawnSync(path.join(binaries, 'lefthook'), args, {
+    cwd: app,
+    encoding: 'utf8',
+    timeout: COMMAND_TIMEOUT,
+    env: { ...env, PATH: `${binaries}${path.delimiter}${env.PATH ?? ''}` }
+  })
+}
+
+function sharedHooks(app: string): string[] {
+  const result = lefthook(app, ['dump', '--format', 'json'])
+  assert.equal(result.status, 0, result.stderr)
+  const hooks = v.parse(hooksSchema, JSON.parse(result.stdout))
+  return SHARED_HOOKS.filter(name => name in hooks)
+}
+
+function checkCommitMessage({ app, message }: CommitMessage): number | null {
+  const file = path.join(app, 'COMMIT_EDITMSG')
+  writeFileSync(file, `${message}\n`)
+  return lefthook(app, ['run', 'commit-msg', file]).status
+}
+
 function isFile(diagnostic: Diagnostic, filename: string): boolean {
   return (
     diagnostic.filename === filename ||
@@ -213,4 +246,18 @@ test('the application installs the packed package and lint applies the plugins',
     []
   )
   assert.deepEqual(missingExports(app), [])
+})
+
+test('the application extends the shared hooks and the commitlint config', context => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'solid-tooling-hooks-'))
+  // Sandbox created by this test: removing it directly is the right cleanup.
+  context.after(() => rmSync(directory, { recursive: true, force: true }))
+  const app = path.join(directory, 'app')
+  install({ app, tarball: pack(directory) })
+  // Lefthook finds its config from the root of a Git repository.
+  run({ file: 'git', args: ['init', '--quiet'], cwd: app })
+
+  assert.deepEqual(sharedHooks(app), SHARED_HOOKS)
+  assert.equal(checkCommitMessage({ app, message: ACCEPTED_MESSAGE }), 0)
+  assert.notEqual(checkCommitMessage({ app, message: REJECTED_MESSAGE }), 0)
 })

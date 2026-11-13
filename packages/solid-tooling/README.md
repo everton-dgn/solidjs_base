@@ -1,11 +1,12 @@
 # @evertondgn/solid-tooling
 
 Lint preset, formatter config, TypeScript configs, test configs, the Knip and
-Stylelint configs and the Vite+ application config for SolidJS 2 applications
-built with [Vite+](https://viteplus.dev/guide/).
+Stylelint configs, the Vite+ application config, the commitlint config and the
+Git hooks for SolidJS 2 applications built with
+[Vite+](https://viteplus.dev/guide/).
 
-The package contains the lint, format, TypeScript, test, build, dead code and
-CSS lint setup of
+The package contains the lint, format, TypeScript, test, build, dead code, CSS
+lint, commit message and Git hook setup of
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs), a
 SolidJS application template. Applications created from it install the package
 instead of copying the files, so a rule change reaches them through a version
@@ -31,11 +32,13 @@ package, so the application does not declare them.
 
 Some entries need tools the application already runs:
 
-| Entry          | The application installs                                                        |
-| -------------- | ------------------------------------------------------------------------------- |
-| `./vitest`     | `@vitest/browser-playwright`, `@vitest/coverage-v8`, `happy-dom`, `playwright`  |
-| `./playwright` | `@playwright/test`, an optional peer dependency pinned like the others          |
-| `./knip`       | `knip` and `filesystem-routing`, optional peer dependencies pinned the same way |
+| Entry            | The application installs                                                        |
+| ---------------- | ------------------------------------------------------------------------------- |
+| `./vitest`       | `@vitest/browser-playwright`, `@vitest/coverage-v8`, `happy-dom`, `playwright`  |
+| `./playwright`   | `@playwright/test`, an optional peer dependency pinned like the others          |
+| `./knip`         | `knip` and `filesystem-routing`, optional peer dependencies pinned the same way |
+| `./commitlint`   | `@commitlint/cli`, an optional peer dependency pinned the same way              |
+| `./lefthook.yml` | `lefthook`, an optional peer dependency pinned the same way                     |
 
 `./vite` also needs the test tools of `./vitest`, and loads four plugin
 packages: `@solidjs/vite-plugin`, `nitro`, `filesystem-routing` and
@@ -403,6 +406,56 @@ config passes the plugin by a path resolved from the package, because Stylelint
 looks up a plugin name from the application and its working directory, where it
 is not installed.
 
+## Commit messages and Git hooks
+
+`./commitlint` is the commitlint config: the Conventional Commits rules of
+`@commitlint/config-conventional`, with the header limited to 100 characters, a
+blank line required before the footer, and a warning for body and footer lines
+over 100 characters. The application installs `@commitlint/cli` and points its
+config to the package:
+
+```json
+// .commitlintrc
+{ "extends": ["@evertondgn/solid-tooling/commitlint"] }
+```
+
+`./lefthook.yml` holds the Git hooks. The application installs `lefthook`,
+allows its install script and extends the file from its own `.lefthook.yml`:
+
+```json
+// package.json
+{ "trustedDependencies": ["lefthook"] }
+```
+
+```yaml
+# .lefthook.yml
+extends:
+  - node_modules/@evertondgn/solid-tooling/lefthook.yml
+```
+
+| Hook         | Jobs                                                                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `commit-msg` | `commitlint` on the message                                                                                                                                    |
+| `pre-commit` | `check:fix` on the staged files, which are staged again after the fix, and `scan:secrets --staged` when `kingfisher` is installed. Skipped in merge and rebase |
+| `pre-push`   | `check:ci`, `typecheck:node` and `test:ci` in order, then `test:tooling` and `dead-code` together. The first failure stops the rest                            |
+
+The jobs call `package.json` scripts by name, so the application defines
+`check:fix`, `scan:secrets`, `check:ci`, `typecheck:node`, `test:ci`,
+`test:tooling` and `dead-code`.
+
+Lefthook applies the files in `extends` over `.lefthook.yml`, so:
+
+- A job added in `.lefthook.yml` runs before the shared jobs of the same hook.
+- A job declared there with the name of a shared job does not change it.
+- To change or skip a shared job, declare a job with the same name in
+  `lefthook-local.yml`, which Lefthook applies last, also inside a group. The
+  rest keeps its order, and new jobs in that file run after the shared ones.
+  Commit the file to change the job for everyone, or keep it out of Git to
+  change it on one machine.
+
+Create `.lefthook.yml` before the first install. Without it, the install script
+of Lefthook writes a `lefthook.yml` of its own, which Lefthook reads first.
+
 ## Project layout the preset expects
 
 The rules match file paths relative to the folder where lint runs, so run it
@@ -558,12 +611,15 @@ overrides: [
 | `./css-filename`         | `cssFilenameError(path)`, the CSS naming check, for a script outside lint |
 | `./knip`                 | `defineKnipConfig(options)`, the Knip config                              |
 | `./stylelint`            | `checkCss(root)` and `defineStylelintConfig(root)`, the CSS lint          |
+| `./commitlint`           | The commitlint config                                                     |
+| `./lefthook.yml`         | The Git hooks, extended from the application's `.lefthook.yml`            |
 
 An application imports `./vite`, which brings `./lint`, `./fmt` and `./vitest`
 along, `./playwright`, `./knip`, `./stylelint` and one of the TypeScript
-configs. An application that only lints imports `./lint` and `./fmt`. The plugin
-entries exist because Oxlint loads plugins by specifier, from the application;
-the setup and teardown entries are loaded by the test presets.
+configs, and extends `./commitlint` and `./lefthook.yml`. An application that
+only lints imports `./lint` and `./fmt`. The plugin entries exist because Oxlint
+loads plugins by specifier, from the application; the setup and teardown entries
+are loaded by the test presets.
 
 ## Formatter
 

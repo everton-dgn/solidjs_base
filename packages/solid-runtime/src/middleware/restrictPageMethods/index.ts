@@ -13,18 +13,17 @@ function methodNotAllowed(allowed: string[]): Promise<Response> {
   )
 }
 
-// Depois das rotas de API, só o render recebe a requisição. No build o handler
-// do plugin renderiza a página com qualquer método, fora do contexto de idioma
-// e com status 200, inclusive num caminho de API sem handler para o método;
-// formulários do router enviam ao endpoint das server functions, nunca ao
-// caminho da página.
+// After the API routes, only the render gets the request. In a build, the
+// plugin handler renders the page for any method, outside the locale context
+// and with status 200, even on an API path with no handler for the method;
+// router forms post to the server functions endpoint, never to the page path.
 export function restrictPageMethods(
   request: Request,
   next: Next
 ): Promise<Response> {
   const { pathname } = new URL(request.url)
-  // O handler de API já atendeu os métodos que a rota exporta, então um caminho
-  // de API que chega aqui, mesmo em GET ou HEAD, não tem handler para o método.
+  // The API handler already served the methods the route exports, so an API
+  // path that gets here, even with GET or HEAD, has no handler for the method.
   const apiMethods = apiRouteMethods(pathname)
   if (apiMethods.length > 0) return methodNotAllowed(apiMethods)
   if (PAGE_METHODS.includes(request.method)) return next()

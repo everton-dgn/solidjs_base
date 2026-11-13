@@ -2,9 +2,9 @@
 // vite.config.ts loads these values through Node, which refuses TypeScript
 // inside node_modules.
 
-// Cabeçalhos de segurança de toda resposta que passa pelo middleware. O
-// Cross-Origin-Embedder-Policy exige que recursos de outra origem respondam
-// com CORP ou CORS; os recursos do app são da mesma origem.
+// Security headers of every response that goes through the middleware.
+// Cross-Origin-Embedder-Policy requires resources from another origin to
+// answer with CORP or CORS; the application's resources are same-origin.
 export const SECURITY_HEADERS = {
   'strict-transport-security': 'max-age=63072000; includeSubDomains',
   'x-frame-options': 'DENY',
@@ -16,10 +16,10 @@ export const SECURITY_HEADERS = {
   'cross-origin-resource-policy': 'same-origin'
 }
 
-// Diretivas fixas da Content-Security-Policy. O script-src depende do nonce da
-// requisição e é montado em applySecurityHeaders. No build os estilos chegam só
-// por <link> da mesma origem; um <style> ou um atributo style no HTML é
-// bloqueado. O tema do SSR vai pelas classes .light/.dark do <html>.
+// Fixed directives of the Content-Security-Policy. script-src depends on the
+// request nonce and is built in applySecurityHeaders. In a build, styles come
+// only from a same-origin <link>; a <style> or a style attribute in the HTML
+// is blocked. The SSR theme goes through the .light/.dark classes of <html>.
 export const CSP_DIRECTIVES = [
   "default-src 'self'",
   "style-src 'self'",

@@ -13,8 +13,8 @@ function createNonce(): string {
   return btoa(String.fromCodePoint(...bytes))
 }
 
-// Com o nonce, só os scripts que o trazem rodam, e 'strict-dynamic' libera os
-// módulos que eles carregam. Sem nonce, nenhum script roda.
+// With the nonce, only the scripts that carry it run, and 'strict-dynamic'
+// allows the modules they load. Without a nonce, no script runs.
 function contentSecurityPolicy(nonce: string | undefined): string {
   const scriptSrc = nonce
     ? `script-src 'nonce-${nonce}' 'strict-dynamic'`
@@ -22,7 +22,8 @@ function contentSecurityPolicy(nonce: string | undefined): string {
   return [...CSP_DIRECTIVES, scriptSrc].join('; ')
 }
 
-// Respostas de controle aceitam cópia de headers; um corpo upstream exige contenção.
+// A control response, with no body, can be copied to take the headers; an
+// upstream body is left to the failure containment.
 function withHeaders({ response, headers }: HeaderUpdate): Response {
   try {
     for (const [name, value] of Object.entries(headers)) {
@@ -52,10 +53,10 @@ export function requestNonce(): string | undefined {
   return nonce === false ? undefined : nonce
 }
 
-// O desenvolvimento usa estilos inline do HMR; a política de produção só permite folhas externas.
-// Só documentos HTML executam scripts. Texto, XML, JSON e redirects saem com
-// script-src 'none', e o nonce da requisição não fica guardado no cache
-// compartilhado das respostas com s-maxage.
+// Development uses the inline styles of HMR; the production policy only allows
+// external style sheets. Only HTML documents run scripts: text, XML, JSON and
+// redirects get script-src 'none', and the request nonce is not stored in the
+// shared cache of the responses with s-maxage.
 export function applySecurityHeaders(response: Response): Response {
   return withHeaders({
     response,
@@ -70,8 +71,8 @@ export function applySecurityHeaders(response: Response): Response {
   })
 }
 
-// O nonce nasce antes de next(): o render o lê do evento, e a CSP da resposta
-// leva o mesmo valor.
+// The nonce is created before next(): the render reads it from the event, and
+// the CSP of the response carries the same value.
 export async function securityHeaders(
   _request: Request,
   next: Next

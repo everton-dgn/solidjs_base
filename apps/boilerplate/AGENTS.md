@@ -35,8 +35,9 @@ release. Add a tool name to select part of the graph. For example, run
 - Esta pasta é uma cópia do `boilerplate_solidjs` no commit `6145493`, usada
   para testar os pacotes do monorepo numa aplicação completa. O `README.md`
   desta pasta lista o que mudou em relação ao original.
-- As regras de lint, o formatador e o tsconfig base vêm do pacote
-  `@evertondgn/solid-tooling`. Os caminhos `packages/solid-tooling/src/...`
+- As regras de lint, o formatador, os tsconfigs, os projetos do Vitest
+  (`solidTest`) e a config do Playwright (`definePlaywrightConfig`) vêm do
+  pacote `@evertondgn/solid-tooling`. Os caminhos `packages/solid-tooling/src/...`
   citados aqui ficam na raiz do monorepo. Ao mudar uma regra, mude no pacote
   e rode `vp run test` na raiz do monorepo.
 - As seções sobre automação de release, workflow de CI, hooks de Git e deploy

@@ -35,16 +35,21 @@ the packages.
 the `exports` map of the package from those entries. `tsconfig.base.json` is
 exported as is.
 
-| Entry point             | Used for                                           |
-| ----------------------- | -------------------------------------------------- |
-| `./lint`                | The lint preset, imported in `vite.config.ts`      |
-| `./fmt`                 | The formatter preset, imported in `vite.config.ts` |
-| `./project-plugin`      | Oxlint plugin with the `project/*` rules           |
-| `./backend-plugin`      | Oxlint plugin with the `backend/*` rules           |
-| `./architecture-plugin` | Oxlint plugin with the `architecture/*` rules      |
-| `./solid-plugin`        | `eslint-plugin-solid`, resolved from the package   |
-| `./css-filename`        | The CSS filename check, for the CSS lint script    |
-| `./tsconfig.base.json`  | Base for the application `tsconfig.json`           |
+| Entry point              | Used for                                           |
+| ------------------------ | -------------------------------------------------- |
+| `./lint`                 | The lint preset, imported in `vite.config.ts`      |
+| `./fmt`                  | The formatter preset, imported in `vite.config.ts` |
+| `./project-plugin`       | Oxlint plugin with the `project/*` rules           |
+| `./backend-plugin`       | Oxlint plugin with the `backend/*` rules           |
+| `./architecture-plugin`  | Oxlint plugin with the `architecture/*` rules      |
+| `./solid-plugin`         | `eslint-plugin-solid`, resolved from the package   |
+| `./css-filename`         | The CSS filename check, for the CSS lint script    |
+| `./tsconfig.base.json`   | Base for the application `tsconfig.json`           |
+| `./tsconfig.app.json`    | The base plus the types and `include` of the app   |
+| `./vitest`               | The Vitest projects, imported in `vite.config.ts`  |
+| `./playwright`           | The Playwright config, in `playwright.config.ts`   |
+| `./vitest-setup/browser` | Setup file of the browser tests                    |
+| `./playwright-teardown`  | Server log check after the end-to-end tests        |
 
 The lint preset registers the plugins in `lint.jsPlugins` by package specifier,
 such as `@evertondgn/solid-tooling/project-plugin`. Oxlint resolves them from

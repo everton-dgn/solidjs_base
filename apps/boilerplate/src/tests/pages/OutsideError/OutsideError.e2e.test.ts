@@ -129,7 +129,7 @@ async function readRawDocument({
 }
 
 // O projeto server-logs roda este arquivo sozinho e em ordem, depois dos demais
-// (tooling/playwright.ts): nenhuma outra requisição grava linhas durante uma
+// (suites.serverLogs no playwright.config.ts): nenhuma outra requisição grava linhas durante uma
 // contagem.
 async function countLogLines({ file, message }: LogCount): Promise<number> {
   const log = await readFile(file, 'utf8')

@@ -49,6 +49,17 @@ export default defineConfig({
     ...lint,
     ignorePatterns: [...(lint.ignorePatterns ?? []), 'fixtures/**', 'apps/**'],
     jsPlugins,
-    overrides: [...(lint.overrides ?? []), ...packageOverrides]
+    overrides: [
+      ...(lint.overrides ?? []),
+      ...packageOverrides,
+      {
+        // An ambient module declaration only works in a script file; an import
+        // would turn it into an augmentation of a module that is missing here.
+        files: [
+          'packages/solid-tooling/src/vitest/setup/paraglide-runtime.d.ts'
+        ],
+        rules: { 'import/unambiguous': 'off' }
+      }
+    ]
   }
 })

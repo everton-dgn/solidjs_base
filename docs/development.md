@@ -89,10 +89,15 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
   hooks, commitlint and the project changelog.
 - `vite.config.ts`, `tsconfig.json`, `tooling/css/check.ts` and
   `tooling/testing/lintFixture/` import from the package.
+- The Vitest projects, the Playwright config (`playwright.config.ts`, in place
+  of `tooling/playwright.ts`), the browser test setup, the test stand-ins of
+  `tooling/testing/` and the server log teardown come from the package, with
+  their tests. `tsconfig.json` extends `tsconfig.app.json` and keeps only the
+  `paths`.
+- `tooling/knip.ts` lists `server-only` in `ignoreDependencies`: the original
+  resolved it through a test alias to `tooling/testing/server-only.ts`.
 - `tooling/css/__tests__/cssPolicy.test.ts` lost the cases for the CSS filename
   and CSS Modules rules, which are now tested in the package.
-- `tooling/__tests__/playwright.test.ts` lost the two cases that read the CI
-  workflow of the original repository.
 - `tooling/__tests__/patched-dependencies.test.ts` reads the root `package.json`
   and `bun.lock`.
 - `tooling/knip.ts` skips the `catalogReferences` check: Knip runs in the

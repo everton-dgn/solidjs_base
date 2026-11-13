@@ -23,10 +23,10 @@ and configuration.
 
 ## Packages
 
-| Package                                               | What an application gets                                                                  | Status                                                                                                                    |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| [`@evertondgn/solid-tooling`](packages/solid-tooling) | Oxlint preset with the project rules, Oxfmt settings and a TypeScript base config         | [![npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling) |
-| `@evertondgn/solid-runtime`                           | Middleware, security headers and CSP, server errors, i18n runtime, SEO, sitemap, Markdown | Planned, see [ADR 0003](docs/ADRs/0003-runtime-package-as-source.md)                                                      |
+| Package                                               | What an application gets                                                                                | Status                                                                                                                    |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| [`@evertondgn/solid-tooling`](packages/solid-tooling) | Oxlint preset with the project rules, Oxfmt settings, TypeScript configs, Vitest and Playwright configs | [![npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling) |
+| `@evertondgn/solid-runtime`                           | Middleware, security headers and CSP, server errors, i18n runtime, SEO, sitemap, Markdown               | Planned, see [ADR 0003](docs/ADRs/0003-runtime-package-as-source.md)                                                      |
 
 ## Quick start
 
@@ -79,8 +79,10 @@ entry points and how to change the preset.
 The goal is an application that keeps only its pages, UI components,
 translations, theme palette and a short `vite.config.ts`. Next steps, in order:
 
-1. A `defineSolidApp()` preset for Vite, Nitro, Vitest and Playwright, plus
-   shared configs for Knip, Stylelint, commitlint and Lefthook.
+1. Shared configs for Vitest and Playwright and an application `tsconfig` (done,
+   see [ADR 0011](docs/ADRs/0011-test-configs-in-the-tooling-package.md)), then
+   a `defineSolidApp()` preset for Vite and Nitro and shared configs for Knip,
+   Stylelint, commitlint and Lefthook.
 2. The runtime package: security headers and CSP, middleware, server errors.
 3. i18n runtime and the Paraglide generator.
 4. SEO, sitemap, `robots.txt`, `llms.txt` and Markdown pages.

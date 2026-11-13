@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import {
   cpSync,
+  existsSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -63,6 +64,7 @@ const diagnosticSchema = v.object({
   severity: v.string()
 })
 const reportSchema = v.object({ diagnostics: v.array(diagnosticSchema) })
+const exportsSchema = v.object({ exports: v.record(v.string(), v.string()) })
 
 function run({ file, args, cwd }: Command): string {
   const result = spawnSync(file, args, {
@@ -145,6 +147,17 @@ function lint(app: string): Diagnostic[] {
   return v.parse(reportSchema, JSON.parse(result.stdout)).diagnostics
 }
 
+// A file missing from `files` in package.json only shows up in an installed
+// copy: the workspace link serves the whole folder.
+function missingExports(app: string): string[] {
+  const installed = path.join(app, 'node_modules', PACKAGE_NAME)
+  const manifest = readFileSync(path.join(installed, 'package.json'), 'utf8')
+  const { exports } = v.parse(exportsSchema, JSON.parse(manifest))
+  return Object.values(exports).filter(
+    target => !existsSync(path.join(installed, target))
+  )
+}
+
 function isFile(diagnostic: Diagnostic, filename: string): boolean {
   return (
     diagnostic.filename === filename ||
@@ -199,4 +212,5 @@ test('the application installs the packed package and lint applies the plugins',
     ),
     []
   )
+  assert.deepEqual(missingExports(app), [])
 })

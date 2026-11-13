@@ -2,18 +2,18 @@ import { readFile } from 'node:fs/promises'
 import { env } from 'node:process'
 import { stripVTControlCharacters } from 'node:util'
 
-// Formato comum dos marcadores sintéticos dos E2E, como PRIVATE_BACKEND_ e
-// PRIVATE_MARKDOWN_. Qualquer ocorrência no log do servidor indica que um erro
-// ou cabeçalho original foi registrado.
-const PRIVATE_MARKER = /PRIVATE_[A-Z0-9_]+/u
-
 type ServerLog = { file: string | undefined; baseUrl: string | undefined }
+
+// Shared format of the synthetic markers in the end-to-end tests, such as
+// PRIVATE_BACKEND_ and PRIVATE_MARKDOWN_. Any of them in the server log means
+// an original error or header was written there.
+const PRIVATE_MARKER = /PRIVATE_[A-Z0-9_]+/u
 
 async function checkLog({ file, baseUrl }: ServerLog): Promise<void> {
   if (!file || !baseUrl) throw new Error('Server log file is not configured')
   const log = stripVTControlCharacters(await readFile(file, 'utf8'))
-  // Controle positivo: um arquivo vazio ou de outro processo passaria na
-  // verificação negativa sem provar nada.
+  // Positive control: an empty file, or the file of another process, would
+  // pass the negative check without proving anything.
   const { host } = new URL(baseUrl)
   if (!log.includes(host)) {
     throw new Error(`Server log does not show the preview startup: ${file}`)

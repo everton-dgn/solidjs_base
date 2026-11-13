@@ -1,24 +1,9 @@
 {
-  "extends": "@evertondgn/solid-tooling/tsconfig.base.json",
+  "extends": "@evertondgn/solid-tooling/tsconfig.app.json",
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],
       "@paraglide/*": ["./paraglide/*"]
-    },
-    "types": [
-      "node",
-      "vite/client",
-      "vite-plus/test/globals",
-      "@testing-library/jest-dom/vitest",
-      "@solidjs/vite-plugin/boundary-modules",
-      "@solidjs/vite-plugin/virtual-modules"
-    ]
-  },
-  "include": [
-    "src",
-    "env.ts",
-    "solid-env.d.ts",
-    "vite.config.ts",
-    "tooling/**/*.ts"
-  ]
+    }
+  }
 }

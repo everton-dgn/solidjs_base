@@ -99,6 +99,9 @@ const config = {
   // o modo production (ativado pelo --strict) não considera; o '!' restringe o
   // ignore a esse modo, porque na execução padrão ele viraria hint de redundância.
   ignoreBinaries: ['kingfisher', 'vp!'],
+  // server-only é um módulo virtual do @solidjs/vite-plugin, sem pacote no npm.
+  // Nos testes node, o preset do @evertondgn/solid-tooling o substitui.
+  ignoreDependencies: ['server-only'],
   // A regressão resolve srvx pela árvore do Nitro para testar o adapter real,
   // sem fixar uma segunda cópia como dependência direta do projeto.
   ignoreIssues: {

@@ -8,6 +8,7 @@
   },
   "include": [
     "vite.config.ts",
+    "playwright.config.ts",
     "tooling/**/*.ts",
     "project.inlang/paraglide.config.ts"
   ]

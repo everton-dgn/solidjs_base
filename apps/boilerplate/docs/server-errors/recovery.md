@@ -44,8 +44,9 @@ série e exigem, por requisição, uma nova linha com a mensagem fixa
 
 O `webServer` do Playwright grava a saída do preview em
 `test-results/server-<modo>.log`. O
-[teardown global](../../tooling/testing/server-log-teardown.ts) confere que o
-arquivo registrou o endereço do preview e recusa qualquer marcador privado.
+[teardown global](../../../../packages/solid-tooling/src/playwright/teardown.ts)
+confere que o arquivo registrou o endereço do preview e recusa qualquer marcador
+privado.
 
 Os marcadores sintéticos nascem no backend após o build. Os testes verificam o
 corpo completo, headers, DOM e erros do navegador. O teste de assets procura

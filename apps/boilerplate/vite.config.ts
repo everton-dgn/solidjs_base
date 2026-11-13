@@ -3,8 +3,8 @@ import { fileURLToPath } from 'node:url'
 
 import { fmt } from '@evertondgn/solid-tooling/fmt'
 import { lint } from '@evertondgn/solid-tooling/lint'
+import { solidTest } from '@evertondgn/solid-tooling/vitest'
 import { defineConfig, lazyPlugins, loadEnv } from 'vite-plus'
-import { playwright } from 'vite-plus/test/browser-playwright'
 
 import inlangSettings from './project.inlang/settings.json' with { type: 'json' }
 import { SECURITY_HEADERS } from './src/middleware/securityHeaders/constants.ts'
@@ -66,7 +66,6 @@ const STATIC_FILE_PATHS = [
   '/sitemaps/pages/**',
   '/_markdown/static.json'
 ]
-const CI_TEST_WORKERS = 2
 const TOOLING_CI_TEST_WORKERS = 3
 const TOOLING_TEST_CONCURRENCY = env.CI
   ? ` --test-concurrency=${TOOLING_CI_TEST_WORKERS}`
@@ -192,7 +191,6 @@ function loadTestEnvFile(): void {
   }
 }
 
-// oxlint-disable-next-line eslint/max-lines-per-function -- A configuração declarativa do Vite fica reunida neste callback.
 export default defineConfig(({ mode }) => {
   const localEnv = loadEnv(mode, import.meta.dirname, ['HOST', 'PORT'])
   const server = {
@@ -203,16 +201,6 @@ export default defineConfig(({ mode }) => {
   if (mode === 'test') {
     loadTestEnvFile()
   }
-
-  // O Vitest grava test.env no process.env dos workers, onde um valor ausente
-  // viraria a string "undefined".
-  const testEnv = Object.fromEntries(
-    Object.entries({
-      BASE_URL_TEST: env.BASE_URL_TEST,
-      HOST: env.HOST,
-      PORT: env.PORT
-    }).filter(([, value]) => value !== undefined)
-  )
 
   return {
     run: {
@@ -289,6 +277,7 @@ export default defineConfig(({ mode }) => {
               'tsconfig.json',
               'tsconfig.node.json',
               'vite.config.ts',
+              'playwright.config.ts',
               'tooling/**/*.ts',
               // O tooling importa módulos de src, e o tsconfig inclui a
               // configuração do Paraglide, que importa o settings.json.
@@ -340,101 +329,6 @@ export default defineConfig(({ mode }) => {
     plugins: mode === 'test' ? [] : appPlugins(mode),
     fmt,
     lint,
-    test: {
-      pool: 'threads',
-      maxWorkers: env.CI ? CI_TEST_WORKERS : undefined,
-      css: false,
-      globals: true,
-      restoreMocks: true,
-      unstubGlobals: true,
-      unstubEnvs: true,
-      expect: { requireAssertions: true, poll: { interval: 10 } },
-      env: testEnv,
-      coverage: {
-        provider: 'v8',
-        reporter: ['text', 'html'],
-        thresholds: {
-          lines: 80,
-          functions: 80,
-          branches: 75,
-          statements: 80
-        },
-        include: ['src/**/*.{ts,tsx}'],
-        exclude: [
-          'src/**/*.d.ts',
-          'src/**/{constants,types,@types}/**',
-          'src/**/{constants,types}.{ts,tsx}',
-          'src/**/__tests__/**',
-          'src/tests/**',
-          'src/App.tsx',
-          'src/Document.tsx',
-          'src/entry-server.tsx',
-          'src/entry-client.tsx',
-          'src/router.ts'
-        ]
-      },
-      reporters: env.GITHUB_ACTIONS
-        ? ['default', 'github-actions']
-        : ['verbose'],
-      // Os projetos herdam as opções acima (extends padrão do Vitest) e
-      // declaram só o que muda: ambiente, include, plugins e aliases.
-      projects: [
-        {
-          resolve: {
-            alias: {
-              'server-only': fileURLToPath(
-                new URL('tooling/testing/server-only.ts', import.meta.url)
-              ),
-              'virtual:file-routes': fileURLToPath(
-                new URL('tooling/testing/file-routes.ts', import.meta.url)
-              ),
-              'virtual:solid-server-function-handler': fileURLToPath(
-                new URL(
-                  'tooling/testing/solid-server-function-handler.ts',
-                  import.meta.url
-                )
-              )
-            }
-          },
-          test: {
-            name: { label: 'node', color: 'cyan' },
-            environment: 'node',
-            include: ['src/**/*.node.test.{ts,tsx}']
-          }
-        },
-        {
-          plugins: componentPlugins(),
-          test: {
-            name: { label: 'dom', color: 'magenta' },
-            environment: 'happy-dom',
-            environmentOptions: { happyDOM: { url: 'http://localhost/en' } },
-            include: ['src/**/*.dom.test.{ts,tsx}']
-          }
-        },
-        {
-          plugins: componentPlugins(),
-          test: {
-            css: true,
-            name: { label: 'browser', color: 'yellow' },
-            setupFiles: ['./src/tests/setup/browser/index.ts'],
-            include: ['src/**/*.browser.test.{ts,tsx}'],
-            browser: {
-              enabled: true,
-              headless: true,
-              trace: {
-                mode: 'retain-on-failure',
-                tracesDir: './test-results/browser-traces'
-              },
-              // Os runners do GitHub têm Chrome; execuções locais usam o Chromium do Playwright.
-              provider: playwright({
-                contextOptions: { locale: 'en-US' },
-                launchOptions: env.CI ? { channel: 'chrome' } : {}
-              }),
-              instances: [{ browser: 'chromium' }]
-            }
-          }
-        }
-      ]
-    }
+    test: solidTest({ root: import.meta.dirname, plugins: componentPlugins })
   }
 })

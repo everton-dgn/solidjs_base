@@ -5,7 +5,7 @@ Stop maintaining the same tooling in every Solid app.
 Lint rules, application config, test setups and Git hooks for SolidJS 2 with
 [Vite+](https://viteplus.dev/guide/), delivered as one versioned dependency. In
 the starter it came from, one `defineSolidApp()` call replaced a 427-line
-`vite.config.ts` with 51 lines.
+`vite.config.ts` with 56 lines.
 
 Built for applications that follow the
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs)
@@ -41,7 +41,7 @@ runtime package has started in this repository and is not published yet, as the
 
 | Configuration         | Original lines |               With the package |
 | --------------------- | -------------: | -----------------------------: |
-| `vite.config.ts`      |            427 |                             51 |
+| `vite.config.ts`      |            427 |                             56 |
 | Playwright config     |            173 |                             17 |
 | Knip config           |            129 |                             48 |
 | `tsconfig.json`       |             45 |                              9 |

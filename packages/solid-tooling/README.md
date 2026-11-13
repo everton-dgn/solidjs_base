@@ -86,7 +86,7 @@ arrives when you update a dependency.
 
 | Configuration         | Original lines | With the package |
 | --------------------- | -------------: | ---------------: |
-| `vite.config.ts`      |            427 |               51 |
+| `vite.config.ts`      |            427 |               56 |
 | Playwright config     |            173 |               17 |
 | `tsconfig.json`       |             45 |                9 |
 | Lint preset and rules |    About 1,500 |                0 |

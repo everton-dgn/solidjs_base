@@ -111,11 +111,33 @@ commit in this section and in `apps/boilerplate/AGENTS.md`.
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`:
+`.github/workflows/ci.yml` runs on pull requests, on pushes to `main` and by
+hand. On a pull request, the `Changes` job reads the list of changed files and
+starts only the jobs those files affect. Pushes to `main` and manual runs start
+every job.
 
-- **Packages**: `vp run validate`, the same command as the publish job.
-- **Boilerplate app**: `vp run build` at the root, then the commands of the
-  table above, in that order.
+| Changed files                                                                                      | Jobs                                           |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| Only Markdown, `docs/`, `LICENSE`, issue templates, `.coderabbit.yaml` or `.github/dependabot.yml` | Docs                                           |
+| Only `apps/boilerplate/`                                                                           | Boilerplate app, Boilerplate app E2E           |
+| Anything else: packages, fixtures, root config, lockfile, workflows                                | Packages, Boilerplate app, Boilerplate app E2E |
+
+A pull request that touches more than one group runs the jobs of each.
+
+| Job                 | What it runs                                                                                               |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Docs                | `vp fmt --check`, and an offline link check (lychee) over the Markdown of the repository, anchors included |
+| Packages            | `vp run validate`, the same command as the publish job                                                     |
+| Boilerplate app     | `vp run build` at the root, then check, Node type check, dead code, tests with coverage and tooling tests  |
+| Boilerplate app E2E | `vp run build` at the root, then the application build and the end-to-end tests                            |
+| CI required         | Fails when any job above failed or was cancelled                                                           |
+
+`CI required` is the only check the `main` ruleset requires. A job skipped by
+its `if`
+[reports success](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-jobs-with-conditions),
+so a skipped job never blocks a merge, and a new job only needs to be added to
+the `needs` of `CI required`.
+[ADR 0010](ADRs/0010-ci-runs-what-a-change-affects.md) explains the choices.
 
 The browser and end-to-end tests use the Chrome installed on the GitHub runner,
 as in the original repository.

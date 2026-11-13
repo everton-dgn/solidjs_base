@@ -5,19 +5,101 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # A pull request runs only the jobs its files affect. Pushes to main and
+  # manual runs check everything. docs/development.md#ci has the table.
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      docs: ${{ steps.classify.outputs.docs }}
+      packages: ${{ steps.classify.outputs.packages }}
+      app: ${{ steps.classify.outputs.app }}
+    steps:
+      - name: Classify the changed files
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "$EVENT" != pull_request ]; then
+            printf 'docs=true\npackages=true\napp=true\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          docs=false
+          packages=false
+          app=false
+          files="$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename')"
+          while IFS= read -r file; do
+            case "$file" in
+              apps/boilerplate/*) app=true ;;
+              *.md | docs/* | LICENSE | .coderabbit.yaml | .github/ISSUE_TEMPLATE/* | .github/dependabot.yml) docs=true ;;
+              *)
+                packages=true
+                app=true
+                ;;
+            esac
+          done <<< "$files"
+          printf 'docs=%s\npackages=%s\napp=%s\n' "$docs" "$packages" "$app" | tee -a "$GITHUB_OUTPUT"
+
+  docs:
+    name: Docs
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
+        with:
+          cache: true
+          cache-dependency-path: bun.lock
+          run-install: false
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile
+
+      - name: Check formatting
+        run: vp fmt --check
+
+      # Offline: only links between files of this repository, with anchors.
+      - name: Check links
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: >-
+            --offline --include-fragments --no-progress README.md
+            CONTRIBUTING.md SECURITY.md 'docs/**/*.md' 'packages/*/README.md'
+            '.github/**/*.md'
+          fail: true
+
   packages:
     name: Packages
+    needs: changes
+    if: needs.changes.outputs.packages == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -38,10 +120,16 @@ jobs:
       - name: Validate
         run: vp run validate
 
-  boilerplate:
+  # The app suites run in two parallel jobs: the end-to-end tests take about
+  # half of the time on their own.
+  app:
     name: Boilerplate app
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: apps/boilerplate
@@ -83,8 +171,64 @@ jobs:
       - name: Run tooling tests
         run: vp run test:tooling
 
+  app-e2e:
+    name: Boilerplate app E2E
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/boilerplate
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
+        with:
+          cache: true
+          cache-dependency-path: bun.lock
+          run-install: false
+
+      - name: Install dependencies
+        working-directory: .
+        run: vp install --frozen-lockfile
+
+      - name: Build the packages
+        working-directory: .
+        run: vp run build
+
       - name: Build
         run: vp run build
 
       - name: Run end-to-end tests
         run: vp run test:e2e
+
+  # The only check the main ruleset requires. A job skipped by its `if`
+  # reports success, so this passes when every job passed or was skipped.
+  required:
+    name: CI required
+    needs: [changes, docs, packages, app, app-e2e]
+    if: always()
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Check the job results
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            case "$result" in
+              success | skipped) ;;
+              *)
+                echo "A job this check depends on ended as $result." >&2
+                exit 1
+                ;;
+            esac
+          done

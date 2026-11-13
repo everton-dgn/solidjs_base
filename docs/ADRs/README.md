@@ -14,6 +14,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0007](0007-english.md)                         | Packages and repository documentation are written in English | Accepted                  |
 | [0008](0008-merge-commits.md)                   | Pull requests are merged with merge commits                  | Accepted                  |
 | [0009](0009-boilerplate-app-in-the-monorepo.md) | A copy of the boilerplate runs in the monorepo               | Accepted                  |
+| [0010](0010-ci-runs-what-a-change-affects.md)   | The CI runs only the jobs a change affects                   | Accepted                  |
 
 ## Adding a record
 

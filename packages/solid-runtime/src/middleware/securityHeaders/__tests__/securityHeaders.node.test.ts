@@ -367,6 +367,36 @@ describe('creation of the security headers', () => {
       )
     }
   )
+
+  // Without this check, Headers would refuse the value on every response.
+  it.each([
+    ['x-frame-options', 'DENY\nx-injected: 1'],
+    ['x frame options', 'DENY']
+  ])(
+    'refuses the header %j with the value %j, which a header cannot carry',
+    (name, value) => {
+      expect(() =>
+        createSecurityHeaders({
+          headers: { ...SECURITY_HEADERS, [name]: value }
+        })
+      ).toThrow(
+        `createSecurityHeaders: headers has "${name}", whose name or value a header cannot carry.`
+      )
+    }
+  )
+
+  it('refuses a directive with a character that a header value cannot carry', () => {
+    expect(() =>
+      createSecurityHeaders({
+        cspDirectives: [
+          ...CSP_DIRECTIVES,
+          "img-src 'self'\nhttps://cdn.example"
+        ]
+      })
+    ).toThrow(
+      'createSecurityHeaders: cspDirectives has a character that a header value cannot carry.'
+    )
+  })
 })
 
 describe('instances of the security headers', () => {

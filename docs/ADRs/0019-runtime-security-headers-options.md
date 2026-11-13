@@ -39,7 +39,10 @@ preset writes three of those headers on the static files.
     `,`), because a second directive inside an item would come before the
     `script-src` of the package and replace it;
   - a `content-security-policy` header, in any case, because the package builds
-    the CSP.
+    the CSP;
+  - a header name, a header value or a directive that `Headers` cannot carry,
+    such as one with a line break. Without this check the application would
+    start, and `Headers` would refuse the value on every response.
 
   Directive names are compared without case, as the CSP parser does. A response
   never carries two directives with the same name.

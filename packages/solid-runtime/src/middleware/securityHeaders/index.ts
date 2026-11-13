@@ -8,6 +8,8 @@ type HeaderValues = Readonly<Record<string, string>>
 
 type HeaderUpdate = { response: Response; headers: HeaderValues }
 
+type HeaderEntry = { name: string; value: string }
+
 type SecurityHeadersOptions = {
   headers?: HeaderValues
   cspDirectives?: readonly string[]
@@ -34,6 +36,17 @@ function directiveName(directive: string): string {
   return directive.trim().split(/\s+/u)[0]?.toLowerCase() ?? ''
 }
 
+// Headers refuses a name or a value it cannot send. Checking at creation makes
+// a bad value fail when the application starts, not on every response.
+function isSendable({ name, value }: HeaderEntry): boolean {
+  try {
+    new Headers().set(name, value)
+    return true
+  } catch {
+    return false
+  }
+}
+
 // A policy uses the first of two directives with the same name, so an item
 // that holds a second directive could replace the script-src of the package.
 function checkDirectives(directives: readonly string[]): void {
@@ -57,6 +70,12 @@ function checkDirectives(directives: readonly string[]): void {
     }
     names.add(name)
   }
+  const policy = directives.join('; ')
+  if (!isSendable({ name: 'content-security-policy', value: policy })) {
+    throw new Error(
+      'createSecurityHeaders: cspDirectives has a character that a header value cannot carry.'
+    )
+  }
 }
 
 function checkHeaders(headers: HeaderValues): void {
@@ -66,6 +85,14 @@ function checkHeaders(headers: HeaderValues): void {
   if (csp !== undefined) {
     throw new Error(
       `createSecurityHeaders: headers cannot set ${csp}, because the package builds the CSP from cspDirectives and the request nonce.`
+    )
+  }
+  const invalid = Object.entries(headers).find(
+    ([name, value]) => !isSendable({ name, value })
+  )
+  if (invalid !== undefined) {
+    throw new Error(
+      `createSecurityHeaders: headers has "${invalid[0]}", whose name or value a header cannot carry.`
     )
   }
 }

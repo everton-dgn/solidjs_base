@@ -94,7 +94,9 @@ import { SECURITY_HEADERS } from './src/middleware/securityHeaders/constants.ts'
 `script-src-elem` or `script-src-attr` directive, which the package builds from
 the request nonce; two directives with the same name; or an item that does not
 hold exactly one directive. It also throws when `headers` has a
-`content-security-policy` key, in any case: the package builds the CSP.
+`content-security-policy` key, in any case: the package builds the CSP. A header
+name, a header value or a directive that a header cannot carry, such as one with
+a line break, fails the same way, when the application starts.
 
 ## Requirements
 

@@ -21,6 +21,8 @@ type KnipOptions = AppSettings & {
   entry?: string[]
 }
 
+type ConfigureKnip = () => Promise<KnipConfiguration>
+
 type RouteDirectory = {
   directory: string
   isProduction: boolean
@@ -101,7 +103,7 @@ export function defineKnipConfig({
   ignoreDependencies,
   ignoreIssues = {},
   exclude
-}: KnipOptions): () => Promise<KnipConfiguration> {
+}: KnipOptions): ConfigureKnip {
   return async function configureKnip() {
     const [conventions, routes, hasTooling] = await Promise.all([
       conventionEntries(root),

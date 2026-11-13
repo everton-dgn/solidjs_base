@@ -54,13 +54,12 @@ the preset gives to an application's `tooling/` folder.
 
 ## The boilerplate app
 
-`apps/boilerplate` is a copy of boilerplate_solidjs, taken at commit `31de7bf`.
+`apps/boilerplate` is a copy of boilerplate_solidjs, taken at commit `6145493`.
 It uses `@evertondgn/solid-tooling` from the workspace in place of its own lint
 rules, formatter settings and TypeScript base, and runs the full suites of the
 original. A change to a package that breaks the application fails here, before
-it becomes a version.
-[ADR 0009](decisions/0009-boilerplate-app-in-the-monorepo.md) explains why the
-copy exists.
+it becomes a version. [ADR 0009](ADRs/0009-boilerplate-app-in-the-monorepo.md)
+explains why the copy exists.
 
 Run its commands from `apps/boilerplate`:
 
@@ -102,10 +101,6 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
 - `docs/` and `AGENTS.md` point the rule paths to `packages/solid-tooling/src/`.
   Their sections about releases, CI, Git hooks and the Vercel deploy describe
   the original repository.
-- `src/components/molecules/Dialog/index.tsx` and
-  `src/components/atoms/DropdownMenu/index.tsx` save their element in named ref
-  functions, as the `AGENTS.md` rule for ref callbacks with an assignment asks.
-  The original still has the inline callbacks.
 
 ### Updating the copy
 

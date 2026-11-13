@@ -11,8 +11,8 @@ An application built from boilerplate_solidjs takes code from three places.
 | The application             | Pages, UI components, message catalogs, `App`, `Document`, the `entry-*` pair, a thin middleware, one-line SEO routes, version pins and patches | Its own repository                  |
 
 The two packages ship in different forms because of how each one runs. See
-[ADR 0002](decisions/0002-compiled-tooling-package.md) and
-[ADR 0003](decisions/0003-runtime-package-as-source.md).
+[ADR 0002](ADRs/0002-compiled-tooling-package.md) and
+[ADR 0003](ADRs/0003-runtime-package-as-source.md).
 
 ## What stays in the application
 

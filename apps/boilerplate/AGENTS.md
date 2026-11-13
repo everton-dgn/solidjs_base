@@ -32,7 +32,7 @@ release. Add a tool name to select part of the graph. For example, run
 
 ## Esta cópia no monorepo
 
-- Esta pasta é uma cópia do `boilerplate_solidjs` no commit `31de7bf`, usada
+- Esta pasta é uma cópia do `boilerplate_solidjs` no commit `6145493`, usada
   para testar os pacotes do monorepo numa aplicação completa. O `README.md`
   desta pasta lista o que mudou em relação ao original.
 - As regras de lint, o formatador e o tsconfig base vêm do pacote

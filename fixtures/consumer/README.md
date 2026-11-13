@@ -2,7 +2,9 @@
 
 The test in `packages/solid-tooling/src/tarball/__tests__/tarball.test.ts`
 copies this folder to a temporary directory, installs the packed package and
-runs lint.
+runs lint. A second test does the same in a Git repository and runs the
+`commit-msg` hook of `.lefthook.yml`, which extends the hooks of the package,
+with `.commitlintrc` pointing to its commitlint config.
 
 The files in `src/` break rules on purpose: one for each plugin of the package,
 one from the Solid plugin and one type error. `clean.ts` and `vite.config.ts`

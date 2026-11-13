@@ -1,0 +1,55 @@
+# Git hooks shared by the applications. The application extends this file from
+# its .lefthook.yml and defines the package.json scripts the jobs call.
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: vp exec commitlint --edit {1}
+
+pre-commit:
+  skip:
+    - merge
+    - rebase
+  jobs:
+    - name: check
+      glob: '*.{ts,tsx,mts,cts,js,mjs,cjs,json,css,md,yml,yaml,toml,html}'
+      run: vp run check:fix {staged_files}
+      stage_fixed: true
+
+    - name: secret-scan
+      run: |
+        if ! command -v kingfisher > /dev/null 2>&1; then
+          echo "kingfisher is not installed; the secret scan was skipped."
+          echo "With Homebrew (macOS/Linux): brew install kingfisher"
+          echo "Without Homebrew (Linux/Windows): download the binary for your system and add it to PATH: https://github.com/mongodb/kingfisher/releases"
+          exit 0
+        fi
+        vp run scan:secrets --staged
+
+pre-push:
+  # Without piped, Lefthook runs the next jobs after a failure.
+  piped: true
+  jobs:
+    # check:ci restores the Paraglide output from the Vite Task cache. Ending it
+    # before the tests avoids concurrent restores.
+    - name: check-ci
+      run: vp run check:ci
+
+    - name: typecheck-node
+      run: vp run typecheck:node
+
+    # Vitest has short windows (per-test timeout and waitFor). Running it
+    # without sharing the CPU with the tooling tests avoids timeouts that are
+    # not logic failures.
+    - name: test
+      run: vp run test:ci
+
+    - name: tooling-and-dead-code
+      group:
+        parallel: true
+        jobs:
+          - name: tooling
+            run: vp run test:tooling
+
+          - name: dead-code
+            run: vp run dead-code

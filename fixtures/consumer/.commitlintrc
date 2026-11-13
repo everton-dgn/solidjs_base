@@ -1,0 +1,1 @@
+{ "extends": ["@evertondgn/solid-tooling/commitlint"] }

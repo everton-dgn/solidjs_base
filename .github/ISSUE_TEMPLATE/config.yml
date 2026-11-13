@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/everton-dgn/solidjs_base/security/advisories/new
+    about: Report it privately. Do not open a public issue.
+  - name: Problem in the application starter
+    url: https://github.com/everton-dgn/boilerplate_solidjs/issues
+    about: Pages, components or configuration of boilerplate_solidjs itself.

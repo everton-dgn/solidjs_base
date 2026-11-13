@@ -1,18 +1,32 @@
 # solidjs_base
 
-Shared code for SolidJS applications built with
-[Vite+](https://viteplus.dev/guide/). Each application created from
-[boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs) used
-to carry its own copy of the lint rules, the formatter settings and the
-TypeScript config. This repository publishes that code as npm packages, so a fix
-ships as a version update instead of a change in every application.
+[![CI](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml/badge.svg)](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling?label=%40evertondgn%2Fsolid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+The shared base of SolidJS 2 applications built with
+[Vite+](https://viteplus.dev/guide/), published as npm packages.
+
+## Why
+
+[boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs) is a
+SolidJS 2 starter with SSR, Nitro, Paraglide i18n and a Vercel deploy. An
+application created from it is a copy, and the copy carries everything that is
+not specific to it: about 15,000 lines of tooling (lint rules, config, release
+scripts) and 8,000 lines of runtime code (security headers, server errors, SEO,
+sitemap, `llms.txt`). A fix to that base has to be applied by hand in every
+copy.
+
+This repository moves the base into versioned packages. An application gets a
+fix by updating a dependency, and keeps only its pages, components, translations
+and configuration.
 
 ## Packages
 
-| Package                                               | What an application gets                                                                     | Status                                                                      |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [`@evertondgn/solid-tooling`](packages/solid-tooling) | Lint and format presets, a TypeScript base config, and lint rules for the boilerplate layout | [Published on npm](https://www.npmjs.com/package/@evertondgn/solid-tooling) |
-| Runtime package                                       | Middleware, security headers, server errors, i18n runtime and SEO handlers                   | Planned, see [ADR 0003](docs/ADRs/0003-runtime-package-as-source.md)        |
+| Package                                               | What an application gets                                                                  | Status                                                                                                                    |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| [`@evertondgn/solid-tooling`](packages/solid-tooling) | Oxlint preset with the project rules, Oxfmt settings and a TypeScript base config         | [![npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling) |
+| `@evertondgn/solid-runtime`                           | Middleware, security headers and CSP, server errors, i18n runtime, SEO, sitemap, Markdown | Planned, see [ADR 0003](docs/ADRs/0003-runtime-package-as-source.md)                                                      |
 
 ## Quick start
 
@@ -22,10 +36,9 @@ In an application built with Vite+, add the package:
 vp add -D @evertondgn/solid-tooling
 ```
 
-It needs `@inlang/paraglide-js` too, in the exact version listed in its
+It also needs `@inlang/paraglide-js`, in the exact version listed in its
 `peerDependencies`. The
-[package README](packages/solid-tooling/README.md#requirements) explains the
-requirements.
+[package README](packages/solid-tooling/README.md#requirements) explains why.
 
 Use the presets in `vite.config.ts`:
 
@@ -49,7 +62,7 @@ Extend the TypeScript base in `tsconfig.json`:
 }
 ```
 
-Then `vp check` and `vp lint` apply the preset. This is the output for two files
+`vp check` and `vp lint` now apply the preset. This is the output for two files
 of [`fixtures/consumer`](fixtures/consumer) with version 0.2.0 installed from
 npm:
 
@@ -61,6 +74,20 @@ src/helpers/export-list.ts:3:1: error project(no-export-list): Export on the dec
 The [package README](packages/solid-tooling/README.md) lists every rule, the
 entry points and how to change the preset.
 
+## Roadmap
+
+The goal is an application that keeps only its pages, UI components,
+translations, theme palette and a short `vite.config.ts`. Next steps, in order:
+
+1. A `defineSolidApp()` preset for Vite, Nitro, Vitest and Playwright, plus
+   shared configs for Knip, Stylelint, commitlint and Lefthook.
+2. The runtime package: security headers and CSP, middleware, server errors.
+3. i18n runtime and the Paraglide generator.
+4. SEO, sitemap, `robots.txt`, `llms.txt` and Markdown pages.
+5. Theme logic and the remaining primitives.
+6. Reusable workflows for the CI and the releases of applications.
+7. A `vp create` template for new applications.
+
 ## Repository layout
 
 ```text
@@ -68,25 +95,8 @@ packages/solid-tooling/   the published package
 apps/boilerplate/         copy of boilerplate_solidjs that runs on the workspace package
 fixtures/consumer/        small application that installs the packed tarball
 docs/                     guides and architecture decision records
-.github/workflows/        CI for pull requests, and the release workflow
+.github/                  CI, release workflow, issue and pull request templates
 ```
-
-## Commands
-
-Install the global Vite+ CLI. The Node and Bun versions come from the root
-`package.json`.
-
-| Command               | What it does                                                         |
-| --------------------- | -------------------------------------------------------------------- |
-| `vp install`          | Install the dependencies of the whole workspace                      |
-| `vp run build`        | Compile the packages to `dist/`                                      |
-| `vp run check`        | Check format, lint and types of the packages                         |
-| `vp run test`         | Run the rule tests                                                   |
-| `vp run test:tarball` | Install the packed package in `fixtures/consumer` and lint it        |
-| `vp run validate`     | Run all of the above, in this order; the publish job runs it as well |
-
-The application in `apps/boilerplate` has its own commands, described in the
-[development guide](docs/development.md#the-boilerplate-app).
 
 ## Documentation
 
@@ -96,6 +106,12 @@ The application in `apps/boilerplate` has its own commands, described in the
 - [Releasing](docs/releasing.md): versions, publishing and recovery when a
   publish fails.
 - [ADRs](docs/ADRs/README.md): why the repository works this way.
+
+## Contributing
+
+Issues and pull requests are welcome. Read the
+[contributing guide](CONTRIBUTING.md) before you start. Report security problems
+privately, as [SECURITY.md](SECURITY.md) explains.
 
 ## License
 

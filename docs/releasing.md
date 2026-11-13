@@ -17,6 +17,12 @@ versions from Conventional Commits. It runs only in CI, from
    the GitHub Release. The workflow then validates the workspace, packs the
    package and publishes it.
 
+The release pull request is opened with the workflow's `GITHUB_TOKEN`, so GitHub
+holds its CI runs until someone with write access selects **Approve workflows to
+run** in the pull request
+([GitHub docs](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)).
+`CI required` has to pass before the merge, as in any other pull request.
+
 The publish step uses no token. npm authenticates the workflow through OIDC
 ([trusted publishing](https://docs.npmjs.com/trusted-publishers)) and attaches
 the build provenance to the version.

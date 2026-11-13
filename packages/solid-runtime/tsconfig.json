@@ -1,0 +1,13 @@
+{
+  "extends": "../solid-tooling/tsconfig.base.json",
+  "compilerOptions": {
+    "types": [
+      "node",
+      "vite/client",
+      "vite-plus/test/globals",
+      "@solidjs/vite-plugin/virtual-modules",
+      "filesystem-routing/types"
+    ]
+  },
+  "include": ["src", "vite.config.ts"]
+}

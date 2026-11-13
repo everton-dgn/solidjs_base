@@ -2,7 +2,7 @@ import { getRequestEvent } from '@solidjs/web'
 
 import { isHtmlResponse } from '../helpers/isHtmlResponse/index.ts'
 import type { Next } from '../types.ts'
-import { CSP_DIRECTIVES, SECURITY_HEADERS } from './constants.ts'
+import { CSP_DIRECTIVES, SECURITY_HEADERS } from './constants.js'
 
 type HeaderUpdate = { response: Response; headers: Record<string, string> }
 

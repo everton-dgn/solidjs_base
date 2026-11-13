@@ -109,18 +109,19 @@ call the default export, a unit test requires it to contain failures, and the
 The responses of the containment do not go back through `securityHeaders`, so
 the containment itself writes the security headers and the
 Content-Security-Policy with the nonce of the request, read by
-[`requestNonce`](../src/middleware/securityHeaders/index.ts), which uses the
-native `event.nonce` field. A failure before `securityHeaders` can find the
-request without a nonce; the containment creates it before rendering the error
-page, so that its scripts, the plugin handler and the CSP use the same value.
-Without a request event, the text 500 goes out with `script-src 'none'`. The
-design of the CSP is in the [security headers](security.md) guide.
+[`requestNonce`](../../../packages/solid-runtime/src/middleware/securityHeaders/index.ts),
+which uses the native `event.nonce` field. A failure before `securityHeaders`
+can find the request without a nonce; the containment creates it before
+rendering the error page, so that its scripts, the plugin handler and the CSP
+use the same value. Without a request event, the text 500 goes out with
+`script-src 'none'`. The design of the CSP is in the
+[security headers](security.md) guide.
 
 In a navigation, the 500 shows the error page of the app. A navigation is a
 `GET` or `HEAD` on a page path whose `Accept` allows HTML or Markdown, wildcards
 and a missing header included, according to `isPageRequest` in
-[`requestClassification`](../src/middleware/requestClassification/index.ts); a
-client that asks only for Markdown also gets the error page in HTML. This
+[`requestClassification`](../../../packages/solid-runtime/src/middleware/requestClassification/index.ts);
+a client that asks only for Markdown also gets the error page in HTML. This
 criterion is broader than the one of the plugin development server, which only
 considers HTML, `*/*` or a missing `accept`. `containFailures` writes a
 `createPublicError()` in `locals.serverFailure` and calls the page render. The

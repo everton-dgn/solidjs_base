@@ -34,13 +34,6 @@ export default defineKnipConfig({
   // server-only é um módulo virtual do @solidjs/vite-plugin, sem pacote no npm.
   // Nos testes node, o preset do @evertondgn/solid-tooling o substitui.
   ignoreDependencies: ['server-only'],
-  // A regressão resolve srvx pela árvore do Nitro para testar o adapter real,
-  // sem fixar uma segunda cópia como dependência direta do projeto.
-  ignoreIssues: {
-    'src/middleware/securityHeaders/__tests__/securityHeaders.node.test.ts': [
-      'unlisted'
-    ]
-  },
   // No monorepo, o catálogo de versões fica no package.json da raiz, que o Knip
   // não lê ao rodar nesta pasta. O bun install já recusa referência a uma
   // entrada que não existe no catálogo.

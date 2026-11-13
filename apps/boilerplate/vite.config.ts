@@ -1,6 +1,5 @@
+import { SECURITY_HEADERS } from '@evertondgn/solid-runtime/middleware/security-headers/constants'
 import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
-
-import { SECURITY_HEADERS } from './src/middleware/securityHeaders/constants.ts'
 
 export default defineSolidApp({
   root: import.meta.dirname,
@@ -30,7 +29,8 @@ export default defineSolidApp({
   // ficam na raiz, fora da pasta da aplicação.
   workspace: {
     dependsOn: ['@evertondgn/solid-tooling#build'],
-    inputs: ['packages/solid-tooling/dist/**']
+    // The runtime package is source code outside the application folder.
+    inputs: ['packages/solid-tooling/dist/**', 'packages/solid-runtime/src/**']
   },
   // O i18n e a publicação ainda ficam na aplicação. Uma chamada só entrega o
   // plugin e o módulo do Nitro com o mesmo buildId.

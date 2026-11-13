@@ -1,7 +1,7 @@
+import { isPagePath } from '@evertondgn/solid-runtime/middleware/request-classification'
+
 import { isMarkdownRoute, markdownPath } from '@/helpers/markdownRoute/index.ts'
 import { Router } from '@/router.ts'
-
-import { isPagePath } from '../../../requestClassification/index.ts'
 
 type RouteRequest = { request: Request; url: URL; isPublished: boolean }
 

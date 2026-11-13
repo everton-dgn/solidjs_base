@@ -1,3 +1,7 @@
+// WHY: JavaScript with a declaration file, because the application's
+// vite.config.ts loads these values through Node, which refuses TypeScript
+// inside node_modules.
+
 // Cabeçalhos de segurança de toda resposta que passa pelo middleware. O
 // Cross-Origin-Embedder-Policy exige que recursos de outra origem respondam
 // com CORP ou CORS; os recursos do app são da mesma origem.
@@ -10,7 +14,7 @@ export const SECURITY_HEADERS = {
   'cross-origin-opener-policy': 'same-origin',
   'cross-origin-embedder-policy': 'require-corp',
   'cross-origin-resource-policy': 'same-origin'
-} as const
+}
 
 // Diretivas fixas da Content-Security-Policy. O script-src depende do nonce da
 // requisição e é montado em applySecurityHeaders. No build os estilos chegam só
@@ -23,4 +27,4 @@ export const CSP_DIRECTIVES = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'"
-] as const
+]

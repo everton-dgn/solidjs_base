@@ -1,8 +1,7 @@
-import { HTTP_METHOD_NOT_ALLOWED } from '@/constants/http.ts'
-
 import { apiRouteMethods, isPagePath } from '../requestClassification/index.ts'
 import type { Next } from '../types.ts'
 
+const HTTP_METHOD_NOT_ALLOWED = 405
 const PAGE_METHODS = ['GET', 'HEAD']
 
 function methodNotAllowed(allowed: string[]): Promise<Response> {

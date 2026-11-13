@@ -92,10 +92,11 @@ If the trusted publisher expires, delete it and create another one.
 ## When the release pull request has a conflict
 
 A pull request merged after release-please opened the release pull request can
-touch the lines it changes. In the package `package.json`, the `description` sits
-next to the `version`, so a new description is enough. release-please rewrites
-the release pull request only when the release it computes changes, so the
-conflict stays: the release job logs that the pull request "remained the same".
+touch the lines it changes. In the package `package.json`, the `description`
+sits next to the `version`, so a new description is enough. release-please
+rewrites the release pull request only when the release it computes changes, so
+the conflict stays: the release job logs that the pull request "remained the
+same".
 
 Merge `main` into the release branch, keeping the version and changelog of the
 release and the changes from `main`. Do not rebase the branch.

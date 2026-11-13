@@ -70,8 +70,8 @@ files.
 records the choices.
 
 `vite-plus` and `@inlang/paraglide-js` are peer dependencies pinned to the exact
-versions the package is tested with. An application that upgrades either one
-needs a package version tested with the new version.
+versions the package is tested with; Paraglide is optional. An application that
+upgrades either one needs a package version tested with the new version.
 
 `./vite` builds the whole `vite.config.ts` of an application and loads
 `@solidjs/vite-plugin`, `nitro`, `filesystem-routing` and `unplugin-icons` with
@@ -81,7 +81,11 @@ them as direct dependencies: Bun applies `overrides` and patches only from the
 root `package.json` of the application. Code that is still in the application,
 such as the i18n plugin and the publication artifacts, enters through the
 `extend` option. [ADR 0012](ADRs/0012-application-config-preset.md) records the
-options and what stays out of them.
+options and what stays out of them. Each feature is turned on only when the
+application uses it: `ssr: false` builds a client-only application without
+Nitro, the rules of the published files need `publication: true`, and the
+Paraglide task, test setup and lint plugin follow the presence of Paraglide
+([ADR 0016](ADRs/0016-optional-application-features.md)).
 
 The rules read import specifiers and file paths as text, and they expect the
 boilerplate layout: `src/` with `components/atoms`, `molecules` and `organisms`,

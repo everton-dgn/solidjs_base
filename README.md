@@ -36,8 +36,8 @@ In an application built with Vite+, add the package:
 vp add -D @evertondgn/solid-tooling
 ```
 
-It also needs `@inlang/paraglide-js`, in the exact version listed in its
-`peerDependencies`. The
+An application with translations also installs `@inlang/paraglide-js`, in the
+exact version listed in its `peerDependencies`. The
 [package README](packages/solid-tooling/README.md#requirements) explains why.
 
 Use the presets in `vite.config.ts`:

@@ -168,7 +168,15 @@ async function createRoot(context: TestContext): Promise<string> {
 }
 
 async function readSummary(scenario: Scenario): Promise<Summary> {
-  const { CI: _ci, SOLID_APP_TEST_PROBE: _probe, ...inherited } = env
+  // loadEnv gives the process variables priority over .env.
+  const {
+    CI: _ci,
+    HOST: _host,
+    PORT: _port,
+    SOLID_APP_TEST_PROBE: _probe,
+    VP_RESOLVING_CONFIG_METADATA: _metadata,
+    ...inherited
+  } = env
   const { stdout } = await exec(
     execPath,
     ['--input-type=module', '--eval', childScript(scenario)],

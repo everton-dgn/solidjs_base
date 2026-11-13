@@ -50,7 +50,8 @@ from there, so all responses carry the same values. `requestNonce` comes from
 the package. The options are `headers` and `cspDirectives`; each one replaces
 the whole default set, so spread the defaults to change one value. The
 boilerplate copy keeps the values in a data-only module, which `vite.config.ts`
-also reads:
+also reads. In this example, the application changes one header and adds one
+directive; the copy itself keeps the defaults:
 
 ```ts
 // src/middleware/securityHeaders/constants.ts

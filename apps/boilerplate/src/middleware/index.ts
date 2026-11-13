@@ -1,12 +1,12 @@
 import { apiRoutes } from '@evertondgn/solid-runtime/middleware/api-routes'
 import { restrictPageMethods } from '@evertondgn/solid-runtime/middleware/restrict-page-methods'
-import { securityHeaders } from '@evertondgn/solid-runtime/middleware/security-headers'
 import type { Middleware } from '@evertondgn/solid-runtime/middleware/types'
 import type { StartMiddleware } from '@solidjs/vite-plugin'
 
 import { containFailures } from './containFailures/index.ts'
 import { localizeRequest } from './localizeRequest/index.ts'
 import { markdownContent } from './markdownContent/index.ts'
+import { securityHeaders } from './securityHeaders/index.ts'
 
 // API recebe o nonce e os cabeçalhos antes da negociação das páginas. A
 // restrição de métodos vem depois da API, que pode tratar POST numa página.

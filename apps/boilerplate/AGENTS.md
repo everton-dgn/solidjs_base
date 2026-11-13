@@ -508,10 +508,12 @@ release. Add a tool name to select part of the graph. For example, run
 
 - Before changing headers, CSP, nonce or the render entries, read
   [docs/security.md](docs/security.md). The headers come from the middleware,
-  with the values in
-  `packages/solid-runtime/src/middleware/securityHeaders/constants.js`; do not
-  move the CSP or the other headers of the function responses back to
-  `vercel.json`.
+  with the values in `src/middleware/securityHeaders/constants.ts`, which
+  spreads the defaults of `@evertondgn/solid-runtime`; change a value there.
+  `src/middleware/securityHeaders/index.ts` holds the only
+  `createSecurityHeaders` call, and every step that writes a response imports
+  `securityHeaders` or `applySecurityHeaders` from it. Do not move the CSP or
+  the other headers of the function responses back to `vercel.json`.
   The static files do not go through the function: the Nitro `routeRules` that
   `defineSolidApp` builds write `Strict-Transport-Security`,
   `X-Content-Type-Options` and `Cross-Origin-Resource-Policy` into them, read

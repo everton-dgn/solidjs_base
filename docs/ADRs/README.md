@@ -22,7 +22,8 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0015](0015-commitlint-and-lefthook-configs-in-the-tooling-package.md) | The commitlint config and the Git hooks ship in the tooling package    | Accepted                              |
 | [0016](0016-optional-application-features.md)                          | The application presets turn on only the features the application uses | Accepted                              |
 | [0017](0017-main-reuses-the-pull-request-run.md)                       | A push to main reuses the pull request run that checked the same tree  | Accepted                              |
-| [0018](0018-runtime-package-middleware.md)                             | The runtime package starts with the middleware steps                   | Accepted                              |
+| [0018](0018-runtime-package-middleware.md)                             | The runtime package starts with the middleware steps                   | Accepted, amended by 0019             |
+| [0019](0019-runtime-security-headers-options.md)                       | The runtime package takes the security header values as options        | Accepted                              |
 
 ## Adding a record
 

@@ -2,13 +2,13 @@ import {
   isPagePath,
   isServerFunctionPath
 } from '@evertondgn/solid-runtime/middleware/request-classification'
-import { applySecurityHeaders } from '@evertondgn/solid-runtime/middleware/security-headers'
 import type { Next } from '@evertondgn/solid-runtime/middleware/types'
 import { shouldRedirect } from '@paraglide/runtime.js'
 import { paraglideMiddleware } from '@paraglide/server.js'
 import { getRequestEvent } from '@solidjs/web'
 
 import { HTTP_TEMPORARY_REDIRECT } from '@/constants/http.ts'
+import { applySecurityHeaders } from '@/middleware/securityHeaders/index.ts'
 
 import { persistLocale } from './persistLocale/index.ts'
 

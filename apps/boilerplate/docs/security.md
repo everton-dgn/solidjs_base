@@ -12,9 +12,16 @@ chain `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`,
 `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`,
 `Cross-Origin-Embedder-Policy`, `Cross-Origin-Resource-Policy` and the
 `Content-Security-Policy`. The values are in
-[`securityHeaders/constants.js`](../../../packages/solid-runtime/src/middleware/securityHeaders/constants.js).
-The failure containment writes the same headers on the 500, on the error page
-and on the thrown control.
+[`src/middleware/securityHeaders/constants.ts`](../src/middleware/securityHeaders/constants.ts),
+which spreads the defaults of the runtime package
+([`constants.js`](../../../packages/solid-runtime/src/middleware/securityHeaders/constants.js));
+change a header or a CSP directive there.
+[`src/middleware/securityHeaders/index.ts`](../src/middleware/securityHeaders/index.ts)
+passes them to `createSecurityHeaders` once, and the chain, the failure
+containment, the locale step and the uncached Markdown responses use that
+instance. `createSecurityHeaders` refuses a `script-src` directive, a repeated
+directive and a `content-security-policy` header. The failure containment writes
+the same headers on the 500, on the error page and on the thrown control.
 
 The CSP uses `script-src 'nonce-<value>' 'strict-dynamic'`, without
 `'unsafe-inline'` for scripts. The other directives are `default-src 'self'`,
@@ -56,7 +63,7 @@ to HTTP with a warning that the user can ignore; the list does not let it
 through. Domains under TLDs that are entirely on the list, such as `.dev` and
 `.app`, already have this protection. To join the list, confirm that every
 subdomain serves HTTPS, add `preload` to the value in
-[`securityHeaders/constants.js`](../../../packages/solid-runtime/src/middleware/securityHeaders/constants.js)
+[`src/middleware/securityHeaders/constants.ts`](../src/middleware/securityHeaders/constants.ts)
 and submit the domain on hstspreload.org.
 
 Static files do not go through the middleware, so the `routeRules` write the
@@ -129,23 +136,24 @@ changing the HTML of the application.
   the CDN without going through the function. The Nitro `routeRules` that
   `defineSolidApp` from `@evertondgn/solid-tooling/vite` builds write on them
   only `Strict-Transport-Security`, `X-Content-Type-Options` and
-  `Cross-Origin-Resource-Policy`, with the values of `SECURITY_HEADERS`, passed
-  through the `securityHeaders` option of `vite.config.ts`. The paths are the
-  fixed ones of the preset plus the `publicAssets` and the `staticPaths` of the
-  application. The Vercel preset turns those rules into routes of
-  `.vercel/output/config.json`, and the Nitro runtime applies the same values to
-  the function responses on those paths. `/assets/` and `/images/` are
-  `publicAssets` without fallthrough: they get an immutable cache, and a missing
-  file gets the `no-store` 404 of Nitro. `vercel.json` keeps only the
-  `Content-Type` of the `.md` files: in a route rule, h3 would also overwrite
-  the error responses of the function with it. The CSP and the frame policies
-  only take effect on the responses that go through the middleware. For the same
-  reason, a file that must not be public has to leave `.vercel/output/static`:
-  the middleware cannot block it. The Vite manifest and the server function
-  manifest list source code paths. The Solid plugin deletes the first one, which
-  it turns on itself, and writes the second one in the SSR output, so no
-  `.vite/` reaches the static output; `BuildOutput` checks that it is missing.
-  Turning on `build.manifest` outside the `e2e` mode would publish the manifest.
+  `Cross-Origin-Resource-Policy`, with the values of `SECURITY_HEADERS` from the
+  same `constants.ts`, passed through the `securityHeaders` option of
+  `vite.config.ts`. The paths are the fixed ones of the preset plus the
+  `publicAssets` and the `staticPaths` of the application. The Vercel preset
+  turns those rules into routes of `.vercel/output/config.json`, and the Nitro
+  runtime applies the same values to the function responses on those paths.
+  `/assets/` and `/images/` are `publicAssets` without fallthrough: they get an
+  immutable cache, and a missing file gets the `no-store` 404 of Nitro.
+  `vercel.json` keeps only the `Content-Type` of the `.md` files: in a route
+  rule, h3 would also overwrite the error responses of the function with it. The
+  CSP and the frame policies only take effect on the responses that go through
+  the middleware. For the same reason, a file that must not be public has to
+  leave `.vercel/output/static`: the middleware cannot block it. The Vite
+  manifest and the server function manifest list source code paths. The Solid
+  plugin deletes the first one, which it turns on itself, and writes the second
+  one in the SSR output, so no `.vite/` reaches the static output; `BuildOutput`
+  checks that it is missing. Turning on `build.manifest` outside the `e2e` mode
+  would publish the manifest.
 - Nitro compiles every `routeRules` entry, the ones the application adds
   included, with the h3 preMerge, with no option to turn it off
   ([nitrojs/nitro#5048](https://github.com/nitrojs/nitro/issues/5048)). Patterns

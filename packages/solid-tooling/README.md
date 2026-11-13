@@ -1,5 +1,9 @@
 # @evertondgn/solid-tooling
 
+[![Latest solid-tooling version on npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling)
+[![CI workflow status](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml/badge.svg)](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml)
+[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)
+
 Stop maintaining the same tooling in every Solid app.
 
 Solid Base supplies lint rules, application config, test setups and Git hooks
@@ -15,12 +19,6 @@ Built for applications that follow the
 layout. SolidJS 2 is still a release candidate, and the package is tested with
 it. Start with lint and formatting, and adopt the full application config when
 you are ready.
-
-[![Latest solid-tooling version on npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling)
-[![CI workflow status](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml/badge.svg)](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml)
-[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)
-
-![Three application windows connected to one shared foundation](https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero.webp)
 
 ## Requirements
 
@@ -77,8 +75,6 @@ src/helpers/export-list.ts:3:1: error project(no-export-list): Export on the dec
 ```
 
 ## Why
-
-![Separate configuration copies drift and need repeated repairs, while one shared package supplies all applications](https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/drift.webp)
 
 Applications copied from a starter carry its tooling with them, and every fix to
 the base has to be repeated by hand in each copy. With this package, the fix
@@ -153,8 +149,6 @@ Package changes run against the complete boilerplate in CI, with more than 1,000
 Vitest tests and more than 300 end-to-end tests. Before each release, the
 tarball test installs the packed package in a separate application outside the
 workspace and checks its exports and lint rules.
-
-![A package moves through installation in a separate application, a test gate and release](https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified.webp)
 
 The workflow publishes to npm with signed provenance through trusted publishing,
 without a stored npm token. See the

@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "customConditions": ["solid"],
     "types": [
       "node",
       "vite/client",

@@ -94,6 +94,15 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
   `tooling/testing/` and the server log teardown come from the package, with
   their tests. `tsconfig.json` extends `tsconfig.app.json` and keeps only the
   `paths`.
+- `vite.config.ts` calls `defineSolidApp` from `./vite`: the plugins, the
+  headers of the static files, the build, CSS, server and preview blocks and the
+  `vp run` tasks come from the package. The i18n plugin and the publication
+  artifacts still come from `tooling/`, through the `extend` option. The
+  `workspace` option points `bun.lock`, `bunfig.toml` and the package build to
+  the monorepo root; a copy outside the workspace leaves it out.
+- `tooling/knip.ts` lists `tooling/i18n/generate.ts` and `tooling/css/check.ts`
+  as entries. Knip reads task commands only from a `run.tasks` block written in
+  `vite.config.ts`, and the tasks now come from the package.
 - `tooling/knip.ts` lists `server-only` in `ignoreDependencies`: the original
   resolved it through a test alias to `tooling/testing/server-only.ts`.
 - `tooling/css/__tests__/cssPolicy.test.ts` lost the cases for the CSS filename

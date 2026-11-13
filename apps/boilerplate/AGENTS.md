@@ -91,8 +91,9 @@ release. Add a tool name to select part of the graph. For example, run
   `gh` e módulos `node:`. O pre-push roda o Knip (`vp run dead-code`) em
   paralelo com `test:tooling` e `test:release`; no CI, o Knip roda no job
   `Quality`.
-- As tarefas do `vite.config.ts` que executam arquivos de `tooling/`, como o
-  `i18n:generate` e o lint de CSS, usam `bun tooling/<arquivo>.ts`. O `vpx`
+- As tarefas do `vp run` vêm do `defineSolidApp` de
+  `@evertondgn/solid-tooling/vite`. As que executam arquivos de `tooling/`, como
+  o `i18n:generate` e o lint de CSS, usam `bun tooling/<arquivo>.ts`. O `vpx`
   recomendado no bloco gerenciado acima vale para scripts avulsos, fora desses
   fluxos.
 - Para validar mudanças, use `vp run check:ci` e `vp run test`, não os
@@ -501,14 +502,15 @@ release. Add a tool name to select part of the graph. For example, run
   [docs/security.md](docs/security.md). Os cabeçalhos saem do middleware, com
   os valores em `src/middleware/securityHeaders/constants.ts`; não devolva a
   CSP nem os demais cabeçalhos das respostas da função ao `vercel.json`. Os
-  estáticos não passam pela função: as `routeRules` do Nitro no
-  `vite.config.ts` gravam neles `Strict-Transport-Security`,
+  estáticos não passam pela função: as `routeRules` do Nitro que o
+  `defineSolidApp` monta gravam neles `Strict-Transport-Security`,
   `X-Content-Type-Options` e `Cross-Origin-Resource-Policy`, lidos de
-  `SECURITY_HEADERS`. Ao publicar um
-  novo tipo de estático, acrescente o caminho a `STATIC_FILE_PATHS`, sem
-  sobreposição parcial com os outros padrões nem com as demais `routeRules`.
-  Os `.md` entram por idioma; ao mudar o `urlPatterns` do Paraglide, revise
-  esses padrões. O
+  `SECURITY_HEADERS` pela opção `securityHeaders` do `vite.config.ts`. Ao
+  publicar um novo tipo de estático, acrescente o caminho em `staticPaths` (ou
+  uma pasta em `publicAssets`, com `baseURL`), sem sobreposição parcial com os
+  outros padrões nem com as demais `routeRules`; o preset recusa caminho dentro
+  da pasta de um idioma. Os `.md` entram por idioma; ao mudar o `urlPatterns`
+  do Paraglide, revise esses padrões. O
   `vercel.json` guarda só o `Content-Type` dos `.md`, que numa route rule
   também sobrescreveria os erros da função
   ([limites conhecidos](docs/security.md#limites-conhecidos)).

@@ -16,6 +16,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0009](0009-boilerplate-app-in-the-monorepo.md)     | A copy of the boilerplate runs in the monorepo               | Accepted                  |
 | [0010](0010-ci-runs-what-a-change-affects.md)       | The CI runs only the jobs a change affects                   | Accepted                  |
 | [0011](0011-test-configs-in-the-tooling-package.md) | Test configs ship in the tooling package                     | Accepted                  |
+| [0012](0012-application-config-preset.md)           | A preset builds the application Vite config                  | Accepted                  |
 
 ## Adding a record
 

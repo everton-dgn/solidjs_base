@@ -45,6 +45,7 @@
   },
   "scripts": {
     "check": "vp lint",
+    "dead-code": "knip-bun && knip-bun --strict",
     "test": "vp test run --coverage"
   },
   "peerDependencies": {
@@ -66,6 +67,7 @@
     "@types/node": "24.19.2",
     "@vitest/coverage-v8": "catalog:",
     "filesystem-routing": "0.5.0",
+    "knip": "6.45.1",
     "nitro": "3.0.261103-rc",
     "solid-js": "2.0.0-rc.21",
     "typescript": "7.0.2",

@@ -21,7 +21,9 @@ The release pull request is opened with the workflow's `GITHUB_TOKEN`, so GitHub
 holds its CI runs until someone with write access selects **Approve workflows to
 run** in the pull request
 ([GitHub docs](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)).
-`CI required` has to pass before the merge, as in any other pull request.
+`CI required` has to pass before the merge, as in any other pull request. A
+commit pushed to the release branch from a person's account starts the CI at
+once, without the approval.
 
 The publish step uses no token. npm authenticates the workflow through OIDC
 ([trusted publishing](https://docs.npmjs.com/trusted-publishers)) and attaches
@@ -86,6 +88,32 @@ only when a release is ready:
 3. Merge the release pull request within two days.
 
 If the trusted publisher expires, delete it and create another one.
+
+## When the release pull request has a conflict
+
+A pull request merged after release-please opened the release pull request can
+touch the lines it changes. In the package `package.json`, the `description` sits
+next to the `version`, so a new description is enough. release-please rewrites
+the release pull request only when the release it computes changes, so the
+conflict stays: the release job logs that the pull request "remained the same".
+
+Merge `main` into the release branch, keeping the version and changelog of the
+release and the changes from `main`. Do not rebase the branch.
+
+```bash
+git fetch origin
+git switch --detach origin/release-please--branches--main--components--solid-tooling
+git merge origin/main
+# Resolve the conflict, then: git add <file> && git commit --no-edit
+git diff --stat origin/main HEAD
+git push origin HEAD:release-please--branches--main--components--solid-tooling
+```
+
+The `git diff` must list only `.release-please-manifest.json`, the package
+`CHANGELOG.md` and the package `package.json`. The push comes from your account,
+so the CI of the release pull request starts without **Approve workflows to
+run**. Merge the release pull request after `CI required` passes, with the
+command in [Known limits](#known-limits).
 
 ## When the publish job fails
 

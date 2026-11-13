@@ -22,10 +22,10 @@ validated by its current suites, or a new repository.
 
 ## Decision
 
-The packages live in solidjs_base, a Vite+ monorepo next to boilerplate_solidjs.
-The boilerplate and the applications created from it install them from npm. The
-first package holds the code with no runtime risk: lint, formatter and
-TypeScript config.
+The packages live in Solid Base (the `solidjs_base` repository), a Vite+
+monorepo next to boilerplate_solidjs. The boilerplate and the applications
+created from it install them from npm. The first package holds the code with no
+runtime risk: lint, formatter and TypeScript config.
 
 A framework of our own was ruled out for now: with the whole stack in
 pre-release, every Solid 2 change would mean maintaining one more layer.

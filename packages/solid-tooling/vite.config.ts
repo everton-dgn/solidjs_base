@@ -27,6 +27,8 @@ export default defineConfig({
       'backend-plugin': 'src/backendPolicy/plugin.ts',
       'architecture-plugin': 'src/architecturePolicy/index.ts',
       'css-filename': 'src/css/css-filename.ts',
+      knip: 'src/knip/index.ts',
+      stylelint: 'src/stylelint/index.ts',
       'solid-plugin': 'src/solid-plugin.ts',
       vitest: 'src/vitest/index.ts',
       'vitest-setup/browser': 'src/vitest/setup/browser.ts',

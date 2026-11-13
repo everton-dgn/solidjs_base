@@ -54,11 +54,20 @@ import { SECURITY_HEADERS } from '@evertondgn/solid-runtime/middleware/security-
 - The node project of `solidTest`, from `@evertondgn/solid-tooling/vitest`,
   resolves the package through the same condition, and the `tsconfig.app.json`
   of the tooling package sets it for TypeScript.
-- `@solidjs/web`, `@solidjs/vite-plugin` and `filesystem-routing` are peer
-  dependencies, pinned to the versions the package is tested with.
+- `@solidjs/web` is a peer dependency, pinned to the version the package is
+  tested with. `@solidjs/vite-plugin` and `filesystem-routing` are optional
+  peers, pinned the same way: the entries that read the routes or the server
+  functions endpoint need them.
+
+## Limits
+
+The header values and the CSP directives are fixed in the package. An
+application that needs other values keeps its own security step for now; the
+package will take them as options before its first release.
 
 ## Tests
 
 The tests run in the Vitest of the package, with stand-ins for `server-only` and
-the virtual modules of the Solid and routing plugins. `vp run test` at the root
-runs them with the other packages; `vp test run` runs them from this folder.
+the virtual modules of the Solid and routing plugins, and with the coverage
+thresholds of an application. `vp run test` at the root runs them with the other
+packages; `vp test run --coverage` runs them from this folder.

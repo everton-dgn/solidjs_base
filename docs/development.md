@@ -47,16 +47,20 @@ publish job runs `vp run validate` and must not run the application suites.
 
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so
 `vp run test` builds the package first. The runtime tests run in the Vitest of
-`packages/solid-runtime` (`vp test run` in that folder), with the stand-ins that
-`solidTest` serves to an application. The runtime package has no build and no
-tarball test, so the filtered `build` and `test:tarball` skip it.
+`packages/solid-runtime` (`vp test run --coverage` in that folder), with the
+stand-ins and the coverage thresholds that `solidTest` gives to an application.
+The runtime package has no build and no tarball test, so the filtered `build`
+and `test:tarball` skip it.
 
 The root `vite.config.ts` lints the package sources with the same preset,
 loading the plugins from `src/` instead of `dist/`, so a change to a rule is
-checked on the next run without a build. The tooling sources get the exceptions
-the preset gives to an application's `tooling/` folder. The runtime sources are
-application code: they get only the test exceptions of an application's `src/`,
-and the type check reads `packages/solid-runtime/tsconfig.json`.
+checked on the next run without a build. Each package takes the overrides the
+preset writes for the folder it stands for. The tooling sources get the ones of
+an application's `tooling/` folder. The runtime sources are application code and
+get the ones of `src/`: the backend policy and the test exceptions. The
+architecture rule reads paths under the `src/` of the folder where lint runs, so
+it does not reach the packages. The type check of the runtime reads
+`packages/solid-runtime/tsconfig.json`.
 
 ## The boilerplate app
 

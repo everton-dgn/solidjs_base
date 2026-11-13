@@ -52,6 +52,10 @@ from a package the application installs:
 | `@solidjs/vite-plugin/boundary-modules` | `@solidjs/vite-plugin`      |
 | `@solidjs/vite-plugin/virtual-modules`  | `@solidjs/vite-plugin`      |
 
+It also sets `customConditions` to `solid`, so TypeScript reads the files of a
+package that exports its source under that condition, such as
+`@evertondgn/solid-runtime`.
+
 The application still declares its `paths`:
 
 ```json

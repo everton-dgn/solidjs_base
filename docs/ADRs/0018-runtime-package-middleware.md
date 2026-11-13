@@ -45,11 +45,19 @@ installed by tarball, moved the middleware steps to the package and measured:
   steps, the failure containment and the chain that joins the steps stay in the
   application. The application picks the steps, which keeps translations and
   Markdown optional.
-- The package tests run in its own Vitest (`vp test run`), with the stand-ins
-  for `server-only` and the virtual modules that `solidTest` serves to an
-  application. Its `test` script puts them in `vp run test` and
-  `vp run validate` at the root. `nitro` is a development dependency, because a
-  regression test loads the `srvx` adapter through it.
+- The package tests run in its own Vitest (`vp test run --coverage`), with the
+  stand-ins for `server-only` and the virtual modules, and the coverage
+  thresholds, that `solidTest` gives to an application. Its `test` script puts
+  them in `vp run test` and `vp run validate` at the root. `nitro` is a
+  development dependency, because a regression test loads the `srvx` adapter
+  through it.
+- `@solidjs/web` is a peer dependency. `@solidjs/vite-plugin` and
+  `filesystem-routing` are optional peers, because only the entries that read
+  the routes and the server functions endpoint need them
+  ([ADR 0016](0016-optional-application-features.md)).
+- The root lint gives the runtime sources the overrides the preset writes for
+  the `src/` of an application, mapped to `packages/solid-runtime/src/`: the
+  backend policy and the test exceptions.
 - `solidTest` takes a `sourcePackages` option, `['@evertondgn/solid-runtime']`
   by default. A plugin of the node project resolves the subpaths of those
   packages through their `solid` condition, to the real path of the file,
@@ -69,16 +77,16 @@ installed by tarball, moved the middleware steps to the package and measured:
 - The probe measured `false`, which dropped the one-line client entry, and a
   list with that entry, which kept it. The empty list was not measured with an
   entry; when the client entry moves to the package, it enters the list.
-- The root lint gives the runtime sources the test exceptions of an
-  application's `src/`, not the Node and `node:test` exceptions of the tooling
-  sources. The moved files lost three checks they had in the application: the
-  architecture and backend rules match paths under `src/` of the folder where
-  lint runs, so they do not reach `packages/solid-runtime/src/` from the root;
-  the package Vitest has no coverage thresholds; and Knip does not run on the
-  package.
+- The moved files lost two checks they had in the application. The architecture
+  rule reads paths under the `src/` of the folder where lint runs, so it does
+  not reach `packages/solid-runtime/src/` from the root. Knip does not run on
+  the package.
+- The header values and the CSP directives are fixed in the package. An
+  application that needs other values keeps its own security step. The package
+  has to take them as options before its first publish.
 - `node --test` cannot run the package tests: they use the Vitest globals,
   `vi.mock` of virtual modules and `vi.hoisted`.
-- The Vitest config of the package repeats the stand-ins of `solidTest`. The
-  tooling README does not document the `sourcePackages` option yet.
+- The Vitest config of the package repeats the stand-ins and the coverage
+  settings of `solidTest`.
 - Still in the application: the render integrity, `infra/server`, the SSR
   entries, i18n, SEO and the theme.

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.3.0...solid-tooling@0.4.0) (2026-11-13)
+
+
+### Features
+
+* **tooling:** add a defineSolidApp preset for Vite, Nitro and the vp run tasks ([42efa5c](https://github.com/everton-dgn/solidjs_base/commit/42efa5c04048e956f9901cab5d6b36db46647d68))
+* **tooling:** add Knip and Stylelint config factories ([80f4016](https://github.com/everton-dgn/solidjs_base/commit/80f4016673967320465b7e8dedf0bad7c7e68885))
+
 ## [0.3.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.2.0...solid-tooling@0.3.0) (2026-11-13)
 
 

@@ -2,19 +2,14 @@ import path from 'node:path'
 import { env } from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-import type { TestUserConfig, ViteUserConfig } from 'vite-plus'
+import type { Plugin, TestUserConfig, ViteUserConfig } from 'vite-plus'
 import { playwright } from 'vite-plus/test/browser-playwright'
 
 type SolidTestOptions = {
   root: string
-  plugins: ViteUserConfig['plugins']
-}
-
-type ModuleStubPlugin = {
-  name: string
-  enforce: 'pre'
-  resolveId: (id: string) => string | undefined
-  load: (id: string) => string | undefined
+  // WHY: a factory, because each project starts its own Vite server and a
+  // plugin instance keeps the state of the server that resolved it last.
+  plugins: () => ViteUserConfig['plugins']
 }
 
 const CI_WORKERS = 2
@@ -23,11 +18,14 @@ const STUB_PREFIX = '\0solid-tooling-stub:'
 // build, which the node project does not load. A plugin serves them because Knip
 // also applies resolve.alias to production code, where a path inside this
 // package would count as a dependency of the application.
-const NODE_STUBS: Record<string, string> = {
-  'server-only': 'export default undefined',
-  'virtual:file-routes': 'export const pageRoutes = []\nexport default []',
-  'virtual:solid-server-function-handler': "export const endpoint = '/_server'"
-}
+const NODE_STUBS = new Map([
+  ['server-only', 'export default undefined'],
+  ['virtual:file-routes', 'export const pageRoutes = []\nexport default []'],
+  [
+    'virtual:solid-server-function-handler',
+    "export const endpoint = '/_server'"
+  ]
+])
 // Vitest writes test.env into process.env, where an absent value would become
 // the string "undefined", so only the variables that exist are passed on.
 const TEST_ENV_KEYS = ['BASE_URL_TEST', 'HOST', 'PORT']
@@ -36,14 +34,14 @@ function packageFile(name: string): string {
   return fileURLToPath(new URL(name, import.meta.url))
 }
 
-function nodeStubs(): ModuleStubPlugin {
+function nodeStubs(): Plugin {
   return {
     name: 'solid-tooling:node-stubs',
     enforce: 'pre',
-    resolveId: id => (id in NODE_STUBS ? `${STUB_PREFIX}${id}` : undefined),
+    resolveId: id => (NODE_STUBS.has(id) ? `${STUB_PREFIX}${id}` : undefined),
     load: id =>
       id.startsWith(STUB_PREFIX)
-        ? NODE_STUBS[id.slice(STUB_PREFIX.length)]
+        ? NODE_STUBS.get(id.slice(STUB_PREFIX.length))
         : undefined
   }
 }
@@ -99,7 +97,7 @@ export function solidTest({ root, plugins }: SolidTestOptions): TestUserConfig {
         }
       },
       {
-        plugins,
+        plugins: plugins(),
         test: {
           name: { label: 'dom', color: 'magenta' },
           environment: 'happy-dom',
@@ -108,7 +106,7 @@ export function solidTest({ root, plugins }: SolidTestOptions): TestUserConfig {
         }
       },
       {
-        plugins,
+        plugins: plugins(),
         // WHY: the setup file lives in node_modules, where the tsconfig paths
         // of the application do not apply.
         resolve: {

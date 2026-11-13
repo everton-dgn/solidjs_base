@@ -150,14 +150,13 @@ function buildServers({
   const build = mode.shouldBuild
     ? `vp run build --mode ${buildMode} && `
     : PREBUILT_GUARD
-  const server = {
-    cwd: root,
-    reuseExistingServer: false,
-    timeout: STARTUP_TIMEOUT
-  }
+  const shared = { cwd: root, reuseExistingServer: false }
+  // The fixture servers start without a build, within Playwright's default
+  // timeout; only the preview waits for the build.
+  const server = { ...shared, timeout: STARTUP_TIMEOUT }
   const fixtures = mode.isProduction
     ? []
-    : fixtureServers.map(fixture => ({ ...fixture, ...server }))
+    : fixtureServers.map(fixture => ({ ...fixture, ...shared }))
   const { hostname, port } = new URL(baseUrl)
   const secondary = secondaryUrl(baseUrl)
   return [

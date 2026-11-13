@@ -16,14 +16,16 @@ const exec = promisify(execFile)
 // a child process reports only the fields the tests check.
 const SUMMARY_SCRIPT = `
 const { solidTest } = await import(${JSON.stringify(PRESET)})
-const config = solidTest({ root: ${JSON.stringify(ROOT)}, plugins: [] })
-const [node, , browser] = config.projects
+const plugins = () => [{ name: 'component' }]
+const config = solidTest({ root: ${JSON.stringify(ROOT)}, plugins })
+const [node, dom, browser] = config.projects
 const [stubs] = node.plugins
 const ids = ['server-only', 'virtual:file-routes', 'virtual:solid-server-function-handler']
 process.stdout.write(JSON.stringify({
   names: config.projects.map(project => project.test.name.label),
   stubs: ids.map(id => stubs.load(stubs.resolveId(id))),
-  unknown: stubs.resolveId('some-package') ?? null,
+  unknown: ['some-package', 'constructor', 'toString'].map(id => stubs.resolveId(id) ?? null),
+  sharesPlugins: dom.plugins[0] === browser.plugins[0],
   setupFiles: browser.test.setupFiles,
   paraglide: browser.resolve.alias[0].replacement,
   env: config.env
@@ -33,7 +35,8 @@ process.stdout.write(JSON.stringify({
 const summarySchema = v.object({
   names: v.array(v.string()),
   stubs: v.array(v.string()),
-  unknown: v.null(),
+  unknown: v.array(v.null()),
+  sharesPlugins: v.boolean(),
   setupFiles: v.array(v.string()),
   paraglide: v.string(),
   env: v.record(v.string(), v.string())
@@ -65,7 +68,13 @@ it('serves the build-only modules to the node project', async () => {
   assert.equal(summary.stubs[0], 'export default undefined')
   assert.match(summary.stubs[1] ?? '', /export const pageRoutes = \[\]/u)
   assert.equal(summary.stubs[2], "export const endpoint = '/_server'")
-  assert.equal(summary.unknown, null)
+  // Prototype keys of a plain object would pass an `in` check.
+  assert.deepEqual(summary.unknown, [null, null, null])
+})
+
+it('gives the dom and browser projects their own plugin instances', async () => {
+  const summary = await readSummary()
+  assert.equal(summary.sharesPlugins, false)
 })
 
 it('points the browser setup to a file the package ships', async () => {

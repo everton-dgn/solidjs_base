@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { env, execPath } from 'node:process'
@@ -22,6 +29,7 @@ const exec = promisify(execFile)
 const LAST_INDEX = -1
 const FIXTURE_SERVER_COUNT = 2
 const LOAD_SERVER_COUNT = 3
+const PREVIEW_TIMEOUT = 120_000
 const SUITES = {
   serverLogs: '**/OutsideError.e2e.test.ts',
   markdown: '**/Markdown/*.e2e.test.ts',
@@ -42,8 +50,14 @@ const patternsSchema = v.array(v.string())
 const serverSchema = v.object({
   command: v.string(),
   url: v.string(),
-  cwd: v.string()
+  cwd: v.string(),
+  timeout: v.optional(v.number())
 })
+const listReporterSchema = v.tuple([v.literal('list')])
+const htmlReporterSchema = v.tuple([
+  v.literal('html'),
+  v.object({ outputFolder: v.string() })
+])
 const projectSchema = v.object({
   name: v.string(),
   testMatch: v.optional(v.string()),
@@ -53,7 +67,9 @@ const projectSchema = v.object({
   testIgnore: v.optional(patternsSchema)
 })
 const configSchema = v.object({
-  use: v.object({ baseURL: v.string() }),
+  use: v.object({ baseURL: v.string(), locale: v.string() }),
+  reporter: v.tuple([listReporterSchema, htmlReporterSchema]),
+  globalTeardown: v.string(),
   testDir: v.string(),
   outputDir: v.string(),
   fullyParallel: v.boolean(),
@@ -267,4 +283,53 @@ it('keeps the base URL exactly as .env.test writes it', async context => {
   // The tests join paths to baseURL as text; a trailing slash would double it.
   assert.equal(config.use.baseURL, BASE_URL)
   assert.equal(config.webServer.at(LAST_INDEX)?.url, BASE_URL)
+})
+
+it('waits for the build only on the preview server', async context => {
+  const root = await createRoot(context)
+  const config = await parseConfig({
+    root,
+    variables: { TEST_PRODUCTION_ROUTES: 'false', TEST_PREBUILT: 'false' }
+  })
+  const [fixture] = config.webServer
+  assert.equal(fixture?.timeout, undefined)
+  assert.equal(config.webServer.at(LAST_INDEX)?.timeout, PREVIEW_TIMEOUT)
+})
+
+it('writes the report under the application root and tears down with a shipped file', async context => {
+  const root = await createRoot(context)
+  const config = await parseConfig({
+    root,
+    variables: { TEST_PRODUCTION_ROUTES: 'true', TEST_PREBUILT: 'false' }
+  })
+  const [, [, html]] = config.reporter
+  assert.equal(
+    html.outputFolder,
+    path.join(root, 'playwright-report/production')
+  )
+  assert.equal(config.use.locale, 'en-US')
+  await access(config.globalTeardown)
+})
+
+it('rejects a base URL that is missing, has no port or leaves none for the secondary server', async context => {
+  const root = await createRoot(context)
+  const variables = { TEST_PRODUCTION_ROUTES: 'false', TEST_PREBUILT: 'false' }
+  // loadEnvFile keeps a variable that is already set, even an empty one.
+  for (const [baseUrl, message] of [
+    ['', /must define BASE_URL_TEST/u],
+    ['http://127.0.0.1', /explicit port/u],
+    ['http://127.0.0.1:65534', /no port for the secondary server/u]
+  ] as const) {
+    await assert.rejects(
+      loadConfig({
+        root,
+        variables: {
+          ...variables,
+          BASE_URL_TEST: baseUrl,
+          TEST_PUBLICATION_LOAD: 'true'
+        }
+      }),
+      message
+    )
+  }
 })

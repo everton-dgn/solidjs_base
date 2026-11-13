@@ -329,6 +329,6 @@ export default defineConfig(({ mode }) => {
     plugins: mode === 'test' ? [] : appPlugins(mode),
     fmt,
     lint,
-    test: solidTest({ root: import.meta.dirname, plugins: componentPlugins() })
+    test: solidTest({ root: import.meta.dirname, plugins: componentPlugins })
   }
 })

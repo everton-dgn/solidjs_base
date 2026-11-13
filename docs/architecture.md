@@ -90,8 +90,7 @@ Paraglide task, test setup and lint plugin follow the presence of Paraglide
 The rules read import specifiers and file paths as text, and they expect the
 boilerplate layout: `src/` with `components/atoms`, `molecules` and `organisms`,
 `helpers`, `infra` and the other layers, and `tooling/` for build and test code.
-The [package README](../packages/solid-tooling/README.md) lists each rule and
-its limits.
+The [lint guide](tooling/lint.md) lists each rule and its limits.
 
 ## Runtime package
 

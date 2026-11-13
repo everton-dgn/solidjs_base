@@ -45,9 +45,9 @@ production output.
   suite passes. With `publication` off, the production E2E reports the missing
   headers of the static files, so the option is guarded.
 - A client-only application installed from the tarball built `dist/` with one
-  page and one script, with no server folder and no Paraglide, Nitro or Vercel
-  string. The page mounted in headless Chromium, and its browser test project
-  ran without the Paraglide setup.
+  page and one 29 KB script, with no server folder and no Paraglide, Nitro or
+  Vercel string. The page mounted in headless Chromium, and its browser test
+  project ran without the Paraglide setup.
 - The consumer fixture of the tarball test no longer installs Paraglide, so that
   test also checks that lint runs and the package rules fire without it.
 - An application that relied on the default header rules of the published files

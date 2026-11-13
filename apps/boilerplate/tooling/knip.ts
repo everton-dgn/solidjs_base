@@ -55,9 +55,9 @@ const config = {
   // módulos virtual:solid-env, então nada o importa diretamente.
   entry: [
     // Entradas autorais do SSR, carregadas pelo @solidjs/vite-plugin por convenção.
-    // O plugin do Knip só lê solid() importado estaticamente, e o vite.config.ts
-    // o carrega com import(); por isso estas entradas, o middleware e o
-    // serverSetup ficam aqui (webpro-nl/knip#2147).
+    // O plugin do Knip só lê solid() importado estaticamente, e o preset de
+    // @evertondgn/solid-tooling/vite o carrega com import(); por isso estas
+    // entradas, o middleware e o serverSetup ficam aqui (webpro-nl/knip#2147).
     'src/entry-server.tsx!',
     'src/entry-client.tsx!',
     // O runtime gerado carrega o polyfill de URLPattern do pacote Paraglide
@@ -79,7 +79,11 @@ const config = {
     'src/primitives/createOutdatedPageGuard/index.ts!',
     'env.ts!',
     // Cadeia de middleware do build E2E, escolhida por modo no vite.config.ts.
-    'src/tests/fixtures/e2e/middleware/index.ts'
+    'src/tests/fixtures/e2e/middleware/index.ts',
+    // Scripts das tarefas do vp run. O Knip só lê os comandos de run.tasks
+    // escritos no vite.config.ts, e as tarefas vêm do preset.
+    'tooling/i18n/generate.ts',
+    'tooling/css/check.ts'
   ],
   project: [
     'src/**/*.{ts,tsx}!',

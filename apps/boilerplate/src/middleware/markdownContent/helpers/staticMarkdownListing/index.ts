@@ -1,3 +1,4 @@
+import { isPagePath } from '@evertondgn/solid-runtime/middleware/request-classification'
 import { baseLocale, extractLocaleFromUrl } from '@paraglide/runtime.js'
 import { pageRoutes } from 'virtual:file-routes'
 
@@ -6,7 +7,6 @@ import { readPublicationPhase } from '@/helpers/readPublicationPhase/index.ts'
 import { resolveSiteUrl } from '@/helpers/resolveSiteUrl/index.ts'
 import { Router } from '@/router.ts'
 
-import { isPagePath } from '../../../requestClassification/index.ts'
 import { MARKDOWN_PRERENDER_PATH } from '../../constants.ts'
 import { collectStaticMarkdownPages } from '../collectStaticMarkdownPages/index.ts'
 import { uncachedResponse } from '../uncachedResponse/index.ts'

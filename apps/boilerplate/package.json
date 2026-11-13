@@ -38,6 +38,7 @@
     "validate": "vp run check:ci && vp run typecheck:node && vp run dead-code && vp run test:coverage && vp run test:tooling && vp run build"
   },
   "dependencies": {
+    "@evertondgn/solid-runtime": "workspace:*",
     "@inlang/paraglide-js": "3.2.2",
     "@mdream/js": "2.1.0",
     "@solidjs/router": "2.0.0-next.44",

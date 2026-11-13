@@ -12,7 +12,7 @@ chain `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`,
 `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`,
 `Cross-Origin-Embedder-Policy`, `Cross-Origin-Resource-Policy` and the
 `Content-Security-Policy`. The values are in
-[`securityHeaders/constants.ts`](../src/middleware/securityHeaders/constants.ts).
+[`securityHeaders/constants.js`](../../../packages/solid-runtime/src/middleware/securityHeaders/constants.js).
 The failure containment writes the same headers on the 500, on the error page
 and on the thrown control.
 
@@ -56,7 +56,7 @@ to HTTP with a warning that the user can ignore; the list does not let it
 through. Domains under TLDs that are entirely on the list, such as `.dev` and
 `.app`, already have this protection. To join the list, confirm that every
 subdomain serves HTTPS, add `preload` to the value in
-[`securityHeaders/constants.ts`](../src/middleware/securityHeaders/constants.ts)
+[`securityHeaders/constants.js`](../../../packages/solid-runtime/src/middleware/securityHeaders/constants.js)
 and submit the domain on hstspreload.org.
 
 Static files do not go through the middleware, so the `routeRules` write the
@@ -68,9 +68,10 @@ take away the subdomain coverage that the function response had just declared.
 ## Nonce and render entries
 
 The nonce has 16 bytes of `crypto.getRandomValues` in base64 and is created for
-each request by [`requestNonce`](../src/middleware/securityHeaders/index.ts), on
-the first access to `event.nonce`. That field belongs to the native contract of
-the Solid plugin. `securityHeaders` fills it before the render, and the
+each request by
+[`requestNonce`](../../../packages/solid-runtime/src/middleware/securityHeaders/index.ts),
+on the first access to `event.nonce`. That field belongs to the native contract
+of the Solid plugin. `securityHeaders` fills it before the render, and the
 containment also creates it when a failure happens before that middleware, so
 that the error page and the CSP match. A nonce provided by the host is kept;
 when it separates scripts and styles, the CSP and `Document` use the `script`

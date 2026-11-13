@@ -1,6 +1,7 @@
 # 0003. The runtime package will ship TypeScript source
 
-- Status: Accepted, not implemented
+- Status: Accepted, implemented in part by
+  [ADR 0018](0018-runtime-package-middleware.md)
 - Date: 2026-11-11
 
 ## Context

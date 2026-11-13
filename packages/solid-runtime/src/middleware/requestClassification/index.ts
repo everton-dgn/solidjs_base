@@ -32,7 +32,8 @@ export function isPagePath({ pathname, method }: PagePathOptions): boolean {
   return apiRouteMethods(pathname).length === 0
 }
 
-// O endpoint de server functions nunca pode receber um segundo dispatch para renderizar erro.
+// The server functions endpoint must never get a second dispatch to render an
+// error.
 export function isPageRequest(request: Request): boolean {
   const { pathname } = new URL(request.url)
   const accept = request.headers.get('accept')

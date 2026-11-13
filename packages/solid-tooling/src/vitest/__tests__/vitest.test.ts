@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { access, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  realpath,
+  rm,
+  symlink,
+  writeFile
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { env, execPath } from 'node:process'
@@ -10,8 +18,11 @@ import { promisify } from 'node:util'
 import * as v from 'valibot'
 
 type RootOptions = { hasI18n?: boolean }
+type ResolveOptions = { root: string; ids: string[]; sourcePackages?: string[] }
+type InstallOptions = { context: TestContext; folder: string; name: string }
 
 const PRESET = new URL('../../../dist/vitest.mjs', import.meta.url).href
+const RUNTIME = '@evertondgn/solid-runtime'
 const exec = promisify(execFile)
 
 // The config holds plugins and a browser provider, which JSON cannot carry, so
@@ -33,6 +44,25 @@ process.stdout.write(JSON.stringify({
   env: config.env
 }))
 `
+
+const resolveScript = ({
+  root,
+  ids,
+  sourcePackages
+}: ResolveOptions): string => `
+const { solidTest } = await import(${JSON.stringify(PRESET)})
+const config = solidTest({
+  root: ${JSON.stringify(root)},
+  plugins: () => [],
+  sourcePackages: ${JSON.stringify(sourcePackages)}
+})
+const [node] = config.projects
+const resolver = node.plugins.find(plugin => plugin.name === 'solid-tooling:source-packages')
+const ids = ${JSON.stringify(ids)}
+process.stdout.write(JSON.stringify(await Promise.all(ids.map(id => resolver.resolveId(id)))))
+`
+
+const resolvedSchema = v.array(v.nullable(v.string()))
 
 const summarySchema = v.object({
   names: v.array(v.string()),
@@ -58,6 +88,49 @@ async function createRoot(
     await writeFile(path.join(root, 'project.inlang/settings.json'), '{}')
   }
   return root
+}
+
+// The package folder sits outside node_modules and is reached by a link, as
+// with a workspace or Bun's isolated linker. Returns the real path of its
+// source file.
+async function installSourcePackage({
+  context,
+  folder,
+  name
+}: InstallOptions): Promise<string> {
+  const store = await mkdtemp(path.join(tmpdir(), 'solid-test-package-'))
+  // Sandbox created by this test: removing it directly is the right cleanup.
+  context.after(() => rm(store, { recursive: true, force: true }))
+  await mkdir(path.join(store, 'src'))
+  await writeFile(path.join(store, 'src/headers.ts'), 'export {}\n')
+  await writeFile(path.join(store, 'src/constants.js'), 'export {}\n')
+  await writeFile(
+    path.join(store, 'package.json'),
+    JSON.stringify({
+      name,
+      exports: {
+        './headers': { solid: './src/headers.ts' },
+        './constants': { default: './src/constants.js' },
+        './nested': {
+          solid: { import: './src/headers.ts' },
+          default: './src/constants.js'
+        }
+      }
+    })
+  )
+  const link = path.join(folder, 'node_modules', name)
+  await mkdir(path.dirname(link), { recursive: true })
+  await symlink(store, link)
+  return realpath(path.join(store, 'src/headers.ts'))
+}
+
+async function resolveIds(options: ResolveOptions) {
+  const { stdout } = await exec(execPath, [
+    '--input-type=module',
+    '--eval',
+    resolveScript(options)
+  ])
+  return v.parse(resolvedSchema, JSON.parse(stdout))
 }
 
 async function readSummary(root: string) {
@@ -121,4 +194,67 @@ it('passes only the test variables that are set', async context => {
     BASE_URL_TEST: 'http://127.0.0.1:4317',
     PORT: '4317'
   })
+})
+
+it('resolves the source subpaths of an installed package to their real paths', async context => {
+  const root = await createRoot(context)
+  const source = await installSourcePackage({
+    context,
+    folder: root,
+    name: RUNTIME
+  })
+  const resolved = await resolveIds({ root, ids: [`${RUNTIME}/headers`] })
+  assert.deepEqual(resolved, [source])
+})
+
+it('leaves the other conditions and unknown subpaths to Vite', async context => {
+  const root = await createRoot(context)
+  await installSourcePackage({ context, folder: root, name: RUNTIME })
+  const resolved = await resolveIds({
+    root,
+    ids: [`${RUNTIME}/constants`, `${RUNTIME}/missing`, RUNTIME, 'solid-js']
+  })
+  assert.deepEqual(resolved, [null, null, null, null])
+})
+
+it('leaves a solid condition that nests other conditions to Vite', async context => {
+  const root = await createRoot(context)
+  await installSourcePackage({ context, folder: root, name: RUNTIME })
+  const resolved = await resolveIds({ root, ids: [`${RUNTIME}/nested`] })
+  assert.deepEqual(resolved, [null])
+})
+
+it('finds the package in a parent folder, as Node does', async context => {
+  const workspace = await createRoot(context)
+  const root = path.join(workspace, 'apps/web')
+  await mkdir(root, { recursive: true })
+  const source = await installSourcePackage({
+    context,
+    folder: workspace,
+    name: RUNTIME
+  })
+  const resolved = await resolveIds({ root, ids: [`${RUNTIME}/headers`] })
+  assert.deepEqual(resolved, [source])
+})
+
+it('resolves nothing when the source package is not installed', async context => {
+  const root = await createRoot(context)
+  const resolved = await resolveIds({ root, ids: [`${RUNTIME}/headers`] })
+  assert.deepEqual(resolved, [null])
+})
+
+it('takes the list of source packages as an option', async context => {
+  const root = await createRoot(context)
+  const source = await installSourcePackage({
+    context,
+    folder: root,
+    name: '@acme/ui'
+  })
+  await installSourcePackage({ context, folder: root, name: RUNTIME })
+  const resolved = await resolveIds({
+    root,
+    ids: ['@acme/ui/headers', `${RUNTIME}/headers`],
+    sourcePackages: ['@acme/ui']
+  })
+  assert.deepEqual(resolved, [source, null])
 })

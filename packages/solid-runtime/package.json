@@ -1,0 +1,75 @@
+{
+  "name": "@evertondgn/solid-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Runtime code for SolidJS applications built with Vite+, shipped as TypeScript source.",
+  "author": "Éverton Toffanetto",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/everton-dgn/solidjs_base.git",
+    "directory": "packages/solid-runtime"
+  },
+  "type": "module",
+  "files": [
+    "src",
+    "!src/**/__tests__"
+  ],
+  "sideEffects": [],
+  "exports": {
+    "./middleware/api-routes": {
+      "solid": "./src/middleware/apiRoutes/index.ts"
+    },
+    "./middleware/is-html-response": {
+      "solid": "./src/middleware/helpers/isHtmlResponse/index.ts"
+    },
+    "./middleware/negotiate-page-format": {
+      "solid": "./src/middleware/negotiatePageFormat/index.ts"
+    },
+    "./middleware/request-classification": {
+      "solid": "./src/middleware/requestClassification/index.ts"
+    },
+    "./middleware/restrict-page-methods": {
+      "solid": "./src/middleware/restrictPageMethods/index.ts"
+    },
+    "./middleware/security-headers": {
+      "solid": "./src/middleware/securityHeaders/index.ts"
+    },
+    "./middleware/security-headers/constants": {
+      "types": "./src/middleware/securityHeaders/constants.d.ts",
+      "default": "./src/middleware/securityHeaders/constants.js"
+    },
+    "./middleware/types": {
+      "solid": "./src/middleware/types.ts"
+    }
+  },
+  "scripts": {
+    "test": "vp test run --coverage"
+  },
+  "peerDependencies": {
+    "@solidjs/vite-plugin": "3.0.0-next.57",
+    "@solidjs/web": "2.0.0-rc.21",
+    "filesystem-routing": "0.5.0"
+  },
+  "peerDependenciesMeta": {
+    "@solidjs/vite-plugin": {
+      "optional": true
+    },
+    "filesystem-routing": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@solidjs/vite-plugin": "3.0.0-next.57",
+    "@solidjs/web": "2.0.0-rc.21",
+    "@types/node": "24.19.2",
+    "@vitest/coverage-v8": "catalog:",
+    "filesystem-routing": "0.5.0",
+    "nitro": "3.0.261103-rc",
+    "solid-js": "2.0.0-rc.21",
+    "typescript": "7.0.2",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
+  }
+}

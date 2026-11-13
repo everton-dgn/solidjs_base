@@ -5,7 +5,7 @@ Stop maintaining the same tooling in every Solid app.
 Lint rules, application config, test setups and Git hooks for SolidJS 2 with
 [Vite+](https://viteplus.dev/guide/), delivered as one versioned dependency. In
 the starter it came from, one `defineSolidApp()` call replaced a 427-line
-`vite.config.ts` with 51 lines.
+`vite.config.ts` with 56 lines.
 
 Built for applications that follow the
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs)
@@ -33,14 +33,15 @@ Each application copied from it carries about 15,000 lines of tooling and 8,000
 lines of runtime code. Every fix to the base must be repeated by hand.
 
 Solid Base moves shared tooling into `@evertondgn/solid-tooling`. You receive
-its fixes by updating a dependency. Your application still owns its runtime; the
-runtime package is on the [roadmap](#roadmap).
+its fixes by updating a dependency. Your application still owns its runtime: the
+runtime package has started in this repository and is not published yet, as the
+[roadmap](#roadmap) shows.
 
 ## Before and after
 
 | Configuration         | Original lines |               With the package |
 | --------------------- | -------------: | -----------------------------: |
-| `vite.config.ts`      |            427 |                             51 |
+| `vite.config.ts`      |            427 |                             56 |
 | Playwright config     |            173 |                             17 |
 | Knip config           |            129 |                             48 |
 | `tsconfig.json`       |             45 |                              9 |
@@ -207,11 +208,11 @@ publication.
 
 ### Roadmap
 
-| Planned work                      | Scope                                                                                                                      |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `@evertondgn/solid-runtime`       | Middleware, security headers and CSP, server errors, i18n, SEO, sitemap, publication, theme logic and remaining primitives |
-| Reusable CI and release workflows | Shared automation for applications                                                                                         |
-| `vp create` template              | New applications using the packages                                                                                        |
+| Planned work                      | Scope                                                                                                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@evertondgn/solid-runtime`       | Started, not published: the [middleware steps](packages/solid-runtime/README.md). Planned: server errors, i18n, SEO, sitemap, publication, theme logic and remaining primitives |
+| Reusable CI and release workflows | Shared automation for applications                                                                                                                                              |
+| `vp create` template              | New applications using the packages                                                                                                                                             |
 
 These items are not available yet. The application still owns its pages,
 components, translations and theme, as well as the runtime files listed in

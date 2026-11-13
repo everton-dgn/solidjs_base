@@ -1,3 +1,5 @@
+import { isHtmlResponse } from '@evertondgn/solid-runtime/middleware/is-html-response'
+import type { Next } from '@evertondgn/solid-runtime/middleware/types'
 import type { RequestEvent } from '@solidjs/web'
 
 import {
@@ -12,8 +14,6 @@ import { resolveSiteUrl } from '@/helpers/resolveSiteUrl/index.ts'
 import { logServerFailure } from '@/infra/server/logServerFailure/index.ts'
 
 import { appendVary } from '../../../helpers/appendVary/index.ts'
-import { isHtmlResponse } from '../../../helpers/isHtmlResponse/index.ts'
-import type { Next } from '../../../types.ts'
 import { MAX_MARKDOWN_BYTES } from '../../constants.ts'
 import { convertHtml } from '../convertHtml/index.ts'
 import { markdownHeaders, publicResponse } from '../markdownResponses/index.ts'

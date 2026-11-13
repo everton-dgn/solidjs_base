@@ -42,6 +42,17 @@ the preset serves `server-only`, `virtual:file-routes` and
 virtual module of `@solidjs/vite-plugin`: pass it in the `ignoreDependencies` of
 [`defineKnipConfig`](knip-and-css.md#knip).
 
+A package that ships TypeScript source under the `solid` export condition, such
+as `@evertondgn/solid-runtime`, only resolves where that condition is set. The
+Solid plugin sets it; the `node` project does not load the plugin, and the
+condition cannot go to the whole project, because the router would then resolve
+to its `.jsx` source. A plugin of the preset applies the condition only to the
+packages in `sourcePackages`, which is `['@evertondgn/solid-runtime']` by
+default. A listed package that is not installed changes nothing. The plugin
+takes only an entry that points `solid` straight to a file, such as
+`{ "solid": "./src/index.ts" }`; an entry that nests other conditions under
+`solid` is resolved by Vite, without the condition.
+
 `definePlaywrightConfig` builds the Playwright config from the application root:
 
 ```ts

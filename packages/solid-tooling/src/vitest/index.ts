@@ -6,15 +6,19 @@ import type { Plugin, TestUserConfig, ViteUserConfig } from 'vite-plus'
 import { playwright } from 'vite-plus/test/browser-playwright'
 
 import { hasI18n } from '../has-i18n.ts'
+import { sourcePackages } from './source-packages.ts'
 
 type SolidTestOptions = {
   root: string
   // WHY: a factory, because each project starts its own Vite server and a
   // plugin instance keeps the state of the server that resolved it last.
   plugins: () => ViteUserConfig['plugins']
+  // Packages that export TypeScript source under the solid condition.
+  sourcePackages?: string[]
 }
 
 const CI_WORKERS = 2
+const SOURCE_PACKAGES = ['@evertondgn/solid-runtime']
 const STUB_PREFIX = '\0solid-tooling-stub:'
 // Stand-ins for modules that the Solid and routing plugins provide in a real
 // build, which the node project does not load. A plugin serves them because Knip
@@ -57,7 +61,11 @@ function readTestEnv(): Record<string, string> {
   )
 }
 
-export function solidTest({ root, plugins }: SolidTestOptions): TestUserConfig {
+export function solidTest({
+  root,
+  plugins,
+  sourcePackages: packages = SOURCE_PACKAGES
+}: SolidTestOptions): TestUserConfig {
   const hasParaglide = hasI18n(root)
   return {
     pool: 'threads',
@@ -92,7 +100,7 @@ export function solidTest({ root, plugins }: SolidTestOptions): TestUserConfig {
     // declare only what changes: environment, include, plugins and aliases.
     projects: [
       {
-        plugins: [nodeStubs()],
+        plugins: [nodeStubs(), sourcePackages({ root, packages })],
         test: {
           name: { label: 'node', color: 'cyan' },
           environment: 'node',

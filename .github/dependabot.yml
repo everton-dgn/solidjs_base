@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # The workflows pin each action by commit SHA with the release in a comment;
+  # Dependabot updates both. `ci(deps)` keeps these commits out of the releases.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - '*'
+    commit-message:
+      prefix: ci
+      include: scope

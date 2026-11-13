@@ -11,10 +11,24 @@
   },
   "keywords": [
     "solidjs",
+    "solid",
+    "vite",
     "vite-plus",
+    "nitro",
+    "ssr",
     "oxlint",
+    "oxfmt",
     "lint",
-    "tsconfig"
+    "formatter",
+    "tsconfig",
+    "typescript",
+    "vitest",
+    "playwright",
+    "knip",
+    "stylelint",
+    "paraglide",
+    "i18n",
+    "preset"
   ],
   "type": "module",
   "files": [

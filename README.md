@@ -12,7 +12,7 @@ ships as a version update instead of a change in every application.
 | Package                                               | What an application gets                                                                     | Status                                                                      |
 | ----------------------------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | [`@evertondgn/solid-tooling`](packages/solid-tooling) | Lint and format presets, a TypeScript base config, and lint rules for the boilerplate layout | [Published on npm](https://www.npmjs.com/package/@evertondgn/solid-tooling) |
-| Runtime package                                       | Middleware, security headers, server errors, i18n runtime and SEO handlers                   | Planned, see [ADR 0003](docs/decisions/0003-runtime-package-as-source.md)   |
+| Runtime package                                       | Middleware, security headers, server errors, i18n runtime and SEO handlers                   | Planned, see [ADR 0003](docs/ADRs/0003-runtime-package-as-source.md)        |
 
 ## Quick start
 
@@ -95,7 +95,7 @@ The application in `apps/boilerplate` has its own commands, described in the
   in the application.
 - [Releasing](docs/releasing.md): versions, publishing and recovery when a
   publish fails.
-- [Decisions](docs/decisions/README.md): why the repository works this way.
+- [ADRs](docs/ADRs/README.md): why the repository works this way.
 
 ## License
 

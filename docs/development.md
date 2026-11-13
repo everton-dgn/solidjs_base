@@ -58,9 +58,8 @@ the preset gives to an application's `tooling/` folder.
 It uses `@evertondgn/solid-tooling` from the workspace in place of its own lint
 rules, formatter settings and TypeScript base, and runs the full suites of the
 original. A change to a package that breaks the application fails here, before
-it becomes a version.
-[ADR 0009](decisions/0009-boilerplate-app-in-the-monorepo.md) explains why the
-copy exists.
+it becomes a version. [ADR 0009](ADRs/0009-boilerplate-app-in-the-monorepo.md)
+explains why the copy exists.
 
 Run its commands from `apps/boilerplate`:
 

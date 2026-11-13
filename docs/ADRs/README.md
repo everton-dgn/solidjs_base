@@ -1,4 +1,4 @@
-# Decisions
+# ADRs
 
 Architecture decision records (ADRs) for this repository. Each one says what was
 decided, what led to it and what it costs. The date is the day of the decision.

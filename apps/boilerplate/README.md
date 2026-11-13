@@ -9,8 +9,7 @@ It takes its lint preset, lint rules, formatter settings and TypeScript base
 from `@evertondgn/solid-tooling`, through the workspace, in place of the copies
 the original keeps in `tooling/`. The CI runs its full suites on every pull
 request, so a package change that breaks the application fails before it becomes
-a version.
-[ADR 0009](../../docs/decisions/0009-boilerplate-app-in-the-monorepo.md)
+a version. [ADR 0009](../../docs/ADRs/0009-boilerplate-app-in-the-monorepo.md)
 explains why the copy exists.
 
 ## Running it

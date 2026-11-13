@@ -21,7 +21,11 @@ export default defineKnipConfig({
     'src/i18n/localizedRedirect/index.ts!',
     'src/primitives/createOutdatedPageGuard/index.ts!',
     // Cadeia de middleware do build E2E, escolhida por modo no vite.config.ts.
-    'src/tests/fixtures/e2e/middleware/index.ts'
+    'src/tests/fixtures/e2e/middleware/index.ts',
+    // Scripts das tarefas do vp run. O Knip só lê os comandos de run.tasks
+    // escritos no vite.config.ts, e as tarefas vêm do preset.
+    'tooling/i18n/generate.ts',
+    'tooling/css/check.ts'
   ],
   // O Kingfisher é externo. O vp do script start vem de uma devDependency, que
   // o modo production (ativado pelo --strict) não considera; o '!' restringe o

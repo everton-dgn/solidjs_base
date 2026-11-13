@@ -16,10 +16,11 @@ quando houver consumidores. Novos imports de erros públicos usam
 
 O [registro central](../src/infra/server/configureServerErrors/index.ts) usa
 `configureServerFunctionsServer({ wrapInvocation })`. O
-[Vite](../vite.config.ts) o carrega por `serverFunctions.serverSetup`, cobrindo
-server functions chamadas diretamente no SSR e pelo transporte HTTP. O mesmo
-módulo instala, em todos os modos, o hook `configureServerErrors({ onError })`
-de `@solidjs/web`; a troca pelo erro público acontece só em produção.
+[Vite](../vite.config.ts) o carrega por `serverFunctions.serverSetup`, que o
+`defineSolidApp` recebe na opção `serverSetup`, cobrindo server functions
+chamadas diretamente no SSR e pelo transporte HTTP. O mesmo módulo instala, em
+todos os modos, o hook `configureServerErrors({ onError })` de `@solidjs/web`; a
+troca pelo erro público acontece só em produção.
 
 - [requestJson](../src/infra/server/requestJson/index.ts) verifica o status
   HTTP, lê o JSON de sucesso e aplica o schema de saída dentro da proteção.

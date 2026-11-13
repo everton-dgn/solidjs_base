@@ -1,11 +1,11 @@
 # @evertondgn/solid-tooling
 
-Lint preset, formatter config, TypeScript configs, test configs and the Knip and
-Stylelint configs for SolidJS 2 applications built with
-[Vite+](https://viteplus.dev/guide/).
+Lint preset, formatter config, TypeScript configs, test configs, the Knip and
+Stylelint configs and the Vite+ application config for SolidJS 2 applications
+built with [Vite+](https://viteplus.dev/guide/).
 
-The package contains the lint, format, TypeScript, test, dead code and CSS lint
-setup of
+The package contains the lint, format, TypeScript, test, build, dead code and
+CSS lint setup of
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs), a
 SolidJS application template. Applications created from it install the package
 instead of copying the files, so a rule change reaches them through a version
@@ -36,6 +36,14 @@ Some entries need tools the application already runs:
 | `./vitest`     | `@vitest/browser-playwright`, `@vitest/coverage-v8`, `happy-dom`, `playwright`  |
 | `./playwright` | `@playwright/test`, an optional peer dependency pinned like the others          |
 | `./knip`       | `knip` and `filesystem-routing`, optional peer dependencies pinned the same way |
+
+`./vite` also needs the test tools of `./vitest`, and loads four plugin
+packages: `@solidjs/vite-plugin`, `nitro`, `filesystem-routing` and
+`unplugin-icons`. They are optional peer dependencies pinned like the others.
+Install the versions listed in `peerDependencies` as direct dependencies of the
+application: Bun applies `overrides` and `patchedDependencies` only from the
+root `package.json`, and the Knip plugin of `unplugin-icons` only turns on with
+a direct dependency.
 
 ## Install
 
@@ -135,6 +143,142 @@ the preview, and checks the server log for private markers when the suite ends.
 Each serial suite gets its own project: `markdown` runs with one worker,
 `serverLogs` runs last as the teardown of the others, and `publicationLoad` runs
 alone, against two servers, with `TEST_PUBLICATION_LOAD=true`.
+
+## Application config
+
+`defineSolidApp` returns the whole `vite.config.ts` of a boilerplate
+application: the Solid, routing, icons and Nitro plugins, the headers of the
+static files, the build, CSS, server and preview blocks, the `vp run` tasks, and
+`lint`, `fmt` and `test` from the presets above.
+
+```ts
+// vite.config.ts
+import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
+
+import { SECURITY_HEADERS } from './src/middleware/securityHeaders/constants.ts'
+
+export default defineSolidApp({
+  root: import.meta.dirname,
+  middleware: './src/middleware/index.ts',
+  securityHeaders: SECURITY_HEADERS,
+  staticPaths: ['/favicon/**']
+})
+```
+
+| Option            | Default                 | Use                                                                                                                              |
+| ----------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `root`            | required                | Application folder. `.env`, `.env.test`, `project.inlang/settings.json` and the icon folders resolve from it                     |
+| `securityHeaders` | required                | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files          |
+| `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                              |
+| `serverSetup`     | `serverFunctions: true` | `serverFunctions.serverSetup` of the Solid plugin                                                                                |
+| `e2e`             | production paths        | `{ middleware, routes }` for `--mode e2e`: the middleware chain and the route folder of the fixtures, without route types        |
+| `icons`           | none                    | Own `unplugin-icons` collections, as name to folder                                                                              |
+| `publicAssets`    | none                    | `publicAssets` of Nitro. Each entry needs a `baseURL`, which also gets the static headers                                        |
+| `staticPaths`     | none                    | Other static paths that get the headers, such as `/favicon/**`                                                                   |
+| `routeRules`      | none                    | More Nitro route rules, applied after the static ones. A rule with the same path replaces the static one                         |
+| `extend`          | none                    | `(context) => ({ plugins, nitroModules })`, for plugins and Nitro modules the application still owns                             |
+| `tasks`           | none                    | Adds or replaces `vp run` tasks by name                                                                                          |
+| `workspace`       | none                    | `{ dependsOn, inputs }` for an application inside a monorepo, whose `bun.lock`, `bunfig.toml` and package builds sit at the root |
+
+The preset fixes the rest:
+
+- Plugins, in this order: the `extend` plugins, `unplugin-icons` (Solid
+  compiler, `aria-hidden` on every icon), `@solidjs/vite-plugin` with SSR and
+  server functions, `filesystem-routing` with HTTP methods and the route types
+  in `src/@types/routes.d.ts`, and Nitro with the `vercel` preset. The `dom` and
+  `browser` test projects get the `extend` plugins, the icons, Solid with server
+  functions only and the routes. The `test` mode loads no application plugin and
+  reads `.env.test` into `process.env`.
+- The static headers go to `/assets/**`, each `publicAssets` folder, the
+  `staticPaths`, `/<locale>/**.md` for each locale of
+  `project.inlang/settings.json`, `/llms.txt`, `/llms-full.txt`, `/sitemap.xml`,
+  `/sitemaps/pages/**` and `/_markdown/static.json`. The static files leave the
+  CDN without going through the middleware, so these rules give them the headers
+  the middleware writes on the other responses.
+- `build.manifest` only in the `e2e` mode, which the `TEST_PREBUILT` check of
+  `./playwright` relies on, and no comments in the output.
+- Lightning CSS, with CSS Modules classes named `[content-hash]_[local]`.
+- `resolve.tsconfigPaths`, and the dev server and the preview on the `HOST` and
+  `PORT` of `.env`. The dev server forwards the browser console to the terminal.
+
+The plugins are imported inside `lazyPlugins`, so `vp lint`, `vp fmt` and
+`vp check` read the config without loading them.
+
+Nitro compiles the route rules with the `preMerge` of h3, which refuses rules
+that overlap in part, such as `/pt/blog/**` next to `/pt/**.md`, and falls back
+to its simple mode, with the same result and a warning. `defineSolidApp` throws
+when a `publicAssets` entry has no `baseURL`, or one with a trailing slash, and
+when a static path does not start with `/`. Build, dev and preview fail to load
+the plugins when a `publicAssets` folder or a static path sits inside a locale
+folder.
+
+### `extend`
+
+`extend` runs inside `lazyPlugins`: once for the application in build, dev and
+preview (`target: 'app'`), and once for each test project with a Vite server
+(`target: 'test'`). Every load of the config calls it again, so a build also
+calls it for the two test projects, whose plugins Vite does not use; keep side
+effects out of it. It never runs while Vite+ only reads the config. Return new
+plugin instances on each call. The `plugins` go before the fixed ones, and the
+`nitroModules` go to Nitro; the `test` target ignores them. One call returns
+both, so a value that a plugin and a module share, such as a build id, stays the
+same.
+
+```ts
+export default defineSolidApp({
+  root: import.meta.dirname,
+  securityHeaders: SECURITY_HEADERS,
+  async extend({ target }) {
+    const { i18nPlugin } = await import('./tooling/i18n/i18nPlugin/index.ts')
+    return { plugins: [i18nPlugin()] }
+  }
+})
+```
+
+### Tasks
+
+| Task                | Command                                                                       |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `i18n-generate`     | `bun tooling/i18n/generate.ts`                                                |
+| `lint-css`          | `bun tooling/css/check.ts`                                                    |
+| `dead-code-project` | `knip-bun --config tooling/knip.ts`, then again with `--strict`               |
+| `lint-project`      | `vp lint`, after `lint-css`                                                   |
+| `check-project`     | `vp fmt --check && vp lint`, after `lint-css`                                 |
+| `typecheck-node`    | `tsc --project tsconfig.node.json`                                            |
+| `test-tooling`      | `node --test` over `tooling/**/__tests__`, three workers on CI, with no cache |
+
+The commands run the scripts of the boilerplate layout. An application without
+one of them replaces the task through `tasks`. Knip reads task commands only
+from a `run.tasks` block written in `vite.config.ts`, so it does not see these:
+list the scripts they run as Knip entries.
+
+With `workspace`, the cache inputs read `bun.lock`, `bunfig.toml` and the
+`inputs` from the workspace root, and `lint-css`, `dead-code-project` and
+`typecheck-node` depend on the tasks in `dependsOn`:
+
+```ts
+workspace: {
+  dependsOn: ['@evertondgn/solid-tooling#build'],
+  inputs: ['packages/solid-tooling/dist/**']
+}
+```
+
+### Changing the result
+
+Wrap the result in `defineConfig` and merge what the application needs. Vite+
+removes the plugins it injected before it injects them again, so they are not
+duplicated:
+
+```ts
+import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
+import { defineConfig, mergeConfig } from 'vite-plus'
+
+const app = defineSolidApp({ root: import.meta.dirname, securityHeaders })
+
+export default defineConfig(env =>
+  mergeConfig(app(env), { server: { strictPort: true } })
+)
+```
 
 ## Knip
 
@@ -390,6 +534,7 @@ overrides: [
 | `./fmt`                  | `fmt`: the formatter config                                               |
 | `./tsconfig.base.json`   | Compiler options, without application paths                               |
 | `./tsconfig.app.json`    | The base plus the `types` and `include` of the boilerplate layout         |
+| `./vite`                 | `defineSolidApp(options)`, the whole `vite.config.ts` of an application   |
 | `./vitest`               | `solidTest(options)`, the `test` block of `vite.config.ts`                |
 | `./playwright`           | `definePlaywrightConfig(options)`, the Playwright config                  |
 | `./vitest-setup/browser` | Setup file of the browser project, loaded by `./vitest`                   |
@@ -402,10 +547,11 @@ overrides: [
 | `./knip`                 | `defineKnipConfig(options)`, the Knip config                              |
 | `./stylelint`            | `checkCss(root)` and `defineStylelintConfig(root)`, the CSS lint          |
 
-An application imports `./lint`, `./fmt`, `./vitest`, `./playwright`, `./knip`,
-`./stylelint` and one of the TypeScript configs. The plugin entries exist
-because Oxlint loads plugins by specifier, from the application; the setup and
-teardown entries are loaded by the test presets.
+An application imports `./vite`, which brings `./lint`, `./fmt` and `./vitest`
+along, `./playwright`, `./knip`, `./stylelint` and one of the TypeScript
+configs. An application that only lints imports `./lint` and `./fmt`. The plugin
+entries exist because Oxlint loads plugins by specifier, from the application;
+the setup and teardown entries are loaded by the test presets.
 
 ## Formatter
 
@@ -469,6 +615,11 @@ break the `@/` imports of the end-to-end tests.
   fixture routes in `src/tests/fixtures/` and the theme in `src/theme/`.
 - The Knip config ignores every unlisted dependency in its own file, not only
   this package.
+- `./vite` expects the same layout: its tasks run scripts in `tooling/`, and the
+  Markdown rules need the locale prefix of the Paraglide `urlPatterns` in every
+  URL. Nitro always uses the `vercel` preset. The plugin packages are pinned, so
+  a new version of Solid, Nitro, the router or the icons plugin needs a package
+  version tested with it.
 
 ## Versions
 

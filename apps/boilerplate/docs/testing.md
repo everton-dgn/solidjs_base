@@ -53,8 +53,9 @@ ou suas dependências mudam, conforme o
 
 ## Ambientes
 
-O `vite.config.ts` define três projetos do Vitest, escolhidos pelo sufixo do
-arquivo:
+O `vite.config.ts` define três projetos do Vitest, que vêm do `solidTest` de
+`@evertondgn/solid-tooling/vitest` pelo `defineSolidApp`, escolhidos pelo sufixo
+do arquivo:
 
 | Sufixo                    | Ambiente      | Uso                                         |
 | ------------------------- | ------------- | ------------------------------------------- |
@@ -80,7 +81,7 @@ CSS no teste quando precisar validar estilos.
 Localmente, os testes de navegador e E2E usam o Chromium instalado pelo
 Playwright. Com `CI=true`, usam o Chrome do runner pelo canal `chrome`.
 
-No modo `test`, o `vite.config.ts` carrega o `.env.test` versionado em
+No modo `test`, o `defineSolidApp` carrega o `.env.test` versionado em
 `process.env` antes de iniciar o Vitest, então todas as variáveis do arquivo,
 com ou sem o prefixo `VITE_`, chegam aos workers dos projetos `node` e `dom`.
 `BASE_URL_TEST`, `HOST` e `PORT` também seguem por `test.env`, que o projeto

@@ -1,5 +1,6 @@
-import { SECURITY_HEADERS } from '@evertondgn/solid-runtime/middleware/security-headers/constants'
 import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
+
+import { SECURITY_HEADERS } from './src/middleware/securityHeaders/constants.ts'
 
 export default defineSolidApp({
   root: import.meta.dirname,

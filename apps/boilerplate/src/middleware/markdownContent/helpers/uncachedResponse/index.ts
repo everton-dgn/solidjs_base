@@ -1,4 +1,4 @@
-import { applySecurityHeaders } from '@evertondgn/solid-runtime/middleware/security-headers'
+import { applySecurityHeaders } from '@/middleware/securityHeaders/index.ts'
 
 export function uncachedResponse(response: Response): Response {
   response.headers.set('cache-control', 'private, no-store')

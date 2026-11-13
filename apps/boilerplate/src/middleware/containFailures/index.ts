@@ -1,9 +1,6 @@
 import { isHtmlResponse } from '@evertondgn/solid-runtime/middleware/is-html-response'
 import { isPageRequest } from '@evertondgn/solid-runtime/middleware/request-classification'
-import {
-  applySecurityHeaders,
-  requestNonce
-} from '@evertondgn/solid-runtime/middleware/security-headers'
+import { requestNonce } from '@evertondgn/solid-runtime/middleware/security-headers'
 import type { Middleware } from '@evertondgn/solid-runtime/middleware/types'
 import { composeMiddleware, getRequestEvent } from '@solidjs/web'
 
@@ -14,6 +11,7 @@ import {
   createPublicError,
   publicErrorMessage
 } from '@/infra/server/publicErrors/index.ts'
+import { applySecurityHeaders } from '@/middleware/securityHeaders/index.ts'
 
 type Render = (request?: Request) => Response | Promise<Response>
 type ChainEntry = (request: Request, next: Render) => Promise<Response>

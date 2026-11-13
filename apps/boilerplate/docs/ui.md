@@ -240,7 +240,7 @@ do Vite+.
   variáveis desconhecidas com fallback, como `var(--opcional, 0)`; nesses
   valores a checagem por tipo não resolve a variável, e as cores continuam
   barradas pela busca pelo nome. As referências compartilhadas vêm da opção
-  `referenceFiles` do Stylelint.
+  `referenceFiles` do Stylelint, e cada uma só entra quando o arquivo existe.
 - Fora de `src/theme/`, inclusive nas rotas, o nome obrigatório é
   `styles.module.css`. Em `src/theme/`, use nomes como `colors.css` e
   `zIndex.css`.
@@ -256,9 +256,11 @@ arquivos CSS referenciados por imports e reexportações em JS/TS. O comando
 `lint:css` reutiliza essa validação para todos os arquivos CSS em `src/`,
 inclusive aqueles sem imports em JS/TS.
 
-`vp run test:tooling` verifica o comportamento dos verificadores com casos em
-memória e roda nos hooks e no CI. O lint do CSS real continua automático, e suas
-violações bloqueiam a validação até serem corrigidas.
+As regras e a verificação de nomes vêm do `checkCss` do
+`@evertondgn/solid-tooling` (`packages/solid-tooling/src/stylelint/`), chamado
+por `tooling/css/check.ts`. Os casos em memória que verificam a política rodam
+com `vp run test` na raiz do monorepo. O lint do CSS real continua automático, e
+suas violações bloqueiam a validação até serem corrigidas.
 
 ## Processamento de CSS
 

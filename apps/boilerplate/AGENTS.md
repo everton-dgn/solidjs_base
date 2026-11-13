@@ -36,8 +36,10 @@ release. Add a tool name to select part of the graph. For example, run
   para testar os pacotes do monorepo numa aplicação completa. O `README.md`
   desta pasta lista o que mudou em relação ao original.
 - As regras de lint, o formatador, os tsconfigs, os projetos do Vitest
-  (`solidTest`) e a config do Playwright (`definePlaywrightConfig`) vêm do
-  pacote `@evertondgn/solid-tooling`. Os caminhos `packages/solid-tooling/src/...`
+  (`solidTest`), a config do Playwright (`definePlaywrightConfig`) e as configs
+  do Knip (`defineKnipConfig`) e do Stylelint (`checkCss`) vêm do pacote
+  `@evertondgn/solid-tooling`. `tooling/knip.ts` e `tooling/css/check.ts` só
+  passam ao pacote o que é desta aplicação. Os caminhos `packages/solid-tooling/src/...`
   citados aqui ficam na raiz do monorepo. Ao mudar uma regra, mude no pacote
   e rode `vp run test` na raiz do monorepo.
 - As seções sobre automação de release, workflow de CI, hooks de Git e deploy
@@ -454,7 +456,9 @@ release. Add a tool name to select part of the graph. For example, run
 - Use nesting para estados e media queries de cada classe. As classes de
   variantes e tamanhos ficam no nível superior, fora da classe base.
 - Importe CSS Modules como `S`. O Stylelint exige snake_case em `src/**/*.css`;
-  valide mudanças com `vp run lint:css` e `vp run test:tooling`.
+  valide mudanças com `vp run lint:css`. A política de CSS fica em
+  `packages/solid-tooling/src/stylelint/`; ao mudá-la, rode `vp run test` na
+  raiz do monorepo.
 - Os tokens de `src/theme/tokens/` são a paleta do boilerplate para as
   aplicações derivadas. Não aponte nem remova um token por não ter consumidor na
   demonstração; revise apenas valor, nome ou uso incorretos.

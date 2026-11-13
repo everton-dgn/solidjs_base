@@ -4,11 +4,11 @@
 
 An application built from boilerplate_solidjs takes code from three places.
 
-| Place                       | Content                                                                                                                                                                                                                                                         | Shipped as                          |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `@evertondgn/solid-tooling` | Lint preset, the `project`, `backend`, `architecture` and `solid` lint plugins, formatter preset, TypeScript base. Planned: a `defineSolidApp()` preset for Vite, Nitro, Vitest and Playwright, and shared configs for Knip, Stylelint, commitlint and Lefthook | Compiled JavaScript with type files |
-| Runtime package (planned)   | Middleware, security headers and CSP, server errors, i18n runtime, theme logic, primitives, SEO, Markdown pages, and the sitemap, robots and llms.txt handlers as factories                                                                                     | TypeScript source                   |
-| The application             | Pages, UI components, message catalogs, the theme palette, `App`, `Document`, the `entry-*` pair, a thin middleware, one-line SEO routes, version pins and patches                                                                                              | Its own repository                  |
+| Place                       | Content                                                                                                                                                                                                                                                                    | Shipped as                          |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `@evertondgn/solid-tooling` | Lint preset, the `project`, `backend`, `architecture` and `solid` lint plugins, formatter preset, TypeScript base, Knip and Stylelint configs. Planned: a `defineSolidApp()` preset for Vite, Nitro, Vitest and Playwright, and shared configs for commitlint and Lefthook | Compiled JavaScript with type files |
+| Runtime package (planned)   | Middleware, security headers and CSP, server errors, i18n runtime, theme logic, primitives, SEO, Markdown pages, and the sitemap, robots and llms.txt handlers as factories                                                                                                | TypeScript source                   |
+| The application             | Pages, UI components, message catalogs, the theme palette, `App`, `Document`, the `entry-*` pair, a thin middleware, one-line SEO routes, version pins and patches                                                                                                         | Its own repository                  |
 
 The two packages ship in different forms because of how each one runs. See
 [ADR 0002](ADRs/0002-compiled-tooling-package.md) and
@@ -43,7 +43,9 @@ exported as is.
 | `./backend-plugin`       | Oxlint plugin with the `backend/*` rules           |
 | `./architecture-plugin`  | Oxlint plugin with the `architecture/*` rules      |
 | `./solid-plugin`         | `eslint-plugin-solid`, resolved from the package   |
-| `./css-filename`         | The CSS filename check, for the CSS lint script    |
+| `./css-filename`         | The CSS filename check, also run by `./stylelint`  |
+| `./knip`                 | The Knip config, in `tooling/knip.ts`              |
+| `./stylelint`            | The CSS lint, run by `tooling/css/check.ts`        |
 | `./tsconfig.base.json`   | Base for the application `tsconfig.json`           |
 | `./tsconfig.app.json`    | The base plus the types and `include` of the app   |
 | `./vitest`               | The Vitest projects, imported in `vite.config.ts`  |
@@ -56,7 +58,15 @@ such as `@evertondgn/solid-tooling/project-plugin`. Oxlint resolves them from
 the application, and with Bun's isolated linker the application only sees its
 direct dependencies. That is why `./solid-plugin` re-exports
 `eslint-plugin-solid`: the package depends on it, and the application does not
-have to declare it.
+have to declare it. For the same reason, `./stylelint` passes
+`stylelint-use-nesting` to Stylelint by a path resolved from the package.
+
+`./knip` and `./stylelint` take the application folder as `root` and add a
+default entry, project pattern or theme reference only when its file exists:
+Knip fails on an entry without files, and Stylelint on a reference without
+files.
+[ADR 0013](ADRs/0013-knip-and-stylelint-configs-in-the-tooling-package.md)
+records the choices.
 
 `vite-plus` and `@inlang/paraglide-js` are peer dependencies pinned to the exact
 versions the package is tested with. An application that upgrades either one

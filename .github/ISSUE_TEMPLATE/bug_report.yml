@@ -1,0 +1,47 @@
+name: Bug report
+description: A package does not behave as its documentation says.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for the report. For a security problem, use the private report
+        described in SECURITY.md instead of this form.
+  - type: input
+    id: package
+    attributes:
+      label: Package and version
+      placeholder: '@evertondgn/solid-tooling 0.2.0'
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: The command you ran and its full output.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: >-
+        A repository, or the smallest set of files and config that shows the
+        problem.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: The output of `vp env doctor`, and your operating system.
+      render: text
+    validations:
+      required: true

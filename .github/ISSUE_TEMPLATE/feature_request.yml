@@ -1,0 +1,37 @@
+name: Proposal
+description: A new rule, option or package, or a change to a default.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: >-
+        What you are trying to do and what gets in the way today. Include an
+        example from a real application if you have one.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: >-
+        The change you suggest. For a lint rule, show code it should report and
+        code it should accept.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other ways to solve it that you considered, and why not them.
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - '@evertondgn/solid-tooling'
+        - A new package
+        - Not sure
+    validations:
+      required: true

@@ -66,12 +66,16 @@ installed by tarball, moved the middleware steps to the package and measured:
   `restrictPageMethods` used. Its production build writes the same
   `.vercel/output/config.json` as before, and its client bundle has no module of
   the package.
-- Because the empty `sideEffects` list behaves like `false`, the client entry
-  has to enter the list when it moves to the package, or the build drops it
-  without an error.
+- The probe measured `false`, which dropped the one-line client entry, and a
+  list with that entry, which kept it. The empty list was not measured with an
+  entry; when the client entry moves to the package, it enters the list.
 - The root lint gives the runtime sources the test exceptions of an
   application's `src/`, not the Node and `node:test` exceptions of the tooling
-  sources.
+  sources. The moved files lost three checks they had in the application: the
+  architecture and backend rules match paths under `src/` of the folder where
+  lint runs, so they do not reach `packages/solid-runtime/src/` from the root;
+  the package Vitest has no coverage thresholds; and Knip does not run on the
+  package.
 - `node --test` cannot run the package tests: they use the Vitest globals,
   `vi.mock` of virtual modules and `vi.hoisted`.
 - The Vitest config of the package repeats the stand-ins of `solidTest`. The

@@ -40,9 +40,13 @@ preset writes three of those headers on the static files.
     `script-src` of the package and replace it;
   - a `content-security-policy` header, in any case, because the package builds
     the CSP;
-  - a header name, a header value or a directive that `Headers` cannot carry,
-    such as one with a line break. Without this check the application would
-    start, and `Headers` would refuse the value on every response.
+  - a header name, a header value or a directive that a response cannot carry.
+    `Headers` refuses a bad name and a line break inside a value, and the HTTP
+    layer of Node, which the server adapter writes through, refuses the other
+    control characters. The check probes each value as a response sends it: the
+    policy with a `script-src` at the end, and each value after `Headers` trims
+    it. Without this check the application would start and fail on every
+    response.
 
   Directive names are compared without case, as the CSP parser does. A response
   never carries two directives with the same name.

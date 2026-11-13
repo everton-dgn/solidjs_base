@@ -24,6 +24,9 @@ type SecurityHeaders = {
 
 const NONCE_BYTES = 16
 const NO_SCRIPTS = "script-src 'none'"
+// What Node accepts in a header value: the tab, the printable ASCII
+// characters and the rest of Latin-1.
+const UNSENDABLE = /[^\t -~\u0080-ÿ]/u
 const SCRIPT_DIRECTIVES = new Set([
   'script-src',
   'script-src-elem',
@@ -43,12 +46,16 @@ function joinPolicy({ directives, scriptSrc }: Policy): string {
   return [...directives, scriptSrc].join('; ')
 }
 
-// Headers refuses a name or a value it cannot send. Checking at creation makes
-// a bad value fail when the application starts, not on every response.
+// Checking at creation makes a bad value fail when the application starts, not
+// on every response. Headers refuses a bad name and some bad values, and trims
+// the ends of the value it keeps. The HTTP layer of Node, which the server
+// adapter writes through, also refuses the control characters that Headers
+// lets through, so the kept value is checked against them.
 function isSendable({ name, value }: HeaderEntry): boolean {
   try {
-    new Headers().set(name, value)
-    return true
+    const probe = new Headers()
+    probe.set(name, value)
+    return !UNSENDABLE.test(probe.get(name) ?? '')
   } catch {
     return false
   }

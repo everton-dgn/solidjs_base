@@ -368,10 +368,14 @@ describe('creation of the security headers', () => {
     }
   )
 
-  // Without this check, Headers would refuse the value on every response.
+  // Without this check, the value would fail on every response: Headers refuses
+  // a line break and a bad name, and the HTTP layer of Node refuses the other
+  // control characters.
   it.each([
     ['x-frame-options', 'DENY\nx-injected: 1'],
-    ['x frame options', 'DENY']
+    ['x frame options', 'DENY'],
+    ['x-frame-options', 'DENY\u0001'],
+    ['x-frame-options', 'DENY\u007F']
   ])(
     'refuses the header %j with the value %j, which a header cannot carry',
     (name, value) => {
@@ -387,7 +391,11 @@ describe('creation of the security headers', () => {
 
   // Headers trims the ends of a value: a line break that closes the last item
   // passes alone and fails once the script-src of the package follows it.
-  it.each(["img-src 'self'\nhttps://cdn.example", "img-src 'self'\n"])(
+  it.each([
+    "img-src 'self'\nhttps://cdn.example",
+    "img-src 'self'\n",
+    "img-src 'self' \u0001"
+  ])(
     'refuses the last directive %j, which a header value cannot carry',
     directive => {
       expect(() =>
@@ -397,6 +405,14 @@ describe('creation of the security headers', () => {
       )
     }
   )
+
+  it('accepts the tab and the Latin-1 characters that a header value carries', () => {
+    expect(() =>
+      createSecurityHeaders({
+        headers: { ...SECURITY_HEADERS, 'x-note': 'café\tbar' }
+      })
+    ).not.toThrow()
+  })
 })
 
 describe('instances of the security headers', () => {

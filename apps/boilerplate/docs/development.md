@@ -50,16 +50,16 @@ local.
 
 ## Build e deploy
 
-O Nitro usa `preset: 'vercel'` no `vite.config.ts` e gera a função SSR e os
-estáticos em `.vercel/output/`. A entrada SSR do build é o handler nativo do
-plugin do Solid, que lê o nonce de `event.nonce` após a cadeia de middleware.
-Ele renderiza pelas entradas autorais `src/entry-server.tsx` e
-`src/entry-client.tsx`, que o plugin exige em par. A de servidor cria o estado
-de integridade do render e o conclui pelo `onCompleteAll`, que a entrada gerada
-não passa ao `renderToStream`; a de cliente confere o idioma e instala a
-detecção de página desatualizada e a guarda de histórico antes da hidratação. As
-requisições de server functions usam a integração nativa entre Solid e
-Nitro/srvx.
+O Nitro usa `preset: 'vercel'`, fixado pelo `defineSolidApp` de
+`@evertondgn/solid-tooling/vite`, e gera a função SSR e os estáticos em
+`.vercel/output/`. A entrada SSR do build é o handler nativo do plugin do Solid,
+que lê o nonce de `event.nonce` após a cadeia de middleware. Ele renderiza pelas
+entradas autorais `src/entry-server.tsx` e `src/entry-client.tsx`, que o plugin
+exige em par. A de servidor cria o estado de integridade do render e o conclui
+pelo `onCompleteAll`, que a entrada gerada não passa ao `renderToStream`; a de
+cliente confere o idioma e instala a detecção de página desatualizada e a guarda
+de histórico antes da hidratação. As requisições de server functions usam a
+integração nativa entre Solid e Nitro/srvx.
 
 A entrada do cliente publica o marcador de testes com `onHydrationEnd`, dentro
 da passagem raiz de `hydrate()`. Ele acompanha o fim da fase, inclusive quando
@@ -106,10 +106,10 @@ O `vercel.json` desativa os deploys pela integração Git
 no build. O cache imutável de `/images/` (uma imagem trocada precisa de nome
 novo, como explica o [guia de SEO](seo.md)) e os cabeçalhos `nosniff` e
 `Cross-Origin-Resource-Policy` dos estáticos vêm dos `publicAssets` e das
-`routeRules` do Nitro no `vite.config.ts`, como descreve o guia de
-[segurança](security.md); os demais cabeçalhos de segurança saem do middleware.
-A configuração da Vercel e o fluxo de releases automáticas estão no
-[guia de releases](../tooling/release/README.md).
+`routeRules` do Nitro que o `defineSolidApp` monta a partir do `vite.config.ts`,
+como descreve o guia de [segurança](security.md); os demais cabeçalhos de
+segurança saem do middleware. A configuração da Vercel e o fluxo de releases
+automáticas estão no [guia de releases](../tooling/release/README.md).
 
 O Nitro é definido no [package.json](../package.json). Ao atualizá-lo, valide o
 build Vercel, o preview local e os E2E. Os diretórios gerados `.output/`,
@@ -190,22 +190,22 @@ exemplo `bun info solid-js dist-tags`, e atualize a versão fixada no
 
 `vp run lint`, `vp run lint:css`, `vp run check:ci` e `vp run dead-code` usam as
 tarefas com cache `lint-project`, `lint-css`, `check-project` e
-`dead-code-project` do `vite.config.ts`. `lint-project` e `check-project`
-declaram `dependsOn: ['lint-css']`: o lint de CSS roda antes, com cache e
-entradas próprias, e uma mudança só em TypeScript não o executa de novo. As duas
-tarefas compartilham as entradas da constante `PROJECT_CHECK_INPUTS`.
-`check-project` roda `vp check --continue-on-error`: uma falha de formatação não
-interrompe o lint nem a checagem de tipos, a saída reúne os três resultados e o
-comando termina com erro se qualquer um deles falhar. `vp run typecheck:node`
-usa a tarefa `typecheck-node`; `vp run test:tooling` usa a tarefa
-`test-tooling`, sem cache, porque os testes dependem de diretórios temporários
-que o cache não rastreia. O Vite+ reaproveita resultados bem-sucedidos quando os
-arquivos lidos, as listagens de diretórios, os argumentos e as variáveis de
-ambiente selecionadas continuam iguais. As tarefas de lint incluem `NODE_ENV` na
-chave do cache; `PATH` e `NODE_OPTIONS` chegam ao processo sem invalidar o
-resultado. O Vite também registra as variáveis que carrega. A configuração do
-servidor limita `loadEnv` aos prefixos `HOST` e `PORT`, para não registrar todo
-o ambiente.
+`dead-code-project`, que o `defineSolidApp` de `@evertondgn/solid-tooling/vite`
+declara. `lint-project` e `check-project` declaram `dependsOn: ['lint-css']`: o
+lint de CSS roda antes, com cache e entradas próprias, e uma mudança só em
+TypeScript não o executa de novo. As duas tarefas compartilham as mesmas
+entradas. `check-project` roda `vp fmt --check && vp lint`, porque no monorepo o
+`vp check` usaria o lint e o formatador da raiz: uma falha de formatação
+interrompe a tarefa antes do lint e da checagem de tipos.
+`vp run typecheck:node` usa a tarefa `typecheck-node`; `vp run test:tooling` usa
+a tarefa `test-tooling`, sem cache, porque os testes dependem de diretórios
+temporários que o cache não rastreia. O Vite+ reaproveita resultados
+bem-sucedidos quando os arquivos lidos, as listagens de diretórios, os
+argumentos e as variáveis de ambiente selecionadas continuam iguais. As tarefas
+de lint incluem `NODE_ENV` na chave do cache; `PATH` e `NODE_OPTIONS` chegam ao
+processo sem invalidar o resultado. O Vite também registra as variáveis que
+carrega. A configuração do servidor limita `loadEnv` aos prefixos `HOST` e
+`PORT`, para não registrar todo o ambiente.
 
 O rastreamento automático registra os arquivos que o lint type-aware lê,
 inclusive os tipos em `node_modules`, mas não vê as leituras do `tsc` nativo.

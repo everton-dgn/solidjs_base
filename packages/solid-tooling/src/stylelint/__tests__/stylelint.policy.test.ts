@@ -1,24 +1,55 @@
 import assert from 'node:assert/strict'
-import { describe, it } from 'node:test'
-import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+import { describe, it, type TestContext } from 'node:test'
 
 import stylelint from 'stylelint'
 
-async function lint(code: string): Promise<string[]> {
-  const result = await stylelint.lint({
-    code,
-    codeFilename: 'styles.module.css',
-    configFile: fileURLToPath(
-      new URL('../stylelint.config.mjs', import.meta.url)
-    )
+import { createAppFixture } from '../../testing/createAppFixture/index.ts'
+import { defineStylelintConfig } from '../index.ts'
+
+type LinterOptions = { context: TestContext; file?: string }
+
+type Lint = (code: string) => Promise<string[]>
+
+const TOKENS = `:root {
+  --color-primary: currentcolor;
+  --color-secondary: currentcolor;
+  --color-foreground: currentcolor;
+  --gradient-page: none;
+  --radius-8: 8px;
+  --ring-focus: none;
+  --shadow-sm: none;
+  --font-family: sans-serif;
+  --font-size-14: 14px;
+  --font-weight-600: 600;
+}
+`
+
+// The theme has only the tokens these cases use.
+async function createLinter({
+  context,
+  file = 'src/components/atoms/Card/styles.module.css'
+}: LinterOptions): Promise<Lint> {
+  const root = await createAppFixture({
+    context,
+    files: { 'src/theme/tokens/colors.css': TOKENS }
   })
-  return result.results.flatMap(item =>
-    item.warnings.map(warning => warning.rule)
-  )
+  return async code => {
+    const result = await stylelint.lint({
+      cwd: root,
+      code,
+      codeFilename: path.join(root, file),
+      config: await defineStylelintConfig(root)
+    })
+    return result.results.flatMap(item =>
+      item.warnings.map(warning => warning.rule)
+    )
+  }
 }
 
 describe('stylelint css policy', () => {
-  it('accepts snake_case and rejects hyphens, camelCase and PascalCase', async () => {
+  it('accepts snake_case and rejects hyphens, camelCase and PascalCase', async context => {
+    const lint = await createLinter({ context })
     assert.deepEqual(
       await lint('.variant_default { color: var(--color-primary); }'),
       []
@@ -35,7 +66,8 @@ describe('stylelint css policy', () => {
     }
   })
 
-  it('allows two nested levels and rejects a third', async () => {
+  it('allows two nested levels and rejects a third', async context => {
+    const lint = await createLinter({ context })
     assert.deepEqual(
       await lint(
         '.card { &:hover { & > span { color: var(--color-primary); } } }'
@@ -48,7 +80,8 @@ describe('stylelint css policy', () => {
     assert.ok(rules.includes('max-nesting-depth'))
   })
 
-  it('requests nesting for adjacent state selectors and media queries', async () => {
+  it('requests nesting for adjacent state selectors and media queries', async context => {
+    const lint = await createLinter({ context })
     const states = await lint(
       '.card { color: var(--color-primary); } .card:hover { color: var(--color-secondary); }'
     )
@@ -59,7 +92,8 @@ describe('stylelint css policy', () => {
     assert.ok(media.includes('csstools/use-nesting'))
   })
 
-  it('accepts native nesting and rejects an ampersand without a parent', async () => {
+  it('accepts native nesting and rejects an ampersand without a parent', async context => {
+    const lint = await createLinter({ context })
     assert.deepEqual(
       await lint(
         '.card { color: var(--color-primary); &:hover { color: var(--color-secondary); } @media (width > 600px) { color: var(--color-foreground); } }'
@@ -72,7 +106,8 @@ describe('stylelint css policy', () => {
 })
 
 describe('stylelint token policy', () => {
-  it('rejects literal colors in any property and raw font shorthands', async () => {
+  it('rejects literal colors in any property and raw font shorthands', async context => {
+    const lint = await createLinter({ context })
     for (const { code, rule } of [
       { code: '.a { border-block-end: 1px solid red; }', rule: 'color-named' },
       {
@@ -109,7 +144,8 @@ describe('stylelint token policy', () => {
     )
   })
 
-  it('accepts token combinations and rejects raw values between tokens', async () => {
+  it('accepts token combinations and rejects raw values between tokens', async context => {
+    const lint = await createLinter({ context })
     assert.deepEqual(
       await lint(
         '.a { box-shadow: var(--ring-focus), var(--shadow-sm); font: var(--font-weight-600) var(--font-size-14)/1.5 var(--font-family); }'
@@ -126,12 +162,13 @@ describe('stylelint token policy', () => {
     }
   })
 
-  it('accepts an exception only through a disable comment with a reason', async () => {
+  it('accepts an exception only through a disable comment with a reason', async context => {
+    const lint = await createLinter({ context })
     const disable =
       '/* stylelint-disable-next-line declaration-property-value-allowed-list'
     assert.deepEqual(
       await lint(
-        `.a {\n  ${disable} -- ícone externo exige 13px */\n  font-size: 13px;\n}`
+        `.a {\n  ${disable} -- the external icon needs 13px */\n  font-size: 13px;\n}`
       ),
       []
     )
@@ -139,7 +176,8 @@ describe('stylelint token policy', () => {
     assert.ok(rules.includes('--report-descriptionless-disables'))
   })
 
-  it('rejects a token from another family with a valid type', async () => {
+  it('rejects a token from another family with a valid type', async context => {
+    const lint = await createLinter({ context })
     for (const code of [
       '.a { font-size: var(--radius-8); }',
       '.a { border-radius: var(--font-size-14); }',
@@ -159,7 +197,8 @@ describe('stylelint token policy', () => {
     )
   })
 
-  it('rejects system colors the type check cannot resolve', async () => {
+  it('rejects system colors the type check cannot resolve', async context => {
+    const lint = await createLinter({ context })
     for (const code of [
       '.a { outline: var(--width, 2px) solid Canvas; }',
       '.a { outline: 1px solid var(--color-focus, Canvas); }',
@@ -179,7 +218,8 @@ describe('stylelint token policy', () => {
     )
   })
 
-  it('matches property names in any case and with a vendor prefix', async () => {
+  it('matches property names in any case and with a vendor prefix', async context => {
+    const lint = await createLinter({ context })
     for (const { code, rule } of [
       {
         code: '.a { FONT-SIZE: 14px; }',
@@ -199,7 +239,8 @@ describe('stylelint token policy', () => {
     }
   })
 
-  it('limits local custom properties named after a token family', async () => {
+  it('limits local custom properties named after a token family', async context => {
+    const lint = await createLinter({ context })
     assert.deepEqual(await lint('.a { --button-radius: 0; }'), [])
     assert.deepEqual(
       await lint(
@@ -232,12 +273,14 @@ describe('stylelint token policy', () => {
 })
 
 describe('stylelint value and selector checks', () => {
-  it('rejects values that cannot be parsed', async () => {
+  it('rejects values that cannot be parsed', async context => {
+    const lint = await createLinter({ context })
     const rules = await lint('.a { inset-block-start: calc(1px + 2); }')
     assert.ok(rules.includes('value-no-invalid'))
   })
 
-  it('rejects deprecated and unmatchable selectors and a late @charset', async () => {
+  it('rejects deprecated and unmatchable selectors and a late @charset', async context => {
+    const lint = await createLinter({ context })
     for (const { code, rule } of [
       {
         code: '.a:focus-ring { color: var(--color-primary); }',
@@ -257,7 +300,8 @@ describe('stylelint value and selector checks', () => {
     }
   })
 
-  it('rejects unknown pseudo-elements and type selectors', async () => {
+  it('rejects unknown pseudo-elements and type selectors', async context => {
+    const lint = await createLinter({ context })
     const pseudoElement = await lint(
       '.a { &::placholder { color: var(--color-primary); } }'
     )
@@ -270,5 +314,19 @@ describe('stylelint value and selector checks', () => {
       ),
       []
     )
+  })
+})
+
+describe('stylelint theme exception', () => {
+  it('allows color functions inside src/theme/ only', async context => {
+    const code = ':root { --color-accent: oklch(0.6 0.2 25); }'
+    const lintTheme = await createLinter({
+      context,
+      file: 'src/theme/tokens/accent.css'
+    })
+    assert.deepEqual(await lintTheme(code), [])
+    const lint = await createLinter({ context })
+    const rules = await lint(code)
+    assert.ok(rules.includes('function-disallowed-list'))
   })
 })

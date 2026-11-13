@@ -35,9 +35,12 @@ release. Add a tool name to select part of the graph. For example, run
 - Esta pasta é uma cópia do `boilerplate_solidjs` no commit `6145493`, usada
   para testar os pacotes do monorepo numa aplicação completa. O `README.md`
   desta pasta lista o que mudou em relação ao original.
-- As regras de lint, o formatador, os tsconfigs, os projetos do Vitest
-  (`solidTest`) e a config do Playwright (`definePlaywrightConfig`) vêm do
-  pacote `@evertondgn/solid-tooling`. Os caminhos `packages/solid-tooling/src/...`
+- As regras de lint, o formatador, os tsconfigs, a config do Vite e do Nitro
+  (`defineSolidApp`), os projetos do Vitest (`solidTest`), a config do
+  Playwright (`definePlaywrightConfig`) e as configs do Knip
+  (`defineKnipConfig`) e do Stylelint (`checkCss`) vêm do pacote
+  `@evertondgn/solid-tooling`. `tooling/knip.ts` e `tooling/css/check.ts` só
+  passam ao pacote o que é desta aplicação. Os caminhos `packages/solid-tooling/src/...`
   citados aqui ficam na raiz do monorepo. Ao mudar uma regra, mude no pacote
   e rode `vp run test` na raiz do monorepo.
 - As seções sobre automação de release, workflow de CI, hooks de Git e deploy
@@ -91,8 +94,9 @@ release. Add a tool name to select part of the graph. For example, run
   `gh` e módulos `node:`. O pre-push roda o Knip (`vp run dead-code`) em
   paralelo com `test:tooling` e `test:release`; no CI, o Knip roda no job
   `Quality`.
-- As tarefas do `vite.config.ts` que executam arquivos de `tooling/`, como o
-  `i18n:generate` e o lint de CSS, usam `bun tooling/<arquivo>.ts`. O `vpx`
+- As tarefas do `vp run` vêm do `defineSolidApp` de
+  `@evertondgn/solid-tooling/vite`. As que executam arquivos de `tooling/`, como
+  o `i18n:generate` e o lint de CSS, usam `bun tooling/<arquivo>.ts`. O `vpx`
   recomendado no bloco gerenciado acima vale para scripts avulsos, fora desses
   fluxos.
 - Para validar mudanças, use `vp run check:ci` e `vp run test`, não os
@@ -454,7 +458,9 @@ release. Add a tool name to select part of the graph. For example, run
 - Use nesting para estados e media queries de cada classe. As classes de
   variantes e tamanhos ficam no nível superior, fora da classe base.
 - Importe CSS Modules como `S`. O Stylelint exige snake_case em `src/**/*.css`;
-  valide mudanças com `vp run lint:css` e `vp run test:tooling`.
+  valide mudanças com `vp run lint:css`. A política de CSS fica em
+  `packages/solid-tooling/src/stylelint/`; ao mudá-la, rode `vp run test` na
+  raiz do monorepo.
 - Os tokens de `src/theme/tokens/` são a paleta do boilerplate para as
   aplicações derivadas. Não aponte nem remova um token por não ter consumidor na
   demonstração; revise apenas valor, nome ou uso incorretos.
@@ -501,14 +507,15 @@ release. Add a tool name to select part of the graph. For example, run
   [docs/security.md](docs/security.md). Os cabeçalhos saem do middleware, com
   os valores em `src/middleware/securityHeaders/constants.ts`; não devolva a
   CSP nem os demais cabeçalhos das respostas da função ao `vercel.json`. Os
-  estáticos não passam pela função: as `routeRules` do Nitro no
-  `vite.config.ts` gravam neles `Strict-Transport-Security`,
+  estáticos não passam pela função: as `routeRules` do Nitro que o
+  `defineSolidApp` monta gravam neles `Strict-Transport-Security`,
   `X-Content-Type-Options` e `Cross-Origin-Resource-Policy`, lidos de
-  `SECURITY_HEADERS`. Ao publicar um
-  novo tipo de estático, acrescente o caminho a `STATIC_FILE_PATHS`, sem
-  sobreposição parcial com os outros padrões nem com as demais `routeRules`.
-  Os `.md` entram por idioma; ao mudar o `urlPatterns` do Paraglide, revise
-  esses padrões. O
+  `SECURITY_HEADERS` pela opção `securityHeaders` do `vite.config.ts`. Ao
+  publicar um novo tipo de estático, acrescente o caminho em `staticPaths` (ou
+  uma pasta em `publicAssets`, com `baseURL`), sem sobreposição parcial com os
+  outros padrões nem com as demais `routeRules`; o preset recusa caminho dentro
+  da pasta de um idioma. Os `.md` entram por idioma; ao mudar o `urlPatterns`
+  do Paraglide, revise esses padrões. O
   `vercel.json` guarda só o `Content-Type` dos `.md`, que numa route rule
   também sobrescreveria os erros da função
   ([limites conhecidos](docs/security.md#limites-conhecidos)).

@@ -69,7 +69,7 @@ Run its commands from `apps/boilerplate`:
 | `vp run typecheck:node` | Type check `vite.config.ts` and `tooling/`                               |
 | `vp run dead-code`      | Find unused files, exports and dependencies with Knip                    |
 | `vp run test:ci`        | Vitest with coverage: node, dom and browser projects                     |
-| `vp run test:tooling`   | Tests of the application tooling: i18n, Markdown, CSS, Playwright config |
+| `vp run test:tooling`   | Tests of the application tooling: i18n, Markdown, CSS Module class names |
 | `vp run build`          | Build the application                                                    |
 | `vp run test:e2e`       | Playwright end-to-end tests                                              |
 
@@ -94,13 +94,26 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
   `tooling/testing/` and the server log teardown come from the package, with
   their tests. `tsconfig.json` extends `tsconfig.app.json` and keeps only the
   `paths`.
+- `vite.config.ts` calls `defineSolidApp` from `./vite`: the plugins, the
+  headers of the static files, the build, CSS, server and preview blocks and the
+  `vp run` tasks come from the package. The i18n plugin and the publication
+  artifacts still come from `tooling/`, through the `extend` option. The
+  `workspace` option points `bun.lock`, `bunfig.toml` and the package build to
+  the monorepo root; a copy outside the workspace leaves it out.
+- `tooling/knip.ts` and `tooling/css/check.ts` call `defineKnipConfig` and
+  `checkCss` from the package and pass only what is the application's own: the
+  public API entries, the fixture middleware and the ignores below. The
+  Stylelint config, the CSS policy tests and the `stylelint` and
+  `stylelint-use-nesting` dependencies moved to the package, and the CSS lint
+  messages are in English.
+- `tooling/knip.ts` lists `tooling/i18n/generate.ts` and `tooling/css/check.ts`
+  as entries. Knip reads task commands only from a `run.tasks` block written in
+  `vite.config.ts`, and the tasks now come from the package.
 - `tooling/knip.ts` lists `server-only` in `ignoreDependencies`: the original
   resolved it through a test alias to `tooling/testing/server-only.ts`.
-- `tooling/css/__tests__/cssPolicy.test.ts` lost the cases for the CSS filename
-  and CSS Modules rules, which are now tested in the package.
 - `tooling/__tests__/patched-dependencies.test.ts` reads the root `package.json`
   and `bun.lock`.
-- `tooling/knip.ts` skips the `catalogReferences` check: Knip runs in the
+- `tooling/knip.ts` excludes the `catalogReferences` check: Knip runs in the
   application folder and does not see the root catalog. `bun install` already
   fails on a catalog entry that does not exist.
 - `docs/` and `AGENTS.md` point the rule paths to `packages/solid-tooling/src/`.

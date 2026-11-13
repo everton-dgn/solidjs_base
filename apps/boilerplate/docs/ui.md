@@ -240,7 +240,7 @@ do Vite+.
   variáveis desconhecidas com fallback, como `var(--opcional, 0)`; nesses
   valores a checagem por tipo não resolve a variável, e as cores continuam
   barradas pela busca pelo nome. As referências compartilhadas vêm da opção
-  `referenceFiles` do Stylelint.
+  `referenceFiles` do Stylelint, e cada uma só entra quando o arquivo existe.
 - Fora de `src/theme/`, inclusive nas rotas, o nome obrigatório é
   `styles.module.css`. Em `src/theme/`, use nomes como `colors.css` e
   `zIndex.css`.
@@ -256,13 +256,16 @@ arquivos CSS referenciados por imports e reexportações em JS/TS. O comando
 `lint:css` reutiliza essa validação para todos os arquivos CSS em `src/`,
 inclusive aqueles sem imports em JS/TS.
 
-`vp run test:tooling` verifica o comportamento dos verificadores com casos em
-memória e roda nos hooks e no CI. O lint do CSS real continua automático, e suas
-violações bloqueiam a validação até serem corrigidas.
+As regras e a verificação de nomes vêm do `checkCss` do
+`@evertondgn/solid-tooling` (`packages/solid-tooling/src/stylelint/`), chamado
+por `tooling/css/check.ts`. Os casos em memória que verificam a política rodam
+com `vp run test` na raiz do monorepo. O lint do CSS real continua automático, e
+suas violações bloqueiam a validação até serem corrigidas.
 
 ## Processamento de CSS
 
-`vite.config.ts` usa o Lightning CSS (`css.transformer: 'lightningcss'`) para
+O `defineSolidApp` de `@evertondgn/solid-tooling/vite`, chamado no
+`vite.config.ts`, liga o Lightning CSS (`css.transformer: 'lightningcss'`) para
 transpilar nesting, `light-dark()` e prefixos para os navegadores do Baseline
 padrão do Vite, rebaixando cores modernas só quando o alvo exigir.
 `light-dark()` vira variáveis `--lightningcss-light`/`--lightningcss-dark`,
@@ -286,11 +289,12 @@ classes da folha num nome só. Como o nome vem do conteúdo, editar um CSS muda 
 classes geradas e o hash do chunk JS que importa a folha, e duas folhas com
 conteúdo idêntico compartilham os nomes; isso só é seguro sem `url()`, `@import`
 ou `composes` relativos, que apontariam para alvos diferentes.
-`tooling/lightningCssModules/` carrega o `vite.config.ts` real e confere que o
-import normal e o `?inline` usam a mesma classe e que as classes continuam
-distintas entre seletores e entre módulos. Quando uma versão do Vite+ trouxer o
-[vitejs/vite#23736](https://github.com/vitejs/vite/pull/23736), o padrão pode
-voltar ao `[hash]` do Lightning CSS, desde que esse teste continue passando.
+`tooling/lightningCssModules/` carrega o `vite.config.ts` real, com o preset, e
+confere que o import normal e o `?inline` usam a mesma classe e que as classes
+continuam distintas entre seletores e entre módulos. Quando uma versão do Vite+
+trouxer o [vitejs/vite#23736](https://github.com/vitejs/vite/pull/23736), o
+padrão pode voltar ao `[hash]` do Lightning CSS, desde que esse teste continue
+passando.
 
 ## SVGs locais como componentes
 

@@ -27,14 +27,22 @@ export default defineConfig({
       'backend-plugin': 'src/backendPolicy/plugin.ts',
       'architecture-plugin': 'src/architecturePolicy/index.ts',
       'css-filename': 'src/css/css-filename.ts',
-      'solid-plugin': 'src/solid-plugin.ts'
+      'solid-plugin': 'src/solid-plugin.ts',
+      vitest: 'src/vitest/index.ts',
+      'vitest-setup/browser': 'src/vitest/setup/browser.ts',
+      playwright: 'src/playwright/index.ts',
+      'playwright-teardown': 'src/playwright/teardown.ts'
     },
     format: ['esm'],
     dts: { generator: 'tsgo' },
+    // The application generates its Paraglide modules; the browser setup
+    // imports them at test time, through the alias of the vitest preset.
+    deps: { neverBundle: [/^@paraglide\//u] },
     exports: {
       customExports: exports => ({
         ...exports,
-        './tsconfig.base.json': './tsconfig.base.json'
+        './tsconfig.base.json': './tsconfig.base.json',
+        './tsconfig.app.json': './tsconfig.app.json'
       })
     }
   }

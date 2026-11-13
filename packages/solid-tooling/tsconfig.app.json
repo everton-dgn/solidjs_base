@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": [
+      "node",
+      "vite/client",
+      "vite-plus/test/globals",
+      "@testing-library/jest-dom/vitest",
+      "@solidjs/vite-plugin/boundary-modules",
+      "@solidjs/vite-plugin/virtual-modules"
+    ]
+  },
+  "include": [
+    "${configDir}/src",
+    "${configDir}/env.ts",
+    "${configDir}/solid-env.d.ts",
+    "${configDir}/vite.config.ts",
+    "${configDir}/playwright.config.ts",
+    "${configDir}/tooling/**/*.ts"
+  ]
+}

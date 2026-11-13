@@ -29,8 +29,13 @@ export default defineSolidApp({
   // ficam na raiz, fora da pasta da aplicação.
   workspace: {
     dependsOn: ['@evertondgn/solid-tooling#build'],
-    // The runtime package is source code outside the application folder.
-    inputs: ['packages/solid-tooling/dist/**', 'packages/solid-runtime/src/**']
+    // The runtime package is source code outside the application folder, and
+    // its manifest holds the exports that resolve each import.
+    inputs: [
+      'packages/solid-tooling/dist/**',
+      'packages/solid-runtime/package.json',
+      'packages/solid-runtime/src/**'
+    ]
   },
   // O i18n e a publicação ainda ficam na aplicação. Uma chamada só entrega o
   // plugin e o módulo do Nitro com o mesmo buildId.

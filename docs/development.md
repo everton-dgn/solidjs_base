@@ -136,10 +136,11 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
 - `src/constants/http.ts` lost `HTTP_METHOD_NOT_ALLOWED`, used only by
   `restrictPageMethods`, and `tooling/knip.ts` lost the ignore of the moved
   `securityHeaders` test. The `workspace` option of `vite.config.ts` lists
-  `packages/solid-runtime/src/**` as an input of the cached tasks. Without it,
-  only the lint noticed a change in the package, through the automatic tracking;
-  the Node type check replayed its cached result after a change in the header
-  types that `vite.config.ts` reads.
+  `packages/solid-runtime/src/**` and the package manifest, whose `exports`
+  resolve each import, as inputs of the cached tasks. Without them, only the
+  lint noticed a change in the package, through the automatic tracking; the Node
+  type check replayed its cached result after a change in the header types that
+  `vite.config.ts` reads.
 - `tooling/knip.ts` excludes the `catalogReferences` check: Knip runs in the
   application folder and does not see the root catalog. `bun install` already
   fails on a catalog entry that does not exist.

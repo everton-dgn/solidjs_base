@@ -19,7 +19,8 @@ anything in the application.
 
 The root `package.json` lists two workspace folders:
 
-- `packages/*`: the packages published to npm.
+- `packages/*`: the packages published to npm. `@evertondgn/solid-runtime` stays
+  private until its first publish.
 - `apps/*`: applications that use the packages through the workspace. They are
   never published.
 
@@ -40,17 +41,22 @@ publish job runs `vp run validate` and must not run the application suites.
 | --------------------- | -------------------------------------------------------------- |
 | `vp run build`        | Compile the packages to `dist/`                                |
 | `vp run check`        | Check format, lint and types of the packages                   |
-| `vp run test`         | Run the rule tests with `node:test`                            |
+| `vp run test`         | Run the rule tests with `node:test` and the runtime tests      |
 | `vp run test:tarball` | Pack the package, install it in a copy of the fixture, lint it |
-| `vp run validate`     | Build, check, rule tests and tarball test, in this order       |
+| `vp run validate`     | Build, check, package tests and tarball test, in this order    |
 
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so
-`vp run test` builds the package first.
+`vp run test` builds the package first. The runtime tests run in the Vitest of
+`packages/solid-runtime` (`vp test run` in that folder), with the stand-ins that
+`solidTest` serves to an application. The runtime package has no build and no
+tarball test, so the filtered `build` and `test:tarball` skip it.
 
 The root `vite.config.ts` lints the package sources with the same preset,
 loading the plugins from `src/` instead of `dist/`, so a change to a rule is
-checked on the next run without a build. The package sources get the exceptions
-the preset gives to an application's `tooling/` folder.
+checked on the next run without a build. The tooling sources get the exceptions
+the preset gives to an application's `tooling/` folder. The runtime sources are
+application code: they get only the test exceptions of an application's `src/`,
+and the type check reads `packages/solid-runtime/tsconfig.json`.
 
 ## The boilerplate app
 
@@ -74,7 +80,8 @@ Run its commands from `apps/boilerplate`:
 | `vp run test:e2e`       | Playwright end-to-end tests                                              |
 
 Every command loads the application's `vite.config.ts`, which imports the
-compiled presets from `dist/`. Run `vp run build` at the root first, and again
+compiled presets from `dist/` and the security header constants from
+`@evertondgn/solid-runtime`. Run `vp run build` at the root first, and again
 after changing the package. Once `dist/` exists, `check:ci`, `typecheck:node`
 and `dead-code` rebuild the package before they run.
 
@@ -114,14 +121,27 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
   resolved it through a test alias to `tooling/testing/server-only.ts`.
 - `tooling/__tests__/patched-dependencies.test.ts` reads the root `package.json`
   and `bun.lock`.
+- The middleware steps `securityHeaders` (with its constants),
+  `restrictPageMethods`, `requestClassification`, `negotiatePageFormat` and
+  `isHtmlResponse`, and the `Middleware` and `Next` types, moved to
+  `@evertondgn/solid-runtime` with their tests, and `apiRoutes` from the package
+  replaces the `createAPIHandler(routes)` call of `src/middleware/index.ts`. The
+  locale, Markdown and failure steps and the chain stay in `src/middleware/` and
+  import the moved steps by package specifier, as does `vite.config.ts` for
+  `SECURITY_HEADERS` ([ADR 0018](ADRs/0018-runtime-package-middleware.md)).
+- `src/constants/http.ts` lost `HTTP_METHOD_NOT_ALLOWED`, used only by
+  `restrictPageMethods`, and `tooling/knip.ts` lost the ignore of the moved
+  `securityHeaders` test. The `workspace` option of `vite.config.ts` lists
+  `packages/solid-runtime/src/**` as an input of the cached tasks, which do not
+  see files outside the application folder on their own.
 - `tooling/knip.ts` excludes the `catalogReferences` check: Knip runs in the
   application folder and does not see the root catalog. `bun install` already
   fails on a catalog entry that does not exist.
 - `docs/` and `AGENTS.md` point the rule paths to `packages/solid-tooling/src/`
-  and are in English
-  ([ADR 0014](ADRs/0014-boilerplate-copy-docs-in-english.md)). Their sections
-  about releases, CI, Git hooks and the Vercel deploy describe the original
-  repository.
+  and the moved middleware files to `packages/solid-runtime/src/`, and are in
+  English ([ADR 0014](ADRs/0014-boilerplate-copy-docs-in-english.md)). Their
+  sections about releases, CI, Git hooks and the Vercel deploy describe the
+  original repository.
 
 ### Updating the copy
 

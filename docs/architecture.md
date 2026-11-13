@@ -7,7 +7,7 @@ An application built from boilerplate_solidjs takes code from three places.
 | Place                       | Content                                                                                                                                                                                                                                                                    | Shipped as                          |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
 | `@evertondgn/solid-tooling` | Lint preset, the `project`, `backend`, `architecture` and `solid` lint plugins, formatter preset, TypeScript configs, Vitest and Playwright configs, Knip and Stylelint configs, the `defineSolidApp()` preset for Vite and Nitro, the commitlint config and the Git hooks | Compiled JavaScript with type files |
-| Runtime package (planned)   | Middleware, security headers and CSP, server errors, i18n runtime, theme logic, primitives, SEO, Markdown pages, and the sitemap, robots and llms.txt handlers as factories                                                                                                | TypeScript source                   |
+| `@evertondgn/solid-runtime` | Today, the middleware steps: security headers and CSP, API routes, page methods, request classification and page format. Planned: server errors, i18n runtime, theme logic, primitives, SEO, Markdown pages, and the sitemap, robots and llms.txt handlers as factories    | TypeScript source                   |
 | The application             | Pages, UI components, message catalogs, the theme palette, `App`, `Document`, the `entry-*` pair, a thin middleware, one-line SEO routes, version pins and patches                                                                                                         | Its own repository                  |
 
 The two packages ship in different forms because of how each one runs. See
@@ -93,18 +93,38 @@ boilerplate layout: `src/` with `components/atoms`, `molecules` and `organisms`,
 The [package README](../packages/solid-tooling/README.md) lists each rule and
 its limits.
 
-## Runtime package
+## `@evertondgn/solid-runtime`
 
-It is not built yet. A test application that installed packages by tarball
-showed which form works, and ADR 0003 records the result: TypeScript source with
-the `solid` export condition, plus an `@paraglide` alias and `ssr.noExternal`
-set by a preset.
+The package ships TypeScript source, and the application's Vite compiles it
+([ADR 0003](ADRs/0003-runtime-package-as-source.md)). It is private and stays
+out of release-please until its first publish. The first slice holds the
+middleware steps; the application keeps the file that joins them and picks the
+steps, so translations and Markdown stay optional
+([ADR 0018](ADRs/0018-runtime-package-middleware.md)).
+
+- Each module has its own entry point, with only the `solid` condition, pointing
+  to the `.ts` file. There is no barrel, so a module the application does not
+  import never enters its build.
+- The security header constants are the exception: `constants.js` with
+  `constants.d.ts`, under `types` and `default`, because `vite.config.ts`
+  imports them through Node, which refuses TypeScript inside `node_modules`.
+- `sideEffects` is an empty list. A module with an intended effect, such as a
+  client entry, has to enter it; `false` would let the build drop that module
+  without an error.
+- The Solid Vite plugin adds the `solid` condition to the application build. The
+  Vitest node project does not load that plugin, so `solidTest` resolves the
+  packages of its `sourcePackages` option through the condition, and
+  `tsconfig.app.json` sets it for TypeScript.
+
+The [package README](../packages/solid-runtime/README.md) lists the entry
+points.
 
 ## How the packages are tested
 
 | Level                   | What it proves                                                                                   | Command                                               |
 | ----------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
 | Rule tests              | Each rule accepts and rejects the expected code, through `RuleTester` and through the Oxlint CLI | `vp run test`                                         |
+| Runtime tests           | The middleware steps of the runtime package, in its own Vitest                                   | `vp run test`                                         |
 | Tarball test            | The packed package installs in a separate application and its plugins load                       | `vp run test:tarball`                                 |
 | Boilerplate application | A complete application passes its check, unit, browser, build and end-to-end suites              | See [Development](development.md#the-boilerplate-app) |
 

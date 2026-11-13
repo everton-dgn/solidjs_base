@@ -12,9 +12,7 @@ const SOURCE_PLUGINS: Record<string, string> = {
   architecture: `${TOOLING_SOURCE}/architecturePolicy/index.ts`,
   solid: `${TOOLING_SOURCE}/solid-plugin.ts`
 }
-const APP_TOOLING_PREFIX = 'tooling/'
-const PACKAGE_SOURCE_PREFIX = 'packages/solid-tooling/src/'
-const RUNTIME_SOURCE = 'packages/solid-runtime/src'
+type PrefixMap = { from: string; to: string }
 
 const jsPlugins = (lint.jsPlugins ?? []).map(plugin =>
   typeof plugin === 'string'
@@ -25,14 +23,28 @@ const jsPlugins = (lint.jsPlugins ?? []).map(plugin =>
       }
 )
 
-// The tooling sources get the exceptions the preset reserves for application
-// tooling: they use node:test and Node modules. The runtime package holds
-// application code and gets only the test exceptions below.
-const packageOverrides = (lint.overrides ?? []).flatMap(override => {
-  const files = override.files
-    .filter(pattern => pattern.startsWith(APP_TOOLING_PREFIX))
-    .map(pattern => pattern.replace(APP_TOOLING_PREFIX, PACKAGE_SOURCE_PREFIX))
-  return files.length > 0 ? [{ ...override, files }] : []
+// The preset writes its overrides for the folders of an application. Each
+// package takes the ones of the folder it stands for, in the same order.
+function presetOverrides({ from, to }: PrefixMap): typeof lint.overrides {
+  return (lint.overrides ?? []).flatMap(override => {
+    const files = override.files
+      .filter(pattern => pattern.startsWith(from))
+      .map(pattern => pattern.replace(from, to))
+    return files.length > 0 ? [{ ...override, files }] : []
+  })
+}
+
+// The tooling sources are application tooling: they use node:test and Node
+// modules.
+const toolingOverrides = presetOverrides({
+  from: 'tooling/',
+  to: 'packages/solid-tooling/src/'
+})
+// The runtime sources are application code: they get the backend policy and
+// the test exceptions of src/.
+const runtimeOverrides = presetOverrides({
+  from: 'src/',
+  to: 'packages/solid-runtime/src/'
 })
 
 export default defineConfig({
@@ -53,21 +65,8 @@ export default defineConfig({
     jsPlugins,
     overrides: [
       ...(lint.overrides ?? []),
-      ...packageOverrides,
-      {
-        files: [`${RUNTIME_SOURCE}/**/*.test.ts`],
-        rules: {
-          // A test file takes the camelCase name of the module it tests.
-          'unicorn/filename-case': 'off',
-          // Vitest callbacks, such as test.each, may take more than two parameters.
-          'eslint/max-params': 'off'
-        }
-      },
-      {
-        files: [`${RUNTIME_SOURCE}/**/*.node.test.ts`],
-        // Node tests load real server adapters, such as the srvx one of Nitro.
-        rules: { 'import/no-nodejs-modules': 'off' }
-      },
+      ...(toolingOverrides ?? []),
+      ...(runtimeOverrides ?? []),
       {
         // An ambient module declaration only works in a script file; an import
         // would turn it into an augmentation of a module that is missing here.

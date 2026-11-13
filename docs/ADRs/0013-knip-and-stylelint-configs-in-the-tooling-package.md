@@ -47,7 +47,7 @@ that matches nothing, as configuration hints, which fail the run with
 
 ## Consequences
 
-- The boilerplate copy keeps `tooling/knip.ts` (44 lines) and
+- The boilerplate copy keeps `tooling/knip.ts` (48 lines) and
   `tooling/css/check.ts` (11 lines) at the same paths, because the tasks of
   `vite.config.ts` run them. It lost the Stylelint config, the 14 policy tests
   and the two Stylelint dependencies.

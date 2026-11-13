@@ -97,12 +97,20 @@ projects:
 | `dom`     | `src/**/*.dom.test.{ts,tsx}`     | happy-dom at `http://localhost/en`               |
 | `browser` | `src/**/*.browser.test.{ts,tsx}` | Chromium through Playwright, with the CSS loaded |
 
+`defineSolidApp` from `./vite` already calls `solidTest`. An application that
+builds its own Vite config calls it directly:
+
 ```ts
 // vite.config.ts
 import { solidTest } from '@evertondgn/solid-tooling/vitest'
+import solid from '@solidjs/vite-plugin'
+import { defineConfig } from 'vite-plus'
 
 export default defineConfig({
-  test: solidTest({ root: import.meta.dirname, plugins: componentPlugins })
+  test: solidTest({
+    root: import.meta.dirname,
+    plugins: () => [solid({ serverFunctions: true })]
+  })
 })
 ```
 

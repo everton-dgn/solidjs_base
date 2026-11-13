@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.2.0...solid-tooling@0.3.0) (2026-11-13)
+
+
+### Features
+
+* **tooling:** ship Vitest and Playwright configs and an app tsconfig ([5ee49d9](https://github.com/everton-dgn/solidjs_base/commit/5ee49d9dfbbd7512ba00b6f3b070780a73cca341))
+
 ## [0.2.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.1.0...solid-tooling@0.2.0) (2026-11-12)
 
 

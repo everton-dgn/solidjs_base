@@ -34,6 +34,18 @@ export default defineConfig({
     unstubEnvs: true,
     expect: { requireAssertions: true, poll: { interval: 10 } },
     environment: 'node',
-    include: ['src/**/*.node.test.{ts,tsx}']
+    include: ['src/**/*.node.test.{ts,tsx}'],
+    // The thresholds and exclusions that solidTest gives to an application.
+    coverage: {
+      provider: 'v8',
+      reporter: ['text'],
+      thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.d.ts',
+        'src/**/{constants,types}.{ts,tsx}',
+        'src/**/__tests__/**'
+      ]
+    }
   }
 })

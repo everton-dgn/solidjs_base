@@ -22,9 +22,11 @@ tarball, tried each piece from a package before the move:
 
 ## Decision
 
-- `./vitest` exports `solidTest({ root, plugins })`, the whole `test` block. A
-  Vite plugin serves `server-only`, `virtual:file-routes` and
-  `virtual:solid-server-function-handler` to the node project, instead of
+- `./vitest` exports `solidTest({ root, plugins })`, the whole `test` block.
+  `plugins` is a function, called once for the dom project and once for the
+  browser project, so the two Vite servers do not share plugin instances, as in
+  the original config. A Vite plugin serves `server-only`, `virtual:file-routes`
+  and `virtual:solid-server-function-handler` to the node project, instead of
   aliases to files.
 - `./playwright` exports
   `definePlaywrightConfig({ root, testDir, fixtureServers, suites })`. Paths

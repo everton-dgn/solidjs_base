@@ -112,8 +112,9 @@ restaura o idioma base antes de cada teste com
 idioma durante sua execução. Os projetos DOM e browser começam em inglês. No
 GitHub Actions, o reporter `github-actions` anota as falhas no PR. Os `include`
 dos projetos exigem os sufixos `node`, `dom` e `browser`, então os arquivos E2E
-ficam de fora sem exclusão própria. Essas opções ficam na configuração raiz, e
-os projetos as herdam pelo `extends` padrão do Vitest, declarando só o que muda.
+ficam de fora sem exclusão própria. Essas opções ficam na configuração raiz que
+o `solidTest` do `@evertondgn/solid-tooling` monta, e os projetos as herdam pelo
+`extends` padrão do Vitest, declarando só o que muda.
 
 Nos testes, importe de `vite-plus/test` em vez de `vitest` (a regra
 `vite-plus/prefer-vite-plus-imports` bloqueia o import direto). O linker isolado

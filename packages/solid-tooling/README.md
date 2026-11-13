@@ -91,15 +91,17 @@ projects:
 import { solidTest } from '@evertondgn/solid-tooling/vitest'
 
 export default defineConfig({
-  test: solidTest({ root: import.meta.dirname, plugins: componentPlugins() })
+  test: solidTest({ root: import.meta.dirname, plugins: componentPlugins })
 })
 ```
 
-`plugins` are the Vite plugins that the `dom` and `browser` projects need to
-compile components: Solid, routes, icons and i18n. The preset also sets the
-coverage thresholds, the reporters and the workers on CI, passes
-`BASE_URL_TEST`, `HOST` and `PORT` to the tests when they are set, and resets
-the Paraglide locale before each browser test.
+`plugins` is a function that returns the Vite plugins the `dom` and `browser`
+projects need to compile components: Solid, routes, icons and i18n. The preset
+calls it once per project, because each project starts its own Vite server and a
+plugin instance keeps the state of one server. The preset also sets the coverage
+thresholds, the reporters and the workers on CI, passes `BASE_URL_TEST`, `HOST`
+and `PORT` to the tests when they are set, and resets the Paraglide locale
+before each browser test.
 
 The `node` project does not load the Solid and routing plugins, so a plugin of
 the preset serves `server-only`, `virtual:file-routes` and
@@ -301,9 +303,20 @@ Solid compiler (`jsxImportSource: @solidjs/web`), emits nothing and turns on the
 unused code and unchecked index checks. It has no `paths`, `include` or `types`.
 
 `tsconfig.app.json` extends the base with the `types` of a boilerplate
-application (Node, Vite, Vitest globals, jest-dom and the Solid plugin modules)
-and an `include` resolved from the application folder with `${configDir}`. The
-application still declares its `paths`:
+application and an `include` resolved from the application folder with
+`${configDir}`, which needs TypeScript 5.5 or later. Each entry of `types` comes
+from a package the application installs:
+
+| Entry of `types`                        | Package                     |
+| --------------------------------------- | --------------------------- |
+| `node`                                  | `@types/node`               |
+| `vite/client`                           | `vite`                      |
+| `vite-plus/test/globals`                | `vite-plus`                 |
+| `@testing-library/jest-dom/vitest`      | `@testing-library/jest-dom` |
+| `@solidjs/vite-plugin/boundary-modules` | `@solidjs/vite-plugin`      |
+| `@solidjs/vite-plugin/virtual-modules`  | `@solidjs/vite-plugin`      |
+
+The application still declares its `paths`:
 
 ```json
 {

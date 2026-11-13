@@ -43,8 +43,12 @@ and Bun's isolated linker, tried both from the package:
 ## Consequences
 
 - An application keeps a one-line `.commitlintrc`, a two-line `.lefthook.yml`,
-  `lefthook` in `trustedDependencies` and the scripts the jobs call. A job is
-  changed by declaring one with the same name in `.lefthook.yml`.
+  `lefthook` in `trustedDependencies` and the scripts the jobs call.
+- Lefthook applies `extends` over `.lefthook.yml`. A job of the application
+  declared there runs before the shared jobs, and one with the name of a shared
+  job does not replace it. A shared job is changed or skipped from
+  `lefthook-local.yml`, which Lefthook applies last; the order stays and new
+  jobs run at the end. A copy of the application checked the three cases.
 - `.lefthook.yml` has to exist before the first install; otherwise the install
   script of Lefthook writes a `lefthook.yml`, which takes precedence.
 - The boilerplate copy in the monorepo has no hooks, because Lefthook would

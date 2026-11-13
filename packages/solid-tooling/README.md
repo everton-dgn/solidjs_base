@@ -441,9 +441,17 @@ extends:
 
 The jobs call `package.json` scripts by name, so the application defines
 `check:fix`, `scan:secrets`, `check:ci`, `typecheck:node`, `test:ci`,
-`test:tooling` and `dead-code`. To change a job, declare a job with the same
-name in `.lefthook.yml`: Lefthook merges it over the shared one. Add jobs of the
-application there too.
+`test:tooling` and `dead-code`.
+
+Lefthook applies the files in `extends` over `.lefthook.yml`, so:
+
+- A job added in `.lefthook.yml` runs before the shared jobs of the same hook.
+- A job declared there with the name of a shared job does not change it.
+- To change or skip a shared job, declare a job with the same name in
+  `lefthook-local.yml`, which Lefthook applies last, also inside a group. The
+  rest keeps its order, and new jobs in that file run after the shared ones.
+  Commit the file to change the job for everyone, or keep it out of Git to
+  change it on one machine.
 
 Create `.lefthook.yml` before the first install. Without it, the install script
 of Lefthook writes a `lefthook.yml` of its own, which Lefthook reads first.

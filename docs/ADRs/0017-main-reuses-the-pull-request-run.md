@@ -26,12 +26,16 @@ classification:
 
 ## Decision
 
-- On a push, the `Changes` job reads the parents of the commit. With two
-  parents, when the first has no commit missing from the second and the second
-  has a successful `CI required` check, it starts no job.
+- On a push, the `Changes` job reads the parents and the tree of the commit. It
+  starts no job when the commit has two parents, the first has no commit missing
+  from the second, the commit has the tree of the second, and the second has a
+  successful `CI required` check. The tree comparison refuses a merge made by
+  hand with edits of its own.
 - Any other push starts the jobs of the files it changed, from the compare API
   between the previous head of `main` and the new one. At the limit of files the
   API lists, it starts every job.
+- A renamed file counts in the area it left and in the one it entered, in pushes
+  and in pull requests.
 - Manual runs still start every job.
 - The job reads commits and checks, so it also asks for `contents: read` and
   `checks: read`.

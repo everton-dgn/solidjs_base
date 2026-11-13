@@ -46,24 +46,28 @@ jobs:
           }
           # The compare API lists at most this many files.
           max_files=300
+          # A renamed file counts in the area it left and in the one it entered.
+          paths='[] | .filename, (.previous_filename // empty)'
           case "$EVENT" in
             pull_request)
-              files="$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename')"
+              files="$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq ".$paths")"
               ;;
             push)
-              read -r base head rest <<< "$(gh api "repos/$REPO/commits/$SHA" --jq '[.parents[].sha] | join(" ")')"
+              read -r tree base head rest <<< "$(gh api "repos/$REPO/commits/$SHA" --jq '[.commit.tree.sha, .parents[].sha] | join(" ")')"
               if [ -n "${head:-}" ] && [ -z "${rest:-}" ]; then
-                # With no commit of main missing from the branch, the merge
-                # commit has the tree of the branch head.
+                # The pull request run checked the tree of the branch head when
+                # the branch had every commit of main. The merge commit has to
+                # carry that same tree: a merge made by hand can add edits.
                 behind="$(gh api "repos/$REPO/compare/$base...$head" --jq '.behind_by')"
+                head_tree="$(gh api "repos/$REPO/commits/$head" --jq '.commit.tree.sha')"
                 passed="$(gh api "repos/$REPO/commits/$head/check-runs?check_name=CI%20required" --jq '[.check_runs[] | select(.conclusion == "success")] | length')"
-                if [ "$behind" -eq 0 ] && [ "$passed" -gt 0 ]; then
+                if [ "$behind" -eq 0 ] && [ "$tree" = "$head_tree" ] && [ "$passed" -gt 0 ]; then
                   echo "The pull request run of $head already checked this tree."
                   emit false false false
                   exit 0
                 fi
               fi
-              files="$(gh api "repos/$REPO/compare/$BEFORE...$SHA" --jq '.files[].filename')"
+              files="$(gh api "repos/$REPO/compare/$BEFORE...$SHA" --jq ".files$paths")"
               if [ "$(printf '%s\n' "$files" | wc -l)" -ge "$max_files" ]; then
                 emit true true true
                 exit 0

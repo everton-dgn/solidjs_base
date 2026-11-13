@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.4.0...solid-tooling@0.5.0) (2026-11-13)
+
+
+### Features
+
+* **tooling:** ship the commitlint config and the Git hooks ([e9a2fd1](https://github.com/everton-dgn/solidjs_base/commit/e9a2fd170da86f20b515fbeddc49764888644585))
+
+
+### Bug Fixes
+
+* **tooling:** list the configured tools in the package keywords ([bdfe70d](https://github.com/everton-dgn/solidjs_base/commit/bdfe70dce9e116ae695b83a522ad7b6419d4110d))
+
 ## [0.4.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.3.0...solid-tooling@0.4.0) (2026-11-13)
 
 

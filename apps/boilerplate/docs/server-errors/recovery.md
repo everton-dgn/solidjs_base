@@ -83,12 +83,13 @@ vp run test:e2e src/tests/pages/BackendError src/tests/pages/OutsideError src/te
 vp run check:ci
 ```
 
-The [CI](../../.github/workflows/ci.yml) runs `test:tooling` and the whole E2E
-suite; `vp run validate` and `pre-push` run `test:tooling` locally, which
-includes both policies. The policy tests check the rules in the real parser and
-their registration in the whole lint, with refused and allowed cases for each
-exception. See the results of each run in the logs of the local validation and
-of the CI.
+The
+[CI](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/.github/workflows/ci.yml)
+of the original runs `test:tooling` and the whole E2E suite; `vp run validate`
+and `pre-push` run `test:tooling` locally, which includes both policies. The
+policy tests check the rules in the real parser and their registration in the
+whole lint, with refused and allowed cases for each exception. See the results
+of each run in the logs of the local validation and of the CI.
 
 ### Outdated page after a deploy
 

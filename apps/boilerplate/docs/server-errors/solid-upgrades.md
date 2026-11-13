@@ -4,9 +4,9 @@
 
 ## Upgrading Solid
 
-Check the dependencies and the `workspaces.catalog` catalog of
-[package.json](../../package.json) and the resolution in
-[bun.lock](../../bun.lock). `vp toolchain` shows the tools of the active
+Check the dependencies of [package.json](../../package.json), the `catalog` of
+the [root package.json](../../../../package.json) and the resolution in
+[bun.lock](../../../../bun.lock). `vp toolchain` shows the tools of the active
 installation. Those files and the command replace a list of versions kept in
 this guide.
 

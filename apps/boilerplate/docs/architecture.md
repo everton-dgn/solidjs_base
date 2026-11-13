@@ -93,8 +93,8 @@ even when they live in different modules.
 
 `tooling/release/automatic-release.ts` coordinates the preparation and the
 publication. The modules and the limits of the jobs are in the
-[release guide](../tooling/release/README.md). In
-`tooling/ciReuse/decideReuse/`, the validation of the evidence stays in the
+[release guide](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md).
+In `tooling/ciReuse/decideReuse/`, the validation of the evidence stays in the
 entry; `hasMainCaches/` checks that the caches are available, and `types.ts`
 holds the long contracts used in that decision.
 

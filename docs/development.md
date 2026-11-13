@@ -129,7 +129,8 @@ take the new commit of the original, apply it over `apps/boilerplate` and keep
 the changes listed above. The guides of the original are in Portuguese:
 translate the parts the new commit changes, and keep the headings in step with
 the links that point to them. Then run the commands of the table and record the
-new commit in this section and in `apps/boilerplate/AGENTS.md`.
+new commit in this section, in `apps/boilerplate/AGENTS.md` and in the links of
+the guides that point to files of the original at the copied commit.
 
 ## CI
 

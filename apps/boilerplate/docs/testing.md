@@ -49,7 +49,7 @@ CI, the Node suite runs in every execution, except in the `main` push whose
 [reuse proof](development.md#reusing-the-pr-validation-on-main) waives the
 `Tooling` job; the release tests only run when the automation or its
 dependencies change, according to the
-[release guide](../tooling/release/README.md#validação-local-e-no-ci).
+[release guide](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md#validação-local-e-no-ci).
 
 ## Environments
 
@@ -358,7 +358,7 @@ the final build and is the only one that runs when the reuse proof waives
 
 On the push to `main`, the production E2E job tests the Vercel build that the
 deploy publishes, according to the
-[Vercel integration](../tooling/release/README.md#integração-com-a-vercel).
+[Vercel integration](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md#integração-com-a-vercel).
 Playwright receives only the public `VITE_*` variables of the environment file
 obtained from Vercel, keeping values already defined in the process; backend
 credentials from that file are not passed to the preview. With

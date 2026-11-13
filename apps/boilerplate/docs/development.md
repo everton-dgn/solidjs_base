@@ -96,11 +96,12 @@ runtime, plus the complete E2E tests.
 ### Publication
 
 The production deploy comes from the `deploy` job of the
-[CI workflow](../.github/workflows/ci.yml), only on a push to `main`, and
-publishes with `vercel deploy --prebuilt --prod` the same build the production
-E2E tested, without recompiling. The complete flow, the credentials registered
-on GitHub and the configuration of the remote project are in the
-[Vercel integration](../tooling/release/README.md#integração-com-a-vercel).
+[CI workflow](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/.github/workflows/ci.yml),
+only on a push to `main`, and publishes with `vercel deploy --prebuilt --prod`
+the same build the production E2E tested, without recompiling. The complete
+flow, the credentials registered on GitHub and the configuration of the remote
+project are in the
+[Vercel integration](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md#integração-com-a-vercel).
 `vercel.json` turns off the deploys through the Git integration
 (`git.deploymentEnabled: false`) and keeps only the `Content-Type` of the `.md`
 files generated in the build. The immutable cache of `/images/` (a replaced
@@ -109,7 +110,8 @@ and `Cross-Origin-Resource-Policy` headers of the static files come from the
 `publicAssets` and the Nitro `routeRules` that `defineSolidApp` builds from
 `vite.config.ts`, as the [security](security.md) guide describes; the other
 security headers come from the middleware. The Vercel configuration and the
-automatic release flow are in the [release guide](../tooling/release/README.md).
+automatic release flow are in the
+[release guide](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md).
 
 Nitro is defined in [package.json](../package.json). When updating it, check the
 Vercel build, the local preview and the E2E tests. The generated `.output/`,
@@ -280,7 +282,8 @@ no effect. The release automation uses the same action: the plan job, without
 write permission, installs the dependencies and restores the package cache of
 `main` without uploading it; the jobs with write permission pass
 `install-dependencies: false` and neither install nor import packages, according
-to the [release guide](../tooling/release/README.md#ativação-no-github).
+to the
+[release guide](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md#ativação-no-github).
 
 The `lint-css` task combines the files read automatically with explicit inputs
 for CSS, CSS tooling, `package.json`, `bun.lock` and `bunfig.toml`. That way,
@@ -323,12 +326,12 @@ a job: it is skipped on every PR and, on the push to `main`, only allows
 accepting as `skipped` the jobs that the approved proof waived. The deploy
 depends on that result. The release reuses the approved CI of `main` and only
 checks the version and changelog commit, according to the
-[release guide](../tooling/release/README.md). The release filter only gates one
-step of `Quality`, keeping the job and the aggregator required. The application
-tests and the other tooling tests run in every CI run, except when the proof
-described below waives them; the Vitest cache keeps module transformations. With
-`CI=true`, Vitest uses at most two workers and the Node runner of the tooling
-tests, at most three.
+[release guide](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md).
+The release filter only gates one step of `Quality`, keeping the job and the
+aggregator required. The application tests and the other tooling tests run in
+every CI run, except when the proof described below waives them; the Vitest
+cache keeps module transformations. With `CI=true`, Vitest uses at most two
+workers and the Node runner of the tooling tests, at most three.
 
 ### Reusing the PR validation on main
 
@@ -445,7 +448,7 @@ with the next jobs after a failure.
   the `babel` option of the plugin, with the native compiler, requires only
   `@babel/core`.
 - `vite-plus`, `vite`, `vitest` and the `@vitest/*` packages come from the
-  catalog in `workspaces.catalog` of `package.json`; `vite` resolves to the
+  `catalog` of the root `package.json` of the monorepo; `vite` resolves to the
   Vite+ core. Update the versions in that catalog and keep the `@vitest/*`
   packages at the exact version of the Vitest bundled in Vite+. The CI reads the
   Vite+ version from that catalog.

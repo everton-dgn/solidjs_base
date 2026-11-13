@@ -31,5 +31,6 @@ across hundreds of source files.
   the two code comments that cite a section point to the English anchors.
 - Inside the copy, the guides and the lint messages are in English, and the code
   comments and the test titles are in Portuguese.
-- The links to `tooling/release/README.md` describe the release automation of
-  the original, which the copy does not have, and still point to that file.
+- The release guide and the CI workflow the guides cite exist only in the
+  original, so their links point to the original repository at the copied
+  commit.

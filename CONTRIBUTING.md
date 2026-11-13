@@ -65,7 +65,7 @@ The CI runs the same commands and skips the jobs your files do not affect.
    `packages/solid-tooling/src/tarball/__tests__/tarball.test.ts`. The tarball
    test then proves that the published package reports it.
 4. List the rule in the
-   [package README](packages/solid-tooling/README.md#rules-of-this-package).
+   [lint guide](docs/tooling/lint.md#rules-of-this-package).
 
 ## Conventions
 

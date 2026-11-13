@@ -46,7 +46,8 @@
   "scripts": {
     "check": "vp lint",
     "dead-code": "knip-bun && knip-bun --strict",
-    "test": "vp test run --coverage"
+    "test": "vp test run --coverage",
+    "test:tarball": "node --test --test-timeout=120000 tooling/tarball/__tests__/tarball.test.ts"
   },
   "peerDependencies": {
     "@solidjs/vite-plugin": "3.0.0-next.57",

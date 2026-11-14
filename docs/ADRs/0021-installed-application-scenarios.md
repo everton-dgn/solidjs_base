@@ -6,8 +6,8 @@
   [0027](0027-packaged-tool-dependencies.md),
   [0028](0028-runtime-server-errors.md),
   [0029](0029-runtime-middleware-chain.md),
-  [0030](0030-packaged-environment-schemas.md) and
-  [0031](0031-runtime-seo-core.md)
+  [0030](0030-packaged-environment-schemas.md), [0031](0031-runtime-seo-core.md)
+  and [0032](0032-packaged-fonts.md)
 - Date: 2026-11-13
 
 ## Context
@@ -179,3 +179,13 @@ origin schemes and paths when SEO is enabled; the meta-only case accepts those
 unused values. No new fixture or publication contract is added. The same
 deadlines and cleanup rules apply; full browser security remains an application
 E2E responsibility.
+
+## Application fonts
+
+ADR 0032 adds a small, original CC0 WOFF2 fixture to client-only and SSR plain.
+The package emits external CSS and the selected preload from the same asset
+list. Both linkers verify single font emission, matching CSS and preload URLs,
+face descriptors and no inline style. SSR i18n keeps fonts disabled and rejects
+font modules and assets. Optional `fonts-href`, `fonts-inline` and
+`fonts-import` mutations must fail the matching audits. Helpers live in
+`src/tarball/font-scenarios.ts`; counts and time budgets stay unchanged.

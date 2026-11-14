@@ -619,3 +619,13 @@ The single theme configuration is `src/constants/theme.ts`, using
 `createTheme` now live under `packages/solid-runtime/src/theme/`, with their
 tests. Keep the context, Provider, ThemeToggle and CSS in the application.
 Document owns the script element and its request nonce.
+
+## Font loading
+
+Declare font families and file descriptors in `fonts.ts`, passed
+through `fonts` in `vite.config.ts`. The preset emits external font CSS
+and matched preload URLs. Render `FontLinks` from
+`@evertondgn/solid-runtime/fonts/font-links` once in the Document head.
+Keep font binaries and licenses in the app and typography tokens in
+`src/theme/tokens/fonts.css`; do not restore manual `@font-face` rules,
+font URL imports or preloads. See [UI](docs/ui.md#fonts).

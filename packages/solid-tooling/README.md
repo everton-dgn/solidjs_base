@@ -150,6 +150,15 @@ See
 and the
 [known limits](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits).
 
+## Optional application fonts
+
+Pass a data-only `fonts` array to `defineSolidApp` to generate external
+`@font-face` CSS and matching preloads for application-owned files. SSR uses
+`FontLinks` from `@evertondgn/solid-runtime/fonts/font-links` in the Document
+head; client-only applications receive both links in `index.html`. Without
+`fonts`, nothing is generated. Typography tokens stay in the app. See the
+[font API and migration examples](../../docs/tooling/fonts.md).
+
 ## Optional SEO configuration
 
 For SSR, `seo: { robots: { groups, sitemapPaths, cacheControl } }` configures

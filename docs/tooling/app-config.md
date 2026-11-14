@@ -69,25 +69,25 @@ are published at `@evertondgn/solid-tooling/virtual-modules` and loaded by
 
 The preset fixes the rest:
 
-- Plugins, in this order: the locale provider, the `extend` plugins, the catalog
-  preparation and Paraglide plugins when i18n is present, `unplugin-icons`
-  (Solid compiler, `aria-hidden` on every icon), `@solidjs/vite-plugin` with SSR
-  and server functions, `filesystem-routing` with HTTP methods and the route
-  types in `src/@types/routes.d.ts`, and Nitro with the `vercel` preset. The
-  `dom` and `browser` test projects get the locale provider, `extend` and i18n
-  plugins, the icons, Solid with server functions only and the routes. The
-  `test` mode loads no application plugin and reads `.env.test` into
-  `process.env`.
+- Plugins, in this order: the locale provider, the optional font plugin, the
+  `extend` plugins, the catalog preparation and Paraglide plugins when i18n is
+  present, `unplugin-icons` (Solid compiler, `aria-hidden` on every icon),
+  `@solidjs/vite-plugin` with SSR and server functions, `filesystem-routing`
+  with HTTP methods and the route types in `src/@types/routes.d.ts`, and Nitro
+  with the `vercel` preset. The `dom` and `browser` test projects get the locale
+  provider, optional fonts, `extend` and i18n plugins, the icons, Solid with
+  server functions only and the routes. The `test` mode loads no application
+  plugin and reads `.env.test` into `process.env`.
 - The static headers go to `/assets/**`, each `publicAssets` folder and the
   `staticPaths`. With `publication`, also to `/<locale>/**.md` for each locale
   of `project.inlang/settings.json`, `/llms.txt`, `/llms-full.txt`,
   `/sitemap.xml`, `/sitemaps/pages/**` and `/_markdown/static.json`. The static
   files leave the CDN without going through the middleware, so these rules give
   them the headers the middleware writes on the other responses.
-- With `ssr: false`, the plugins are the locale provider, the `extend` plugins,
-  the optional i18n plugins, the icons, the Solid plugin with `ssr: false` and
-  the routes; the test projects load Solid without server functions. The build
-  writes `dist/` with the page and its assets.
+- With `ssr: false`, the plugins are the locale provider, optional fonts, the
+  `extend` plugins, the optional i18n plugins, the icons, the Solid plugin with
+  `ssr: false` and the routes; the test projects load Solid without server
+  functions. The build writes `dist/` with the page and its assets.
 - `build.manifest` only in the `e2e` mode, which the `TEST_PREBUILT` check of
   `./playwright` relies on, and no comments in the output.
 - Lightning CSS, with CSS Modules classes named `[content-hash]_[local]`.
@@ -105,6 +105,14 @@ a static path does not start with `/`, and when a client-only application sets
 an option that needs SSR. With `publication`, build, dev and preview fail to
 load the plugins when a `publicAssets` folder or a static path sits inside a
 locale folder.
+
+### Fonts
+
+The shared `fonts` option is available in SSR and client-only modes. Its
+optional plugin follows the locale provider and emits external CSS and font
+assets. See [application fonts](fonts.md) for descriptors, `FontLinks`,
+client-only HTML injection and migration. Without the option there is no font
+plugin or generated font output.
 
 ### `extend`
 

@@ -481,3 +481,24 @@ entry, and retains the existing runtime server-only probe. These negative checks
 run in normal `validate`, including both linkers. See
 [ADR 0030](ADRs/0030-packaged-environment-schemas.md) and the
 [environment API](tooling/app-config.md#optional-environment-validation).
+
+## Packaged fonts
+
+The copy declares its two Inter subsets in `fonts.ts` and passes that data to
+`defineSolidApp`. `FontLinks` replaces its manual preload;
+`src/theme/tokens/fonts.css` retains only typography tokens. The binaries,
+family, weight range, style, display and Unicode ranges remain the same.
+
+The installed client-only and SSR plain fixtures generate a 448-byte original
+CC0 WOFF2 font from `src/tarball/font-fixture.ts`, without a new dependency.
+Both linkers audit single emission, external CSS, absence of inline style and
+exact CSS/preload hash equality. SSR i18n retains the no-font case and rejects
+font assets, face declarations and bundled runtime font modules. The matrix
+still has nine installed cases plus version alignment.
+
+Use `SCENARIO_MUTATION=fonts-href` or `fonts-inline` with
+`ssr-plain / isolated$`, and `fonts-import` with `ssr-i18n / isolated$`, to
+prove the corresponding audit fails. These mutate only the temporary
+installation. Run the copy's test suites separately from package builds and the
+matrix; its production E2E checks the real CSP. See
+[ADR 0032](ADRs/0032-packaged-fonts.md) and the [font API](tooling/fonts.md).

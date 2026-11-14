@@ -47,6 +47,7 @@ export default defineConfig({
         ...exports,
         './tsconfig.base.json': './tsconfig.base.json',
         './tsconfig.app.json': './tsconfig.app.json',
+        './virtual-modules': { types: './virtual-modules.d.ts' },
         './lefthook.yml': './lefthook.yml'
       })
     }

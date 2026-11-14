@@ -41,6 +41,9 @@
     },
     "./middleware/types": {
       "solid": "./src/middleware/types.ts"
+    },
+    "./i18n/locale": {
+      "solid": "./src/i18n/locale/index.ts"
     }
   },
   "scripts": {

@@ -1,3 +1,5 @@
+import { localizeHref } from '@evertondgn/solid-runtime/i18n/locale'
+
 export default function App() {
   return (
     <html lang="en">
@@ -6,6 +8,7 @@ export default function App() {
       </head>
       <body>
         <main>Scenario application</main>
+        <a href={localizeHref('/about')}>About</a>
       </body>
     </html>
   )

@@ -2,6 +2,7 @@ import type { ViteUserConfig } from 'vite-plus'
 
 export type SolidTestOptions = {
   root: string
+  language?: string
   // WHY: a factory, because each project starts its own Vite server and a
   // plugin instance keeps the state of the server that resolved it last.
   plugins: () => ViteUserConfig['plugins']

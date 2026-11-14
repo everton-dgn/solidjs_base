@@ -52,7 +52,11 @@ function nodeStubs(): Plugin {
 
 export default defineConfig({
   resolve: {
-    alias: { '@paraglide': `${import.meta.dirname}/tooling/testing/generated` }
+    alias: {
+      '@': `${import.meta.dirname}/src`,
+      '@paraglide': `${import.meta.dirname}/tooling/testing/generated`,
+      '@testing': `${import.meta.dirname}/tooling/testing`
+    }
   },
   // vp lint reads this block from the package folder; vp check and the
   // formatter use the root config.

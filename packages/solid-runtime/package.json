@@ -90,6 +90,27 @@
     },
     "./theme/create-theme/types": {
       "solid": "./src/theme/createTheme/types.ts"
+    },
+    "./server/is-control-response": {
+      "solid": "./src/infra/server/isControlResponse/index.ts"
+    },
+    "./server/log-server-failure": {
+      "solid": "./src/infra/server/logServerFailure/index.ts"
+    },
+    "./server/render-integrity": {
+      "solid": "./src/infra/server/renderIntegrity/index.ts"
+    },
+    "./server/public-errors": {
+      "solid": "./src/infra/server/publicErrors/index.ts"
+    },
+    "./server/publication-scope": {
+      "solid": "./src/infra/server/publicationScope/index.ts"
+    },
+    "./server/protect-server-operation": {
+      "solid": "./src/infra/server/protectServerOperation/index.ts"
+    },
+    "./server/configure-server-errors": {
+      "solid": "./src/infra/server/configureServerErrors/index.ts"
     }
   },
   "scripts": {

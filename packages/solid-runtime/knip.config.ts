@@ -10,7 +10,14 @@ export default defineKnipConfig({
   // the '!' limits that ignore to the production run.
   // solid-js remains supplied by the application; theme extraction preserves
   // dependency ownership. Installed scenarios verify both Bun linkers.
-  ignoreDependencies: ['srvx', 'filesystem-routing!', 'solid-js!'],
+  // server-only is a Solid plugin boundary module, not an installed package.
+  // The runtime node tests provide the same stand-in as the application preset.
+  ignoreDependencies: [
+    'srvx',
+    'filesystem-routing!',
+    'solid-js!',
+    'server-only'
+  ],
   // The catalog sits in the root package.json, which Knip does not read from
   // this folder. bun install already refuses an entry missing from the catalog.
   exclude: ['catalogReferences']

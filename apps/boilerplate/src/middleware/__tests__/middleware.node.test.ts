@@ -1,4 +1,4 @@
-import { getLocale } from '@paraglide/runtime.js'
+import { getLocale, shouldRedirect } from '@paraglide/runtime.js'
 import { createRequestEvent, type RequestEvent } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
 
@@ -7,7 +7,6 @@ import { Router } from '@/router.ts'
 import { readLog } from '@/tests/helpers/readLog/index.ts'
 
 import middleware, { createMiddleware } from '../index.ts'
-import { localizeRequest } from '../localizeRequest/index.ts'
 import { MAX_HTML_BYTES } from '../markdownContent/constants.ts'
 
 const TEST_ORIGIN = 'http://localhost'
@@ -27,7 +26,7 @@ const LOG_MESSAGE = '[middleware] Unexpected failure; private details omitted'
 const ERROR_PAGE_LOG =
   '[error-page] Unexpected failure; private details omitted'
 
-vi.mock(import('../localizeRequest/index.ts'), { spy: true })
+vi.mock(import('@paraglide/runtime.js'), { spy: true })
 
 // O projeto node usa um manifesto vazio. O handler de API real recebe aqui uma
 // rota sintética que responde sem chamar next, como sitemap.xml e robots.txt,
@@ -175,9 +174,7 @@ describe('contenção do adaptador Markdown', () => {
     vi.spyOn(Router, 'match').mockImplementation(() => {
       throw new Error('PRIVATE_MATCH')
     })
-    vi.mocked(localizeRequest).mockRejectedValueOnce(
-      new Error('PRIVATE_LOCALE')
-    )
+    vi.mocked(shouldRedirect).mockRejectedValueOnce(new Error('PRIVATE_LOCALE'))
     const event = pageEvent('/pt/about')
     const next = vi.fn<() => Promise<Response>>()
 

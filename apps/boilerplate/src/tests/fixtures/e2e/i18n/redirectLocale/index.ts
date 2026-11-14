@@ -1,6 +1,5 @@
+import { localizedRedirect } from '@evertondgn/solid-runtime/i18n/localized-redirect'
 import type { Locale } from '@paraglide/runtime.js'
-
-import { localizedRedirect } from '@/i18n/localizedRedirect/index.ts'
 
 type RedirectLocaleOptions = {
   locale: Locale

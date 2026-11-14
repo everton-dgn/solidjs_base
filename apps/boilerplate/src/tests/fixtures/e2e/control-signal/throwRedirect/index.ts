@@ -1,4 +1,4 @@
-import { localizedRedirect } from '@/i18n/localizedRedirect/index.ts'
+import { localizedRedirect } from '@evertondgn/solid-runtime/i18n/localized-redirect'
 
 // Sinal de controle lançado numa chamada direta durante o SSR. O runtime
 // informa esse throw ao hook de erros, que precisa deixá-lo passar.

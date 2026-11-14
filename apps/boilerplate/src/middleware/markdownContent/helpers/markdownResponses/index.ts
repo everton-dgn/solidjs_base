@@ -1,3 +1,4 @@
+import { createLocalizeRequest } from '@evertondgn/solid-runtime/middleware/localize-request'
 import { m } from '@paraglide/messages.js'
 import { extractLocaleFromRequest } from '@paraglide/runtime.js'
 
@@ -11,7 +12,7 @@ import {
 import { LLMS_DESCRIBEDBY_LINK } from '@/constants/llms.ts'
 import { publicErrorMessage } from '@/infra/server/publicErrors/index.ts'
 
-import { localizeRequest } from '../../../localizeRequest/index.ts'
+import { applySecurityHeaders } from '../../../securityHeaders/index.ts'
 import { uncachedResponse } from '../uncachedResponse/index.ts'
 
 type NormalizeOptions = { response: Response; request: Request }
@@ -21,6 +22,8 @@ type TextOptions = {
   headers: Record<string, string>
 }
 type PublicOptions = { status: number; request: Request }
+
+const localizeRequest = createLocalizeRequest({ applySecurityHeaders })
 
 const VARY_HEADERS = 'Accept, Cookie, Accept-Language'
 

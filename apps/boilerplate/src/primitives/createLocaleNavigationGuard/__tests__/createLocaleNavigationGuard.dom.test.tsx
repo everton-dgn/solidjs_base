@@ -1,3 +1,4 @@
+import { localizedRedirect } from '@evertondgn/solid-runtime/i18n/localized-redirect'
 import {
   createRouter,
   formAction,
@@ -15,7 +16,6 @@ import {
   type Component
 } from 'solid-js'
 
-import { localizedRedirect } from '@/i18n/localizedRedirect/index.ts'
 import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
 
 import { createLocaleNavigationGuard } from '../index.ts'

@@ -79,11 +79,14 @@ is awaited, and synchronous functions stay synchronous. This structural check
 does not find confidential data in strings: the schema and the mapping are still
 responsible for the business fields.
 
-`allowControl: true` belongs only to the global registration. It keeps
+The internal global registration enables control signals. The public
+`protectServerOperation({ run })` API rejects `allowControl`, including an
+option passed through a variable or spread; its implementation forwards only
+`run`. The internal variant has no package export. The registration keeps
 suspension, responses without a body (except the one of `Response.error()`, with
 status 0) and envelopes with checked data; the envelope body is rebuilt from
 that data. Headers and destinations must be defined by the application. Adapters
-do not turn this option on or forward upstream responses. The logs, written by
+cannot turn this option on or forward upstream responses. The logs, written by
 `logServerFailure`, have the fixed message of the source and, for an `Error`,
 only the class and the frames described in
 [Failure log](logging.md#failure-log), without the message, `cause`, properties
@@ -104,14 +107,16 @@ and `.cjs` extensions:
 - Reserves `markSafeError` and `SAFE_ERROR` for `publicErrors`, and the whole
   server function configuration and dispatch module
   (`@solidjs/web/server-functions` and `@solidjs/web/server-functions/server`)
-  for `configureServerErrors`. Importing `configureServerErrors` from the
-  `@solidjs/web` root is also restricted to that module, `publicErrors`
-  included: each call replaces the global server error hook.
+  and `@evertondgn/solid-runtime/server/configure-server-errors` for
+  `src/infra/server/configureServerErrors/index.ts`. Importing
+  `configureServerErrors` from the `@solidjs/web` root is also restricted to
+  that module, `publicErrors` included: each call replaces the global server
+  error hook.
 - Reserves `observeRenderFailures`, from
-  [renderIntegrity](../../src/infra/server/renderIntegrity/index.ts), for
-  `configureServerErrors`, through an alias, namespace or re-export too: after
-  that call the render state starts without errors, and only the registration
-  installs the hook that marks it.
+  [renderIntegrity](../../../../packages/solid-runtime/src/infra/server/renderIntegrity/index.ts),
+  for `configureServerErrors`, through an alias, namespace or re-export too:
+  after that call the render state starts without errors, and only the
+  registration installs the hook that marks it.
 - Reserves the global `console` object for `logServerFailure`, aliases and
   direct destructuring included. In that file, use only `console.error`
   directly; access through `globalThis.console`, `window.console`,
@@ -124,11 +129,13 @@ The regression tests require `no-restricted-imports` to also refuse
 `import("package")` when the whole package is restricted. The policy does not
 rely on `importNames` restrictions for that loading. That is why
 [backend/static-solid-imports](../../../../packages/solid-tooling/src/backendPolicy/plugin.ts)
-requires static imports of `@solidjs/web` and its subpaths, in `publicErrors`
-and `configureServerErrors` too; `backend/static-render-integrity-imports` does
-the same with `renderIntegrity`, because a restriction by name does not reach
-`import()`. The rule checks strings and templates without interpolation; the
-public APIs of that package stay available through a static import.
+requires static imports of `@solidjs/web`, its subpaths and the runtime
+configurator, in `publicErrors` and `configureServerErrors` too;
+`backend/static-render-integrity-imports` does the same with local
+`renderIntegrity` and the package's `server/render-integrity`, because a
+restriction by name does not reach `import()`. The rule checks strings and
+templates without interpolation; the public APIs of that package stay available
+through a static import.
 
 Named imports with an alias, re-exports and direct access through a namespace
 are checked too. Visual libraries, local methods called `fetch` and local
@@ -139,13 +146,18 @@ permission.
 
 The lint does not do a full flow analysis: aliases of the global object, such as
 `const g = globalThis`, computed import sources, templates of packages outside
-`@solidjs/web`, unknown SDKs and manual marking through `Symbol.for` require
-review. It also does not restrict `allowControl` by name or check the content of
-the log arguments in `logServerFailure`. Do not use these gaps or a disable
-comment to get around the contract. The pattern of relative imports is shared
-with `packages/solid-tooling/src/lint/rules/javascript.ts` through the
+the recognized modules, unknown SDKs and manual marking through `Symbol.for`
+require review. It does not check the content of the log arguments in
+`logServerFailure`. The setter and control-enabled protection are private
+package modules, not AST conventions. Do not use these gaps or a disable comment
+to get around the contract. The pattern of relative imports is shared with
+`packages/solid-tooling/src/lint/rules/javascript.ts` through the
 `RELATIVE_IMPORT_RESTRICTION` constant, in
 `packages/solid-tooling/src/backendPolicy/constants.ts`.
+
+The same exact path exceptions apply when lint runs from the runtime package.
+`server-only` is allowed in `src/infra/server/**/index.ts`, and the Node import
+exception for `publicationScope/index.ts` does not extend to `index.mts`.
 
 ## Use in pages
 

@@ -1,4 +1,5 @@
 import type { StartMiddleware } from '@evertondgn/solid-runtime/middleware/types'
+import { createRenderIntegrity } from '@evertondgn/solid-runtime/server/render-integrity'
 import {
   configureServerErrors,
   createComponent,
@@ -18,7 +19,6 @@ import {
 } from 'solid-js'
 import { sharedConfig } from 'solid-js/internal'
 
-import { createRenderIntegrity } from '@/infra/server/renderIntegrity/index.ts'
 import { Router } from '@/router.ts'
 import { throwValue } from '@/tests/helpers/failureValues/index.ts'
 import { readLog } from '@/tests/helpers/readLog/index.ts'

@@ -1,8 +1,8 @@
+import { isPublicError } from '@evertondgn/solid-runtime/server/public-errors'
 import { paraglideMiddleware } from '@paraglide/server.js'
 import { createRequestEvent, type RequestEvent } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
 
-import { isPublicError } from '@/infra/server/publicErrors/index.ts'
 import { hostileValue } from '@/tests/helpers/failureValues/index.ts'
 import { readLog } from '@/tests/helpers/readLog/index.ts'
 
@@ -62,6 +62,10 @@ function mockProductionLog(): void {
 }
 
 describe('contenção de falhas do middleware', () => {
+  beforeAll(async () => {
+    await import('@/infra/server/configureServerErrors/index.ts')
+  })
+
   beforeEach(mockProductionLog)
 
   it('preserva a resposta do próximo handler sem registrar log', async () => {
@@ -174,6 +178,10 @@ describe('contenção de falhas do middleware', () => {
 })
 
 describe('página de erro do middleware', () => {
+  beforeAll(async () => {
+    await import('@/infra/server/configureServerErrors/index.ts')
+  })
+
   beforeEach(mockProductionLog)
 
   it('renderiza a página de erro do app numa navegação', async () => {
@@ -335,6 +343,10 @@ describe('página de erro do middleware', () => {
 // O critério de HTML segue o do plugin: os pedidos que recebem a página quando
 // nada falha recebem a página de erro.
 describe('accept de uma navegação', () => {
+  beforeAll(async () => {
+    await import('@/infra/server/configureServerErrors/index.ts')
+  })
+
   beforeEach(mockProductionLog)
 
   it.each([
@@ -363,6 +375,10 @@ describe('accept de uma navegação', () => {
 // As respostas da contenção não voltam pelo securityHeaders; a CSP e o nonce
 // são gravados aqui.
 describe('CSP nas respostas da contenção', () => {
+  beforeAll(async () => {
+    await import('@/infra/server/configureServerErrors/index.ts')
+  })
+
   beforeEach(mockProductionLog)
 
   it('bloqueia scripts no 500 em texto fora de uma requisição', async () => {

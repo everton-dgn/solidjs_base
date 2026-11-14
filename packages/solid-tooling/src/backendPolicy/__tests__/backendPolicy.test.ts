@@ -35,10 +35,72 @@ const BACKEND_LINT_CONFIG = `export default ${JSON.stringify({
   }
 })}`
 
+const RUNTIME_LINT_CONFIG = `
+import config from '${path.resolve(ROOT, '../solid-runtime/vite.config.ts')}'
+const rules = new Set(['backend/restricted-imports', 'backend/no-setup-exports', 'backend/static-solid-imports', 'backend/static-render-integrity-imports', 'eslint/no-console', 'eslint/no-restricted-globals', 'eslint/no-restricted-properties', 'import/no-nodejs-modules'])
+export default { lint: {
+  categories: { correctness: 'off' },
+  plugins: ['import'],
+  jsPlugins: [{ name: 'backend', specifier: '${path.join(ROOT, 'src/backendPolicy/plugin.ts')}' }],
+  rules: { 'import/no-nodejs-modules': 'error' },
+  overrides: config.lint.overrides.map(override => ({ ...override, rules: Object.fromEntries(Object.entries(override.rules ?? {}).filter(([name]) => rules.has(name))) }))
+} }
+`
+
 const OBSERVER_CODES = new Set([
-  'eslint(no-restricted-imports)',
+  'backend(restricted-imports)',
   'backend(static-render-integrity-imports)'
 ])
+
+const RUNTIME_SERVER = '@evertondgn/solid-runtime/server/'
+const PACKAGE_CASES = {
+  observer: `import { observeRenderFailures as observe } from '${RUNTIME_SERVER}render-integrity'; observe()`,
+  namespace: `import * as integrity from '${RUNTIME_SERVER}render-integrity'; integrity.observeRenderFailures()`,
+  reexport: `export { observeRenderFailures } from '${RUNTIME_SERVER}render-integrity'`,
+  dynamic: `void import('${RUNTIME_SERVER}render-integrity')`,
+  hook: `import { configureServerErrors as configure } from '${RUNTIME_SERVER}configure-server-errors'; configure()`,
+  hookDynamic: `void import('${RUNTIME_SERVER}configure-server-errors')`,
+  hookTemplate: `void import(\`${RUNTIME_SERVER}configure-server-errors\`)`,
+  observerStar: `export * from '${RUNTIME_SERVER}render-integrity'`,
+  hookReexport: `export * from '${RUNTIME_SERVER}configure-server-errors'`
+}
+const PRIVATE_API_CASES = {
+  setterNamespace: `import * as errors from '${RUNTIME_SERVER}public-errors'; errors.configurePublicMessage(() => 'bad')`,
+  setter: `import { configurePublicMessage } from '${RUNTIME_SERVER}public-errors'; configurePublicMessage(() => 'bad')`,
+  setterDynamic: `void import('${RUNTIME_SERVER}public-errors').then(errors => errors.configurePublicMessage(() => 'bad'))`,
+  allowControl: `import { protectServerOperation as protect } from '${RUNTIME_SERVER}protect-server-operation'; const options = { run: () => null, allowControl: true }; protect(options)`,
+  allowControlComputed: `import * as protection from '${RUNTIME_SERVER}protect-server-operation'; const options = { ['allowControl']: true, run: () => null }; protection.protectServerOperation({ ...options })`
+}
+
+const PHYSICAL_RUNTIME =
+  '../../node_modules/@evertondgn/solid-runtime/src/infra/server/'
+const ADVERSARIAL_IMPORTS = {
+  setter: `import { configurePublicMessage } from '${PHYSICAL_RUNTIME}publicMessage/index.ts'; configurePublicMessage(() => 'PRIVATE_CALLBACK')`,
+  controls: `import { protectInvocation } from '${PHYSICAL_RUNTIME}protectServerOperation/registration/index.ts'; export const response = protectInvocation({ run: () => new Response(null, { headers: { 'x-private': 'PRIVATE_HEADER' } }), allowControl: true })`,
+  configurator: `import { configureServerErrors } from '${PHYSICAL_RUNTIME}configureServerErrors/index.ts'; configureServerErrors()`,
+  physicalObserver: `import { observeRenderFailures } from '${PHYSICAL_RUNTIME}renderIntegrity/./index.ts'; observeRenderFailures()`,
+  physicalDynamic: `void import('${PHYSICAL_RUNTIME}publicMessage/index.ts')`,
+  physicalTemplate: `void import(\`${PHYSICAL_RUNTIME}publicMessage/index.ts\`)`,
+  physicalReexport: `export * from '${PHYSICAL_RUNTIME}publicMessage/index.ts'`,
+  physicalType: `type Setter = typeof import('${PHYSICAL_RUNTIME}publicMessage/index.ts').configurePublicMessage; export type { Setter }`,
+  physicalParent: `import { configurePublicMessage } from '${PHYSICAL_RUNTIME}publicErrors/../publicMessage/index.ts'`,
+  nodeModulesTraversal:
+    'import value from "../../node_modules/../private.ts"; export { value }',
+  observerDot:
+    'import { observeRenderFailures } from "@/infra/server/renderIntegrity/./index.ts"',
+  observerSlash:
+    'export { observeRenderFailures } from "@/infra/server/renderIntegrity//index.ts"',
+  observerParent:
+    'import * as integrity from "@/infra/server/other/../renderIntegrity/index.ts"; integrity.observeRenderFailures()',
+  observerDynamic: 'void import("@/infra/server/renderIntegrity/./index.ts")',
+  observerTemplate: 'void import(`@/infra/server/renderIntegrity//index.ts`)',
+  packageObserver: `export * from '${RUNTIME_SERVER}other/../render-integrity'`,
+  packageConfigurator: `import { configureServerErrors } from '${RUNTIME_SERVER}./configure-server-errors'`,
+  packageDynamic: `void import('${RUNTIME_SERVER}other/../configure-server-errors')`,
+  solidSafe: 'import { markSafeError } from "@solidjs/./web"',
+  solidDynamic: 'void import("@solidjs//web")',
+  relativeDot: 'import value from ".././../../../private.ts"; export { value }'
+}
 
 function matchesFilename({ actual, expected }: FilenameMatch): boolean {
   return actual === expected || actual.endsWith(`/${expected}`)
@@ -80,6 +142,275 @@ function hasError({ diagnostics, filename, matches }: ErrorQuery): boolean {
       matches(diagnostic.code)
   )
 }
+
+test('adversarial imports cannot cross physical or normalized backend boundaries', context => {
+  const sources = Object.fromEntries(
+    Object.entries(ADVERSARIAL_IMPORTS).map(([name, source]) => [
+      `src/helpers/${name}.ts`,
+      source
+    ])
+  )
+  const result = lintFixture({ context, sources, config: BACKEND_LINT_CONFIG })
+  const diagnostics = readDiagnostics(result.stdout)
+  const missing = Object.keys(sources).filter(
+    filename =>
+      !hasError({
+        diagnostics,
+        filename,
+        matches: code => code === 'backend(restricted-imports)'
+      })
+  )
+  assert.deepEqual(
+    missing,
+    [],
+    `Unrestricted adversarial imports: ${result.stdout}`
+  )
+  assert.equal(result.status, 1, result.stderr)
+})
+
+const SETUP_EXPORTS = {
+  direct: `export { configureServerErrors } from '${RUNTIME_SERVER}configure-server-errors'`,
+  star: `export * from '${RUNTIME_SERVER}configure-server-errors'`,
+  namespace: `export * as errors from '${RUNTIME_SERVER}configure-server-errors'`,
+  named: `import { configureServerErrors } from '${RUNTIME_SERVER}configure-server-errors'; export { configureServerErrors }`,
+  declaration: `import { configureServerErrors } from '${RUNTIME_SERVER}configure-server-errors'; export const configure = configureServerErrors`,
+  default: `import { configureServerErrors } from '${RUNTIME_SERVER}configure-server-errors'; export default configureServerErrors`,
+  empty: 'export {}',
+  type: 'export type Setup = () => void',
+  assignment: `import { configureServerErrors } from '${RUNTIME_SERVER}configure-server-errors'; export = configureServerErrors`
+}
+
+for (const [name, source] of Object.entries(SETUP_EXPORTS)) {
+  test(`adversarial setup export is rejected: ${name}`, context => {
+    const filename = 'src/infra/server/configureServerErrors/index.ts'
+    const result = lintFixture({
+      context,
+      config: BACKEND_LINT_CONFIG,
+      sources: {
+        [filename]: source,
+        'src/helpers/intermediate.ts':
+          'export { configureServerErrors } from "../infra/server/configureServerErrors/index.ts"',
+        'src/helpers/bypass.ts':
+          'import { configureServerErrors } from "./intermediate.ts"; configureServerErrors()'
+      }
+    })
+    assert.ok(
+      hasError({
+        diagnostics: readDiagnostics(result.stdout),
+        filename,
+        matches: code => code === 'backend(no-setup-exports)'
+      }),
+      result.stdout
+    )
+    assert.equal(result.status, 1, result.stderr)
+  })
+}
+
+test('adversarial application paths cannot inherit runtime privileges', context => {
+  const sources = {
+    'src/infra/server/publicErrors/index.ts':
+      'import { markSafeError, SAFE_ERROR } from "@solidjs/web"; export { markSafeError, SAFE_ERROR }',
+    'src/infra/server/logServerFailure/index.ts': 'console.error("PRIVATE")',
+    'src/infra/server/publicationScope/index.ts':
+      'import { AsyncLocalStorage } from "node:async_hooks"; export const storage = new AsyncLocalStorage()'
+  }
+  const result = lintFixture({ context, sources })
+  const diagnostics = readDiagnostics(result.stdout)
+  const expected = [
+    'backend(restricted-imports)',
+    'eslint(no-console)',
+    'import(no-nodejs-modules)'
+  ]
+  const missing = Object.keys(sources).filter(
+    (filename, index) =>
+      !hasError({
+        diagnostics,
+        filename,
+        matches: code => code === expected[index]
+      })
+  )
+  assert.deepEqual(missing, [], result.stdout)
+  assert.equal(result.status, 1, result.stderr)
+})
+
+test('runtime configuration grants only the exact package paths their privileges', context => {
+  const sources = {
+    'src/infra/server/publicErrors/index.ts':
+      'import { markSafeError, SAFE_ERROR } from "@solidjs/web"; export { markSafeError, SAFE_ERROR }',
+    'src/infra/server/logServerFailure/index.ts': 'console.error("public")',
+    'src/infra/server/publicationScope/index.ts':
+      'import { AsyncLocalStorage } from "node:async_hooks"; export const storage = new AsyncLocalStorage()',
+    'src/infra/server/configureServerErrors/index.ts': `export { configureServerErrors } from '${RUNTIME_SERVER}configure-server-errors'`
+  }
+  const allowed = lintFixture({ context, config: RUNTIME_LINT_CONFIG, sources })
+  assert.equal(allowed.status, 0, allowed.stdout + allowed.stderr)
+  const forbidden = lintFixture({
+    context,
+    config: RUNTIME_LINT_CONFIG,
+    sources: Object.fromEntries(
+      Object.entries(sources).map(([filename, source]) => [
+        filename.replace('index.ts', 'index.mts'),
+        source
+      ])
+    )
+  })
+  assert.equal(forbidden.status, 1, forbidden.stdout + forbidden.stderr)
+  const diagnostics = readDiagnostics(forbidden.stdout)
+  for (const filename of Object.keys(sources)) {
+    assert.ok(
+      hasError({
+        diagnostics,
+        filename: filename.replace('index.ts', 'index.mts'),
+        matches: code =>
+          code === 'backend(restricted-imports)' ||
+          code === 'eslint(no-console)' ||
+          code === 'import(no-nodejs-modules)'
+      }),
+      filename
+    )
+  }
+})
+
+test('the package import policy closes the nine registration bypasses', context => {
+  const sources = Object.fromEntries(
+    Object.entries(PACKAGE_CASES).map(([name, source]) => [
+      `src/helpers/${name}.ts`,
+      source
+    ])
+  )
+  const result = lintFixture({ context, sources, config: BACKEND_LINT_CONFIG })
+  const diagnostics = readDiagnostics(result.stdout)
+  const missing = Object.keys(sources).filter(
+    filename =>
+      !hasError({
+        diagnostics,
+        filename,
+        matches: code =>
+          OBSERVER_CODES.has(code) || code === 'backend(static-solid-imports)'
+      })
+  )
+  assert.deepEqual(
+    missing,
+    [],
+    `Missing package policy rejections: ${result.stdout}`
+  )
+  assert.equal(result.status, 1, result.stderr)
+})
+
+test('the public package types reject the five private API bypasses', context => {
+  const runtime = path.resolve(ROOT, '../solid-runtime')
+  const sources = Object.fromEntries(
+    Object.entries(PRIVATE_API_CASES).map(([name, source]) => [
+      `src/helpers/${name}.ts`,
+      source
+    ])
+  )
+  const result = lintFixture({
+    context,
+    sources: {
+      ...sources,
+      'src/helpers/narrowed.ts': `import { protectServerOperation } from '${RUNTIME_SERVER}protect-server-operation'; const original = { run: () => null, allowControl: true }; const narrowed: { run: () => null } = original; protectServerOperation(narrowed)`,
+      'tsconfig.json': JSON.stringify({
+        extends: path.join(runtime, 'tsconfig.json'),
+        compilerOptions: {
+          types: ['node', 'vite/client'],
+          paths: {
+            [`${RUNTIME_SERVER}public-errors`]: [
+              path.join(runtime, 'src/infra/server/publicErrors/index.ts')
+            ],
+            [`${RUNTIME_SERVER}protect-server-operation`]: [
+              path.join(
+                runtime,
+                'src/infra/server/protectServerOperation/index.ts'
+              )
+            ]
+          }
+        },
+        include: [
+          'src',
+          path.join(ROOT, 'virtual-modules.d.ts'),
+          path.join(
+            runtime,
+            'node_modules/@solidjs/vite-plugin/boundary-modules.d.ts'
+          )
+        ]
+      })
+    },
+    config:
+      'export default { lint: { categories: { correctness: "off" }, options: { typeCheck: true, typeAware: true } } }'
+  })
+  const diagnostics = readDiagnostics(result.stdout)
+  const missing = Object.keys(sources).filter(
+    filename =>
+      !hasError({
+        diagnostics,
+        filename,
+        matches: code => /^typescript\(TS(?:2305|2339|2345)\)$/u.test(code)
+      })
+  )
+  assert.deepEqual(
+    missing,
+    [],
+    `Missing private API type rejections: ${result.stdout}`
+  )
+  assert.equal(result.status, 1, result.stderr)
+  assert.equal(
+    hasError({
+      diagnostics,
+      filename: 'src/helpers/narrowed.ts',
+      matches: () => true
+    }),
+    false
+  )
+})
+
+test('package exports keep registration and runtime path privileges narrow', context => {
+  const allowed = lintFixture({
+    context,
+    config: BACKEND_LINT_CONFIG,
+    sources: {
+      'src/infra/server/configureServerErrors/index.ts': `import { configureServerErrors } from '${RUNTIME_SERVER}configure-server-errors'; import { observeRenderFailures } from '${RUNTIME_SERVER}render-integrity'; configureServerErrors(); observeRenderFailures()`,
+      'src/helpers/public.ts': `import { createPublicError, isPublicError, publicErrorMessage } from '${RUNTIME_SERVER}public-errors'; import { protectServerOperation } from '${RUNTIME_SERVER}protect-server-operation'; import { createRenderIntegrity } from '${RUNTIME_SERVER}render-integrity'; export { createPublicError, isPublicError, publicErrorMessage, protectServerOperation, createRenderIntegrity }`,
+      'src/helpers/public.node.test.ts': `void import('${RUNTIME_SERVER}configure-server-errors'); void import('${RUNTIME_SERVER}render-integrity')`,
+      'src/helpers/testOnly.node.test.ts': 'console.error("fixed")'
+    }
+  })
+  assert.equal(allowed.status, 0, allowed.stdout + allowed.stderr)
+  const config = `export default ${JSON.stringify({
+    lint: {
+      categories: { correctness: 'off' },
+      plugins: ['import'],
+      rules: {
+        'import/no-unassigned-import': 'error',
+        'import/no-nodejs-modules': 'error'
+      },
+      overrides: (lint.overrides ?? []).filter(
+        override =>
+          override.rules?.['import/no-unassigned-import'] !== undefined ||
+          override.rules?.['import/no-nodejs-modules'] !== undefined
+      )
+    }
+  })}`
+  const sources = {
+    'src/infra/server/logServerFailure/index.ts': 'import "server-only"',
+    'src/infra/server/publicationScope/index.ts':
+      'import { AsyncLocalStorage } from "node:async_hooks"; export const storage = new AsyncLocalStorage()',
+    'src/infra/server/helper/index.mts': 'import "server-only"',
+    'src/infra/server/publicationScope/index.mts':
+      'import { AsyncLocalStorage } from "node:async_hooks"; export const storage = new AsyncLocalStorage()'
+  }
+  const result = lintFixture({ context, config, sources })
+  assert.equal(result.status, 1, result.stdout + result.stderr)
+  const diagnostics = readDiagnostics(result.stdout)
+  for (const filename of Object.keys(sources)) {
+    assert.equal(
+      hasError({ diagnostics, filename, matches: () => true }),
+      filename.endsWith('.mts') ||
+        filename === 'src/infra/server/publicationScope/index.ts',
+      filename
+    )
+  }
+})
 
 test('the rule requires static imports of the Solid package and its subpaths', () => {
   const rule = backendPlugin.rules['static-solid-imports']
@@ -206,7 +537,8 @@ test('the policy rejects access bypasses in the real Oxlint parser', context => 
         diagnostics,
         filename,
         matches: code =>
-          /^eslint\(no-restricted-(?:globals|imports|properties)\)$/u.test(code)
+          code === 'backend(restricted-imports)' ||
+          /^eslint\(no-restricted-(?:globals|properties)\)$/u.test(code)
       }),
       filename
     )
@@ -249,13 +581,13 @@ test('the policy keeps public APIs, tests and tooling logging working', context 
     sources: {
       'src/infra/server/requestJson/index.ts':
         'export const request = () => fetch("/private")',
-      'src/infra/server/publicErrors/index.ts':
-        'import { markSafeError } from "@solidjs/web"; export const error = markSafeError(new Error("public"))',
       'src/infra/server/configureServerErrors/index.ts':
-        'import { configureServerErrors } from "@solidjs/web"; import { configureServerFunctionsServer } from "@solidjs/web/server-functions/server"; import { handleServerFunctionRequest } from "@solidjs/web/server-functions"; configureServerErrors({}); configureServerFunctionsServer({}); export { handleServerFunctionRequest }',
-      'src/infra/server/logServerFailure/index.ts': 'console.error("public")',
+        'import { configureServerErrors } from "@solidjs/web"; import { configureServerFunctionsServer } from "@solidjs/web/server-functions/server"; import { handleServerFunctionRequest } from "@solidjs/web/server-functions"; configureServerErrors({}); configureServerFunctionsServer({}); handleServerFunctionRequest()',
       'src/valid.ts':
         'import { createMemo } from "solid-js"; import { redirect } from "@solidjs/web"; globalThis.matchMedia("print"); typeof window; const client = { fetch() {} }; client.fetch(); function useLocal(fetch) { return fetch(); } const data = { allowControl: true }; export { createMemo, redirect, useLocal, data }',
+      'src/type-query.ts':
+        'type Web = import("@solidjs/web").ResponseEnvelope<unknown>; export type { Web }',
+      'src/relative-package.ts': 'void import("./@solidjs/web")',
       'src/local-console.ts': 'const console = { error() {} }; console.error()',
       'src/transport.test.ts':
         'fetch("/fixture"); console.error("fixture"); void import("@solidjs/web")',
@@ -303,7 +635,7 @@ test('only the registration module installs the server error hook', context => {
       hasError({
         diagnostics,
         filename,
-        matches: code => code === 'eslint(no-restricted-imports)'
+        matches: code => code === 'backend(restricted-imports)'
       }),
       filename
     )
@@ -366,20 +698,20 @@ test('the policy covers every code extension without widening privileges', conte
     console: { source: 'console.error("PRIVATE")', code: 'eslint(no-console)' },
     safe: {
       source: 'import { markSafeError } from "@solidjs/web"',
-      code: 'eslint(no-restricted-imports)'
+      code: 'backend(restricted-imports)'
     },
     config: {
       source:
         'import { configureServerFunctionsServer } from "@solidjs/web/server-functions/server"',
-      code: 'eslint(no-restricted-imports)'
+      code: 'backend(restricted-imports)'
     },
     hook: {
       source: 'import { configureServerErrors } from "@solidjs/web"',
-      code: 'eslint(no-restricted-imports)'
+      code: 'backend(restricted-imports)'
     },
     transport: {
       source: 'import { request } from "node:https"',
-      code: 'eslint(no-restricted-imports)'
+      code: 'backend(restricted-imports)'
     },
     dynamic: {
       source: 'void import("@solidjs/web")',
@@ -388,7 +720,7 @@ test('the policy covers every code extension without widening privileges', conte
     observer: {
       source:
         'import { observeRenderFailures } from "@/infra/server/renderIntegrity/index.ts"',
-      code: 'eslint(no-restricted-imports)'
+      code: 'backend(restricted-imports)'
     },
     observerDynamic: {
       source: 'void import("@/infra/server/renderIntegrity/index.ts")',
@@ -419,7 +751,7 @@ test('the policy covers every code extension without widening privileges', conte
   }
   fixtures['src/helpers/transport.cjs'] = {
     source: 'void import("node:https")',
-    code: 'eslint(no-restricted-imports)'
+    code: 'backend(restricted-imports)'
   }
   fixtures['src/infra/server/requestJson/index.mts'] = cases.fetch
   fixtures['src/infra/server/logServerFailure/index.mts'] = cases.console

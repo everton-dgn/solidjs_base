@@ -1,9 +1,10 @@
 # 0021. Minimal applications test installed packages with both Bun linkers
 
 - Status: Accepted, amended by [0024](0024-runtime-theme.md),
-  [0025](0025-packaged-i18n-generator.md) and
-  [0026](0026-runtime-locale-navigation.md) and
-  [0027](0027-packaged-tool-dependencies.md)
+  [0025](0025-packaged-i18n-generator.md),
+  [0026](0026-runtime-locale-navigation.md),
+  [0027](0027-packaged-tool-dependencies.md) and
+  [0028](0028-runtime-server-errors.md)
 - Date: 2026-11-13
 
 ## Context
@@ -103,3 +104,25 @@ probes must fail at the bundle audit, provider contract or HTML smoke,
 respectively. They mutate only the temporary installation. The generated
 provider comes from the runtime test project. Browser navigation and hydration
 remain the responsibility of runtime browser tests and the copy's E2E suites.
+
+## Server error protection
+
+Both SSR fixtures register the runtime server-error setup. The preview smoke
+checks an error with private message, cause and property markers, requiring the
+public message and no marker in the complete response. It drains stdout and
+stderr after closing preview, requires `[server-error]`, and rejects private
+markers. The i18n fixture checks German and an Italian callback that throws,
+which must fall back to the fixed English message without another diagnostic.
+
+Node and preview consumers verify public error identity and render observation
+through package subpaths. After a successful smoke, a used server-only import is
+planted in the client entry and the build must fail with the Solid boundary
+diagnostic. This happens for both linkers, without changing dependencies.
+
+The `error-body` and `error-log` mutations are optional negative probes on
+`ssr-plain / isolated$`. Each changes only the runtime installed in the
+temporary application and must fail at the corresponding marker assertion.
+Existing scenario assertions remain in place. The runner explicitly removes
+inherited NODE_ENV and verifies each owned PID and process group before stopping
+it. See [ADR 0028](0028-runtime-server-errors.md) for the public API and its
+limits.

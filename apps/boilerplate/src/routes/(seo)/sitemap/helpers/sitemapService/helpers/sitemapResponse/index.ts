@@ -1,9 +1,9 @@
+import { logServerFailure } from '@evertondgn/solid-runtime/server/log-server-failure'
 import { locales } from '@paraglide/runtime.js'
 
 import type { SitemapEntry } from '@/@types/sitemap.ts'
 import { SITE_CACHE_CONTROL } from '@/constants/cache.ts'
 import { HTTP_NOT_FOUND, HTTP_SERVICE_UNAVAILABLE } from '@/constants/http.ts'
-import { logServerFailure } from '@/infra/server/logServerFailure/index.ts'
 import { SITEMAP_URL_LIMIT } from '@/routes/(seo)/sitemap/constants.ts'
 
 import {

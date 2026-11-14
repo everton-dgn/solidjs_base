@@ -1,6 +1,6 @@
 /* oxlint-disable node/no-sync -- The test owns each temporary application and inspects artifacts between awaited commands. */
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { once } from 'node:events'
 import {
   cpSync,
@@ -20,6 +20,13 @@ import { test } from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 
 import * as v from 'valibot'
+
+import {
+  assertServerErrorLog,
+  importServerFromClient,
+  mutateServerErrors,
+  smokeServerErrors
+} from '../server-errors.ts'
 
 const ROOT = path.resolve(import.meta.dirname, '../../../../..')
 const VP = path.join(ROOT, 'node_modules/.bin/vp')
@@ -77,8 +84,16 @@ const pinnedSchema = v.looseObject({
   packageManager: v.optional(v.string())
 })
 const MUTATION = env.SCENARIO_MUTATION
+const CHILD_ENV = { ...env }
+delete CHILD_ENV.NODE_ENV
 
-type Command = { cwd: string; args: string[]; deadline: number; file?: string }
+type Command = {
+  cwd: string
+  args: string[]
+  deadline: number
+  file?: string
+  expectedError?: RegExp
+}
 type Target = { app: string; scenario: string }
 type Pinned = v.InferOutput<typeof pinnedSchema>
 type CatalogInput = {
@@ -87,11 +102,28 @@ type CatalogInput = {
 }
 type Versions = Record<string, string | undefined>
 
+function stopChild(child: ChildProcess): void {
+  if (!child.pid || child.exitCode !== null || child.signalCode !== null) return
+  const inspected = spawnSync(
+    'ps',
+    ['-p', String(child.pid), '-o', 'pid=,pgid=,command='],
+    { encoding: 'utf8', timeout: 5000 }
+  )
+  if (inspected.status === 1 && inspected.stdout.trim() === '') return
+  assert.equal(inspected.status, 0, inspected.stderr)
+  const identity = inspected.stdout.trim().split(/\s+/u)
+  assert.equal(Number(identity[0]), child.pid)
+  assert.equal(Number(identity[1]), child.pid)
+  stdout.write(`Stopping owned process: ${inspected.stdout.trim()}\n`)
+  kill(-child.pid, 'SIGKILL')
+}
+
 async function run({
   cwd,
   args,
   deadline,
-  file: executable
+  file: executable,
+  expectedError
 }: Command): Promise<string> {
   let file = executable ?? path.join(cwd, 'node_modules/.bin/vp')
   if (!executable && args[0] === 'install') file = 'bun'
@@ -100,6 +132,7 @@ async function run({
   assert.ok(Date.now() < deadline, 'Scenario execution deadline exceeded')
   const child = spawn(file, args, {
     cwd,
+    env: CHILD_ENV,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe']
   })
@@ -112,7 +145,7 @@ async function run({
   })
   const timer = setTimeout(
     () => {
-      if (child.pid) kill(-child.pid, 'SIGKILL')
+      stopChild(child)
     },
     Math.min(COMMAND_TIMEOUT, deadline - Date.now())
   )
@@ -122,7 +155,12 @@ async function run({
     stdout.write(
       `${args.join(' ')}: ${Math.round(performance.now() - started)} ms\n`
     )
-    assert.equal(code, 0, `${args.join(' ')}\n${output}`)
+    if (expectedError) {
+      assert.notEqual(code, 0, 'A client import of server-only code must fail')
+      assert.match(output, expectedError)
+    } else {
+      assert.equal(code, 0, `${args.join(' ')}\n${output}`)
+    }
     return output
   } finally {
     clearTimeout(timer)
@@ -219,7 +257,12 @@ async function smoke({ app, scenario }: Target): Promise<void> {
   const child = spawn(
     path.join(app, 'node_modules/.bin/vp'),
     ['preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'],
-    { cwd: app, detached: true, stdio: ['ignore', 'pipe', 'pipe'] }
+    {
+      cwd: app,
+      env: CHILD_ENV,
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe']
+    }
   )
   let output = ''
   child.stdout.on('data', chunk => {
@@ -314,12 +357,12 @@ async function smoke({ app, scenario }: Target): Promise<void> {
       response.headers.get('content-security-policy') ?? '',
       /script-src/u
     )
+    await smokeServerErrors({ origin: `http://127.0.0.1:${port}`, scenario })
   } finally {
-    if (child.pid && child.exitCode === null) {
-      kill(-child.pid, 'SIGKILL')
-    }
+    stopChild(child)
     await closed
   }
+  assertServerErrorLog(output)
 }
 
 function mutateTheme(app: string): void {
@@ -582,6 +625,29 @@ test('the applications pin the versions of the workspace', () => {
   }
 })
 
+async function buildScenario({
+  app,
+  scenario,
+  deadline
+}: {
+  app: string
+  scenario: string
+  deadline: number
+}): Promise<void> {
+  mutateServerErrors({ app, scenario, mutation: MUTATION })
+  await run({ deadline, cwd: app, args: ['build'] })
+  assertBuild({ app, scenario })
+  if (scenario === 'client-only') return
+  await smoke({ app, scenario })
+  importServerFromClient(app)
+  await run({
+    deadline,
+    cwd: app,
+    args: ['build'],
+    expectedError: /Attempt to import 'server-only' in a client module/u
+  })
+}
+
 for (const scenario of SCENARIOS) {
   for (const linker of [
     ...LINKERS,
@@ -763,9 +829,7 @@ export default (event, next) => next()
           )
         }
         mutateTheme(app)
-        await run({ deadline, cwd: app, args: ['build'] })
-        assertBuild({ app, scenario })
-        if (scenario !== 'client-only') await smoke({ app, scenario })
+        await buildScenario({ app, scenario, deadline })
       } finally {
         rmSync(directory, { recursive: true, force: true })
         stdout.write(

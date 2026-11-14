@@ -6,10 +6,13 @@
       "vite/client",
       "vite-plus/test/globals",
       "@solidjs/vite-plugin/virtual-modules",
-      "filesystem-routing/types"
+      "filesystem-routing/types",
+      "@solidjs/vite-plugin/boundary-modules"
     ],
     "paths": {
-      "@paraglide/*": ["./tooling/testing/generated/*"]
+      "@paraglide/*": ["./tooling/testing/generated/*"],
+      "@testing/*": ["./tooling/testing/*"],
+      "@/*": ["./src/*"]
     }
   },
   "include": [

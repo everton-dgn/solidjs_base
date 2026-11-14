@@ -12,11 +12,14 @@ export default defineKnipConfig({
   // type-only imports, so the ignore applies only to that production run.
   // solid-js and the router remain supplied by the application; extraction preserves
   // dependency ownership. Installed scenarios verify both Bun linkers.
+  // server-only is a Solid plugin boundary module, not an installed package.
+  // The runtime node tests provide the same stand-in as the application preset.
   ignoreDependencies: [
     'srvx',
     '@solidjs/vite-plugin!',
     'solid-js!',
-    '@solidjs/router!'
+    '@solidjs/router!',
+    'server-only'
   ],
   // The catalog sits in the root package.json, which Knip does not read from
   // this folder. bun install already refuses an entry missing from the catalog.

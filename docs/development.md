@@ -112,7 +112,7 @@ Run its commands from `apps/boilerplate`:
 | `vp run test:tooling`        | Tests of the application tooling: Markdown, publication and CSS Module class names |
 | `vp run build`               | Build the application                                                              |
 | `vp run test:e2e`            | Playwright end-to-end tests                                                        |
-| `vp run test:e2e:production` | Playwright tests against the production routes and build                           |
+| `vp run test:e2e:production` | Production routes and server-log teardown                                          |
 
 Every command loads the application's `vite.config.ts`, which imports the
 compiled presets from `dist/` and the security header constants from
@@ -369,3 +369,37 @@ The boilerplate configures theme once in `src/constants/theme.ts`. Its theme
 adapters, types and primitive tests moved to the runtime package, which now runs
 node and happy-dom projects. UI and CSS remain in the copy. See
 [ADR 0024](ADRs/0024-runtime-theme.md).
+
+## Runtime server errors
+
+The seven server error modules and their unit tests live in
+`packages/solid-runtime/src/infra/server/`. The application retains its thin
+`src/infra/server/configureServerErrors/index.ts` setup and colocated public
+message catalogs. Publication-controller integration stays in the application;
+runtime test helpers live in `tooling/testing`, excluded from coverage and
+publication. See [ADR 0028](ADRs/0028-runtime-server-errors.md).
+
+The root validation includes the backend policy tests through the tooling
+package's `test` script. They exercise nine import restrictions and five private
+API type checks, including variable and spread uses of `allowControl`.
+
+Both SSR scenarios load serverSetup and expose `/server-error`, localized in the
+i18n fixture. The smoke rejects private markers in the full body and in the
+preview's stdout and stderr after process closure, and requires a fixed
+`[server-error]` log line. German uses its catalog; the Italian callback throws
+and must produce the English default. Public error identity and render
+observation are checked through the installed package entries. Each SSR case
+then imports a server module from the client entry and requires a boundary
+plugin build failure.
+
+Run optional `SCENARIO_MUTATION=error-body` or `error-log` probes with
+`--test-name-pattern='ssr-plain / isolated$'`. They mutate only the installed
+runtime in the owned temporary application after lint and unit tests. Each must
+fail at its body or log marker assertion, respectively. Normal validation does
+not set the variable. Commands remove inherited `NODE_ENV`, use bounded
+deadlines and verify the owned PID and process group before termination.
+
+Run the copy's full check, Node types, dead-code, coverage, tooling and both E2E
+suites separately from package builds and the installed matrix. The existing
+BackendError, OutsideError and OutdatedPage tests and production log teardown
+remain required for this boundary.

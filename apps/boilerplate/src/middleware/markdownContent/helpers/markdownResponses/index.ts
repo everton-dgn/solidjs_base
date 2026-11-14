@@ -1,4 +1,5 @@
 import { createLocalizeRequest } from '@evertondgn/solid-runtime/middleware/localize-request'
+import { publicErrorMessage } from '@evertondgn/solid-runtime/server/public-errors'
 import { m } from '@paraglide/messages.js'
 import { extractLocaleFromRequest } from '@paraglide/runtime.js'
 
@@ -10,7 +11,6 @@ import {
   HTTP_SERVICE_UNAVAILABLE
 } from '@/constants/http.ts'
 import { LLMS_DESCRIBEDBY_LINK } from '@/constants/llms.ts'
-import { publicErrorMessage } from '@/infra/server/publicErrors/index.ts'
 
 import { applySecurityHeaders } from '../../../securityHeaders/index.ts'
 import { uncachedResponse } from '../uncachedResponse/index.ts'

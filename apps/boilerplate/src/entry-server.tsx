@@ -1,7 +1,6 @@
+import { createRenderIntegrity } from '@evertondgn/solid-runtime/server/render-integrity'
 import { getRequestEvent, renderToStream } from '@solidjs/web'
 import manifest from 'virtual:solid-manifest'
-
-import { createRenderIntegrity } from '@/infra/server/renderIntegrity/index.ts'
 
 import App from './App.tsx'
 import Document from './Document.tsx'

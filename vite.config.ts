@@ -72,6 +72,8 @@ export default defineConfig({
         // would turn it into an augmentation of a module that is missing here.
         files: [
           'packages/solid-tooling/src/vitest/setup/paraglide-runtime.d.ts',
+          'packages/solid-tooling/app-env.d.ts',
+          'packages/solid-tooling/node-env.d.ts',
           'packages/solid-tooling/virtual-modules.d.ts'
         ],
         rules: { 'import/unambiguous': 'off' }

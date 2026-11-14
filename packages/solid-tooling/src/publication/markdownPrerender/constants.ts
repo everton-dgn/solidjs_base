@@ -1,0 +1,7 @@
+export {
+  LLMS_PATH,
+  LLMS_FULL_MAX_BYTES,
+  LLMS_MAX_BYTES,
+  LLMS_FULL_PATH,
+  LLMS_DESCRIBEDBY_LINK
+} from '../protocol.ts'

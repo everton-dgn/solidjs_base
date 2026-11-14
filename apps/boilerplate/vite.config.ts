@@ -1,9 +1,12 @@
 import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
 
+import { FONTS } from './fonts.ts'
+import { ROBOTS } from './src/constants/site/robots.ts'
 import { SECURITY_HEADERS } from './src/middleware/securityHeaders/constants.ts'
 
 export default defineSolidApp({
   root: import.meta.dirname,
+  fonts: FONTS,
   middleware: './src/middleware/index.ts',
   serverSetup: './src/infra/server/configureServerErrors/index.ts',
   e2e: {
@@ -12,9 +15,13 @@ export default defineSolidApp({
   },
   icons: { 'my-images': './src/assets/images' },
   securityHeaders: SECURITY_HEADERS,
-  // Sitemap, robots.txt, llms.txt e as páginas em Markdown recebem os cabeçalhos
-  // dos estáticos.
-  publication: true,
+  seo: {
+    robots: ROBOTS,
+    sitemap: { static: true },
+    markdown: { static: true },
+    llms: {},
+    llmsFull: {}
+  },
   // Sem fallthrough, um arquivo ausente em /images/ recebe o 404 no-store do
   // Nitro em vez da página SSR com o cache imutável.
   publicAssets: [
@@ -37,21 +44,5 @@ export default defineSolidApp({
       'packages/solid-runtime/package.json',
       'packages/solid-runtime/src/**'
     ]
-  },
-  // O i18n e a publicação ainda ficam na aplicação. Uma chamada só entrega o
-  // plugin e o módulo do Nitro com o mesmo buildId.
-  async extend({ target }) {
-    const { i18nPlugin } = await import('./tooling/i18n/i18nPlugin/index.ts')
-    if (target === 'test') return { plugins: [i18nPlugin()] }
-    const [{ markdownPrerender }, { createPublicationBuild }] =
-      await Promise.all([
-        import('./tooling/markdownPrerender/index.ts'),
-        import('./tooling/publicationArtifacts/helpers/createPublicationBuild/index.ts')
-      ])
-    const publication = createPublicationBuild()
-    return {
-      plugins: [publication.plugin, i18nPlugin()],
-      nitroModules: [markdownPrerender({ buildId: publication.buildId })]
-    }
   }
 })

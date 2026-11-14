@@ -1,8 +1,11 @@
 import type { ViteUserConfig } from 'vite-plus'
 
+import type { SeoOptions } from '../seo-module.ts'
+
 export type SolidTestOptions = {
   root: string
   language?: string
+  seo?: SeoOptions | false
   // WHY: a factory, because each project starts its own Vite server and a
   // plugin instance keeps the state of the server that resolved it last.
   plugins: () => ViteUserConfig['plugins']
@@ -18,5 +21,5 @@ export type SolidTestOptions = {
 // language, which it takes as an option of its own.
 export type SolidTestSettings = Omit<
   SolidTestOptions,
-  'root' | 'plugins' | 'language'
+  'root' | 'plugins' | 'language' | 'seo'
 >

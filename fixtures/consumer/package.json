@@ -3,15 +3,13 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "@commitlint/cli": "21.2.4",
     "@evertondgn/solid-tooling": "0.1.0",
-    "lefthook": "2.2.2",
-    "typescript": "7.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
     "vite-plus": "1.6.0"
   },
   "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0"
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
+    "vitest": "5.1.0"
   },
   "packageManager": "bun@1.4.4",
   "engines": {
@@ -23,5 +21,6 @@
       "version": "24.22.3",
       "onFail": "download"
     }
-  }
+  },
+  "trustedDependencies": []
 }

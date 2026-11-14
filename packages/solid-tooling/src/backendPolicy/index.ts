@@ -1,74 +1,11 @@
 import type { UserConfig } from 'vite-plus'
 
-import {
-  RELATIVE_IMPORT_RESTRICTION,
-  RENDER_INTEGRITY_MODULE
-} from './constants.ts'
-
 type LintConfig = NonNullable<UserConfig['lint']>
-type ImportPath = { name: string; importNames?: string[]; message: string }
-type ImportPattern = { regex: string; importNames?: string[]; message: string }
-type ImportRestrictions = { paths: ImportPath[]; patterns?: ImportPattern[] }
 type GlobalRestrictions = { names: string[]; properties?: string[] }
 
 const NETWORK = ['fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource']
 const RESTRICTED_GLOBALS = [...NETWORK, 'console']
 const GLOBALS = ['globalThis', 'window', 'self', 'global']
-const SAFE_ERRORS: ImportPath = {
-  name: '@solidjs/web',
-  importNames: ['markSafeError', 'SAFE_ERROR'],
-  message:
-    'Use createPublicError; only publicErrors may mark an error as public.'
-}
-// Each call replaces the previous global server error hook, so only the
-// registration module may install it.
-const SERVER_ERROR_HOOK: ImportPath = {
-  name: '@solidjs/web',
-  importNames: ['configureServerErrors'],
-  message:
-    'Only src/infra/server/configureServerErrors/index.ts may import this: server error handling is configured in that module.'
-}
-// The subpath without the suffix exposes the same configuration and dispatch
-// surface in the server runtime; the restriction has to cover both specifiers.
-const SERVER_CONFIG: ImportPath[] = [
-  '@solidjs/web/server-functions',
-  '@solidjs/web/server-functions/server'
-].map(name => ({
-  name,
-  message:
-    'Only src/infra/server/configureServerErrors/index.ts may import this: server error handling is configured in that module.'
-}))
-// After this call the render state starts without errors; it is only valid in
-// the registration that installs the hook able to mark it.
-const RENDER_OBSERVER: ImportPattern = {
-  regex: RENDER_INTEGRITY_MODULE,
-  importNames: ['observeRenderFailures'],
-  message:
-    'Only configureServerErrors may declare that render failures are observed.'
-}
-const TRANSPORTS = ['http', 'https', 'http2', 'net', 'tls', 'undici']
-  .flatMap(name => [name, `node:${name}`])
-  .map(name => ({
-    name,
-    message:
-      'Node transports cannot be imported in src/. Use requestJson for HTTP, or an adapter in src/infra/server/ wrapped in protectServerOperation.'
-  }))
-
-function imports({
-  paths,
-  patterns = []
-}: ImportRestrictions): LintConfig['rules'] {
-  return {
-    'eslint/no-restricted-imports': [
-      'error',
-      {
-        paths,
-        patterns: [RELATIVE_IMPORT_RESTRICTION, ...patterns]
-      }
-    ]
-  }
-}
-
 function globals({
   names,
   properties = names
@@ -106,22 +43,9 @@ const backendPolicy: NonNullable<LintConfig['overrides']> = [
       'backend/static-render-integrity-imports': 'error',
       'eslint/no-console': ['error', { allow: [] }],
       ...globals({ names: RESTRICTED_GLOBALS }),
-      ...imports({
-        paths: [
-          SAFE_ERRORS,
-          SERVER_ERROR_HOOK,
-          ...SERVER_CONFIG,
-          ...TRANSPORTS
-        ],
-        patterns: [RENDER_OBSERVER]
-      })
-    }
-  },
-  {
-    files: ['src/infra/server/logServerFailure/index.ts'],
-    rules: {
-      ...globals({ names: NETWORK, properties: RESTRICTED_GLOBALS }),
-      'eslint/no-console': ['error', { allow: ['error'] }]
+      // The backend rule applies the shared relative limit after normalization.
+      'eslint/no-restricted-imports': 'off',
+      'backend/restricted-imports': 'error'
     }
   },
   {
@@ -131,15 +55,14 @@ const backendPolicy: NonNullable<LintConfig['overrides']> = [
     })
   },
   {
-    files: ['src/infra/server/publicErrors/index.ts'],
-    rules: imports({
-      paths: [SERVER_ERROR_HOOK, ...SERVER_CONFIG, ...TRANSPORTS],
-      patterns: [RENDER_OBSERVER]
-    })
-  },
-  {
     files: ['src/infra/server/configureServerErrors/index.ts'],
-    rules: imports({ paths: [SAFE_ERRORS, ...TRANSPORTS] })
+    rules: {
+      'backend/restricted-imports': [
+        'error',
+        { allowServerConfiguration: true }
+      ],
+      'backend/no-setup-exports': 'error'
+    }
   },
   {
     files: [
@@ -153,7 +76,7 @@ const backendPolicy: NonNullable<LintConfig['overrides']> = [
       'eslint/no-console': 'off',
       'eslint/no-restricted-globals': 'off',
       'eslint/no-restricted-properties': 'off',
-      ...imports({ paths: [] })
+      'backend/restricted-imports': ['error', { testFile: true }]
     }
   }
 ]

@@ -1,5 +1,6 @@
+import { getLocale } from '@evertondgn/solid-runtime/i18n/locale'
 import { resolveLocalizedHref } from '@evertondgn/solid-runtime/i18n/urls'
-import { getLocale, type Locale } from '@paraglide/runtime.js'
+import type { Locale } from '@paraglide/runtime.js'
 import { useInRouter, useLocation, type TypedPath } from '@solidjs/router'
 import type { JSX } from '@solidjs/web'
 import { omit } from 'solid-js'
@@ -10,7 +11,7 @@ type LocalizedLinkProps = Omit<
 > & {
   href: string | TypedPath
   locale?: Locale
-  /** Use false para preservar URLs de endpoints e arquivos estáticos e navegar fora da SPA. */
+  /** Preserve endpoint and asset URLs with document navigation. */
   shouldLocalize?: boolean
 }
 

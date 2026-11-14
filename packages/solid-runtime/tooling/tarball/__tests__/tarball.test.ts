@@ -121,6 +121,10 @@ async function assertExportTargets({
     typeof manifest === 'object' && manifest !== null && 'exports' in manifest
   )
   const targets = exportTargets(manifest.exports)
+  const publicEntries = Object.keys(manifest.exports ?? {})
+  assert.ok(
+    !publicEntries.some(entry => /public-message|registration/u.test(entry))
+  )
   const missing = targets.filter(
     target => !entries.includes(path.posix.join('package', target))
   )
@@ -130,8 +134,11 @@ async function assertExportTargets({
 }
 
 function assertNoTests({ entries }: Installation): void {
-  const published = entries.filter(entry =>
-    entry.split('/').includes('__tests__')
+  const published = entries.filter(
+    entry =>
+      entry.split('/').includes('__tests__') ||
+      entry.startsWith('package/tooling/') ||
+      entry.startsWith('package/src/tests/')
   )
 
   assert.ok(entries.length > 0, 'The tarball is empty.')

@@ -7,13 +7,18 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base. Stop maintaining the same tooling in every Solid app. The SolidJS mark stands on six layers that the package @evertondgn/solid-tooling maintains: lint rules, app config, tests, format and types, unused code and CSS, commits and hooks." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 and Vite+. Shared tooling and runtime beneath the SolidJS mark: languages, theme, server protection, SEO, assets and development tools. Install solid-tooling for development and solid-runtime for application features." width="800" />
 </picture>
+
+| Available package                                                                                                              | Role                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| [`@evertondgn/solid-tooling`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/README.md)          | Shared config, tools, catalog generation, icons and fonts                              |
+| [`@evertondgn/solid-runtime`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/README.md), `0.1.0` | Optional locale and theme behavior, middleware, error protection, env, SEO and sitemap |
 
 Solid Base supplies lint rules, application config, test setups and Git hooks
 for SolidJS 2 with [Vite+](https://viteplus.dev/guide/) as one versioned
 dependency, so you stop maintaining the same tooling in every Solid app. In an
-application that already uses Vite+ and TypeScript:
+application that already uses Vite+:
 
 ```bash
 vp add -D @evertondgn/solid-tooling
@@ -27,11 +32,12 @@ you are ready.
 
 ## Requirements
 
-Install the exact Vite+ version listed in the package's `peerDependencies`.
-Optional entries need additional tools: check the
-[dependency requirements](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#requirements)
-before using the application, test or Git hook presets. An application with
-translations also installs the required version of `@inlang/paraglide-js`.
+Install the exact Vite+ version listed in the package's `peerDependencies`. The
+package supplies its build, test, type-check and hook tools. Applications keep
+their own direct imports and the Vite+ overrides; see the
+[dependency requirements](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#requirements).
+An application with translations also installs the required version of
+`@inlang/paraglide-js` and its message-format plugin.
 
 ## Quick start
 
@@ -88,7 +94,7 @@ arrives when you update a dependency.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-light.webp" alt="About 94% less configuration in your repository: about 2,450 lines before and 142 after. vite.config.ts goes from 427 to 57 lines, the Playwright config from 173 to 17, the Knip config from 129 to 48, tsconfig.json from 45 to 9, Stylelint from 171 to 11, and the lint preset and rules from about 1,500 to 0." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-light.webp" alt="About 86 percent fewer lines across five configuration areas, from 945 to 136: Vite 427 to 59, Playwright 173 to 17, Knip 129 to 40, TypeScript 45 to 9, and Stylelint 171 to an 11-line script. Each bar shows the fraction retained in the app." width="800" />
 </picture>
 
 Measured on the original starter and the same application using this package.
@@ -134,12 +140,14 @@ export default defineSolidApp({
 ```
 
 You keep your middleware and header values. SSR uses Nitro with the Vercel
-preset, and the plugin peer dependencies are pinned to exact versions.
+preset. Its plugins are package dependencies pinned to the tested versions. The
+`knip`, `tsc`, `playwright`, `lefthook` and `commitlint` tasks run the
+package-owned binaries, including with an isolated installation.
 
 | Feature             | Selection                                                                                                                              |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | Client-only build   | Set `ssr: false` and omit SSR options such as `middleware` and `securityHeaders`; the build has no Nitro or server bundle              |
-| Publication headers | Set `publication: true` for the rules of published files such as the sitemap, `robots.txt`, `llms.txt` and Markdown pages              |
+| Publication headers | Set `seo.markdown`, `seo.llms`, `seo.llmsFull` and `seo.sitemap` independently; static artifacts come from compiled tooling            |
 | Translations        | `project.inlang/settings.json` enables the generation task and browser test setup; the lint plugin loads only where Paraglide resolves |
 
 See
@@ -147,12 +155,70 @@ See
 and the
 [known limits](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits).
 
+## Optional application fonts
+
+Pass a data-only `fonts` array to `defineSolidApp` to generate external
+`@font-face` CSS and matching preloads for application-owned files. SSR uses
+`FontLinks` from `@evertondgn/solid-runtime/fonts/font-links` in the Document
+head; client-only applications receive both links in `index.html`. Without
+`fonts`, nothing is generated. Typography tokens stay in the app. See the
+[font API and migration examples](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/fonts.md).
+
+## Optional SEO configuration
+
+For SSR,
+`seo: { robots: { groups, sitemapPaths, cacheControl }, sitemap: true }`
+configures the runtime robots route using serializable data. `originEnv`
+defaults to `VITE_SITE_URL`; the value must be an HTTP(S) origin without a path,
+query, fragment or credentials. The preset validates it when SEO is enabled or
+the runtime origin entry is imported. No SEO means no required origin.
+
+Pass `site` directly to the runtime `createSeo` primitive. A meta/JSON-LD-only
+application can omit `seo`, provide its own `site.url` and omit robots entirely.
+Client-only applications omit both the option and runtime SEO imports. There are
+no `siteModule`, `sourcesModule` or `editorialModule` path options.
+`seo.sitemap` controls only the static `/sitemap.xml` and `/sitemaps/pages/**`
+header rules. Install the runtime factory in explicit application route files,
+and list the root in `robots.sitemapPaths` to advertise it. To remove sitemap,
+remove its routes and server binding, omit its array metadata, omit
+`sitemapPaths`, and omit or disable `seo.sitemap`. Robots can stay enabled. The
+preset does not discover executable source registries or install routes. See the
+[runtime SEO API](../solid-runtime/README.md#optional-seo) for factories, the
+one-line route and examples with and without translations.
+
+## Optional environment validation
+
+An SSR application can add `env.ts` with the preset's optional validators:
+
+```ts
+import { serverEnv } from '@evertondgn/solid-runtime/env'
+
+const env = { server: { ...serverEnv } }
+
+export default env
+```
+
+`HOST`, `PORT` and `BASE_URL_TEST` are optional; `PORT` produces a number.
+Declare the runtime package in `dependencies` and keep the tooling in
+`devDependencies`: Knip treats `env.ts` as production code. Extend `server` and
+`client` with the application's own Standard Schema validators. The runtime
+supplies Valibot for its fragment; declare a validator library in the
+application only when its own code imports it. The optional SEO configuration
+validates `VITE_SITE_URL` separately. An application without `env.ts` keeps
+working, including client-only applications with no site URL.
+
+The Solid plugin generates inferred types and rejects server env imports in the
+client graph. The server virtual module bundles the fragment and validator; env
+validation adds neither to the client. See the
+[environment guide](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md#optional-environment-validation)
+for extension examples, boot validation and type generation.
+
 ## How it is verified
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" alt="Three stages. Every change: the application and the packages run in CI, with more than 1,000 Vitest tests and more than 300 end-to-end tests. Before each release: the tarball is installed in a separate application, and its exports and lint rules are checked. Publication: signed npm provenance through trusted publishing, with no stored npm token." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" alt="At this revision: 775 runtime and 394 application Vitest tests, 1169 combined; 164 fixture E2E cases and 155 production E2E cases, 319 enumerated. Installed tarballs check exports and builds with both Bun linkers. Release workflows use npm trusted publishing." width="800" />
 </picture>
 
 Package changes run against the complete boilerplate and the runtime package in
@@ -184,3 +250,10 @@ the minor version. Read the
 for each release.
 
 [MIT](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)
+
+Publication is compiled into the preset and uses one build identity for the SSR
+and artifact manifests. It no longer needs an application `extend` callback.
+`publication/read-llms-index` exposes the compiled index reader for artifact
+checks in Node. See
+[ADR 0034](../../docs/ADRs/0034-runtime-markdown-publication.md) for independent
+feature options, defaults, disabled-resource behavior and scale.

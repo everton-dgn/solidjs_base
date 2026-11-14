@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import {
-  cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -14,23 +14,78 @@ import {
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { env, kill, stdout } from 'node:process'
+import { env, stdout } from 'node:process'
 import { test } from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 
 import * as v from 'valibot'
 
+import {
+  assertFontBuild,
+  assertFontHtml,
+  mutateFontsScenario,
+  prepareFontsScenario
+} from '../font-scenarios.ts'
+import { smokeMiddleware } from '../middleware-smoke.ts'
+import { mutatePublication } from '../publication-mutations.ts'
+import { PUBLICATION_PROFILES } from '../publication-scenarios.ts'
+import { smokePublication } from '../publication-smoke.ts'
+import {
+  assertEnvBootFailure,
+  checkEnvBundle,
+  checkEnvFailures,
+  instrument,
+  instrumentMiddleware,
+  mutateLocaleStandIn,
+  mutateTheme,
+  prepareEnvScenario
+} from '../scenario-mutations.ts'
+import { run, stopChild, childEnvironment } from '../scenario-process.ts'
+import {
+  checkSeoOriginFailures,
+  prepareSeoScenario,
+  seoEnvironment
+} from '../seo-scenarios.ts'
+import { assertSeoBuild, smokeSeo } from '../seo-smoke.ts'
+import {
+  assertServerErrorLog,
+  importServerFromClient,
+  mutateServerErrors,
+  smokeServerErrors
+} from '../server-errors.ts'
+import { smokeTheme } from '../theme-smoke.ts'
+
 const ROOT = path.resolve(import.meta.dirname, '../../../../..')
-const VP = path.join(ROOT, 'node_modules/.bin/vp')
 const SCENARIOS = ['client-only', 'ssr-plain', 'ssr-i18n']
 const LINKERS = ['hoisted', 'isolated']
-const COMMAND_TIMEOUT = 60_000
 const SCENARIO_TIMEOUT = 150_000
 const PREVIEW_TIMEOUT = 15_000
 const REQUEST_TIMEOUT = 1000
 const POLL_INTERVAL = 100
 const HTTP_OK = 200
+const HTTP_SERVER_ERROR = 500
 const HTTP_TEMPORARY_REDIRECT = 307
+const PACKAGED_TOOLS = [
+  '@playwright/test',
+  '@solidjs/vite-plugin',
+  'filesystem-routing',
+  'knip',
+  'nitro',
+  'unplugin-icons',
+  '@commitlint/cli',
+  'lefthook',
+  'happy-dom',
+  'playwright',
+  '@vitest/browser-playwright',
+  '@vitest/coverage-v8',
+  '@vitest/ui',
+  '@testing-library/jest-dom',
+  '@types/node',
+  'typescript'
+]
+// Nitro and routing have runtime entries; their build adapters must stay out.
+const BUILD_TOOLS =
+  /\/node_modules\/(?:@evertondgn\/solid-tooling\/|@commitlint\/|@vitest\/|@testing-library\/|@playwright\/|@inlang\/sdk\/|(?:knip|typescript|happy-dom|playwright|playwright-core|lefthook|unplugin-icons|eslint-plugin-solid|stylelint|stylelint-use-nesting)\/|nitro\/dist\/(?:builder|vite|cli|presets\/[^/]+\/(?!runtime\/))|filesystem-routing\/dist\/(?:index|vite)|@solidjs\/vite-plugin\/dist\/esm\/index)/u
 const configSchema = v.object({
   plugins: v.array(v.string()),
   tasks: v.array(v.string())
@@ -56,8 +111,8 @@ const pinnedSchema = v.looseObject({
 })
 const MUTATION = env.SCENARIO_MUTATION
 
-type Command = { cwd: string; args: string[]; deadline: number }
 type Target = { app: string; scenario: string }
+type PreviewTarget = Target & { hasInvalidPort?: boolean }
 type Pinned = v.InferOutput<typeof pinnedSchema>
 type CatalogInput = {
   versions: Record<string, string>
@@ -65,41 +120,31 @@ type CatalogInput = {
 }
 type Versions = Record<string, string | undefined>
 
-async function run({ cwd, args, deadline }: Command): Promise<string> {
-  let file = path.join(cwd, 'node_modules/.bin/vp')
-  if (args[0] === 'install') file = 'bun'
-  if (args[0] === 'pm') file = VP
-  const started = performance.now()
-  assert.ok(Date.now() < deadline, 'Scenario execution deadline exceeded')
-  const child = spawn(file, args, {
-    cwd,
-    detached: true,
-    stdio: ['ignore', 'pipe', 'pipe']
-  })
-  let output = ''
-  child.stdout.setEncoding('utf8').on('data', (chunk: string) => {
-    output += chunk
-  })
-  child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
-    output += chunk
-  })
-  const timer = setTimeout(
-    () => {
-      if (child.pid) kill(-child.pid, 'SIGKILL')
-    },
-    Math.min(COMMAND_TIMEOUT, deadline - Date.now())
+type PackedMutation = { archive: string; deadline: number; name: string }
+
+async function removePackedDependency({
+  archive,
+  deadline,
+  name
+}: PackedMutation): Promise<void> {
+  if (name !== 'solid-tooling' || MUTATION !== 'missing-dependency') return
+  const unpacked = path.join(path.dirname(archive), 'unpacked')
+  mkdirSync(unpacked)
+  await run({ deadline, cwd: unpacked, file: 'tar', args: ['-xzf', archive] })
+  const file = path.join(unpacked, 'package/package.json')
+  const manifest = v.parse(
+    manifestSchema,
+    JSON.parse(readFileSync(file, 'utf8'))
   )
-  try {
-    const result: unknown[] = await once(child, 'close')
-    const [code] = result
-    stdout.write(
-      `${args.join(' ')}: ${Math.round(performance.now() - started)} ms\n`
-    )
-    assert.equal(code, 0, `${args.join(' ')}\n${output}`)
-    return output
-  } finally {
-    clearTimeout(timer)
-  }
+  assert.ok(manifest.dependencies['unplugin-icons'])
+  delete manifest.dependencies['unplugin-icons']
+  writeFileSync(file, JSON.stringify(manifest))
+  await run({
+    deadline,
+    cwd: unpacked,
+    file: 'tar',
+    args: ['-czf', archive, 'package']
+  })
 }
 
 async function freePort(): Promise<number> {
@@ -115,12 +160,26 @@ async function freePort(): Promise<number> {
   return port
 }
 
-async function smoke({ app, scenario }: Target): Promise<void> {
+async function smoke({
+  app,
+  scenario,
+  hasInvalidPort = false
+}: PreviewTarget): Promise<void> {
   const port = await freePort()
   const child = spawn(
     path.join(app, 'node_modules/.bin/vp'),
     ['preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'],
-    { cwd: app, detached: true, stdio: ['ignore', 'pipe', 'pipe'] }
+    {
+      cwd: app,
+      env: {
+        ...childEnvironment(),
+        ...seoEnvironment(app),
+        SCENARIO_LABEL: 'scenario-preview-value',
+        ...(hasInvalidPort ? { PORT: 'abc' } : {})
+      },
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe']
+    }
   )
   let output = ''
   child.stdout.on('data', chunk => {
@@ -148,13 +207,35 @@ async function smoke({ app, scenario }: Target): Promise<void> {
       }
     }
     assert.ok(response, `Preview did not start: ${output}`)
+    if (hasInvalidPort) {
+      assert.equal(
+        response.status,
+        HTTP_SERVER_ERROR,
+        'Invalid PORT must prevent server boot'
+      )
+      return
+    }
     assert.equal(response.status, HTTP_OK)
     const html = await response.text()
+    assertFontHtml({ app, scenario, html })
     assert.match(html, /<main[^>]*>Scenario application<\/main>/u)
-    // The application writes the base locale of the generated runtime.
-    if (scenario === 'ssr-i18n') assert.match(html, /<html[^>]* lang="fr"/u)
+    if (scenario === 'ssr-plain') {
+      assert.equal(
+        response.headers.get('x-scenario-env'),
+        'scenario-preview-value'
+      )
+      assert.match(html, /data-env="scenario-client-value"/u)
+    }
     if (scenario === 'ssr-i18n') {
+      assert.match(
+        html,
+        MUTATION === 'locale-tag'
+          ? /<html[^>]* lang="ja-JP"/u
+          : /<html[^>]* lang="fr-FR"/u,
+        'Runtime localeTag must set the document language tag'
+      )
       const origin = `http://127.0.0.1:${port}`
+      await smokeTheme({ mutation: MUTATION, html, response, origin })
       const redirect = await fetch(origin, {
         redirect: 'manual',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT)
@@ -175,7 +256,9 @@ async function smoke({ app, scenario }: Target): Promise<void> {
       })
       assert.equal(german.status, HTTP_OK)
       assert.equal(german.headers.get('content-language'), 'de')
-      assert.match(await german.text(), /Hallo Welt/u)
+      const germanHtml = await german.text()
+      assert.match(germanHtml, /Hallo Welt/u)
+      assert.match(germanHtml, /<html[^>]* lang="de-DE"/u)
       assert.match(german.headers.get('set-cookie') ?? '', /locale=de/u)
     }
     const localizedPrefix = MUTATION === 'locale-prefix' ? '/de' : '/fr'
@@ -207,54 +290,23 @@ async function smoke({ app, scenario }: Target): Promise<void> {
       response.headers.get('content-security-policy') ?? '',
       /script-src/u
     )
-  } finally {
-    if (child.pid && child.exitCode === null) {
-      kill(-child.pid, 'SIGKILL')
-    }
-    await closed
-  }
-}
-
-function instrument(app: string): void {
-  // Observes the resolved plugins and bundled module IDs without replacing the preset.
-  writeFileSync(
-    path.join(app, 'scenario-audit.ts'),
-    `import { writeFileSync } from 'node:fs'
-export const audit = {
-  name: 'scenario-audit',
-  configResolved(config) {
-    writeFileSync('scenario-config.json', JSON.stringify({plugins: config.plugins.map(p => p.name), tasks: Object.keys(config.run?.tasks ?? {})}))
-  },
-  generateBundle() {
-    writeFileSync('scenario-modules-' + this.environment.name + '.json', JSON.stringify([...this.getModuleIds()]))
-  }
-}
-`
-  )
-  if (MUTATION === 'locale-provider') {
-    const generated = path.join(app, 'paraglide')
-    cpSync(path.join(ROOT, 'apps/boilerplate/paraglide'), generated, {
-      recursive: true
+    await smokeServerErrors({ origin: `http://127.0.0.1:${port}`, scenario })
+    await smokeMiddleware({ origin: `http://127.0.0.1:${port}`, scenario })
+    await smokeSeo({ app, scenario, origin: `http://127.0.0.1:${port}`, html })
+    await smokePublication({
+      app,
+      scenario,
+      origin: `http://127.0.0.1:${port}`
     })
-    const auditFile = path.join(app, 'scenario-audit.ts')
-    const runtime = JSON.stringify(path.join(generated, 'runtime.js'))
-    writeFileSync(
-      auditFile,
-      readFileSync(auditFile, 'utf8').replace(
-        "name: 'scenario-audit',",
-        `name: 'scenario-audit', enforce: 'pre',
-      resolveId(id) { if (id === 'virtual:solid-app/locale') return '\\0solid-app:locale-mutant' },
-      load(id) { if (id === '\\0solid-app:locale-mutant') return 'export { locales, baseLocale, getLocale, extractLocaleFromUrl, localizeHref, deLocalizeUrl } from ' + ${JSON.stringify(runtime)} },`
-      )
-    )
+  } finally {
+    stopChild(child)
+    await closed
+    if (hasInvalidPort) assertEnvBootFailure(output)
   }
-  const file = path.join(app, 'vite.config.ts')
-  let config = readFileSync(file, 'utf8').replace(
-    'export default defineSolidApp(',
-    'const application = defineSolidApp('
+  assertServerErrorLog(output)
+  assert.ok(
+    output.includes('[middleware] Unexpected failure; private details omitted')
   )
-  config = `import { defineConfig } from 'vite-plus'\nimport { audit } from './scenario-audit.ts'\n${config}\nexport default defineConfig(env => { const config = application(env); return {...config, plugins: [...(config.plugins ?? []), audit]} })\n`
-  writeFileSync(file, config)
 }
 
 function assertBuild({ app, scenario }: Target): void {
@@ -264,8 +316,29 @@ function assertBuild({ app, scenario }: Target): void {
     file.startsWith('scenario-modules-')
   )
   assert.ok(modules.length > 0, 'Build module audit must run')
+  let hasServerEnv = false
+  for (const file of modules) {
+    const content = readFileSync(path.join(app, file), 'utf8')
+    const ids = v.parse(v.array(v.string()), JSON.parse(content))
+    for (const id of ids) {
+      if (checkEnvBundle({ id, scenario, file })) {
+        hasServerEnv = true
+      }
+      assert.doesNotMatch(
+        id,
+        BUILD_TOOLS,
+        'Build bundled a packaged development tool'
+      )
+    }
+    stdout.write(
+      `${scenario}: audited ${ids.length} module IDs in ${file}, no development tools\n`
+    )
+  }
+  assert.equal(hasServerEnv, scenario === 'ssr-plain')
   if (scenario === 'ssr-i18n') {
     assert.ok(config.tasks.includes('i18n-generate'))
+    assert.ok(config.plugins.includes('project:i18n-catalogs'))
+    assert.ok(config.plugins.includes('unplugin-paraglide-js'))
     const publication = readFileSync(
       path.join(app, '.vercel/output/config.json'),
       'utf8'
@@ -290,10 +363,18 @@ function assertBuild({ app, scenario }: Target): void {
   }
   if (scenario !== 'ssr-i18n') {
     assert.ok(
+      !config.plugins.some(name => /i18n-catalogs|paraglide/iu.test(name))
+    )
+    assert.ok(
       !config.tasks.includes('i18n-generate'),
       'Disabled i18n registered a generation task'
     )
     for (const file of modules) {
+      assert.doesNotMatch(
+        readFileSync(path.join(app, file), 'utf8'),
+        /solid-runtime\/src\/theme\//u,
+        'Disabled theme bundled runtime theme modules'
+      )
       assert.doesNotMatch(
         readFileSync(path.join(app, file), 'utf8'),
         /solid-app:locale-request/u,
@@ -301,7 +382,8 @@ function assertBuild({ app, scenario }: Target): void {
       )
       assert.doesNotMatch(
         readFileSync(path.join(app, file), 'utf8'),
-        /paraglide|inlang/iu
+        /paraglide|inlang/iu,
+        'Disabled i18n bundled Paraglide or Inlang modules'
       )
     }
   }
@@ -349,10 +431,30 @@ test('the applications pin the versions of the workspace', () => {
   const workspace = readPinned(path.join(ROOT, 'package.json'))
   const copy = readPinned(path.join(ROOT, 'apps/boilerplate/package.json'))
   const { catalog } = workspace
+  assert.ok(!copy.dependencies['@evertondgn/solid-tooling'])
+  assert.ok(copy.devDependencies['@evertondgn/solid-tooling'])
+  const tooling = readPinned(
+    path.join(ROOT, 'packages/solid-tooling/package.json')
+  )
+  const runtime = readPinned(
+    path.join(ROOT, 'packages/solid-runtime/package.json')
+  )
+  for (const name of PACKAGED_TOOLS) {
+    assert.ok(tooling.dependencies[name], `${name} must ship with the tooling`)
+  }
   const expected = resolveCatalog({
     versions: { ...catalog, ...copy.dependencies, ...copy.devDependencies },
     catalog
   })
+  for (const [name, version] of Object.entries(
+    resolveCatalog({ versions: runtime.dependencies, catalog })
+  )) {
+    assert.equal(
+      version,
+      expected[name] ?? tooling.dependencies[name],
+      `runtime dependency: ${name}`
+    )
+  }
   const overrides = resolveCatalog({ versions: workspace.overrides, catalog })
   for (const scenario of SCENARIOS) {
     const app = readPinned(
@@ -360,6 +462,10 @@ test('the applications pin the versions of the workspace', () => {
     )
     for (const [name, version] of Object.entries(app.dependencies)) {
       assert.equal(version, expected[name], `${scenario}: ${name}`)
+      assert.ok(
+        !PACKAGED_TOOLS.includes(name),
+        `${scenario} must use the packaged ${name}`
+      )
     }
     assert.deepEqual(app.overrides, overrides, scenario)
     assert.deepEqual(app.engines, workspace.engines, scenario)
@@ -368,10 +474,55 @@ test('the applications pin the versions of the workspace', () => {
   }
 })
 
+async function buildScenario({
+  app,
+  scenario,
+  profile,
+  deadline
+}: {
+  app: string
+  scenario: string
+  profile: string
+  deadline: number
+}): Promise<void> {
+  mutateServerErrors({ app, scenario, mutation: MUTATION })
+  instrumentMiddleware({ app, scenario, mutation: MUTATION })
+  mutatePublication({ app, mutation: MUTATION })
+  await run({ deadline, cwd: app, args: ['build'] })
+  assertBuild({ app, scenario })
+  assertFontBuild({ app, scenario })
+  assertSeoBuild({ app, scenario })
+  if (scenario === 'client-only') return
+  await smoke({ app, scenario })
+  if (scenario === 'ssr-plain' && profile === 'isolated') {
+    await smoke({ app, scenario, hasInvalidPort: true })
+    await checkEnvFailures({ app, deadline, run })
+    await checkSeoOriginFailures({ app, deadline, run })
+  }
+  if (profile === 'isolated-meta-only') {
+    await checkSeoOriginFailures({ app, deadline, run })
+  }
+  if (profile !== 'isolated') return
+  importServerFromClient(app)
+  await run({
+    deadline,
+    cwd: app,
+    args: ['build'],
+    expectedError: /Attempt to import 'server-only' in a client module/u
+  })
+}
+
 for (const scenario of SCENARIOS) {
   for (const linker of [
     ...LINKERS,
-    ...(scenario === 'ssr-plain' ? ['isolated-language'] : [])
+    ...(scenario === 'ssr-i18n' ? [] : ['isolated-language']),
+    ...(scenario === 'ssr-plain'
+      ? [
+          'isolated-meta-only',
+          'isolated-without-sitemap',
+          ...PUBLICATION_PROFILES
+        ]
+      : [])
   ]) {
     test(`${scenario} / ${linker}`, { timeout: 180_000 }, async () => {
       const directory = mkdtempSync(path.join(tmpdir(), 'solid-app-scenario-'))
@@ -390,11 +541,20 @@ for (const scenario of SCENARIOS) {
             file.endsWith('.tgz')
           )
           assert.ok(tarball)
+          await removePackedDependency({
+            archive: path.join(destination, tarball),
+            deadline,
+            name
+          })
           dependencies[`@evertondgn/${name}`] = path.join(destination, tarball)
         }
         const app = path.join(directory, 'app')
-        cpSync(path.join(ROOT, 'fixtures/apps', scenario), app, {
-          recursive: true
+        prepareFontsScenario({ app, scenario, root: ROOT })
+        prepareSeoScenario({
+          app,
+          scenario,
+          profile: linker,
+          mutation: MUTATION
         })
         const manifestPath = path.join(app, 'package.json')
         const manifest = v.parse(
@@ -408,7 +568,10 @@ for (const scenario of SCENARIOS) {
             dependencies: { ...manifest.dependencies, ...dependencies }
           })
         )
-        if (MUTATION === 'locale-provider') {
+        if (
+          MUTATION === 'locale-provider' ||
+          MUTATION === 'navigation-provider'
+        ) {
           const source = readPinned(
             path.join(ROOT, 'apps/boilerplate/package.json')
           )
@@ -424,7 +587,7 @@ for (const scenario of SCENARIOS) {
         }
         if (MUTATION === 'nitro') {
           const source = readFileSync(
-            path.join(ROOT, 'fixtures/apps/ssr-plain/package.json'),
+            path.join(ROOT, 'packages/solid-tooling/package.json'),
             'utf8'
           )
           const tooling = v.parse(manifestSchema, JSON.parse(source))
@@ -438,23 +601,26 @@ for (const scenario of SCENARIOS) {
           )
         }
         if (linker === 'isolated-language') {
+          const language = scenario === 'client-only' ? 'zh-Hant-TW' : 'de'
           const config = path.join(app, 'vite.config.ts')
           writeFileSync(
             config,
             readFileSync(config, 'utf8').replace(
               'root: import.meta.dirname,',
-              "root: import.meta.dirname, language: 'de',"
+              `root: import.meta.dirname, language: '${language}',`
             )
           )
-          for (const project of ['node', 'dom']) {
-            const file = path.join(
-              app,
-              'src/helpers/probe/__tests__',
-              `probe.locale.${project}.test.ts`
-            )
+          for (const name of [
+            'probe.locale.node.test.ts',
+            'probe.locale.dom.test.ts',
+            ...(scenario === 'client-only'
+              ? ['probe.navigation.dom.test.tsx']
+              : [])
+          ]) {
+            const file = path.join(app, 'src/helpers/probe/__tests__', name)
             writeFileSync(
               file,
-              readFileSync(file, 'utf8').replaceAll("'en'", "'de'")
+              readFileSync(file, 'utf8').replaceAll("'en'", `'${language}'`)
             )
           }
         }
@@ -464,36 +630,19 @@ for (const scenario of SCENARIOS) {
           args: [
             'install',
             '--linker',
-            linker === 'isolated-language' ? 'isolated' : linker
+            linker.startsWith('isolated-') ? 'isolated' : linker
           ]
         })
-        if (MUTATION === 'locale-node') {
-          const dist = path.join(
-            app,
-            'node_modules/@evertondgn/solid-tooling/dist'
-          )
-          let replacements = 0
-          for (const name of readdirSync(dist).filter(entry =>
-            entry.endsWith('.mjs')
-          )) {
-            const file = path.join(dist, name)
-            const source = readFileSync(file, 'utf8')
-            const changed = source.replace(
-              '[...NODE_STUBS, ["virtual:solid-app/locale", source]]',
-              'NODE_STUBS'
-            )
-            if (source !== changed) {
-              replacements += 1
-              writeFileSync(file, changed)
-            }
-          }
-          assert.equal(
-            replacements,
-            1,
-            'Remove exactly one node locale stand-in'
-          )
-        }
+        mutateLocaleStandIn({ app, mutation: MUTATION })
         if (scenario === 'ssr-i18n') {
+          // Keep the shared fixture App unchanged while adopting the catalog ID convention.
+          const entry = path.join(app, 'src/App.tsx')
+          const source = readFileSync(entry, 'utf8')
+          assert.ok(source.includes('m.greeting()'))
+          writeFileSync(
+            entry,
+            source.replace('m.greeting()', 'm.scenario_greeting()')
+          )
           await run({ deadline, cwd: app, args: ['run', 'i18n-generate'] })
         }
         if (MUTATION === 'dom') {
@@ -516,23 +665,29 @@ for (const scenario of SCENARIOS) {
             )
           )
         }
+        const envChecks = await prepareEnvScenario({
+          app,
+          scenario,
+          deadline,
+          dependencies: manifest.dependencies,
+          run
+        })
         await run({
           deadline,
           cwd: app,
-          args: [
-            'lint',
-            'src',
-            'vite.config.ts',
-            ...(scenario === 'ssr-i18n' ? ['tooling'] : [])
-          ]
+          args: ['lint', 'src', 'vite.config.ts', ...envChecks.lintFiles]
         })
-        await run({ deadline, cwd: app, args: ['exec', 'tsc', '--noEmit'] })
+        await run({
+          deadline,
+          cwd: app,
+          args: ['run', 'tsc', '--noEmit', ...envChecks.typecheckFlags]
+        })
         await run({
           deadline,
           cwd: app,
           args: ['test', 'run', '--project', 'node', '--project', 'dom']
         })
-        instrument(app)
+        instrument({ app, mutation: MUTATION, root: ROOT })
         if (MUTATION === 'request-step') {
           writeFileSync(
             path.join(app, 'src/middleware.ts'),
@@ -559,9 +714,9 @@ export default (event, next) => next()
             `import { nitro } from 'nitro/vite'\n${readFileSync(file, 'utf8').replace('plugins: [...(config.plugins ?? []), audit]', "plugins: [...(config.plugins ?? []), audit, nitro({ preset: 'vercel' })]")}`
           )
         }
-        await run({ deadline, cwd: app, args: ['build'] })
-        assertBuild({ app, scenario })
-        if (scenario !== 'client-only') await smoke({ app, scenario })
+        mutateTheme({ app, mutation: MUTATION })
+        mutateFontsScenario({ app, scenario, mutation: MUTATION })
+        await buildScenario({ app, scenario, profile: linker, deadline })
       } finally {
         rmSync(directory, { recursive: true, force: true })
         stdout.write(

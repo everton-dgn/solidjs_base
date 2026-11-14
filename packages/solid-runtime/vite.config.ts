@@ -1,4 +1,8 @@
+import { env } from 'node:process'
+
+import solid from '@solidjs/vite-plugin'
 import { defineConfig, type Plugin } from 'vite-plus'
+import { playwright } from 'vite-plus/test/browser-playwright'
 
 import { lint } from '../solid-tooling/src/lint.ts'
 import { LOCALE_SOURCE } from './tooling/testing/locale-source.ts'
@@ -21,13 +25,34 @@ const jsPlugins = (lint.jsPlugins ?? []).map(plugin =>
 )
 
 const STUB_PREFIX = '\0solid-runtime-stub:'
+const GENERATED_LOCALE_SOURCE = `export { locales, baseLocale, getLocale, setLocale, extractLocaleFromUrl, localizeHref, deLocalizeUrl } from '${import.meta.dirname}/tooling/testing/generated/runtime.js'`
 // The stand-ins that solidTest serves to the node project of an application:
 // the Solid and routing plugins provide these modules only in a real build.
 const NODE_STUBS = new Map([
+  [
+    'virtual:solid-app/fonts',
+    'export const stylesheet = ""; export const preloads = []'
+  ],
   ['virtual:solid-app/locale', LOCALE_SOURCE],
+  [
+    'virtual:solid-app/request-middleware',
+    `export { createLocalizeRequest as createRequestLocale } from '${import.meta.dirname}/src/middleware/createLocalizeRequest/index.ts'`
+  ],
   [
     'virtual:solid-app/locale-request',
     `export * from '${import.meta.dirname}/tooling/testing/generated/runtime.js'; export * from '${import.meta.dirname}/tooling/testing/generated/server.js'`
+  ],
+  [
+    'virtual:solid-app/seo-markdown',
+    'export const markdown = {static: true, maxInputBytes: 2097152, maxOutputBytes: 2097152, timeoutMs: 15000, hasLlms: true}'
+  ],
+  [
+    'virtual:solid-app/seo-llms',
+    'export const llms = {maxBytes: 1048576, hasMarkdown: true, hasLlmsFull: true}'
+  ],
+  [
+    'virtual:solid-app/locale-context',
+    `import { extractLocaleFromRequest } from '${import.meta.dirname}/tooling/testing/generated/runtime.js'; import { paraglideMiddleware } from '${import.meta.dirname}/tooling/testing/generated/server.js'; export const requestLocale = extractLocaleFromRequest; export const withLocaleContext = ({url, run}) => paraglideMiddleware(new Request(url), run)`
   ],
   ['server-only', 'export default undefined'],
   ['virtual:file-routes', 'export const pageRoutes = []\nexport default []'],
@@ -37,26 +62,97 @@ const NODE_STUBS = new Map([
   ]
 ])
 
-function nodeStubs(): Plugin {
+function nodeStubs(localeSource = LOCALE_SOURCE): Plugin {
+  const stubs = new Map([
+    ...NODE_STUBS,
+    ['virtual:solid-app/locale', localeSource]
+  ])
   return {
     name: 'solid-runtime:node-stubs',
     enforce: 'pre',
-    resolveId: id => (NODE_STUBS.has(id) ? `${STUB_PREFIX}${id}` : undefined),
+    resolveId: id => (stubs.has(id) ? `${STUB_PREFIX}${id}` : undefined),
     load: id =>
       id.startsWith(STUB_PREFIX)
-        ? NODE_STUBS.get(id.slice(STUB_PREFIX.length))
+        ? stubs.get(id.slice(STUB_PREFIX.length))
         : undefined
   }
 }
 
 export default defineConfig({
   resolve: {
-    alias: { '@paraglide': `${import.meta.dirname}/tooling/testing/generated` }
+    alias: {
+      '@': `${import.meta.dirname}/src`,
+      '@paraglide': `${import.meta.dirname}/tooling/testing/generated`,
+      '@testing': `${import.meta.dirname}/tooling/testing`
+    }
   },
   // vp lint reads this block from the package folder; vp check and the
   // formatter use the root config.
-  lint: { ...lint, jsPlugins },
-  plugins: [nodeStubs()],
+  lint: {
+    ...lint,
+    jsPlugins,
+    overrides: [
+      ...(lint.overrides ?? []),
+      {
+        files: ['src/infra/server/publication/protocol.d.ts'],
+        rules: { 'typescript/no-magic-numbers': 'off' }
+      },
+      {
+        files: ['src/infra/server/readPublicationPhase/index.ts'],
+        rules: { 'node/no-process-env': 'off' }
+      },
+      {
+        files: ['src/seo/sitemap/helpers/createSitemapArtifacts/index.ts'],
+        rules: { 'import/no-nodejs-modules': 'off' }
+      },
+      {
+        files: [
+          'src/seo/sitemap/helpers/{createSitemapArtifacts,sitemapRoutes}/index.ts',
+          'src/i18n/localeContext/index.ts',
+          'src/seo/{markdown,llms}/index.ts'
+        ],
+        rules: {
+          'import/no-unassigned-import': ['error', { allow: ['server-only'] }]
+        }
+      },
+      {
+        files: [
+          'src/@types/router.d.ts',
+          'src/seo/{sitemap,markdown,llms}/router.d.ts'
+        ],
+        rules: { 'typescript/consistent-type-definitions': 'off' }
+      },
+      {
+        files: ['src/infra/server/publicErrors/index.ts'],
+        rules: {
+          'backend/restricted-imports': ['error', { allowSafeErrors: true }]
+        }
+      },
+      {
+        files: ['src/infra/server/configureServerErrors/index.ts'],
+        // The package exports the configurator; application setup only calls it.
+        rules: { 'backend/no-setup-exports': 'off' }
+      },
+      {
+        files: ['src/infra/server/logServerFailure/index.ts'],
+        rules: {
+          'eslint/no-console': ['error', { allow: ['error'] }],
+          'eslint/no-restricted-globals': [
+            'error',
+            {
+              globals: ['fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource'],
+              checkGlobalObject: true,
+              globalObjects: ['global']
+            }
+          ]
+        }
+      },
+      {
+        files: ['src/infra/server/publicationScope/index.ts'],
+        rules: { 'import/no-nodejs-modules': 'off' }
+      }
+    ]
+  },
   test: {
     pool: 'threads',
     globals: true,
@@ -64,18 +160,58 @@ export default defineConfig({
     unstubGlobals: true,
     unstubEnvs: true,
     expect: { requireAssertions: true, poll: { interval: 10 } },
-    environment: 'node',
-    include: ['src/**/*.node.test.{ts,tsx}'],
+    projects: [
+      {
+        plugins: [nodeStubs()],
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['src/**/*.node.test.{ts,tsx}']
+        }
+      },
+      {
+        plugins: [nodeStubs(GENERATED_LOCALE_SOURCE), solid()],
+        test: {
+          name: 'dom',
+          environment: 'happy-dom',
+          environmentOptions: { happyDOM: { url: 'http://localhost/de' } },
+          setupFiles: ['./tooling/testing/dom.ts'],
+          include: ['src/**/*.dom.test.{ts,tsx}']
+        }
+      },
+      {
+        plugins: [nodeStubs(GENERATED_LOCALE_SOURCE), solid()],
+        optimizeDeps: { include: ['@inlang/paraglide-js/urlpattern-polyfill'] },
+        test: {
+          name: 'browser',
+          include: ['src/**/*.browser.test.{ts,tsx}'],
+          setupFiles: ['./tooling/testing/browser.ts'],
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright({
+              launchOptions: env.CI ? { channel: 'chrome' } : {}
+            }),
+            instances: [{ browser: 'chromium' }]
+          }
+        }
+      }
+    ],
     // The thresholds and exclusions that solidTest gives to an application.
     coverage: {
       provider: 'v8',
       reporter: ['text'],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
-      include: ['src/**/*.{ts,tsx}'],
+      include: [
+        'src/**/*.{ts,tsx}',
+        'src/env/index.js',
+        'src/infra/server/publication/protocol.js'
+      ],
       exclude: [
         'src/**/*.d.ts',
         'src/**/{constants,types}.{ts,tsx}',
-        'src/**/__tests__/**'
+        'src/**/__tests__/**',
+        'src/tests/**'
       ]
     }
   }

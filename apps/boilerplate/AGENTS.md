@@ -54,7 +54,10 @@ release. Add a tool name to select part of the graph. For example, run
   `@evertondgn/solid-runtime/i18n/build-locale-alternates` and
   `@evertondgn/solid-runtime/middleware/append-vary`. Their tests run in the
   runtime package, including request locale handling and localized redirects.
-  Messages remain in this copy.
+  Navigation primitives, the history guard and `localeTag` also live in the
+  runtime, under separate `i18n/` exports. Their 10 navigation tests moved with
+  them, including the real-browser history cases. Keep `LocalizedLink`,
+  messages and `src/i18n/localeTagOverrides/` in this copy.
 
 ## Sizing the derived applications
 
@@ -105,7 +108,8 @@ release. Add a tool name to select part of the graph. For example, run
   the CI, Knip runs in the `Quality` job.
 - The `vp run` tasks come from `defineSolidApp` of
   `@evertondgn/solid-tooling/vite`. The ones that run files of `tooling/`, such
-  as `i18n:generate` and the CSS lint, use `bun tooling/<file>.ts`. The `vpx`
+  as the CSS lint, use `bun tooling/<file>.ts`. `i18n:generate` runs the compiled
+  generator from the package. The `vpx`
   recommended in the managed block above applies to standalone scripts, outside
   those flows.
 - To validate changes, use `vp run check:ci` and `vp run test`, not the built-in
@@ -125,7 +129,7 @@ release. Add a tool name to select part of the graph. For example, run
 
 - The official Paraglide CLI can replace and remove modules in `paraglide/`.
   Temporary files produced by the generator in `.paraglide/` can also be removed
-  directly, as can the temporary roots created by the tests of `tooling/i18n/`.
+  directly, as can temporary roots created by the package's i18n tests.
   Skipping the trash applies only to those artifacts; the authored catalogs in
   `src/**/i18n/` still follow the rule of deleting through the trash.
 
@@ -165,6 +169,12 @@ release. Add a tool name to select part of the graph. For example, run
 
 ## Translations
 
+- Generation, catalog validation and the Vite plugin belong to
+  `packages/solid-tooling/src/i18n/`. `defineSolidApp` enables them from
+  `project.inlang/settings.json`; the default application needs no local generator
+  or i18n plugin. Custom pipelines can set `i18nPlugin: false`, supply a plugin
+  through `extend` and replace `i18n-generate` by name through `tasks`.
+  The package tests use other locales and run at the monorepo root.
 - The locales and the base locale come from `project.inlang/settings.json`. Each
   consumer keeps colocated `i18n/{pt,en,es}.json` files. Share in `src/i18n/`
   only from the second production consumer on.
@@ -175,6 +185,10 @@ release. Add a tool name to select part of the graph. For example, run
   translated text at the top of a module shared between SSR requests.
 - Page links use `LocalizedLink`, programmatic navigation uses
   `createLocalizedNavigate()` and redirects use `localizedRedirect()`.
+  Import the navigation primitives from `@evertondgn/solid-runtime/i18n/`:
+  `create-localized-navigate`, `create-locale-navigation-guard` and
+  `install-locale-history-guard`. Use `locale-tag` with `LOCALE_TAG_OVERRIDES`
+  for HTML and SEO tags; a newly configured locale falls back to its BCP 47 tag.
   `localizeHref()` is for composing SEO and index URLs. `paths` keeps the typed
   paths without a locale. Endpoints and assets stay without a prefix
   (`shouldLocalize: false`).
@@ -202,9 +216,10 @@ release. Add a tool name to select part of the graph. For example, run
   the "Type location" section when extracting them.
 - Use `type` to declare object, props and contract types in code and tests. The
   lint applies `typescript/consistent-type-definitions` with `type`.
-- Keep `interface` when declaration merging is needed: `RequestEventLocals` in
-  `src/@types/solid.d.ts`, `ImportMetaEnv` in `src/@types/env.d.ts` and
-  `RouteInfo` in `src/@types/router.d.ts` extend third-party interfaces. Keep
+- Keep `interface` when declaration merging is needed: `RequestEventLocals` in the runtime package
+  `packages/solid-runtime/src/@types/solid.d.ts`, `ImportMetaEnv` in `src/@types/env.d.ts` and
+  `RouteInfo` in the runtime `seo/{sitemap,markdown,llms}/router.d.ts` modules
+  extend third-party interfaces. Keep
   the lint exception restricted to the files that need that behavior.
 - Do not edit generated declarations to swap `interface` for `type`.
   `src/@types/routes.d.ts` belongs to the `filesystem-routing` generator and
@@ -238,9 +253,9 @@ release. Add a tool name to select part of the graph. For example, run
   single component lives inside the folder of the component.
 - A single-consumer constant lives in the file that uses it. When it is a
   config the project edits, it goes into a `constants.ts` in the folder of the
-  consumer, such as `DropdownMenu/constants.ts` and
-  `(seo)/robots.txt/constants.ts`. Never in `src/constants/` before the second
-  consumer.
+  consumer, such as `DropdownMenu/constants.ts`. Never in `src/constants/`
+  before the second consumer. SEO preset data is kept with the site config in
+  `src/constants/site/robots.ts`; the route itself only re-exports the runtime.
 - Extract constants to express domain meaning, configuration or a shared
   contract. Two consumers, by themselves, do not justify a shared module:
   idiomatic values such as the `-1` of `.at(-1)` stay where they are used. Do
@@ -253,7 +268,17 @@ release. Add a tool name to select part of the graph. For example, run
 - A route that starts needing local modules becomes a folder with `index.ts`:
   `robots.txt.ts` becomes `robots.txt/index.ts`, and what the route consumes
   lives inside that folder. `sitemap.xml/`, `llms.txt/` and `robots.txt/` follow
-  that format.
+  that format. Sitemap routes re-export handlers from `src/infra/server/sitemap/`;
+  the service belongs to `@evertondgn/solid-runtime/seo/sitemap-routes`.
+  Keep source registries and data access server-only in the application.
+  Sitemap and Markdown must share the instance in `src/infra/server/publication/`.
+  Inject named options; do not put application module paths in preset config.
+  Markdown uses `createMarkdownContent` from `seo/markdown` in the `document` slot.
+  llms uses `createLlms` from `seo/llms`; its editorial notes and pages stay here.
+  Enable static generation through data-only `seo` options, without `extend`.
+  The runtime owns the helpers and the tooling package owns artifact validation.
+  Use `seo/sitemap-types` for source types and router augmentation; import types
+  without pulling the server factory into route metadata.
 - When a route or component has two or more local helper modules, group them in
   a `helpers/` folder inside the folder of the route or component. With a single
   local helper, keep it directly in the folder of the consumer. `constants.ts`
@@ -285,6 +310,12 @@ release. Add a tool name to select part of the graph. For example, run
   location" section.
 
 ## Page modules
+
+- Import `SeoRouteInfo` from `@evertondgn/solid-runtime/seo/types`. The runtime
+  owns the router's SEO augmentation, metadata merging, JSON-LD escaping and
+  robots response factory. The application keeps the thin `createSeo` adapter,
+  editorial `SITE` values and its Markdown callback. `SITE.url` reads the runtime
+  origin entry, validated by the preset's optional `seo` configuration.
 
 - The page's own metadata lives in `seo.ts`, next to `index.tsx`. Export the
   `seo` object with `satisfies SeoRouteInfo` and import it into
@@ -519,7 +550,11 @@ release. Add a tool name to select part of the graph. For example, run
   spreads the defaults of `@evertondgn/solid-runtime`; change a value there.
   `src/middleware/securityHeaders/index.ts` holds the only
   `createSecurityHeaders` call, and every step that writes a response imports
-  `securityHeaders` or `applySecurityHeaders` from it. Do not move the CSP or
+  `securityHeaders` or `applySecurityHeaders` from it. The runtime
+  `createMiddleware({ security, extra, document })` receives that same instance;
+  the application supplies Markdown as `document` and the E2E entry extends
+  the chain through the local factory. Failure containment and its 54 tests
+  belong to the runtime. Do not move the CSP or
   the other headers of the function responses back to `vercel.json`.
   The static files do not go through the function: the Nitro `routeRules` that
   `defineSolidApp` builds write `Strict-Transport-Security`,
@@ -538,7 +573,9 @@ release. Add a tool name to select part of the graph. For example, run
 - Do not render `<style>` or use the `style` prop in JSX rendered in the SSR:
   the CSP blocks the attribute. Use classes.
 - Every `<script>` of `Document` receives `nonce={nonce}`, and
-  `src/entry-server.tsx` passes `event.nonce` to `renderToStream`.
+  `src/entry-server.tsx` calls the runtime `createRenderOptions()` before
+  `renderToStream`, forwarding the nonce and signal with render integrity.
+  Do not override its completion callback or supply a local `onError`.
 - Keep the pair of authored entries, with the same tree in
   `src/entry-server.tsx` and `src/entry-client.tsx`, and the `FragmentCss`
   regression, from the `/fragment-css` fixture described in the guide.
@@ -554,13 +591,14 @@ release. Add a tool name to select part of the graph. For example, run
   in public data or in a new public error before it reaches Solid.
 - HTTP uses `requestJson`. An SDK or a database requires an adapter in
   `src/infra/server/`, with `server-only` and `protectServerOperation({ run })`
-  wrapping the read, the validation and the output. `allowControl` belongs only
-  to the global server function registry.
+  wrapping the read, the validation and the output. The public runtime API
+  rejects `allowControl`; only the package's internal registry variant enables
+  controls.
 - The schema selects the public fields: the structural check of the wrapper
   does not identify confidential data in strings. Do not return errors, nested
   promises or deferred work without a specific contract.
 - A public error is only born from `createPublicError()`, imported from
-  `@/infra/server/publicErrors/index.ts`; only that module can call
+  `@evertondgn/solid-runtime/server/public-errors`; only that module can call
   `markSafeError`. Never publish the message, cause, properties, body or headers
   of an upstream error, inside a result included.
 - Do not log the original error, headers, cookies, arguments, bodies or
@@ -570,6 +608,12 @@ release. Add a tool name to select part of the graph. For example, run
   requires restricting the package in the lint, with an exception only for the
   adapter. Do not work around the contract with disable comments, computed
   imports or the other gaps listed in the guide.
+- Keep `src/infra/server/configureServerErrors/index.ts` as the `serverSetup`
+  file. Only that path may import the package configurator in production. It
+  passes the synchronous public-message callback and owns the
+  `configureServerErrors_message` catalogs. The runtime uses its locale seam;
+  callback or locale failures fall back to the fixed English message without
+  logging. Never give the callback the original error.
 - After changing that boundary, run `vp run test` at the monorepo root,
   `vp run test:tooling`, the relevant Node tests and
   `vp run test:e2e src/tests/pages/BackendError src/tests/pages/OutsideError src/tests/pages/OutdatedPage`.
@@ -578,3 +622,21 @@ release. Add a tool name to select part of the graph. For example, run
 - On Solid or plugin updates, follow the "Upgrading Solid" roadmap of the
   guide: only remove the wrapper when a reproduction without that interception
   proves the coverage in the installed version.
+
+## Runtime theme
+
+The single theme configuration is `src/constants/theme.ts`, using
+`@evertondgn/solid-runtime/theme/define-theme`. Theme adapters, types and
+`createTheme` now live under `packages/solid-runtime/src/theme/`, with their
+tests. Keep the context, Provider, ThemeToggle and CSS in the application.
+Document owns the script element and its request nonce.
+
+## Font loading
+
+Declare font families and file descriptors in `fonts.ts`, passed
+through `fonts` in `vite.config.ts`. The preset emits external font CSS
+and matched preload URLs. Render `FontLinks` from
+`@evertondgn/solid-runtime/fonts/font-links` once in the Document head.
+Keep font binaries and licenses in the app and typography tokens in
+`src/theme/tokens/fonts.css`; do not restore manual `@font-face` rules,
+font URL imports or preloads. See [UI](docs/ui.md#fonts).

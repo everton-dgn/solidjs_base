@@ -1,6 +1,8 @@
 import type { NitroConfig, NitroModuleInput, PublicAssetDir } from 'nitro/types'
 import type { PluginOption, UserConfig } from 'vite-plus'
 
+import type { FontFamily } from '../fonts/types.ts'
+import type { SeoOptions } from '../seo-module.ts'
 import type { SolidTestSettings } from '../vitest/types.ts'
 
 type StaticSecurityHeaders = Record<
@@ -19,6 +21,8 @@ type StaticAssetDir = PublicAssetDir & { baseURL: string }
 type RouteRule = NonNullable<NitroConfig['routeRules']>[string]
 
 type SharedOptions = {
+  fonts?: readonly FontFamily[]
+  i18nPlugin?: false
   language?: string
   root: string
   icons?: Record<string, string>
@@ -50,7 +54,7 @@ export type ServerAppOptions = SharedOptions & {
   publicAssets?: StaticAssetDir[]
   staticPaths?: string[]
   routeRules?: Record<string, RouteRule>
-  publication?: boolean
+  seo?: SeoOptions | false
 }
 
 export type ClientAppOptions = SharedOptions & {

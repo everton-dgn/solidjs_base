@@ -8,14 +8,18 @@ contract below must be kept through dependency upgrades.
 
 ## Current protection
 
-The modules of this protection live in `src/infra/server/`. `publicErrors`
-belongs to that layer because it depends on `server-only` and on the
-serialization authorization of Solid. `data/errorApi/` stays reserved for the
-normalization of domain errors, when there are consumers. New imports of public
-errors use `@/infra/server/publicErrors/index.ts`.
+The shared protection lives in `packages/solid-runtime/src/infra/server/`. Each
+module has its own `@evertondgn/solid-runtime/server/` entry, with the `solid`
+condition and `server-only`. Public errors use
+`@evertondgn/solid-runtime/server/public-errors`. The application keeps
+`requestJson`, `publication`, `sitemapSources`, the Markdown adapter and
+authored render trees. The runtime owns failure containment, chain composition
+and shared render-entry helpers. `data/errorApi/` stays reserved for domain
+error normalization when there are consumers.
 
 The [central registration](../src/infra/server/configureServerErrors/index.ts)
-uses `configureServerFunctionsServer({ wrapInvocation })`.
+calls `configureServerErrors({ publicMessage })` from the runtime package. The
+package installs `configureServerFunctionsServer({ wrapInvocation })`.
 [Vite](../vite.config.ts) loads it through `serverFunctions.serverSetup`, which
 `defineSolidApp` receives in the `serverSetup` option, covering server functions
 called directly in the SSR and through the HTTP transport. The same module
@@ -26,15 +30,15 @@ production.
 - [requestJson](../src/infra/server/requestJson/index.ts) checks the HTTP
   status, reads the success JSON and applies the output schema inside the
   protection.
-- [protectServerOperation](../src/infra/server/protectServerOperation/index.ts)
+- [protectServerOperation](../../../packages/solid-runtime/src/infra/server/protectServerOperation/index.ts)
   catches throws and rejections and checks the structure of the result.
-- [publicErrors](../src/infra/server/publicErrors/index.ts) creates a new error
-  with the public message of the colocated catalog, in the locale of the
-  request, as described in
+- [publicErrors](../../../packages/solid-runtime/src/infra/server/publicErrors/index.ts)
+  creates a new error with the public message supplied by the application's
+  setup, in the locale of the request, as described in
   [Locale of the public message](#locale-of-the-public-message).
-- [logServerFailure](../src/infra/server/logServerFailure/index.ts) is the only
-  log point: it writes the fixed message of the source and, for an `Error`, only
-  the class and the filtered frames described in
+- [logServerFailure](../../../packages/solid-runtime/src/infra/server/logServerFailure/index.ts)
+  is the only log point: it writes the fixed message of the source and, for an
+  `Error`, only the class and the filtered frames described in
   [Failure log](server-errors/logging.md#failure-log).
 - The modules import `server-only`; the plugin keeps them out of the client
   bundle. The test alias exists only in the Node project.
@@ -86,19 +90,21 @@ body. It also accepts a thrown `Response` or envelope with a body, so that
 containment does not replace the public data policy or the error page of the
 app. The default export of
 [`src/middleware/index.ts`](../src/middleware/index.ts) is `createMiddleware()`,
-which adapts the plugin event to the `Request` chain of `filesystem-routing` and
+which configures the runtime `createMiddleware({ security, extra, document })`
+with the single application security instance and Markdown adapter. The package
+adapts the plugin event to the `Request` chain of `filesystem-routing` and
 `composeMiddleware`, handing that chain to `containFailures`. The containment,
 in
-[`src/middleware/containFailures/index.ts`](../src/middleware/containFailures/index.ts),
+[`packages/solid-runtime/src/middleware/containFailures/index.ts`](../../../packages/solid-runtime/src/middleware/containFailures/index.ts),
 composes the whole chain inside itself, and an exception in the middlewares, in
 the API routes or in the page handler becomes a 500 with the security headers
 and the `[middleware]` log. Only a `Response` without a body and with a status
 other than 0 passes as a control, and it goes out with the same headers; a
 thrown `Response` with a body becomes a 500, because it may carry upstream data.
 The middleware, the hook and the wrapper use the same classification,
-[`isControlResponse`](../src/infra/server/isControlResponse/index.ts). The
-headers of a returned `Response.redirect()` are immutable, so they go on a copy
-without a body; the raw return of `fetch()`, with immutable headers and an
+[`isControlResponse`](../../../packages/solid-runtime/src/infra/server/isControlResponse/index.ts).
+The headers of a returned `Response.redirect()` are immutable, so they go on a
+copy without a body; the raw return of `fetch()`, with immutable headers and an
 upstream body, is not copied and becomes a 500. In development the original
 error goes on to Vite. The E2E build assembles the entry with the same factory
 and passes the injected failures in `createMiddleware(extra)`, which puts them
@@ -124,13 +130,13 @@ and a missing header included, according to `isPageRequest` in
 a client that asks only for Markdown also gets the error page in HTML. This
 criterion is broader than the one of the plugin development server, which only
 considers HTML, `*/*` or a missing `accept`. `containFailures` writes a
-`createPublicError()` in `locals.serverFailure` and calls the page render. The
-`ServerFailureGate` of [`App.tsx`](../src/App.tsx) throws that error before the
-Router, the root `Errored` shows `ErrorFallback` and the client hydrates the
-fallback from the serialized error. Since the error is already public, the hook
-does not write another log. The status is forced to 500 in the response. If the
-render returns something that is not HTML, such as the locale redirect of a path
-without a prefix, the response is the text 500.
+`createPublicError()` in `locals.serverFailure` (declared by the runtime) and
+calls the page render. The `ServerFailureGate` of [`App.tsx`](../src/App.tsx)
+throws that error before the Router, the root `Errored` shows `ErrorFallback`
+and the client hydrates the fallback from the serialized error. Since the error
+is already public, the hook does not write another log. The status is forced to
+500 in the response. If the render returns something that is not HTML, such as
+the locale redirect of a path without a prefix, the response is the text 500.
 
 The render that the middleware receives is the plugin dispatcher, which serves
 the server function endpoint (`/_server`) before the page. That is why this
@@ -173,9 +179,12 @@ was not measured locally.
 
 ## Locale of the public message
 
-The message of `createPublicError()` and of the text 500 responses comes from
-the `publicErrors_message` ID, in `src/infra/server/publicErrors/i18n/`, with
-the three locales. `publicErrorMessage()` reads the locale at call time, from
+The application setup passes a synchronous
+`publicMessage: (locale: string) => string` callback to the runtime
+configurator. It reads the `configureServerErrors_message` ID from the colocated
+`src/infra/server/configureServerErrors/i18n/` catalogs. The runtime imports no
+`@paraglide/*` module. `publicErrorMessage()` reads its `i18n/locale` seam at
+call time, or accepts an explicit locale. In this application that seam reads
 the context that `paraglideMiddleware` opens in `localizeRequest`: pages use the
 URL, the cookie, `Accept-Language` and the base locale, and server functions
 called over HTTP use the same-origin `Referer` first. The render, the server
@@ -192,10 +201,14 @@ the request. The Markdown adapter also runs outside the context and, for that
 reason, resolves the locale of its 500 from the original request, in the same
 order as `localizeRequest`.
 
-The hook is synchronous and cannot throw: if resolving the locale fails, the
-message is in the base locale. The text comes only from the catalog, with
-nothing from the original error. The Node and E2E tests check the expected text
-in the locale of each case.
+Without a callback, the message is always `The request could not be completed.`,
+including in an application with no i18n project. Locale resolution and the
+callback run inside the same try/catch. A failure, empty string or invalid
+callback result falls back to that English default, without logging or reusing
+the callback error. The callback receives only the locale, never the internal
+error. The application remains responsible for returning public text. The
+message setter has no package export; configure it only from
+`src/infra/server/configureServerErrors/index.ts`.
 
 ## Failure log
 

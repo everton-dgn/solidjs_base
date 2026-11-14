@@ -38,6 +38,7 @@ const summarySchema = v.object({
   entry: strings,
   project: strings,
   'filesystem-routing': v.literal(false),
+  'unplugin-icons': v.literal(true),
   ignoreBinaries: v.optional(strings),
   ignoreDependencies: v.optional(strings),
   ignoreIssues: v.record(v.string(), strings),
@@ -111,7 +112,11 @@ it('leaves out the defaults the application does not have', async context => {
     '!src/**/*.test.{ts,tsx}!'
   ])
   assert.equal(config.ignoreBinaries, undefined)
-  assert.equal(config.ignoreDependencies, undefined)
+  assert.deepEqual(config.ignoreDependencies, [
+    '@vitest/coverage-v8',
+    'happy-dom',
+    '@testing-library/jest-dom'
+  ])
   assert.equal(config.exclude, undefined)
 })
 
@@ -121,6 +126,15 @@ it('ignores unlisted dependencies only in the config file', async context => {
   assert.deepEqual(config.ignoreIssues, { 'tooling/knip.ts': ['unlisted'] })
   const moved = await readConfig({ root, options: { configFile: 'knip.ts' } })
   assert.deepEqual(moved.ignoreIssues, { 'knip.ts': ['unlisted'] })
+})
+
+it('keeps application-owned test dependencies visible to Knip', async context => {
+  const root = await createAppFixture({ context, files: BARE_APP })
+  const config = await readConfig({
+    root,
+    options: { packagedTestTools: false }
+  })
+  assert.deepEqual(config.ignoreDependencies, [])
 })
 
 it('adds the application settings without repeating entries', async context => {
@@ -143,7 +157,12 @@ it('adds the application settings without repeating entries', async context => {
   )
   assert.ok(config.entry.includes('src/api/index.ts!'))
   assert.deepEqual(config.ignoreBinaries, ['kingfisher'])
-  assert.deepEqual(config.ignoreDependencies, ['server-only'])
+  assert.deepEqual(config.ignoreDependencies, [
+    '@vitest/coverage-v8',
+    'happy-dom',
+    '@testing-library/jest-dom',
+    'server-only'
+  ])
   assert.deepEqual(config.ignoreIssues, {
     'tooling/knip.ts': ['exports', 'unlisted'],
     'src/a.test.ts': ['unlisted']

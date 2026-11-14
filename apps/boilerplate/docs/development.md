@@ -25,7 +25,36 @@ In the CI, the tests use the Chrome already installed on the runner.
 When raising the Node line, confirm that Vercel accepts the target runtime and
 change `engines` and `devEngines` in the same commit.
 
+## Tool dependencies
+
+`@evertondgn/solid-tooling` installs the tools the preset uses. This copy keeps
+direct declarations only for its own imports and Vite+. Updating the package
+updates those tools; align the retained Nitro, routing and Playwright Test
+versions when upgrading. Keep Paraglide, message-format and the Solid libraries
+in the application, plus the root Vite/Vitest overrides.
+
+Use `vp run tsc`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
+`vp run commitlint` for the package's executables. Scripts such as `test:e2e`,
+`test:browser:install` and `dead-code:fix` use these tasks. The standalone
+command pattern is documented in the
+[tooling guide](../../../docs/tooling/limits.md#packaged-commands-and-types).
+Keep `trustedDependencies: []` when extracting this copy so dependency
+installation does not change Git hooks; hook installation is explicit.
+
 ## Environment and preview
+
+`env.ts` imports `serverEnv` from `@evertondgn/solid-runtime/env` and spreads
+its optional `HOST`, `PORT` and `BASE_URL_TEST` validators into `server`. The
+copy enables the preset's `seo` option, which validates the required
+`VITE_SITE_URL` origin separately. It still declares Valibot because other
+application code imports it. The runtime package supplies the fragment as a
+production dependency; the tooling stays in `devDependencies`, including in
+Knip's strict pass. The server fragment keeps its existing validation rules. The
+generated `solid-env.d.ts` types cover the virtual modules, not
+`import.meta.env`; keep `src/@types/env.d.ts` for the application's
+`PUBLICATION_BUILD_ID` declaration. `SITE.url` imports the runtime SEO origin.
+See the
+[environment guide](../../../docs/tooling/app-config.md#optional-environment-validation).
 
 To install and start the project, follow [running it](../README.md#running-it).
 

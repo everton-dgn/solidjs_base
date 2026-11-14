@@ -91,30 +91,34 @@ the focus back, becomes visible or receives `pageshow`, it reads the cookie
 again. Without the channel, the sync happens on those events. If the cookie
 cannot be written, the choice stays in memory and can still be propagated
 through the channel. It is kept when returning to the tab while the cookie does
-not change and is lost on reload. The theme does not use `localStorage`.
-`infra/adapters/themeStorage/` reads and writes the cookie,
-`infra/adapters/applyTheme/` applies the theme to the DOM,
-`infra/adapters/makeBroadcastChannel/` wraps the channel between tabs for any
-domain, `infra/adapters/makeThemeChannel/` holds the theme rule on top of that
-channel, `infra/adapters/makeSystemTheme/` watches the system preference and
-`@types/theme.ts` defines the shared types, keeping `theme/` with CSS only. The
-colors use `light-dark()` with `color-scheme` to define each pair once and
-follow the theme of the document.
+not change and is lost on reload. The theme does not use `localStorage`. The
+single configuration in `src/constants/theme.ts` calls `defineTheme` from
+`@evertondgn/solid-runtime/theme/define-theme`. The runtime owns cookie storage,
+DOM application, system preference watching, cross-tab synchronization and
+reactive state, with their tests. `Document` renders `themeScript(theme)` in its
+own script with the request nonce. `Provider`, its context and `ThemeToggle`
+remain application UI. The application keeps its palette and the CSS classes in
+`src/theme/`. The colors use `light-dark()` with `color-scheme` to define each
+pair once and follow the theme of the document.
 
 ## Fonts
 
 Inter comes from the `@fontsource-variable/inter` package, stored in
-`src/assets/fonts/` and declared in `src/theme/tokens/fonts.css`. They are
-variable files: each one has every weight from 100 to 900, so a derived project
-can use any `font-weight` without downloading another file.
+`src/assets/fonts/` and configured in `fonts.ts`, passed to the `fonts` option
+of `defineSolidApp`. The preset emits the external `@font-face` CSS;
+`src/theme/tokens/fonts.css` keeps the typography tokens. They are variable
+files: each one has every weight from 100 to 900, so a derived project can use
+any `font-weight` without downloading another file.
 
 The `latin` subset covers the text in pt, en and es: letters, numbers,
 punctuation, accents, quotes, dashes and `€`. It is the only file with a
-preload, in `Document.tsx`. `latin-ext` has the extra Latin letters, such as
-`Ł`, `ő` and `ş`, and does not replace `latin`. It is in a separate file, linked
-through `unicode-range`, without a preload: the browser only downloads it when
-the page has some character of that range. The two `unicode-range` values are
-the ones in the CSS of the package.
+preload, selected by `preload: true` and rendered by `FontLinks` in
+`Document.tsx`. The preload and CSS share exactly the same hashed URL.
+`latin-ext` has the extra Latin letters, such as `Ł`, `ő` and `ş`, and does not
+replace `latin`. It is in a separate file, linked through `unicode-range`,
+without a preload: the browser only downloads it when the page has some
+character of that range. The two `unicode-range` values are the ones in the CSS
+of the package.
 
 The files of the package go out without the glyph names of the `post` table,
 which the browser does not use: that is 1.5 KB less in `latin` and 3.2 KB in
@@ -132,11 +136,16 @@ uvx --from fonttools --with brotli pyftsubset <package-file>.woff2 \
 
 To support another alphabet, such as Cyrillic or Greek, process the file of that
 subset the same way, copy the matching `unicode-range` from the CSS of the
-package and add a `@font-face` with the same family. Do not replace `latin` with
-another subset or join subsets into a single file: the visitor would download
-characters the page does not use, or the common text would fall back to the
-system font. Check the coverage of a file with
+package and add a file descriptor to the same family in `fonts.ts`. Do not
+replace `latin` with another subset or join subsets into a single file: the
+visitor would download characters the page does not use, or the common text
+would fall back to the system font. Check the coverage of a file with
 `fc-query --format='%{charset}\n' <file>`.
+
+The font loading contract and complete examples are in the monorepo's
+[font guide](../../../docs/tooling/fonts.md). Keep the CSS fallback stack,
+weights and sizes in the application theme. Remove handwritten font faces and
+preload imports when adopting this mechanism; no inline CSS is required.
 
 ## CSS rules
 

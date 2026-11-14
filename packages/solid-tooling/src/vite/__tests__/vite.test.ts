@@ -12,9 +12,18 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { env, execPath } from 'node:process'
 import { it, type TestContext } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
 import * as v from 'valibot'
+
+import {
+  ALL_PUBLICATION_SEO,
+  LOCALES,
+  SOURCE_PACKAGE,
+  TASKS,
+  WORKSPACE
+} from './constants.ts'
 
 type Scenario = {
   options?: Record<string, unknown>
@@ -31,6 +40,7 @@ type WorkspaceGlob = { pattern: string; base: string }
 type RootOptions = { hasI18n?: boolean }
 
 const PRESET = new URL('../../../dist/vite.mjs', import.meta.url).href
+const I18N_COMMAND = `bun '${fileURLToPath(new URL('../../../dist/i18n-generate.mjs', import.meta.url))}'`
 const exec = promisify(execFile)
 const HEADERS = {
   'strict-transport-security': 'max-age=63072000; includeSubDomains',
@@ -41,25 +51,12 @@ const SECURITY_HEADERS = {
   ...HEADERS,
   'content-security-policy': "default-src 'self'"
 }
-const LOCALES = ['en', 'pt']
-const SOURCE_PACKAGE = '@scope/source'
-const TASKS = [
-  'i18n-generate',
-  'lint-css',
-  'dead-code-project',
-  'lint-project',
-  'check-project',
-  'typecheck-node',
-  'test-tooling'
-]
-const WORKSPACE = {
-  dependsOn: ['@scope/tooling#build'],
-  inputs: ['packages/tooling/dist/**']
-}
 
 // Recorders stand in for the four plugin packages, whose options stay in
 // closures. Each module also records that it was imported.
 const STUBS = {
+  '@inlang/paraglide-js':
+    "record('paraglide'); export const paraglideVitePlugin = options => (record('paraglide', options), { name: 'unplugin-paraglide-js' })",
   '@solidjs/vite-plugin':
     "record('solid'); export default options => (record('solid', options), { name: 'solid' })",
   'filesystem-routing/vite':
@@ -262,16 +259,31 @@ it('places the extension plugins before the fixed ones in each target', async co
   assert.deepEqual(summary.plugins, {
     app: [
       'solid-app:locale',
+      'solid-app:seo',
       'extension:app',
+      'project:i18n-catalogs',
+      'unplugin-paraglide-js',
       'icons',
       'solid',
       'fileRoutes',
       'nitro'
     ],
-    dom: ['solid-app:locale', 'extension:test', 'icons', 'solid', 'fileRoutes'],
+    dom: [
+      'solid-app:locale',
+      'solid-app:seo',
+      'extension:test',
+      'project:i18n-catalogs',
+      'unplugin-paraglide-js',
+      'icons',
+      'solid',
+      'fileRoutes'
+    ],
     browser: [
       'solid-app:locale',
+      'solid-app:seo',
       'extension:test',
+      'project:i18n-catalogs',
+      'unplugin-paraglide-js',
       'icons',
       'solid',
       'fileRoutes'
@@ -346,6 +358,9 @@ it('falls back to server functions without setup and no middleware', async conte
   })
   assert.deepEqual(summary.plugins.dom, [
     'solid-app:locale',
+    'solid-app:seo',
+    'project:i18n-catalogs',
+    'unplugin-paraglide-js',
     'icons',
     'solid',
     'fileRoutes'
@@ -360,7 +375,7 @@ it('writes the security headers on the static files in a fixed order', async con
   const summary = await readSummary({
     options: {
       root,
-      publication: true,
+      seo: ALL_PUBLICATION_SEO,
       publicAssets: [
         { baseURL: '/images', dir: 'public/images', fallthrough: false }
       ],
@@ -440,6 +455,10 @@ it('loads no application plugin and reads .env.test in the test mode', async con
   const root = await createRoot(context)
   const summary = await readSummary({ options: { root }, mode: 'test' })
   assert.deepEqual(summary.plugins.app, [])
+  for (const plugins of [summary.plugins.dom, summary.plugins.browser]) {
+    assert.ok(plugins.includes('project:i18n-catalogs'))
+    assert.ok(plugins.includes('unplugin-paraglide-js'))
+  }
   assert.deepEqual(
     summary.extendCalls.map(call => call.target),
     ['test', 'test']
@@ -522,15 +541,18 @@ it('reads the lockfile and the package build from the workspace root', async con
     }
   })
   assert.deepEqual(summary.tasks['i18n-generate'], {
-    command: 'bun tooling/i18n/generate.ts',
+    command: I18N_COMMAND,
+    dependsOn: WORKSPACE.dependsOn,
     cache: {
       input: [
+        { auto: true },
         'src/**/i18n/*.json',
-        'tooling/i18n/**',
         'project.inlang/settings.json',
         'project.inlang/paraglide.config.ts',
         'package.json',
-        fromWorkspace('bun.lock')
+        fromWorkspace('bun.lock'),
+        fromWorkspace('bunfig.toml'),
+        fromWorkspace('packages/tooling/dist/**')
       ],
       output: ['paraglide/**', '.paraglide/messages/**']
     }
@@ -546,6 +568,7 @@ it('reads the lockfile and the package build from the workspace root', async con
     )
     .map(([name]) => name)
   assert.deepEqual(dependents, [
+    'i18n-generate',
     'lint-css',
     'dead-code-project',
     'typecheck-node'
@@ -606,12 +629,16 @@ it('refuses a static path inside a locale folder', async context => {
   const root = await createRoot(context)
   const [staticPath, asset] = await Promise.all([
     readSummary({
-      options: { root, publication: true, staticPaths: ['/en/docs/**'] }
+      options: {
+        root,
+        seo: ALL_PUBLICATION_SEO,
+        staticPaths: ['/en/docs/**']
+      }
     }),
     readSummary({
       options: {
         root,
-        publication: true,
+        seo: ALL_PUBLICATION_SEO,
         publicAssets: [{ baseURL: '/pt', dir: 'public/pt' }]
       }
     })
@@ -630,7 +657,11 @@ it('names the settings file when it cannot read the locales', async context => {
   // the URL of the dom project.
   const test = { domUrl: 'http://localhost/' }
   const summary = await readSummary({
-    options: { root, publication: true, test }
+    options: {
+      root,
+      seo: ALL_PUBLICATION_SEO,
+      test
+    }
   })
   assert.match(
     summary.error ?? '',
@@ -677,7 +708,11 @@ it('passes the test options of the application to the test block', async context
 it('publishes no locale folder without the Paraglide settings', async context => {
   const root = await createRoot(context, { hasI18n: false })
   const summary = await readSummary({
-    options: { root, publication: true, staticPaths: ['/en/docs/**'] }
+    options: {
+      root,
+      seo: ALL_PUBLICATION_SEO,
+      staticPaths: ['/en/docs/**']
+    }
   })
   assert.equal(summary.error, null)
   const [nitro] = optionsOf({ summary, name: 'nitro' })
@@ -685,6 +720,7 @@ it('publishes no locale folder without the Paraglide settings', async context =>
   assert.deepEqual(Object.keys(routeRules), [
     '/assets/**',
     '/en/docs/**',
+    '/**.md',
     '/llms.txt',
     '/llms-full.txt',
     '/sitemap.xml',
@@ -730,7 +766,9 @@ it('refuses the server options in a client-only application', async context => {
   const cases = [
     { middleware: './src/middleware/index.ts' },
     { securityHeaders: HEADERS },
-    { publication: true },
+    {
+      seo: ALL_PUBLICATION_SEO
+    },
     { e2e: { middleware: './e2e/middleware.ts' } }
   ]
   const errors = await Promise.all(
@@ -744,7 +782,7 @@ it('refuses the server options in a client-only application', async context => {
   assert.deepEqual(errors, [
     'defineSolidApp: middleware needs SSR; remove it or remove ssr: false.',
     'defineSolidApp: securityHeaders needs SSR; remove it or remove ssr: false.',
-    'defineSolidApp: publication needs SSR; remove it or remove ssr: false.',
+    'defineSolidApp: seo needs SSR; remove it or remove ssr: false.',
     'defineSolidApp: e2e.middleware needs SSR; remove it or remove ssr: false.'
   ])
 })
@@ -758,6 +796,10 @@ it('leaves out the i18n task and the Paraglide setup without its settings', asyn
     TASKS.filter(name => name !== 'i18n-generate')
   )
   assert.deepEqual(summary.setupFiles, [])
+  for (const plugins of Object.values(summary.plugins)) {
+    assert.ok(!plugins.some(name => /i18n-catalogs|paraglide/iu.test(name)))
+  }
+  assert.equal(importsOf(summary).includes('paraglide'), false)
 })
 
 it('loads the real plugins from the package dependencies', async context => {
@@ -766,6 +808,8 @@ it('loads the real plugins from the package dependencies', async context => {
   assert.equal(summary.error, null)
   const order = [
     'extension:app',
+    'project:i18n-catalogs',
+    'unplugin-paraglide-js',
     'unplugin-icons',
     'solid',
     'filesystem-routing',

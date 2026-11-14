@@ -6,4 +6,4 @@ export const RELATIVE_IMPORT_RESTRICTION = {
 
 // Path of the module that creates the render integrity state, through the
 // alias or relative, with or without index.ts.
-export const RENDER_INTEGRITY_MODULE = String.raw`(?:^|/)renderIntegrity(?:/index(?:\.ts)?)?$`
+export const RENDER_INTEGRITY_MODULE = String.raw`(?:(?:^|/)renderIntegrity(?:/index(?:\.ts)?)?$|^@evertondgn/solid-runtime/server/render-integrity$)`

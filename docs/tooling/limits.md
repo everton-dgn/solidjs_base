@@ -85,6 +85,23 @@ overrides `files` must also include
 
 ## Known limits
 
+- `./env` exports optional preset validators, with Valibot already supplied by
+  the tooling package. It requires no application dependency unless the
+  application imports Valibot itself. The isolated installed scenario verifies
+  this boundary. `VITE_SITE_URL` remains application-owned. See
+  [environment validation](app-config.md#optional-environment-validation).
+- Applications adopting `./env` declare the tooling package in `dependencies`,
+  because Knip checks `env.ts` as a production entry. This also includes the
+  package's tools in production-only dependency installs; the application bundle
+  still excludes them. Config-only users can retain `devDependencies`.
+- Environment validation is opt-in through the SSR application's `env.ts`. The
+  fragment does not change direct `process.env` or `import.meta.env` reads.
+  Generated virtual types do not replace `ImportMetaEnv`. Object spread can
+  override preset keys, so preserving their validators is the application's
+  responsibility. Importing the server virtual module bundles the fragment and
+  Valibot on the server; env validation adds neither to the client. Application
+  imports of validators have their own bundle cost. Build-only tooling remains
+  excluded.
 - The package ships compiled JavaScript. Node refuses to run TypeScript from
   `node_modules`, and Vite+ loads `vite.config.ts` in Node.
 - `project/test-filename` has no options. Test folders without a module, such as

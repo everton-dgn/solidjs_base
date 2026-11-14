@@ -150,6 +150,33 @@ See
 and the
 [known limits](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits).
 
+## Optional environment validation
+
+An SSR application can add `env.ts` with the preset's optional validators:
+
+```ts
+import { serverEnv } from '@evertondgn/solid-tooling/env'
+
+const env = { server: { ...serverEnv } }
+
+export default env
+```
+
+`HOST`, `PORT` and `BASE_URL_TEST` are optional; `PORT` produces a number.
+Declare the tooling package in `dependencies` when adopting this entry: Knip
+treats `env.ts` as production code. Config-only users can keep it in
+`devDependencies`. Extend `server` and `client` with the application's own
+Standard Schema validators. The package supplies Valibot for its fragment;
+declare a validator library in the application only when its own code imports
+it. `VITE_SITE_URL` belongs to the application. An application without `env.ts`
+keeps working, including client-only applications with no site URL.
+
+The Solid plugin generates inferred types and rejects server env imports in the
+client graph. The server virtual module bundles the fragment and validator; env
+validation adds neither to the client. See the
+[environment guide](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md#optional-environment-validation)
+for extension examples, boot validation and type generation.
+
 ## How it is verified
 
 <picture>

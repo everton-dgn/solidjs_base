@@ -243,6 +243,11 @@ application starts.
 
 ## Requirements
 
+- Environment schemas belong to `@evertondgn/solid-tooling/env`, whose compiled
+  `serverEnv` fragment is loaded by the Solid plugin's Vite module runner and
+  bundled with its validator when the server virtual module is imported. The
+  runtime package adds no env dependency or export. See the
+  [environment guide](../../docs/tooling/app-config.md#optional-environment-validation).
 - The Solid Vite plugin adds the `solid` condition to the application build.
 - The node project of `solidTest`, from `@evertondgn/solid-tooling/vitest`,
   resolves the package through the same condition, and the `tsconfig.app.json`

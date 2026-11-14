@@ -2,9 +2,11 @@ import { createRequestEvent } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
 import { endpoint } from 'virtual:solid-server-function-handler'
 
-import { localizeRequest } from '@/middleware/localizeRequest/index.ts'
-
+import { createLocalizeRequest } from '../../../middleware/createLocalizeRequest/index.ts'
+import { createSecurityHeaders } from '../../../middleware/securityHeaders/index.ts'
 import { localizedRedirect } from '../index.ts'
+
+const localizeRequest = createLocalizeRequest(createSecurityHeaders())
 
 type RedirectRequest = {
   href: string
@@ -14,9 +16,11 @@ type RedirectRequest = {
 }
 
 const ORIGIN = 'https://example.com'
+type LocalizeOptions = { locale?: string }
+
 const TEMPORARY_REDIRECT = 307
 
-// Exercita o endpoint virtual configurado em vez de presumir /_server.
+// Exercise the configured virtual endpoint.
 vi.mock(import('virtual:solid-server-function-handler'), () => ({
   endpoint: '/rpc/execute'
 }))
@@ -52,7 +56,7 @@ function redirectRequest({
           localizedRedirect({
             href,
             shouldLocalize,
-            locale: 'pt',
+            locale: 'fr',
             status: TEMPORARY_REDIRECT,
             headers: { 'x-marker': 'kept' }
           })
@@ -63,14 +67,14 @@ function redirectRequest({
 
 describe('relative localized redirects', () => {
   it.each([
-    ['?saved=1', '/pt/docs/chapter?saved=1'],
-    ['../next', '/pt/next'],
-    ['#section', '/pt/docs/chapter?filter=active#section'],
-    ['', '/pt/docs/chapter?filter=active']
+    ['?saved=1', '/fr/docs/chapter?saved=1'],
+    ['../next', '/fr/next'],
+    ['#section', '/fr/docs/chapter?filter=active#section'],
+    ['', '/fr/docs/chapter?filter=active']
   ])('uses the RPC page Referer for %s', async (href, expected) => {
     const response = await redirectRequest({
       href,
-      referer: `${ORIGIN}/pt/docs/chapter?filter=active`
+      referer: `${ORIGIN}/fr/docs/chapter?filter=active`
     })
     expect(response.headers.get('location')).toBe(expected)
     expect(response.status).toBe(TEMPORARY_REDIRECT)
@@ -80,7 +84,7 @@ describe('relative localized redirects', () => {
   it.each([
     undefined,
     'not a URL',
-    'https://other.example/pt/docs',
+    'https://other.example/fr/docs',
     `${ORIGIN}${endpoint}/other`,
     `${ORIGIN}/robots.txt`
   ])('rejects an unsafe RPC page base %s', async referer => {
@@ -98,20 +102,20 @@ describe('relative localized redirects', () => {
 
   it('ignores Referer for a page request and for an endpoint lookalike', async () => {
     const page = await redirectRequest({
-      url: `${ORIGIN}/pt/docs/chapter?filter=active`,
-      referer: `${ORIGIN}/pt/other`,
+      url: `${ORIGIN}/fr/docs/chapter?filter=active`,
+      referer: `${ORIGIN}/fr/other`,
       href: '#section'
     })
     expect(page.headers.get('location')).toBe(
-      '/pt/docs/chapter?filter=active#section'
+      '/fr/docs/chapter?filter=active#section'
     )
     const lookalike = await redirectRequest({
-      url: `${ORIGIN}/pt${endpoint}-guide/chapter`,
-      referer: `${ORIGIN}/pt/other`,
+      url: `${ORIGIN}/fr${endpoint}-guide/chapter`,
+      referer: `${ORIGIN}/fr/other`,
       href: '?saved=1'
     })
     expect(lookalike.headers.get('location')).toBe(
-      `/pt${endpoint}-guide/chapter?saved=1`
+      `/fr${endpoint}-guide/chapter?saved=1`
     )
   })
 
@@ -124,10 +128,26 @@ describe('relative localized redirects', () => {
       href: '?saved=1',
       shouldLocalize: false
     })
-    expect(root.headers.get('location')).toBe('/pt/docs')
+    expect(root.headers.get('location')).toBe('/fr/docs')
     expect(external.headers.get('location')).toBe(
       'https://other.example/docs?q=1#part'
     )
     expect(endpointRedirect.headers.get('location')).toBe('?saved=1')
   })
+})
+
+vi.mock(import('virtual:solid-app/locale'), async () => {
+  const runtime = await import('@paraglide/runtime.js')
+  return {
+    locales: runtime.locales,
+    baseLocale: runtime.baseLocale,
+    getLocale: runtime.getLocale,
+    extractLocaleFromUrl: runtime.extractLocaleFromUrl,
+    deLocalizeUrl: runtime.deLocalizeUrl,
+    localizeHref(href: string, options?: LocalizeOptions) {
+      return runtime.localizeHref(href, {
+        locale: runtime.isLocale(options?.locale) ? options.locale : undefined
+      })
+    }
+  }
 })

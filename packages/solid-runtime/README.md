@@ -30,7 +30,7 @@ links and Vary header merging.
 `extractLocaleFromUrl`, `localizeHref` and `deLocalizeUrl`, with locales typed
 as strings. Its `localizeHref(href, options?)` follows the provider contract;
 the URL helper entry takes `localizeHref({ href, locale })` and preserves
-external links. There is no translation dependency in this package.
+external links. There is no production translation dependency in this package.
 
 The preset supplies `virtual:solid-app/locale` in builds, development and all
 three Vitest projects. With an application translation project it forwards the
@@ -146,13 +146,34 @@ application starts.
 The tests run in the Vitest of the package, with stand-ins for `server-only` and
 the virtual modules of the Solid and routing plugins, and with the coverage
 thresholds of an application. `vp run test` at the root runs them with the other
-packages; `vp test run --coverage` runs them from this folder.
+packages; `vp run test` generates the test provider and runs them with coverage
+from this folder.
 
 The package is checked from this folder as an application. The `check` script
-runs `vp lint`, which applies the lint preset of `@evertondgn/solid-tooling`,
-loaded from its sources, and checks the types. The `dead-code` script runs Knip,
-which takes the entries from `exports`. The `test:tarball` script packs the
-package, extracts it to the `node_modules` of a temporary folder and checks that
-the header constants load in plain Node, that every target of `exports` is in
-the tarball and that no `__tests__` folder is published. At the root,
-`vp run validate` runs all of them with the other packages.
+runs the test provider generator and `vp lint`, which applies the lint preset of
+`@evertondgn/solid-tooling`, loaded from its sources, and checks the types. The
+`dead-code` script runs Knip, which takes the entries from `exports`. The
+`test:tarball` script packs the package, extracts it to the `node_modules` of a
+temporary folder and checks that the header constants load in plain Node, that
+every target of `exports` is in the tarball and that no `__tests__` folder is
+published. At the root, `vp run validate` runs all of them with the other
+packages.
+
+## Locale request middleware
+
+Applications with project.inlang/settings.json can import
+`createLocalizeRequest` from `./middleware/localize-request` and
+`localizedRedirect` from `./i18n/localized-redirect`. Construct the step with
+`createLocalizeRequest({ applySecurityHeaders })`, using the application's
+security header instance. Cookie persistence stays internal to that entry. The
+runtime declares `RequestEventLocals.localizedPageBase`.
+
+The preset supplies `virtual:solid-app/locale-request` from the application's
+generated runtime and server modules, including in the Node Vitest project.
+Without a translation project its functions throw an error naming
+`project.inlang/settings.json`. Applications that do not import these entries do
+not load the request provider.
+
+The test command first generates an independent de/fr/ja Paraglide project into
+`tooling/testing/generated/`, ignored by Git and excluded from the tarball. The
+generator is a development dependency only.

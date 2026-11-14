@@ -25,6 +25,10 @@ const STUB_PREFIX = '\0solid-runtime-stub:'
 // the Solid and routing plugins provide these modules only in a real build.
 const NODE_STUBS = new Map([
   ['virtual:solid-app/locale', LOCALE_SOURCE],
+  [
+    'virtual:solid-app/locale-request',
+    `export * from '${import.meta.dirname}/tooling/testing/generated/runtime.js'; export * from '${import.meta.dirname}/tooling/testing/generated/server.js'`
+  ],
   ['server-only', 'export default undefined'],
   ['virtual:file-routes', 'export const pageRoutes = []\nexport default []'],
   [
@@ -46,6 +50,9 @@ function nodeStubs(): Plugin {
 }
 
 export default defineConfig({
+  resolve: {
+    alias: { '@paraglide': `${import.meta.dirname}/tooling/testing/generated` }
+  },
   // vp lint reads this block from the package folder; vp check and the
   // formatter use the root config.
   lint: { ...lint, jsPlugins },

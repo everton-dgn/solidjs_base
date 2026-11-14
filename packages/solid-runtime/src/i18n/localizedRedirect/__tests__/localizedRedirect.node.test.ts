@@ -3,6 +3,8 @@ import { HREF } from '@solidjs/web'
 
 import { localizedRedirect } from '../index.ts'
 
+type LocalizeOptions = { locale?: string }
+
 const TEMPORARY_REDIRECT = 307
 const FOUND = 302
 
@@ -21,15 +23,15 @@ function redirectRequest(locale: string) {
 describe('localizedRedirect contracts', () => {
   it('returns a Solid redirect Response preserving status, headers and revalidation', () => {
     const response = localizedRedirect({
-      href: '/pt/docs?q=1#part',
-      locale: 'es',
+      href: '/fr/docs?q=1#part',
+      locale: 'ja',
       status: TEMPORARY_REDIRECT,
       headers: { 'x-test': 'kept' },
       revalidate: ['docs']
     })
     expect(response).toBeInstanceOf(Response)
     expect(response.status).toBe(TEMPORARY_REDIRECT)
-    expect(response.headers.get('location')).toBe('/es/docs?q=1#part')
+    expect(response.headers.get('location')).toBe('/ja/docs?q=1#part')
     expect(response.headers.get('x-test')).toBe('kept')
     expect(response.headers.get('x-revalidate')).toBe('docs')
   })
@@ -50,16 +52,32 @@ describe('localizedRedirect contracts', () => {
   it('honors the logical Href brand used by Solid redirects', () => {
     const href = { [HREF]: '/docs', toString: () => '#/docs' }
     expect(
-      localizedRedirect({ href, locale: 'en' }).headers.get('location')
-    ).toBe('/en/docs')
+      localizedRedirect({ href, locale: 'de' }).headers.get('location')
+    ).toBe('/de/docs')
   })
 
   it('uses isolated request locales, including Accept-Language without an explicit locale', async () => {
     const responses = await Promise.all(
-      ['es', 'en'].map(locale => redirectRequest(locale))
+      ['ja', 'de'].map(locale => redirectRequest(locale))
     )
     expect(
       responses.map(response => response.headers.get('location'))
-    ).toStrictEqual(['/es/docs', '/en/docs'])
+    ).toStrictEqual(['/ja/docs', '/de/docs'])
   })
+})
+
+vi.mock(import('virtual:solid-app/locale'), async () => {
+  const runtime = await import('@paraglide/runtime.js')
+  return {
+    locales: runtime.locales,
+    baseLocale: runtime.baseLocale,
+    getLocale: runtime.getLocale,
+    extractLocaleFromUrl: runtime.extractLocaleFromUrl,
+    deLocalizeUrl: runtime.deLocalizeUrl,
+    localizeHref(href: string, options?: LocalizeOptions) {
+      return runtime.localizeHref(href, {
+        locale: runtime.isLocale(options?.locale) ? options.locale : undefined
+      })
+    }
+  }
 })

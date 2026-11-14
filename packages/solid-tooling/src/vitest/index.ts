@@ -6,7 +6,7 @@ import type { Plugin, TestUserConfig } from 'vite-plus'
 import { playwright } from 'vite-plus/test/browser-playwright'
 
 import { hasI18n } from '../has-i18n.ts'
-import { localeSource } from '../locale-module.ts'
+import { localeModule, localeSource } from '../locale-module.ts'
 import { TEST_LOCALE } from '../test-locale.ts'
 import { defaultDomUrl } from './dom-url.ts'
 import { sourcePackages } from './source-packages.ts'
@@ -101,6 +101,7 @@ export function solidTest({
       {
         plugins: [
           nodeStubs(localeSource({ root, language })),
+          localeModule({ root, language }),
           sourcePackages({ root, packages })
         ],
         test: {

@@ -3,7 +3,10 @@ import { createRequestEvent, getRequestEvent } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
 import { endpoint } from 'virtual:solid-server-function-handler'
 
-import { localizeRequest } from '../index.ts'
+import { createSecurityHeaders } from '../../securityHeaders/index.ts'
+import { createLocalizeRequest } from '../index.ts'
+
+const localizeRequest = createLocalizeRequest(createSecurityHeaders())
 
 const ORIGIN = 'https://example.com'
 
@@ -40,13 +43,13 @@ describe('localized request page bases', () => {
   it.each(['GET', 'HEAD'])(
     'localizes a %s page independently of Accept',
     async method => {
-      const request = new Request(`${ORIGIN}/pt/missing`, {
+      const request = new Request(`${ORIGIN}/fr/missing`, {
         method,
         headers: { accept: 'application/json' }
       })
       const event = createRequestEvent(request)
       const next = vi.fn<() => Promise<Response>>().mockImplementation(() => {
-        expect(getLocale()).toBe('pt')
+        expect(getLocale()).toBe('fr')
         expect(event.locals.localizedPageBase).toBe(request.url)
         return Promise.resolve(new Response(null))
       })
@@ -54,14 +57,14 @@ describe('localized request page bases', () => {
         localizeRequest({ request, next })
       )
       expect(next).toHaveBeenCalledExactlyOnceWith()
-      expect(response.headers.get('content-language')).toBe('pt')
+      expect(response.headers.get('content-language')).toBe('fr')
       expect(response.headers.get('cache-control')).toBe('private, no-store')
     }
   )
 
   it.each([
     { path: '/images/og.png', method: 'GET' },
-    { path: '/pt/missing', method: 'POST' }
+    { path: '/fr/missing', method: 'POST' }
   ])('keeps non-page JSON requests unchanged: %o', async ({ path, method }) => {
     const request = new Request(new URL(path, ORIGIN), {
       method,
@@ -82,13 +85,13 @@ describe('localized request page bases', () => {
 
   it('isolates concurrent page bases while retaining each original POST and unread body', async () => {
     const responses = await Promise.all(
-      ['pt', 'es'].map(locale => runRequest(locale))
+      ['fr', 'ja'].map(locale => runRequest(locale))
     )
     const bodies: unknown[] = await Promise.all(
       responses.map(response => response.json())
     )
     expect(bodies).toStrictEqual(
-      ['pt', 'es'].map(locale => ({
+      ['fr', 'ja'].map(locale => ({
         sameRequest: true,
         alreadyRead: false,
         body: `body-${locale}`,

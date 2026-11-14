@@ -43,14 +43,21 @@ application and an `include` resolved from the application folder with
 `${configDir}`, which needs TypeScript 5.5 or later. Each entry of `types` comes
 from a package the application installs:
 
-| Entry of `types`                        | Package                     |
-| --------------------------------------- | --------------------------- |
-| `node`                                  | `@types/node`               |
-| `vite/client`                           | `vite`                      |
-| `vite-plus/test/globals`                | `vite-plus`                 |
-| `@testing-library/jest-dom/vitest`      | `@testing-library/jest-dom` |
-| `@solidjs/vite-plugin/boundary-modules` | `@solidjs/vite-plugin`      |
-| `@solidjs/vite-plugin/virtual-modules`  | `@solidjs/vite-plugin`      |
+| Entry of `types`                            | Package                     |
+| ------------------------------------------- | --------------------------- |
+| `node`                                      | `@types/node`               |
+| `vite/client`                               | `vite`                      |
+| `vite-plus/test/globals`                    | `vite-plus`                 |
+| `@testing-library/jest-dom/vitest`          | `@testing-library/jest-dom` |
+| `@solidjs/vite-plugin/boundary-modules`     | `@solidjs/vite-plugin`      |
+| `@solidjs/vite-plugin/virtual-modules`      | `@solidjs/vite-plugin`      |
+| `@evertondgn/solid-tooling/virtual-modules` | `@evertondgn/solid-tooling` |
+| `filesystem-routing/types`                  | `filesystem-routing`        |
+
+The routing entry declares `virtual:file-routes` even before route types have
+been generated. Minimal applications need this declaration when importing
+runtime middleware that reads the route manifest. The tooling entry declares the
+application locale virtual modules.
 
 It also sets `customConditions` to `solid`, so TypeScript reads the files of a
 package that exports its source under that condition, such as

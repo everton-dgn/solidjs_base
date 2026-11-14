@@ -53,7 +53,8 @@ release. Add a tool name to select part of the graph. For example, run
   `@evertondgn/solid-runtime/i18n/urls`,
   `@evertondgn/solid-runtime/i18n/build-locale-alternates` and
   `@evertondgn/solid-runtime/middleware/append-vary`. Their tests run in the
-  runtime package; request locale handling and messages remain in this copy.
+  runtime package, including request locale handling and localized redirects.
+  Messages remain in this copy.
 
 ## Sizing the derived applications
 

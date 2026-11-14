@@ -3,7 +3,10 @@ import { createRequestEvent } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
 import { endpoint } from 'virtual:solid-server-function-handler'
 
-import { localizeRequest } from '../index.ts'
+import { createSecurityHeaders } from '../../securityHeaders/index.ts'
+import { createLocalizeRequest } from '../index.ts'
+
+const localizeRequest = createLocalizeRequest(createSecurityHeaders())
 
 const ORIGIN = 'https://example.com'
 
@@ -18,30 +21,30 @@ function run(request: Request): Promise<Response> {
   )
 }
 
-// O paraglideMiddleware também consulta shouldRedirect, sempre com
-// effectiveRequestUrl; a chamada só com a requisição é a do middleware.
+// Paraglide also calls shouldRedirect, with effectiveRequestUrl. The step
+// calls it with only the request.
 const OWN_DECISION = { request: expect.any(Request) as unknown }
 const MIDDLEWARE_DECISION = {
   request: expect.any(Request) as unknown,
   effectiveRequestUrl: expect.any(URL) as unknown
 }
 
-describe('decisão de redirect do idioma', () => {
-  it('não calcula o redirect para server functions', async () => {
+describe('locale redirect decision', () => {
+  it('does not calculate a redirect for server functions', async () => {
     await run(
       new Request(`${ORIGIN}${endpoint}/save`, {
         method: 'POST',
-        headers: { referer: `${ORIGIN}/pt/docs` }
+        headers: { referer: `${ORIGIN}/fr/docs` }
       })
     )
 
-    // Controle positivo: o spy observa as chamadas do paraglideMiddleware.
+    // The spy also observes the calls made inside Paraglide.
     expect(shouldRedirect).toHaveBeenCalledWith(MIDDLEWARE_DECISION)
     expect(shouldRedirect).not.toHaveBeenCalledWith(OWN_DECISION)
   })
 
-  it('calcula o redirect para páginas', async () => {
-    await run(new Request(`${ORIGIN}/pt/docs`))
+  it('calculates a redirect for pages', async () => {
+    await run(new Request(`${ORIGIN}/fr/docs`))
 
     expect(shouldRedirect).toHaveBeenCalledWith(OWN_DECISION)
   })

@@ -8,6 +8,13 @@ type LocaleOptions = { root: string; language?: string }
 const MODULE_ID = 'virtual:solid-app/locale'
 const RESOLVED_ID = '\0solid-app:locale'
 
+function localeRequestSource({ root }: LocaleOptions): string {
+  if (hasI18n(root)) {
+    return `export { shouldRedirect, extractLocaleFromRequest, cookieName, cookieMaxAge, cookieDomain, cookieSameSite, cookieSecure } from ${JSON.stringify(path.join(root, 'paraglide/runtime.js'))}; export { paraglideMiddleware } from ${JSON.stringify(path.join(root, 'paraglide/server.js'))}`
+  }
+  return `const missing = () => { throw new Error('Locale requests require project.inlang/settings.json') }; export { missing as shouldRedirect, missing as extractLocaleFromRequest, missing as paraglideMiddleware }; export const cookieName = '', cookieMaxAge = 0, cookieDomain = '', cookieSameSite = 'lax', cookieSecure = false`
+}
+
 export function localeSource({ root, language = 'en' }: LocaleOptions): string {
   if (hasI18n(root)) {
     return `export { locales, baseLocale, getLocale, extractLocaleFromUrl, localizeHref, deLocalizeUrl } from ${JSON.stringify(path.join(root, 'paraglide/runtime.js'))}`
@@ -24,7 +31,17 @@ export const deLocalizeUrl = url => url instanceof URL ? url : new URL(typeof ur
 export function localeModule(options: LocaleOptions): Plugin {
   return {
     name: 'solid-app:locale',
-    resolveId: id => (id === MODULE_ID ? RESOLVED_ID : undefined),
-    load: id => (id === RESOLVED_ID ? localeSource(options) : undefined)
+    resolveId: id => {
+      if (id === 'virtual:solid-app/locale-request') {
+        return '\0solid-app:locale-request'
+      }
+      return id === MODULE_ID ? RESOLVED_ID : undefined
+    },
+    load: id => {
+      if (id === '\0solid-app:locale-request') {
+        return localeRequestSource(options)
+      }
+      return id === RESOLVED_ID ? localeSource(options) : undefined
+    }
   }
 }

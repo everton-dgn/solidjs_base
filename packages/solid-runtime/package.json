@@ -53,12 +53,18 @@
     },
     "./middleware/append-vary": {
       "solid": "./src/middleware/helpers/appendVary/index.ts"
+    },
+    "./middleware/localize-request": {
+      "solid": "./src/middleware/createLocalizeRequest/index.ts"
+    },
+    "./i18n/localized-redirect": {
+      "solid": "./src/i18n/localizedRedirect/index.ts"
     }
   },
   "scripts": {
-    "check": "vp lint",
-    "dead-code": "knip-bun && knip-bun --strict",
-    "test": "vp test run --coverage",
+    "check": "node tooling/testing/generate.ts && vp lint",
+    "dead-code": "node tooling/testing/generate.ts && knip-bun && knip-bun --strict",
+    "test": "node tooling/testing/generate.ts && vp test run --coverage",
     "test:tarball": "node --test --test-timeout=120000 tooling/tarball/__tests__/tarball.test.ts"
   },
   "peerDependencies": {
@@ -86,6 +92,7 @@
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "@inlang/paraglide-js": "3.2.2"
   }
 }

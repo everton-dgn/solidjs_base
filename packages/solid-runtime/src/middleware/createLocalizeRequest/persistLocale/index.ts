@@ -1,18 +1,18 @@
-import { appendVary } from '@evertondgn/solid-runtime/middleware/append-vary'
+import { parseCookieHeader, serializeCookie } from '@solidjs/web'
 import {
   cookieDomain,
   cookieMaxAge,
   cookieName,
   cookieSameSite,
-  cookieSecure,
-  type Locale
-} from '@paraglide/runtime.js'
-import { parseCookieHeader, serializeCookie } from '@solidjs/web'
+  cookieSecure
+} from 'virtual:solid-app/locale-request'
+
+import { appendVary } from '../../helpers/appendVary/index.ts'
 
 type PersistLocaleOptions = {
   request: Request
   response: Response
-  locale: Locale
+  locale: string
 }
 
 export function persistLocale({

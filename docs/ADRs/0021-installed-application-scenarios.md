@@ -48,13 +48,14 @@ affect these measurements; the difference is not an isolated benchmark.
 Browser Vitest and Playwright E2E remain in `apps/boilerplate`. This matrix does
 not prove hydration, navigation, layout, desktop packaging, production CDN
 behavior, Vercel deployment, streaming integrity or application-scale load. The
-i18n fixture exercises generated runtime and locale defaults, not translated
-message catalogs. Publication checks cover emitted rules, not publication jobs.
-A fourth publication-without-i18n application is not added: the package unit
-suite already covers that combination, and it adds no installation contract.
+i18n fixture exercises generated runtime, translated message catalogs, locale
+redirects, Content-Language and cookie persistence. Publication checks cover
+emitted rules, not publication jobs. A fourth publication-without-i18n
+application is not added: the package unit suite already covers that
+combination, and it adds no installation contract.
 
 Dependency counts include the two injected packages: client-only 18, SSR plain
-19, SSR i18n 20. These are direct declarations, not transitive package counts.
+19, SSR i18n 21. These are direct declarations, not transitive package counts.
 The fixtures retain currently required test peers even though no browser runs.
 The fixtures pin every version, because `catalog:` does not resolve outside the
 workspace. A test compares those versions, the overrides and the engines with

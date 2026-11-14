@@ -4,6 +4,9 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { stdout } from 'node:process'
 
+import { prepareSitemapScenario } from './sitemap-scenarios.ts'
+import { hasSitemap } from './sitemap-smoke.ts'
+
 type Preparation = {
   app: string
   scenario: string
@@ -24,7 +27,8 @@ type Probe = {
 }
 
 export function seoEnvironment(app: string): Record<string, string> {
-  return existsSync(path.join(app, 'src/routes/robots.txt/index.ts'))
+  return hasSitemap(app) ||
+    existsSync(path.join(app, 'src/routes/robots.txt/index.ts'))
     ? { VITE_SITE_URL: 'https://scenario.example' }
     : {}
 }
@@ -35,6 +39,7 @@ export function prepareSeoScenario({
   profile,
   mutation
 }: Preparation): void {
+  prepareSitemapScenario({ app, profile, mutation })
   if (profile === 'isolated-meta-only') {
     assert.equal(scenario, 'ssr-plain')
     const config = path.join(app, 'vite.config.ts')

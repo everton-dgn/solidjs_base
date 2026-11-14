@@ -624,10 +624,16 @@ entries.
 | `createPublicationController({ total, sitemap, markdown })` | 4 total, 2 per kind; positive safe integers                                                   |
 | `sources`, `perSource`                                      | 4 concurrent source reads, 2 per source object                                                |
 | `outputs`, `reservedBytes`                                  | 4 live outputs, 16,777,216 reserved bytes                                                     |
-| `createSitemapRoutes({ timeoutMs })`                        | 10,000 ms for the full dynamic operation                                                      |
+| `createSitemapRoutes({ timeoutMs })`                        | 10,000 ms for the full dynamic operation; integer from 1 to 2,147,483,647                     |
 | `byteBudget`                                                | 4,194,304 bytes; at most 52,428,800 uncompressed XML bytes                                    |
 | `cacheControl`                                              | Production: `public, max-age=0, s-maxage=3600, stale-if-error=86400`; development: `no-store` |
 | `usesArtifacts`                                             | `false`; set `true` only with the application artifact writer and prerender integration       |
+
+The route factory and `runPublication` reject timeouts outside that range with
+`RangeError` before scheduling work. This prevents a timer overflow from turning
+a large configured deadline into a 1 ms timeout. Direct page parts use the same
+admission and output reservations as the other dynamic sitemap responses;
+production artifacts remain served by the file layer.
 
 A sitemap has at most 50,000 localized URLs, a location has at most 2,048
 characters, and an index has at most 50,000 parts. These protocol bounds are not

@@ -8,6 +8,7 @@ import {
   overloadResponse,
   shouldBypassOutput
 } from './helpers/publicationResponse/index.ts'
+import { validatePublicationTimeout } from './helpers/validatePublicationTimeout/index.ts'
 import type {
   PublicationController,
   PublicationContext,
@@ -81,7 +82,8 @@ export function createPublicationController(
     maxOutputBytes,
     run
   }: PublicationOptions): Promise<Response> {
-    if (!positive(timeoutMs) || !positive(maxOutputBytes)) {
+    validatePublicationTimeout(timeoutMs)
+    if (!positive(maxOutputBytes)) {
       throw new RangeError('Invalid publication budget')
     }
     if (signal?.aborted) {

@@ -2,6 +2,7 @@ import 'server-only'
 import type { APIEvent } from 'filesystem-routing/api'
 
 import { HTTP_NOT_FOUND } from '#solid-runtime/http/constants.ts'
+import { validatePublicationTimeout } from '#solid-runtime/infra/server/publication/helpers/validatePublicationTimeout/index.ts'
 import { readPublicationPhase } from '#solid-runtime/infra/server/readPublicationPhase/index.ts'
 
 import type { SitemapContext } from '../../types.ts'
@@ -114,6 +115,9 @@ export type SitemapRouteOptions = Omit<SitemapSettings, 'signal' | 'method'> & {
 export function createSitemapRoutes(
   options: SitemapRouteOptions
 ): SitemapRoutes {
+  if (options.timeoutMs !== undefined) {
+    validatePublicationTimeout(options.timeoutMs)
+  }
   const bound = {
     ...options,
     readContext: createSitemapContext(options.usesArtifacts ?? false)

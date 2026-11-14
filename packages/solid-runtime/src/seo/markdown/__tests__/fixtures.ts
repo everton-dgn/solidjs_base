@@ -1,12 +1,11 @@
-import { createPublicationController } from '@evertondgn/solid-runtime/server/publication'
-import type { PublicationLimits } from '@evertondgn/solid-runtime/server/publication-types'
+import { getLocale } from '@paraglide/runtime.js'
 import { createRequestEvent, type RequestEvent } from '@solidjs/web'
+import { Router } from '@testing/markdown/router.ts'
+import { SITE } from '@testing/seo/site.ts'
 
-import { Router } from '@/router.ts'
-
-import { markdownContent as productionMarkdownContent } from '../index.ts'
-
-const HTTP_OK = 200
+import { createPublicationController } from '../../../infra/server/publication/index.ts'
+import { createSecurityHeaders } from '../../../middleware/securityHeaders/index.ts'
+import { createMarkdownContent } from '../index.ts'
 
 type Options = {
   path?: string
@@ -14,45 +13,22 @@ type Options = {
   method?: string
   signal?: AbortSignal
 }
-
-const TEST_RESERVED_BYTES = 16_777_216
-
-const testLimits: PublicationLimits = {
-  total: 4,
-  sitemap: 2,
-  markdown: 2,
-  sources: 4,
-  perSource: 2,
-  outputs: 4,
-  reservedBytes: TEST_RESERVED_BYTES
-}
+const HTTP_OK = 200
 let publicationController: ReturnType<typeof createPublicationController>
+let service: ReturnType<typeof createMarkdownContent>
 let openResponses: Response[]
-
-vi.mock(import('@/infra/server/publication/index.ts'), async importOriginal => {
-  const original = await importOriginal()
-  return {
-    ...original,
-    publication: {
-      ...original.publication,
-      runPublication: (
-        options: Parameters<typeof original.runPublication>[0]
-      ) => publicationController.runPublication(options)
-    }
-  }
-})
 
 export async function markdownContent(
   request: RequestEvent,
-  render: Parameters<typeof productionMarkdownContent>[1]
+  render: Parameters<typeof service>[1]
 ): Promise<Response> {
-  const response = await productionMarkdownContent(request, render)
+  const response = await service(request, render)
   openResponses.push(response)
   return response
 }
 
 export function event({
-  path = '/en/about',
+  path = '/de/about',
   accept = 'text/markdown',
   method = 'GET',
   signal
@@ -94,7 +70,15 @@ export function mockPublishedRoute(): void {
 }
 
 export function resetPublicationController(): void {
-  publicationController = createPublicationController(testLimits)
+  vi.stubEnv('PUBLICATION_BUILD_ID', 'markdown-tests')
+  publicationController = createPublicationController()
+  service = createMarkdownContent({
+    publication: publicationController,
+    router: Router,
+    siteUrl: SITE.url,
+    applySecurityHeaders: createSecurityHeaders().applySecurityHeaders,
+    notFoundMessage: () => `Missing page in ${getLocale()}.`
+  })
   openResponses = []
 }
 
@@ -103,7 +87,7 @@ export async function cancelOpenResponses(): Promise<void> {
     try {
       await response.body?.cancel()
     } catch {
-      /* Já consumido. */
+      /* Already consumed. */
     }
   }
 }

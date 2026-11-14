@@ -83,6 +83,7 @@ type RegistrationOptions = {
 const MARKDOWN_FILE = /^\/[^?#]+\.md$/u
 const MarkdownPathSchema = v.pipe(v.string(), v.regex(MARKDOWN_FILE))
 const ManifestSchema = v.object({
+  buildId: v.optional(v.string()),
   siteUrl: v.pipe(v.string(), v.url()),
   baseLocale: v.pipe(v.string(), v.nonEmpty()),
   paths: v.array(MarkdownPathSchema),
@@ -218,6 +219,16 @@ export function markdownPrerender({
         inventory = readInventory(route.contents)
         if (!queue || !inventory) {
           route.error = new Error('Invalid static Markdown list')
+          return
+        }
+        if (
+          !inventory.manifest.buildId ||
+          inventory.manifest.buildId !== buildId
+        ) {
+          route.error = new Error(
+            'Static Markdown build identity does not match SSR'
+          )
+          inventory = undefined
           return
         }
         const { mismatches, paths } = inventory.manifest

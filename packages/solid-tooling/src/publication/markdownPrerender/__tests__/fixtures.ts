@@ -81,7 +81,9 @@ async function writePublished({
   await writeFile(file, contents)
 }
 
-export async function setup(): Promise<Setup> {
+export async function setup(
+  options: Partial<Parameters<typeof markdownPrerender>[0]> = {}
+): Promise<Setup> {
   const dir = await mkdtemp(path.join(tmpdir(), 'markdown-routing-'))
   after(() => rm(dir, { recursive: true, force: true }))
   const publicDir = path.join(dir, 'static')
@@ -93,7 +95,7 @@ export async function setup(): Promise<Setup> {
     version: 3,
     routes: [{ handle: 'filesystem' }, { src: '/(.*)', dest: '/__server' }]
   }
-  markdownPrerender({ buildId: BUILD_ID })({
+  markdownPrerender({ buildId: BUILD_ID, ...options })({
     options: { prerender, output: { dir, publicDir, serverDir } },
     hooks: {
       hook<Name extends keyof Handlers>(
@@ -144,6 +146,7 @@ export function manifest({
   mismatches = []
 }: Manifest): string {
   return JSON.stringify({
+    buildId: BUILD_ID,
     siteUrl: SITE_URL,
     baseLocale: 'en',
     paths,

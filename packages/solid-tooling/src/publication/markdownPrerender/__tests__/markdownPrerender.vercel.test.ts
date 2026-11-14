@@ -71,6 +71,7 @@ async function fixture({
   const nitro = await creation
   await nitro.hooks.callHook('prerender:routes', new Set())
   const list = JSON.stringify({
+    buildId: BUILD_ID,
     siteUrl: SITE_URL,
     baseLocale: 'pt',
     paths,

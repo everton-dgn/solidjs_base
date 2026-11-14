@@ -1,4 +1,4 @@
-import { SITE } from '@/constants/site/index.ts'
+import { SITE } from '@testing/seo/site.ts'
 
 import {
   markdownContent,
@@ -17,7 +17,7 @@ describe('html-derived Markdown', () => {
   afterEach(cancelOpenResponses)
 
   it('converts settled HTML with a full document URL, semantic filters and contextual footer', async () => {
-    const request = event({ path: '/en/docs/article.md?version=2' })
+    const request = event({ path: '/de/docs/article.md?version=2' })
     const response = await markdownContent(request, () =>
       html(
         '<nav>Navigation</nav><main><h1>Title</h1><a href="./next">Next</a><p hidden>Hidden</p><p aria-hidden="true">ARIA</p><p data-md-exclude>Excluded</p><script>Secret script</script><button>Control</button><menu>Menu controls</menu><footer><a href="source">Citation</a></footer><aside>Contextual aside</aside></main>'
@@ -33,15 +33,15 @@ describe('html-derived Markdown', () => {
         ?.includes("script-src 'none'")
     }).toMatchObject({
       mode: 'async',
-      url: 'https://example.com/en/docs/article?version=2',
+      url: 'https://example.com/de/docs/article?version=2',
       'cache-control': 'private, no-store',
       vary: 'Cookie, Accept',
       hasNoScripts: true
     })
     expect(body).toMatch(/# Title[\s\S]*Contextual aside/u)
-    expect(body).toContain(`[Next](${new URL('/en/docs/next', SITE.url).href})`)
+    expect(body).toContain(`[Next](${new URL('/de/docs/next', SITE.url).href})`)
     expect(body).toContain(
-      `[Citation](${new URL('/en/docs/source', SITE.url).href})`
+      `[Citation](${new URL('/de/docs/source', SITE.url).href})`
     )
     expect(body).not.toMatch(
       /Navigation|Hidden|ARIA|Excluded|Secret script|Control|Menu controls/u

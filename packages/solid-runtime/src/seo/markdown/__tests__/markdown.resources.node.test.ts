@@ -1,12 +1,12 @@
+import { Router } from '@testing/markdown/router.ts'
+import { readLog } from '@testing/readLog/index.ts'
+import { SITE } from '@testing/seo/site.ts'
+
 import {
   MARKDOWN_TIMEOUT_MS,
   MAX_HTML_BYTES,
   MAX_MARKDOWN_BYTES
-} from '@evertondgn/solid-runtime/server/publication-protocol'
-
-import { SITE } from '@/constants/site/index.ts'
-import { Router } from '@/router.ts'
-import { readLog } from '@/tests/helpers/readLog/index.ts'
+} from '#solid-runtime/infra/server/publication/protocol.js'
 
 import {
   markdownContent,
@@ -41,7 +41,7 @@ const BOUNDED_FAILURE: BoundedFailure = {
   status: HTTP_SERVER_ERROR,
   cacheControl: 'private, no-store',
   vary: 'Accept, Cookie, Accept-Language',
-  body: 'Não foi possível concluir a solicitação.',
+  body: 'Public error in fr.',
   log: { heads: [[LOG_MESSAGE, 'Error']], leaks: [] },
   reservedBytes: 0
 }
@@ -71,7 +71,7 @@ async function readBoundedFailure(response: Response): Promise<BoundedFailure> {
 
 describe('markdown resource bounds', () => {
   beforeAll(async () => {
-    await import('@/infra/server/configureServerErrors/index.ts')
+    await import('@testing/markdown/server-errors.ts')
   })
 
   beforeEach(() => {
@@ -171,11 +171,11 @@ describe('markdown resource bounds', () => {
     await expect(response.text()).resolves.not.toContain('Partial fallback')
   })
 
-  // O adaptador roda fora do contexto de idioma; o idioma vem da requisição.
+  // The adapter runs outside locale context and reads the request locale.
   it.each([
-    ['/pt/about.md', 'Não foi possível concluir a solicitação.'],
-    ['/en/about.md', 'The request could not be completed.'],
-    ['/es/about.md', 'No se pudo completar la solicitud.']
+    ['/fr/about.md', 'Public error in fr.'],
+    ['/de/about.md', 'Public error in de.'],
+    ['/ja/about.md', 'Public error in ja.']
   ])(
     'answers the public 500 of %s in the request locale',
     async (path, message) => {
@@ -187,12 +187,11 @@ describe('markdown resource bounds', () => {
     }
   )
 
-  // O teto encerra a publicação no 500 público do próprio adaptador, no idioma
-  // da requisição, em vez de subir até a contenção externa.
+  // Limits produce the adapter public 500 in the request locale before outer containment.
   it('bounds conversion input', async () => {
     vi.spyOn(console, 'error').mockReturnValue()
     const response = await markdownContent(
-      event({ path: '/pt/about.md' }),
+      event({ path: '/fr/about.md' }),
       () => html('x'.repeat(MAX_HTML_BYTES + 1))
     )
     await expect(readBoundedFailure(response)).resolves.toStrictEqual(
@@ -209,7 +208,7 @@ describe('markdown resource bounds', () => {
     )
     vi.spyOn(console, 'error').mockReturnValue()
     const response = await markdownContent(
-      event({ path: '/pt/about.md' }),
+      event({ path: '/fr/about.md' }),
       () => html(htmlBody)
     )
     await expect(readBoundedFailure(response)).resolves.toStrictEqual(

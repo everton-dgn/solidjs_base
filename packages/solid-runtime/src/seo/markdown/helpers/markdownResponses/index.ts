@@ -127,7 +127,7 @@ export function createMarkdownResponses({
       response.status === HTTP_SERVICE_UNAVAILABLE &&
       response.headers.has('retry-after')
     ) {
-      uncachedResponse(response)
+      result = uncachedResponse(response)
     }
     if (request.method !== 'HEAD') return result
     await result.body?.cancel()

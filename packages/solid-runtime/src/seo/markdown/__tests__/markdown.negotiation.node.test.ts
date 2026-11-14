@@ -1,4 +1,4 @@
-import { Router } from '@/router.ts'
+import { Router } from '@testing/markdown/router.ts'
 
 import {
   markdownContent,
@@ -35,7 +35,7 @@ describe('markdown negotiation and redirects', () => {
     'selects explicit .md with independent quality: %s',
     async (accept, status) => {
       const response = await markdownContent(
-        event({ path: '/en/about.md', accept }),
+        event({ path: '/de/about.md', accept }),
         () => html()
       )
       expect(response.status).toBe(status)
@@ -74,7 +74,7 @@ describe('markdown negotiation and redirects', () => {
   })
 
   it('renders HEAD with GET then strips every body', async () => {
-    const request = event({ method: 'HEAD', path: '/en/about.md' })
+    const request = event({ method: 'HEAD', path: '/de/about.md' })
     const response = await markdownContent(request, () => html())
     expect(request.request.method).toBe('GET')
     expect(response.headers.get('content-type')).toBe(
@@ -100,7 +100,7 @@ describe('markdown negotiation and redirects', () => {
     expect(response).toBe(original)
   })
 
-  it.each(['/en/missing', '/en/missing.md'])(
+  it.each(['/de/missing', '/de/missing.md'])(
     'converts the real not-found page at %s and preserves its status',
     async path => {
       vi.spyOn(Router, 'match').mockReturnValue([
@@ -135,14 +135,14 @@ describe('markdown negotiation and redirects', () => {
 
   it('keeps same-origin redirects in Markdown without following them', async () => {
     const response = await markdownContent(
-      event({ path: '/en/about.md' }),
+      event({ path: '/de/about.md' }),
       () =>
         Promise.resolve(
-          Response.redirect('https://example.com/en/contact?x=1', HTTP_REDIRECT)
+          Response.redirect('https://example.com/de/contact?x=1', HTTP_REDIRECT)
         )
     )
     expect(response.status).toBe(HTTP_REDIRECT)
-    expect(response.headers.get('location')).toBe('/en/contact.md?x=1')
+    expect(response.headers.get('location')).toBe('/de/contact.md?x=1')
     expect(response.headers.get('cache-control')).toBe('private, no-store')
     expect(response.headers.get('vary')).toBe('Accept')
   })
@@ -153,7 +153,7 @@ describe('markdown negotiation and redirects', () => {
       HTTP_REDIRECT
     )
     const response = await markdownContent(
-      event({ path: '/en/about.md' }),
+      event({ path: '/de/about.md' }),
       () => Promise.resolve(original)
     )
     expect(response.status).toBe(HTTP_REDIRECT)
@@ -166,10 +166,10 @@ describe('markdown negotiation and redirects', () => {
 
   it.each([
     ['https://external.example/page', 'Cookie', 'Cookie, Accept'],
-    ['/en/account', 'Accept-Language', 'Accept-Language, Accept'],
-    ['/en/private', 'Cookie', 'Cookie, Accept'],
-    ['/en/contact.md', 'Cookie, Accept', 'Cookie, Accept'],
-    ['/en/account', '*', '*'],
+    ['/de/account', 'Accept-Language', 'Accept-Language, Accept'],
+    ['/de/private', 'Cookie', 'Cookie, Accept'],
+    ['/de/contact.md', 'Cookie, Accept', 'Cookie, Accept'],
+    ['/de/account', '*', '*'],
     [undefined, '*', '*']
   ])(
     'preserves %s redirects without public caching or duplicate Vary',
@@ -192,7 +192,7 @@ describe('markdown negotiation and redirects', () => {
       })
       if (location) headers.set('location', location)
       const response = await markdownContent(
-        event({ path: '/en/about.md' }),
+        event({ path: '/de/about.md' }),
         () =>
           Promise.resolve(
             new Response(null, {
@@ -213,7 +213,7 @@ describe('markdown negotiation and redirects', () => {
       Promise.resolve(Response.redirect('https://external.example/page'))
     )
     const response = await markdownContent(
-      event({ path: '/en/about.md', accept: 'text/markdown;q=0' }),
+      event({ path: '/de/about.md', accept: 'text/markdown;q=0' }),
       next
     )
     expect(response.status).toBe(HTTP_NOT_ACCEPTABLE)
@@ -224,7 +224,7 @@ describe('markdown negotiation and redirects', () => {
 
   it('rejects malformed encoding with a public response', async () => {
     const next = vi.fn<() => Promise<Response>>(() => html())
-    const response = await markdownContent(event({ path: '/en/%E0.md' }), next)
+    const response = await markdownContent(event({ path: '/de/%E0.md' }), next)
     expect(response.status).toBe(HTTP_BAD_REQUEST)
     expect(next).not.toHaveBeenCalled()
   })

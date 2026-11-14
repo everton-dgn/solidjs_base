@@ -1,5 +1,6 @@
-import { convertHtml } from '@evertondgn/solid-runtime/seo/convert-html'
-import { MAX_HTML_BYTES } from '@evertondgn/solid-runtime/server/publication-protocol'
+import { MAX_HTML_BYTES } from '#solid-runtime/infra/server/publication/protocol.js'
+
+import { convertHtml } from '../index.ts'
 
 const INTERFACE = [
   '<dialog><h2>Dialog title</h2><p>Dialog body</p></dialog>',
@@ -130,7 +131,7 @@ describe('markdown conversion filters', () => {
       url: 'https://example.com/en/page',
       signal: new AbortController().signal
     })
-    // O mdream achata tags além do limite de profundidade e preserva o texto.
+    // Mdream flattens tags beyond the depth limit and preserves text.
     expect(markdown).toBe('Link')
     expect(markdown).not.toContain('icon.png')
   })

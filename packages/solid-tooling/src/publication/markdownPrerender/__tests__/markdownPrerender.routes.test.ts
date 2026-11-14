@@ -110,6 +110,7 @@ function prerenderList({ handlers, paths }: Listing): void {
   handlers['prerender:generate']?.({
     route: MARKDOWN_PRERENDER_PATH,
     contents: JSON.stringify({
+      buildId: BUILD_ID,
       siteUrl: SITE_URL,
       baseLocale: 'en',
       paths,

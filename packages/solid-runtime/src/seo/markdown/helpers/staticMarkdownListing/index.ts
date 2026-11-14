@@ -32,6 +32,7 @@ export function createStaticMarkdownListing({
   // Inherited noindex still excludes a page without an error. Effective URL locales
   // keep llms-full.txt selection independent of index formatting.
   function listStaticMarkdown(): Response {
+    const buildId: unknown = import.meta.env.PUBLICATION_BUILD_ID
     const paths: string[] = []
     const baseLocalePaths: string[] = []
     const mismatches: string[] = []
@@ -54,6 +55,7 @@ export function createStaticMarkdownListing({
     }
     return uncachedResponse(
       Response.json({
+        buildId: typeof buildId === 'string' ? buildId : undefined,
         siteUrl: resolveSiteUrl('/'),
         baseLocale,
         paths,

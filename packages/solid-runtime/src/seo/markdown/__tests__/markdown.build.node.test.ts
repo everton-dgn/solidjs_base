@@ -1,10 +1,10 @@
-import { collectStaticMarkdownPages } from '@evertondgn/solid-runtime/seo/collect-static-markdown-pages'
-import { MARKDOWN_PRERENDER_PATH } from '@evertondgn/solid-runtime/server/publication-protocol'
 import { createRequestEvent, type RequestEvent } from '@solidjs/web'
+import { Router } from '@testing/markdown/router.ts'
+import { SITE } from '@testing/seo/site.ts'
 
-import { SITE } from '@/constants/site/index.ts'
-import { Router } from '@/router.ts'
+import { MARKDOWN_PRERENDER_PATH } from '#solid-runtime/infra/server/publication/protocol.js'
 
+import { collectStaticMarkdownPages } from '../helpers/collectStaticMarkdownPages/index.ts'
 import {
   markdownContent,
   event,
@@ -23,16 +23,13 @@ const HTTP_PERMANENT_REDIRECT = 308
 const HTTP_NOT_FOUND = 404
 const HTTP_SERVER_ERROR = 500
 
-vi.mock(
-  import('@evertondgn/solid-runtime/seo/collect-static-markdown-pages'),
-  () => ({
-    collectStaticMarkdownPages: vi.fn<() => string[]>(() => [
-      '/pt',
-      '/en/about',
-      '/en/private'
-    ])
-  })
-)
+vi.mock(import('../helpers/collectStaticMarkdownPages/index.ts'), () => ({
+  collectStaticMarkdownPages: vi.fn<() => string[]>(() => [
+    '/fr',
+    '/de/about',
+    '/de/private'
+  ])
+}))
 
 function prerender(path: string): RequestEvent {
   return createRequestEvent(
@@ -63,11 +60,11 @@ describe('build-time Markdown', () => {
         },
         cancel
       })
-      const response = await markdownContent(prerender('/en/about.md'), () =>
+      const response = await markdownContent(prerender('/de/about.md'), () =>
         Promise.resolve(
           new Response(body, {
             status,
-            headers: { location: '/en/contact' }
+            headers: { location: '/de/contact' }
           })
         )
       )
@@ -89,7 +86,7 @@ describe('build-time Markdown', () => {
           params: {},
           info: {
             markdown: true,
-            seo: { noindex: pathname === '/en/private' }
+            seo: { noindex: pathname === '/de/private' }
           }
         }
       ]
@@ -102,10 +99,11 @@ describe('build-time Markdown', () => {
     expect(next).not.toHaveBeenCalled()
     expect(response.headers.get('cache-control')).toBe('private, no-store')
     await expect(response.json()).resolves.toStrictEqual({
+      buildId: 'markdown-tests',
       siteUrl: new URL('/', SITE.url).href,
-      baseLocale: 'en',
-      paths: ['/pt/index.md', '/en/about.md'],
-      baseLocalePaths: ['/en/about.md'],
+      baseLocale: 'de',
+      paths: ['/fr/index.md', '/de/about.md'],
+      baseLocalePaths: ['/de/about.md'],
       mismatches: []
     })
   })
@@ -119,7 +117,7 @@ describe('build-time Markdown', () => {
           pattern: pathname,
           match: pathname,
           params: {},
-          info: { markdown: pathname === '/en/about' ? 'dynamic' : true }
+          info: { markdown: pathname === '/de/about' ? 'dynamic' : true }
         }
       ]
     })
@@ -128,8 +126,8 @@ describe('build-time Markdown', () => {
       () => html()
     )
     await expect(response.json()).resolves.toMatchObject({
-      paths: ['/pt/index.md', '/en/private.md'],
-      mismatches: ['/en/about']
+      paths: ['/fr/index.md', '/de/private.md'],
+      mismatches: ['/de/about']
     })
   })
 
@@ -171,7 +169,7 @@ describe('build-time Markdown', () => {
         info: { markdown: 'dynamic' }
       }
     ])
-    const response = await markdownContent(event({ path: '/en/blog.md' }), () =>
+    const response = await markdownContent(event({ path: '/de/blog.md' }), () =>
       html()
     )
     expect(response.status).toBe(HTTP_OK)

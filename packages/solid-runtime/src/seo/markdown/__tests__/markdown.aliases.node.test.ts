@@ -1,4 +1,4 @@
-import { Router } from '@/router.ts'
+import { Router } from '@testing/markdown/router.ts'
 
 import {
   markdownContent,
@@ -22,15 +22,15 @@ describe('markdown aliases and runtime publication', () => {
 
   it.each([
     ['/index.md', '/'],
-    ['/pt/index.md', '/pt'],
-    ['/en/index.md', '/en'],
-    ['/es/index.md', '/es'],
+    ['/fr/index.md', '/fr'],
+    ['/de/index.md', '/de'],
+    ['/ja/index.md', '/ja'],
     ['/index/index.md', '/index'],
     ['/index/index/index.md', '/index/index'],
     ['/foo/index/index.md', '/foo/index'],
-    ['/pt/index/index.md', '/pt/index'],
-    ['/en/index/index/index.md', '/en/index/index'],
-    ['/es/foo/index/index.md', '/es/foo/index']
+    ['/fr/index/index.md', '/fr/index'],
+    ['/de/index/index/index.md', '/de/index/index'],
+    ['/ja/foo/index/index.md', '/ja/foo/index']
   ])('decodes %s once without losing its query', async (alias, path) => {
     const request = event({ path: `${alias}?version=2` })
     const response = await markdownContent(request, () => html())
@@ -64,7 +64,7 @@ describe('markdown aliases and runtime publication', () => {
         }
       })
       const response = await markdownContent(
-        event({ path: '/en/about.md', method }),
+        event({ path: '/de/about.md', method }),
         () => Promise.resolve(original)
       )
       expect(response.status).toBe(HTTP_NOT_FOUND)
@@ -83,7 +83,7 @@ describe('markdown aliases and runtime publication', () => {
       const original = await html()
       original.headers.set('x-robots-tag', robots)
       const response = await markdownContent(
-        event({ path: '/en/about.md' }),
+        event({ path: '/de/about.md' }),
         () => Promise.resolve(original)
       )
       expect(response.status).toBe(HTTP_OK)
@@ -117,7 +117,7 @@ describe('markdown aliases and runtime publication', () => {
       ])
       const next = vi.fn<() => Promise<Response>>(() => html())
       const response = await markdownContent(
-        event({ method, path: '/pt/account.md' }),
+        event({ method, path: '/fr/account.md' }),
         next
       )
       expect(next).not.toHaveBeenCalled()
@@ -132,15 +132,15 @@ describe('markdown aliases and runtime publication', () => {
         type: 'text/plain; charset=utf-8',
         cache: 'private, no-store',
         robots: 'noindex',
-        language: 'pt'
+        language: 'fr'
       })
       await expect(response.text()).resolves.toBe(
-        method === 'HEAD' ? '' : 'A página solicitada não foi encontrada.'
+        method === 'HEAD' ? '' : 'Missing page in fr.'
       )
     }
   )
 
-  it.each(['/pt/about/.md', '/en/docs/index.md'])(
+  it.each(['/fr/about/.md', '/de/docs/index.md'])(
     'answers the non-canonical alias %s with a 404 and no render',
     async path => {
       const next = vi.fn<() => Promise<Response>>(() => html())
@@ -150,14 +150,14 @@ describe('markdown aliases and runtime publication', () => {
     }
   )
 
-  // Sem prefixo de idioma, /pt.md segue o redirect dos caminhos sem idioma.
-  it('does not publish the home through /pt.md', async () => {
+  // Without a locale prefix, /fr.md follows the redirect for unlocalized paths.
+  it('does not publish the home through /fr.md', async () => {
     const next = vi.fn<() => Promise<Response>>(() => html())
-    const response = await markdownContent(event({ path: '/pt.md' }), next)
+    const response = await markdownContent(event({ path: '/fr.md' }), next)
     expect(next).not.toHaveBeenCalled()
     expect(response.status).toBe(HTTP_REDIRECT)
     expect(response.headers.get('location')).toBe(
-      'https://example.com/en/pt.md'
+      'https://example.com/de/fr.md'
     )
   })
 })

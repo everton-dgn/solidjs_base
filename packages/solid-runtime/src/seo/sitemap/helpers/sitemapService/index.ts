@@ -65,7 +65,7 @@ function createCatalog({ options, byteBudget }: CatalogOptions): PageCatalog {
       })
 }
 
-async function respondPages({
+function respondPages({
   options,
   catalog,
   byteBudget
@@ -73,12 +73,17 @@ async function respondPages({
   const { part, sources } = options
   const index = Number(part)
   if (!Number.isSafeInteger(index) || index < 1 || String(index) !== part) {
-    return errorResponse(HTTP_NOT_FOUND)
+    return Promise.resolve(errorResponse(HTTP_NOT_FOUND))
   }
-  const page = await catalog.readPart(index)
-  if (!page) return errorResponse(HTTP_NOT_FOUND)
-  readRegistry({ catalog, sources })
-  return renderPart({ entries: page, options, byteBudget })
+  const run = async () => {
+    const page = await catalog.readPart(index)
+    if (!page) return errorResponse(HTTP_NOT_FOUND)
+    readRegistry({ catalog, sources })
+    return renderPart({ entries: page, options, byteBudget })
+  }
+  return 'artifacts' in options
+    ? run()
+    : publishSitemap({ options, byteBudget, run })
 }
 
 async function respondArrayPart({

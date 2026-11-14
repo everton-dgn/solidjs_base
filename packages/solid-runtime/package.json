@@ -157,6 +157,31 @@
     },
     "./seo/origin": {
       "solid": "./src/seo/origin/index.ts"
+    },
+    "./server/publication": {
+      "solid": "./src/infra/server/publication/index.ts"
+    },
+    "./server/publication-types": {
+      "solid": "./src/infra/server/publication/types.ts"
+    },
+    "./server/publication-phase": {
+      "solid": "./src/infra/server/readPublicationPhase/index.ts"
+    },
+    "./routing/walk-static-routes": {
+      "solid": "./src/routing/walkStaticRoutes/index.ts"
+    },
+    "./routing/types": {
+      "solid": "./src/routing/walkStaticRoutes/types.ts"
+    },
+    "./seo/sitemap-types": {
+      "solid": "./src/seo/sitemap/source-types.ts"
+    },
+    "./seo/sitemap-routes": {
+      "solid": "./src/seo/sitemap/helpers/sitemapRoutes/index.ts"
+    },
+    "./server/publication-protocol": {
+      "types": "./src/infra/server/publication/protocol.d.ts",
+      "default": "./src/infra/server/publication/protocol.js"
     }
   },
   "scripts": {
@@ -191,5 +216,8 @@
     "@solidjs/vite-plugin": "3.0.0-next.57",
     "filesystem-routing": "0.5.0",
     "schema-dts": "catalog:"
+  },
+  "imports": {
+    "#solid-runtime/*": "./src/*"
   }
 }

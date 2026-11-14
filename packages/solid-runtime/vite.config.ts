@@ -78,6 +78,30 @@ export default defineConfig({
     overrides: [
       ...(lint.overrides ?? []),
       {
+        files: ['src/infra/server/publication/protocol.d.ts'],
+        rules: { 'typescript/no-magic-numbers': 'off' }
+      },
+      {
+        files: ['src/infra/server/readPublicationPhase/index.ts'],
+        rules: { 'node/no-process-env': 'off' }
+      },
+      {
+        files: ['src/seo/sitemap/helpers/createSitemapArtifacts/index.ts'],
+        rules: { 'import/no-nodejs-modules': 'off' }
+      },
+      {
+        files: [
+          'src/seo/sitemap/helpers/{createSitemapArtifacts,sitemapRoutes}/index.ts'
+        ],
+        rules: {
+          'import/no-unassigned-import': ['error', { allow: ['server-only'] }]
+        }
+      },
+      {
+        files: ['src/seo/sitemap/router.d.ts'],
+        rules: { 'typescript/consistent-type-definitions': 'off' }
+      },
+      {
         files: ['src/infra/server/publicErrors/index.ts'],
         rules: {
           'backend/restricted-imports': ['error', { allowSafeErrors: true }]
@@ -157,7 +181,11 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text'],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
-      include: ['src/**/*.{ts,tsx}', 'src/env/index.js'],
+      include: [
+        'src/**/*.{ts,tsx}',
+        'src/env/index.js',
+        'src/infra/server/publication/protocol.js'
+      ],
       exclude: [
         'src/**/*.d.ts',
         'src/**/{constants,types}.{ts,tsx}',

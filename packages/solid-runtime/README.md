@@ -85,11 +85,11 @@ including variables and spreads. A value narrowed to `{ run: () => T }` can
 retain that extra field without a type diagnostic; the wrapper still forwards
 only `run` and discards extra options. Only the private global registration
 variant enables framework controls. Neither that variant nor the message setter
-has a subpath. The application keeps `requestJson`, publication controllers and
-sources, its document adapter and authored render trees. The runtime owns
-middleware containment and the shared entry helpers. Production logs contain
-only the fixed source line and filtered class/frames; development diagnostics
-retain the existing original-error behavior.
+has a subpath. The application keeps `requestJson`, the shared controller
+instance and source registries, its document adapter and authored render trees.
+The runtime owns middleware containment and the shared entry helpers. Production
+logs contain only the fixed source line and filtered class/frames; development
+diagnostics retain the existing original-error behavior.
 
 The tooling lint reserves the configurator and `observeRenderFailures` for
 `src/infra/server/configureServerErrors/index.ts`, which must not export
@@ -335,7 +335,8 @@ with the same headers. It caches text in production with
 `public, max-age=0, s-maxage=3600, stale-if-error=86400`; development defaults
 to `no-store`. Set `cacheControl` to replace that policy. The preset's
 `sitemapPaths` resolves explicit paths against the origin; with no paths there
-are no `Sitemap:` lines. This feature does not generate a sitemap.
+are no `Sitemap:` lines. The separate sitemap factory below generates sitemap
+responses.
 
 Pass editorial values explicitly, then call the primitive once in the Router's
 root owner:
@@ -530,3 +531,129 @@ peerDependencies or move dependency ownership. Knip's strict production pass has
 a scoped `solid-js!` exception for that existing consumer dependency. Installed
 builds exercise resolution with both Bun linkers. Test support under
 `src/tests/` is excluded from the published tarball and coverage.
+
+## Sitemap and publication
+
+`@evertondgn/solid-runtime/server/publication` exports
+`createPublicationController(limits?)`. Create one instance per application in a
+server-only module and inject it into sitemap and Markdown. Creating a separate
+instance for each handler doubles the intended local quotas. `getMetrics()`
+returns a snapshot; the application decides where to expose observability.
+
+```ts
+// src/infra/server/publication/index.ts
+import 'server-only'
+import { createPublicationController } from '@evertondgn/solid-runtime/server/publication'
+
+export const publication = createPublicationController()
+export const runPublication = publication.runPublication
+```
+
+Bind explicit application sources to the factory. The example is complete and
+uses a finite in-memory catalog; replace the read inside the server-only source
+with an adapter that honors the requested limit and signal.
+
+```ts
+// src/infra/server/sitemap/index.ts
+import 'server-only'
+import { createSitemapRoutes } from '@evertondgn/solid-runtime/seo/sitemap-routes'
+import { origin } from '@evertondgn/solid-runtime/seo/origin'
+import type { SitemapPartitionSource } from '@evertondgn/solid-runtime/seo/sitemap-types'
+import { publication } from '../publication/index.ts'
+
+const sources: readonly SitemapPartitionSource[] = [{
+  id: 'articles',
+  routePath: '/articles/:id',
+  listPartitions: ({ limit, signal }) => {
+    signal.throwIfAborted()
+    return Promise.resolve(['first'].slice(0, limit))
+  },
+  readPartition: ({ id, limit, signal }) => {
+    signal.throwIfAborted()
+    const entries = id === 'first' ? [{ path: '/articles/42' }] : []
+    return Promise.resolve(entries.slice(0, limit))
+  }
+}]
+
+export const { index, pages, source, array } = createSitemapRoutes({
+  sources, publication, siteUrl: origin
+})
+```
+
+Re-export these handlers as `GET` in `/sitemap.xml`,
+`/sitemaps/pages/[part].xml`, `/sitemaps/[source]/[part].xml` and
+`/sitemaps/array.xml`, respectively. The page route `/articles/[id]` must exist
+and be indexable. `HEAD` preserves status and headers with no body. A missing
+`.xml` suffix or missing part returns an empty 404 with `no-store`.
+
+A small dynamic route may instead declare an array source. Importing its type
+includes the `RouteInfo.sitemap` augmentation without importing a server module.
+Its route metadata must cross a server function before reaching private data:
+
+```ts
+// src/routes/catalog/[id]/listCatalog.ts
+import type { SitemapEntry } from '@evertondgn/solid-runtime/seo/sitemap-types'
+
+export async function listCatalog(signal: AbortSignal): Promise<SitemapEntry[]> {
+  'use server'
+  signal.throwIfAborted()
+  return await Promise.resolve([{ path: '/catalog/42', lastmod: '2026-10-02' }])
+}
+```
+
+The page declares `export const route = { info: { sitemap: listCatalog } }`. Do
+not register an array and partitioned source for the same route. Array sources
+return complete lists; for larger data sets use partitions whose query itself
+applies `limit`. Validation after allocation cannot bound a bad query.
+
+Both examples work without `project.inlang`: one unprefixed URL per entry, no
+language alternates, no Paraglide dependency. With the existing i18n setup, the
+same API emits every configured locale and `x-default` for the base locale. Keep
+each locale group together within one part.
+
+In `defineSolidApp`,
+`seo: { sitemap: true, robots: { sitemapPaths: ['/sitemap.xml'] } }` enables the
+static sitemap header rules and advertises the root. Routes are explicit
+application files. To disable sitemap, remove those routes, their server binding
+and array metadata; omit `seo.sitemap` and the robots `sitemapPaths`. Robots can
+remain installed. No sitemap service is imported by the ordinary SEO or robots
+entries.
+
+| Option                                                      | Default and constraint                                                                        |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `createPublicationController({ total, sitemap, markdown })` | 4 total, 2 per kind; positive safe integers                                                   |
+| `sources`, `perSource`                                      | 4 concurrent source reads, 2 per source object                                                |
+| `outputs`, `reservedBytes`                                  | 4 live outputs, 16,777,216 reserved bytes                                                     |
+| `createSitemapRoutes({ timeoutMs })`                        | 10,000 ms for the full dynamic operation                                                      |
+| `byteBudget`                                                | 4,194,304 bytes; at most 52,428,800 uncompressed XML bytes                                    |
+| `cacheControl`                                              | Production: `public, max-age=0, s-maxage=3600, stale-if-error=86400`; development: `no-store` |
+| `usesArtifacts`                                             | `false`; set `true` only with the application artifact writer and prerender integration       |
+
+A sitemap has at most 50,000 localized URLs, a location has at most 2,048
+characters, and an index has at most 50,000 parts. These protocol bounds are not
+application tunables. `listPartitions` receives the remaining index capacity
+plus one; `readPartition` receives `floor(50000 / locales.length) + 1` to detect
+overflow. Both receive the publication `AbortSignal`. Oversized sources fail
+with empty 503 `no-store`, never partial successful XML. Overload also carries
+`Retry-After: 1`. No internal queue or retry is added.
+
+Route collection, matching and the partition registry scale with the complete
+route/source set and are cached per factory in production. Direct mode retains
+that route inventory in memory. The index enumerates partition IDs within its
+count/byte budget and reads complete array sources on each request. A part reads
+only its selected source and bounded batch; XML construction still holds that
+batch and its string/encoded body. The controller reserves output bytes, not
+every allocation made by the application or database driver. Each process has
+independent quotas. A source ignoring cancellation occupies its slot until
+settlement; recycle a stuck instance using the host's procedure after fixing the
+adapter. Process caches are neither persistent storage nor global quotas.
+
+The copy's artifact path persists static XML and generation-bound manifests. Its
+reader loads identities only for array-source collision checks and refuses
+missing, oversized or mismatched artifacts without rebuilding on a request.
+`inventory` is a fifth handler restricted to prerender, used by that build
+integration. `tooling/publicationArtifacts` and `tooling/markdownPrerender` stay
+application-owned. They share the plain-JavaScript `server/publication-protocol`
+entry with the server reader; handwritten literal declarations are tied to
+values by a regression test. `server/publication-phase` and
+`routing/walk-static-routes` support the remaining application publishers.

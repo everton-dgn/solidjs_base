@@ -37,9 +37,12 @@ const backendPlugin = definePlugin({
   rules: {
     'static-solid-imports': staticImportRule({
       matches: specifier =>
-        specifier === '@solidjs/web' || specifier.startsWith('@solidjs/web/'),
+        specifier === '@solidjs/web' ||
+        specifier.startsWith('@solidjs/web/') ||
+        specifier ===
+          '@evertondgn/solid-runtime/server/configure-server-errors',
       message:
-        'Use a static import for @solidjs/web and its subpaths: the import restrictions on markSafeError and configureServerErrors cannot check import().'
+        'Use a static import for @solidjs/web, its subpaths and the runtime server configurator: the import restrictions on markSafeError and configureServerErrors cannot check import().'
     }),
     'static-render-integrity-imports': staticImportRule({
       matches: specifier => RENDER_INTEGRITY.test(specifier),

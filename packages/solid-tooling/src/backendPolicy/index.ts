@@ -32,7 +32,8 @@ const SERVER_ERROR_HOOK: ImportPath = {
 // surface in the server runtime; the restriction has to cover both specifiers.
 const SERVER_CONFIG: ImportPath[] = [
   '@solidjs/web/server-functions',
-  '@solidjs/web/server-functions/server'
+  '@solidjs/web/server-functions/server',
+  '@evertondgn/solid-runtime/server/configure-server-errors'
 ].map(name => ({
   name,
   message:

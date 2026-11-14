@@ -1,3 +1,4 @@
+import solid from '@solidjs/vite-plugin'
 import { defineConfig, type Plugin } from 'vite-plus'
 
 import { lint } from '../solid-tooling/src/lint.ts'
@@ -64,8 +65,25 @@ export default defineConfig({
     unstubGlobals: true,
     unstubEnvs: true,
     expect: { requireAssertions: true, poll: { interval: 10 } },
-    environment: 'node',
-    include: ['src/**/*.node.test.{ts,tsx}'],
+    projects: [
+      {
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['src/**/*.node.test.{ts,tsx}']
+        }
+      },
+      {
+        plugins: [solid()],
+        test: {
+          name: 'dom',
+          environment: 'happy-dom',
+          environmentOptions: { happyDOM: { url: 'http://localhost/' } },
+          setupFiles: ['./tooling/testing/dom.ts'],
+          include: ['src/**/*.dom.test.{ts,tsx}']
+        }
+      }
+    ],
     // The thresholds and exclusions that solidTest gives to an application.
     coverage: {
       provider: 'v8',
@@ -75,7 +93,8 @@ export default defineConfig({
       exclude: [
         'src/**/*.d.ts',
         'src/**/{constants,types}.{ts,tsx}',
-        'src/**/__tests__/**'
+        'src/**/__tests__/**',
+        'src/tests/**'
       ]
     }
   }

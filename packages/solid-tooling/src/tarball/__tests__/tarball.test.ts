@@ -71,7 +71,13 @@ const diagnosticSchema = v.object({
   severity: v.string()
 })
 const reportSchema = v.object({ diagnostics: v.array(diagnosticSchema) })
-const exportsSchema = v.object({ exports: v.record(v.string(), v.string()) })
+const exportTargetSchema = v.union([
+  v.string(),
+  v.object({ types: v.string() })
+])
+const exportsSchema = v.object({
+  exports: v.record(v.string(), exportTargetSchema)
+})
 const hooksSchema = v.record(v.string(), v.unknown())
 
 function run({ file, args, cwd }: Command): string {
@@ -161,9 +167,9 @@ function missingExports(app: string): string[] {
   const installed = path.join(app, 'node_modules', PACKAGE_NAME)
   const manifest = readFileSync(path.join(installed, 'package.json'), 'utf8')
   const { exports } = v.parse(exportsSchema, JSON.parse(manifest))
-  return Object.values(exports).filter(
-    target => !existsSync(path.join(installed, target))
-  )
+  return Object.values(exports)
+    .map(target => (typeof target === 'string' ? target : target.types))
+    .filter(target => !existsSync(path.join(installed, target)))
 }
 
 function lefthook(app: string, args: string[]): SpawnSyncReturns<string> {

@@ -49,6 +49,12 @@ release. Add a tool name to select part of the graph. For example, run
   test titles are still in Portuguese, as in the original. When bringing a change
   from the original, translate its documentation.
 
+- URL helpers, locale alternates and Vary header merging live in
+  `@evertondgn/solid-runtime/i18n/urls`,
+  `@evertondgn/solid-runtime/i18n/build-locale-alternates` and
+  `@evertondgn/solid-runtime/middleware/append-vary`. Their tests run in the
+  runtime package; request locale handling and messages remain in this copy.
+
 ## Sizing the derived applications
 
 - This repository is a boilerplate for applications of any size. The demo

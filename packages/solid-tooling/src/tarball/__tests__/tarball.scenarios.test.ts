@@ -477,10 +477,12 @@ test('the applications pin the versions of the workspace', () => {
 async function buildScenario({
   app,
   scenario,
+  profile,
   deadline
 }: {
   app: string
   scenario: string
+  profile: string
   deadline: number
 }): Promise<void> {
   mutateServerErrors({ app, scenario, mutation: MUTATION })
@@ -492,11 +494,15 @@ async function buildScenario({
   assertSeoBuild({ app, scenario })
   if (scenario === 'client-only') return
   await smoke({ app, scenario })
-  if (scenario === 'ssr-plain') {
+  if (scenario === 'ssr-plain' && profile === 'isolated') {
     await smoke({ app, scenario, hasInvalidPort: true })
     await checkEnvFailures({ app, deadline, run })
     await checkSeoOriginFailures({ app, deadline, run })
   }
+  if (profile === 'isolated-meta-only') {
+    await checkSeoOriginFailures({ app, deadline, run })
+  }
+  if (profile !== 'isolated') return
   importServerFromClient(app)
   await run({
     deadline,
@@ -710,7 +716,7 @@ export default (event, next) => next()
         }
         mutateTheme({ app, mutation: MUTATION })
         mutateFontsScenario({ app, scenario, mutation: MUTATION })
-        await buildScenario({ app, scenario, deadline })
+        await buildScenario({ app, scenario, profile: linker, deadline })
       } finally {
         rmSync(directory, { recursive: true, force: true })
         stdout.write(

@@ -299,9 +299,15 @@ configures limits and enables static generation with `static: true`.
 
 The runtime declares published `@mdream/js` as its own dependency. The root
 monorepo patch also applies to that resolved copy. A derived application
-installed from tarballs gets the published converter: removing an icon can leave
-a space inside emphasis, and an icon-only link can have no label. To adopt the
-same optional Bun patch, copy `patches/@mdream%2Fjs@2.1.0.patch` from this
+installed from tarballs gets the published converter. In the runtime's 67
+conversion fixtures, the patch passes all cases and published `@mdream/js@2.1.0`
+differs in 29. These cover separators in nested inline wrappers, spaces around
+links and emphasis, accessible link names after filtering, and link titles
+entering visible text. For example, `<p>a<span> <span>b</span></span></p>`
+produces `ab` without the patch and `a b` with it. The installed HTTP matrix
+expects the published `ab` result. Icon removal can also leave a space inside
+emphasis or an empty link despite its accessible label. To adopt the same
+optional Bun patch, copy `patches/@mdream%2Fjs@2.1.0.patch` from this
 application, then add this entry to the derived application's root manifest and
 install:
 

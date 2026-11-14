@@ -124,7 +124,9 @@ which must fall back to the fixed English message without another diagnostic.
 Node and preview consumers verify public error identity and render observation
 through package subpaths. After a successful smoke, a used server-only import is
 planted in the client entry and the build must fail with the Solid boundary
-diagnostic. This happens for both linkers, without changing dependencies.
+diagnostic. This probe runs in each SSR fixture's existing `isolated` profile,
+without changing dependencies; every profile retains its positive build and
+bundle audit.
 
 The `error-body` and `error-log` mutations are optional negative probes on
 `ssr-plain / isolated$`. Each changes only the runtime installed in the
@@ -205,3 +207,9 @@ reference; cache and host state prevent treating that difference as an isolated
 benchmark. Optional llms budget, Link and module mutations exercise the failure
 audits. The copy still owns browser, SSR integrity and production-route E2E
 coverage.
+
+Common negative builds run only in the existing `isolated` profiles. SSR plain
+checks the server environment import and both invalid origins once; both SSR
+fixtures check a used server-only client import. The meta-only profile keeps its
+distinct assertions that unused origin values are accepted. Every added
+publication profile retains its positive build, module audit and HTTP smoke.

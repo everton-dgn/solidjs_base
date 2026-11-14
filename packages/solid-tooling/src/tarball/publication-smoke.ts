@@ -89,6 +89,16 @@ export async function smokePublication({
   if (scenario === 'client-only') return
   const features = readFeatures(app)
   const prefix = scenario === 'ssr-i18n' ? '/fr' : ''
+  if (features.markdown) {
+    const converted = await fetch(`${origin}${prefix}/converter.md`, {
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT)
+    })
+    assert.equal(converted.status, HTTP_OK)
+    // Published mdream 2.1.0 loses the separator inside nested inline wrappers.
+    // The monorepo's optional patch produces "a b" for this same icon-free HTML.
+    const convertedBody = await converted.text()
+    assert.equal(convertedBody.trim(), 'ab')
+  }
   for (const method of ['GET', 'HEAD']) {
     for (const page of ['/index.md', '/about.md']) {
       const response = await fetch(`${origin}${prefix}${page}`, {

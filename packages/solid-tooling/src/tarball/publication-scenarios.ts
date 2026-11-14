@@ -95,6 +95,22 @@ export const publicationRouter = createRouter({routes: fileRoutes(pageRoutes), t
   if (features.markdown) {
     write({
       app,
+      file: 'src/routes/converter/index.tsx',
+      source: `export const route = {info: {seo: {title: 'Published converter'}, markdown: 'dynamic'}}
+export default function Converter() {return <main><p>a<span>{' '}<span>b</span></span></p></main>}
+`
+    })
+    const entry = path.join(app, 'src/entry-server.tsx')
+    const entrySource = readFileSync(entry, 'utf8').replace(
+      'return renderToStream(() => <App />, options)',
+      "if (event && new URL(event.request.url).pathname.endsWith('/converter')) return renderToStream(() => <Converter />, options)\n  return renderToStream(() => <App />, options)"
+    )
+    writeFileSync(
+      entry,
+      `import Converter from './routes/converter/index.tsx'\n${entrySource}`
+    )
+    write({
+      app,
       file: 'src/publication.ts',
       source: `import { createPublicationController } from '@evertondgn/solid-runtime/server/publication'
 

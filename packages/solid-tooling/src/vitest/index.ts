@@ -7,6 +7,7 @@ import { playwright } from 'vite-plus/test/browser-playwright'
 
 import { hasI18n } from '../has-i18n.ts'
 import { localeModule, localeSource } from '../locale-module.ts'
+import { seoModule } from '../seo-module.ts'
 import { TEST_LOCALE } from '../test-locale.ts'
 import { defaultDomUrl } from './dom-url.ts'
 import { sourcePackages } from './source-packages.ts'
@@ -60,6 +61,7 @@ function readTestEnv(): Record<string, string> {
 export function solidTest({
   root,
   language,
+  seo,
   plugins,
   sourcePackages: packages = SOURCE_PACKAGES,
   domUrl = defaultDomUrl(root),
@@ -102,6 +104,7 @@ export function solidTest({
         plugins: [
           nodeStubs(localeSource({ root, language })),
           localeModule({ root, language }),
+          seoModule({ root, mode: 'test', seo }),
           sourcePackages({ root, packages })
         ],
         test: {

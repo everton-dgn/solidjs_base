@@ -150,6 +150,21 @@ See
 and the
 [known limits](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits).
 
+## Optional SEO configuration
+
+For SSR, `seo: { robots: { groups, sitemapPaths, cacheControl } }` configures
+the runtime robots route using serializable data. `originEnv` defaults to
+`VITE_SITE_URL`; the value must be an HTTP(S) origin without a path, query,
+fragment or credentials. The preset validates it when SEO is enabled or the
+runtime origin entry is imported. No SEO means no required origin.
+
+Pass `site` directly to the runtime `createSeo` primitive. A meta/JSON-LD-only
+application can omit `seo`, provide its own `site.url` and omit robots entirely.
+Client-only applications omit both the option and runtime SEO imports. There are
+no `siteModule`, `sourcesModule` or `editorialModule` path options. See the
+[runtime SEO API](../solid-runtime/README.md#optional-seo) for factories, the
+one-line route and examples with and without translations.
+
 ## Optional environment validation
 
 An SSR application can add `env.ts` with the preset's optional validators:
@@ -167,9 +182,9 @@ Declare the runtime package in `dependencies` and keep the tooling in
 `devDependencies`: Knip treats `env.ts` as production code. Extend `server` and
 `client` with the application's own Standard Schema validators. The runtime
 supplies Valibot for its fragment; declare a validator library in the
-application only when its own code imports it. `VITE_SITE_URL` belongs to the
-application. An application without `env.ts` keeps working, including
-client-only applications with no site URL.
+application only when its own code imports it. The optional SEO configuration
+validates `VITE_SITE_URL` separately. An application without `env.ts` keeps
+working, including client-only applications with no site URL.
 
 The Solid plugin generates inferred types and rejects server env imports in the
 client graph. The server virtual module bundles the fragment and validator; env

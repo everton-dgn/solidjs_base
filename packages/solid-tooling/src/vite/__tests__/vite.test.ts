@@ -271,6 +271,7 @@ it('places the extension plugins before the fixed ones in each target', async co
   assert.deepEqual(summary.plugins, {
     app: [
       'solid-app:locale',
+      'solid-app:seo',
       'extension:app',
       'project:i18n-catalogs',
       'unplugin-paraglide-js',
@@ -281,6 +282,7 @@ it('places the extension plugins before the fixed ones in each target', async co
     ],
     dom: [
       'solid-app:locale',
+      'solid-app:seo',
       'extension:test',
       'project:i18n-catalogs',
       'unplugin-paraglide-js',
@@ -290,6 +292,7 @@ it('places the extension plugins before the fixed ones in each target', async co
     ],
     browser: [
       'solid-app:locale',
+      'solid-app:seo',
       'extension:test',
       'project:i18n-catalogs',
       'unplugin-paraglide-js',
@@ -367,6 +370,7 @@ it('falls back to server functions without setup and no middleware', async conte
   })
   assert.deepEqual(summary.plugins.dom, [
     'solid-app:locale',
+    'solid-app:seo',
     'project:i18n-catalogs',
     'unplugin-paraglide-js',
     'icons',

@@ -5,6 +5,7 @@ import { lazyPlugins, type PluginOption } from 'vite-plus'
 
 import { hasI18n, I18N_SETTINGS } from '../has-i18n.ts'
 import { localeModule } from '../locale-module.ts'
+import { seoModule } from '../seo-module.ts'
 import type {
   ExtensionContext,
   ServerAppOptions,
@@ -202,6 +203,7 @@ async function serverPlugins({
   const headers = staticHeaders(options)
   return [
     localeModule(options),
+    seoModule({ root: options.root, mode, seo: options.seo }),
     ...(extension.plugins ?? []),
     ...i18n,
     iconsPlugin({ modules, options }),
@@ -272,6 +274,9 @@ export function testPlugins({
     ])
     return [
       localeModule(options),
+      ...(options.ssr === false
+        ? []
+        : [seoModule({ root: options.root, mode, seo: options.seo })]),
       ...(extension.plugins ?? []),
       ...i18n,
       iconsPlugin({ modules, options }),

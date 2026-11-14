@@ -207,6 +207,23 @@ export default defineConfig(env =>
 )
 ```
 
+## Optional SEO configuration
+
+`seo?: SeoOptions | false` is an SSR option. It accepts only serializable data:
+`originEnv?: string` and
+`robots?: false | { groups?, sitemapPaths?, cacheControl? }`. Each group has
+`userAgents` and optional `allow` and `disallow` string arrays. The plugin
+rejects unknown keys, functions and multiline robots directives. `originEnv`
+defaults to `VITE_SITE_URL` and is validated when SEO is enabled or the origin
+entry is imported. Applications without SEO need no origin.
+
+Use the [runtime SEO API](../../packages/solid-runtime/README.md#optional-seo)
+for explicit site values, optional editorial fields, JSON-LD and the robots
+factory/route. Its virtual modules export only serialized data. No application
+module path is accepted, and `seo` does not enable publication, sitemap or
+Markdown generation. Omit the option and origin import for a meta-only profile
+with an explicit site URL.
+
 ## Optional environment validation
 
 An SSR application can add `env.ts` at its root. The Solid plugin discovers it
@@ -246,7 +263,7 @@ import * as v from 'valibot'
 
 const env = {
   server: { ...serverEnv, API_URL: v.pipe(v.string(), v.url()) },
-  client: { VITE_SITE_URL: v.pipe(v.string(), v.url()) }
+  client: { VITE_API_URL: v.pipe(v.string(), v.url()) }
 }
 
 export default env

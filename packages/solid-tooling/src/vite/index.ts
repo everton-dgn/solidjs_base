@@ -33,7 +33,8 @@ const SERVER_OPTIONS = [
   'publicAssets',
   'staticPaths',
   'routeRules',
-  'publication'
+  'publication',
+  'seo'
 ]
 
 function validateServerOptions(options: ServerAppOptions): void {
@@ -92,6 +93,7 @@ export type {
   ServerAppOptions,
   SolidAppOptions
 } from './types.ts'
+export type { SeoOptions } from '../seo-module.ts'
 
 export function defineSolidApp(
   options: SolidAppOptions
@@ -154,6 +156,7 @@ export function defineSolidApp(
         ...options.test,
         root,
         language: options.language,
+        seo: options.ssr === false ? undefined : options.seo,
         plugins: () => testPlugins({ options, mode })
       })
     }

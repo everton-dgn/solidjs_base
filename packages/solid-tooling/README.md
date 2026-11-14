@@ -142,7 +142,7 @@ package-owned binaries, including with an isolated installation.
 | Feature             | Selection                                                                                                                              |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | Client-only build   | Set `ssr: false` and omit SSR options such as `middleware` and `securityHeaders`; the build has no Nitro or server bundle              |
-| Publication headers | Set `publication: true` for the rules of published files such as the sitemap, `robots.txt`, `llms.txt` and Markdown pages              |
+| Publication headers | Set `publication: true` for llms and Markdown rules; `seo.sitemap: true` adds sitemap rules                                            |
 | Translations        | `project.inlang/settings.json` enables the generation task and browser test setup; the lint plugin loads only where Paraglide resolves |
 
 See
@@ -152,16 +152,23 @@ and the
 
 ## Optional SEO configuration
 
-For SSR, `seo: { robots: { groups, sitemapPaths, cacheControl } }` configures
-the runtime robots route using serializable data. `originEnv` defaults to
-`VITE_SITE_URL`; the value must be an HTTP(S) origin without a path, query,
-fragment or credentials. The preset validates it when SEO is enabled or the
-runtime origin entry is imported. No SEO means no required origin.
+For SSR,
+`seo: { robots: { groups, sitemapPaths, cacheControl }, sitemap: true }`
+configures the runtime robots route using serializable data. `originEnv`
+defaults to `VITE_SITE_URL`; the value must be an HTTP(S) origin without a path,
+query, fragment or credentials. The preset validates it when SEO is enabled or
+the runtime origin entry is imported. No SEO means no required origin.
 
 Pass `site` directly to the runtime `createSeo` primitive. A meta/JSON-LD-only
 application can omit `seo`, provide its own `site.url` and omit robots entirely.
 Client-only applications omit both the option and runtime SEO imports. There are
-no `siteModule`, `sourcesModule` or `editorialModule` path options. See the
+no `siteModule`, `sourcesModule` or `editorialModule` path options.
+`seo.sitemap` controls only the static `/sitemap.xml` and `/sitemaps/pages/**`
+header rules. Install the runtime factory in explicit application route files,
+and list the root in `robots.sitemapPaths` to advertise it. To remove sitemap,
+remove its routes and server binding, omit its array metadata, omit
+`sitemapPaths`, and omit or disable `seo.sitemap`. Robots can stay enabled. The
+preset does not discover executable source registries or install routes. See the
 [runtime SEO API](../solid-runtime/README.md#optional-seo) for factories, the
 one-line route and examples with and without translations.
 

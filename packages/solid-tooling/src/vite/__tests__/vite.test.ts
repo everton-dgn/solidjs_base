@@ -388,6 +388,7 @@ it('writes the security headers on the static files in a fixed order', async con
     options: {
       root,
       publication: true,
+      seo: { sitemap: true },
       publicAssets: [
         { baseURL: '/images', dir: 'public/images', fallthrough: false }
       ],
@@ -641,12 +642,18 @@ it('refuses a static path inside a locale folder', async context => {
   const root = await createRoot(context)
   const [staticPath, asset] = await Promise.all([
     readSummary({
-      options: { root, publication: true, staticPaths: ['/en/docs/**'] }
+      options: {
+        root,
+        publication: true,
+        seo: { sitemap: true },
+        staticPaths: ['/en/docs/**']
+      }
     }),
     readSummary({
       options: {
         root,
         publication: true,
+        seo: { sitemap: true },
         publicAssets: [{ baseURL: '/pt', dir: 'public/pt' }]
       }
     })
@@ -665,7 +672,7 @@ it('names the settings file when it cannot read the locales', async context => {
   // the URL of the dom project.
   const test = { domUrl: 'http://localhost/' }
   const summary = await readSummary({
-    options: { root, publication: true, test }
+    options: { root, publication: true, seo: { sitemap: true }, test }
   })
   assert.match(
     summary.error ?? '',
@@ -712,7 +719,12 @@ it('passes the test options of the application to the test block', async context
 it('publishes no locale folder without the Paraglide settings', async context => {
   const root = await createRoot(context, { hasI18n: false })
   const summary = await readSummary({
-    options: { root, publication: true, staticPaths: ['/en/docs/**'] }
+    options: {
+      root,
+      publication: true,
+      seo: { sitemap: true },
+      staticPaths: ['/en/docs/**']
+    }
   })
   assert.equal(summary.error, null)
   const [nitro] = optionsOf({ summary, name: 'nitro' })
@@ -765,7 +777,7 @@ it('refuses the server options in a client-only application', async context => {
   const cases = [
     { middleware: './src/middleware/index.ts' },
     { securityHeaders: HEADERS },
-    { publication: true },
+    { publication: true, seo: { sitemap: true } },
     { e2e: { middleware: './e2e/middleware.ts' } }
   ]
   const errors = await Promise.all(

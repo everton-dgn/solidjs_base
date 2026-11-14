@@ -15,7 +15,8 @@ const RobotsSchema = v.strictObject({
 const RobotsOptionSchema = v.union([v.literal(false), RobotsSchema])
 const SeoSchema = v.strictObject({
   originEnv: v.optional(LineSchema, 'VITE_SITE_URL'),
-  robots: v.optional(RobotsOptionSchema)
+  robots: v.optional(RobotsOptionSchema),
+  sitemap: v.optional(v.boolean())
 })
 
 type ModuleOptions = { root: string; mode: string; seo?: SeoOptions | false }
@@ -55,6 +56,7 @@ function readOrigin({ root, mode, key }: OriginOptions): string {
 
 export type SeoOptions = {
   originEnv?: string
+  sitemap?: boolean
   robots?:
     | false
     | {

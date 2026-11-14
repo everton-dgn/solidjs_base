@@ -24,9 +24,11 @@ The root `package.json` lists two workspace folders:
 - `apps/*`: applications that use the packages through the workspace. They are
   never published.
 
-`fixtures/consumer` is outside the workspace on purpose. The tarball test copies
-it to a temporary folder and installs the packed package there, the way an
-application installs it from npm.
+`fixtures/consumer` and `fixtures/apps/` are outside the workspace on purpose.
+The tarball test copies the consumer to a temporary folder and installs the
+packed package there, the way an application installs it from npm. The
+[installed application scenarios](#installed-application-scenarios) do the same
+with the minimal applications of `fixtures/apps/`.
 
 Bun reads `catalog`, `overrides` and `patchedDependencies` only from the root
 `package.json`. The versions and patches that `apps/boilerplate` needs are kept

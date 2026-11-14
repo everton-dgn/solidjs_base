@@ -31,6 +31,10 @@ const GENERATED_LOCALE_SOURCE = `export { locales, baseLocale, getLocale, setLoc
 const NODE_STUBS = new Map([
   ['virtual:solid-app/locale', LOCALE_SOURCE],
   [
+    'virtual:solid-app/request-middleware',
+    `export { createLocalizeRequest as createRequestLocale } from '${import.meta.dirname}/src/middleware/createLocalizeRequest/index.ts'`
+  ],
+  [
     'virtual:solid-app/locale-request',
     `export * from '${import.meta.dirname}/tooling/testing/generated/runtime.js'; export * from '${import.meta.dirname}/tooling/testing/generated/server.js'`
   ],

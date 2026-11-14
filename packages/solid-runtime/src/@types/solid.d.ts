@@ -2,6 +2,7 @@ import type { redirect, ResponseHelperInit } from '@solidjs/web'
 
 declare module '@solidjs/web' {
   interface RequestEventLocals {
+    serverFailure?: Error
     localizedPageBase?: string
     ssrRenderState?: SsrRenderState
   }

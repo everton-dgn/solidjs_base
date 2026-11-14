@@ -34,17 +34,19 @@ there, and the patch files stay in `apps/boilerplate/patches/`.
 
 ## Package commands
 
-Run them from the root. The scripts select `./packages/*` only, because the
-publish job runs `vp run validate` and must not run the application suites.
+Run them from the root. Package commands select `./packages/*`. The publish job
+runs `vp run validate`, including the minimal installed application matrix. The
+full boilerplate application suites remain separate.
 
-| Command               | What it does                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------- |
-| `vp run build`        | Compile the packages to `dist/`                                                       |
-| `vp run check`        | Check format, lint and types at the root, then lint the runtime package in its folder |
-| `vp run dead-code`    | Find unused files, exports and dependencies of the runtime package with Knip          |
-| `vp run test`         | Run the rule tests with `node:test` and the runtime tests                             |
-| `vp run test:tarball` | Pack each package and install it in a temporary folder                                |
-| `vp run validate`     | Build, check, dead code, package tests and tarball tests, in this order               |
+| Command                 | What it does                                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| `vp run build`          | Compile the packages to `dist/`                                                                |
+| `vp run check`          | Check format, lint and types at the root, then lint the runtime package in its folder          |
+| `vp run dead-code`      | Find unused files, exports and dependencies of the runtime package with Knip                   |
+| `vp run test`           | Run the rule tests with `node:test` and the runtime tests                                      |
+| `vp run test:tarball`   | Pack each package and install it in a temporary folder                                         |
+| `vp run test:scenarios` | Install and build three minimal applications with both Bun linkers                             |
+| `vp run validate`       | Build, check, dead code, package tests, tarball tests and application scenarios, in this order |
 
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so
 `vp run test` builds the package first. The runtime tests run in the Vitest of
@@ -240,3 +242,28 @@ someone comments `@codex review`.
 
 `.github/workflows/release.yml` versions and publishes the packages. See
 [Releasing](releasing.md).
+
+## Installed application scenarios
+
+Run `vp run build && vp run test:scenarios` from the root. The matrix is also
+the final step of `vp run validate`. It copies `fixtures/apps/` outside the
+workspace and installs freshly packed tooling and runtime packages with Bun's
+hoisted and isolated linkers. Every case runs lint, TypeScript, node and dom
+tests, build and output checks. SSR cases also request the local preview.
+
+The fixtures list their own pinned dependencies. No browser download or remote
+page request belongs to this suite; only dependency installation uses the
+network. Paraglide uses a local project without remote modules.
+
+To select a case, use Node's `--test-name-pattern` with
+`packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts`. For
+example:
+
+```bash
+node --test --test-timeout=180000 --test-name-pattern='ssr-i18n / isolated' packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts
+```
+
+The optional `SCENARIO_MUTATION` values `nitro`, `headers` and `dom` inject
+regressions only into temporary copies. Select `client-only / isolated` for
+Nitro and `ssr-plain / isolated` for the other two; each command must fail. See
+[ADR 0021](ADRs/0021-installed-application-scenarios.md) for coverage and cost.

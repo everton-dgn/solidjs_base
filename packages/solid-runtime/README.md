@@ -2,8 +2,9 @@
 
 Runtime code for SolidJS applications built with Vite+. The package ships
 TypeScript source, which the application's Vite compiles with its own Solid
-version, plus plain JavaScript for entries loaded from Node. It is not published
-yet: it stays private until its first release.
+version, plus plain JavaScript for entries loaded from Node. Version `0.1.0` is
+its first release; the first publish is manual, as described in the
+[release guide](https://github.com/everton-dgn/solidjs_base/blob/main/docs/releasing.md#new-package).
 
 ## What it has
 

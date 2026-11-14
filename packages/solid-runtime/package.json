@@ -1,7 +1,6 @@
 {
   "name": "@evertondgn/solid-runtime",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "Runtime code for SolidJS applications built with Vite+, shipped as TypeScript source.",
   "author": "Éverton Toffanetto",
   "license": "MIT",
@@ -10,6 +9,26 @@
     "url": "git+https://github.com/everton-dgn/solidjs_base.git",
     "directory": "packages/solid-runtime"
   },
+  "keywords": [
+    "solidjs",
+    "solid",
+    "vite",
+    "vite-plus",
+    "nitro",
+    "ssr",
+    "middleware",
+    "csp",
+    "security-headers",
+    "i18n",
+    "paraglide",
+    "seo",
+    "json-ld",
+    "sitemap",
+    "robots-txt",
+    "theme",
+    "dark-mode",
+    "server-errors"
+  ],
   "type": "module",
   "files": [
     "src",
@@ -17,6 +36,9 @@
     "!src/tests"
   ],
   "sideEffects": [],
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     "./fonts/font-links": {
       "solid": "./src/fonts/FontLinks/index.tsx"

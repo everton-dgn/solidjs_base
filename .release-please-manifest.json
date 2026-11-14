@@ -1,3 +1,4 @@
 {
-  "packages/solid-tooling": "0.5.0"
+  "packages/solid-tooling": "0.5.0",
+  "packages/solid-runtime": "0.1.0"
 }

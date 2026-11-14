@@ -87,6 +87,21 @@ A trusted publisher is created in the settings of a package, so the package has
 to exist on the registry first. Publish the first version of each package
 [by hand](#publishing-by-hand). The workflow publishes the following ones.
 
+The order matters when a new package arrives in the same pull request that adds
+it to `release-please-config.json` and `.release-please-manifest.json`, as
+`@evertondgn/solid-runtime` did at `0.1.0`:
+
+1. Publish the version in the manifest by hand, from the last commit of the pull
+   request.
+2. Create the tag on that commit, such as `solid-runtime@0.1.0`, and push it.
+3. Merge the pull request. release-please finds the tag and opens no release
+   pull request for the package until a later `fix` or `feat` changes it.
+
+release-please finds the previous version of a package through its GitHub
+Release or, failing that, its tag. Merging first leaves neither, so it collects
+the commits back to `bootstrap-sha` and proposes a release with the whole
+history of the package.
+
 ## First automated release of a package
 
 The package must already be on npm, as described above. A new trusted publisher

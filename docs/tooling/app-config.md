@@ -13,8 +13,8 @@ not use reaches its build:
 
 - `ssr: false` builds a client-only application, such as an Electron renderer or
   a static site: no Nitro, no server functions and no server bundle.
-- The rules for the published files (sitemap, `robots.txt`, `llms.txt` and the
-  Markdown pages) need `publication: true`.
+- The llms and Markdown static rules need `publication: true`. Sitemap static
+  rules need `seo.sitemap: true`; robots is an explicit runtime route.
 - `project.inlang/settings.json` enables the packaged catalog validator and
   Paraglide plugin in dev, build and the `dom` and `browser` test projects. Keep
   catalogs at `src/**/i18n/<locale>.json` and the compiler options in
@@ -46,7 +46,7 @@ export default defineSolidApp({
 | `i18nPlugin`      | auto                    | Set `false` to disable only the automatic catalog and Paraglide plugins; locale providers, test setup and the generation task remain enabled by settings   |
 | `ssr`             | `true`                  | `false` for a client-only application, which takes only `root`, `language`, `i18nPlugin`, `icons`, `e2e.routes`, `extend`, `tasks`, `workspace` and `test` |
 | `securityHeaders` | required with SSR       | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files                                    |
-| `publication`     | `false`                 | `true` when the application publishes the sitemap, `robots.txt`, `llms.txt` or Markdown pages, so their files get the headers                              |
+| `publication`     | `false`                 | `true` for the static llms and Markdown header rules; sitemap uses `seo.sitemap`                                                                           |
 | `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                                                        |
 | `serverSetup`     | `serverFunctions: true` | `serverFunctions.serverSetup` of the Solid plugin                                                                                                          |
 | `e2e`             | production paths        | `{ middleware, routes }` for `--mode e2e`: the middleware chain and the route folder of the fixtures, without route types                                  |
@@ -80,10 +80,11 @@ The preset fixes the rest:
   `process.env`.
 - The static headers go to `/assets/**`, each `publicAssets` folder and the
   `staticPaths`. With `publication`, also to `/<locale>/**.md` for each locale
-  of `project.inlang/settings.json`, `/llms.txt`, `/llms-full.txt`,
-  `/sitemap.xml`, `/sitemaps/pages/**` and `/_markdown/static.json`. The static
-  files leave the CDN without going through the middleware, so these rules give
-  them the headers the middleware writes on the other responses.
+  of `project.inlang/settings.json`, `/llms.txt`, `/llms-full.txt` and
+  `/_markdown/static.json`. `seo.sitemap: true` independently adds
+  `/sitemap.xml` and `/sitemaps/pages/**`. The static files leave the CDN
+  without going through the middleware, so these rules give them the headers the
+  middleware writes on the other responses.
 - With `ssr: false`, the plugins are the locale provider, the `extend` plugins,
   the optional i18n plugins, the icons, the Solid plugin with `ssr: false` and
   the routes; the test projects load Solid without server functions. The build
@@ -210,7 +211,7 @@ export default defineConfig(env =>
 ## Optional SEO configuration
 
 `seo?: SeoOptions | false` is an SSR option. It accepts only serializable data:
-`originEnv?: string` and
+`originEnv?: string`, `sitemap?: boolean` and
 `robots?: false | { groups?, sitemapPaths?, cacheControl? }`. Each group has
 `userAgents` and optional `allow` and `disallow` string arrays. The plugin
 rejects unknown keys, functions and multiline robots directives. `originEnv`
@@ -220,9 +221,12 @@ entry is imported. Applications without SEO need no origin.
 Use the [runtime SEO API](../../packages/solid-runtime/README.md#optional-seo)
 for explicit site values, optional editorial fields, JSON-LD and the robots
 factory/route. Its virtual modules export only serialized data. No application
-module path is accepted, and `seo` does not enable publication, sitemap or
-Markdown generation. Omit the option and origin import for a meta-only profile
-with an explicit site URL.
+module path is accepted. `seo.sitemap` controls static header rules; the
+application explicitly installs `createSitemapRoutes` handlers and declares
+`robots.sitemapPaths`. Disabling the feature removes its route files, source
+binding and array metadata, and omits both the flag and robot announcements. The
+option does not install routes or run Markdown generation. Omit the option and
+origin import for a meta-only profile with an explicit site URL.
 
 ## Optional environment validation
 

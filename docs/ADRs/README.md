@@ -25,7 +25,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0018](0018-runtime-package-middleware.md)                             | The runtime package starts with the middleware steps                   | Accepted, amended by 0019 and 0020    |
 | [0019](0019-runtime-security-headers-options.md)                       | The runtime package takes the security header values as options        | Accepted                              |
 | [0020](0020-runtime-package-checks-in-its-own-folder.md)               | The runtime package runs its checks in its own folder                  | Accepted                              |
-| [0021](0021-installed-application-scenarios.md)                        | Minimal applications test installed packages with both Bun linkers     | Accepted, amended by 0024 to 0031     |
+| [0021](0021-installed-application-scenarios.md)                        | Minimal applications test installed packages with both Bun linkers     | Accepted, amended by 0024 to 0032     |
 | [0022](0022-runtime-locale-seam.md)                                    | Runtime locale helpers use an application virtual module               | Accepted, amended by 0023             |
 | [0023](0023-runtime-locale-requests.md)                                | Locale requests belong to the runtime                                  | Accepted                              |
 | [0024](0024-runtime-theme.md)                                          | Theme logic is an explicit runtime feature                             | Accepted                              |
@@ -38,6 +38,9 @@ decided, what led to it and what it costs. The date is the day of the decision.
 
 | [0031](0031-runtime-seo-core.md) | SEO metadata, structured data and robots
 belong to the runtime | Accepted |
+
+| [0032](0032-runtime-sitemap-publication.md) | Sitemap and publication
+admission belong to the runtime | Accepted |
 
 ## Adding a record
 

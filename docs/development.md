@@ -442,22 +442,31 @@ terminating API handler. See [ADR 0029](ADRs/0029-runtime-middleware-chain.md).
 The copy's route metadata resolver, head publisher, JSON-LD serializer and
 robots factory live in the runtime with 41 migrated executable tests and the
 exclusive-mode type test. Application adapters inject editorial values and the
-Markdown alternate callback; sitemap, llms and publication remain application
-code. Runtime tests also cover optional fields and hostile strings in both site
-and custom structured data. Keep the copy's StructuredData security E2E gate.
+Markdown alternate callback. The sitemap service and publication controller are
+runtime factories; llms, Markdown and build artifact writers stay in the
+application, which owns one controller shared by both workloads. Runtime tests
+also cover optional fields and hostile strings in both site and custom
+structured data. Keep the copy's StructuredData security E2E gate.
 
 SSR plain now renders metadata and JSON-LD on `/` and `/catalog/42`, and serves
-robots GET/HEAD without a sitemap. Its `isolated-meta-only` profile uses an
-explicit site URL, no origin environment variable and no robots route. Both
-invalid scheme and path origins must fail enabled SEO with a named diagnostic;
-the meta-only profile builds successfully with those same unused values.
+robots GET/HEAD and an unprefixed sitemap with array and partitioned sources.
+Its `isolated-meta-only` profile uses an explicit site URL, no origin
+environment variable and no robots route. Both invalid scheme and path origins
+must fail enabled SEO with a named diagnostic; the meta-only profile builds
+successfully with those same unused values.
 
-The build audit rejects SEO modules in client-only and ssr-i18n, where this
-feature is not used, and robots configuration/handlers in every client graph.
-Run `SCENARIO_MUTATION=seo-import` with `client-only / isolated$` to plant a
-used import in the owned temporary application; the audit must fail. The smoke
-and mutations are separate modules under `src/tarball`, keeping the matrix
-runner focused on orchestration. See [ADR 0031](ADRs/0031-runtime-seo-core.md).
+The build audit rejects SEO modules in client-only and robots/sitemap server
+modules in every client graph. SSR i18n verifies all four locale alternates and
+`x-default`. The `isolated-without-sitemap` plain profile keeps robots and
+publication enabled but requires no sitemap route, service module, robots
+announcement or static header rule. `SCENARIO_MUTATION=sitemap-import` with
+`ssr-plain / isolated-without-sitemap$` plants a used server import; the build
+audit must fail. Run `SCENARIO_MUTATION=seo-import` with
+`client-only / isolated$` to plant a used import in the owned temporary
+application; the audit must fail. The smoke and mutations are separate modules
+under `src/tarball`, keeping the matrix runner focused on orchestration. See
+[ADR 0031](ADRs/0031-runtime-seo-core.md) and
+[ADR 0032](ADRs/0032-runtime-sitemap-publication.md).
 
 ## Packaged environment schemas
 

@@ -1,10 +1,19 @@
+[![Latest solid-tooling version on npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling)
+[![CI workflow status](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml/badge.svg)](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml)
+[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)
+
 # @evertondgn/solid-tooling
 
-Stop maintaining the same tooling in every Solid app.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base. Stop maintaining the same tooling in every Solid app. The SolidJS mark stands on six layers that the package @evertondgn/solid-tooling maintains: lint rules, app config, tests, format and types, unused code and CSS, commits and hooks." width="800" />
+</picture>
 
 Solid Base supplies lint rules, application config, test setups and Git hooks
-for SolidJS 2 with [Vite+](https://viteplus.dev/guide/), as one versioned
-dependency. In an application that already uses Vite+ and TypeScript:
+for SolidJS 2 with [Vite+](https://viteplus.dev/guide/) as one versioned
+dependency, so you stop maintaining the same tooling in every Solid app. In an
+application that already uses Vite+ and TypeScript:
 
 ```bash
 vp add -D @evertondgn/solid-tooling
@@ -15,12 +24,6 @@ Built for applications that follow the
 layout. SolidJS 2 is still a release candidate, and the package is tested with
 it. Start with lint and formatting, and adopt the full application config when
 you are ready.
-
-[![Latest solid-tooling version on npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling)
-[![CI workflow status](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml/badge.svg)](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml)
-[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)
-
-![Three application windows connected to one shared foundation](https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero.webp)
 
 ## Requirements
 
@@ -78,18 +81,15 @@ src/helpers/export-list.ts:3:1: error project(no-export-list): Export on the dec
 
 ## Why
 
-![Separate configuration copies drift and need repeated repairs, while one shared package supplies all applications](https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/drift.webp)
-
 Applications copied from a starter carry its tooling with them, and every fix to
 the base has to be repeated by hand in each copy. With this package, the fix
 arrives when you update a dependency.
 
-| Configuration         | Original lines | With the package |
-| --------------------- | -------------: | ---------------: |
-| `vite.config.ts`      |            427 |               57 |
-| Playwright config     |            173 |               17 |
-| `tsconfig.json`       |             45 |                9 |
-| Lint preset and rules |    About 1,500 |                0 |
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-light.webp" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-light.webp" alt="About 94% less configuration in your repository: about 2,450 lines before and 142 after. vite.config.ts goes from 427 to 57 lines, the Playwright config from 173 to 17, the Knip config from 129 to 48, tsconfig.json from 45 to 9, Stylelint from 171 to 11, and the lint preset and rules from about 1,500 to 0." width="800" />
+</picture>
 
 Measured on the original starter and the same application using this package.
 Compare the
@@ -149,12 +149,16 @@ and the
 
 ## How it is verified
 
-Package changes run against the complete boilerplate in CI, with more than 1,000
-Vitest tests and more than 300 end-to-end tests. Before each release, the
-tarball test installs the packed package in a separate application outside the
-workspace and checks its exports and lint rules.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" alt="Three stages. Every change: the application and the packages run in CI, with more than 1,000 Vitest tests and more than 300 end-to-end tests. Before each release: the tarball is installed in a separate application, and its exports and lint rules are checked. Publication: signed npm provenance through trusted publishing, with no stored npm token." width="800" />
+</picture>
 
-![A package moves through installation in a separate application, a test gate and release](https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified.webp)
+Package changes run against the complete boilerplate and the runtime package in
+CI, with more than 1,000 Vitest tests and more than 300 end-to-end tests. Before
+each release, the tarball test installs the packed package in a separate
+application outside the workspace and checks its exports and lint rules.
 
 The workflow publishes to npm with signed provenance through trusted publishing,
 without a stored npm token. See the

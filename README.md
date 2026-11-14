@@ -1,10 +1,19 @@
+[![CI workflow status](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml/badge.svg)](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml)
+[![Latest solid-tooling version on npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling?label=%40evertondgn%2Fsolid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling)
+[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 # Solid Base
 
-Stop maintaining the same tooling in every Solid app.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/hero-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/hero-light.webp" />
+  <img src="docs/assets/readme/hero-light.webp" alt="Solid Base. Stop maintaining the same tooling in every Solid app. The SolidJS mark stands on six layers that the package @evertondgn/solid-tooling maintains: lint rules, app config, tests, format and types, unused code and CSS, commits and hooks." width="800" />
+</picture>
 
-Lint rules, application config, test setups and Git hooks for SolidJS 2 with
-[Vite+](https://viteplus.dev/guide/), delivered as one versioned dependency. In
-the starter it came from, one `defineSolidApp()` call replaced a 427-line
+Solid Base delivers lint rules, application config, test setups and Git hooks
+for SolidJS 2 with [Vite+](https://viteplus.dev/guide/) as one versioned
+dependency, so you stop maintaining the same tooling in every Solid app. In the
+starter it came from, one `defineSolidApp()` call replaced a 427-line
 `vite.config.ts` with 57 lines.
 
 Built for applications that follow the
@@ -13,19 +22,17 @@ layout. SolidJS 2 is still a release candidate, and the package is tested with
 it. Start with lint and formatting, and adopt the full application config when
 you are ready.
 
-[![CI workflow status](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml/badge.svg)](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml)
-[![Latest solid-tooling version on npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling?label=%40evertondgn%2Fsolid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling)
-[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
 [Quick start](#quick-start) · [Before and after](#before-and-after) ·
 [What you get](#what-you-get) · [Only what you use](#only-what-you-use) ·
 [How it is verified](#how-it-is-verified) · [Documentation](#documentation)
 
-![Three application windows connected to one shared foundation](docs/assets/readme/hero.webp)
-
 ## Fix the base once
 
-![Separate configuration copies drift and need repeated repairs, while one shared package supplies all applications](docs/assets/readme/drift.webp)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/fix-once-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/fix-once-light.webp" />
+  <img src="docs/assets/readme/fix-once-light.webp" alt="Two diagrams. Copy the starter: three applications each carry about 15,000 lines of tooling, and one fix is applied in the first, pending in the second and drifted in the third. Depend on Solid Base: three applications with a thin config point to @evertondgn/solid-tooling, and one fix reaches all of them with vp update." width="800" />
+</picture>
 
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs) is a
 complete starter with SSR, Nitro, Paraglide translations and a Vercel deploy.
@@ -39,6 +46,15 @@ runtime package has started in this repository and is not published yet, as the
 
 ## Before and after
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/before-after-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/before-after-light.webp" />
+  <img src="docs/assets/readme/before-after-light.webp" alt="About 94% less configuration in your repository: about 2,450 lines before and 142 after. vite.config.ts goes from 427 to 57 lines, the Playwright config from 173 to 17, the Knip config from 129 to 48, tsconfig.json from 45 to 9, Stylelint from 171 to 11, and the lint preset and rules from about 1,500 to 0." width="800" />
+</picture>
+
+<details>
+<summary>The same line counts as a table</summary>
+
 | Configuration         | Original lines |               With the package |
 | --------------------- | -------------: | -----------------------------: |
 | `vite.config.ts`      |            427 |                             57 |
@@ -47,6 +63,8 @@ runtime package has started in this repository and is not published yet, as the
 | `tsconfig.json`       |             45 |                              9 |
 | Stylelint config      |            171 | 0, called by an 11-line script |
 | Lint preset and rules |    About 1,500 |                              0 |
+
+</details>
 
 These are configuration line counts from the original starter and the same
 application using the package. Compare the
@@ -109,11 +127,14 @@ const example = 1
 export { example }
 ```
 
-Run `vp lint`. The preset reports the export list:
+Run `vp lint`. The preset reports the export list, and exporting on the
+declaration fixes it:
 
-```text
-src/helpers/export-list.ts:3:1: error project(no-export-list): Export on the declaration itself (export function, export const, export type) instead of using export { ... }. An export list is only allowed in a re-export with from.
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/first-result-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/first-result-light.webp" />
+  <img src="docs/assets/readme/first-result-light.webp" alt="Step 1: src/helpers/export-list.ts ends with export { example }. Step 2: vp lint reports src/helpers/export-list.ts:3:1: error project(no-export-list): Export on the declaration itself (export function, export const, export type) instead of using export { ... }. An export list is only allowed in a re-export with from. Step 3, the fix: export const example = 1 passes." width="800" />
+</picture>
 
 The [lint guide](docs/tooling/lint.md#rules-of-this-package) lists every rule of
 the package.
@@ -128,8 +149,6 @@ the package.
 | Vitest node, DOM and browser projects, plus the Playwright config                                                   | Your tests, fixtures and routes                                               |
 | Knip config and Stylelint with a CSS token policy                                                                   | Your entry points, components, theme and tokens                               |
 | Commitlint config and Lefthook hooks                                                                                | Your application scripts and hook customizations                              |
-
-![A toolbox with a gear, a ruler and a check mark connects to an application window](docs/assets/readme/ownership.webp)
 
 The presets expect the boilerplate's folder layout. Peer dependencies use exact
 versions, and SSR uses Nitro with the Vercel preset. Read the
@@ -161,13 +180,22 @@ You provide your middleware and header values. Add your own plugins through
 
 ## Only what you use
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/only-what-you-use-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/only-what-you-use-light.webp" />
+  <img src="docs/assets/readme/only-what-you-use-light.webp" alt="Three optional features. Server rendering is on by default, and ssr: false gives a client-only build without Nitro, server functions or a server bundle. Publication is off by default, and publication: true adds header rules for the sitemap, robots.txt, llms.txt and Markdown pages. Translations load only with Paraglide: project.inlang enables the generation task, the browser test setup and the lint plugin, and the locales come from your settings. A minimal client-only build produced one index.html and one 29 KB script." width="800" />
+</picture>
+
+<details>
+<summary>The same options as a table</summary>
+
 | Feature          | How you select it                                                     | What changes                                                                                                              |
 | ---------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Server rendering | SSR is on by default; set `ssr: false` for a client-only app          | No Nitro, server functions or server bundle in client-only mode                                                           |
 | Publication      | Set `publication: true`                                               | Adds header rules for published files such as the sitemap, `robots.txt`, `llms.txt` and Markdown pages                    |
 | Translations     | Keep `project.inlang/settings.json` and install Paraglide when needed | The settings file enables the generation task and browser test setup; the lint plugin loads only where Paraglide resolves |
 
-![Independent feature modules connect to an application through switches, with unused modules detached](docs/assets/readme/optional.webp)
+</details>
 
 A client-only application can use this config after installing the
 [required tools](docs/tooling/limits.md#requirements):
@@ -185,13 +213,22 @@ and the measurements.
 
 ## How it is verified
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/verified-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/verified-light.webp" />
+  <img src="docs/assets/readme/verified-light.webp" alt="Three stages. Every change: the application and the packages run in CI, with more than 1,000 Vitest tests and more than 300 end-to-end tests. Before each release: the tarball is installed in a separate application, and its exports and lint rules are checked. Publication: signed npm provenance through trusted publishing, with no stored npm token." width="800" />
+</picture>
+
+<details>
+<summary>The same checks as a table</summary>
+
 | Check                              | What it covers                                                                                                                                 |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Complete boilerplate in CI         | Package changes run against the application, with more than 1,000 Vitest tests and more than 300 end-to-end tests                              |
+| Complete boilerplate in CI         | Package changes run against the application and the runtime package, with more than 1,000 Vitest tests and more than 300 end-to-end tests      |
 | Installation outside the workspace | Before each release, the tarball test packs the package, installs it in a separate application and checks the installed exports and lint rules |
 | Workflow publication               | npm receives signed provenance through trusted publishing, without a stored npm token                                                          |
 
-![A package moves through installation in a separate application, a test gate and release](docs/assets/readme/verified.webp)
+</details>
 
 The [development guide](docs/development.md#ci) describes which CI jobs run for
 each change. The [release guide](docs/releasing.md) documents validation and

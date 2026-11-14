@@ -180,6 +180,23 @@ new commit in this guide, in `apps/boilerplate/README.md`, in
 `apps/boilerplate/AGENTS.md` and in the links of the guides that point to files
 of the original at the copied commit.
 
+## README figures
+
+The figures of the two READMEs are the `.webp` files in `docs/assets/readme/`,
+one per theme. Their source is `docs/assets/readme/figures.html`, a page with
+the six figures drawn in HTML and CSS from the real code, numbers and command
+output. Open it with `?figure=<id>&theme=<dark|light>` to see one figure, where
+`<id>` is the `id` of its section, or without parameters to see them all.
+
+To export a figure, take a screenshot of its section in a headless browser with
+an 800 px wide viewport, a device scale factor of 2 and a transparent
+background, and convert it to WebP. The fonts load from Google Fonts, so the
+export needs network access.
+
+The figures repeat numbers that the READMEs state as text, such as the line
+counts of the before and after table. When one of those numbers changes, change
+it in `figures.html` too and export the figure again.
+
 ## CI
 
 `.github/workflows/ci.yml` runs on pull requests, on pushes to `main` and by

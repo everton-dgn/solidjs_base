@@ -5,8 +5,8 @@ import { env } from 'virtual:solid-env/server'
 export default createMiddleware({
   security: createSecurityHeaders(),
   extra: [
-    async (_request, next) => {
-      const response = await next()
+    async (_request, render) => {
+      const response = await render()
       response.headers.set('x-scenario-env', env.SCENARIO_LABEL ?? 'missing')
       return response
     }

@@ -14,6 +14,35 @@ type SourceMutation = { app: string; mutation: string | undefined }
 type Instrumentation = SourceMutation & { root: string }
 type MiddlewareInstrumentation = SourceMutation & { scenario: string }
 
+type EnvBundle = { id: string; scenario: string; file: string }
+type EnvCommand = {
+  cwd: string
+  deadline: number
+  args: string[]
+  file?: string
+  expectedError?: RegExp
+}
+type EnvProbe = {
+  app: string
+  deadline: number
+  run: (command: EnvCommand) => Promise<string>
+}
+type EnvPreparation = EnvProbe & {
+  scenario: string
+  dependencies: Record<string, string>
+}
+type EnvChecks = { lintFiles: string[]; typecheckFlags: string[] }
+
+function importEnvFromClient(app: string): () => void {
+  const file = path.join(app, 'src/entry-client.tsx')
+  const source = readFileSync(file, 'utf8')
+  writeFileSync(
+    file,
+    `import { env } from 'virtual:solid-env/server'\nconsole.log(env.PORT)\n${source}`
+  )
+  return () => writeFileSync(file, source)
+}
+
 export function instrumentMiddleware({
   app,
   scenario,
@@ -69,35 +98,6 @@ ${extra}`
       )
     )
   }
-}
-
-type EnvBundle = { id: string; scenario: string; file: string }
-type EnvCommand = {
-  cwd: string
-  deadline: number
-  args: string[]
-  file?: string
-  expectedError?: RegExp
-}
-type EnvProbe = {
-  app: string
-  deadline: number
-  run: (command: EnvCommand) => Promise<string>
-}
-type EnvPreparation = EnvProbe & {
-  scenario: string
-  dependencies: Record<string, string>
-}
-type EnvChecks = { lintFiles: string[]; typecheckFlags: string[] }
-
-function importEnvFromClient(app: string): () => void {
-  const file = path.join(app, 'src/entry-client.tsx')
-  const source = readFileSync(file, 'utf8')
-  writeFileSync(
-    file,
-    `import { env } from 'virtual:solid-env/server'\nconsole.log(env.PORT)\n${source}`
-  )
-  return () => writeFileSync(file, source)
 }
 
 export function assertEnvBootFailure(output: string): void {

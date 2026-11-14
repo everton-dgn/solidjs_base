@@ -39,6 +39,7 @@ change a package.
 packages/solid-tooling/   the published package: lint preset, rules, formatter, TypeScript base
 apps/boilerplate/         copy of boilerplate_solidjs that runs on the workspace package
 fixtures/consumer/        small application that installs the packed tarball
+fixtures/apps/            minimal applications that install, test and build from the tarballs
 docs/                     guides and architecture decision records (ADRs)
 .github/workflows/        CI and the release workflow
 ```
@@ -47,7 +48,7 @@ docs/                     guides and architecture decision records (ADRs)
 
 | You changed             | Run from the root                                                                      |
 | ----------------------- | -------------------------------------------------------------------------------------- |
-| Anything in `packages/` | `vp run validate`: build, check, dead code, package tests and the tarball tests        |
+| Anything in `packages/` | `vp run validate`: build, check, dead code, package tests, tarball tests and scenarios |
 | Only a lint rule        | `vp run test` while you work, then `vp run validate`                                   |
 | `apps/boilerplate`      | The commands in [the boilerplate app section](docs/development.md#the-boilerplate-app) |
 | Only documentation      | `vp fmt`                                                                               |

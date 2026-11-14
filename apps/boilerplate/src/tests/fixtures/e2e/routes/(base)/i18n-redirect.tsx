@@ -1,3 +1,4 @@
+import { createLocalizedNavigate } from '@evertondgn/solid-runtime/i18n/create-localized-navigate'
 import { m } from '@paraglide/messages.js'
 import { getLocale } from '@paraglide/runtime.js'
 import {
@@ -9,8 +10,6 @@ import {
   type RouteDefinition
 } from '@solidjs/router'
 import { createMemo, createSignal, Loading } from 'solid-js'
-
-import { createLocalizedNavigate } from '@/primitives/createLocalizedNavigate/index.ts'
 
 import { redirectLocale } from '../../i18n/redirectLocale/index.ts'
 import { redirectRelative } from '../../i18n/redirectRelative/index.ts'

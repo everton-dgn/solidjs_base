@@ -17,7 +17,6 @@ export default defineKnipConfig({
     'src/components/atoms/Textarea/index.tsx!',
     'src/components/molecules/Dialog/index.tsx!',
     'src/components/atoms/ToastProvider/useToast/index.ts!',
-    'src/primitives/createLocalizedNavigate/index.ts!',
     'src/primitives/createOutdatedPageGuard/index.ts!',
     // Cadeia de middleware do build E2E, escolhida por modo no vite.config.ts.
     'src/tests/fixtures/e2e/middleware/index.ts',

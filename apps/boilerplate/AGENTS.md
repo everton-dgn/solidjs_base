@@ -54,7 +54,10 @@ release. Add a tool name to select part of the graph. For example, run
   `@evertondgn/solid-runtime/i18n/build-locale-alternates` and
   `@evertondgn/solid-runtime/middleware/append-vary`. Their tests run in the
   runtime package, including request locale handling and localized redirects.
-  Messages remain in this copy.
+  Navigation primitives, the history guard and `localeTag` also live in the
+  runtime, under separate `i18n/` exports. Their 10 navigation tests moved with
+  them, including the real-browser history cases. Keep `LocalizedLink`,
+  messages and `src/i18n/localeTagOverrides/` in this copy.
 
 ## Sizing the derived applications
 
@@ -175,6 +178,10 @@ release. Add a tool name to select part of the graph. For example, run
   translated text at the top of a module shared between SSR requests.
 - Page links use `LocalizedLink`, programmatic navigation uses
   `createLocalizedNavigate()` and redirects use `localizedRedirect()`.
+  Import the navigation primitives from `@evertondgn/solid-runtime/i18n/`:
+  `create-localized-navigate`, `create-locale-navigation-guard` and
+  `install-locale-history-guard`. Use `locale-tag` with `LOCALE_TAG_OVERRIDES`
+  for HTML and SEO tags; a newly configured locale falls back to its BCP 47 tag.
   `localizeHref()` is for composing SEO and index URLs. `paths` keeps the typed
   paths without a locale. Endpoints and assets stay without a prefix
   (`shouldLocalize: false`).

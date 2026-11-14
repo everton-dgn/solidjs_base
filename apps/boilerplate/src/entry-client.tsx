@@ -1,10 +1,10 @@
-import { extractLocaleFromUrl } from '@paraglide/runtime.js'
+import { installLocaleHistoryGuard } from '@evertondgn/solid-runtime/i18n/install-locale-history-guard'
+import { extractLocaleFromUrl } from '@evertondgn/solid-runtime/i18n/locale'
 import { hydrate } from '@solidjs/web'
 import { onHydrationEnd } from 'solid-js'
 
 import App from './App.tsx'
 import Document from './Document.tsx'
-import { installLocaleHistoryGuard } from './entry-client/installLocaleHistoryGuard/index.ts'
 import { installOutdatedPageDetection } from './entry-client/installOutdatedPageDetection/index.ts'
 
 const [navigation] = performance.getEntriesByType('navigation')

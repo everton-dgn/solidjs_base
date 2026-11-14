@@ -7,8 +7,13 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base. Stop maintaining the same tooling in every Solid app. The SolidJS mark stands on six layers that the package @evertondgn/solid-tooling maintains: lint rules, app config, tests, format and types, unused code and CSS, commits and hooks." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 and Vite+. Shared tooling and runtime beneath the SolidJS mark: languages, theme, server protection, SEO, assets and development tools. Install solid-tooling for development and solid-runtime for application features." width="800" />
 </picture>
+
+| Available package                                                                                                              | Role                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| [`@evertondgn/solid-tooling`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/README.md)          | Shared config, tools, catalog generation, icons and fonts                              |
+| [`@evertondgn/solid-runtime`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/README.md), `0.1.0` | Optional locale and theme behavior, middleware, error protection, env, SEO and sitemap |
 
 Solid Base supplies lint rules, application config, test setups and Git hooks
 for SolidJS 2 with [Vite+](https://viteplus.dev/guide/) as one versioned
@@ -89,7 +94,7 @@ arrives when you update a dependency.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-light.webp" alt="About 94% less configuration in your repository: about 2,450 lines before and 142 after. vite.config.ts goes from 427 to 57 lines, the Playwright config from 173 to 17, the Knip config from 129 to 48, tsconfig.json from 45 to 9, Stylelint from 171 to 11, and the lint preset and rules from about 1,500 to 0." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-light.webp" alt="About 86 percent fewer lines across five configuration areas, from 945 to 136: Vite 427 to 59, Playwright 173 to 17, Knip 129 to 40, TypeScript 45 to 9, and Stylelint 171 to an 11-line script. Each bar shows the fraction retained in the app." width="800" />
 </picture>
 
 Measured on the original starter and the same application using this package.
@@ -213,7 +218,7 @@ for extension examples, boot validation and type generation.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" alt="Three stages. Every change: the application and the packages run in CI, with more than 1,000 Vitest tests and more than 300 end-to-end tests. Before each release: the tarball is installed in a separate application, and its exports and lint rules are checked. Publication: signed npm provenance through trusted publishing, with no stored npm token." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" alt="At this revision: 775 runtime and 394 application Vitest tests, 1169 combined; 164 fixture E2E cases and 155 production E2E cases, 319 enumerated. Installed tarballs check exports and builds with both Bun linkers. Release workflows use npm trusted publishing." width="800" />
 </picture>
 
 Package changes run against the complete boilerplate and the runtime package in

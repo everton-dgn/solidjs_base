@@ -224,20 +224,30 @@ of the original at the copied commit.
 
 ## README figures
 
-The figures of the two READMEs are the `.webp` files in `docs/assets/readme/`,
-one per theme. Their source is `docs/assets/readme/figures.html`, a page with
-the six figures drawn in HTML and CSS from the real code, numbers and command
-output. Open it with `?figure=<id>&theme=<dark|light>` to see one figure, where
-`<id>` is the `id` of its section, or without parameters to see them all.
+The root and package READMEs share the themed `.webp` files in
+`docs/assets/readme/`. Their source is `figures.html`, with fifteen figures
+drawn in HTML and CSS from repository code, measured counts and command output.
+Open it with `?figure=<id>&theme=<dark|light>` to see one section, or without
+parameters to see them all. The new runtime figures reuse the existing color
+tokens, sans-serif type and SolidJS symbol.
 
-To export a figure, take a screenshot of its section in a headless browser with
-an 800 px wide viewport, a device scale factor of 2 and a transparent
-background, and convert it to WebP. The fonts load from Google Fonts, so the
-export needs network access.
+Export each section in a separate headless browser context with an 800 px
+viewport, device scale factor 2 and a transparent screenshot background. Convert
+the PNG to WebP with alpha preserved. Never resize a visible browser window. The
+fonts load from Google Fonts, so export needs network access. Wait for
+`document.fonts.ready` and verify Geist and Geist Mono loaded before capturing.
 
-The figures repeat numbers that the READMEs state as text, such as the line
-counts of the before and after table. When one of those numbers changes, change
-it in `figures.html` too and export the figure again.
+For both themes, inspect every visible text node with `getComputedStyle` and
+require at least 14 px at the 800 px CSS width. Check text bounds for clipping,
+inspect the exported images, and record their dimensions and alpha channel. The
+output width is 1600 pixels; the README displays it at 800.
+
+Every numeric claim in a figure also appears in the README text. Recount current
+configuration lines, direct manifest declarations and test cases before export.
+Keep authored fixture dependencies separate from packages injected by the
+installed test harness. Preserve the historical baseline and identify whether a
+test count was executed or only enumerated. Update the image, alt text and
+README together whenever those numbers change.
 
 ## CI
 

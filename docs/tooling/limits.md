@@ -30,12 +30,13 @@ including for applications that do not use every feature. Installation cost is
 measured in [ADR 0027](../ADRs/0027-packaged-tool-dependencies.md).
 
 A library used directly still belongs in the application's manifest. The
-boilerplate copy keeps `nitro` for its publication tooling, `filesystem-routing`
-for API helpers and tests, and `@playwright/test` for its E2E imports. Keep
-those versions aligned with the package to avoid duplicate instances. The copy
-also keeps `valibot`, `schema-dts` and `@mdream/js`. The runtime exports
-`StartMiddleware` from `./middleware/types`, so a middleware needs no direct
-Solid plugin dependency just for that type.
+boilerplate copy keeps `filesystem-routing` for API helpers and tests, and
+`@playwright/test` for its E2E imports. Keep those versions aligned with the
+package to avoid duplicate instances. The copy also keeps `valibot` and
+`schema-dts`. The runtime owns `@mdream/js`; compiled publication tooling uses
+its own Nitro dependency. The runtime exports `StartMiddleware` from
+`./middleware/types`, so a middleware needs no direct Solid plugin dependency
+just for that type.
 
 ## Install
 
@@ -135,10 +136,11 @@ overrides `files` must also include
   build memory: each preparation reads every catalog and Paraglide loads all
   locales. No incremental or per-request generation is provided.
 - `./vite` expects the same layout: its CSS and Knip tasks run scripts in
-  `tooling/`, and the Markdown rules need the locale prefix of the Paraglide
-  `urlPatterns` in every URL. Nitro always uses the `vercel` preset. The plugin
-  packages are pinned, so a new version of Solid, Nitro, the router or the icons
-  plugin needs a package version tested with it.
+  `tooling/`. With i18n, Markdown rules need the locale prefix of the Paraglide
+  `urlPatterns` in every URL; without i18n, the preset uses `/**.md`. Nitro
+  always uses the `vercel` preset. The plugin packages are pinned, so a new
+  version of Solid, Nitro, the router or the icons plugin needs a package
+  version tested with it.
 
 ## Versions
 

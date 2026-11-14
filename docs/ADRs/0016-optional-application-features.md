@@ -4,6 +4,9 @@
   [0027](0027-packaged-tool-dependencies.md)
 - Date: 2026-11-13
 
+The publication flag below is superseded by the independent SEO options in
+[ADR 0034](0034-runtime-markdown-publication.md).
+
 ## Context
 
 [ADR 0012](0012-application-config-preset.md) built `defineSolidApp` from the

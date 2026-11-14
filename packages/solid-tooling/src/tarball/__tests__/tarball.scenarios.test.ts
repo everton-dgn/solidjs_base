@@ -1,6 +1,6 @@
 /* oxlint-disable node/no-sync -- The test owns each temporary application and inspects artifacts between awaited commands. */
 import assert from 'node:assert/strict'
-import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import {
   existsSync,
@@ -14,7 +14,7 @@ import {
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { env, kill, stdout } from 'node:process'
+import { env, stdout } from 'node:process'
 import { test } from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 
@@ -27,6 +27,9 @@ import {
   prepareFontsScenario
 } from '../font-scenarios.ts'
 import { smokeMiddleware } from '../middleware-smoke.ts'
+import { mutatePublication } from '../publication-mutations.ts'
+import { PUBLICATION_PROFILES } from '../publication-scenarios.ts'
+import { smokePublication } from '../publication-smoke.ts'
 import {
   assertEnvBootFailure,
   checkEnvBundle,
@@ -37,6 +40,7 @@ import {
   mutateTheme,
   prepareEnvScenario
 } from '../scenario-mutations.ts'
+import { run, stopChild, childEnvironment } from '../scenario-process.ts'
 import {
   checkSeoOriginFailures,
   prepareSeoScenario,
@@ -52,10 +56,8 @@ import {
 import { smokeTheme } from '../theme-smoke.ts'
 
 const ROOT = path.resolve(import.meta.dirname, '../../../../..')
-const VP = path.join(ROOT, 'node_modules/.bin/vp')
 const SCENARIOS = ['client-only', 'ssr-plain', 'ssr-i18n']
 const LINKERS = ['hoisted', 'isolated']
-const COMMAND_TIMEOUT = 60_000
 const SCENARIO_TIMEOUT = 150_000
 const PREVIEW_TIMEOUT = 15_000
 const REQUEST_TIMEOUT = 1000
@@ -108,22 +110,7 @@ const pinnedSchema = v.looseObject({
   packageManager: v.optional(v.string())
 })
 const MUTATION = env.SCENARIO_MUTATION
-const CHILD_ENV: NodeJS.ProcessEnv = {
-  ...env,
-  SCENARIO_LABEL: 'scenario-build-value',
-  VITE_SCENARIO_LABEL: 'scenario-client-value'
-}
-delete CHILD_ENV.NODE_ENV
-delete CHILD_ENV.VITE_SITE_URL
 
-type Command = {
-  cwd: string
-  args: string[]
-  deadline: number
-  file?: string
-  expectedError?: RegExp
-  variables?: Record<string, string>
-}
 type Target = { app: string; scenario: string }
 type PreviewTarget = Target & { hasInvalidPort?: boolean }
 type Pinned = v.InferOutput<typeof pinnedSchema>
@@ -132,74 +119,6 @@ type CatalogInput = {
   catalog: Pinned['catalog']
 }
 type Versions = Record<string, string | undefined>
-
-function stopChild(child: ChildProcess): void {
-  if (!child.pid || child.exitCode !== null || child.signalCode !== null) return
-  const inspected = spawnSync(
-    'ps',
-    ['-p', String(child.pid), '-o', 'pid=,pgid=,command='],
-    { encoding: 'utf8', timeout: 5000 }
-  )
-  if (inspected.status === 1 && inspected.stdout.trim() === '') return
-  assert.equal(inspected.status, 0, inspected.stderr)
-  const identity = inspected.stdout.trim().split(/\s+/u)
-  assert.equal(Number(identity[0]), child.pid)
-  assert.equal(Number(identity[1]), child.pid)
-  stdout.write(`Stopping owned process: ${inspected.stdout.trim()}\n`)
-  kill(-child.pid, 'SIGKILL')
-}
-
-async function run({
-  cwd,
-  args,
-  deadline,
-  file: executable,
-  expectedError,
-  variables
-}: Command): Promise<string> {
-  let file = executable ?? path.join(cwd, 'node_modules/.bin/vp')
-  if (!executable && args[0] === 'install') file = 'bun'
-  if (!executable && args[0] === 'pm') file = VP
-  const started = performance.now()
-  assert.ok(Date.now() < deadline, 'Scenario execution deadline exceeded')
-  const child = spawn(file, args, {
-    cwd,
-    env: { ...CHILD_ENV, ...seoEnvironment(cwd), ...variables },
-    detached: true,
-    stdio: ['ignore', 'pipe', 'pipe']
-  })
-  let output = ''
-  child.stdout.setEncoding('utf8').on('data', (chunk: string) => {
-    output += chunk
-  })
-  child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
-    output += chunk
-  })
-  const timer = setTimeout(
-    () => {
-      stopChild(child)
-    },
-    Math.min(COMMAND_TIMEOUT, deadline - Date.now())
-  )
-  try {
-    const result: unknown[] = await once(child, 'close')
-    const [code] = result
-    stdout.write(
-      `${args.join(' ')}: ${Math.round(performance.now() - started)} ms\n`
-    )
-    if (expectedError) {
-      assert.equal(result[1], null, 'Expected a diagnostic exit, not a signal')
-      assert.notEqual(code, 0, 'The negative probe must fail')
-      assert.match(output, expectedError)
-      stdout.write(`Expected failure: ${output.match(expectedError)?.[0]}\n`)
-    } else {
-      assert.equal(code, 0, `${args.join(' ')}\n${output}`)
-    }
-    return output
-  } finally {
-    clearTimeout(timer)
-  }
-}
 
 type PackedMutation = { archive: string; deadline: number; name: string }
 
@@ -253,7 +172,7 @@ async function smoke({
     {
       cwd: app,
       env: {
-        ...CHILD_ENV,
+        ...childEnvironment(),
         ...seoEnvironment(app),
         SCENARIO_LABEL: 'scenario-preview-value',
         ...(hasInvalidPort ? { PORT: 'abc' } : {})
@@ -374,6 +293,11 @@ async function smoke({
     await smokeServerErrors({ origin: `http://127.0.0.1:${port}`, scenario })
     await smokeMiddleware({ origin: `http://127.0.0.1:${port}`, scenario })
     await smokeSeo({ app, scenario, origin: `http://127.0.0.1:${port}`, html })
+    await smokePublication({
+      app,
+      scenario,
+      origin: `http://127.0.0.1:${port}`
+    })
   } finally {
     stopChild(child)
     await closed
@@ -553,25 +477,32 @@ test('the applications pin the versions of the workspace', () => {
 async function buildScenario({
   app,
   scenario,
+  profile,
   deadline
 }: {
   app: string
   scenario: string
+  profile: string
   deadline: number
 }): Promise<void> {
   mutateServerErrors({ app, scenario, mutation: MUTATION })
   instrumentMiddleware({ app, scenario, mutation: MUTATION })
+  mutatePublication({ app, mutation: MUTATION })
   await run({ deadline, cwd: app, args: ['build'] })
   assertBuild({ app, scenario })
   assertFontBuild({ app, scenario })
   assertSeoBuild({ app, scenario })
   if (scenario === 'client-only') return
   await smoke({ app, scenario })
-  if (scenario === 'ssr-plain') {
+  if (scenario === 'ssr-plain' && profile === 'isolated') {
     await smoke({ app, scenario, hasInvalidPort: true })
     await checkEnvFailures({ app, deadline, run })
     await checkSeoOriginFailures({ app, deadline, run })
   }
+  if (profile === 'isolated-meta-only') {
+    await checkSeoOriginFailures({ app, deadline, run })
+  }
+  if (profile !== 'isolated') return
   importServerFromClient(app)
   await run({
     deadline,
@@ -586,7 +517,11 @@ for (const scenario of SCENARIOS) {
     ...LINKERS,
     ...(scenario === 'ssr-i18n' ? [] : ['isolated-language']),
     ...(scenario === 'ssr-plain'
-      ? ['isolated-meta-only', 'isolated-without-sitemap']
+      ? [
+          'isolated-meta-only',
+          'isolated-without-sitemap',
+          ...PUBLICATION_PROFILES
+        ]
       : [])
   ]) {
     test(`${scenario} / ${linker}`, { timeout: 180_000 }, async () => {
@@ -781,7 +716,7 @@ export default (event, next) => next()
         }
         mutateTheme({ app, mutation: MUTATION })
         mutateFontsScenario({ app, scenario, mutation: MUTATION })
-        await buildScenario({ app, scenario, deadline })
+        await buildScenario({ app, scenario, profile: linker, deadline })
       } finally {
         rmSync(directory, { recursive: true, force: true })
         stdout.write(

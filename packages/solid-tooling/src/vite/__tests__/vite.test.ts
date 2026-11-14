@@ -17,6 +17,14 @@ import { promisify } from 'node:util'
 
 import * as v from 'valibot'
 
+import {
+  ALL_PUBLICATION_SEO,
+  LOCALES,
+  SOURCE_PACKAGE,
+  TASKS,
+  WORKSPACE
+} from './constants.ts'
+
 type Scenario = {
   options?: Record<string, unknown>
   mode?: string
@@ -42,26 +50,6 @@ const HEADERS = {
 const SECURITY_HEADERS = {
   ...HEADERS,
   'content-security-policy': "default-src 'self'"
-}
-const LOCALES = ['en', 'pt']
-const SOURCE_PACKAGE = '@scope/source'
-const TASKS = [
-  'knip',
-  'tsc',
-  'playwright',
-  'lefthook',
-  'commitlint',
-  'i18n-generate',
-  'lint-css',
-  'dead-code-project',
-  'lint-project',
-  'check-project',
-  'typecheck-node',
-  'test-tooling'
-]
-const WORKSPACE = {
-  dependsOn: ['@scope/tooling#build'],
-  inputs: ['packages/tooling/dist/**']
 }
 
 // Recorders stand in for the four plugin packages, whose options stay in
@@ -387,8 +375,7 @@ it('writes the security headers on the static files in a fixed order', async con
   const summary = await readSummary({
     options: {
       root,
-      publication: true,
-      seo: { sitemap: true },
+      seo: ALL_PUBLICATION_SEO,
       publicAssets: [
         { baseURL: '/images', dir: 'public/images', fallthrough: false }
       ],
@@ -644,16 +631,14 @@ it('refuses a static path inside a locale folder', async context => {
     readSummary({
       options: {
         root,
-        publication: true,
-        seo: { sitemap: true },
+        seo: ALL_PUBLICATION_SEO,
         staticPaths: ['/en/docs/**']
       }
     }),
     readSummary({
       options: {
         root,
-        publication: true,
-        seo: { sitemap: true },
+        seo: ALL_PUBLICATION_SEO,
         publicAssets: [{ baseURL: '/pt', dir: 'public/pt' }]
       }
     })
@@ -672,7 +657,11 @@ it('names the settings file when it cannot read the locales', async context => {
   // the URL of the dom project.
   const test = { domUrl: 'http://localhost/' }
   const summary = await readSummary({
-    options: { root, publication: true, seo: { sitemap: true }, test }
+    options: {
+      root,
+      seo: ALL_PUBLICATION_SEO,
+      test
+    }
   })
   assert.match(
     summary.error ?? '',
@@ -721,8 +710,7 @@ it('publishes no locale folder without the Paraglide settings', async context =>
   const summary = await readSummary({
     options: {
       root,
-      publication: true,
-      seo: { sitemap: true },
+      seo: ALL_PUBLICATION_SEO,
       staticPaths: ['/en/docs/**']
     }
   })
@@ -732,6 +720,7 @@ it('publishes no locale folder without the Paraglide settings', async context =>
   assert.deepEqual(Object.keys(routeRules), [
     '/assets/**',
     '/en/docs/**',
+    '/**.md',
     '/llms.txt',
     '/llms-full.txt',
     '/sitemap.xml',
@@ -777,7 +766,9 @@ it('refuses the server options in a client-only application', async context => {
   const cases = [
     { middleware: './src/middleware/index.ts' },
     { securityHeaders: HEADERS },
-    { publication: true, seo: { sitemap: true } },
+    {
+      seo: ALL_PUBLICATION_SEO
+    },
     { e2e: { middleware: './e2e/middleware.ts' } }
   ]
   const errors = await Promise.all(
@@ -791,7 +782,7 @@ it('refuses the server options in a client-only application', async context => {
   assert.deepEqual(errors, [
     'defineSolidApp: middleware needs SSR; remove it or remove ssr: false.',
     'defineSolidApp: securityHeaders needs SSR; remove it or remove ssr: false.',
-    'defineSolidApp: publication needs SSR; remove it or remove ssr: false.',
+    'defineSolidApp: seo needs SSR; remove it or remove ssr: false.',
     'defineSolidApp: e2e.middleware needs SSR; remove it or remove ssr: false.'
   ])
 })

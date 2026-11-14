@@ -218,7 +218,8 @@ release. Add a tool name to select part of the graph. For example, run
   lint applies `typescript/consistent-type-definitions` with `type`.
 - Keep `interface` when declaration merging is needed: `RequestEventLocals` in the runtime package
   `packages/solid-runtime/src/@types/solid.d.ts`, `ImportMetaEnv` in `src/@types/env.d.ts` and
-  `RouteInfo` in `src/@types/router.d.ts` extend third-party interfaces. Keep
+  `RouteInfo` in the runtime `seo/{sitemap,markdown,llms}/router.d.ts` modules
+  extend third-party interfaces. Keep
   the lint exception restricted to the files that need that behavior.
 - Do not edit generated declarations to swap `interface` for `type`.
   `src/@types/routes.d.ts` belongs to the `filesystem-routing` generator and
@@ -272,6 +273,10 @@ release. Add a tool name to select part of the graph. For example, run
   Keep source registries and data access server-only in the application.
   Sitemap and Markdown must share the instance in `src/infra/server/publication/`.
   Inject named options; do not put application module paths in preset config.
+  Markdown uses `createMarkdownContent` from `seo/markdown` in the `document` slot.
+  llms uses `createLlms` from `seo/llms`; its editorial notes and pages stay here.
+  Enable static generation through data-only `seo` options, without `extend`.
+  The runtime owns the helpers and the tooling package owns artifact validation.
   Use `seo/sitemap-types` for source types and router augmentation; import types
   without pulling the server factory into route metadata.
 - When a route or component has two or more local helper modules, group them in

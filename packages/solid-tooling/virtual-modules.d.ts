@@ -8,6 +8,32 @@ declare module 'virtual:solid-app/seo-origin' {
   export const origin: string
 }
 
+declare module 'virtual:solid-app/seo-markdown' {
+  type MarkdownConfig = {
+    static: boolean
+    maxInputBytes: number
+    maxOutputBytes: number
+    timeoutMs: number
+    hasLlms: boolean
+  }
+  export const markdown: MarkdownConfig
+}
+
+declare module 'virtual:solid-app/seo-llms' {
+  type LlmsConfig = {
+    maxBytes: number
+    hasMarkdown: boolean
+    hasLlmsFull: boolean
+  }
+  export const llms: LlmsConfig
+}
+
+declare module 'virtual:solid-app/locale-context' {
+  type ContextOptions = { url: string; run: () => Response | Promise<Response> }
+  export function withLocaleContext(options: ContextOptions): Promise<Response>
+  export function requestLocale(request: Request): string
+}
+
 declare module 'virtual:solid-app/seo-robots' {
   type RobotsGroup = {
     userAgents: readonly string[]

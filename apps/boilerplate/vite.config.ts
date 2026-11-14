@@ -15,10 +15,13 @@ export default defineSolidApp({
   },
   icons: { 'my-images': './src/assets/images' },
   securityHeaders: SECURITY_HEADERS,
-  // Sitemap, robots.txt, llms.txt e as páginas em Markdown recebem os cabeçalhos
-  // dos estáticos.
-  publication: true,
-  seo: { robots: ROBOTS, sitemap: true },
+  seo: {
+    robots: ROBOTS,
+    sitemap: { static: true },
+    markdown: { static: true },
+    llms: {},
+    llmsFull: {}
+  },
   // Sem fallthrough, um arquivo ausente em /images/ recebe o 404 no-store do
   // Nitro em vez da página SSR com o cache imutável.
   publicAssets: [
@@ -41,19 +44,5 @@ export default defineSolidApp({
       'packages/solid-runtime/package.json',
       'packages/solid-runtime/src/**'
     ]
-  },
-  // One call shares the publication buildId between its plugin and Nitro module.
-  async extend({ target }) {
-    if (target === 'test') return {}
-    const [{ markdownPrerender }, { createPublicationBuild }] =
-      await Promise.all([
-        import('./tooling/markdownPrerender/index.ts'),
-        import('./tooling/publicationArtifacts/helpers/createPublicationBuild/index.ts')
-      ])
-    const publication = createPublicationBuild()
-    return {
-      plugins: [publication.plugin],
-      nitroModules: [markdownPrerender({ buildId: publication.buildId })]
-    }
   }
 })

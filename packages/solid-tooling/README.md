@@ -147,7 +147,7 @@ package-owned binaries, including with an isolated installation.
 | Feature             | Selection                                                                                                                              |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | Client-only build   | Set `ssr: false` and omit SSR options such as `middleware` and `securityHeaders`; the build has no Nitro or server bundle              |
-| Publication headers | Set `publication: true` for llms and Markdown rules; `seo.sitemap: true` adds sitemap rules                                            |
+| Publication headers | Set `seo.markdown`, `seo.llms`, `seo.llmsFull` and `seo.sitemap` independently; static artifacts come from compiled tooling            |
 | Translations        | `project.inlang/settings.json` enables the generation task and browser test setup; the lint plugin loads only where Paraglide resolves |
 
 See
@@ -250,3 +250,10 @@ the minor version. Read the
 for each release.
 
 [MIT](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)
+
+Publication is compiled into the preset and uses one build identity for the SSR
+and artifact manifests. It no longer needs an application `extend` callback.
+`publication/read-llms-index` exposes the compiled index reader for artifact
+checks in Node. See
+[ADR 0034](../../docs/ADRs/0034-runtime-markdown-publication.md) for independent
+feature options, defaults, disabled-resource behavior and scale.

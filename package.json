@@ -53,7 +53,8 @@
     "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
     "vite-plus": "1.6.0",
     "vitest": "5.1.0",
-    "schema-dts": "2.1.0"
+    "schema-dts": "2.1.0",
+    "@mdream/js": "2.1.0"
   },
   "patchedDependencies": {
     "@mdream/js@2.1.0": "apps/boilerplate/patches/@mdream%2Fjs@2.1.0.patch",

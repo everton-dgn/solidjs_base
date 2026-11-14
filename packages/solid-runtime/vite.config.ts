@@ -42,6 +42,18 @@ const NODE_STUBS = new Map([
     'virtual:solid-app/locale-request',
     `export * from '${import.meta.dirname}/tooling/testing/generated/runtime.js'; export * from '${import.meta.dirname}/tooling/testing/generated/server.js'`
   ],
+  [
+    'virtual:solid-app/seo-markdown',
+    'export const markdown = {static: true, maxInputBytes: 2097152, maxOutputBytes: 2097152, timeoutMs: 15000, hasLlms: true}'
+  ],
+  [
+    'virtual:solid-app/seo-llms',
+    'export const llms = {maxBytes: 1048576, hasMarkdown: true, hasLlmsFull: true}'
+  ],
+  [
+    'virtual:solid-app/locale-context',
+    `import { extractLocaleFromRequest } from '${import.meta.dirname}/tooling/testing/generated/runtime.js'; import { paraglideMiddleware } from '${import.meta.dirname}/tooling/testing/generated/server.js'; export const requestLocale = extractLocaleFromRequest; export const withLocaleContext = ({url, run}) => paraglideMiddleware(new Request(url), run)`
+  ],
   ['server-only', 'export default undefined'],
   ['virtual:file-routes', 'export const pageRoutes = []\nexport default []'],
   [
@@ -95,14 +107,19 @@ export default defineConfig({
       },
       {
         files: [
-          'src/seo/sitemap/helpers/{createSitemapArtifacts,sitemapRoutes}/index.ts'
+          'src/seo/sitemap/helpers/{createSitemapArtifacts,sitemapRoutes}/index.ts',
+          'src/i18n/localeContext/index.ts',
+          'src/seo/{markdown,llms}/index.ts'
         ],
         rules: {
           'import/no-unassigned-import': ['error', { allow: ['server-only'] }]
         }
       },
       {
-        files: ['src/seo/sitemap/router.d.ts'],
+        files: [
+          'src/@types/router.d.ts',
+          'src/seo/{sitemap,markdown,llms}/router.d.ts'
+        ],
         rules: { 'typescript/consistent-type-definitions': 'off' }
       },
       {

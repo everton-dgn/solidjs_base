@@ -26,6 +26,8 @@ export default defineConfig({
       commitlint: 'src/commitlint/index.ts',
       cli: 'src/cli/index.ts',
       'project-plugin': 'src/project-plugin.ts',
+      'publication/read-llms-index':
+        'src/publication/markdownPrerender/helpers/readLlmsIndex/index.ts',
       'backend-plugin': 'src/backendPolicy/plugin.ts',
       'architecture-plugin': 'src/architecturePolicy/index.ts',
       'css-filename': 'src/css/css-filename.ts',

@@ -20,12 +20,12 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0013](0013-knip-and-stylelint-configs-in-the-tooling-package.md)      | Knip and Stylelint configs ship in the tooling package                 | Accepted, amended by 0027             |
 | [0014](0014-boilerplate-copy-docs-in-english.md)                       | The guides of the boilerplate copy are written in English              | Accepted                              |
 | [0015](0015-commitlint-and-lefthook-configs-in-the-tooling-package.md) | The commitlint config and the Git hooks ship in the tooling package    | Accepted, amended by 0027             |
-| [0016](0016-optional-application-features.md)                          | The application presets turn on only the features the application uses | Accepted, amended by 0027             |
+| [0016](0016-optional-application-features.md)                          | The application presets turn on only the features the application uses | Accepted, amended by 0027 and 0034    |
 | [0017](0017-main-reuses-the-pull-request-run.md)                       | A push to main reuses the pull request run that checked the same tree  | Accepted                              |
 | [0018](0018-runtime-package-middleware.md)                             | The runtime package starts with the middleware steps                   | Accepted, amended by 0019 and 0020    |
 | [0019](0019-runtime-security-headers-options.md)                       | The runtime package takes the security header values as options        | Accepted                              |
 | [0020](0020-runtime-package-checks-in-its-own-folder.md)               | The runtime package runs its checks in its own folder                  | Accepted                              |
-| [0021](0021-installed-application-scenarios.md)                        | Minimal applications test installed packages with both Bun linkers     | Accepted, amended by 0024 to 0033     |
+| [0021](0021-installed-application-scenarios.md)                        | Minimal applications test installed packages with both Bun linkers     | Accepted, amended by 0024 to 0034     |
 | [0022](0022-runtime-locale-seam.md)                                    | Runtime locale helpers use an application virtual module               | Accepted, amended by 0023             |
 | [0023](0023-runtime-locale-requests.md)                                | Locale requests belong to the runtime                                  | Accepted                              |
 | [0024](0024-runtime-theme.md)                                          | Theme logic is an explicit runtime feature                             | Accepted                              |
@@ -38,6 +38,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0031](0031-runtime-seo-core.md)                                       | SEO metadata, structured data and robots belong to the runtime         | Accepted                              |
 | [0032](0032-packaged-fonts.md)                                         | The preset loads application-owned fonts                               | Accepted                              |
 | [0033](0033-runtime-sitemap-publication.md)                            | Sitemap and publication admission belong to the runtime                | Accepted                              |
+| [0034](0034-runtime-markdown-publication.md)                           | Runtime Markdown and compiled publication                              | Accepted                              |
 
 ## Adding a record
 

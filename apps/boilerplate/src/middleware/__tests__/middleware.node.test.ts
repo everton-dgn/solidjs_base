@@ -1,4 +1,5 @@
 import { isPublicError } from '@evertondgn/solid-runtime/server/public-errors'
+import { MAX_HTML_BYTES } from '@evertondgn/solid-runtime/server/publication-protocol'
 import { getLocale, shouldRedirect } from '@paraglide/runtime.js'
 import { createRequestEvent, type RequestEvent } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
@@ -7,7 +8,6 @@ import { Router } from '@/router.ts'
 import { readLog } from '@/tests/helpers/readLog/index.ts'
 
 import middleware, { createMiddleware } from '../index.ts'
-import { MAX_HTML_BYTES } from '../markdownContent/constants.ts'
 
 const TEST_ORIGIN = 'http://localhost'
 // vi.mock é içado para o topo do arquivo; o caminho sobe junto.

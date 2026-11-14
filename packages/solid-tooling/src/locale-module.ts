@@ -33,6 +33,9 @@ export function localeModule(options: LocaleOptions): Plugin {
   return {
     name: 'solid-app:locale',
     resolveId: id => {
+      if (id === 'virtual:solid-app/locale-context') {
+        return '\0solid-app:locale-context'
+      }
       if (id === 'virtual:solid-app/request-middleware') {
         return '\0solid-app:request-middleware'
       }
@@ -42,6 +45,12 @@ export function localeModule(options: LocaleOptions): Plugin {
       return id === MODULE_ID ? RESOLVED_ID : undefined
     },
     load: id => {
+      if (id === '\0solid-app:locale-context') {
+        if (!hasI18n(options.root)) {
+          return `export const requestLocale = () => ${JSON.stringify(options.language ?? 'en')}; export const withLocaleContext = ({run}) => Promise.resolve().then(run)`
+        }
+        return `import { extractLocaleFromRequest } from ${JSON.stringify(path.join(options.root, 'paraglide/runtime.js'))}; import { paraglideMiddleware } from ${JSON.stringify(path.join(options.root, 'paraglide/server.js'))}; export const requestLocale = extractLocaleFromRequest; export const withLocaleContext = ({url, run}) => paraglideMiddleware(new Request(url), run)`
+      }
       if (id === '\0solid-app:request-middleware') {
         // Keep the request provider out of applications without translations.
         return hasI18n(options.root)

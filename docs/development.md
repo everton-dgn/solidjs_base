@@ -103,16 +103,16 @@ explains why the copy exists.
 
 Run its commands from `apps/boilerplate`:
 
-| Command                      | What it does                                                                       |
-| ---------------------------- | ---------------------------------------------------------------------------------- |
-| `vp run check:ci`            | Format check, lint with type checking, and the CSS lint                            |
-| `vp run typecheck:node`      | Type check `vite.config.ts` and `tooling/`                                         |
-| `vp run dead-code`           | Find unused files, exports and dependencies with Knip                              |
-| `vp run test:ci`             | Vitest with coverage: node, dom and browser projects                               |
-| `vp run test:tooling`        | Tests of the application tooling: Markdown, publication and CSS Module class names |
-| `vp run build`               | Build the application                                                              |
-| `vp run test:e2e`            | Playwright end-to-end tests                                                        |
-| `vp run test:e2e:production` | Production routes and server-log teardown                                          |
+| Command                      | What it does                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------- |
+| `vp run check:ci`            | Format check, lint with type checking, and the CSS lint                         |
+| `vp run typecheck:node`      | Type check `vite.config.ts` and `tooling/`                                      |
+| `vp run dead-code`           | Find unused files, exports and dependencies with Knip                           |
+| `vp run test:ci`             | Vitest with coverage: node, dom and browser projects                            |
+| `vp run test:tooling`        | Tests of application CSS Module class names and patched dependency registration |
+| `vp run build`               | Build the application                                                           |
+| `vp run test:e2e`            | Playwright end-to-end tests                                                     |
+| `vp run test:e2e:production` | Production routes and server-log teardown                                       |
 
 Every command loads the application's `vite.config.ts`, which imports the
 compiled presets from `dist/` and the security header constants from
@@ -144,11 +144,10 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
   `paths`.
 - `vite.config.ts` calls `defineSolidApp` from `./vite`: the plugins, the
   headers of the static files, the build, CSS, server and preview blocks and the
-  `vp run` tasks come from the package, with `publication: true` for the headers
-  of the published files. Publication artifacts still come from `tooling/`,
-  through `extend`. The `workspace` option points `bun.lock`, `bunfig.toml` and
-  the package build to the monorepo root; a copy outside the workspace leaves it
-  out.
+  `vp run` tasks come from the package. Independent `seo` options enable
+  publication headers and the compiled artifact pipeline, with one build id. The
+  `workspace` option points `bun.lock`, `bunfig.toml` and the package build to
+  the monorepo root; a copy outside the workspace leaves it out.
 - `tooling/knip.ts` and `tooling/css/check.ts` call `defineKnipConfig` and
   `checkCss` from the package and pass only what is the application's own: the
   public API entries, the fixture middleware and the ignores below. The
@@ -174,8 +173,8 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
   `isHtmlResponse`, and the `Middleware` and `Next` types, moved to
   `@evertondgn/solid-runtime` with their tests, and `apiRoutes` from the package
   replaces the `createAPIHandler(routes)` call of `src/middleware/index.ts`. The
-  locale, Markdown and failure steps and the chain stay in `src/middleware/` and
-  import the moved steps by package specifier
+  locale, Markdown and failure steps now use runtime factories, while the
+  application keeps bindings in `src/middleware/`
   ([ADR 0018](ADRs/0018-runtime-package-middleware.md)).
 - `src/middleware/securityHeaders/constants.ts` holds the header values and the
   CSP directives of the copy, spread from the package defaults, and
@@ -453,10 +452,11 @@ The copy's route metadata resolver, head publisher, JSON-LD serializer and
 robots factory live in the runtime with 41 migrated executable tests and the
 exclusive-mode type test. Application adapters inject editorial values and the
 Markdown alternate callback. The sitemap service and publication controller are
-runtime factories; llms, Markdown and build artifact writers stay in the
-application, which owns one controller shared by both workloads. Runtime tests
-also cover optional fields and hostile strings in both site and custom
-structured data. Keep the copy's StructuredData security E2E gate.
+runtime factories, as are Markdown and llms. Artifact writers belong to compiled
+tooling. The application owns one controller shared by both publication
+workloads, plus editorial values and route wrappers. Runtime tests also cover
+optional fields and hostile strings in both site and custom structured data.
+Keep the copy's StructuredData security E2E gate.
 
 SSR plain now renders metadata and JSON-LD on `/` and `/catalog/42`, and serves
 robots GET/HEAD and an unprefixed sitemap with array and partitioned sources.
@@ -521,3 +521,20 @@ prove the corresponding audit fails. These mutate only the temporary
 installation. Run the copy's test suites separately from package builds and the
 matrix; its production E2E checks the real CSP. See
 [ADR 0032](ADRs/0032-packaged-fonts.md) and the [font API](tooling/fonts.md).
+
+## Markdown and llms publication
+
+The runtime owns pure path, listing, selection and serialization tests. The
+compiled tooling owns prerender and artifact tests. The copy retains
+integration, patch regressions and end-to-end assertions. Configure publication
+through `seo`; `publication` is removed and `extend` no longer constructs the
+pipeline.
+
+The installed matrix adds four SSR plain profiles under the isolated linker:
+`isolated-markdown-only`, `isolated-llms-only`, `isolated-publication-off` and
+`isolated-dynamic-only`. The all-enabled cases still run with both linkers and
+with/without i18n. There are fifteen cases including version alignment.
+`SCENARIO_MUTATION=llms-budget` on `ssr-plain / isolated$` must fail the build;
+`llms-link` and `llms-module` on `ssr-plain / isolated-publication-off$` must
+fail the bundle/config audit. See
+[ADR 0034](ADRs/0034-runtime-markdown-publication.md).

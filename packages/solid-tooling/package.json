@@ -53,6 +53,7 @@
     "./playwright": "./dist/playwright.mjs",
     "./playwright-teardown": "./dist/playwright-teardown.mjs",
     "./project-plugin": "./dist/project-plugin.mjs",
+    "./publication/read-llms-index": "./dist/publication/read-llms-index.mjs",
     "./solid-plugin": "./dist/solid-plugin.mjs",
     "./stylelint": "./dist/stylelint.mjs",
     "./vite": "./dist/vite.mjs",

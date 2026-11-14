@@ -6,6 +6,5 @@ export default defineSolidApp({
   seo: { sitemap: true },
   serverSetup: './src/infra/server/configureServerErrors/index.ts',
   securityHeaders: SECURITY_HEADERS,
-  middleware: './src/middleware.ts',
-  publication: true
+  middleware: './src/middleware.ts'
 })

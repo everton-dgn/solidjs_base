@@ -4,6 +4,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { stdout } from 'node:process'
 
+import { preparePublicationScenario } from './publication-scenarios.ts'
 import { prepareSitemapScenario } from './sitemap-scenarios.ts'
 import { hasSitemap } from './sitemap-smoke.ts'
 
@@ -60,6 +61,7 @@ export function prepareSeoScenario({
     )
     unlinkSync(path.join(app, 'src/routes/robots.txt/index.ts'))
   }
+  preparePublicationScenario({ app, scenario, profile, mutation })
   if (mutation === 'seo-import' && scenario === 'client-only') {
     const entry = path.join(app, 'src/App.tsx')
     writeFileSync(

@@ -5,6 +5,7 @@ import path from 'node:path'
 
 import * as v from 'valibot'
 
+import { assertPublicationBuild } from './publication-smoke.ts'
 import {
   assertSitemapBuild,
   hasSitemap,
@@ -41,11 +42,10 @@ export function assertSeoBuild({ app, scenario }: Scenario): void {
   const ids = inventories.flat()
   assert.ok(ids.length > 0)
   assertSitemapBuild({ app, ids, clientIds })
+  assertPublicationBuild({ app, ids, clientIds })
   assert.ok(
     !ids.some(id =>
-      /schema-dts|mdream|markdownPrerender|publicationArtifacts|\/seo\/llms/u.test(
-        id
-      )
+      /schema-dts|markdownPrerender|publicationArtifacts/u.test(id)
     ),
     'Unused publication modules entered the production build'
   )
@@ -58,7 +58,7 @@ export function assertSeoBuild({ app, scenario }: Scenario): void {
       ids.some(id => id.includes('/seo/robotsRoute/')),
       hasRobots
     )
-  } else if (!hasSitemap(app)) {
+  } else if (scenario === 'client-only') {
     assert.ok(
       !ids.some(id => id.includes('/solid-runtime/src/seo/')),
       'Unused SEO entered the production build'

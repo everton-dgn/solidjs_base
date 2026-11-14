@@ -87,14 +87,14 @@ application entries, Router, App and Document. The
   <img src="docs/assets/readme/only-what-you-use-light.webp" alt="A minimal defineSolidApp call with root and ssr: false. Translation settings, theme imports, env.ts, fonts and SEO are absent. The build has no Nitro or server bundle. Desktop packaging stays in the application." width="800" />
 </picture>
 
-| Feature         | How it enters your app                                                    | If you do not need it                                               |
-| --------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| SSR             | Enabled by default, with your header policy                               | Set `ssr: false`; no Nitro or server bundle                         |
-| Translations    | Add `project.inlang/settings.json`, catalogs and translation dependencies | Omit the project; no generator or translation provider in the build |
-| Theme           | Import `theme/define-theme` and connect your Document and UI              | Omit theme imports; no theme modules in the build                   |
-| Env validation  | Add `env.ts` and use the validated virtual modules                        | Omit the file; no preset variables become required                  |
-| Fonts           | Pass `fonts` to the preset                                                | Omit it; no generated font CSS or assets                            |
-| SEO and sitemap | Import selected runtime entries and install explicit routes               | Omit their imports, routes and preset options                       |
+| Feature             | How it enters your app                                                    | If you do not need it                                               |
+| ------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| SSR                 | Enabled by default, with your header policy                               | Set `ssr: false`; no Nitro or server bundle                         |
+| Translations        | Add `project.inlang/settings.json`, catalogs and translation dependencies | Omit the project; no generator or translation provider in the build |
+| Theme               | Import `theme/define-theme` and connect your Document and UI              | Omit theme imports; no theme modules in the build                   |
+| Env validation      | Add `env.ts` and use the validated virtual modules                        | Omit the file; no preset variables become required                  |
+| Fonts               | Pass `fonts` to the preset                                                | Omit it; no generated font CSS or assets                            |
+| SEO and publication | Import selected runtime entries, install explicit routes and set `seo`    | Omit their imports, routes and preset options                       |
 
 The [installed scenarios](docs/ADRs/0021-installed-application-scenarios.md)
 audit disabled features in actual bundles. A desktop renderer uses the
@@ -284,22 +284,39 @@ cancellation. See [SEO](packages/solid-runtime/README.md#optional-seo) and
 A meta-only app can provide its URL directly. An app without SEO needs no site
 URL or SEO imports.
 
-<!-- pending: markdown-llms -->
-
 ### Markdown pages and llms.txt
 
-The [complete application](apps/boilerplate) already publishes Markdown page
-alternates, `llms.txt` and `llms-full.txt`. Conversion, indexes and build
-writers are being moved into the packages. Their packaged integration is
-pending; this checkout still keeps those pieces in the application.
+Turn on a Markdown copy of your pages and an `llms.txt` index with preset data:
 
-`publication: true` currently supplies their static-file header rules. It does
-not install routes or generate content. The runtime already supplies the
-publication controller shared with sitemap. Your app owns the content and which
-pages it publishes. See the
-[publication guide](apps/boilerplate/docs/seo/publication.md).
+```ts
+import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
 
-<!-- /pending: markdown-llms -->
+export default defineSolidApp({
+  root: import.meta.dirname,
+  seo: {
+    markdown: { static: true },
+    llms: {},
+    llmsFull: {}
+  }
+})
+```
+
+A page opts in with `route.info.markdown`. The runtime derives the Markdown from
+the settled HTML of the same page, so there is no second copy of the content.
+`createMarkdownContent` goes into the `document` slot of `createMiddleware` and
+shares the publication controller with the sitemap. The build writes static
+`.md` files when `markdown.static` is on; `markdown: {}` converts per request
+only. `createLlms` returns the `GET` handler of `llms.txt`, and your app chooses
+the notes and pages it lists. Each feature is independent: leave one out and its
+routes, modules, header rules and `Link` announcements stay out of the build.
+Without i18n, the files are served without a locale prefix.
+
+Conversion has input and output byte budgets and a deadline, and the indexes
+fail the build instead of being truncated when they pass their budget. The
+runtime uses the published `@mdream/js`; the
+[Markdown guide](apps/boilerplate/docs/seo/markdown.md) lists the conversion
+differences that the complete application fixes with a patch, and how to apply
+it. See the [publication guide](apps/boilerplate/docs/seo/publication.md).
 
 ## Validated environment values
 
@@ -525,18 +542,17 @@ publishing with signed provenance; the runtime's first publish follows the
 
 ## Packages and roadmap
 
-| Available package                                                        | What it provides                                                                                |
-| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| [`@evertondgn/solid-tooling`](packages/solid-tooling/README.md)          | Config, build tools, catalog generation, icons, fonts, lint, tests and hooks                    |
-| [`@evertondgn/solid-runtime`](packages/solid-runtime/README.md), `0.1.0` | Locale and theme behavior, middleware, server errors, env validators, SEO and sitemap factories |
+| Available package                                                        | What it provides                                                                                          |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| [`@evertondgn/solid-tooling`](packages/solid-tooling/README.md)          | Config, build tools, catalog generation, icons, fonts, lint, tests and hooks                              |
+| [`@evertondgn/solid-runtime`](packages/solid-runtime/README.md), `0.1.0` | Locale and theme behavior, middleware, server errors, env validators, SEO, sitemap, Markdown and llms.txt |
 
 ### Roadmap
 
-| Planned work                           | Scope                                                                                         |
-| -------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Packaged Markdown and llms publication | Integration in progress; see the marked [publication subsection](#markdown-pages-and-llmstxt) |
-| Reusable CI and release workflows      | Shared automation for applications                                                            |
-| `vp create` template                   | New applications using the packages                                                           |
+| Planned work                      | Scope                               |
+| --------------------------------- | ----------------------------------- |
+| Reusable CI and release workflows | Shared automation for applications  |
+| `vp create` template              | New applications using the packages |
 
 ## Documentation
 

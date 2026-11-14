@@ -16,7 +16,6 @@ export default defineSolidApp({
       ]
     }
   ],
-  publication: true,
   seo: {
     sitemap: true,
     robots: {

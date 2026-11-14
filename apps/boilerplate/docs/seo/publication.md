@@ -14,13 +14,13 @@ by the client does not unlock that phase. The public Markdown inventory has only
 publishable paths.
 
 The build checks the bytes of the published files and writes a manifest next to
-the function bundle. `createPublicationBuild()` generates an identifier per
-build; its plugin embeds it in the SSR, and `markdownPrerender({ buildId })`
-writes the same value in the manifest. Both have to come from the same call. The
-prerender checks the link, and the function refuses a manifest from another
-build, even if the site and the budget are the same. This detects mixed
-artifacts; it does not authenticate someone who has write access to the function
-folder.
+the function bundle. The compiled tooling generates one identifier per build
+from the `seo` options; its plugin embeds it in the SSR, and its Nitro module
+writes the same value in the manifest. The application does not compose these
+through `extend`. The prerender checks the link, and the function refuses a
+manifest from another build, even if the site and the budget are the same. This
+detects mixed artifacts; it does not authenticate someone who has write access
+to the function folder.
 
 The origin reads that manifest once per instance; a read or validation failure
 results in a 503 `no-store`, without rebuilding every page in the request.

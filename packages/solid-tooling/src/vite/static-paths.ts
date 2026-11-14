@@ -1,21 +1,10 @@
 import type { ServerAppOptions } from './types.ts'
 
 type StaticPathsInput = {
-  options: Pick<
-    ServerAppOptions,
-    'publicAssets' | 'staticPaths' | 'publication' | 'seo'
-  >
+  options: Pick<ServerAppOptions, 'publicAssets' | 'staticPaths' | 'seo'>
   locales: string[]
 }
 type LocalePathInput = { staticPath: string; locales: string[] }
-
-const SEO_FILE_PATHS = [
-  '/llms.txt',
-  '/llms-full.txt',
-  '/sitemap.xml',
-  '/sitemaps/pages/**',
-  '/_markdown/static.json'
-]
 
 function isUnderLocale({ staticPath, locales }: LocalePathInput): boolean {
   const [firstSegment] = staticPath.split('/').slice(1)
@@ -42,18 +31,19 @@ export function staticFilePaths({
       `defineSolidApp: the static path ${collision} is inside a locale folder; move it out of /${collision.split('/')[1]}/.`
     )
   }
-  const hasSitemap = options.seo !== false && options.seo?.sitemap === true
-  const publishedPaths = options.publication
-    ? [
-        ...locales.map(locale => `/${locale}/**.md`),
-        ...SEO_FILE_PATHS.filter(
-          staticPath => !staticPath.startsWith('/sitemap') || hasSitemap
-        )
-      ]
-    : []
-  const sitemapPaths =
-    !options.publication && hasSitemap
-      ? SEO_FILE_PATHS.filter(staticPath => staticPath.startsWith('/sitemap'))
-      : []
-  return ['/assets/**', ...appPaths, ...publishedPaths, ...sitemapPaths]
+  const seo = typeof options.seo === 'object' ? options.seo : {}
+  const hasMarkdown =
+    typeof seo.markdown === 'object' && seo.markdown.static === true
+  const markdownPaths =
+    locales.length > 0 ? locales.map(locale => `/${locale}/**.md`) : ['/**.md']
+  const publishedPaths = [
+    ...(hasMarkdown ? markdownPaths : []),
+    ...(typeof seo.llms === 'object' ? ['/llms.txt'] : []),
+    ...(typeof seo.llmsFull === 'object' ? ['/llms-full.txt'] : []),
+    ...(seo.sitemap !== undefined && seo.sitemap !== false
+      ? ['/sitemap.xml', '/sitemaps/pages/**']
+      : []),
+    ...(hasMarkdown ? ['/_markdown/static.json'] : [])
+  ]
+  return ['/assets/**', ...appPaths, ...publishedPaths]
 }

@@ -175,8 +175,10 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
 
 - `src/i18n/urls`, `src/i18n/buildLocaleAlternates` and
   `src/middleware/helpers/appendVary` moved with their tests to the runtime.
-  Consumers use package specifiers. Request locale handling, persistence,
-  redirects, locale tags, LocalizedLink and messages remain in the copy.
+  Consumers use package specifiers. Request locale handling, persistence and
+  localized redirects also moved with their tests in ADR 0023. Locale tags,
+  LocalizedLink and messages remain in the copy. The unused redirect constant
+  and the old Knip entry were removed with their consumers.
 
 ### Updating the copy
 
@@ -291,3 +293,14 @@ only in the temporary application's build, after the tests, so the unchanged
 bundle audit must reject it. The node probe removes the locale stand-in from the
 installed tooling in that temporary application. Each probe must fail at its
 intended assertion; temporary copies are removed in finally.
+
+The runtime request locale tests compile their own de/fr/ja translation project
+before Vitest. The copied application's request localization and redirect tests
+now live in that package. Run both development and production E2E suites in the
+copy when changing this request boundary.
+
+The ssr-i18n fixture also has real fr/de/it/ja catalogs and the official message
+format and Vite plugins. Its smoke checks the root redirect, the German page,
+Content-Language and cookie persistence. The request negative probes are
+`request-target` and `request-step` on ssr-i18n, and `request-plain` on
+ssr-plain, selected with SCENARIO_MUTATION.

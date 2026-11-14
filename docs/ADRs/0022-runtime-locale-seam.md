@@ -1,6 +1,6 @@
 # 0022. Runtime locale helpers use an application virtual module
 
-- Status: Accepted
+- Status: Accepted, amended by [0023](0023-runtime-locale-requests.md)
 - Date: 2026-11-14
 
 ## Context
@@ -39,8 +39,8 @@ unchanged.
 
 The copied helpers retain their behavior and import the locale seam. Runtime
 tests use fr/de/ja without the generator. Installed fixtures exercise actual
-providers, both linkers, node/dom tests, SSR links and a custom language.
-Request localization, persistence, redirects, locale tags, LocalizedLink and
-messages remain application responsibilities. Only imports of moved helpers
-change in those consumers. Peer dependencies and dependency ownership stay
-unchanged. E2E remains a CI responsibility.
+providers, both linkers, node/dom tests, SSR links and a custom language. ADR
+0023 moves request localization, persistence and redirects into the runtime.
+Locale tags, LocalizedLink and messages remain application responsibilities.
+Peer dependencies and dependency ownership stay unchanged. Request changes
+require both E2E suites locally, including production E2E absent from CI.

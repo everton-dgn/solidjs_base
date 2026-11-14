@@ -14,5 +14,9 @@ export type SolidTestOptions = {
   locale?: string
 }
 
-// What the application chooses. defineSolidApp supplies root and plugins.
-export type SolidTestSettings = Omit<SolidTestOptions, 'root' | 'plugins'>
+// What the application chooses. defineSolidApp supplies root, plugins and the
+// language, which it takes as an option of its own.
+export type SolidTestSettings = Omit<
+  SolidTestOptions,
+  'root' | 'plugins' | 'language'
+>

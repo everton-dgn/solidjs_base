@@ -1,5 +1,5 @@
-import { MAX_HTML_BYTES } from '../../../constants.ts'
-import { convertHtml } from '../index.ts'
+import { convertHtml } from '@evertondgn/solid-runtime/seo/convert-html'
+import { MAX_HTML_BYTES } from '@evertondgn/solid-runtime/server/publication-protocol'
 
 const INTERFACE = [
   '<dialog><h2>Dialog title</h2><p>Dialog body</p></dialog>',

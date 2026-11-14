@@ -33,8 +33,12 @@ vi.mock(import('@/infra/server/publication/index.ts'), async importOriginal => {
   const original = await importOriginal()
   return {
     ...original,
-    runPublication: (options: Parameters<typeof original.runPublication>[0]) =>
-      publicationController.runPublication(options)
+    publication: {
+      ...original.publication,
+      runPublication: (
+        options: Parameters<typeof original.runPublication>[0]
+      ) => publicationController.runPublication(options)
+    }
   }
 })
 

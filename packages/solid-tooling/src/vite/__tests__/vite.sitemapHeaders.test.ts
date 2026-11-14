@@ -4,10 +4,24 @@ import { it } from 'node:test'
 import { staticFilePaths } from '../static-paths.ts'
 
 it('keeps sitemap headers opt-in independently of other publication rules', () => {
-  for (const seo of [undefined, false, { sitemap: false }] as const) {
+  assert.deepEqual(staticFilePaths({ options: { seo: false }, locales: [] }), [
+    '/assets/**'
+  ])
+  for (const sitemap of [undefined, false] as const) {
     assert.deepEqual(
-      staticFilePaths({ options: { publication: true, seo }, locales: [] }),
-      ['/assets/**', '/llms.txt', '/llms-full.txt', '/_markdown/static.json']
+      staticFilePaths({
+        options: {
+          seo: { sitemap, markdown: { static: true }, llms: {}, llmsFull: {} }
+        },
+        locales: []
+      }),
+      [
+        '/assets/**',
+        '/**.md',
+        '/llms.txt',
+        '/llms-full.txt',
+        '/_markdown/static.json'
+      ]
     )
   }
   assert.deepEqual(

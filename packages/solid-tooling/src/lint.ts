@@ -136,11 +136,7 @@ export const lint: NonNullable<UserConfig['lint']> = {
       }
     },
     {
-      files: [
-        'src/@types/solid.d.ts',
-        'src/@types/env.d.ts',
-        'src/@types/router.d.ts'
-      ],
+      files: ['src/@types/solid.d.ts', 'src/@types/env.d.ts'],
       rules: {
         'import/no-unassigned-import': 'off',
         // These declarations extend third-party interfaces through declaration

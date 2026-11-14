@@ -6,6 +6,7 @@ import { lazyPlugins, type PluginOption } from 'vite-plus'
 import { fontsPlugin } from '../fonts/index.ts'
 import { hasI18n, I18N_SETTINGS } from '../has-i18n.ts'
 import { localeModule } from '../locale-module.ts'
+import type { publicationBuild } from '../publication/index.ts'
 import { seoModule } from '../seo-module.ts'
 import { staticFilePaths } from './static-paths.ts'
 import type {
@@ -150,6 +151,26 @@ function clientPlugins({
   ]
 }
 
+function hasStaticMarkdown(options: ServerAppOptions): boolean {
+  return (
+    typeof options.seo === 'object' &&
+    typeof options.seo.markdown === 'object' &&
+    options.seo.markdown.static === true
+  )
+}
+async function createPublication(options: ServerAppOptions) {
+  const features = typeof options.seo === 'object' ? options.seo : {}
+  const enabled =
+    hasStaticMarkdown(options) ||
+    typeof features.llms === 'object' ||
+    typeof features.sitemap === 'object'
+  let publication: ReturnType<typeof publicationBuild> | undefined
+  if (enabled) {
+    const { publicationBuild } = await import('../publication/index.ts')
+    publication = publicationBuild(features)
+  }
+  return publication
+}
 async function serverPlugins({
   options,
   mode
@@ -158,7 +179,7 @@ async function serverPlugins({
     loadPluginModules(),
     import('nitro/vite'),
     readExtension({ options, target: 'app', mode }),
-    options.publication ? readLocales(options.root) : [],
+    hasStaticMarkdown(options) ? readLocales(options.root) : [],
     i18nPlugins(options)
   ])
   const isE2e = mode === 'e2e'
@@ -167,10 +188,12 @@ async function serverPlugins({
     : options.middleware
   const e2eRoutes = isE2e ? options.e2e?.routes : undefined
   const headers = staticHeaders(options)
+  const publication = await createPublication(options)
   return [
     localeModule(options),
     fontsPlugin(options),
     seoModule({ root: options.root, mode, seo: options.seo }),
+    ...(publication ? [publication.plugin] : []),
     ...(extension.plugins ?? []),
     ...i18n,
     iconsPlugin({ modules, options }),
@@ -191,7 +214,10 @@ async function serverPlugins({
     nitro({
       serverEntry: false,
       preset: 'vercel',
-      modules: extension.nitroModules ?? [],
+      modules: [
+        ...(publication ? [publication.module] : []),
+        ...(extension.nitroModules ?? [])
+      ],
       // Nitro already registers the assetsDir of Vite, which serves /assets/.
       publicAssets: options.publicAssets ?? [],
       // The static files leave the CDN without going through the middleware,

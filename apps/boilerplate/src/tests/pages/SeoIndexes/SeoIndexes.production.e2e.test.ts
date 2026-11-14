@@ -43,7 +43,12 @@ const EXTRACTED_MODULE_PATHS = [
   '/sitemap/helpers/sitemapService/constants',
   '/sitemap/helpers/sitemapService/types',
   '/sitemap/types',
-  '/robots.txt/buildRobotsText'
+  '/robots.txt/buildRobotsText',
+  '/llms.txt/helpers',
+  '/llms.txt/types',
+  '/llms.txt/helpers/buildLlmsText',
+  '/llms.txt/helpers/collectLlmsPages',
+  '/llms.txt/helpers/resolveRouteLlms'
 ]
 const LOCAL_MODULES = [
   ...new Set([

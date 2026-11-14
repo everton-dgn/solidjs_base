@@ -8,13 +8,15 @@ import { paraglideMiddleware } from '@paraglide/server.js'
 import type { RouteInfo } from '@solidjs/router'
 
 import { SITE_CACHE_CONTROL } from '@/constants/cache.ts'
-import { HTTP_OK, HTTP_SERVICE_UNAVAILABLE } from '@/constants/http.ts'
 import { SITE } from '@/constants/site/index.ts'
 import { Router } from '@/router.ts'
 
 import { GET } from '../index.ts'
 
 type MatchOptions = { pattern: string; info: RouteInfo }
+
+const HTTP_OK = 200
+const HTTP_SERVICE_UNAVAILABLE = 503
 
 const BASE_DESCRIPTION = m.site_description({}, { locale: 'en' })
 const PORTUGUESE_DESCRIPTION = m.site_description({}, { locale: 'pt' })

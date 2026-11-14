@@ -1,10 +1,10 @@
+import { collectStaticMarkdownPages } from '@evertondgn/solid-runtime/seo/collect-static-markdown-pages'
+import { MARKDOWN_PRERENDER_PATH } from '@evertondgn/solid-runtime/server/publication-protocol'
 import { createRequestEvent, type RequestEvent } from '@solidjs/web'
 
 import { SITE } from '@/constants/site/index.ts'
 import { Router } from '@/router.ts'
 
-import { MARKDOWN_PRERENDER_PATH } from '../constants.ts'
-import { collectStaticMarkdownPages } from '../helpers/collectStaticMarkdownPages/index.ts'
 import {
   markdownContent,
   event,
@@ -23,13 +23,16 @@ const HTTP_PERMANENT_REDIRECT = 308
 const HTTP_NOT_FOUND = 404
 const HTTP_SERVER_ERROR = 500
 
-vi.mock(import('../helpers/collectStaticMarkdownPages/index.ts'), () => ({
-  collectStaticMarkdownPages: vi.fn<() => string[]>(() => [
-    '/pt',
-    '/en/about',
-    '/en/private'
-  ])
-}))
+vi.mock(
+  import('@evertondgn/solid-runtime/seo/collect-static-markdown-pages'),
+  () => ({
+    collectStaticMarkdownPages: vi.fn<() => string[]>(() => [
+      '/pt',
+      '/en/about',
+      '/en/private'
+    ])
+  })
+)
 
 function prerender(path: string): RequestEvent {
   return createRequestEvent(

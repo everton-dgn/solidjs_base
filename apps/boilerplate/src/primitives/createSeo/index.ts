@@ -2,13 +2,13 @@ import {
   createSeo as createRuntimeSeo,
   type CreateSeoOptions
 } from '@evertondgn/solid-runtime/seo/create-seo'
-import type { RouteInfo } from '@solidjs/router'
-
-import { SITE } from '@/constants/site/index.ts'
 import {
   hasMarkdownOptIn,
   markdownPath
-} from '@/helpers/markdownRoute/index.ts'
+} from '@evertondgn/solid-runtime/seo/markdown-route'
+import type { RouteInfo } from '@solidjs/router'
+
+import { SITE } from '@/constants/site/index.ts'
 import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.ts'
 
 type Options =

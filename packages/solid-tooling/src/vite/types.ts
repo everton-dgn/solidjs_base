@@ -54,7 +54,6 @@ export type ServerAppOptions = SharedOptions & {
   publicAssets?: StaticAssetDir[]
   staticPaths?: string[]
   routeRules?: Record<string, RouteRule>
-  publication?: boolean
   seo?: SeoOptions | false
 }
 

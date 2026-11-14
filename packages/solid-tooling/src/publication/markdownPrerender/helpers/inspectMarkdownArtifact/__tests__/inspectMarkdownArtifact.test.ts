@@ -1,0 +1,108 @@
+import assert from 'node:assert/strict'
+import { it } from 'node:test'
+
+import type { PrerenderRoute } from 'nitro/types'
+
+import { inspectMarkdownArtifact } from '../index.ts'
+
+const ROUTE = '/en/about.md'
+const MARKDOWN_TYPE = 'text/markdown; charset=utf-8'
+
+function artifact(overrides: Partial<PrerenderRoute>): PrerenderRoute {
+  return {
+    route: ROUTE,
+    fileName: ROUTE,
+    contentType: MARKDOWN_TYPE,
+    contents: '# About',
+    ...overrides
+  }
+}
+
+it('accepts short pages, HTML in code and text quoting markup', () => {
+  for (const contents of [
+    '# A',
+    'x',
+    '# Page\n\n```html\n<!doctype html>\n<html><body data-hk="0"></body></html>\n```\n',
+    '# Hydration\n\nThe `data-hk` attribute and <script> tags are explained here.',
+    '<!doctype html> is the first line of every page.\n\nMore text.',
+    '<html> opens the document; this page explains it.',
+    '# Café\n\nÁgua, ñandú e 日本語 🚀'
+  ]) {
+    assert.equal(inspectMarkdownArtifact(artifact({ contents })), undefined)
+  }
+})
+
+it('accepts the Markdown type with case-insensitive UTF-8 charset', () => {
+  for (const contentType of [
+    'text/markdown;charset=utf-8',
+    'Text/Markdown; Charset="UTF-8"',
+    'text/markdown; variant=GFM; charset=utf-8'
+  ]) {
+    assert.equal(inspectMarkdownArtifact(artifact({ contentType })), undefined)
+  }
+})
+
+it('reads written bytes rather than previously decoded text', () => {
+  const data = new TextEncoder().encode('# Olá').buffer
+  assert.equal(
+    inspectMarkdownArtifact(artifact({ contents: undefined, data })),
+    undefined
+  )
+})
+
+it('rejects HTML written as md.html for a Markdown URL', () => {
+  assert.equal(
+    inspectMarkdownArtifact(artifact({ fileName: '/en/about.md.html' })),
+    'written as /en/about.md.html'
+  )
+  assert.equal(
+    inspectMarkdownArtifact(artifact({ fileName: undefined })),
+    'written as no file'
+  )
+})
+
+it('rejects types other than response-declared UTF-8 Markdown', () => {
+  for (const [contentType, problem] of [
+    ['text/html; charset=utf-8', 'served as text/html; charset=utf-8'],
+    // Type inferred by Nitro when the response declares none, such as a
+    // bodyless redirect.
+    ['text/markdown', 'served as text/markdown'],
+    [
+      'text/markdown; charset=iso-8859-1',
+      'served as text/markdown; charset=iso-8859-1'
+    ],
+    ['text/plain; charset=utf-8', 'served as text/plain; charset=utf-8'],
+    ['', 'served as no content type']
+  ] as const) {
+    assert.equal(inspectMarkdownArtifact(artifact({ contentType })), problem)
+  }
+})
+
+it('rejects empty, blank or missing bodies', () => {
+  for (const contents of ['', ' \n\t ', undefined]) {
+    assert.equal(inspectMarkdownArtifact(artifact({ contents })), 'empty body')
+  }
+})
+
+it('rejects invalid UTF-8 bytes', () => {
+  // Isolated continuation byte and a truncated multibyte sequence.
+  for (const hex of ['ff23', '2320c3']) {
+    const data = new Uint8Array(Buffer.from(hex, 'hex')).buffer
+    assert.equal(
+      inspectMarkdownArtifact(artifact({ contents: undefined, data })),
+      'invalid UTF-8 body'
+    )
+  }
+})
+
+it('rejects complete HTML documents even with a Markdown type', () => {
+  for (const contents of [
+    '<!DOCTYPE html><html lang="en"><body><main>About</main></body></html>',
+    '\n  <html><head></head><body data-hk="0">About</body></html>\n'
+  ]) {
+    assert.equal(
+      inspectMarkdownArtifact(artifact({ contents })),
+      'HTML document body'
+    )
+  }
+})

@@ -1,12 +1,13 @@
-import { SITE } from '@/constants/site/index.ts'
-import { Router } from '@/router.ts'
-import { readLog } from '@/tests/helpers/readLog/index.ts'
-
 import {
   MARKDOWN_TIMEOUT_MS,
   MAX_HTML_BYTES,
   MAX_MARKDOWN_BYTES
-} from '../constants.ts'
+} from '@evertondgn/solid-runtime/server/publication-protocol'
+
+import { SITE } from '@/constants/site/index.ts'
+import { Router } from '@/router.ts'
+import { readLog } from '@/tests/helpers/readLog/index.ts'
+
 import {
   markdownContent,
   event,

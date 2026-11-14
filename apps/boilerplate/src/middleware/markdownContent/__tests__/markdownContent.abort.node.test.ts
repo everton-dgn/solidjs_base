@@ -1,5 +1,6 @@
 import { protectServerOperation } from '@evertondgn/solid-runtime/server/protect-server-operation'
 import { createPublicationController } from '@evertondgn/solid-runtime/server/publication'
+import { MARKDOWN_TIMEOUT_MS } from '@evertondgn/solid-runtime/server/publication-protocol'
 import type { PublicationLimits } from '@evertondgn/solid-runtime/server/publication-types'
 import {
   createComponent,
@@ -17,7 +18,6 @@ import { Router } from '@/router.ts'
 import { readLog } from '@/tests/helpers/readLog/index.ts'
 
 import { createMiddleware } from '../../index.ts'
-import { MARKDOWN_TIMEOUT_MS } from '../constants.ts'
 import { markdownContent } from '../index.ts'
 
 type ComposedRender = (event: RequestEvent) => Promise<Response>

@@ -27,6 +27,9 @@ import {
   prepareFontsScenario
 } from '../font-scenarios.ts'
 import { smokeMiddleware } from '../middleware-smoke.ts'
+import { mutatePublication } from '../publication-mutations.ts'
+import { PUBLICATION_PROFILES } from '../publication-scenarios.ts'
+import { smokePublication } from '../publication-smoke.ts'
 import {
   assertEnvBootFailure,
   checkEnvBundle,
@@ -290,6 +293,11 @@ async function smoke({
     await smokeServerErrors({ origin: `http://127.0.0.1:${port}`, scenario })
     await smokeMiddleware({ origin: `http://127.0.0.1:${port}`, scenario })
     await smokeSeo({ app, scenario, origin: `http://127.0.0.1:${port}`, html })
+    await smokePublication({
+      app,
+      scenario,
+      origin: `http://127.0.0.1:${port}`
+    })
   } finally {
     stopChild(child)
     await closed
@@ -477,6 +485,7 @@ async function buildScenario({
 }): Promise<void> {
   mutateServerErrors({ app, scenario, mutation: MUTATION })
   instrumentMiddleware({ app, scenario, mutation: MUTATION })
+  mutatePublication({ app, mutation: MUTATION })
   await run({ deadline, cwd: app, args: ['build'] })
   assertBuild({ app, scenario })
   assertFontBuild({ app, scenario })
@@ -502,7 +511,11 @@ for (const scenario of SCENARIOS) {
     ...LINKERS,
     ...(scenario === 'ssr-i18n' ? [] : ['isolated-language']),
     ...(scenario === 'ssr-plain'
-      ? ['isolated-meta-only', 'isolated-without-sitemap']
+      ? [
+          'isolated-meta-only',
+          'isolated-without-sitemap',
+          ...PUBLICATION_PROFILES
+        ]
       : [])
   ]) {
     test(`${scenario} / ${linker}`, { timeout: 180_000 }, async () => {

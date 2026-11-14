@@ -1,8 +1,8 @@
 import { createPublicationController } from '@evertondgn/solid-runtime/server/publication'
+import { LLMS_DESCRIBEDBY_LINK } from '@evertondgn/solid-runtime/server/publication-protocol'
 import type { PublicationLimits } from '@evertondgn/solid-runtime/server/publication-types'
 import { createRequestEvent, type RequestEvent } from '@solidjs/web'
 
-import { LLMS_DESCRIBEDBY_LINK } from '@/constants/llms.ts'
 import { Router } from '@/router.ts'
 
 import { markdownContent as productionMarkdownContent } from '../index.ts'
@@ -30,8 +30,12 @@ vi.mock(import('@/infra/server/publication/index.ts'), async importOriginal => {
   const original = await importOriginal()
   return {
     ...original,
-    runPublication: (options: Parameters<typeof original.runPublication>[0]) =>
-      publicationController.runPublication(options)
+    publication: {
+      ...original.publication,
+      runPublication: (
+        options: Parameters<typeof original.runPublication>[0]
+      ) => publicationController.runPublication(options)
+    }
   }
 })
 

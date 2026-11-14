@@ -74,10 +74,13 @@ the moved files lost the architecture rule and Knip.
 - One planted file per family failed `vp run validate` at the root: a dynamic
   import of `@solidjs/web`, an import of a test file and a floating promise
   failed the package `check`, and an unused module failed `dead-code`.
-- `vp run validate` took 21 to 22 seconds at the root before and after the
-  change. Measured alone, the package lint takes about 0.5 seconds, Knip about
-  0.5 seconds and the tarball test about 0.3 seconds; the root lint dropped from
-  74 files to 56.
+- The new checks cost about 2 seconds. Measured alone, the package lint takes
+  0.5 to 1 second, Knip in its two modes about 0.7 seconds and the tarball test
+  about 0.4 seconds, and the root lint dropped from 74 files to 56.
+- The total of `vp run validate` does not show that cost. It took 21 to 22
+  seconds before and after the change, and 33 to 38 seconds in later runs of the
+  same commit on the same machine: it depends on the load of the machine more
+  than on these checks.
 - The SEO module and CSS Module file name rules now reach the package, but it
   has no `seo.ts` and no CSS today.
 - A rule change reaches the package lint without a build, because its config

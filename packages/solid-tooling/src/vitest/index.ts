@@ -2,20 +2,14 @@ import path from 'node:path'
 import { env } from 'node:process'
 import { fileURLToPath } from 'node:url'
 
-import type { Plugin, TestUserConfig, ViteUserConfig } from 'vite-plus'
+import type { Plugin, TestUserConfig } from 'vite-plus'
 import { playwright } from 'vite-plus/test/browser-playwright'
 
 import { hasI18n } from '../has-i18n.ts'
+import { TEST_LOCALE } from '../test-locale.ts'
+import { defaultDomUrl } from './dom-url.ts'
 import { sourcePackages } from './source-packages.ts'
-
-type SolidTestOptions = {
-  root: string
-  // WHY: a factory, because each project starts its own Vite server and a
-  // plugin instance keeps the state of the server that resolved it last.
-  plugins: () => ViteUserConfig['plugins']
-  // Packages that export TypeScript source under the solid condition.
-  sourcePackages?: string[]
-}
+import type { SolidTestOptions } from './types.ts'
 
 const CI_WORKERS = 2
 const SOURCE_PACKAGES = ['@evertondgn/solid-runtime']
@@ -64,7 +58,9 @@ function readTestEnv(): Record<string, string> {
 export function solidTest({
   root,
   plugins,
-  sourcePackages: packages = SOURCE_PACKAGES
+  sourcePackages: packages = SOURCE_PACKAGES,
+  domUrl = defaultDomUrl(root),
+  locale = TEST_LOCALE
 }: SolidTestOptions): TestUserConfig {
   const hasParaglide = hasI18n(root)
   return {
@@ -112,7 +108,7 @@ export function solidTest({
         test: {
           name: { label: 'dom', color: 'magenta' },
           environment: 'happy-dom',
-          environmentOptions: { happyDOM: { url: 'http://localhost/en' } },
+          environmentOptions: { happyDOM: { url: domUrl } },
           include: ['src/**/*.dom.test.{ts,tsx}']
         }
       },
@@ -148,7 +144,7 @@ export function solidTest({
             },
             // GitHub runners have Chrome; local runs use Playwright's Chromium.
             provider: playwright({
-              contextOptions: { locale: 'en-US' },
+              contextOptions: { locale },
               launchOptions: env.CI ? { channel: 'chrome' } : {}
             }),
             instances: [{ browser: 'chromium' }]

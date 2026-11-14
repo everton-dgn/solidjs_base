@@ -8,7 +8,7 @@ projects:
 | Project   | Files                            | Environment                                      |
 | --------- | -------------------------------- | ------------------------------------------------ |
 | `node`    | `src/**/*.node.test.{ts,tsx}`    | Node, with stand-ins for the build-only modules  |
-| `dom`     | `src/**/*.dom.test.{ts,tsx}`     | happy-dom at `http://localhost/en`               |
+| `dom`     | `src/**/*.dom.test.{ts,tsx}`     | happy-dom, at the URL of `domUrl`                |
 | `browser` | `src/**/*.browser.test.{ts,tsx}` | Chromium through Playwright, with the CSS loaded |
 
 `defineSolidApp` from `./vite` already calls `solidTest`. An application that
@@ -35,6 +35,33 @@ plugin instance keeps the state of one server. The preset also sets the coverage
 thresholds, the reporters and the workers on CI, passes `BASE_URL_TEST`, `HOST`
 and `PORT` to the tests when they are set, and resets the Paraglide locale
 before each browser test.
+
+| Option           | Default                                                                | Use                                                              |
+| ---------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `domUrl`         | `http://localhost/`, or `http://localhost/<baseLocale>` with Paraglide | URL where the `dom` project starts                               |
+| `locale`         | `en-US`                                                                | Locale of the browser in the `browser` project                   |
+| `sourcePackages` | `['@evertondgn/solid-runtime']`                                        | Packages that ship TypeScript source under the `solid` condition |
+
+Through `defineSolidApp`, the same options go in `test`:
+
+```ts
+// vite.config.ts
+import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
+
+export default defineSolidApp({
+  root: import.meta.dirname,
+  ssr: false,
+  test: { locale: 'pt-BR' }
+})
+```
+
+The `dom` project starts on a page the application serves. Without
+`project.inlang/settings.json`, that is the root. With it, the preset reads
+`baseLocale` from that file and starts at `/<baseLocale>`, whatever the locales
+of the application are. That default assumes `urlPatterns` that prefix every
+locale, the base one included: an application that serves a locale without a
+prefix sets `domUrl`. When the file cannot be read or has no `baseLocale`, the
+config fails with the name of the file, unless `domUrl` is set.
 
 The `node` project does not load the Solid and routing plugins, so a plugin of
 the preset serves `server-only`, `virtual:file-routes` and
@@ -72,6 +99,7 @@ the preview, and checks the server log for private markers when the suite ends.
 | `testDir`        | `src/tests/pages` | Folder of the `*.e2e.test.ts` files                                    |
 | `fixtureServers` | none              | Extra servers for the fixture routes, as `{ command, url }`            |
 | `suites`         | none              | Globs of serial suites: `serverLogs`, `markdown` and `publicationLoad` |
+| `locale`         | `en-US`           | Locale of the browser                                                  |
 
 Each serial suite gets its own project: `markdown` runs with one worker,
 `serverLogs` runs last as the teardown of the others, and `publicationLoad` runs

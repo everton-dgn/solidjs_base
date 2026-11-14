@@ -311,6 +311,19 @@ it('writes the report under the application root and tears down with a shipped f
   await access(config.globalTeardown)
 })
 
+it('starts the browser in en-US unless the application chooses a locale', async context => {
+  const root = await createRoot(context)
+  const variables = { TEST_PRODUCTION_ROUTES: 'false', TEST_PREBUILT: 'false' }
+  const config = await parseConfig({ root, variables, options: {} })
+  const chosen = await parseConfig({
+    root,
+    variables,
+    options: { locale: 'pt-BR' }
+  })
+  assert.equal(config.use.locale, 'en-US')
+  assert.equal(chosen.use.locale, 'pt-BR')
+})
+
 it('rejects a base URL that is missing, has no port or leaves none for the secondary server', async context => {
   const root = await createRoot(context)
   const variables = { TEST_PRODUCTION_ROUTES: 'false', TEST_PREBUILT: 'false' }

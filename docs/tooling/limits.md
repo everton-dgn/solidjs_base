@@ -72,7 +72,8 @@ vp add -D @inlang/paraglide-js@<version>
 - The test presets expect the boilerplate layout: tests named by suffix
   (`.node.test`, `.dom.test`, `.browser.test`, `.e2e.test`), page tests in
   `src/tests/pages/`, Paraglide output in `paraglide/` and `.env.test` at the
-  root.
+  root. With Paraglide, the `dom` project starts at `/<baseLocale>`, which fits
+  `urlPatterns` that prefix every locale; `domUrl` sets another URL.
 - The Knip and CSS configs expect the same layout: pages in `src/routes/`,
   fixture routes in `src/tests/fixtures/` and the theme in `src/theme/`.
 - The Knip config ignores every unlisted dependency in its own file, not only

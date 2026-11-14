@@ -9,6 +9,8 @@ import {
 } from '@playwright/test'
 import { loadEnv } from 'vite-plus'
 
+import { TEST_LOCALE } from '../test-locale.ts'
+
 type FixtureServer = { command: string; url: string }
 
 type SerialSuites = {
@@ -22,6 +24,7 @@ type PlaywrightOptions = {
   testDir?: string
   fixtureServers?: FixtureServer[]
   suites?: SerialSuites
+  locale?: string
 }
 
 type RunMode = {
@@ -192,7 +195,8 @@ export function definePlaywrightConfig({
   root,
   testDir = 'src/tests/pages',
   fixtureServers = [],
-  suites = {}
+  suites = {},
+  locale = TEST_LOCALE
 }: PlaywrightOptions): PlaywrightTestConfig {
   loadEnvFile(path.join(root, '.env.test'))
   const mode = readRunMode(suites)
@@ -245,7 +249,7 @@ export function definePlaywrightConfig({
       // Do not turn on bypassCSP: it disables the CSP and voids the suites
       // that check violations.
       baseURL: baseUrl,
-      locale: 'en-US',
+      locale,
       screenshot: 'only-on-failure',
       trace: 'retain-on-failure'
     },

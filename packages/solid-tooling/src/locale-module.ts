@@ -33,12 +33,21 @@ export function localeModule(options: LocaleOptions): Plugin {
   return {
     name: 'solid-app:locale',
     resolveId: id => {
+      if (id === 'virtual:solid-app/request-middleware') {
+        return '\0solid-app:request-middleware'
+      }
       if (id === 'virtual:solid-app/locale-request') {
         return '\0solid-app:locale-request'
       }
       return id === MODULE_ID ? RESOLVED_ID : undefined
     },
     load: id => {
+      if (id === '\0solid-app:request-middleware') {
+        // Keep the request provider out of applications without translations.
+        return hasI18n(options.root)
+          ? "export { createLocalizeRequest as createRequestLocale } from '@evertondgn/solid-runtime/middleware/localize-request'"
+          : 'export const createRequestLocale = () => ({ next }) => next()'
+      }
       if (id === '\0solid-app:locale-request') {
         return localeRequestSource(options)
       }

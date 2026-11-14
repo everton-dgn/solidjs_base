@@ -403,3 +403,26 @@ Run the copy's full check, Node types, dead-code, coverage, tooling and both E2E
 suites separately from package builds and the installed matrix. The existing
 BackendError, OutsideError and OutdatedPage tests and production log teardown
 remain required for this boundary.
+
+## Runtime middleware and entry helpers
+
+The copy calls `createMiddleware({ security, extra, document })` from the
+runtime, binding its security instance and Markdown adapter. The runtime owns
+failure containment, its request-locals declaration and 54 former application
+tests. The copy retains all composed-chain assertions and E2E fixtures. The SSR
+entries use `createRenderOptions()`; the client entry uses
+`prepareClientLocale()` and retains outdated-page detection and its HMR cleanup.
+The authored trees and Document's client-entry literal stay unchanged.
+
+Both installed SSR scenarios use the same factory and entry helpers, with no
+translation provider in ssr-plain. Their smoke also checks middleware failures
+before and after rendering, bodyless controls, public messages and security
+headers; the drained preview log must contain the filtered middleware line.
+Client-only tests exercise client preparation without translations.
+
+Optional `SCENARIO_MUTATION=middleware-body` and `middleware-headers` probes on
+`ssr-plain / isolated$` must fail the body-marker and failure-header assertions.
+Mutations and fixture instrumentation live in
+`packages/solid-tooling/src/tarball/scenario-mutations.ts` and only modify
+temporary installations. A runtime chain test requires security before the
+terminating API handler. See [ADR 0029](ADRs/0029-runtime-middleware-chain.md).

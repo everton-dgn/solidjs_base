@@ -1,5 +1,4 @@
-import { installLocaleHistoryGuard } from '@evertondgn/solid-runtime/i18n/install-locale-history-guard'
-import { extractLocaleFromUrl } from '@evertondgn/solid-runtime/i18n/locale'
+import { prepareClientLocale } from '@evertondgn/solid-runtime/i18n/prepare-client-locale'
 import { hydrate } from '@solidjs/web'
 import { onHydrationEnd } from 'solid-js'
 
@@ -7,27 +6,14 @@ import App from './App.tsx'
 import Document from './Document.tsx'
 import { installOutdatedPageDetection } from './entry-client/installOutdatedPageDetection/index.ts'
 
-const [navigation] = performance.getEntriesByType('navigation')
-const loadedLocale = navigation
-  ? extractLocaleFromUrl(navigation.name)
-  : undefined
-const locale = extractLocaleFromUrl(location.href)
-
-// O histórico pode mudar de idioma enquanto o bundle carrega, antes do guard.
-if (
-  loadedLocale !== undefined &&
-  locale !== undefined &&
-  loadedLocale !== locale
-) {
-  location.reload()
-} else {
+const locale = prepareClientLocale()
+if (locale.shouldHydrate) {
   const disposeOutdatedPageDetection = installOutdatedPageDetection()
-  const disposeLocaleHistoryGuard = installLocaleHistoryGuard()
-  // O Vite guarda um único dispose por módulo.
+  // Vite keeps one dispose callback per module.
   if (import.meta.hot) {
     import.meta.hot.dispose(() => {
       disposeOutdatedPageDetection()
-      disposeLocaleHistoryGuard()
+      locale.dispose()
     })
   }
 
@@ -37,7 +23,7 @@ if (
         <App />
       </Document>
     )
-    // A entrada async pode estacionar hydrate() até o fim do shell.
+    // The async entry may pause hydration until the shell is complete.
     onHydrationEnd(() => {
       document.documentElement.dataset.hydrationEnded = ''
     })

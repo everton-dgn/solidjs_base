@@ -18,6 +18,8 @@ application bundles only the modules it imports.
 | `./middleware/request-classification`     | `isPageRequest`, `isPagePath`, `apiRouteMethods` and `isServerFunctionPath`                                   |
 | `./middleware/negotiate-page-format`      | `negotiatePageFormat` and `acceptsMarkdown`                                                                   |
 | `./middleware/is-html-response`           | `isHtmlResponse`                                                                                              |
+| `./middleware/create-middleware`          | `createMiddleware({ security, extra?, document? })`                                                           |
+| `./middleware/contain-failures`           | `containFailures({ chain, applySecurityHeaders })`                                                            |
 | `./middleware/types`                      | The `Middleware`, `Next` and `StartMiddleware` types                                                          |
 
 ## Server error protection
@@ -81,7 +83,8 @@ retain that extra field without a type diagnostic; the wrapper still forwards
 only `run` and discards extra options. Only the private global registration
 variant enables framework controls. Neither that variant nor the message setter
 has a subpath. The application keeps `requestJson`, publication controllers and
-sources, its middleware containment and render entries. Production logs contain
+sources, its document adapter and authored render trees. The runtime owns
+middleware containment and the shared entry helpers. Production logs contain
 only the fixed source line and filtered class/frames; development diagnostics
 retain the existing original-error behavior.
 
@@ -164,25 +167,77 @@ application; this extraction preserves peer dependencies and ownership.
 
 ## Building the chain
 
-The application keeps its middleware file and picks the steps. The boilerplate
-copy in `apps/boilerplate` runs these three, in this order, inside its own
-failure containment and after its locale and Markdown steps:
+The application supplies one security instance. The same call works with or
+without a translation project:
 
 ```ts
-import { apiRoutes } from '@evertondgn/solid-runtime/middleware/api-routes'
-import { restrictPageMethods } from '@evertondgn/solid-runtime/middleware/restrict-page-methods'
-import type { Middleware } from '@evertondgn/solid-runtime/middleware/types'
+import { createMiddleware } from '@evertondgn/solid-runtime/middleware/create-middleware'
+import { createSecurityHeaders } from '@evertondgn/solid-runtime/middleware/security-headers'
 
-import { securityHeaders } from './securityHeaders/index.ts'
-
-// The API routes get the nonce and the headers first, and the method check
-// comes after them, because an API route may accept POST on a page path.
-const requestMiddleware: Middleware[] = [
-  securityHeaders,
-  apiRoutes,
-  restrictPageMethods
-]
+const security = createSecurityHeaders()
+export default createMiddleware({ security })
 ```
+
+With `project.inlang/settings.json` the preset selects request localization.
+Without it, the request step passes through directly, with no translation
+provider, locale cookie or redirect. The optional
+`virtual:solid-app/request-middleware` seam keeps the request provider out of
+single-language bundles; direct imports of `middleware/localize-request` still
+require a translation project.
+
+The request order is localization, then `extra`, security headers, API routes
+and page-method restrictions. Inner containment runs inside the locale context;
+outer containment covers locale resolution. API handlers may terminate the
+chain, so security must run before them. Development rethrows the original
+failure. Production preserves only bodyless controls and produces public
+failures with the application's configured headers. `serverFailure` is part of
+the runtime's request-locals augmentation; applications must not redeclare it.
+The application error boundary consumes it before mounting its Router.
+
+An optional `document` step accepts the Solid plugin event and next callback. It
+wraps the localized chain with its own containment. A request replacement made
+by that step reaches the locale step and render; a failure before entering the
+chain renders its fallback inside the request locale. A failure after the render
+never renders a second time. The boilerplate supplies Markdown:
+
+```ts
+import { createMiddleware } from '@evertondgn/solid-runtime/middleware/create-middleware'
+import { markdownContent } from './markdownContent/index.ts'
+import { securityHeaders, applySecurityHeaders } from './securityHeaders/index.ts'
+
+export default createMiddleware({
+  security: { securityHeaders, applySecurityHeaders },
+  document: markdownContent
+})
+```
+
+Omitting `document` avoids that adapter and its extra containment layer. The
+factory does not configure the global error hook: retain the application's
+`serverSetup` registration. Custom chains can call
+`containFailures({ chain, applySecurityHeaders })` directly with the same
+security instance. Failures after returning a Response body remain outside the
+containment window.
+
+## Authored render entries
+
+`server/create-render-options` exports `createRenderOptions()`. Call it before
+rendering and spread the returned options into `renderToStream` alongside the
+application manifest. It installs the render-integrity state, forwards the event
+nonce and cancellation signal, and completes the state through `onCompleteAll`.
+It never supplies `onError`, which would override the global error policy. Keep
+that completion callback when adding options.
+
+`i18n/prepare-client-locale` exports `prepareClientLocale({ reload? })`. Before
+hydration it compares the loaded navigation locale with the current URL. A
+mismatch reloads and returns `shouldHydrate: false`. Otherwise it installs the
+history guard and returns `shouldHydrate: true` and `dispose()`. Register that
+cleanup in the entry's existing HMR callback. It also works with the
+single-language provider. Both entries are inert until called.
+
+The application retains its client/server entry pair, identical authored tree,
+Document's literal `/src/entry-client.tsx`, hydration instrumentation and
+outdated-page policy. See
+[ADR 0029](../../docs/ADRs/0029-runtime-middleware-chain.md).
 
 ## Security headers
 

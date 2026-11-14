@@ -123,6 +123,18 @@
     },
     "./server/configure-server-errors": {
       "solid": "./src/infra/server/configureServerErrors/index.ts"
+    },
+    "./middleware/create-middleware": {
+      "solid": "./src/middleware/createMiddleware/index.ts"
+    },
+    "./middleware/contain-failures": {
+      "solid": "./src/middleware/containFailures/index.ts"
+    },
+    "./server/create-render-options": {
+      "solid": "./src/infra/server/createRenderOptions/index.ts"
+    },
+    "./i18n/prepare-client-locale": {
+      "solid": "./src/i18n/prepareClientLocale/index.ts"
     }
   },
   "scripts": {

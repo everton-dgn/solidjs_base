@@ -6,9 +6,22 @@ import {
   deLocalizeUrl,
   extractLocaleFromUrl
 } from '@evertondgn/solid-runtime/i18n/locale'
+import { prepareClientLocale } from '@evertondgn/solid-runtime/i18n/prepare-client-locale'
 import { describe, expect, it } from 'vite-plus/test'
 
 describe('runtime locale', () => {
+  it('prepares the entry without translations or a locale reload', () => {
+    let hasReloaded = false
+    const locale = prepareClientLocale({
+      reload: () => {
+        hasReloaded = true
+      }
+    })
+    locale.dispose()
+    expect(locale.shouldHydrate).toBe(true)
+    expect(hasReloaded).toBe(false)
+  })
+
   it('uses the application locale provider', () => {
     expect(baseLocale).toBe('en')
     expect(locales).toContain('en')

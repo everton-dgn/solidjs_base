@@ -14,6 +14,14 @@ declare module 'virtual:solid-app/locale' {
   export function deLocalizeUrl(url: UrlInput): URL
 }
 
+declare module 'virtual:solid-app/request-middleware' {
+  type Security = { applySecurityHeaders: (response: Response) => Response }
+  type RequestOptions = { request: Request; next: () => Promise<Response> }
+  export function createRequestLocale(
+    options: Security
+  ): (options: RequestOptions) => Promise<Response>
+}
+
 declare module 'virtual:solid-app/locale-request' {
   type Decision = { shouldRedirect: boolean; redirectUrl?: URL; locale: string }
   type Options = { request: Request }

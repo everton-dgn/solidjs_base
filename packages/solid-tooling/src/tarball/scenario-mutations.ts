@@ -5,6 +5,58 @@ import path from 'node:path'
 
 type SourceMutation = { app: string; mutation: string | undefined }
 type Instrumentation = SourceMutation & { root: string }
+type MiddlewareInstrumentation = SourceMutation & { scenario: string }
+
+export function instrumentMiddleware({
+  app,
+  scenario,
+  mutation
+}: MiddlewareInstrumentation): void {
+  if (scenario === 'client-only') return
+  const entry = path.join(app, 'src/middleware.ts')
+  const source = readFileSync(entry, 'utf8')
+  assert.ok(source.includes('security: createSecurityHeaders()'))
+  writeFileSync(
+    entry,
+    `import type { Middleware } from '@evertondgn/solid-runtime/middleware/types'
+const probe: Middleware = async (request, next) => {
+  const failure = new URL(request.url).searchParams.get('middleware-error')
+  if (!failure) return next()
+  if (failure === 'control') throw Response.redirect(new URL('/destination', request.url), 307)
+  if (failure === 'after') await next()
+  throw Object.assign(new Error('MESSAGE_PRIVATE_SCENARIO_MIDDLEWARE', { cause: new Error('CAUSE_PRIVATE_SCENARIO_MIDDLEWARE') }), { privateContext: 'PROPERTY_PRIVATE_SCENARIO_MIDDLEWARE' })
+}
+${source.replace('security: createSecurityHeaders()', 'security: createSecurityHeaders(), extra: [probe]')}`
+  )
+  const directory = path.join(
+    app,
+    'node_modules/@evertondgn/solid-runtime/src/middleware'
+  )
+  if (mutation === 'middleware-body') {
+    const file = path.join(directory, 'containFailures/index.ts')
+    const containment = readFileSync(file, 'utf8')
+    assert.ok(containment.includes('if (import.meta.env.DEV) throw error'))
+    writeFileSync(
+      file,
+      containment.replace(
+        'if (import.meta.env.DEV) throw error',
+        'if (error instanceof Error) return new Response(error.message, { status: 500 }); if (import.meta.env.DEV) throw error'
+      )
+    )
+  }
+  if (mutation === 'middleware-headers') {
+    const file = path.join(directory, 'containFailures/index.ts')
+    const containment = readFileSync(file, 'utf8')
+    assert.ok(containment.includes('return applySecurityHeaders('))
+    writeFileSync(
+      file,
+      containment.replace(
+        'return applySecurityHeaders(',
+        'return ((response: Response) => response)('
+      )
+    )
+  }
+}
 
 export function mutateTheme({ app, mutation }: SourceMutation): void {
   if (mutation === 'theme-import') {

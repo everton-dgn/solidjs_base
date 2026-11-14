@@ -216,8 +216,8 @@ release. Add a tool name to select part of the graph. For example, run
   the "Type location" section when extracting them.
 - Use `type` to declare object, props and contract types in code and tests. The
   lint applies `typescript/consistent-type-definitions` with `type`.
-- Keep `interface` when declaration merging is needed: `RequestEventLocals` in
-  `src/@types/solid.d.ts`, `ImportMetaEnv` in `src/@types/env.d.ts` and
+- Keep `interface` when declaration merging is needed: `RequestEventLocals` in the runtime package
+  `packages/solid-runtime/src/@types/solid.d.ts`, `ImportMetaEnv` in `src/@types/env.d.ts` and
   `RouteInfo` in `src/@types/router.d.ts` extend third-party interfaces. Keep
   the lint exception restricted to the files that need that behavior.
 - Do not edit generated declarations to swap `interface` for `type`.
@@ -533,7 +533,11 @@ release. Add a tool name to select part of the graph. For example, run
   spreads the defaults of `@evertondgn/solid-runtime`; change a value there.
   `src/middleware/securityHeaders/index.ts` holds the only
   `createSecurityHeaders` call, and every step that writes a response imports
-  `securityHeaders` or `applySecurityHeaders` from it. Do not move the CSP or
+  `securityHeaders` or `applySecurityHeaders` from it. The runtime
+  `createMiddleware({ security, extra, document })` receives that same instance;
+  the application supplies Markdown as `document` and the E2E entry extends
+  the chain through the local factory. Failure containment and its 54 tests
+  belong to the runtime. Do not move the CSP or
   the other headers of the function responses back to `vercel.json`.
   The static files do not go through the function: the Nitro `routeRules` that
   `defineSolidApp` builds write `Strict-Transport-Security`,
@@ -552,7 +556,9 @@ release. Add a tool name to select part of the graph. For example, run
 - Do not render `<style>` or use the `style` prop in JSX rendered in the SSR:
   the CSP blocks the attribute. Use classes.
 - Every `<script>` of `Document` receives `nonce={nonce}`, and
-  `src/entry-server.tsx` passes `event.nonce` to `renderToStream`.
+  `src/entry-server.tsx` calls the runtime `createRenderOptions()` before
+  `renderToStream`, forwarding the nonce and signal with render integrity.
+  Do not override its completion callback or supply a local `onError`.
 - Keep the pair of authored entries, with the same tree in
   `src/entry-server.tsx` and `src/entry-client.tsx`, and the `FragmentCss`
   regression, from the `/fragment-css` fixture described in the guide.

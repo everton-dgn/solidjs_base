@@ -138,9 +138,10 @@ from `vite-plus/test/browser-playwright`, and a direct import of
 entries in `node_modules/.bun` are expected until Bun publishes the fix
 ([oven-sh/bun#46454](https://github.com/oven-sh/bun/pull/46454)). The request
 context of the middlewares is tested with `provideRequestEvent` from
-`@solidjs/web/storage`. Each middleware of `src/middleware/` has its own suite
-in `__tests__/`, and `src/middleware/__tests__/middleware.node.test.ts` covers
-the default export and the chain built by `createMiddleware`.
+`@solidjs/web/storage`. Containment and its 54 cases live in the runtime
+package, alongside the chain and entry-helper tests. The application retains its
+Markdown suites, and `src/middleware/__tests__/middleware.node.test.ts` covers
+the default export and the configured package chain through 18 cases.
 
 ## Full application tests
 

@@ -79,7 +79,10 @@ After changing that boundary, run:
 From the workspace root, run `env -u NODE_ENV vp run validate`. This includes
 the runtime unit tests, the backend policy corpus and the installed tarball
 matrix. The runtime owns the shared protection tests; this application retains
-the catalog, publication-controller integration and end-to-end tests.
+the catalog, publication-controller integration, composed Markdown-chain tests
+and end-to-end tests. The 54 containment cases now run in the runtime package;
+entry-helper tests cover completion, cancellation and pre-hydration locale
+changes there as well.
 
 Then run in this application:
 

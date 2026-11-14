@@ -6,10 +6,10 @@ import {
   ssr
 } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
+import { readLog } from '@testing/readLog/index.ts'
 import { createMemo, Loading, onCleanup } from 'solid-js'
 
-import { readLog } from '@/tests/helpers/readLog/index.ts'
-
+import { createSecurityHeaders } from '../../securityHeaders/index.ts'
 import { containFailures } from '../index.ts'
 
 type PageRequest = { client: AbortController; event: RequestEvent }
@@ -20,6 +20,8 @@ type NativeRender = {
   started: PromiseWithResolvers<undefined>
 }
 
+const { applySecurityHeaders } = createSecurityHeaders()
+
 const TEST_ORIGIN = 'http://localhost'
 const HTTP_FOUND = 302
 const HTTP_INTERNAL_SERVER_ERROR = 500
@@ -28,16 +30,16 @@ const LOG_MESSAGE = '[middleware] Unexpected failure; private details omitted'
 const ERROR_PAGE_LOG =
   '[error-page] Unexpected failure; private details omitted'
 const CANCELLATIONS: [string, unknown][] = [
-  ['a desconexão sem motivo informado', undefined],
-  ['a desconexão com motivo próprio', new Error('PRIVATE_CLIENT')],
-  ['o prazo da publicação', new Error('PRIVATE_DEADLINE')],
-  ['um motivo que não é Error', { quiet: true }],
+  ['disconnection without an explicit reason', undefined],
+  ['disconnection with a custom reason', new Error('PRIVATE_CLIENT')],
+  ['publication deadline', new Error('PRIVATE_DEADLINE')],
+  ['a non-Error reason', { quiet: true }],
   ['null', null],
   ['false', false],
   ['zero', 0],
-  ['string vazia', ''],
+  ['empty string', ''],
   ['NaN', Number.NaN],
-  ['zero negativo', -0]
+  ['negative zero', -0]
 ]
 
 function pageRequest(): PageRequest {
@@ -51,7 +53,7 @@ function pageRequest(): PageRequest {
 
 function failingWith(value: unknown) {
   const fail = vi.fn<() => Promise<Response>>().mockRejectedValue(value)
-  return containFailures([fail])
+  return containFailures({ chain: [fail], applySecurityHeaders })
 }
 
 function renderPage() {
@@ -79,7 +81,7 @@ function pendingPage(cleanup: () => void) {
   )
 }
 
-// O render do plugin no modo async aguarda o thenable do renderToStream.
+// The plugin async render awaits the renderToStream thenable.
 function nativeRender(event: RequestEvent): NativeRender {
   const cleanup = vi.fn<() => void>()
   const complete = vi.fn<() => void>()
@@ -104,11 +106,11 @@ function mockProductionLog(): void {
   vi.spyOn(console, 'error').mockImplementation(vi.fn())
 }
 
-describe('cancelamento esperado da requisição', () => {
+describe('expected request cancellation', () => {
   beforeEach(mockProductionLog)
 
   it.each(CANCELLATIONS)(
-    'responde o 500 público sem log nem página de erro em %s',
+    'returns a public 500 without logging or rendering for %s',
     async (_label, reason) => {
       const { client, event } = pageRequest()
       client.abort(reason)
@@ -138,12 +140,15 @@ describe('cancelamento esperado da requisição', () => {
   )
 
   it.each(CANCELLATIONS)(
-    'não registra o abandono do SSR nativo em %s',
+    'does not log native SSR abandonment for %s',
     async (_label, reason) => {
       const { client, event } = pageRequest()
       const { cleanup, complete, render, started } = nativeRender(event)
       const pending = provideRequestEvent(event, () =>
-        containFailures([])(event.request, render)
+        containFailures({ chain: [], applySecurityHeaders })(
+          event.request,
+          render
+        )
       )
       await started.promise
 
@@ -164,7 +169,7 @@ describe('cancelamento esperado da requisição', () => {
     }
   )
 
-  it('preserva a Response de controle lançada durante o cancelamento', async () => {
+  it('preserves a control Response thrown during cancellation', async () => {
     const { client, event } = pageRequest()
     client.abort()
     const control = Response.redirect(new URL('/', TEST_ORIGIN), HTTP_FOUND)
@@ -178,7 +183,7 @@ describe('cancelamento esperado da requisição', () => {
     expect(console.error).not.toHaveBeenCalled()
   })
 
-  it('relança o cancelamento em desenvolvimento', async () => {
+  it('rethrows cancellation in development', async () => {
     vi.stubEnv('DEV', true)
     const { client, event } = pageRequest()
     client.abort()
@@ -191,23 +196,23 @@ describe('cancelamento esperado da requisição', () => {
   })
 })
 
-describe('falha real junto do cancelamento', () => {
+describe('real failures during cancellation', () => {
   beforeEach(mockProductionLog)
 
   it.each([
-    ['um erro comum', () => new TypeError('PRIVATE'), 'TypeError'],
+    ['a regular error', () => new TypeError('PRIVATE'), 'TypeError'],
     [
-      'um AbortError de outro sinal',
+      'an AbortError from another signal',
       () => new DOMException('PRIVATE', 'AbortError'),
       'DOMException'
     ],
     [
-      'um erro que só envolve o motivo',
+      'an error wrapping the reason',
       (reason: unknown) => new Error('PRIVATE', { cause: reason }),
       'Error'
     ]
   ])(
-    'registra %s lançado com o sinal abortado',
+    'logs %s thrown after the signal aborts',
     async (_label, createFailure, className) => {
       const { client, event } = pageRequest()
       client.abort(new Error('PRIVATE_CLIENT'))
@@ -225,9 +230,8 @@ describe('falha real junto do cancelamento', () => {
     }
   )
 
-  // Sem o sinal abortado, o motivo é undefined: um undefined lançado não é
-  // cancelamento, embora seja idêntico a ele.
-  it('registra um undefined lançado com o sinal ativo', async () => {
+  // An active signal has an undefined reason; throwing undefined is still a failure.
+  it('logs undefined thrown while the signal is active', async () => {
     const { event } = pageRequest()
 
     const response = await provideRequestEvent(event, () =>
@@ -242,10 +246,10 @@ describe('falha real junto do cancelamento', () => {
   })
 
   it.each([
-    ['antes da página de erro', true],
-    ['durante a página de erro', false]
+    ['before the error page', true],
+    ['during the error page', false]
   ])(
-    'mantém só o log da falha original com o cancelamento %s',
+    'keeps only the original failure log with cancellation %s',
     async (_label, shouldAbortFirst) => {
       const { client, event } = pageRequest()
       const { render, started } = nativeRender(event)
@@ -274,7 +278,7 @@ describe('falha real junto do cancelamento', () => {
     }
   )
 
-  it('registra o erro distinto do render de erro cancelado', async () => {
+  it('logs a different error from the cancelled error render', async () => {
     const { client, event } = pageRequest()
     const render = vi.fn<() => Promise<Response>>().mockImplementation(() => {
       client.abort(new Error('PRIVATE_CLIENT'))

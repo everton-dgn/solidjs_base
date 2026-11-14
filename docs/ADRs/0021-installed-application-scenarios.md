@@ -3,8 +3,9 @@
 - Status: Accepted, amended by [0024](0024-runtime-theme.md),
   [0025](0025-packaged-i18n-generator.md),
   [0026](0026-runtime-locale-navigation.md),
-  [0027](0027-packaged-tool-dependencies.md) and
-  [0028](0028-runtime-server-errors.md)
+  [0027](0027-packaged-tool-dependencies.md),
+  [0028](0028-runtime-server-errors.md) and
+  [0029](0029-packaged-environment-schemas.md)
 - Date: 2026-11-13
 
 ## Context
@@ -126,3 +127,20 @@ Existing scenario assertions remain in place. The runner explicitly removes
 inherited NODE_ENV and verifies each owned PID and process group before stopping
 it. See [ADR 0028](0028-runtime-server-errors.md) for the public API and its
 limits.
+
+## Packaged environment schemas
+
+SSR plain adds `env.ts` with the package fragment and application server/client
+keys, without adding Valibot to its dependencies. The other fixtures retain the
+no-schema contract. Both linkers check exact generated types and a runtime
+server value different from the build value. The bundle audit allows only
+`solid-tooling/dist/env.mjs` in server graphs and refuses Valibot in the client.
+A clean build generates the declarations before lint and TypeScript; an
+instrumented build later checks the graph.
+
+Each SSR plain case requires a boot validation error naming `PORT` when preview
+receives `PORT=abc`. Nitro preview opens its listener before loading the server,
+so the test makes a request and requires HTTP 500 plus the boot diagnostic. A
+separate client import of `virtual:solid-env/server` must fail the build. The
+existing runtime server-only probe still runs after restoring that entry. See
+[ADR 0029](0029-packaged-environment-schemas.md).

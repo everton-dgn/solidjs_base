@@ -578,3 +578,11 @@ release. Add a tool name to select part of the graph. For example, run
 - On Solid or plugin updates, follow the "Upgrading Solid" roadmap of the
   guide: only remove the wrapper when a reproduction without that interception
   proves the coverage in the installed version.
+
+## Runtime theme
+
+The single theme configuration is `src/constants/theme.ts`, using
+`@evertondgn/solid-runtime/theme/define-theme`. Theme adapters, types and
+`createTheme` now live under `packages/solid-runtime/src/theme/`, with their
+tests. Keep the context, Provider, ThemeToggle and CSS in the application.
+Document owns the script element and its request nonce.

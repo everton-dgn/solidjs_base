@@ -1,0 +1,1292 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <title>Solid Base README figures</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=block"
+      rel="stylesheet"
+    />
+    <style>
+      :root[data-theme='dark'] {
+        --bg-0: #060a13;
+        --bg-1: #0b1221;
+        --panel: rgba(255, 255, 255, 0.04);
+        --panel-2: rgba(255, 255, 255, 0.07);
+        --panel-solid: #0f1829;
+        --border: rgba(148, 178, 222, 0.16);
+        --border-strong: rgba(148, 178, 222, 0.3);
+        --hair: rgba(148, 178, 222, 0.11);
+        --text: #f3f7fd;
+        --text-2: #b6c2d8;
+        --text-3: #8795ae;
+        --accent: #7fb9e6;
+        --accent-ink: #9fcdf2;
+        --accent-fill: #5b96d3;
+        --track: rgba(127, 185, 230, 0.16);
+        --ok: #62d394;
+        --ok-bg: rgba(98, 211, 148, 0.12);
+        --warn: #f1b863;
+        --warn-bg: rgba(241, 184, 99, 0.12);
+        --code-key: #8fbceb;
+        --code-str: #a6dcb4;
+        --code-fn: #efcd8b;
+        --code-id: #dbe3ef;
+        --code-com: #74829a;
+        --glow-1: rgba(81, 138, 200, 0.34);
+        --glow-2: rgba(49, 90, 169, 0.3);
+        --glow-soft: rgba(81, 138, 200, 0.16);
+        --grid: rgba(148, 178, 222, 0.07);
+        --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+        --grad: linear-gradient(100deg, #b5dbf7 0%, #76b3e1 45%, #5b96d3 100%);
+      }
+      :root[data-theme='light'] {
+        --bg-0: #eef4fb;
+        --bg-1: #ffffff;
+        --panel: #ffffff;
+        --panel-2: #f3f7fc;
+        --panel-solid: #ffffff;
+        --border: #d3deec;
+        --border-strong: #b4c6dd;
+        --hair: #e2e9f2;
+        --text: #0b1525;
+        --text-2: #3d4c64;
+        --text-3: #5d6c85;
+        --accent: #2f58a8;
+        --accent-ink: #264a8f;
+        --accent-fill: #3f72c0;
+        --track: #d9e6f5;
+        --ok: #157a3a;
+        --ok-bg: #e3f4e9;
+        --warn: #8a5800;
+        --warn-bg: #fbf0d9;
+        --code-key: #2f58a8;
+        --code-str: #157a3a;
+        --code-fn: #8a5800;
+        --code-id: #0b1525;
+        --code-com: #6a778c;
+        --glow-1: rgba(118, 179, 225, 0.42);
+        --glow-2: rgba(81, 138, 200, 0.2);
+        --glow-soft: rgba(118, 179, 225, 0.2);
+        --grid: rgba(49, 90, 169, 0.07);
+        --shadow: 0 14px 36px rgba(31, 59, 119, 0.13);
+        --grad: linear-gradient(100deg, #1f3b77 0%, #315aa9 50%, #4377bb 100%);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: transparent;
+      }
+      body {
+        font-family: 'Geist', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+      code,
+      .mono {
+        font-family: 'Geist Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+      }
+      .figure {
+        display: none;
+        position: relative;
+        width: 800px;
+        overflow: hidden;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background:
+          radial-gradient(58% 78% at 88% -6%, var(--glow-1), transparent 62%),
+          radial-gradient(52% 70% at -4% 108%, var(--glow-2), transparent 60%),
+          linear-gradient(180deg, var(--bg-1), var(--bg-0));
+      }
+      .figure.on {
+        display: block;
+      }
+      .figure:not(#hero) {
+        background:
+          radial-gradient(46% 62% at 100% 0%, var(--glow-soft), transparent 66%),
+          linear-gradient(180deg, var(--bg-1), var(--bg-0));
+      }
+      .figure:not(#hero)::before {
+        display: none;
+      }
+      :root[data-theme='light'] .win {
+        box-shadow: none;
+      }
+      .figure::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(var(--grid) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+        background-size: 32px 32px;
+        mask-image: radial-gradient(90% 90% at 80% 0%, #000 0%, transparent 70%);
+        pointer-events: none;
+      }
+      .pad {
+        position: relative;
+        padding: 36px 40px 38px;
+      }
+      .eyebrow {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 10px;
+      }
+      .title {
+        font-size: 27px;
+        line-height: 1.18;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        margin: 0;
+      }
+      .lede {
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--text-2);
+        margin: 8px 0 0;
+        max-width: 560px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+      :root[data-theme='light'] .panel {
+        box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 28px;
+        padding: 0 11px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .chip.ok {
+        color: var(--ok);
+        background: var(--ok-bg);
+      }
+      .chip.warn {
+        color: var(--warn);
+        background: var(--warn-bg);
+      }
+      .chip.accent {
+        color: var(--accent-ink);
+        background: var(--track);
+      }
+      .ico {
+        width: 14px;
+        height: 14px;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .grad-text {
+        background: var(--grad);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      /* Hero */
+      #hero .pad {
+        display: grid;
+        grid-template-columns: 384px 1fr;
+        gap: 26px;
+        padding: 44px 40px 44px 44px;
+        min-height: 440px;
+        align-items: center;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .brand .sep {
+        width: 1px;
+        height: 16px;
+        background: var(--border-strong);
+      }
+      .brand .for {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-3);
+      }
+      .base-glyph {
+        width: 22px;
+        height: 22px;
+      }
+      #hero h1 {
+        font-size: 39px;
+        line-height: 1.08;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        margin: 26px 0 0;
+      }
+      #hero .sub {
+        font-size: 15px;
+        line-height: 1.55;
+        color: var(--text-2);
+        margin: 18px 0 0;
+        max-width: 372px;
+      }
+      .install {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 24px;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 10px;
+        border: 1px solid var(--border-strong);
+        background: var(--panel-2);
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .install .prompt {
+        color: var(--accent);
+      }
+      .stack-wrap {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .solid-mark {
+        position: relative;
+        width: 150px;
+        height: auto;
+        z-index: 2;
+        filter: drop-shadow(0 14px 26px rgba(49, 90, 169, 0.55));
+      }
+      :root[data-theme='light'] .solid-mark {
+        filter: drop-shadow(0 12px 20px rgba(49, 90, 169, 0.3));
+      }
+      .halo {
+        position: absolute;
+        top: -40px;
+        left: 50%;
+        width: 340px;
+        height: 270px;
+        transform: translateX(-50%);
+        background: radial-gradient(closest-side, var(--glow-1), transparent 72%);
+        z-index: 0;
+      }
+      .stack {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .slab {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        height: 38px;
+        padding: 0 14px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--panel-solid);
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+      }
+      :root[data-theme='light'] .slab {
+        box-shadow: 0 4px 12px rgba(31, 59, 119, 0.08);
+      }
+      .slab .tools {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-3);
+      }
+      .slab:first-child {
+        border-color: var(--border-strong);
+        background: linear-gradient(180deg, var(--panel-2), var(--panel-solid));
+      }
+      .stack-name {
+        margin-top: 12px;
+        font-size: 14px;
+        color: var(--text-3);
+      }
+
+      /* Fix once */
+      .two {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 24px;
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        padding: 18px;
+      }
+      .col .note {
+        margin-top: auto;
+        padding-top: 14px;
+      }
+      .col-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .apps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .app {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--panel-solid);
+        padding: 9px 9px 10px;
+      }
+      .app-bar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-2);
+      }
+      .app-bar i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--border-strong);
+      }
+      .app-bar span {
+        margin-left: 3px;
+      }
+      .copy {
+        margin-top: 9px;
+        border-radius: 7px;
+        border: 1px dashed var(--border-strong);
+        padding: 9px 8px;
+        text-align: center;
+      }
+      .copy b {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .copy span {
+        display: block;
+        margin-top: 2px;
+        font-size: 14px;
+        color: var(--text-3);
+      }
+      .app .chip {
+        width: 100%;
+        justify-content: center;
+        margin-top: 8px;
+        padding: 0 4px;
+        gap: 5px;
+      }
+      .thin {
+        margin-top: 9px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 7px;
+        background: var(--track);
+        color: var(--accent-ink);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .wires {
+        display: block;
+        width: 100%;
+        height: 34px;
+      }
+      .wires path {
+        fill: none;
+        stroke: var(--accent-fill);
+        stroke-width: 1.5;
+      }
+      .pkg {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        border-radius: 10px;
+        border: 1px solid var(--accent-fill);
+        background: var(--track);
+        padding: 12px;
+      }
+      .pkg .name {
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .note {
+        margin: 14px 0 0;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text-2);
+      }
+
+      /* Before and after */
+      .ba {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 28px;
+        margin-top: 26px;
+        align-items: center;
+      }
+      .hero-num {
+        font-size: 84px;
+        line-height: 0.95;
+        font-weight: 700;
+        letter-spacing: -0.05em;
+      }
+      .hero-pre {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-2);
+        margin-bottom: 6px;
+      }
+      .hero-num small {
+        font-size: 40px;
+        letter-spacing: -0.02em;
+      }
+      .hero-cap {
+        margin-top: 10px;
+        font-size: 17px;
+        line-height: 1.3;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .hero-sub {
+        margin-top: 10px;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--text-2);
+      }
+      .meters {
+        padding: 8px 20px;
+      }
+      .meter {
+        display: grid;
+        grid-template-columns: 176px 1fr 118px;
+        align-items: center;
+        gap: 14px;
+        height: 44px;
+        border-top: 1px solid var(--hair);
+      }
+      .meter:first-child {
+        border-top: 0;
+      }
+      .meter .name {
+        font-size: 15px;
+        font-weight: 500;
+      }
+      .bar {
+        position: relative;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--track);
+      }
+      .bar i {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: 999px;
+        background: var(--accent-fill);
+      }
+      .meter .nums {
+        font-size: 15px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .nums .was {
+        color: var(--text-3);
+      }
+      .nums .arrow {
+        color: var(--text-3);
+        margin: 0 4px;
+      }
+      .nums .now {
+        font-weight: 600;
+      }
+      .caption {
+        margin: 14px 2px 0;
+        font-size: 15px;
+        line-height: 1.45;
+        color: var(--text-2);
+      }
+      .legend {
+        display: flex;
+        gap: 18px;
+        margin-top: 14px;
+        font-size: 14px;
+        color: var(--text-2);
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .legend i {
+        width: 18px;
+        height: 8px;
+        border-radius: 999px;
+      }
+
+      /* Code windows */
+      .win {
+        overflow: hidden;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--panel-solid);
+        box-shadow: var(--shadow);
+      }
+      .win-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: 34px;
+        padding: 0 12px;
+        border-bottom: 1px solid var(--hair);
+        font-size: 14px;
+        color: var(--text-3);
+      }
+      .win-bar i {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--border-strong);
+      }
+      .win-bar span {
+        margin-left: 8px;
+        font-weight: 500;
+      }
+      .code {
+        margin: 0;
+        padding: 14px 16px 16px;
+        font-size: 14px;
+        line-height: 1.75;
+        color: var(--code-id);
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .code .ln {
+        display: inline-block;
+        width: 22px;
+        color: var(--code-com);
+        user-select: none;
+      }
+      .k {
+        color: var(--code-key);
+      }
+      .s {
+        color: var(--code-str);
+      }
+      .f {
+        color: var(--code-fn);
+      }
+      .c {
+        color: var(--code-com);
+      }
+      .err-line {
+        display: block;
+        margin: 0 -16px;
+        padding: 0 16px;
+        background: var(--warn-bg);
+        box-shadow: inset 2px 0 0 var(--warn);
+      }
+      .squiggle {
+        text-decoration: underline wavy var(--warn);
+        text-underline-offset: 4px;
+      }
+      .term .err {
+        color: var(--warn);
+        font-weight: 600;
+      }
+      .term .rule {
+        color: var(--accent-ink);
+        font-weight: 600;
+      }
+      .term .dim {
+        color: var(--text-3);
+      }
+      .first {
+        display: grid;
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      /* Numbered windows */
+      .win-bar .n {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--track);
+        color: var(--accent-ink);
+        font-size: 14px;
+        font-weight: 700;
+        font-style: normal;
+      }
+      .win-bar .n.ok {
+        background: var(--ok-bg);
+        color: var(--ok);
+      }
+      .win-bar .push {
+        margin-left: auto;
+      }
+
+      /* Proof */
+      .proof {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        margin-top: 22px;
+      }
+      .proof-num {
+        font-size: 60px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: -0.045em;
+        white-space: nowrap;
+      }
+      .proof-num small {
+        font-size: 30px;
+        letter-spacing: -0.02em;
+      }
+      .proof-text {
+        max-width: 420px;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--text-2);
+      }
+      .proof-text b {
+        display: block;
+        font-size: 17px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--text);
+      }
+
+      /* Bands */
+      .bands {
+        margin-top: 22px;
+        padding: 4px 20px;
+      }
+      .band {
+        display: grid;
+        grid-template-columns: 170px 178px 18px 1fr;
+        align-items: center;
+        gap: 14px;
+        padding: 15px 0;
+        border-top: 1px solid var(--hair);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      .band-head {
+        padding: 11px 0;
+        border-top: 0;
+        font-weight: 600;
+        color: var(--text-3);
+      }
+      .feat-name b {
+        display: block;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .feat-name i {
+        display: block;
+        margin-top: 2px;
+        font-style: normal;
+        color: var(--text-3);
+      }
+      .band .opt {
+        justify-self: start;
+        padding: 4px 9px;
+        border-radius: 7px;
+        background: var(--track);
+        color: var(--accent-ink);
+        font-weight: 600;
+      }
+      .band .what {
+        color: var(--text-2);
+      }
+      .band .ico {
+        width: 16px;
+        height: 16px;
+        color: var(--accent);
+      }
+
+      /* Stations */
+      .stations {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 26px;
+        margin-top: 24px;
+      }
+      .station {
+        position: relative;
+        padding: 18px 18px 20px;
+      }
+      .station .when {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--accent);
+      }
+      .station h3 {
+        margin: 6px 0 0;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+      }
+      .station p {
+        margin: 10px 0 0;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--text-2);
+      }
+      .station .chip {
+        margin-top: 12px;
+      }
+      .figs {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-top: 10px;
+        font-size: 15px;
+        color: var(--text-2);
+      }
+      .figs b {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        color: var(--text);
+      }
+      .station:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: -18px;
+        width: 9px;
+        height: 9px;
+        border-top: 2px solid var(--accent);
+        border-right: 2px solid var(--accent);
+        transform: translateY(-50%) rotate(45deg);
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute">
+      <defs>
+        <symbol id="i-check" viewBox="0 0 16 16">
+          <path d="M3 8.5l3.2 3.2L13 5" />
+        </symbol>
+        <symbol id="i-warn" viewBox="0 0 16 16">
+          <path d="M8 2.5l6 10.5H2z" />
+          <path d="M8 6.8v2.9M8 11.4v.1" />
+        </symbol>
+        <symbol id="i-arrow" viewBox="0 0 16 16">
+          <path d="M2.5 8h10M9 4.5L12.5 8 9 11.5" />
+        </symbol>
+        <symbol id="i-solid" viewBox="0 0 166 155.3">
+          <path
+            d="M163 35S110-4 69 5l-3 1c-6 2-11 5-14 9l-2 3-15 26 26 5c11 7 25 10 38 7l46 9 18-30z"
+            fill="#76b3e1"
+          />
+          <linearGradient
+            id="sa"
+            gradientUnits="userSpaceOnUse"
+            x1="27.5"
+            y1="3"
+            x2="152"
+            y2="63.5"
+          >
+            <stop offset=".1" stop-color="#76b3e1" />
+            <stop offset=".3" stop-color="#dcf2fd" />
+            <stop offset="1" stop-color="#76b3e1" />
+          </linearGradient>
+          <path
+            d="M163 35S110-4 69 5l-3 1c-6 2-11 5-14 9l-2 3-15 26 26 5c11 7 25 10 38 7l46 9 18-30z"
+            opacity=".3"
+            fill="url(#sa)"
+          />
+          <path
+            d="M52 35l-4 1c-17 5-22 21-13 35 10 13 31 20 48 15l62-21S92 26 52 35z"
+            fill="#518ac8"
+          />
+          <linearGradient
+            id="sb"
+            gradientUnits="userSpaceOnUse"
+            x1="95.8"
+            y1="32.6"
+            x2="74"
+            y2="105.2"
+          >
+            <stop offset="0" stop-color="#76b3e1" />
+            <stop offset=".5" stop-color="#4377bb" />
+            <stop offset="1" stop-color="#1f3b77" />
+          </linearGradient>
+          <path
+            d="M52 35l-4 1c-17 5-22 21-13 35 10 13 31 20 48 15l62-21S92 26 52 35z"
+            opacity=".3"
+            fill="url(#sb)"
+          />
+          <linearGradient
+            id="sc"
+            gradientUnits="userSpaceOnUse"
+            x1="18.4"
+            y1="64.2"
+            x2="144.3"
+            y2="149.8"
+          >
+            <stop offset="0" stop-color="#315aa9" />
+            <stop offset=".5" stop-color="#518ac8" />
+            <stop offset="1" stop-color="#315aa9" />
+          </linearGradient>
+          <path
+            d="M134 80a45 45 0 00-48-15L24 85 4 120l112 19 20-36c4-7 3-15-2-23z"
+            fill="url(#sc)"
+          />
+          <linearGradient
+            id="sd"
+            gradientUnits="userSpaceOnUse"
+            x1="75.2"
+            y1="74.5"
+            x2="24.4"
+            y2="260.8"
+          >
+            <stop offset="0" stop-color="#4377bb" />
+            <stop offset=".5" stop-color="#1a336b" />
+            <stop offset="1" stop-color="#1a336b" />
+          </linearGradient>
+          <path
+            d="M114 115a45 45 0 00-48-15L4 120s53 40 94 30l3-1c17-5 23-21 13-34z"
+            fill="url(#sd)"
+          />
+        </symbol>
+      </defs>
+    </svg>
+
+    <!-- 1. Hero -->
+    <section class="figure" id="hero">
+      <div class="pad">
+        <div>
+          <div class="brand">
+            <svg class="base-glyph" viewBox="0 0 22 22" aria-hidden="true">
+              <rect
+                x="6"
+                y="3"
+                width="10"
+                height="4"
+                rx="1.6"
+                fill="var(--accent)"
+              />
+              <rect
+                x="3.5"
+                y="9"
+                width="15"
+                height="4"
+                rx="1.6"
+                fill="var(--accent-fill)"
+              />
+              <rect
+                x="1"
+                y="15"
+                width="20"
+                height="4"
+                rx="1.6"
+                fill="var(--accent-fill)"
+                opacity=".6"
+              />
+            </svg>
+            Solid Base
+            <span class="sep"></span>
+            <span class="for">for SolidJS 2 and Vite+</span>
+          </div>
+          <h1>
+            Stop maintaining <span class="grad-text">the same tooling</span> in
+            every Solid app.
+          </h1>
+          <p class="sub">
+            Lint rules, formatting, TypeScript, app config, tests and Git hooks,
+            delivered as one versioned dependency.
+          </p>
+          <div class="install mono">
+            <span class="prompt">$</span> vp add -D @evertondgn/solid-tooling
+          </div>
+        </div>
+        <div class="stack-wrap">
+          <div class="halo"></div>
+          <svg
+            class="solid-mark"
+            viewBox="0 0 166 155.3"
+            role="img"
+            aria-label="SolidJS"
+          >
+            <use href="#i-solid" />
+          </svg>
+          <div class="stack">
+            <div class="slab" style="width: 236px">
+              <span>Lint rules</span><span class="tools">Oxlint</span>
+            </div>
+            <div class="slab" style="width: 248px">
+              <span>App config</span><span class="tools">Vite · Nitro</span>
+            </div>
+            <div class="slab" style="width: 260px">
+              <span>Tests</span><span class="tools">Vitest · Playwright</span>
+            </div>
+            <div class="slab" style="width: 272px">
+              <span>Format, types</span
+              ><span class="tools">Oxfmt · TypeScript</span>
+            </div>
+            <div class="slab" style="width: 284px">
+              <span>Unused code, CSS</span
+              ><span class="tools">Knip · Stylelint</span>
+            </div>
+            <div class="slab" style="width: 296px">
+              <span>Commits, hooks</span
+              ><span class="tools">commitlint · Lefthook</span>
+            </div>
+          </div>
+          <div class="stack-name mono">@evertondgn/solid-tooling</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Fix once -->
+    <section class="figure" id="fix-once">
+      <div class="pad">
+        <p class="eyebrow">The problem</p>
+        <h2 class="title">A copied starter drifts. A dependency updates.</h2>
+        <div class="two">
+          <div class="panel col">
+            <div class="col-head">
+              Copy the starter
+              <span class="chip warn"
+                ><svg class="ico"><use href="#i-warn" /></svg>3 places to
+                fix</span
+              >
+            </div>
+            <div class="apps">
+              <div class="app">
+                <div class="app-bar"><i></i><span>App A</span></div>
+                <div class="copy">
+                  <b>Tooling</b><span>~15,000<br />lines</span>
+                </div>
+                <span class="chip ok"
+                  ><svg class="ico"><use href="#i-check" /></svg>Fixed</span
+                >
+              </div>
+              <div class="app">
+                <div class="app-bar"><i></i><span>App B</span></div>
+                <div class="copy">
+                  <b>Tooling</b><span>~15,000<br />lines</span>
+                </div>
+                <span class="chip warn"
+                  ><svg class="ico"><use href="#i-warn" /></svg>Pending</span
+                >
+              </div>
+              <div class="app">
+                <div class="app-bar"><i></i><span>App C</span></div>
+                <div class="copy">
+                  <b>Tooling</b><span>~15,000<br />lines</span>
+                </div>
+                <span class="chip warn"
+                  ><svg class="ico"><use href="#i-warn" /></svg>Drifted</span
+                >
+              </div>
+            </div>
+            <p class="note">
+              Every fix to the base is repeated by hand in each application.
+            </p>
+          </div>
+          <div class="panel col">
+            <div class="col-head">
+              Depend on Solid Base
+              <span class="chip ok"
+                ><svg class="ico"><use href="#i-check" /></svg>1 place to
+                fix</span
+              >
+            </div>
+            <div class="apps">
+              <div class="app">
+                <div class="app-bar"><i></i><span>App A</span></div>
+                <div class="thin">Thin config</div>
+              </div>
+              <div class="app">
+                <div class="app-bar"><i></i><span>App B</span></div>
+                <div class="thin">Thin config</div>
+              </div>
+              <div class="app">
+                <div class="app-bar"><i></i><span>App C</span></div>
+                <div class="thin">Thin config</div>
+              </div>
+            </div>
+            <svg
+              class="wires"
+              viewBox="0 0 320 34"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <path d="M52 0v12q0 8 8 8h92q8 0 8 8v6" />
+              <path d="M160 0v34" />
+              <path d="M268 0v12q0 8 -8 8h-92q-8 0 -8 8v6" />
+            </svg>
+            <div class="pkg">
+              <span class="name mono">@evertondgn/solid-tooling</span>
+              <span class="chip ok mono"
+                ><svg class="ico"><use href="#i-check" /></svg>vp update</span
+              >
+            </div>
+            <p class="note">
+              One fix reaches every application with a dependency update.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Before and after -->
+    <section class="figure" id="before-after">
+      <div class="pad">
+        <p class="eyebrow">Measured on the same application</p>
+        <h2 class="title">The configuration you stop maintaining</h2>
+        <div class="ba">
+          <div>
+            <div class="hero-pre">About</div>
+            <div class="hero-num grad-text">94<small>%</small></div>
+            <div class="hero-cap">less configuration in your repository</div>
+            <div class="hero-sub">
+              About 2,450 lines before.<br />142 lines after.
+            </div>
+          </div>
+          <div>
+            <div class="panel meters">
+              <div class="meter">
+                <span class="name mono">vite.config.ts</span>
+                <span class="bar"><i style="width: 13.3%"></i></span>
+                <span class="nums mono"
+                  ><span class="was">427</span><span class="arrow">→</span
+                  ><span class="now">57</span></span
+                >
+              </div>
+              <div class="meter">
+                <span class="name">Playwright config</span>
+                <span class="bar"><i style="width: 9.8%"></i></span>
+                <span class="nums mono"
+                  ><span class="was">173</span><span class="arrow">→</span
+                  ><span class="now">17</span></span
+                >
+              </div>
+              <div class="meter">
+                <span class="name">Knip config</span>
+                <span class="bar"><i style="width: 37.2%"></i></span>
+                <span class="nums mono"
+                  ><span class="was">129</span><span class="arrow">→</span
+                  ><span class="now">48</span></span
+                >
+              </div>
+              <div class="meter">
+                <span class="name mono">tsconfig.json</span>
+                <span class="bar"><i style="width: 20%"></i></span>
+                <span class="nums mono"
+                  ><span class="was">45</span><span class="arrow">→</span
+                  ><span class="now">9</span></span
+                >
+              </div>
+              <div class="meter">
+                <span class="name">Stylelint, one script</span>
+                <span class="bar"><i style="width: 6.4%"></i></span>
+                <span class="nums mono"
+                  ><span class="was">171</span><span class="arrow">→</span
+                  ><span class="now">11</span></span
+                >
+              </div>
+              <div class="meter">
+                <span class="name">Lint preset and rules</span>
+                <span class="bar"><i style="width: 0"></i></span>
+                <span class="nums mono"
+                  ><span class="was">~1,500</span><span class="arrow">→</span
+                  ><span class="now">0</span></span
+                >
+              </div>
+            </div>
+            <p class="caption">
+              Each bar is one file. The fill is the share of its original lines
+              that stays in your app.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. First result -->
+    <section class="figure" id="first-result">
+      <div class="pad">
+        <p class="eyebrow">Quick start</p>
+        <h2 class="title">A rule of the package fires in your first run</h2>
+        <div class="first">
+          <div class="win">
+            <div class="win-bar">
+              <b class="n">1</b
+              ><span class="mono">src/helpers/export-list.ts</span>
+            </div>
+            <pre
+              class="code mono"
+            ><span class="ln">1</span><span class="k">const</span> example = <span class="f">1</span>
+<span class="ln">2</span>
+<span class="err-line"><span class="ln">3</span><span class="squiggle"><span class="k">export</span> { example }</span></span></pre>
+          </div>
+          <div class="win term">
+            <div class="win-bar">
+              <b class="n">2</b><span class="mono">vp lint</span>
+            </div>
+            <pre
+              class="code mono"
+            ><span class="dim">src/helpers/export-list.ts:3:1</span>  <span class="err">error</span> <span class="rule">project(no-export-list)</span>
+Export on the declaration itself (export function, export const, export type) instead of using export { ... }. An export list is only allowed in a re-export with from.</pre>
+          </div>
+          <div class="win">
+            <div class="win-bar">
+              <b class="n ok">3</b><span>The fix</span
+              ><span class="chip ok push"
+                ><svg class="ico"><use href="#i-check" /></svg>Passes</span
+              >
+            </div>
+            <pre
+              class="code mono"
+            ><span class="ln">1</span><span class="k">export const</span> example = <span class="f">1</span></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. Optional features -->
+    <section class="figure" id="only-what-you-use">
+      <div class="pad">
+        <p class="eyebrow">Only what you use</p>
+        <h2 class="title">Control what enters your build</h2>
+        <div class="proof">
+          <div class="proof-num grad-text">29<small> KB</small></div>
+          <div class="proof-text">
+            <b>One index.html and one script.</b> A minimal client-only build,
+            measured, with no server output.
+          </div>
+        </div>
+        <div class="panel bands">
+          <div class="band band-head">
+            <span>Feature</span><span>You write</span><span></span
+            ><span>What changes</span>
+          </div>
+          <div class="band">
+            <span class="feat-name"
+              ><b>Server rendering</b><i>On by default</i></span
+            >
+            <span class="opt mono">ssr: false</span>
+            <svg class="ico"><use href="#i-arrow" /></svg>
+            <span class="what"
+              >A client-only build: no Nitro, no server functions and no server
+              bundle.</span
+            >
+          </div>
+          <div class="band">
+            <span class="feat-name"
+              ><b>Publication</b><i>Off by default</i></span
+            >
+            <span class="opt mono">publication: true</span>
+            <svg class="ico"><use href="#i-arrow" /></svg>
+            <span class="what"
+              >Header rules for the sitemap, robots.txt, llms.txt and Markdown
+              pages.</span
+            >
+          </div>
+          <div class="band">
+            <span class="feat-name"
+              ><b>Translations</b><i>Only with Paraglide</i></span
+            >
+            <span class="opt mono">project.inlang/</span>
+            <svg class="ico"><use href="#i-arrow" /></svg>
+            <span class="what"
+              >The generation task, the browser test setup and the lint plugin.
+              Locales come from your settings.</span
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Verified -->
+    <section class="figure" id="verified">
+      <div class="pad">
+        <p class="eyebrow">How it is verified</p>
+        <h2 class="title">
+          Every release passes through a complete application
+        </h2>
+        <div class="stations">
+          <div class="panel station">
+            <span class="when">Every change</span>
+            <h3>Full app in CI</h3>
+            <div class="figs"><b>1,000+</b><span>Vitest tests</span></div>
+            <div class="figs"><b>300+</b><span>E2E tests</span></div>
+          </div>
+          <div class="panel station">
+            <span class="when">Before each release</span>
+            <h3>Pack, install, check</h3>
+            <p>
+              The tarball is installed in a separate application. Its exports
+              and lint rules are checked there.
+            </p>
+          </div>
+          <div class="panel station">
+            <span class="when">Publication</span>
+            <h3>Signed npm provenance</h3>
+            <p>Trusted publishing from the workflow.</p>
+            <span class="chip ok"
+              ><svg class="ico"><use href="#i-check" /></svg>No stored npm
+              token</span
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      const params = new URLSearchParams(location.search)
+      document.documentElement.dataset.theme = params.get('theme') ?? 'dark'
+      const figure = params.get('figure')
+      for (const section of document.querySelectorAll('.figure')) {
+        section.classList.toggle('on', figure === null || section.id === figure)
+      }
+      if (figure === null) document.body.style.cssText = 'display:grid;gap:24px;padding:24px;background:#888'
+    </script>
+  </body>
+</html>

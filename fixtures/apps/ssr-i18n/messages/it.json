@@ -1,3 +1,4 @@
 {
-  "greeting": "Ciao mondo"
+  "greeting": "Ciao mondo",
+  "configureServerErrors_message": "Impossibile completare la richiesta."
 }

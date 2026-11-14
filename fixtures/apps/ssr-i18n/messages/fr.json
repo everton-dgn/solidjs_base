@@ -1,3 +1,4 @@
 {
-  "greeting": "Bonjour le monde"
+  "greeting": "Bonjour le monde",
+  "configureServerErrors_message": "La demande ne peut pas être traitée."
 }

@@ -1,3 +1,4 @@
 {
-  "greeting": "Hallo Welt"
+  "greeting": "Hallo Welt",
+  "configureServerErrors_message": "Die Anfrage konnte nicht abgeschlossen werden."
 }

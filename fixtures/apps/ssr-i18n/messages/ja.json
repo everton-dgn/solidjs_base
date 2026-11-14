@@ -1,3 +1,4 @@
 {
-  "greeting": "こんにちは世界"
+  "greeting": "こんにちは世界",
+  "configureServerErrors_message": "リクエストを完了できませんでした。"
 }

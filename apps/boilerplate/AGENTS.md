@@ -554,13 +554,14 @@ release. Add a tool name to select part of the graph. For example, run
   in public data or in a new public error before it reaches Solid.
 - HTTP uses `requestJson`. An SDK or a database requires an adapter in
   `src/infra/server/`, with `server-only` and `protectServerOperation({ run })`
-  wrapping the read, the validation and the output. `allowControl` belongs only
-  to the global server function registry.
+  wrapping the read, the validation and the output. The public runtime API
+  rejects `allowControl`; only the package's internal registry variant enables
+  controls.
 - The schema selects the public fields: the structural check of the wrapper
   does not identify confidential data in strings. Do not return errors, nested
   promises or deferred work without a specific contract.
 - A public error is only born from `createPublicError()`, imported from
-  `@/infra/server/publicErrors/index.ts`; only that module can call
+  `@evertondgn/solid-runtime/server/public-errors`; only that module can call
   `markSafeError`. Never publish the message, cause, properties, body or headers
   of an upstream error, inside a result included.
 - Do not log the original error, headers, cookies, arguments, bodies or
@@ -570,6 +571,12 @@ release. Add a tool name to select part of the graph. For example, run
   requires restricting the package in the lint, with an exception only for the
   adapter. Do not work around the contract with disable comments, computed
   imports or the other gaps listed in the guide.
+- Keep `src/infra/server/configureServerErrors/index.ts` as the `serverSetup`
+  file. Only that path may import the package configurator in production. It
+  passes the synchronous public-message callback and owns the
+  `configureServerErrors_message` catalogs. The runtime uses its locale seam;
+  callback or locale failures fall back to the fixed English message without
+  logging. Never give the callback the original error.
 - After changing that boundary, run `vp run test` at the monorepo root,
   `vp run test:tooling`, the relevant Node tests and
   `vp run test:e2e src/tests/pages/BackendError src/tests/pages/OutsideError src/tests/pages/OutdatedPage`.

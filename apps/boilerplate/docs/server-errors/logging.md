@@ -4,6 +4,8 @@
 
 ## Failure log
 
+`logServerFailure` comes from
+`@evertondgn/solid-runtime/server/log-server-failure`.
 `logServerFailure({ source, error })` tries to log a multiline string in a
 single argument of `console.error`:
 
@@ -63,9 +65,10 @@ second `console.error` call, after the filtered line:
 - The `configureServerErrors` hook. With the hook installed, the runtime stops
   printing these failures, and without this request the message would only reach
   the browser.
-- `protectServerOperation`, which serves the wrapper and `requestJson`. It
-  replaces the failure with the public error before the runtime, and the hook
-  receives only that error, without logging.
+- `protectServerOperation` and its internal registration variant, which serve
+  `requestJson` and the global wrapper. Each replaces the failure with the
+  public error before the runtime, and the hook receives only that error,
+  without logging.
 - The sitemap, which answers 503 without going through the runtime.
 
 Inside a publication (Markdown, sitemap, indexes), `protectServerOperation` does

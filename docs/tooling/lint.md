@@ -46,8 +46,8 @@ Oxlint update does not add rules on its own.
 | `project/test-filename`                   | A test file sits in `__tests__` next to its module and is named after it, plus the environment: `Button/__tests__/Button.dom.test.tsx`                     |
 | `project/no-export-list`                  | Exports sit on the declaration. `export { a, b }` is only allowed with `from`                                                                              |
 | `project/seo-module`                      | A route `seo.ts` exports only `seo`. It has no relative value import, no value import from `src/routes/`, no computed `import()` and no `import.meta.glob` |
-| `backend/static-solid-imports`            | No `import()` of `@solidjs/web` or its subpaths                                                                                                            |
-| `backend/static-render-integrity-imports` | No `import()` of the `renderIntegrity` module                                                                                                              |
+| `backend/static-solid-imports`            | No `import()` of `@solidjs/web`, its subpaths or the runtime server-error configurator                                                                     |
+| `backend/static-render-integrity-imports` | No `import()` of local `renderIntegrity` or `@evertondgn/solid-runtime/server/render-integrity`                                                            |
 | `architecture/layer-imports`              | Lower layers do not import upper ones, and production code does not import tests or `tooling/`                                                             |
 
 These rules read import specifiers as text. They resolve relative paths and the
@@ -94,12 +94,23 @@ Inside `src/`, the preset also restricts what code can reach:
   `src/infra/server/publicErrors/index.ts`.
 - `configureServerErrors` from `@solidjs/web`, the
   `@solidjs/web/server-functions` subpath and `observeRenderFailures` from the
-  application's `renderIntegrity` module can only be imported in
-  `src/infra/server/configureServerErrors/index.ts`.
+  application's or runtime package's `renderIntegrity` module can only be
+  imported in `src/infra/server/configureServerErrors/index.ts`.
+- The entire `@evertondgn/solid-runtime/server/configure-server-errors` subpath
+  is reserved for that same setup file. Literal and template-literal dynamic
+  imports are refused too. Other public server subpaths keep their normal
+  imports; the build enforces `server-only` against client use.
 - A relative import goes up at most three levels. Use `@/` beyond that.
 
 Test files and `.d.ts` files are exempt from all of these except the relative
 import limit.
+
+These path exceptions also apply inside the runtime package, whose lint runs
+from its own folder. `server-only` is allowed only in
+`src/infra/server/**/index.ts`; Node imports in `publicationScope/index.ts` do
+not grant privileges to an `index.mts` sibling. The public operation type
+rejects `allowControl`; the control-enabled implementation and public-message
+setter have no subpath exports. They need no experimental AST rule.
 
 ## Changing the preset
 

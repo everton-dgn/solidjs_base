@@ -80,3 +80,25 @@ The boilerplate configures theme once in `src/constants/theme.ts`. Its theme
 adapters, types and primitive tests moved to the runtime package, which now runs
 node and happy-dom projects. UI and CSS remain in the copy. See
 [ADR 0024](0024-runtime-theme.md).
+
+## Server error protection
+
+Both SSR fixtures register the runtime server-error setup. The preview smoke
+checks an error with private message, cause and property markers, requiring the
+public message and no marker in the complete response. It drains stdout and
+stderr after closing preview, requires `[server-error]`, and rejects private
+markers. The i18n fixture checks German and an Italian callback that throws,
+which must fall back to the fixed English message without another diagnostic.
+
+Node and preview consumers verify public error identity and render observation
+through package subpaths. After a successful smoke, a used server-only import is
+planted in the client entry and the build must fail with the Solid boundary
+diagnostic. This happens for both linkers, without changing dependencies.
+
+The `error-body` and `error-log` mutations are optional negative probes on
+`ssr-plain / isolated$`. Each changes only the runtime installed in the
+temporary application and must fail at the corresponding marker assertion.
+Existing scenario assertions remain in place. The runner explicitly removes
+inherited NODE_ENV and verifies each owned PID and process group before stopping
+it. See [ADR 0025](0025-runtime-server-errors.md) for the public API and its
+limits.

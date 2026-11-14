@@ -1,4 +1,4 @@
-import type { SitemapPartitionSource } from '@/@types/sitemap.ts'
+import type { SitemapPartitionSource } from '@evertondgn/solid-runtime/seo/sitemap-types'
 
 import { isPartRemoved } from './state.ts'
 

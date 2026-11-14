@@ -1,12 +1,12 @@
 import { env } from 'node:process'
 
-import type { PrerenderRoute } from 'nitro/types'
-import * as v from 'valibot'
-
 import {
   PUBLICATION_PHASE_ENV,
   PUBLICATION_PRERENDER_PHASE
-} from '../../src/constants/publication.ts'
+} from '@evertondgn/solid-runtime/server/publication-protocol'
+import type { PrerenderRoute } from 'nitro/types'
+import * as v from 'valibot'
+
 import { MARKDOWN_PRERENDER_PATH } from '../../src/middleware/markdownContent/constants.ts'
 import { SITEMAP_INVENTORY_PATH } from '../publicationArtifacts/constants.ts'
 import { publicationArtifacts } from '../publicationArtifacts/index.ts'

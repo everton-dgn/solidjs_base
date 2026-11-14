@@ -1,4 +1,6 @@
 import { protectServerOperation } from '@evertondgn/solid-runtime/server/protect-server-operation'
+import { createPublicationController } from '@evertondgn/solid-runtime/server/publication'
+import type { PublicationLimits } from '@evertondgn/solid-runtime/server/publication-types'
 import {
   createComponent,
   createRequestEvent,
@@ -10,11 +12,7 @@ import { provideRequestEvent } from '@solidjs/web/storage'
 import { createMemo, Loading, onCleanup } from 'solid-js'
 
 import { HTTP_INTERNAL_SERVER_ERROR } from '@/constants/http.ts'
-import {
-  createPublicationController,
-  getPublicationMetrics
-} from '@/infra/server/publication/index.ts'
-import type { PublicationLimits } from '@/infra/server/publication/types.ts'
+import { getPublicationMetrics } from '@/infra/server/publication/index.ts'
 import { Router } from '@/router.ts'
 import { readLog } from '@/tests/helpers/readLog/index.ts'
 

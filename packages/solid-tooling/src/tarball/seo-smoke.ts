@@ -5,6 +5,12 @@ import path from 'node:path'
 
 import * as v from 'valibot'
 
+import {
+  assertSitemapBuild,
+  hasSitemap,
+  smokeSitemap
+} from './sitemap-smoke.ts'
+
 type Scenario = { app: string; scenario: string }
 type Smoke = Scenario & { origin: string; html: string }
 
@@ -17,10 +23,12 @@ export function assertSeoBuild({ app, scenario }: Scenario): void {
   const files = readdirSync(app).filter(file =>
     file.startsWith('scenario-modules-')
   )
+  let clientIds: string[] = []
   const inventories = files.map(file => {
     const source = readFileSync(path.join(app, file), 'utf8')
     const ids = v.parse(v.array(v.string()), JSON.parse(source))
     if (file === 'scenario-modules-client.json') {
+      clientIds = ids
       assert.ok(
         !ids.some(id =>
           /seo-robots|\/seo\/(?:createRobots|robotsRoute)\//u.test(id)
@@ -32,9 +40,10 @@ export function assertSeoBuild({ app, scenario }: Scenario): void {
   })
   const ids = inventories.flat()
   assert.ok(ids.length > 0)
+  assertSitemapBuild({ app, ids, clientIds })
   assert.ok(
     !ids.some(id =>
-      /schema-dts|mdream|markdownPrerender|publicationArtifacts|\/seo\/(?:sitemap|llms)/u.test(
+      /schema-dts|mdream|markdownPrerender|publicationArtifacts|\/seo\/llms/u.test(
         id
       )
     ),
@@ -49,7 +58,7 @@ export function assertSeoBuild({ app, scenario }: Scenario): void {
       ids.some(id => id.includes('/seo/robotsRoute/')),
       hasRobots
     )
-  } else {
+  } else if (!hasSitemap(app)) {
     assert.ok(
       !ids.some(id => id.includes('/solid-runtime/src/seo/')),
       'Unused SEO entered the production build'
@@ -63,6 +72,7 @@ export async function smokeSeo({
   origin,
   html
 }: Smoke): Promise<void> {
+  await smokeSitemap({ app, scenario, origin })
   if (scenario !== 'ssr-plain') return
   const language = /<html[^>]*lang="(?<language>[^"]+)"/u.exec(html)?.groups
     ?.language
@@ -154,7 +164,7 @@ export async function smokeSeo({
         await response.text(),
         method === 'HEAD'
           ? ''
-          : 'User-agent: *\nAllow: /\nDisallow: /_server\n\nUser-agent: ExampleBot\nDisallow: /archive\n'
+          : `User-agent: *\nAllow: /\nDisallow: /_server\n\nUser-agent: ExampleBot\nDisallow: /archive\n${hasSitemap(app) ? '\nSitemap: https://scenario.example/sitemap.xml\n' : ''}`
       )
     }
   }

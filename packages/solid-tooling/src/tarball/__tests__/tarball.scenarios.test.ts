@@ -585,7 +585,9 @@ for (const scenario of SCENARIOS) {
   for (const linker of [
     ...LINKERS,
     ...(scenario === 'ssr-i18n' ? [] : ['isolated-language']),
-    ...(scenario === 'ssr-plain' ? ['isolated-meta-only'] : [])
+    ...(scenario === 'ssr-plain'
+      ? ['isolated-meta-only', 'isolated-without-sitemap']
+      : [])
   ]) {
     test(`${scenario} / ${linker}`, { timeout: 180_000 }, async () => {
       const directory = mkdtempSync(path.join(tmpdir(), 'solid-app-scenario-'))

@@ -6,8 +6,9 @@
   [0027](0027-packaged-tool-dependencies.md),
   [0028](0028-runtime-server-errors.md),
   [0029](0029-runtime-middleware-chain.md),
-  [0030](0030-packaged-environment-schemas.md), [0031](0031-runtime-seo-core.md)
-  and [0032](0032-packaged-fonts.md)
+  [0030](0030-packaged-environment-schemas.md),
+  [0031](0031-runtime-seo-core.md), [0032](0032-packaged-fonts.md) and
+  [0033](0033-runtime-sitemap-publication.md)
 - Date: 2026-11-13
 
 ## Context
@@ -24,7 +25,7 @@ Keep three applications under `fixtures/apps`, outside the workspace:
 | Scenario      | Contract                                                                                                    |
 | ------------- | ----------------------------------------------------------------------------------------------------------- |
 | `client-only` | `ssr: false`, no translation project, static HTML and JavaScript, no Nitro plugin or server output          |
-| `ssr-plain`   | SSR without translations or publication, runtime middleware and security headers                            |
+| `ssr-plain`   | SSR without translations, runtime middleware, sitemap sources and security headers                          |
 | `ssr-i18n`    | SSR with generated Paraglide runtime, base `fr`, locales `fr/de/it/ja`, publication rules for those locales |
 
 Each runs with Bun's `hoisted` and `isolated` linkers. The node:test executor
@@ -57,10 +58,12 @@ locale history after ADR 0026. This matrix does not prove browser hydration,
 layout, desktop packaging, production CDN behavior, Vercel deployment, streaming
 integrity or application-scale load. The i18n fixture exercises generated
 runtime, translated message catalogs, locale redirects, Content-Language and
-cookie persistence. Publication checks cover emitted rules, not publication
-jobs. A fourth publication-without-i18n application is not added: the package
-unit suite already covers that combination, and it adds no installation
-contract.
+cookie persistence. Sitemap checks now exercise installed factories, array and
+partitioned sources, GET/HEAD, language alternates and disabled-resource audits
+(ADR 0033). They do not execute the application-owned artifact writers or
+Markdown prerender jobs. An extra `isolated-without-sitemap` profile reuses SSR
+plain with robots and publication enabled. The meta-only profile removes sitemap
+too; no fourth fixture is needed.
 
 At adoption, direct dependency counts including the two injected packages were
 client-only 18, SSR plain 19 and SSR i18n 21. ADR 0027 reduces these to 7, 7 and

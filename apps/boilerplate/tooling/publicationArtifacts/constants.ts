@@ -5,6 +5,6 @@ export {
   SITEMAP_IDENTITIES_MAX_BYTES,
   SITEMAP_MANIFEST_FILE,
   SITEMAP_MANIFEST_MAX_BYTES
-} from '../../src/constants/publication.ts'
+} from '@evertondgn/solid-runtime/server/publication-protocol'
 
 export const SITEMAP_INVENTORY_PATH = '/sitemaps/static.json'

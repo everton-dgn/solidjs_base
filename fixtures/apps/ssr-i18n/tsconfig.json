@@ -2,7 +2,8 @@
   "extends": "@evertondgn/solid-tooling/tsconfig.app.json",
   "compilerOptions": {
     "paths": {
-      "@paraglide/*": ["./paraglide/*"]
+      "@paraglide/*": ["./paraglide/*"],
+      "@/*": ["./src/*"]
     }
   }
 }

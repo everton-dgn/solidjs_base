@@ -1,6 +1,5 @@
+import type { StaticRoute } from '@evertondgn/solid-runtime/routing/types'
 import type { RouteInfo } from '@solidjs/router'
-
-import type { StaticRoute } from '@/helpers/walkStaticRoutes/types.ts'
 
 import { collectStaticMarkdownPages } from '../index.ts'
 

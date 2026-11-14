@@ -1,1 +1,1 @@
-export { GET } from '@/routes/(seo)/sitemaps/pages/[part].xml/index.ts'
+export { pages as GET } from '@/tests/fixtures/e2e/sitemap/index.ts'

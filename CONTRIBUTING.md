@@ -47,7 +47,7 @@ docs/                     guides and architecture decision records (ADRs)
 
 | You changed             | Run from the root                                                                      |
 | ----------------------- | -------------------------------------------------------------------------------------- |
-| Anything in `packages/` | `vp run validate`: build, check, rule tests and the tarball test                       |
+| Anything in `packages/` | `vp run validate`: build, check, dead code, package tests and the tarball tests        |
 | Only a lint rule        | `vp run test` while you work, then `vp run validate`                                   |
 | `apps/boilerplate`      | The commands in [the boilerplate app section](docs/development.md#the-boilerplate-app) |
 | Only documentation      | `vp fmt`                                                                               |

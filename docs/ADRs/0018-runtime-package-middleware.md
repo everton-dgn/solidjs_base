@@ -1,6 +1,7 @@
 # 0018. The runtime package starts with the middleware steps
 
 - Status: Accepted, amended by [0019](0019-runtime-security-headers-options.md)
+  and [0020](0020-runtime-package-checks-in-its-own-folder.md)
 - Date: 2026-11-13
 
 ## Context

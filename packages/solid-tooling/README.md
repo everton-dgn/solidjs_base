@@ -13,7 +13,7 @@
 Solid Base supplies lint rules, application config, test setups and Git hooks
 for SolidJS 2 with [Vite+](https://viteplus.dev/guide/) as one versioned
 dependency, so you stop maintaining the same tooling in every Solid app. In an
-application that already uses Vite+ and TypeScript:
+application that already uses Vite+:
 
 ```bash
 vp add -D @evertondgn/solid-tooling
@@ -27,11 +27,12 @@ you are ready.
 
 ## Requirements
 
-Install the exact Vite+ version listed in the package's `peerDependencies`.
-Optional entries need additional tools: check the
-[dependency requirements](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#requirements)
-before using the application, test or Git hook presets. An application with
-translations also installs the required version of `@inlang/paraglide-js`.
+Install the exact Vite+ version listed in the package's `peerDependencies`. The
+package supplies its build, test, type-check and hook tools. Applications keep
+their own direct imports and the Vite+ overrides; see the
+[dependency requirements](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#requirements).
+An application with translations also installs the required version of
+`@inlang/paraglide-js` and its message-format plugin.
 
 ## Quick start
 
@@ -134,7 +135,9 @@ export default defineSolidApp({
 ```
 
 You keep your middleware and header values. SSR uses Nitro with the Vercel
-preset, and the plugin peer dependencies are pinned to exact versions.
+preset. Its plugins are package dependencies pinned to the tested versions. The
+`knip`, `tsc`, `playwright`, `lefthook` and `commitlint` tasks run the
+package-owned binaries, including with an isolated installation.
 
 | Feature             | Selection                                                                                                                              |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |

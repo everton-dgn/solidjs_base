@@ -76,11 +76,12 @@ upgrades either one needs a package version tested with the new version.
 `./vite` builds the whole `vite.config.ts` of an application and loads
 `@solidjs/vite-plugin`, `nitro`, `filesystem-routing` and `unplugin-icons` with
 `import()` inside `lazyPlugins`, so lint and format runs never load them. They
-are optional peer dependencies, pinned the same way, and the application keeps
-them as direct dependencies: Bun applies `overrides` and patches only from the
-root `package.json` of the application. Code that is still in the application,
-such as the i18n plugin and the publication artifacts, enters through the
-`extend` option. [ADR 0012](ADRs/0012-application-config-preset.md) records the
+are package dependencies pinned to the tested versions. The application keeps
+its own direct imports and its root `overrides` and patches, which also apply to
+transitive packages. Publication artifacts still owned by the application enter
+through `extend`; the catalog plugin now belongs to the preset.
+[ADR 0027](ADRs/0027-packaged-tool-dependencies.md) records dependency
+ownership. [ADR 0012](ADRs/0012-application-config-preset.md) records the
 options and what stays out of them. Each feature is turned on only when the
 application uses it: `ssr: false` builds a client-only application without
 Nitro, the rules of the published files need `publication: true`, and the

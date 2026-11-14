@@ -2,7 +2,8 @@
 
 - Status: Accepted, amended by [0024](0024-runtime-theme.md),
   [0025](0025-packaged-i18n-generator.md) and
-  [0026](0026-runtime-locale-navigation.md)
+  [0026](0026-runtime-locale-navigation.md) and
+  [0027](0027-packaged-tool-dependencies.md)
 - Date: 2026-11-13
 
 ## Context
@@ -57,13 +58,14 @@ jobs. A fourth publication-without-i18n application is not added: the package
 unit suite already covers that combination, and it adds no installation
 contract.
 
-Dependency counts include the two injected packages: client-only 18, SSR plain
-19, SSR i18n 21. These are direct declarations, not transitive package counts.
-The fixtures retain currently required test peers even though no browser runs.
-The fixtures pin every version, because `catalog:` does not resolve outside the
-workspace. A test compares those versions, the overrides and the engines with
-the workspace, so an update cannot leave the matrix on the old versions. No
-package production source or dependency contract changes in this decision.
+At adoption, direct dependency counts including the two injected packages were
+client-only 18, SSR plain 19 and SSR i18n 21. ADR 0027 reduces these to 7, 7 and
+9 by shipping the tools as package dependencies. These counts exclude transitive
+packages. The fixtures pin every version, because `catalog:` does not resolve
+outside the workspace. A test compares those versions, the overrides and the
+engines with the workspace, so an update cannot leave the matrix on the old
+versions. No package production source or dependency contract changes in this
+decision.
 
 Optional negative probes inject an actual Nitro plugin, an invalid header value
 or a wrong dom URL into a temporary copy. Their expected failures establish that

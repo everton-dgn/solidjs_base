@@ -30,6 +30,20 @@ packed package there, the way an application installs it from npm. The
 [installed application scenarios](#installed-application-scenarios) do the same
 with the minimal applications of `fixtures/apps/`.
 
+The tooling package owns its build, test, type-check and hook dependencies.
+Applications declare only their own imports and the Vite+ installation. The
+runtime owns the routing helpers it imports and re-exports `StartMiddleware`
+from `./middleware/types`. The copy keeps Nitro, routing and Playwright Test
+because its own code imports them. See
+[requirements](tooling/limits.md#requirements) and
+[ADR 0027](ADRs/0027-packaged-tool-dependencies.md).
+
+Bun's default trust list runs Lefthook's postinstall even as a transitive
+dependency. Root and fixture manifests set `trustedDependencies: []`; installing
+dependencies does not install hooks. Consumers opt in with the packaged
+`lefthook install` command after creating their hook config. The copy continues
+to have no repository hooks.
+
 Bun reads `catalog`, `overrides` and `patchedDependencies` only from the root
 `package.json`. The versions and patches that `apps/boilerplate` needs are kept
 there, and the patch files stay in `apps/boilerplate/patches/`.
@@ -271,11 +285,13 @@ workspace and installs freshly packed tooling and runtime packages with Bun's
 hoisted and isolated linkers. Every case runs lint, TypeScript, node and dom
 tests, build and output checks. SSR cases also request the local preview.
 
-The fixtures list their own pinned dependencies, and the first test of the file
-fails when a version, an override or the engines differ from the workspace. No
-browser download or remote page request belongs to this suite; only dependency
-installation uses the network. Paraglide uses a local project without remote
-modules.
+The fixtures list 7, 7 and 9 direct dependencies including the injected packages
+(client-only, SSR plain and SSR i18n). The package supplies the development
+tools. The fixtures list their own pinned dependencies, and the first test of
+the file fails when a version, an override or the engines differ from the
+workspace. No browser download or remote page request belongs to this suite;
+only dependency installation uses the network. Paraglide uses a local project
+without remote modules.
 
 To select a case, use Node's `--test-name-pattern` with
 `packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts`. For
@@ -284,6 +300,15 @@ example:
 ```bash
 node --test --test-timeout=180000 --test-name-pattern='ssr-i18n / isolated' packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts
 ```
+
+The build audit rejects packaged development tools in every emitted module
+inventory, while allowing the Nitro and routing entries used by the server at
+runtime. Select `client-only / isolated$` with
+`SCENARIO_MUTATION=missing-dependency` to remove `unplugin-icons` from the
+packed manifest before installation; the scenario must fail when loading the
+preset. `SCENARIO_MUTATION=tool-bundle` imports the real packaged formatter from
+the temporary application and must fail at the bundle audit. Both probes leave
+the workspace manifest unchanged.
 
 The optional `SCENARIO_MUTATION` values `nitro`, `headers` and `dom` inject
 regressions only into temporary copies. Select `client-only / isolated` for

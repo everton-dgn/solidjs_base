@@ -71,14 +71,20 @@ one of them in Vitest would fail on `expect.requireAssertions`, because
 
 The `node` and `dom` projects use `pool: 'threads'` and `css: false`. The `node`
 project does not load happy-dom or the component plugins. The `dom` project
-loads happy-dom, Solid and icons, without Nitro or the SSR configuration.
-`@solidjs/vite-plugin` registers the `@testing-library/jest-dom` matchers in
-that project, without a `setupFiles` of its own, and the types come from
-`tsconfig.json`. The injection only happens in DOM projects outside the browser
-mode, such as `happy-dom`, and is skipped when some `setupFiles` has `jest-dom`
-in its path. The `browser` project uses Chromium with CSS enabled and the same
-Lightning CSS as the application. Import the CSS in the test when you need to
-check styles.
+loads happy-dom, Solid and icons, without Nitro or the SSR configuration. The
+preset resolves `@testing-library/jest-dom/vitest` from its own installation and
+loads it as the DOM project's setup file. The Solid plugin skips its own
+automatic injection because that setup path already includes `jest-dom`. Types
+come from the inherited `tsconfig.json`. The `browser` project uses Chromium
+with CSS enabled and the same Lightning CSS as the application. Import the CSS
+in the test when you need to check styles.
+
+The tooling package supplies the Vitest providers, DOM environment, matchers and
+Playwright executable. This application's E2E files import `@playwright/test`
+directly, so its declaration stays aligned with the tooling version. Type
+declarations come from the package-owned `app-env.d.ts` and `node-env.d.ts`
+loaded by the inherited tsconfig. Do not add `types: ["node"]` to a derived
+config.
 
 Locally, the browser and E2E tests use the Chromium installed by Playwright.
 With `CI=true`, they use the Chrome of the runner through the `chrome` channel.
@@ -124,10 +130,10 @@ In the tests, import from `vite-plus/test` instead of `vitest` (the
 isolated linker of Bun creates more than one copy of `vitest` and of the
 `@vitest/*` packages in the store, because of the peer cycle between them
 ([oven-sh/bun#46208](https://github.com/oven-sh/bun/issues/46208)): the copies
-of `@vitest/browser-playwright` and `@vitest/coverage-v8` linked at the root
-point to a `vitest` different from the one that runs. Through `vite-plus`, each
-process loads a single copy of `vitest`; that is why the provider comes from
-`vite-plus/test/browser-playwright`, and a direct import of
+of `@vitest/browser-playwright` and `@vitest/coverage-v8` resolved separately
+can point to a `vitest` different from the one that runs. Through `vite-plus`,
+each process loads a single copy of `vitest`; that is why the provider comes
+from `vite-plus/test/browser-playwright`, and a direct import of
 `@vitest/browser-playwright` would bring the second one. Several `vitest@`
 entries in `node_modules/.bun` are expected until Bun publishes the fix
 ([oven-sh/bun#46454](https://github.com/oven-sh/bun/pull/46454)). The request

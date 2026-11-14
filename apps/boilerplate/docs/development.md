@@ -25,6 +25,22 @@ In the CI, the tests use the Chrome already installed on the runner.
 When raising the Node line, confirm that Vercel accepts the target runtime and
 change `engines` and `devEngines` in the same commit.
 
+## Tool dependencies
+
+`@evertondgn/solid-tooling` installs the tools the preset uses. This copy keeps
+direct declarations only for its own imports and Vite+. Updating the package
+updates those tools; align the retained Nitro, routing and Playwright Test
+versions when upgrading. Keep Paraglide, message-format and the Solid libraries
+in the application, plus the root Vite/Vitest overrides.
+
+Use `vp run tsc`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
+`vp run commitlint` for the package's executables. Scripts such as `test:e2e`,
+`test:browser:install` and `dead-code:fix` use these tasks. The standalone
+command pattern is documented in the
+[tooling guide](../../../docs/tooling/limits.md#packaged-commands-and-types).
+Keep `trustedDependencies: []` when extracting this copy so dependency
+installation does not change Git hooks; hook installation is explicit.
+
 ## Environment and preview
 
 To install and start the project, follow [running it](../README.md#running-it).

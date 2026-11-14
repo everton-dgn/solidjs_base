@@ -14,6 +14,13 @@ request, so a package change that breaks the application fails before it becomes
 a version. [ADR 0009](../../docs/ADRs/0009-boilerplate-app-in-the-monorepo.md)
 explains why the copy exists.
 
+The package supplies tools that this copy does not import itself. The copy keeps
+its Solid libraries, Vite+, Paraglide and message-format, application libraries,
+and direct imports of Nitro, filesystem-routing and Playwright Test. Its
+`playwright`, `knip` and `tsc` tasks resolve executables from the tooling
+package. The inherited tsconfig reads package-owned type references, so no
+application declaration of `@types/node` or TypeScript is needed.
+
 ## Running it
 
 From the repository root:

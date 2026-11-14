@@ -1,6 +1,6 @@
 import { createLocalizeRequest } from '@evertondgn/solid-runtime/middleware/localize-request'
 import { createSecurityHeaders } from '@evertondgn/solid-runtime/middleware/security-headers'
-import type { StartMiddleware } from '@solidjs/vite-plugin'
+import type { StartMiddleware } from '@evertondgn/solid-runtime/middleware/types'
 
 const { securityHeaders, applySecurityHeaders } = createSecurityHeaders()
 const localizeRequest = createLocalizeRequest({ applySecurityHeaders })

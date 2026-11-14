@@ -154,11 +154,19 @@ configuration requires neither of them.
 | ------------------- | ------------------------------------------------------------------------------------------------------- |
 | `i18n-generate`     | `bun '<package>/dist/i18n-generate.mjs'`, only with `project.inlang/settings.json`                      |
 | `lint-css`          | `bun tooling/css/check.ts`                                                                              |
-| `dead-code-project` | `knip-bun --config tooling/knip.ts`, then again with `--strict`                                         |
+| `dead-code-project` | Package-owned Knip with `--config tooling/knip.ts`, then again with `--strict`                          |
 | `lint-project`      | `vp lint`, after `lint-css`                                                                             |
 | `check-project`     | `vp fmt --check && vp lint`, after `lint-css`                                                           |
-| `typecheck-node`    | `tsc --project tsconfig.node.json`                                                                      |
+| `typecheck-node`    | Package-owned TypeScript with `--project tsconfig.node.json`                                            |
 | `test-tooling`      | `node --test` over `tooling/**/__tests__` except `tooling/release/`, three workers on CI, with no cache |
+
+The uncached `knip`, `tsc`, `playwright`, `lefthook` and `commitlint` tasks
+forward their arguments to binaries resolved from the package. For example, use
+`vp run playwright test` or `vp run tsc --noEmit`. Knip uses Bun; the other
+tools use Node. Without `defineSolidApp`, run
+`vp exec node node_modules/@evertondgn/solid-tooling/dist/cli.mjs <tool> <args>`.
+The [installation guide](limits.md#packaged-commands-and-types) covers
+migration.
 
 The generation entry is compiled and exported as
 `@evertondgn/solid-tooling/i18n-generate`. The task resolves its path relative

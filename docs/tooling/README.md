@@ -26,27 +26,29 @@ update.
 
 ## Entry points
 
-| Entry                    | Content                                                                   |
-| ------------------------ | ------------------------------------------------------------------------- |
-| `./lint`                 | `lint`: the lint preset, with the plugins below registered                |
-| `./fmt`                  | `fmt`: the formatter config                                               |
-| `./tsconfig.base.json`   | Compiler options, without application paths                               |
-| `./tsconfig.app.json`    | The base plus the `types` and `include` of the boilerplate layout         |
-| `./vite`                 | `defineSolidApp(options)`, the whole `vite.config.ts` of an application   |
-| `./i18n-generate`        | Compiled catalog generator executed by the preset's `i18n-generate` task  |
-| `./vitest`               | `solidTest(options)`, the `test` block of `vite.config.ts`                |
-| `./playwright`           | `definePlaywrightConfig(options)`, the Playwright config                  |
-| `./vitest-setup/browser` | Setup file of the browser project, loaded by `./vitest`                   |
-| `./playwright-teardown`  | Server log check, loaded by `./playwright`                                |
-| `./project-plugin`       | The `project` rules                                                       |
-| `./backend-plugin`       | The `backend` rules                                                       |
-| `./architecture-plugin`  | The `architecture` rule                                                   |
-| `./solid-plugin`         | Re-export of `eslint-plugin-solid`                                        |
-| `./css-filename`         | `cssFilenameError(path)`, the CSS naming check, for a script outside lint |
-| `./knip`                 | `defineKnipConfig(options)`, the Knip config                              |
-| `./stylelint`            | `checkCss(root)` and `defineStylelintConfig(root)`, the CSS lint          |
-| `./commitlint`           | The commitlint config                                                     |
-| `./lefthook.yml`         | The Git hooks, extended from the application's `.lefthook.yml`            |
+| Entry                    | Content                                                                          |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| `./lint`                 | `lint`: the lint preset, with the plugins below registered                       |
+| `./fmt`                  | `fmt`: the formatter config                                                      |
+| `./tsconfig.base.json`   | Compiler options, without application paths                                      |
+| `./tsconfig.app.json`    | The base plus packaged type references and the boilerplate `include`             |
+| `./vite`                 | `defineSolidApp(options)`, the whole `vite.config.ts` of an application          |
+| `./i18n-generate`        | Compiled catalog generator executed by the preset's `i18n-generate` task         |
+| `./vitest`               | `solidTest(options)`, the `test` block of `vite.config.ts`                       |
+| `./playwright`           | `definePlaywrightConfig(options)`, the Playwright config                         |
+| `./vitest-setup/browser` | Setup file of the browser project, loaded by `./vitest`                          |
+| `./playwright-teardown`  | Server log check, loaded by `./playwright`                                       |
+| `./project-plugin`       | The `project` rules                                                              |
+| `./backend-plugin`       | The `backend` rules                                                              |
+| `./architecture-plugin`  | The `architecture` rule                                                          |
+| `./solid-plugin`         | Re-export of `eslint-plugin-solid`                                               |
+| `./css-filename`         | `cssFilenameError(path)`, the CSS naming check, for a script outside lint        |
+| `./knip`                 | `defineKnipConfig(options)`, the Knip config                                     |
+| `./stylelint`            | `checkCss(root)` and `defineStylelintConfig(root)`, the CSS lint                 |
+| `./commitlint`           | The commitlint config                                                            |
+| `./cli`                  | Command entry for packaged Knip, TypeScript, Playwright, Lefthook and commitlint |
+| `./app-env`              | Type references loaded by `tsconfig.app.json`                                    |
+| `./lefthook.yml`         | The Git hooks, extended from the application's `.lefthook.yml`                   |
 
 An application imports `./vite`, which brings `./lint`, `./fmt` and `./vitest`
 along, `./playwright`, `./knip`, `./stylelint` and one of the TypeScript

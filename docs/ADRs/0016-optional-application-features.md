@@ -1,6 +1,7 @@
 # 0016. The application presets turn on only the features the application uses
 
-- Status: Accepted
+- Status: Accepted; tool dependency ownership superseded by
+  [0027](0027-packaged-tool-dependencies.md)
 - Date: 2026-11-13
 
 ## Context

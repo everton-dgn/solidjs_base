@@ -5,14 +5,16 @@ import { defineKnipConfig } from '../solid-tooling/src/knip/index.ts'
 export default defineKnipConfig({
   root: import.meta.dirname,
   configFile: 'knip.config.ts',
+  // This package defines its own test config and owns the test dependencies.
+  packagedTestTools: false,
   // A regression test resolves srvx/node through nitro, which installs it.
-  // filesystem-routing is an optional peer, which --strict does not accept;
-  // the '!' limits that ignore to the production run.
+  // The published middleware types require the Solid plugin; --strict skips
+  // type-only imports, so the ignore applies only to that production run.
   // solid-js and the router remain supplied by the application; extraction preserves
   // dependency ownership. Installed scenarios verify both Bun linkers.
   ignoreDependencies: [
     'srvx',
-    'filesystem-routing!',
+    '@solidjs/vite-plugin!',
     'solid-js!',
     '@solidjs/router!'
   ],

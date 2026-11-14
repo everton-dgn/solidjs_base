@@ -1,6 +1,8 @@
 # 0012. A preset builds the application Vite config
 
-- Status: Accepted, amended by [0016](0016-optional-application-features.md)
+- Status: Accepted, amended by [0016](0016-optional-application-features.md);
+  tool dependency ownership superseded by
+  [0027](0027-packaged-tool-dependencies.md)
 - Date: 2026-11-13
 
 ## Context

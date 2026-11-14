@@ -38,15 +38,18 @@ generated route types, SVG and lock files.
 Solid compiler (`jsxImportSource: @solidjs/web`), emits nothing and turns on the
 unused code and unchecked index checks. It has no `paths`, `include` or `types`.
 
-`tsconfig.app.json` extends the base with the `types` of a boilerplate
-application and an `include` resolved from the application folder with
-`${configDir}`, which needs TypeScript 5.5 or later. Each entry of `types` comes
-from a package the application installs:
+`tsconfig.app.json` extends the base with `files: ["./node-env.d.ts"]`,
+`types: ["@evertondgn/solid-tooling/app-env"]` and an `include` resolved from
+the application folder with `${configDir}`. The Node declaration is loaded
+first; the application references retain their position after application
+declarations, including generated routes and browser matchers. Both
+package-owned declarations resolve references from their own installation,
+including under the isolated linker:
 
-| Entry of `types`                            | Package                     |
+| Packaged reference                          | Package                     |
 | ------------------------------------------- | --------------------------- |
 | `node`                                      | `@types/node`               |
-| `vite/client`                               | `vite`                      |
+| `vite-plus/client`                          | `vite-plus`                 |
 | `vite-plus/test/globals`                    | `vite-plus`                 |
 | `@testing-library/jest-dom/vitest`          | `@testing-library/jest-dom` |
 | `@solidjs/vite-plugin/boundary-modules`     | `@solidjs/vite-plugin`      |

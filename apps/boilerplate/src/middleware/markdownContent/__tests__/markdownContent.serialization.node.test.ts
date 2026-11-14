@@ -1,4 +1,4 @@
-import type { StartMiddleware } from '@solidjs/vite-plugin'
+import type { StartMiddleware } from '@evertondgn/solid-runtime/middleware/types'
 import {
   configureServerErrors,
   createComponent,

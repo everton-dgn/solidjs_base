@@ -111,24 +111,12 @@
     "test:tarball": "node --test --test-timeout=120000 tooling/tarball/__tests__/tarball.test.ts"
   },
   "peerDependencies": {
-    "@solidjs/vite-plugin": "3.0.0-next.57",
-    "@solidjs/web": "2.0.0-rc.21",
-    "filesystem-routing": "0.5.0"
-  },
-  "peerDependenciesMeta": {
-    "@solidjs/vite-plugin": {
-      "optional": true
-    },
-    "filesystem-routing": {
-      "optional": true
-    }
+    "@solidjs/web": "2.0.0-rc.21"
   },
   "devDependencies": {
-    "@solidjs/vite-plugin": "3.0.0-next.57",
     "@solidjs/web": "2.0.0-rc.21",
     "@types/node": "24.19.2",
     "@vitest/coverage-v8": "catalog:",
-    "filesystem-routing": "0.5.0",
     "knip": "6.45.1",
     "nitro": "3.0.261103-rc",
     "solid-js": "2.0.0-rc.21",
@@ -142,5 +130,9 @@
     "@solidjs/router": "2.0.0-next.44",
     "@vitest/browser-playwright": "catalog:",
     "playwright": "1.65.0"
+  },
+  "dependencies": {
+    "@solidjs/vite-plugin": "3.0.0-next.57",
+    "filesystem-routing": "0.5.0"
   }
 }

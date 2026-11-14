@@ -46,6 +46,11 @@ const SECURITY_HEADERS = {
 const LOCALES = ['en', 'pt']
 const SOURCE_PACKAGE = '@scope/source'
 const TASKS = [
+  'knip',
+  'tsc',
+  'playwright',
+  'lefthook',
+  'commitlint',
   'i18n-generate',
   'lint-css',
   'dead-code-project',

@@ -5,6 +5,7 @@ import { once } from 'node:events'
 import {
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -31,6 +32,27 @@ const REQUEST_TIMEOUT = 1000
 const POLL_INTERVAL = 100
 const HTTP_OK = 200
 const HTTP_TEMPORARY_REDIRECT = 307
+const PACKAGED_TOOLS = [
+  '@playwright/test',
+  '@solidjs/vite-plugin',
+  'filesystem-routing',
+  'knip',
+  'nitro',
+  'unplugin-icons',
+  '@commitlint/cli',
+  'lefthook',
+  'happy-dom',
+  'playwright',
+  '@vitest/browser-playwright',
+  '@vitest/coverage-v8',
+  '@vitest/ui',
+  '@testing-library/jest-dom',
+  '@types/node',
+  'typescript'
+]
+// Nitro and routing have runtime entries; their build adapters must stay out.
+const BUILD_TOOLS =
+  /\/node_modules\/(?:@evertondgn\/solid-tooling\/|@commitlint\/|@vitest\/|@testing-library\/|@playwright\/|@inlang\/sdk\/|(?:knip|typescript|happy-dom|playwright|playwright-core|lefthook|unplugin-icons|eslint-plugin-solid|stylelint|stylelint-use-nesting)\/|nitro\/dist\/(?:builder|vite|cli|presets\/[^/]+\/(?!runtime\/))|filesystem-routing\/dist\/(?:index|vite)|@solidjs\/vite-plugin\/dist\/esm\/index)/u
 const configSchema = v.object({
   plugins: v.array(v.string()),
   tasks: v.array(v.string())
@@ -56,7 +78,7 @@ const pinnedSchema = v.looseObject({
 })
 const MUTATION = env.SCENARIO_MUTATION
 
-type Command = { cwd: string; args: string[]; deadline: number }
+type Command = { cwd: string; args: string[]; deadline: number; file?: string }
 type Target = { app: string; scenario: string }
 type Pinned = v.InferOutput<typeof pinnedSchema>
 type CatalogInput = {
@@ -65,10 +87,15 @@ type CatalogInput = {
 }
 type Versions = Record<string, string | undefined>
 
-async function run({ cwd, args, deadline }: Command): Promise<string> {
-  let file = path.join(cwd, 'node_modules/.bin/vp')
-  if (args[0] === 'install') file = 'bun'
-  if (args[0] === 'pm') file = VP
+async function run({
+  cwd,
+  args,
+  deadline,
+  file: executable
+}: Command): Promise<string> {
+  let file = executable ?? path.join(cwd, 'node_modules/.bin/vp')
+  if (!executable && args[0] === 'install') file = 'bun'
+  if (!executable && args[0] === 'pm') file = VP
   const started = performance.now()
   assert.ok(Date.now() < deadline, 'Scenario execution deadline exceeded')
   const child = spawn(file, args, {
@@ -100,6 +127,33 @@ async function run({ cwd, args, deadline }: Command): Promise<string> {
   } finally {
     clearTimeout(timer)
   }
+}
+
+type PackedMutation = { archive: string; deadline: number; name: string }
+
+async function removePackedDependency({
+  archive,
+  deadline,
+  name
+}: PackedMutation): Promise<void> {
+  if (name !== 'solid-tooling' || MUTATION !== 'missing-dependency') return
+  const unpacked = path.join(path.dirname(archive), 'unpacked')
+  mkdirSync(unpacked)
+  await run({ deadline, cwd: unpacked, file: 'tar', args: ['-xzf', archive] })
+  const file = path.join(unpacked, 'package/package.json')
+  const manifest = v.parse(
+    manifestSchema,
+    JSON.parse(readFileSync(file, 'utf8'))
+  )
+  assert.ok(manifest.dependencies['unplugin-icons'])
+  delete manifest.dependencies['unplugin-icons']
+  writeFileSync(file, JSON.stringify(manifest))
+  await run({
+    deadline,
+    cwd: unpacked,
+    file: 'tar',
+    args: ['-czf', archive, 'package']
+  })
 }
 
 async function freePort(): Promise<number> {
@@ -317,6 +371,13 @@ function mutateLocaleStandIn(app: string): void {
 }
 
 function instrument(app: string): void {
+  if (MUTATION === 'tool-bundle') {
+    const entry = path.join(app, 'src/App.tsx')
+    writeFileSync(
+      entry,
+      `import { fmt } from '@evertondgn/solid-tooling/fmt'\nglobalThis.__scenarioTool = fmt\n${readFileSync(entry, 'utf8')}`
+    )
+  }
   // Observes the resolved plugins and bundled module IDs without replacing the preset.
   writeFileSync(
     path.join(app, 'scenario-audit.ts'),
@@ -382,6 +443,20 @@ function assertBuild({ app, scenario }: Target): void {
     file.startsWith('scenario-modules-')
   )
   assert.ok(modules.length > 0, 'Build module audit must run')
+  for (const file of modules) {
+    const content = readFileSync(path.join(app, file), 'utf8')
+    const ids = v.parse(v.array(v.string()), JSON.parse(content))
+    for (const id of ids) {
+      assert.doesNotMatch(
+        id,
+        BUILD_TOOLS,
+        'Build bundled a packaged development tool'
+      )
+    }
+    stdout.write(
+      `${scenario}: audited ${ids.length} module IDs in ${file}, no development tools\n`
+    )
+  }
   if (scenario === 'ssr-i18n') {
     assert.ok(config.tasks.includes('i18n-generate'))
     assert.ok(config.plugins.includes('project:i18n-catalogs'))
@@ -478,6 +553,12 @@ test('the applications pin the versions of the workspace', () => {
   const workspace = readPinned(path.join(ROOT, 'package.json'))
   const copy = readPinned(path.join(ROOT, 'apps/boilerplate/package.json'))
   const { catalog } = workspace
+  const tooling = readPinned(
+    path.join(ROOT, 'packages/solid-tooling/package.json')
+  )
+  for (const name of PACKAGED_TOOLS) {
+    assert.ok(tooling.dependencies[name], `${name} must ship with the tooling`)
+  }
   const expected = resolveCatalog({
     versions: { ...catalog, ...copy.dependencies, ...copy.devDependencies },
     catalog
@@ -489,6 +570,10 @@ test('the applications pin the versions of the workspace', () => {
     )
     for (const [name, version] of Object.entries(app.dependencies)) {
       assert.equal(version, expected[name], `${scenario}: ${name}`)
+      assert.ok(
+        !PACKAGED_TOOLS.includes(name),
+        `${scenario} must use the packaged ${name}`
+      )
     }
     assert.deepEqual(app.overrides, overrides, scenario)
     assert.deepEqual(app.engines, workspace.engines, scenario)
@@ -519,6 +604,11 @@ for (const scenario of SCENARIOS) {
             file.endsWith('.tgz')
           )
           assert.ok(tarball)
+          await removePackedDependency({
+            archive: path.join(destination, tarball),
+            deadline,
+            name
+          })
           dependencies[`@evertondgn/${name}`] = path.join(destination, tarball)
         }
         const app = path.join(directory, 'app')
@@ -556,7 +646,7 @@ for (const scenario of SCENARIOS) {
         }
         if (MUTATION === 'nitro') {
           const source = readFileSync(
-            path.join(ROOT, 'fixtures/apps/ssr-plain/package.json'),
+            path.join(ROOT, 'packages/solid-tooling/package.json'),
             'utf8'
           )
           const tooling = v.parse(manifestSchema, JSON.parse(source))
@@ -639,7 +729,7 @@ for (const scenario of SCENARIOS) {
           cwd: app,
           args: ['lint', 'src', 'vite.config.ts']
         })
-        await run({ deadline, cwd: app, args: ['exec', 'tsc', '--noEmit'] })
+        await run({ deadline, cwd: app, args: ['run', 'tsc', '--noEmit'] })
         await run({
           deadline,
           cwd: app,

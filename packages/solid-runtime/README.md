@@ -18,7 +18,7 @@ application bundles only the modules it imports.
 | `./middleware/request-classification`     | `isPageRequest`, `isPagePath`, `apiRouteMethods` and `isServerFunctionPath`                                   |
 | `./middleware/negotiate-page-format`      | `negotiatePageFormat` and `acceptsMarkdown`                                                                   |
 | `./middleware/is-html-response`           | `isHtmlResponse`                                                                                              |
-| `./middleware/types`                      | The `Middleware` and `Next` types                                                                             |
+| `./middleware/types`                      | The `Middleware`, `Next` and `StartMiddleware` types                                                          |
 
 ## Locale support
 
@@ -173,9 +173,10 @@ application starts.
   resolves the package through the same condition, and the `tsconfig.app.json`
   of the tooling package sets it for TypeScript.
 - `@solidjs/web` is a peer dependency, pinned to the version the package is
-  tested with. `@solidjs/vite-plugin` and `filesystem-routing` are optional
-  peers, pinned the same way: the entries that read the routes or the server
-  functions endpoint need them.
+  tested with. `@solidjs/vite-plugin` and `filesystem-routing` are package
+  dependencies: the middleware type and routing helpers resolve from the runtime
+  package. Applications retain a direct routing dependency only when their own
+  source imports it.
 
 ## Limits
 

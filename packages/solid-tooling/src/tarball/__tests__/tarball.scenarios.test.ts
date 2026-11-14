@@ -22,6 +22,11 @@ import { setTimeout as delay } from 'node:timers/promises'
 import * as v from 'valibot'
 
 import {
+  instrument,
+  mutateLocaleStandIn,
+  mutateTheme
+} from '../scenario-mutations.ts'
+import {
   assertServerErrorLog,
   importServerFromClient,
   mutateServerErrors,
@@ -365,120 +370,6 @@ async function smoke({ app, scenario }: Target): Promise<void> {
   assertServerErrorLog(output)
 }
 
-function mutateTheme(app: string): void {
-  if (MUTATION === 'theme-import') {
-    const file = path.join(app, 'src/App.tsx')
-    writeFileSync(
-      file,
-      `import { isTheme } from '@evertondgn/solid-runtime/theme/is-theme'\n${readFileSync(file, 'utf8').replace('<main', "<main data-theme={isTheme('dark')}")}`
-    )
-  }
-  if (MUTATION === 'theme-nonce') {
-    const file = path.join(app, 'src/App.tsx')
-    writeFileSync(
-      file,
-      readFileSync(file, 'utf8').replace('<script nonce={nonce}>', '<script>')
-    )
-  }
-}
-
-function mutateLocaleStandIn(app: string): void {
-  if (MUTATION === 'locale-node' || MUTATION === 'locale-setter') {
-    const dist = path.join(app, 'node_modules/@evertondgn/solid-tooling/dist')
-    let replacements = 0
-    for (const name of readdirSync(dist).filter(entry =>
-      entry.endsWith('.mjs')
-    )) {
-      const file = path.join(dist, name)
-      const source = readFileSync(file, 'utf8')
-      const changed =
-        MUTATION === 'locale-setter'
-          ? source.replace('export const setLocale = () => undefined', '')
-          : source.replace(
-              '[...NODE_STUBS, ["virtual:solid-app/locale", source]]',
-              'NODE_STUBS'
-            )
-      if (source !== changed) {
-        replacements += 1
-        writeFileSync(file, changed)
-      }
-    }
-    assert.equal(
-      replacements,
-      1,
-      MUTATION === 'locale-setter'
-        ? 'Remove exactly one single-language setLocale export'
-        : 'Remove exactly one node locale stand-in'
-    )
-  }
-}
-
-function instrument(app: string): void {
-  if (MUTATION === 'tool-bundle') {
-    const entry = path.join(app, 'src/App.tsx')
-    writeFileSync(
-      entry,
-      `import { fmt } from '@evertondgn/solid-tooling/fmt'\nglobalThis.__scenarioTool = fmt\n${readFileSync(entry, 'utf8')}`
-    )
-  }
-  // Observes the resolved plugins and bundled module IDs without replacing the preset.
-  writeFileSync(
-    path.join(app, 'scenario-audit.ts'),
-    `import { writeFileSync } from 'node:fs'
-export const audit = {
-  name: 'scenario-audit',
-  configResolved(config) {
-    writeFileSync('scenario-config.json', JSON.stringify({plugins: config.plugins.map(p => p.name), tasks: Object.keys(config.run?.tasks ?? {})}))
-  },
-  generateBundle() {
-    writeFileSync('scenario-modules-' + this.environment.name + '.json', JSON.stringify([...this.getModuleIds()]))
-  }
-}
-`
-  )
-  if (MUTATION === 'navigation-provider') {
-    const generated = path.join(app, 'paraglide')
-    cpSync(
-      path.join(ROOT, 'packages/solid-runtime/tooling/testing/generated'),
-      generated,
-      { recursive: true }
-    )
-    const entry = path.join(
-      app,
-      'node_modules/@evertondgn/solid-runtime/src/i18n/createLocalizedNavigate/index.ts'
-    )
-    const runtime = JSON.stringify(path.join(generated, 'runtime.js'))
-    writeFileSync(
-      entry,
-      readFileSync(entry, 'utf8').replace("'../locale/index.ts'", runtime)
-    )
-  }
-  if (MUTATION === 'locale-provider') {
-    const generated = path.join(app, 'paraglide')
-    cpSync(path.join(ROOT, 'apps/boilerplate/paraglide'), generated, {
-      recursive: true
-    })
-    const auditFile = path.join(app, 'scenario-audit.ts')
-    const runtime = JSON.stringify(path.join(generated, 'runtime.js'))
-    writeFileSync(
-      auditFile,
-      readFileSync(auditFile, 'utf8').replace(
-        "name: 'scenario-audit',",
-        `name: 'scenario-audit', enforce: 'pre',
-      resolveId(id) { if (id === 'virtual:solid-app/locale') return '\\0solid-app:locale-mutant' },
-      load(id) { if (id === '\\0solid-app:locale-mutant') return 'export { locales, baseLocale, getLocale, extractLocaleFromUrl, localizeHref, deLocalizeUrl } from ' + ${JSON.stringify(runtime)} },`
-      )
-    )
-  }
-  const file = path.join(app, 'vite.config.ts')
-  let config = readFileSync(file, 'utf8').replace(
-    'export default defineSolidApp(',
-    'const application = defineSolidApp('
-  )
-  config = `import { defineConfig } from 'vite-plus'\nimport { audit } from './scenario-audit.ts'\n${config}\nexport default defineConfig(env => { const config = application(env); return {...config, plugins: [...(config.plugins ?? []), audit]} })\n`
-  writeFileSync(file, config)
-}
-
 function assertBuild({ app, scenario }: Target): void {
   const source = readFileSync(path.join(app, 'scenario-config.json'), 'utf8')
   const config = v.parse(configSchema, JSON.parse(source))
@@ -758,7 +649,7 @@ for (const scenario of SCENARIOS) {
             linker === 'isolated-language' ? 'isolated' : linker
           ]
         })
-        mutateLocaleStandIn(app)
+        mutateLocaleStandIn({ app, mutation: MUTATION })
         if (scenario === 'ssr-i18n') {
           // Keep the shared fixture App unchanged while adopting the catalog ID convention.
           const entry = path.join(app, 'src/App.tsx')
@@ -801,7 +692,7 @@ for (const scenario of SCENARIOS) {
           cwd: app,
           args: ['test', 'run', '--project', 'node', '--project', 'dom']
         })
-        instrument(app)
+        instrument({ app, mutation: MUTATION, root: ROOT })
         if (MUTATION === 'request-step') {
           writeFileSync(
             path.join(app, 'src/middleware.ts'),
@@ -828,7 +719,7 @@ export default (event, next) => next()
             `import { nitro } from 'nitro/vite'\n${readFileSync(file, 'utf8').replace('plugins: [...(config.plugins ?? []), audit]', "plugins: [...(config.plugins ?? []), audit, nitro({ preset: 'vercel' })]")}`
           )
         }
-        mutateTheme(app)
+        mutateTheme({ app, mutation: MUTATION })
         await buildScenario({ app, scenario, deadline })
       } finally {
         rmSync(directory, { recursive: true, force: true })

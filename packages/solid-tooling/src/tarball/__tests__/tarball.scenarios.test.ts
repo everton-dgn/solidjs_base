@@ -21,8 +21,10 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 import * as v from 'valibot'
 
+import { smokeMiddleware } from '../middleware-smoke.ts'
 import {
   instrument,
+  instrumentMiddleware,
   mutateLocaleStandIn,
   mutateTheme
 } from '../scenario-mutations.ts'
@@ -363,11 +365,15 @@ async function smoke({ app, scenario }: Target): Promise<void> {
       /script-src/u
     )
     await smokeServerErrors({ origin: `http://127.0.0.1:${port}`, scenario })
+    await smokeMiddleware({ origin: `http://127.0.0.1:${port}`, scenario })
   } finally {
     stopChild(child)
     await closed
   }
   assertServerErrorLog(output)
+  assert.ok(
+    output.includes('[middleware] Unexpected failure; private details omitted')
+  )
 }
 
 function assertBuild({ app, scenario }: Target): void {
@@ -526,6 +532,7 @@ async function buildScenario({
   deadline: number
 }): Promise<void> {
   mutateServerErrors({ app, scenario, mutation: MUTATION })
+  instrumentMiddleware({ app, scenario, mutation: MUTATION })
   await run({ deadline, cwd: app, args: ['build'] })
   assertBuild({ app, scenario })
   if (scenario === 'client-only') return

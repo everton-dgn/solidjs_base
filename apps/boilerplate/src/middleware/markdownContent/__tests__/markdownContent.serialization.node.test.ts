@@ -1,3 +1,4 @@
+import { createRenderIntegrity } from '@evertondgn/solid-runtime/server/render-integrity'
 import type { StartMiddleware } from '@solidjs/vite-plugin'
 import {
   configureServerErrors,
@@ -18,7 +19,6 @@ import {
 } from 'solid-js'
 import { sharedConfig } from 'solid-js/internal'
 
-import { createRenderIntegrity } from '@/infra/server/renderIntegrity/index.ts'
 import { Router } from '@/router.ts'
 import { throwValue } from '@/tests/helpers/failureValues/index.ts'
 import { readLog } from '@/tests/helpers/readLog/index.ts'

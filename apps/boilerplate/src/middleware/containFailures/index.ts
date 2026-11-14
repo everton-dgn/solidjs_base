@@ -2,15 +2,15 @@ import { isHtmlResponse } from '@evertondgn/solid-runtime/middleware/is-html-res
 import { isPageRequest } from '@evertondgn/solid-runtime/middleware/request-classification'
 import { requestNonce } from '@evertondgn/solid-runtime/middleware/security-headers'
 import type { Middleware } from '@evertondgn/solid-runtime/middleware/types'
-import { composeMiddleware, getRequestEvent } from '@solidjs/web'
-
-import { HTTP_INTERNAL_SERVER_ERROR } from '@/constants/http.ts'
-import { isControlResponse } from '@/infra/server/isControlResponse/index.ts'
-import { logServerFailure } from '@/infra/server/logServerFailure/index.ts'
+import { isControlResponse } from '@evertondgn/solid-runtime/server/is-control-response'
+import { logServerFailure } from '@evertondgn/solid-runtime/server/log-server-failure'
 import {
   createPublicError,
   publicErrorMessage
-} from '@/infra/server/publicErrors/index.ts'
+} from '@evertondgn/solid-runtime/server/public-errors'
+import { composeMiddleware, getRequestEvent } from '@solidjs/web'
+
+import { HTTP_INTERNAL_SERVER_ERROR } from '@/constants/http.ts'
 import { applySecurityHeaders } from '@/middleware/securityHeaders/index.ts'
 
 type Render = (request?: Request) => Response | Promise<Response>

@@ -69,6 +69,10 @@ async function readBoundedFailure(response: Response): Promise<BoundedFailure> {
 }
 
 describe('markdown resource bounds', () => {
+  beforeAll(async () => {
+    await import('@/infra/server/configureServerErrors/index.ts')
+  })
+
   beforeEach(() => {
     resetPublicationController()
     mockPublishedRoute()

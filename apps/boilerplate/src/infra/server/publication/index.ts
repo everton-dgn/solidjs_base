@@ -1,5 +1,6 @@
 import 'server-only'
-import { withPublicationScope } from '../publicationScope/index.ts'
+import { withPublicationScope } from '@evertondgn/solid-runtime/server/publication-scope'
+
 import { observeSettlement } from './helpers/observeSettlement/index.ts'
 import {
   createOutputResponse,

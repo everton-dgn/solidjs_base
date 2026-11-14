@@ -1,3 +1,4 @@
+import { protectServerOperation } from '@evertondgn/solid-runtime/server/protect-server-operation'
 import {
   createComponent,
   createRequestEvent,
@@ -9,7 +10,6 @@ import { provideRequestEvent } from '@solidjs/web/storage'
 import { createMemo, Loading, onCleanup } from 'solid-js'
 
 import { HTTP_INTERNAL_SERVER_ERROR } from '@/constants/http.ts'
-import { protectServerOperation } from '@/infra/server/protectServerOperation/index.ts'
 import {
   createPublicationController,
   getPublicationMetrics

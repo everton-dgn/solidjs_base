@@ -1,6 +1,6 @@
+import { createPublicError } from '@evertondgn/solid-runtime/server/public-errors'
 import * as v from 'valibot'
 
-import { createPublicError } from '@/infra/server/publicErrors/index.ts'
 import { requestJson } from '@/infra/server/requestJson/index.ts'
 
 import { fixtureError } from '../../backend/fixtureError/index.ts'

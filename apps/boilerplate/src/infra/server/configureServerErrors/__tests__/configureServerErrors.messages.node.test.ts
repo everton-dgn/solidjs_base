@@ -1,15 +1,14 @@
 import {
+  createPublicError,
+  isPublicError,
+  publicErrorMessage
+} from '@evertondgn/solid-runtime/server/public-errors'
+import {
   getLocale,
   type Locale,
   overwriteGetLocale
 } from '@paraglide/runtime.js'
 import { paraglideMiddleware } from '@paraglide/server.js'
-
-import {
-  createPublicError,
-  isPublicError,
-  publicErrorMessage
-} from '../index.ts'
 
 const MESSAGES = {
   pt: 'Não foi possível concluir a solicitação.',
@@ -18,8 +17,12 @@ const MESSAGES = {
 } satisfies Record<Locale, string>
 const LOCALES: Locale[] = ['pt', 'en', 'es']
 
-describe('mensagem dos erros públicos', () => {
-  it('usa o idioma base fora do contexto de idioma do paraglide', () => {
+describe('application public error messages', () => {
+  beforeAll(async () => {
+    await import('../index.ts')
+  })
+
+  it('uses the base locale outside the Paraglide request context', () => {
     const error = createPublicError()
 
     expect(error).toStrictEqual(new Error(MESSAGES.en))
@@ -27,7 +30,7 @@ describe('mensagem dos erros públicos', () => {
   })
 
   it.each(LOCALES)(
-    'usa o idioma %s da requisição dentro do contexto de idioma',
+    'uses request locale %s inside the locale context',
     async locale => {
       const response = await paraglideMiddleware(
         new Request(`http://localhost/${locale}`),
@@ -38,12 +41,12 @@ describe('mensagem dos erros públicos', () => {
     }
   )
 
-  it.each(LOCALES)('aceita o idioma %s explícito', locale => {
+  it.each(LOCALES)('accepts explicit locale %s', locale => {
     expect(publicErrorMessage(locale)).toBe(MESSAGES[locale])
   })
 
-  // O hook de erros chama a fábrica de forma síncrona e não pode lançar.
-  it('cai no idioma base sem lançar quando o idioma não resolve', () => {
+  // The error hook calls this factory synchronously and must never throw.
+  it('falls back without throwing when locale resolution fails', () => {
     const resolveLocale = getLocale
     overwriteGetLocale(() => {
       throw new Error('PRIVATE_LOCALE')

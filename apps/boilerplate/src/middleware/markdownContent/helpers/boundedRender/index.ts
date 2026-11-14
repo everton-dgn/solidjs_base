@@ -1,6 +1,7 @@
 import { appendVary } from '@evertondgn/solid-runtime/middleware/append-vary'
 import { isHtmlResponse } from '@evertondgn/solid-runtime/middleware/is-html-response'
 import type { Next } from '@evertondgn/solid-runtime/middleware/types'
+import { logServerFailure } from '@evertondgn/solid-runtime/server/log-server-failure'
 import type { RequestEvent } from '@solidjs/web'
 
 import {
@@ -12,7 +13,6 @@ import {
 } from '@/constants/http.ts'
 import { markdownPath } from '@/helpers/markdownRoute/index.ts'
 import { resolveSiteUrl } from '@/helpers/resolveSiteUrl/index.ts'
-import { logServerFailure } from '@/infra/server/logServerFailure/index.ts'
 
 import { MAX_MARKDOWN_BYTES } from '../../constants.ts'
 import { convertHtml } from '../convertHtml/index.ts'

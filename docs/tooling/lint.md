@@ -83,14 +83,15 @@ and `middleware`, at the root of `src/`.
 
 Inside `src/`, the preset also restricts what code can reach:
 
-- `console` is not allowed. `src/infra/server/logServerFailure/index.ts` is the
-  only module that may call `console.error`.
+- `console` is not allowed. Only the runtime package's own lint configuration
+  permits `console.error` in its `src/infra/server/logServerFailure/index.ts`.
 - `fetch`, `XMLHttpRequest`, `WebSocket` and `EventSource` are not allowed.
   `src/infra/server/requestJson/index.ts` is the only module that may call
   `fetch`.
 - The Node transports (`http`, `https`, `http2`, `net`, `tls`, `undici`) cannot
   be imported.
-- `markSafeError` and `SAFE_ERROR` can only be imported in
+- `markSafeError` and `SAFE_ERROR` cannot be imported by application code. The
+  runtime package alone permits them in its
   `src/infra/server/publicErrors/index.ts`.
 - `configureServerErrors` from `@solidjs/web`, the
   `@solidjs/web/server-functions` subpath and `observeRenderFailures` from the
@@ -100,17 +101,33 @@ Inside `src/`, the preset also restricts what code can reach:
   is reserved for that same setup file. Literal and template-literal dynamic
   imports are refused too. Other public server subpaths keep their normal
   imports; the build enforces `server-only` against client use.
+- The application setup file must not export anything, including types,
+  defaults, empty export lists or reexports. This prevents consumers from
+  obtaining the configurator through the setup module or another barrel.
+- Imports and reexports cannot contain a `node_modules` path segment. Consumers
+  must use public package exports. The backend rules normalize `/./`, repeated
+  separators and `..` before matching restrictions. The physical-path check also
+  keeps the original segments, so `node_modules/..` cannot erase the violation.
 - A relative import goes up at most three levels. Use `@/` beyond that.
 
 Test files and `.d.ts` files are exempt from all of these except the relative
 import limit.
 
-These path exceptions also apply inside the runtime package, whose lint runs
-from its own folder. `server-only` is allowed only in
-`src/infra/server/**/index.ts`; Node imports in `publicationScope/index.ts` do
-not grant privileges to an `index.mts` sibling. The public operation type
-rejects `allowControl`; the control-enabled implementation and public-message
-setter have no subpath exports. They need no experimental AST rule.
+`backend/restricted-imports` applies the normalized import restrictions;
+`backend/no-setup-exports` enforces the application's setup boundary. Computed
+imports remain outside static specifier analysis.
+
+The runtime's `vite.config.ts` owns the exact-path exceptions for public error
+marking, central logging and Node imports in `publicationScope/index.ts`. It
+also permits its own configurator to export the public API. None grants those
+privileges to an application's same-named module or an `index.mts` sibling. The
+shared preset keeps the application setup's configuration imports, the
+`requestJson/index.ts` fetch exception and `server-only` imports in
+`src/infra/server/**/index.ts`, since applications still contain those modules.
+The public operation type rejects `allowControl` when it appears in the static
+argument type. Narrowing to a type containing only `run` can hide the extra
+field, but the public wrapper discards it at runtime. The control-enabled
+implementation and public-message setter have no subpath exports.
 
 ## Changing the preset
 

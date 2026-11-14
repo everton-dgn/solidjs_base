@@ -2,6 +2,7 @@ import { definePlugin, defineRule } from 'vite-plus/lint/plugins'
 
 import { readStaticSpecifier } from '../lint/import-specifier.ts'
 import { RENDER_INTEGRITY_MODULE } from './constants.ts'
+import { normalizeBackendSpecifier, restrictedImports } from './imports.ts'
 
 type StaticImportRule = {
   matches: (specifier: string) => boolean
@@ -23,7 +24,10 @@ function staticImportRule({ matches, message }: StaticImportRule) {
       return {
         ImportExpression(node) {
           const specifier = readStaticSpecifier(node)
-          if (specifier !== undefined && matches(specifier)) {
+          if (
+            specifier !== undefined &&
+            matches(normalizeBackendSpecifier(specifier))
+          ) {
             context.report({ node, messageId: 'staticImport' })
           }
         }
@@ -35,6 +39,29 @@ function staticImportRule({ matches, message }: StaticImportRule) {
 const backendPlugin = definePlugin({
   meta: { name: 'backend' },
   rules: {
+    'restricted-imports': restrictedImports,
+    'no-setup-exports': defineRule({
+      meta: {
+        type: 'problem',
+        schema: [],
+        messages: {
+          exported:
+            'Server setup must not export anything. Import it only for its setup side effects.'
+        }
+      },
+      create(context) {
+        return {
+          ExportNamedDeclaration: node =>
+            context.report({ node, messageId: 'exported' }),
+          ExportDefaultDeclaration: node =>
+            context.report({ node, messageId: 'exported' }),
+          ExportAllDeclaration: node =>
+            context.report({ node, messageId: 'exported' }),
+          TSExportAssignment: node =>
+            context.report({ node, messageId: 'exported' })
+        }
+      }
+    }),
     'static-solid-imports': staticImportRule({
       matches: specifier =>
         specifier === '@solidjs/web' ||

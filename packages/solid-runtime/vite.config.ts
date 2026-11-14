@@ -60,7 +60,42 @@ export default defineConfig({
   },
   // vp lint reads this block from the package folder; vp check and the
   // formatter use the root config.
-  lint: { ...lint, jsPlugins },
+  lint: {
+    ...lint,
+    jsPlugins,
+    overrides: [
+      ...(lint.overrides ?? []),
+      {
+        files: ['src/infra/server/publicErrors/index.ts'],
+        rules: {
+          'backend/restricted-imports': ['error', { allowSafeErrors: true }]
+        }
+      },
+      {
+        files: ['src/infra/server/configureServerErrors/index.ts'],
+        // The package exports the configurator; application setup only calls it.
+        rules: { 'backend/no-setup-exports': 'off' }
+      },
+      {
+        files: ['src/infra/server/logServerFailure/index.ts'],
+        rules: {
+          'eslint/no-console': ['error', { allow: ['error'] }],
+          'eslint/no-restricted-globals': [
+            'error',
+            {
+              globals: ['fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource'],
+              checkGlobalObject: true,
+              globalObjects: ['global']
+            }
+          ]
+        }
+      },
+      {
+        files: ['src/infra/server/publicationScope/index.ts'],
+        rules: { 'import/no-nodejs-modules': 'off' }
+      }
+    ]
+  },
   plugins: [nodeStubs()],
   test: {
     pool: 'threads',

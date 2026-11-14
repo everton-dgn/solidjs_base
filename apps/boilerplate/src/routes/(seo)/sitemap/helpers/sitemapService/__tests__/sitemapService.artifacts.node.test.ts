@@ -14,7 +14,7 @@ import {
 } from '@/constants/publication.ts'
 import type { PublicationOptions } from '@/infra/server/publication/types.ts'
 
-// oxlint-disable-next-line eslint/no-restricted-imports -- Contrato real entre o escritor do build e o leitor da função.
+// oxlint-disable-next-line backend/restricted-imports -- Real contract between the build writer and the server function reader.
 import { writeServerArtifacts } from '../../../../../../../tooling/publicationArtifacts/helpers/writeServerArtifacts/index.ts'
 import { SITEMAP_BYTE_LIMIT, SITEMAP_URL_LIMIT } from '../../../constants.ts'
 import type { SitemapManifest, SitemapRouteContext } from '../../../types.ts'

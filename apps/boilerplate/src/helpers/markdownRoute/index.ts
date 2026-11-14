@@ -1,6 +1,5 @@
+import { delocalizePathname } from '@evertondgn/solid-runtime/i18n/urls'
 import type { RouteInfo } from '@solidjs/router'
-
-import { delocalizePathname } from '@/i18n/urls/index.ts'
 
 export function hasMarkdownOptIn(
   info: readonly (RouteInfo | undefined)[]

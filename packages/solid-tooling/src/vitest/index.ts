@@ -6,6 +6,7 @@ import type { Plugin, TestUserConfig } from 'vite-plus'
 import { playwright } from 'vite-plus/test/browser-playwright'
 
 import { hasI18n } from '../has-i18n.ts'
+import { localeSource } from '../locale-module.ts'
 import { TEST_LOCALE } from '../test-locale.ts'
 import { defaultDomUrl } from './dom-url.ts'
 import { sourcePackages } from './source-packages.ts'
@@ -34,14 +35,15 @@ function packageFile(name: string): string {
   return fileURLToPath(new URL(name, import.meta.url))
 }
 
-function nodeStubs(): Plugin {
+function nodeStubs(source: string): Plugin {
+  const stubs = new Map([...NODE_STUBS, ['virtual:solid-app/locale', source]])
   return {
     name: 'solid-tooling:node-stubs',
     enforce: 'pre',
-    resolveId: id => (NODE_STUBS.has(id) ? `${STUB_PREFIX}${id}` : undefined),
+    resolveId: id => (stubs.has(id) ? `${STUB_PREFIX}${id}` : undefined),
     load: id =>
       id.startsWith(STUB_PREFIX)
-        ? NODE_STUBS.get(id.slice(STUB_PREFIX.length))
+        ? stubs.get(id.slice(STUB_PREFIX.length))
         : undefined
   }
 }
@@ -57,6 +59,7 @@ function readTestEnv(): Record<string, string> {
 
 export function solidTest({
   root,
+  language,
   plugins,
   sourcePackages: packages = SOURCE_PACKAGES,
   domUrl = defaultDomUrl(root),
@@ -96,7 +99,10 @@ export function solidTest({
     // declare only what changes: environment, include, plugins and aliases.
     projects: [
       {
-        plugins: [nodeStubs(), sourcePackages({ root, packages })],
+        plugins: [
+          nodeStubs(localeSource({ root, language })),
+          sourcePackages({ root, packages })
+        ],
         test: {
           name: { label: 'node', color: 'cyan' },
           environment: 'node',

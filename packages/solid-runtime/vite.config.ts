@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite-plus'
 
 import { lint } from '../solid-tooling/src/lint.ts'
+import { LOCALE_SOURCE } from './tooling/testing/locale-source.ts'
 
 const TOOLING_SOURCE = '../solid-tooling/src'
 // Repeated from the root config: each config writes the paths from its folder.
@@ -23,6 +24,7 @@ const STUB_PREFIX = '\0solid-runtime-stub:'
 // The stand-ins that solidTest serves to the node project of an application:
 // the Solid and routing plugins provide these modules only in a real build.
 const NODE_STUBS = new Map([
+  ['virtual:solid-app/locale', LOCALE_SOURCE],
   ['server-only', 'export default undefined'],
   ['virtual:file-routes', 'export const pageRoutes = []\nexport default []'],
   [

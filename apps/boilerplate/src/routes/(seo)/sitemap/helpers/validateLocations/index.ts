@@ -1,5 +1,6 @@
+import { buildLocaleAlternates } from '@evertondgn/solid-runtime/i18n/build-locale-alternates'
+
 import type { SitemapEntry } from '@/@types/sitemap.ts'
-import { buildLocaleAlternates } from '@/i18n/buildLocaleAlternates/index.ts'
 
 import { SITEMAP_LOC_LIMIT } from '../../constants.ts'
 

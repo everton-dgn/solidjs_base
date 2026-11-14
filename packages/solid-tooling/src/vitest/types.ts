@@ -2,6 +2,7 @@ import type { ViteUserConfig } from 'vite-plus'
 
 export type SolidTestOptions = {
   root: string
+  language?: string
   // WHY: a factory, because each project starts its own Vite server and a
   // plugin instance keeps the state of the server that resolved it last.
   plugins: () => ViteUserConfig['plugins']
@@ -13,5 +14,9 @@ export type SolidTestOptions = {
   locale?: string
 }
 
-// What the application chooses. defineSolidApp supplies root and plugins.
-export type SolidTestSettings = Omit<SolidTestOptions, 'root' | 'plugins'>
+// What the application chooses. defineSolidApp supplies root, plugins and the
+// language, which it takes as an option of its own.
+export type SolidTestSettings = Omit<
+  SolidTestOptions,
+  'root' | 'plugins' | 'language'
+>

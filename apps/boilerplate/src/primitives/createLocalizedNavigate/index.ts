@@ -1,3 +1,7 @@
+import {
+  isAbsoluteHref,
+  resolveLocalizedHref
+} from '@evertondgn/solid-runtime/i18n/urls'
 import { getLocale, type Locale } from '@paraglide/runtime.js'
 import {
   useLocation,
@@ -6,8 +10,6 @@ import {
   type TypedPath
 } from '@solidjs/router'
 import { isServer } from '@solidjs/web'
-
-import { isAbsoluteHref, resolveLocalizedHref } from '@/i18n/urls/index.ts'
 
 type LocalizedNavigateOptions = Omit<Partial<NavigateOptions>, 'resolve'> & {
   href: string | TypedPath

@@ -71,7 +71,8 @@ export default defineConfig({
         // An ambient module declaration only works in a script file; an import
         // would turn it into an augmentation of a module that is missing here.
         files: [
-          'packages/solid-tooling/src/vitest/setup/paraglide-runtime.d.ts'
+          'packages/solid-tooling/src/vitest/setup/paraglide-runtime.d.ts',
+          'packages/solid-tooling/virtual-modules.d.ts'
         ],
         rules: { 'import/unambiguous': 'off' }
       }

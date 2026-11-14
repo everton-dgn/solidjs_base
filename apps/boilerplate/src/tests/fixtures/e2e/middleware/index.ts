@@ -1,7 +1,7 @@
+import { delocalizePathname } from '@evertondgn/solid-runtime/i18n/urls'
 import { getRequestEvent } from '@solidjs/web'
 import * as v from 'valibot'
 
-import { delocalizePathname } from '@/i18n/urls/index.ts'
 import { requestJson } from '@/infra/server/requestJson/index.ts'
 import { createMiddleware } from '@/middleware/index.ts'
 

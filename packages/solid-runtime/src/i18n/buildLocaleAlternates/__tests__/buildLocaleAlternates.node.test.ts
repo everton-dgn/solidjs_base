@@ -8,24 +8,24 @@ describe('locale alternates', () => {
         siteUrl: 'https://example.com'
       })
     ).toStrictEqual([
-      { hreflang: 'pt', href: 'https://example.com/pt/docs?q=1#section' },
-      { hreflang: 'en', href: 'https://example.com/en/docs?q=1#section' },
-      { hreflang: 'es', href: 'https://example.com/es/docs?q=1#section' },
-      { hreflang: 'x-default', href: 'https://example.com/en/docs?q=1#section' }
+      { hreflang: 'fr', href: 'https://example.com/fr/docs?q=1#section' },
+      { hreflang: 'de', href: 'https://example.com/de/docs?q=1#section' },
+      { hreflang: 'ja', href: 'https://example.com/ja/docs?q=1#section' },
+      { hreflang: 'x-default', href: 'https://example.com/de/docs?q=1#section' }
     ])
   })
 
   it('relocalizes a path that already has a locale prefix', () => {
     const alternates = buildLocaleAlternates({
-      href: '/es/docs',
+      href: '/ja/docs',
       siteUrl: 'https://example.com'
     })
 
     expect(alternates.map(({ href }) => href)).toStrictEqual([
-      'https://example.com/pt/docs',
-      'https://example.com/en/docs',
-      'https://example.com/es/docs',
-      'https://example.com/en/docs'
+      'https://example.com/fr/docs',
+      'https://example.com/de/docs',
+      'https://example.com/ja/docs',
+      'https://example.com/de/docs'
     ])
   })
 
@@ -35,6 +35,6 @@ describe('locale alternates', () => {
       siteUrl: 'https://example.com/base/index.html?x=1'
     })
 
-    expect(alternate?.href).toBe('https://example.com/pt/docs')
+    expect(alternate?.href).toBe('https://example.com/fr/docs')
   })
 })

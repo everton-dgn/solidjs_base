@@ -1,3 +1,4 @@
+import { resolveLocalizedHref } from '@evertondgn/solid-runtime/i18n/urls'
 import type { Locale } from '@paraglide/runtime.js'
 import {
   getRequestEvent,
@@ -6,8 +7,6 @@ import {
   redirect,
   type ResponseHelperInit
 } from '@solidjs/web'
-
-import { resolveLocalizedHref } from '@/i18n/urls/index.ts'
 
 type LocalizedRedirectOptions = ResponseHelperInit & {
   href: Parameters<typeof redirect>[0]

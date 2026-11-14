@@ -260,9 +260,22 @@ it('places the extension plugins before the fixed ones in each target', async co
   const summary = await readSummary({ options: { root } })
   assert.equal(summary.error, null)
   assert.deepEqual(summary.plugins, {
-    app: ['extension:app', 'icons', 'solid', 'fileRoutes', 'nitro'],
-    dom: ['extension:test', 'icons', 'solid', 'fileRoutes'],
-    browser: ['extension:test', 'icons', 'solid', 'fileRoutes']
+    app: [
+      'solid-app:locale',
+      'extension:app',
+      'icons',
+      'solid',
+      'fileRoutes',
+      'nitro'
+    ],
+    dom: ['solid-app:locale', 'extension:test', 'icons', 'solid', 'fileRoutes'],
+    browser: [
+      'solid-app:locale',
+      'extension:test',
+      'icons',
+      'solid',
+      'fileRoutes'
+    ]
   })
 })
 
@@ -331,7 +344,12 @@ it('falls back to server functions without setup and no middleware', async conte
     ssr: true,
     serverFunctions: true
   })
-  assert.deepEqual(summary.plugins.dom, ['icons', 'solid', 'fileRoutes'])
+  assert.deepEqual(summary.plugins.dom, [
+    'solid-app:locale',
+    'icons',
+    'solid',
+    'fileRoutes'
+  ])
   const [nitro] = optionsOf({ summary, name: 'nitro' })
   assert.ok(nitro !== null && typeof nitro === 'object')
   assert.deepEqual('modules' in nitro && nitro.modules, [])
@@ -693,9 +711,15 @@ it('builds a client-only application without Nitro or server functions', async c
   })
   assert.equal(summary.error, null)
   assert.deepEqual(summary.plugins, {
-    app: ['extension:app', 'icons', 'solid', 'fileRoutes'],
-    dom: ['extension:test', 'icons', 'solid', 'fileRoutes'],
-    browser: ['extension:test', 'icons', 'solid', 'fileRoutes']
+    app: ['solid-app:locale', 'extension:app', 'icons', 'solid', 'fileRoutes'],
+    dom: ['solid-app:locale', 'extension:test', 'icons', 'solid', 'fileRoutes'],
+    browser: [
+      'solid-app:locale',
+      'extension:test',
+      'icons',
+      'solid',
+      'fileRoutes'
+    ]
   })
   assert.deepEqual(splitSolidCalls(summary), [{ ssr: false }, [{}, {}]])
   assert.equal(importsOf(summary).includes('nitro'), false)

@@ -4,6 +4,7 @@ import path from 'node:path'
 import { lazyPlugins, type PluginOption } from 'vite-plus'
 
 import { I18N_SETTINGS } from '../has-i18n.ts'
+import { localeModule } from '../locale-module.ts'
 import type {
   ExtensionContext,
   ServerAppOptions,
@@ -161,6 +162,7 @@ function clientPlugins({
 }: PluginSetup): PluginOption[] {
   const e2eRoutes = mode === 'e2e' ? options.e2e?.routes : undefined
   return [
+    localeModule(options),
     ...(extension.plugins ?? []),
     iconsPlugin({ modules, options }),
     modules.solid({ ssr: false }),
@@ -189,6 +191,7 @@ async function serverPlugins({
   const e2eRoutes = isE2e ? options.e2e?.routes : undefined
   const headers = staticHeaders(options)
   return [
+    localeModule(options),
     ...(extension.plugins ?? []),
     iconsPlugin({ modules, options }),
     modules.solid({
@@ -255,6 +258,7 @@ export function testPlugins({
       readExtension({ options, target: 'test', mode })
     ])
     return [
+      localeModule(options),
       ...(extension.plugins ?? []),
       iconsPlugin({ modules, options }),
       modules.solid(options.ssr === false ? {} : { serverFunctions: true }),

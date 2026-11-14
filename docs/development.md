@@ -173,6 +173,11 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
   sections about releases, CI, Git hooks and the Vercel deploy describe the
   original repository.
 
+- `src/i18n/urls`, `src/i18n/buildLocaleAlternates` and
+  `src/middleware/helpers/appendVary` moved with their tests to the runtime.
+  Consumers use package specifiers. Request locale handling, persistence,
+  redirects, locale tags, LocalizedLink and messages remain in the copy.
+
 ### Updating the copy
 
 The copy does not follow boilerplate_solidjs on its own. To bring it up to date,
@@ -271,3 +276,18 @@ The optional `SCENARIO_MUTATION` values `nitro`, `headers` and `dom` inject
 regressions only into temporary copies. Select `client-only / isolated` for
 Nitro and `ssr-plain / isolated` for the other two; each command must fail. See
 [ADR 0021](ADRs/0021-installed-application-scenarios.md) for coverage and cost.
+
+The locale seam adds an `ssr-plain / isolated-language` case with
+`language: 'de'`, checked in node and dom. SSR fixtures render a runtime locale
+link: unprefixed without translations and prefixed with /fr with them. The
+client-only fixture reads the runtime locale while its bundle audit keeps
+rejecting translation modules.
+
+The locale negative probes use `SCENARIO_MUTATION=locale-provider` or
+`locale-node` with `ssr-plain / isolated$`, and `locale-prefix` with
+`ssr-i18n / isolated$`. The provider probe needs the generated runtime of the
+boilerplate copy (run `vp run i18n:generate` there first). It adds that provider
+only in the temporary application's build, after the tests, so the unchanged
+bundle audit must reject it. The node probe removes the locale stand-in from the
+installed tooling in that temporary application. Each probe must fail at its
+intended assertion; temporary copies are removed in finally.

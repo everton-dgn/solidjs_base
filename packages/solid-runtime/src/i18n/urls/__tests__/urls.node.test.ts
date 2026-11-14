@@ -2,11 +2,11 @@ import { delocalizePathname, localizeHref } from '../index.ts'
 
 describe('localized URLs', () => {
   it('keeps the query and hash while changing locales', () => {
-    expect(localizeHref({ href: '/pt/docs?q=1#section', locale: 'es' })).toBe(
-      '/es/docs?q=1#section'
+    expect(localizeHref({ href: '/fr/docs?q=1#section', locale: 'ja' })).toBe(
+      '/ja/docs?q=1#section'
     )
-    expect(localizeHref({ href: '/', locale: 'en' })).toBe('/en')
-    expect(localizeHref({ href: '/es', locale: 'pt' })).toBe('/pt')
+    expect(localizeHref({ href: '/', locale: 'de' })).toBe('/de')
+    expect(localizeHref({ href: '/ja', locale: 'fr' })).toBe('/fr')
   })
 
   it('leaves external URLs and fragments untouched', () => {
@@ -18,14 +18,14 @@ describe('localized URLs', () => {
       'mailto:a@example.com',
       '#section'
     ]) {
-      expect(localizeHref({ href, locale: 'es' })).toBe(href)
+      expect(localizeHref({ href, locale: 'ja' })).toBe(href)
     }
   })
 
   it('strips only a complete supported locale segment for route matching', () => {
-    expect(delocalizePathname('/es/docs')).toBe('/docs')
-    expect(delocalizePathname('/pt')).toBe('/')
+    expect(delocalizePathname('/ja/docs')).toBe('/docs')
+    expect(delocalizePathname('/fr')).toBe('/')
     expect(delocalizePathname('/enterprise')).toBe('/enterprise')
-    expect(delocalizePathname('/fr/docs')).toBe('/fr/docs')
+    expect(delocalizePathname('/unsupported/docs')).toBe('/unsupported/docs')
   })
 })

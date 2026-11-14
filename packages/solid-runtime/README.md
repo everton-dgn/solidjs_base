@@ -20,6 +20,28 @@ application bundles only the modules it imports.
 | `./middleware/is-html-response`           | `isHtmlResponse`                                                                                              |
 | `./middleware/types`                      | The `Middleware` and `Next` types                                                                             |
 
+## Locale support
+
+The entries `./i18n/locale`, `./i18n/urls`, `./i18n/build-locale-alternates` and
+`./middleware/append-vary` provide the locale contract, URL helpers, alternate
+links and Vary header merging.
+
+`./i18n/locale` exports `locales`, `baseLocale`, `getLocale`,
+`extractLocaleFromUrl`, `localizeHref` and `deLocalizeUrl`, with locales typed
+as strings. Its `localizeHref(href, options?)` follows the provider contract;
+the URL helper entry takes `localizeHref({ href, locale })` and preserves
+external links. There is no translation dependency in this package.
+
+The preset supplies `virtual:solid-app/locale` in builds, development and all
+three Vitest projects. With an application translation project it forwards the
+generated runtime. Otherwise the single locale is `language` (default `en`),
+links and URLs remain unprefixed, and URL locale extraction returns undefined.
+Applications using the preset need no locale setup. The tooling app tsconfig
+loads the virtual module declarations.
+
+Runtime tests use an independent three-locale provider (fr, de, ja). They test
+the helper contracts; installed application scenarios test the real providers.
+
 ## Building the chain
 
 The application keeps its middleware file and picks the steps. The boilerplate

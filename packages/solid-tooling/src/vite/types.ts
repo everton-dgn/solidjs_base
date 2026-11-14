@@ -19,6 +19,7 @@ type StaticAssetDir = PublicAssetDir & { baseURL: string }
 type RouteRule = NonNullable<NitroConfig['routeRules']>[string]
 
 type SharedOptions = {
+  language?: string
   root: string
   icons?: Record<string, string>
   extend?: (

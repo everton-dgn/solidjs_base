@@ -153,6 +153,7 @@ export function defineSolidApp(
       test: solidTest({
         ...options.test,
         root,
+        language: options.language,
         plugins: () => testPlugins({ options, mode })
       })
     }

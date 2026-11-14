@@ -1,3 +1,5 @@
+import { buildLocaleAlternates } from '@evertondgn/solid-runtime/i18n/build-locale-alternates'
+import { localizeHref } from '@evertondgn/solid-runtime/i18n/urls'
 import { getLocale, locales } from '@paraglide/runtime.js'
 import { useLocation, useRouteMatches } from '@solidjs/router'
 import { type HeadTag, useHead } from '@solidjs/web'
@@ -11,9 +13,7 @@ import {
 } from '@/helpers/markdownRoute/index.ts'
 import { resolveRouteSeo } from '@/helpers/resolveRouteSeo/index.ts'
 import { resolveSiteUrl } from '@/helpers/resolveSiteUrl/index.ts'
-import { buildLocaleAlternates } from '@/i18n/buildLocaleAlternates/index.ts'
 import { LOCALE_TAGS } from '@/i18n/localeTags/index.ts'
-import { localizeHref } from '@/i18n/urls/index.ts'
 
 import { buildStructuredData } from './buildStructuredData/index.ts'
 

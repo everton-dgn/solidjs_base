@@ -1,3 +1,4 @@
+import { appendVary } from '@evertondgn/solid-runtime/middleware/append-vary'
 import {
   cookieDomain,
   cookieMaxAge,
@@ -7,8 +8,6 @@ import {
   type Locale
 } from '@paraglide/runtime.js'
 import { parseCookieHeader, serializeCookie } from '@solidjs/web'
-
-import { appendVary } from '../../helpers/appendVary/index.ts'
 
 type PersistLocaleOptions = {
   request: Request

@@ -1,3 +1,4 @@
+import { localizeHref } from '@evertondgn/solid-runtime/i18n/urls'
 import { baseLocale } from '@paraglide/runtime.js'
 import { paraglideMiddleware } from '@paraglide/server.js'
 import { pageRoutes } from 'virtual:file-routes'
@@ -9,7 +10,6 @@ import { isMarkdownRoute, markdownPath } from '@/helpers/markdownRoute/index.ts'
 import { memoizeOnce } from '@/helpers/memoizeOnce/index.ts'
 import { readPublicationPhase } from '@/helpers/readPublicationPhase/index.ts'
 import { resolveSiteUrl } from '@/helpers/resolveSiteUrl/index.ts'
-import { localizeHref } from '@/i18n/urls/index.ts'
 import { logServerFailure } from '@/infra/server/logServerFailure/index.ts'
 import { Router } from '@/router.ts'
 

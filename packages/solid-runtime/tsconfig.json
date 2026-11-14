@@ -9,5 +9,11 @@
       "filesystem-routing/types"
     ]
   },
-  "include": ["src", "tooling", "vite.config.ts", "knip.config.ts"]
+  "include": [
+    "src",
+    "tooling",
+    "vite.config.ts",
+    "knip.config.ts",
+    "../solid-tooling/virtual-modules.d.ts"
+  ]
 }

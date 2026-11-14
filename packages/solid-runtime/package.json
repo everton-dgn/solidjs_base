@@ -41,6 +41,18 @@
     },
     "./middleware/types": {
       "solid": "./src/middleware/types.ts"
+    },
+    "./i18n/locale": {
+      "solid": "./src/i18n/locale/index.ts"
+    },
+    "./i18n/urls": {
+      "solid": "./src/i18n/urls/index.ts"
+    },
+    "./i18n/build-locale-alternates": {
+      "solid": "./src/i18n/buildLocaleAlternates/index.ts"
+    },
+    "./middleware/append-vary": {
+      "solid": "./src/middleware/helpers/appendVary/index.ts"
     }
   },
   "scripts": {

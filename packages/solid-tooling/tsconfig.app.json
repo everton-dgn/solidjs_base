@@ -8,7 +8,8 @@
       "vite-plus/test/globals",
       "@testing-library/jest-dom/vitest",
       "@solidjs/vite-plugin/boundary-modules",
-      "@solidjs/vite-plugin/virtual-modules"
+      "@solidjs/vite-plugin/virtual-modules",
+      "@evertondgn/solid-tooling/virtual-modules"
     ]
   },
   "include": [

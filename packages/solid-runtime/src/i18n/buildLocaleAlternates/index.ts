@@ -1,10 +1,9 @@
-import { baseLocale, type Locale, locales } from '@paraglide/runtime.js'
-
-import { localizeHref } from '@/i18n/urls/index.ts'
+import { baseLocale, locales } from '../locale/index.ts'
+import { localizeHref } from '../urls/index.ts'
 
 type BuildLocaleAlternatesOptions = { href: string; siteUrl: string }
 
-type LocaleAlternate = { hreflang: Locale | 'x-default'; href: string }
+type LocaleAlternate = { hreflang: string; href: string }
 
 export function buildLocaleAlternates({
   href,

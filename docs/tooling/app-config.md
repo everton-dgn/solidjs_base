@@ -34,42 +34,53 @@ export default defineSolidApp({
 })
 ```
 
-| Option            | Default                 | Use                                                                                                                              |
-| ----------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `root`            | required                | Application folder. `.env`, `.env.test`, `project.inlang/settings.json` and the icon folders resolve from it                     |
-| `ssr`             | `true`                  | `false` for a client-only application, which takes only `root`, `icons`, `e2e.routes`, `extend`, `tasks`, `workspace` and `test` |
-| `securityHeaders` | required with SSR       | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files          |
-| `publication`     | `false`                 | `true` when the application publishes the sitemap, `robots.txt`, `llms.txt` or Markdown pages, so their files get the headers    |
-| `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                              |
-| `serverSetup`     | `serverFunctions: true` | `serverFunctions.serverSetup` of the Solid plugin                                                                                |
-| `e2e`             | production paths        | `{ middleware, routes }` for `--mode e2e`: the middleware chain and the route folder of the fixtures, without route types        |
-| `icons`           | none                    | Own `unplugin-icons` collections, as name to folder                                                                              |
-| `publicAssets`    | none                    | `publicAssets` of Nitro. Each entry needs a `baseURL`, which also gets the static headers                                        |
-| `staticPaths`     | none                    | Other static paths that get the headers, such as `/favicon/**`                                                                   |
-| `routeRules`      | none                    | More Nitro route rules, applied after the static ones. A rule with the same path replaces the static one                         |
-| `extend`          | none                    | `(context) => ({ plugins, nitroModules })`, for plugins and Nitro modules the application still owns                             |
-| `tasks`           | none                    | Adds or replaces `vp run` tasks by name                                                                                          |
-| `workspace`       | none                    | `{ dependsOn, inputs }` for an application inside a monorepo, whose `bun.lock`, `bunfig.toml` and package builds sit at the root |
-| `test`            | defaults of `solidTest` | `{ domUrl, locale, sourcePackages }` for the test block, described in [Testing](testing.md)                                      |
+| Option            | Default                 | Use                                                                                                                                          |
+| ----------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `language`        | `en`                    | Single locale when no translation project exists; ignored when generated locale settings exist                                               |
+| `root`            | required                | Application folder. `.env`, `.env.test`, `project.inlang/settings.json` and the icon folders resolve from it                                 |
+| `ssr`             | `true`                  | `false` for a client-only application, which takes only `root`, `language`, `icons`, `e2e.routes`, `extend`, `tasks`, `workspace` and `test` |
+| `securityHeaders` | required with SSR       | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files                      |
+| `publication`     | `false`                 | `true` when the application publishes the sitemap, `robots.txt`, `llms.txt` or Markdown pages, so their files get the headers                |
+| `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                                          |
+| `serverSetup`     | `serverFunctions: true` | `serverFunctions.serverSetup` of the Solid plugin                                                                                            |
+| `e2e`             | production paths        | `{ middleware, routes }` for `--mode e2e`: the middleware chain and the route folder of the fixtures, without route types                    |
+| `icons`           | none                    | Own `unplugin-icons` collections, as name to folder                                                                                          |
+| `publicAssets`    | none                    | `publicAssets` of Nitro. Each entry needs a `baseURL`, which also gets the static headers                                                    |
+| `staticPaths`     | none                    | Other static paths that get the headers, such as `/favicon/**`                                                                               |
+| `routeRules`      | none                    | More Nitro route rules, applied after the static ones. A rule with the same path replaces the static one                                     |
+| `extend`          | none                    | `(context) => ({ plugins, nitroModules })`, for plugins and Nitro modules the application still owns                                         |
+| `tasks`           | none                    | Adds or replaces `vp run` tasks by name                                                                                                      |
+| `workspace`       | none                    | `{ dependsOn, inputs }` for an application inside a monorepo, whose `bun.lock`, `bunfig.toml` and package builds sit at the root             |
+| `test`            | defaults of `solidTest` | `{ domUrl, locale, sourcePackages }` for the test block, described in [Testing](testing.md)                                                  |
+
+The preset serves `virtual:solid-app/locale` in development, builds and all
+Vitest projects. With `project.inlang/settings.json`, it re-exports the
+application's generated runtime. Otherwise it supplies the single `language`,
+returns hrefs unchanged, normalizes absolute URL inputs to URL objects, and
+returns undefined when extracting a locale from a URL. The module declarations
+are published at `@evertondgn/solid-tooling/virtual-modules` and loaded by
+`tsconfig.app.json`.
 
 The preset fixes the rest:
 
-- Plugins, in this order: the `extend` plugins, `unplugin-icons` (Solid
-  compiler, `aria-hidden` on every icon), `@solidjs/vite-plugin` with SSR and
-  server functions, `filesystem-routing` with HTTP methods and the route types
-  in `src/@types/routes.d.ts`, and Nitro with the `vercel` preset. The `dom` and
-  `browser` test projects get the `extend` plugins, the icons, Solid with server
-  functions only and the routes. The `test` mode loads no application plugin and
-  reads `.env.test` into `process.env`.
+- Plugins, in this order: the locale provider, the `extend` plugins,
+  `unplugin-icons` (Solid compiler, `aria-hidden` on every icon),
+  `@solidjs/vite-plugin` with SSR and server functions, `filesystem-routing`
+  with HTTP methods and the route types in `src/@types/routes.d.ts`, and Nitro
+  with the `vercel` preset. The `dom` and `browser` test projects get the
+  `extend` plugins, the icons, Solid with server functions only and the routes.
+  The `test` mode loads no application plugin and reads `.env.test` into
+  `process.env`.
 - The static headers go to `/assets/**`, each `publicAssets` folder and the
   `staticPaths`. With `publication`, also to `/<locale>/**.md` for each locale
   of `project.inlang/settings.json`, `/llms.txt`, `/llms-full.txt`,
   `/sitemap.xml`, `/sitemaps/pages/**` and `/_markdown/static.json`. The static
   files leave the CDN without going through the middleware, so these rules give
   them the headers the middleware writes on the other responses.
-- With `ssr: false`, the plugins are the `extend` plugins, the icons, the Solid
-  plugin with `ssr: false` and the routes; the test projects load Solid without
-  server functions. The build writes `dist/` with the page and its assets.
+- With `ssr: false`, the plugins are the locale provider, the `extend` plugins,
+  the icons, the Solid plugin with `ssr: false` and the routes; the test
+  projects load Solid without server functions. The build writes `dist/` with
+  the page and its assets.
 - `build.manifest` only in the `e2e` mode, which the `TEST_PREBUILT` check of
   `./playwright` relies on, and no comments in the output.
 - Lightning CSS, with CSS Modules classes named `[content-hash]_[local]`.

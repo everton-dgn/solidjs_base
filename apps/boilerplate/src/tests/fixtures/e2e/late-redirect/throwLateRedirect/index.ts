@@ -1,6 +1,5 @@
+import { localizeHref } from '@evertondgn/solid-runtime/i18n/urls'
 import { redirect } from '@solidjs/web'
-
-import { localizeHref } from '@/i18n/urls/index.ts'
 
 import { waitFixtureGate } from '../../backend/waitFixtureGate/index.ts'
 

@@ -37,7 +37,7 @@ export default defineSolidApp({
 | Option            | Default                 | Use                                                                                                                              |
 | ----------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `root`            | required                | Application folder. `.env`, `.env.test`, `project.inlang/settings.json` and the icon folders resolve from it                     |
-| `ssr`             | `true`                  | `false` for a client-only application, which takes only `root`, `icons`, `e2e.routes`, `extend`, `tasks` and `workspace`         |
+| `ssr`             | `true`                  | `false` for a client-only application, which takes only `root`, `icons`, `e2e.routes`, `extend`, `tasks`, `workspace` and `test` |
 | `securityHeaders` | required with SSR       | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files          |
 | `publication`     | `false`                 | `true` when the application publishes the sitemap, `robots.txt`, `llms.txt` or Markdown pages, so their files get the headers    |
 | `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                              |
@@ -50,6 +50,7 @@ export default defineSolidApp({
 | `extend`          | none                    | `(context) => ({ plugins, nitroModules })`, for plugins and Nitro modules the application still owns                             |
 | `tasks`           | none                    | Adds or replaces `vp run` tasks by name                                                                                          |
 | `workspace`       | none                    | `{ dependsOn, inputs }` for an application inside a monorepo, whose `bun.lock`, `bunfig.toml` and package builds sit at the root |
+| `test`            | defaults of `solidTest` | `{ domUrl, locale, sourcePackages }` for the test block, described in [Testing](testing.md)                                      |
 
 The preset fixes the rest:
 

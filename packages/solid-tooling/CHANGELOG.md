@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.5.0...solid-tooling@0.6.0) (2026-11-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **tooling:** the dom project no longer starts at `http://localhost/en` in every application. Without `project.inlang/settings.json` it starts at `http://localhost/`. With it, it starts under the base locale of that file, such as `http://localhost/fr`, so an application whose base locale is not `en` changes too. Set `domUrl` to `http://localhost/en` (`test.domUrl` in `defineSolidApp`) to keep the old URL. A settings file that cannot be read or has no `baseLocale` now fails the config, unless `domUrl` is set.
+* **tooling:** the header rules of the sitemap, llms.txt and Markdown files need publication: true, and an SSR application without project.inlang no longer fails to load the plugins.
+
+### Features
+
+* add runtime locale request seam ([d8fc9cb](https://github.com/everton-dgn/solidjs_base/commit/d8fc9cb16d262c385be1d9c3997ec0d01b8113ec))
+* move localized redirects and request tests into runtime ([4c1ce1f](https://github.com/everton-dgn/solidjs_base/commit/4c1ce1f404a819bdcc38149661023b0b2f27ebfe))
+* provide an optional runtime locale module ([025d0d7](https://github.com/everton-dgn/solidjs_base/commit/025d0d77fec027ee582536d321b26d60ce77c633))
+* **tooling:** apply the solid condition to source packages in the node test project ([b755c43](https://github.com/everton-dgn/solidjs_base/commit/b755c43e0252703dc71237becdd8187743d8b06a))
+* **tooling:** start the dom tests where the application starts ([b853d0d](https://github.com/everton-dgn/solidjs_base/commit/b853d0db0b125dc831b1c9c9b9d00fa15dea302e))
+* **tooling:** turn on SSR, publication and Paraglide only where the app uses them ([7d02f39](https://github.com/everton-dgn/solidjs_base/commit/7d02f399447c89f514c1f89db1f28c160ea117dd))
+
 ## [0.5.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.4.0...solid-tooling@0.5.0) (2026-11-13)
 
 

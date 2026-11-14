@@ -7,7 +7,10 @@
       "vite-plus/test/globals",
       "@solidjs/vite-plugin/virtual-modules",
       "filesystem-routing/types"
-    ]
+    ],
+    "paths": {
+      "@paraglide/*": ["./tooling/testing/generated/*"]
+    }
   },
   "include": [
     "src",

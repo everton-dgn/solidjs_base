@@ -54,6 +54,7 @@
       "name": "@evertondgn/solid-runtime",
       "version": "0.0.0",
       "devDependencies": {
+        "@inlang/paraglide-js": "3.2.2",
         "@solidjs/vite-plugin": "3.0.0-next.57",
         "@solidjs/web": "2.0.0-rc.21",
         "@types/node": "24.19.2",

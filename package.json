@@ -56,5 +56,6 @@
   "patchedDependencies": {
     "@mdream/js@2.1.0": "apps/boilerplate/patches/@mdream%2Fjs@2.1.0.patch",
     "@solidjs/web@2.0.0-rc.21": "apps/boilerplate/patches/@solidjs%2Fweb@2.0.0-rc.21.patch"
-  }
+  },
+  "trustedDependencies": []
 }

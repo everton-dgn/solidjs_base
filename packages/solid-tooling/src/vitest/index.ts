@@ -115,6 +115,12 @@ export function solidTest({
         test: {
           name: { label: 'dom', color: 'magenta' },
           environment: 'happy-dom',
+          // The Solid plugin only discovers matchers in the application root.
+          setupFiles: [
+            fileURLToPath(
+              import.meta.resolve('@testing-library/jest-dom/vitest')
+            )
+          ],
           environmentOptions: { happyDOM: { url: domUrl } },
           include: ['src/**/*.dom.test.{ts,tsx}']
         }

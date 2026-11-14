@@ -1,8 +1,10 @@
 import { apiRoutes } from '@evertondgn/solid-runtime/middleware/api-routes'
 import { createLocalizeRequest } from '@evertondgn/solid-runtime/middleware/localize-request'
 import { restrictPageMethods } from '@evertondgn/solid-runtime/middleware/restrict-page-methods'
-import type { Middleware } from '@evertondgn/solid-runtime/middleware/types'
-import type { StartMiddleware } from '@solidjs/vite-plugin'
+import type {
+  Middleware,
+  StartMiddleware
+} from '@evertondgn/solid-runtime/middleware/types'
 
 import { containFailures } from './containFailures/index.ts'
 import { markdownContent } from './markdownContent/index.ts'

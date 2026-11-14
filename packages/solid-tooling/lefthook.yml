@@ -4,7 +4,9 @@
 commit-msg:
   jobs:
     - name: commitlint
-      run: vp exec commitlint --edit {1}
+      run:
+        vp exec node node_modules/@evertondgn/solid-tooling/dist/cli.mjs
+        commitlint --edit {1}
 
 pre-commit:
   skip:

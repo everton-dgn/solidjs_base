@@ -24,6 +24,7 @@ export default defineConfig({
       lint: 'src/lint.ts',
       fmt: 'src/fmt.ts',
       commitlint: 'src/commitlint/index.ts',
+      cli: 'src/cli/index.ts',
       'project-plugin': 'src/project-plugin.ts',
       'backend-plugin': 'src/backendPolicy/plugin.ts',
       'architecture-plugin': 'src/architecturePolicy/index.ts',
@@ -48,6 +49,7 @@ export default defineConfig({
         ...exports,
         './tsconfig.base.json': './tsconfig.base.json',
         './tsconfig.app.json': './tsconfig.app.json',
+        './app-env': { types: './app-env.d.ts' },
         './virtual-modules': { types: './virtual-modules.d.ts' },
         './lefthook.yml': './lefthook.yml'
       })

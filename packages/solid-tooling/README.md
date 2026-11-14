@@ -157,7 +157,7 @@ Pass a data-only `fonts` array to `defineSolidApp` to generate external
 `FontLinks` from `@evertondgn/solid-runtime/fonts/font-links` in the Document
 head; client-only applications receive both links in `index.html`. Without
 `fonts`, nothing is generated. Typography tokens stay in the app. See the
-[font API and migration examples](../../docs/tooling/fonts.md).
+[font API and migration examples](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/fonts.md).
 
 ## Optional SEO configuration
 

@@ -496,8 +496,10 @@ data. No inline styles, typography tokens or font binaries belong to the
 runtime. Client-only HTML receives links from the preset automatically. Omit the
 import and component when fonts are not configured.
 
-See [application fonts](../../docs/tooling/fonts.md) for the full configuration,
-SSR and client-only examples, asset behavior and migration.
+See
+[application fonts](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/fonts.md)
+for the full configuration, SSR and client-only examples, asset behavior and
+migration.
 
 ## Optional theme
 

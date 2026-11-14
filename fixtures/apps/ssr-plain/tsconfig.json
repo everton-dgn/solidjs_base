@@ -1,0 +1,3 @@
+{
+  "extends": "@evertondgn/solid-tooling/tsconfig.app.json"
+}

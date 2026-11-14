@@ -17,7 +17,8 @@
     "dead-code": "vp run --filter './packages/*' dead-code",
     "test": "vp run --filter './packages/*' test",
     "test:tarball": "vp run --filter './packages/*' test:tarball",
-    "validate": "vp run build && vp run check && vp run dead-code && vp run test && vp run test:tarball"
+    "validate": "vp run build && vp run check && vp run dead-code && vp run test && vp run test:tarball && vp run test:scenarios",
+    "test:scenarios": "node --test --test-timeout=180000 packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts"
   },
   "devDependencies": {
     "@evertondgn/solid-tooling": "workspace:*",

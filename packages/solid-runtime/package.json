@@ -53,6 +53,9 @@
     },
     "./middleware/append-vary": {
       "solid": "./src/middleware/helpers/appendVary/index.ts"
+    },
+    "./middleware/localize-request": {
+      "solid": "./src/middleware/createLocalizeRequest/index.ts"
     }
   },
   "scripts": {

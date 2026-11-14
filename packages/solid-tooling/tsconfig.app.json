@@ -9,7 +9,8 @@
       "@testing-library/jest-dom/vitest",
       "@solidjs/vite-plugin/boundary-modules",
       "@solidjs/vite-plugin/virtual-modules",
-      "@evertondgn/solid-tooling/virtual-modules"
+      "@evertondgn/solid-tooling/virtual-modules",
+      "filesystem-routing/types"
     ]
   },
   "include": [

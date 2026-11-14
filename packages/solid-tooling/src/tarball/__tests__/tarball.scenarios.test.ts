@@ -115,6 +115,51 @@ async function freePort(): Promise<number> {
   return port
 }
 
+type ThemeSmoke = { html: string; response: Response; origin: string }
+
+async function smokeTheme({
+  html,
+  response,
+  origin
+}: ThemeSmoke): Promise<void> {
+  const themeScriptTag =
+    /<script(?<attributes>[^>]*)>[^<]*prefers-color-scheme/u.exec(html)
+  assert.ok(themeScriptTag, 'Theme script must exist')
+  const nonce = /nonce="(?<value>[^"]+)"/u.exec(
+    themeScriptTag.groups?.attributes ?? ''
+  )?.groups?.value
+  assert.ok(nonce, 'Theme script must carry a nonce')
+  assert.ok(
+    response.headers
+      .get('content-security-policy')
+      ?.includes(`'nonce-${nonce}'`),
+    'Theme nonce must match CSP'
+  )
+  const rootTag = /<html[^>]*>/u.exec(html)?.[0] ?? ''
+  assert.doesNotMatch(
+    rootTag,
+    /class="[^"]*\b(?:light|dark)\b/u,
+    'System theme must not emit an SSR theme class'
+  )
+  const dark = await fetch(`${origin}/fr`, {
+    headers: { cookie: 'scenario-theme=dark' },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT)
+  })
+  assert.equal(dark.status, HTTP_OK)
+  const darkHtml = await dark.text()
+  assert.match(
+    darkHtml,
+    /<html[^>]*class="dark"/u,
+    'Cookie must set dark class'
+  )
+  assert.ok(
+    darkHtml.includes(
+      `name="theme-color" content="${MUTATION === 'theme-color' ? '#wrong' : '#09090b'}"`
+    ),
+    'Dark theme-color must match configuration'
+  )
+}
+
 async function smoke({ app, scenario }: Target): Promise<void> {
   const port = await freePort()
   const child = spawn(
@@ -155,6 +200,7 @@ async function smoke({ app, scenario }: Target): Promise<void> {
     if (scenario === 'ssr-i18n') assert.match(html, /<html[^>]* lang="fr"/u)
     if (scenario === 'ssr-i18n') {
       const origin = `http://127.0.0.1:${port}`
+      await smokeTheme({ html, response, origin })
       const redirect = await fetch(origin, {
         redirect: 'manual',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT)
@@ -212,6 +258,23 @@ async function smoke({ app, scenario }: Target): Promise<void> {
       kill(-child.pid, 'SIGKILL')
     }
     await closed
+  }
+}
+
+function mutateTheme(app: string): void {
+  if (MUTATION === 'theme-import') {
+    const file = path.join(app, 'src/App.tsx')
+    writeFileSync(
+      file,
+      `import { isTheme } from '@evertondgn/solid-runtime/theme/is-theme'\n${readFileSync(file, 'utf8').replace('<main', "<main data-theme={isTheme('dark')}")}`
+    )
+  }
+  if (MUTATION === 'theme-nonce') {
+    const file = path.join(app, 'src/App.tsx')
+    writeFileSync(
+      file,
+      readFileSync(file, 'utf8').replace('<script nonce={nonce}>', '<script>')
+    )
   }
 }
 
@@ -294,6 +357,11 @@ function assertBuild({ app, scenario }: Target): void {
       'Disabled i18n registered a generation task'
     )
     for (const file of modules) {
+      assert.doesNotMatch(
+        readFileSync(path.join(app, file), 'utf8'),
+        /solid-runtime\/src\/theme\//u,
+        'Disabled theme bundled runtime theme modules'
+      )
       assert.doesNotMatch(
         readFileSync(path.join(app, file), 'utf8'),
         /solid-app:locale-request/u,
@@ -559,6 +627,7 @@ export default (event, next) => next()
             `import { nitro } from 'nitro/vite'\n${readFileSync(file, 'utf8').replace('plugins: [...(config.plugins ?? []), audit]', "plugins: [...(config.plugins ?? []), audit, nitro({ preset: 'vercel' })]")}`
           )
         }
+        mutateTheme(app)
         await run({ deadline, cwd: app, args: ['build'] })
         assertBuild({ app, scenario })
         if (scenario !== 'client-only') await smoke({ app, scenario })

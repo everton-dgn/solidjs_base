@@ -29,6 +29,9 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0022](0022-runtime-locale-seam.md)                                    | Runtime locale helpers use an application virtual module               | Accepted, amended by 0023             |
 | [0023](0023-runtime-locale-requests.md)                                | Locale requests belong to the runtime                                  | Accepted                              |
 
+| [0024](0024-runtime-theme.md) | Theme logic is an explicit runtime feature |
+Accepted |
+
 ## Adding a record
 
 Copy the shape of an existing record: title, status, date, then the Context,

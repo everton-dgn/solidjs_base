@@ -91,15 +91,15 @@ the focus back, becomes visible or receives `pageshow`, it reads the cookie
 again. Without the channel, the sync happens on those events. If the cookie
 cannot be written, the choice stays in memory and can still be propagated
 through the channel. It is kept when returning to the tab while the cookie does
-not change and is lost on reload. The theme does not use `localStorage`.
-`infra/adapters/themeStorage/` reads and writes the cookie,
-`infra/adapters/applyTheme/` applies the theme to the DOM,
-`infra/adapters/makeBroadcastChannel/` wraps the channel between tabs for any
-domain, `infra/adapters/makeThemeChannel/` holds the theme rule on top of that
-channel, `infra/adapters/makeSystemTheme/` watches the system preference and
-`@types/theme.ts` defines the shared types, keeping `theme/` with CSS only. The
-colors use `light-dark()` with `color-scheme` to define each pair once and
-follow the theme of the document.
+not change and is lost on reload. The theme does not use `localStorage`. The
+single configuration in `src/constants/theme.ts` calls `defineTheme` from
+`@evertondgn/solid-runtime/theme/define-theme`. The runtime owns cookie storage,
+DOM application, system preference watching, cross-tab synchronization and
+reactive state, with their tests. `Document` renders `themeScript(theme)` in its
+own script with the request nonce. `Provider`, its context and `ThemeToggle`
+remain application UI. The application keeps its palette and the CSS classes in
+`src/theme/`. The colors use `light-dark()` with `color-scheme` to define each
+pair once and follow the theme of the document.
 
 ## Fonts
 

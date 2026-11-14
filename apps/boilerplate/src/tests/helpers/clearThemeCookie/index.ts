@@ -1,4 +1,4 @@
-import { THEME_COOKIE_NAME } from '@/constants/theme.ts'
+const THEME_COOKIE_NAME = 'app-theme'
 
 export function clearThemeCookie(): void {
   // oxlint-disable-next-line unicorn/no-document-cookie -- Os testes removem o cookie diretamente para isolar a preferência entre casos.

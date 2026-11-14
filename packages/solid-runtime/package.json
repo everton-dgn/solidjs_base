@@ -13,7 +13,8 @@
   "type": "module",
   "files": [
     "src",
-    "!src/**/__tests__"
+    "!src/**/__tests__",
+    "!src/tests"
   ],
   "sideEffects": [],
   "exports": {
@@ -59,6 +60,36 @@
     },
     "./i18n/localized-redirect": {
       "solid": "./src/i18n/localizedRedirect/index.ts"
+    },
+    "./theme/is-theme": {
+      "solid": "./src/theme/isTheme/index.ts"
+    },
+    "./theme/apply-theme": {
+      "solid": "./src/theme/applyTheme/index.ts"
+    },
+    "./theme/theme-storage": {
+      "solid": "./src/theme/themeStorage/index.ts"
+    },
+    "./theme/make-system-theme": {
+      "solid": "./src/theme/makeSystemTheme/index.ts"
+    },
+    "./theme/make-theme-channel": {
+      "solid": "./src/theme/makeThemeChannel/index.ts"
+    },
+    "./theme/make-broadcast-channel": {
+      "solid": "./src/theme/makeBroadcastChannel/index.ts"
+    },
+    "./theme/create-theme": {
+      "solid": "./src/theme/createTheme/index.ts"
+    },
+    "./theme/define-theme": {
+      "solid": "./src/theme/defineTheme/index.ts"
+    },
+    "./theme/types": {
+      "solid": "./src/theme/types.ts"
+    },
+    "./theme/create-theme/types": {
+      "solid": "./src/theme/createTheme/types.ts"
     }
   },
   "scripts": {
@@ -93,6 +124,8 @@
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vitest": "catalog:",
-    "@inlang/paraglide-js": "3.2.2"
+    "@inlang/paraglide-js": "3.2.2",
+    "happy-dom": "21.0.4",
+    "@testing-library/jest-dom": "7.0.1"
   }
 }

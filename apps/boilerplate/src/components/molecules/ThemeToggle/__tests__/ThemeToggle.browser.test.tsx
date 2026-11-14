@@ -1,6 +1,6 @@
 import { page, userEvent } from 'vite-plus/test/browser/context'
 
-import { readTheme } from '@/infra/adapters/themeStorage/index.ts'
+import { readTheme } from '@/constants/theme.ts'
 import { clearThemeCookie } from '@/tests/helpers/clearThemeCookie/index.ts'
 import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
 

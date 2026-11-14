@@ -14,14 +14,15 @@ names: `Name[.qualifier].environment.test.ts(x)` in `src`, with the `node`,
 `dom`, `browser` or `e2e` environment; `Name[.qualifier].test-d.ts(x)` for
 type-only tests; and `Name[.qualifier].test.ts` in `tooling`. `Name` is the
 exact subject, which by default is the folder that contains `__tests__`, such as
-`isTheme` in `helpers/isTheme/__tests__/isTheme.node.test.ts`; subjects with a
-dot, such as `llms.txt`, are valid too. Qualifiers are separated by a dot, start
-with a lowercase letter and continue in camelCase, as in
-`Home.themeCss.e2e.test.ts`. Suites without a colocated module, such as those of
-`src/__tests__/` and `tooling/__tests__/`, and each page in
-`src/tests/pages/<Folder>/` declare their subjects in the `subjects` map of that
-file. The first E2E suite of a new page requires the matching entry, and the
-files of those folders use only the `e2e` environment.
+`isTheme` in the runtime package at
+`src/theme/isTheme/__tests__/isTheme.node.test.ts`; subjects with a dot, such as
+`llms.txt`, are valid too. Qualifiers are separated by a dot, start with a
+lowercase letter and continue in camelCase, as in `Home.themeCss.e2e.test.ts`.
+Suites without a colocated module, such as those of `src/__tests__/` and
+`tooling/__tests__/`, and each page in `src/tests/pages/<Folder>/` declare their
+subjects in the `subjects` map of that file. The first E2E suite of a new page
+requires the matching entry, and the files of those folders use only the `e2e`
+environment.
 
 Long suites can be split by responsibility using the qualifiers of the name. The
 shared setup lives in `fixtures.ts` inside the same `__tests__`; shared types

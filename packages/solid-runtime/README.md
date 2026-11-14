@@ -177,3 +177,48 @@ not load the request provider.
 The test command first generates an independent de/fr/ja Paraglide project into
 `tooling/testing/generated/`, ignored by Git and excluded from the tarball. The
 generator is a development dependency only.
+
+## Optional theme
+
+Import `@evertondgn/solid-runtime/theme/define-theme` explicitly. Applications
+without theme imports bundle no theme modules; there is no preset option.
+
+```ts
+import { defineTheme } from '@evertondgn/solid-runtime/theme/define-theme'
+
+export const { createTheme, readTheme, themeColor, themeScript, defaultTheme, themes } =
+  defineTheme({
+    cookieName: 'app-theme',
+    cookieMaxAge: 31536000,
+    colors: { light: '#ffffff', dark: '#09090b' },
+    defaultTheme: 'system'
+  })
+```
+
+Read the request cookie with `readTheme(cookieHeader) ?? defaultTheme`. Use an
+explicit light/dark preference as the HTML class and `themeColor(theme)` as the
+meta color. Render `themeScript(theme)` inside your own script with the request
+nonce. Keep .light/.dark color-scheme CSS rules in the application. The factory
+validates cookieName, positive integer cookieMaxAge, nonempty
+colors.light/colors.dark and defaultTheme, and copies the configuration. Colors
+remain application-owned CSS values; validation does not parse CSS. readTheme
+returns null for absent/invalid preferences and undefined for blocked access.
+themeColor uses light for system during SSR; the script resolves the actual
+system preference before hydration.
+
+Call createTheme once per provider tree. It applies choices before persistence,
+uses the cookie name for BroadcastChannel, and reconciles focus, pageshow and
+visibility changes. No localStorage is used.
+
+Separate entries also expose `theme/types`, `theme/is-theme`,
+`theme/apply-theme`, `theme/theme-storage`, `theme/make-system-theme`,
+`theme/make-theme-channel`, `theme/make-broadcast-channel`, `theme/create-theme`
+and `theme/create-theme/types`. Storage, theme channel and primitive take
+ThemeOptions as their first argument. The factory binds those options for normal
+application use.
+
+The application continues to supply `solid-js`; this extraction does not change
+peerDependencies or move dependency ownership. Knip's strict production pass has
+a scoped `solid-js!` exception for that existing consumer dependency. Installed
+builds exercise resolution with both Bun linkers. Test support under
+`src/tests/` is excluded from the published tarball and coverage.

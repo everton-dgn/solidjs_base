@@ -66,3 +66,17 @@ Optional negative probes inject an actual Nitro plugin, an invalid header value
 or a wrong dom URL into a temporary copy. Their expected failures establish that
 the corresponding assertions observe the regression. They do not run in normal
 validate, which must remain green.
+
+## Optional runtime theme
+
+The ssr-i18n fixture configures the runtime theme, renders a script with a nonce
+matching CSP, and checks no explicit class without a cookie and dark class plus
+dark theme-color with the cookie. The other scenarios reject runtime theme
+modules in all bundle audits. Select `ssr-plain / isolated$` with
+`SCENARIO_MUTATION=theme-import`, or `ssr-i18n / isolated$` with `theme-nonce`
+or `theme-color`, to prove the assertions fail.
+
+The boilerplate configures theme once in `src/constants/theme.ts`. Its theme
+adapters, types and primitive tests moved to the runtime package, which now runs
+node and happy-dom projects. UI and CSS remain in the copy. See
+[ADR 0024](0024-runtime-theme.md).

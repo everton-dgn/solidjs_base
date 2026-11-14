@@ -304,3 +304,17 @@ format and Vite plugins. Its smoke checks the root redirect, the German page,
 Content-Language and cookie persistence. The request negative probes are
 `request-target` and `request-step` on ssr-i18n, and `request-plain` on
 ssr-plain, selected with SCENARIO_MUTATION.
+
+## Optional runtime theme
+
+The ssr-i18n fixture configures the runtime theme, renders a script with a nonce
+matching CSP, and checks no explicit class without a cookie and dark class plus
+dark theme-color with the cookie. The other scenarios reject runtime theme
+modules in all bundle audits. Select `ssr-plain / isolated$` with
+`SCENARIO_MUTATION=theme-import`, or `ssr-i18n / isolated$` with `theme-nonce`
+or `theme-color`, to prove the assertions fail.
+
+The boilerplate configures theme once in `src/constants/theme.ts`. Its theme
+adapters, types and primitive tests moved to the runtime package, which now runs
+node and happy-dom projects. UI and CSS remain in the copy. See
+[ADR 0024](ADRs/0024-runtime-theme.md).

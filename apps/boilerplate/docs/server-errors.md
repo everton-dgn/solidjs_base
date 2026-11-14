@@ -12,9 +12,10 @@ The shared protection lives in `packages/solid-runtime/src/infra/server/`. Each
 module has its own `@evertondgn/solid-runtime/server/` entry, with the `solid`
 condition and `server-only`. Public errors use
 `@evertondgn/solid-runtime/server/public-errors`. The application keeps
-`requestJson`, `publication`, `sitemapSources`, failure containment, the
-middleware chain and the render entries. `data/errorApi/` stays reserved for
-domain error normalization when there are consumers.
+`requestJson`, `publication`, `sitemapSources`, the Markdown adapter and
+authored render trees. The runtime owns failure containment, chain composition
+and shared render-entry helpers. `data/errorApi/` stays reserved for domain
+error normalization when there are consumers.
 
 The [central registration](../src/infra/server/configureServerErrors/index.ts)
 calls `configureServerErrors({ publicMessage })` from the runtime package. The
@@ -89,10 +90,12 @@ body. It also accepts a thrown `Response` or envelope with a body, so that
 containment does not replace the public data policy or the error page of the
 app. The default export of
 [`src/middleware/index.ts`](../src/middleware/index.ts) is `createMiddleware()`,
-which adapts the plugin event to the `Request` chain of `filesystem-routing` and
+which configures the runtime `createMiddleware({ security, extra, document })`
+with the single application security instance and Markdown adapter. The package
+adapts the plugin event to the `Request` chain of `filesystem-routing` and
 `composeMiddleware`, handing that chain to `containFailures`. The containment,
 in
-[`src/middleware/containFailures/index.ts`](../src/middleware/containFailures/index.ts),
+[`packages/solid-runtime/src/middleware/containFailures/index.ts`](../../../packages/solid-runtime/src/middleware/containFailures/index.ts),
 composes the whole chain inside itself, and an exception in the middlewares, in
 the API routes or in the page handler becomes a 500 with the security headers
 and the `[middleware]` log. Only a `Response` without a body and with a status
@@ -127,13 +130,13 @@ and a missing header included, according to `isPageRequest` in
 a client that asks only for Markdown also gets the error page in HTML. This
 criterion is broader than the one of the plugin development server, which only
 considers HTML, `*/*` or a missing `accept`. `containFailures` writes a
-`createPublicError()` in `locals.serverFailure` and calls the page render. The
-`ServerFailureGate` of [`App.tsx`](../src/App.tsx) throws that error before the
-Router, the root `Errored` shows `ErrorFallback` and the client hydrates the
-fallback from the serialized error. Since the error is already public, the hook
-does not write another log. The status is forced to 500 in the response. If the
-render returns something that is not HTML, such as the locale redirect of a path
-without a prefix, the response is the text 500.
+`createPublicError()` in `locals.serverFailure` (declared by the runtime) and
+calls the page render. The `ServerFailureGate` of [`App.tsx`](../src/App.tsx)
+throws that error before the Router, the root `Errored` shows `ErrorFallback`
+and the client hydrates the fallback from the serialized error. Since the error
+is already public, the hook does not write another log. The status is forced to
+500 in the response. If the render returns something that is not HTML, such as
+the locale redirect of a path without a prefix, the response is the text 500.
 
 The render that the middleware receives is the plugin dispatcher, which serves
 the server function endpoint (`/_server`) before the page. That is why this

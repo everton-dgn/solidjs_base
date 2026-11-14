@@ -4,9 +4,13 @@
 
 ## SSR integrity for Markdown
 
-The entry creates the state with `createRenderIntegrity()`, from
+The entry calls `createRenderOptions()` from
+`@evertondgn/solid-runtime/server/create-render-options` before rendering. That
+helper creates the state with `createRenderIntegrity()`, from
 [renderIntegrity](../../../../packages/solid-runtime/src/infra/server/renderIntegrity/index.ts),
-and stores it in `event.locals.ssrRenderState` before calling `renderToStream`.
+and stores it in `event.locals.ssrRenderState` before the entry calls
+`renderToStream`. Its returned options carry the request nonce, signal and
+completion callback; the authored Document/App tree stays in the application.
 The state is read-only: the `configureServerErrors` hook sets `hasErrors`
 through `markRenderFailure` when it receives a failure with `kind: "render"`,
 and `onCompleteAll` sets `hasCompleted` through the `complete` function of the
@@ -129,6 +133,7 @@ they settle. Common operations, outside that context, keep the previous
 behavior. `containFailures` recognizes that rejection by identity with
 `signal.reason`, so the reason has to arrive unwrapped; otherwise, the
 cancellation goes back to the `[middleware]` log. The regression tests are in
-`markdownContent.abort.node.test.ts`, `containFailures.abort.node.test.ts`,
+`markdownContent.abort.node.test.ts` in the application,
+`containFailures.abort.node.test.ts` in the runtime,
 `publicationScope.node.test.ts` and the HTTP disconnection scenario of
 `PublicationLoad`. When upgrading Solid, check this contract too.

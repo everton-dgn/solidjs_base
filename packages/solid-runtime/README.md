@@ -2,15 +2,18 @@
 
 Runtime code for SolidJS applications built with Vite+. The package ships
 TypeScript source, which the application's Vite compiles with its own Solid
-version. It is not published yet: it stays private until its first release.
+version, plus plain JavaScript for entries loaded from Node. It is not published
+yet: it stays private until its first release.
 
 ## What it has
 
-Each module has its own entry point, with the `solid` export condition, so an
-application bundles only the modules it imports.
+Each module has its own entry point, so an application bundles only the modules
+it imports. TypeScript entries use the `solid` condition. The env fragment and
+header constants use `types` and `default` for plain Node compatibility.
 
 | Entry point                               | Exports                                                                                                       |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `./env`                                   | `serverEnv`: optional `HOST`, `PORT` and `BASE_URL_TEST` schemas, as JavaScript with declarations             |
 | `./middleware/security-headers`           | `createSecurityHeaders`, the factory of the security step and its CSP, and `requestNonce`                     |
 | `./middleware/security-headers/constants` | `SECURITY_HEADERS` and `CSP_DIRECTIVES`, the default values, as JavaScript, so `vite.config.ts` can read them |
 | `./middleware/api-routes`                 | `apiRoutes`, the handler of the API routes in `virtual:file-routes`                                           |
@@ -241,14 +244,37 @@ name, a header value or a directive that a response cannot carry, such as one
 with a line break or another control character, fails the same way, when the
 application starts.
 
+## Optional environment validation
+
+An SSR application can add `env.ts`:
+
+```ts
+import { serverEnv } from '@evertondgn/solid-runtime/env'
+
+const env = { server: { ...serverEnv } }
+
+export default env
+```
+
+All three keys are optional; `PORT` converts decimal digits to an integer from 0
+through 65535. Spread the fragment into the plugin's `server` map and add
+application keys to `server` or `client`. Applications without env requirements
+can omit the file. `VITE_SITE_URL` remains application-owned.
+
+The entry is plain JavaScript with a handwritten declaration, without the
+`solid` condition. It loads in Node and Vite's module runner and enters the
+server bundle when `virtual:solid-env/server` is imported. Contract tests bind
+the declaration to the runtime outputs. The runtime supplies Valibot; only an
+application that imports Valibot itself needs a direct dependency. The tooling
+stays in `devDependencies`, outside production-only installations. Env
+validation adds neither the fragment nor Valibot to the client bundle. See the
+[environment guide](../../docs/tooling/app-config.md#optional-environment-validation)
+for extension examples, boot validation and type generation.
+
 ## Requirements
 
-- Environment schemas belong to `@evertondgn/solid-tooling/env`, whose compiled
-  `serverEnv` fragment is loaded by the Solid plugin's Vite module runner and
-  bundled with its validator when the server virtual module is imported. The
-  runtime package adds no env dependency or export. See the
-  [environment guide](../../docs/tooling/app-config.md#optional-environment-validation).
-- The Solid Vite plugin adds the `solid` condition to the application build.
+- The Solid Vite plugin adds the `solid` condition to the application build for
+  the TypeScript entries.
 - The node project of `solidTest`, from `@evertondgn/solid-tooling/vitest`,
   resolves the package through the same condition, and the `tsconfig.app.json`
   of the tooling package sets it for TypeScript.

@@ -218,7 +218,7 @@ Use the package's validators for the variables consumed by the presets:
 
 ```ts
 // env.ts
-import { serverEnv } from '@evertondgn/solid-tooling/env'
+import { serverEnv } from '@evertondgn/solid-runtime/env'
 
 const env = { server: { ...serverEnv } }
 
@@ -230,16 +230,18 @@ decimal digits and produces an integer from 0 through 65535. `BASE_URL_TEST`
 accepts a URL; the Playwright preset additionally requires an explicit port. The
 fragment defines schemas, not environment values or defaults.
 
-When adopting the fragment, declare `@evertondgn/solid-tooling` in
+When adopting the fragment, declare `@evertondgn/solid-runtime` in
 `dependencies`: `env.ts` is a production entry in the Knip preset, and the
-server bundle imports its schema. An application using only tooling configs can
-keep the package in `devDependencies`. No validator library is added to a
-fragment-only application's manifest.
+server bundle imports its schema. Keep `@evertondgn/solid-tooling` in
+`devDependencies`. No validator library is added to a fragment-only
+application's manifest: the runtime supplies Valibot. The plain JavaScript
+export and its declaration load without a `solid` condition, including from
+Node.
 
 Extend the maps with the application's own Standard Schema validators:
 
 ```ts
-import { serverEnv } from '@evertondgn/solid-tooling/env'
+import { serverEnv } from '@evertondgn/solid-runtime/env'
 import * as v from 'valibot'
 
 const env = {

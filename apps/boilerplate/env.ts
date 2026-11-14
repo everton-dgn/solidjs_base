@@ -1,4 +1,4 @@
-import { serverEnv } from '@evertondgn/solid-tooling/env'
+import { serverEnv } from '@evertondgn/solid-runtime/env'
 import * as v from 'valibot'
 
 const env = {

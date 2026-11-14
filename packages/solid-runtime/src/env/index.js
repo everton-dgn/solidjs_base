@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 
+// Plain JavaScript also loads from an installed package in Node config runners.
 const MAX_PORT = 65_535
 
 export const serverEnv = {

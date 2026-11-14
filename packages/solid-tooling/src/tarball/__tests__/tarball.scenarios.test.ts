@@ -420,7 +420,6 @@ function assertBuild({ app, scenario }: Target): void {
     for (const id of ids) {
       if (checkEnvBundle({ id, scenario, file })) {
         hasServerEnv = true
-        continue
       }
       assert.doesNotMatch(
         id,
@@ -529,6 +528,8 @@ test('the applications pin the versions of the workspace', () => {
   const workspace = readPinned(path.join(ROOT, 'package.json'))
   const copy = readPinned(path.join(ROOT, 'apps/boilerplate/package.json'))
   const { catalog } = workspace
+  assert.ok(!copy.dependencies['@evertondgn/solid-tooling'])
+  assert.ok(copy.devDependencies['@evertondgn/solid-tooling'])
   const tooling = readPinned(
     path.join(ROOT, 'packages/solid-tooling/package.json')
   )

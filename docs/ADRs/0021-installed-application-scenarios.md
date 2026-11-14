@@ -133,10 +133,12 @@ limits.
 SSR plain adds `env.ts` with the package fragment and application server/client
 keys, without adding Valibot to its dependencies. The other fixtures retain the
 no-schema contract. Both linkers check exact generated types and a runtime
-server value different from the build value. The bundle audit allows only
-`solid-tooling/dist/env.mjs` in server graphs and refuses Valibot in the client.
-A clean build generates the declarations before lint and TypeScript; an
-instrumented build later checks the graph.
+server value different from the build value. Plain Node loads the runtime env
+export without the `solid` condition. The bundle audit requires
+`solid-runtime/src/env/index.js` in a server graph, refuses it and Valibot in
+the client, and rejects every tooling module without exception. A clean build
+generates the declarations before lint and TypeScript; an instrumented build
+later checks the graph.
 
 Each SSR plain case requires a boot validation error naming `PORT` when preview
 receives `PORT=abc`. Nitro preview opens its listener before loading the server,

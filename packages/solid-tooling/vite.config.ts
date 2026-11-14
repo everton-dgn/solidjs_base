@@ -21,7 +21,6 @@ export default defineConfig({
   },
   pack: {
     entry: {
-      env: 'src/env/index.ts',
       lint: 'src/lint.ts',
       fmt: 'src/fmt.ts',
       commitlint: 'src/commitlint/index.ts',

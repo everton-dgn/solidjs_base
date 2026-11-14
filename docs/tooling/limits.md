@@ -85,15 +85,17 @@ overrides `files` must also include
 
 ## Known limits
 
-- `./env` exports optional preset validators, with Valibot already supplied by
-  the tooling package. It requires no application dependency unless the
-  application imports Valibot itself. The isolated installed scenario verifies
-  this boundary. `VITE_SITE_URL` remains application-owned. See
+- `@evertondgn/solid-runtime/env` exports optional preset validators, with
+  Valibot supplied by the runtime package. Valibot requires no application
+  declaration unless the application imports Valibot itself. The isolated
+  installed scenario verifies this boundary. `VITE_SITE_URL` remains
+  application-owned. See
   [environment validation](app-config.md#optional-environment-validation).
-- Applications adopting `./env` declare the tooling package in `dependencies`,
-  because Knip checks `env.ts` as a production entry. This also includes the
-  package's tools in production-only dependency installs; the application bundle
-  still excludes them. Config-only users can retain `devDependencies`.
+- Applications adopting the fragment declare the runtime in `dependencies`,
+  because Knip checks `env.ts` as a production entry. The tooling stays in
+  `devDependencies`; the fragment does not pull its development tools into a
+  production-only installation. Every tooling module remains forbidden in the
+  application bundle audit.
 - Environment validation is opt-in through the SSR application's `env.ts`. The
   fragment does not change direct `process.env` or `import.meta.env` reads.
   Generated virtual types do not replace `ImportMetaEnv`. Object spread can

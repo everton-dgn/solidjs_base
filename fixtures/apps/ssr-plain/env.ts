@@ -1,4 +1,4 @@
-import { serverEnv } from '@evertondgn/solid-tooling/env'
+import { serverEnv } from '@evertondgn/solid-runtime/env'
 
 const env = {
   server: { ...serverEnv, SCENARIO_LABEL: serverEnv.HOST },

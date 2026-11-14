@@ -18,6 +18,10 @@
   ],
   "sideEffects": [],
   "exports": {
+    "./env": {
+      "types": "./src/env/index.d.ts",
+      "default": "./src/env/index.js"
+    },
     "./middleware/api-routes": {
       "solid": "./src/middleware/apiRoutes/index.ts"
     },
@@ -153,6 +157,7 @@
     "playwright": "1.65.0"
   },
   "dependencies": {
+    "valibot": "catalog:",
     "@solidjs/vite-plugin": "3.0.0-next.57",
     "filesystem-routing": "0.5.0"
   }

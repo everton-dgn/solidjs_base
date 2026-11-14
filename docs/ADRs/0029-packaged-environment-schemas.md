@@ -1,4 +1,4 @@
-# 0029. The tooling package supplies optional environment validators
+# 0029. The runtime package supplies optional environment validators
 
 - Status: Accepted
 - Date: 2026-11-14
@@ -10,10 +10,15 @@ and Playwright presets. Minimal installed fixtures had no environment schema.
 Applications without server or site configuration must continue to work without
 one, and application variables must not become package requirements.
 
+The first implementation put the fragment in the tooling package. Knip's strict
+production check then required that package in the application's `dependencies`,
+bringing the tools centralized by ADR 0027 into production-only installations.
+The server schema belongs to the runtime package instead.
+
 ## Decision
 
-Export `serverEnv` from `@evertondgn/solid-tooling/env`, compiled as JavaScript
-with generated declarations. It contains optional `HOST`, `PORT` and
+Export `serverEnv` from `@evertondgn/solid-runtime/env`, as plain JavaScript
+with a handwritten declaration. It contains optional `HOST`, `PORT` and
 `BASE_URL_TEST` schemas with the copy's existing rules: a nonempty host, decimal
 digits transformed to an integer between 0 and 65535, and a URL. The application
 spreads that object into its `server` map and adds its own Standard Schema keys.
@@ -21,12 +26,13 @@ spreads that object into its `server` map and adds its own Standard Schema keys.
 
 The installed Solid plugin loads `env.ts` with Vite's `runnerImport`, using
 project resolution. The server virtual module imports the schema into the server
-bundle; a schema file alone adds no boot validation to raw env reads. Compiled
-tooling keeps the validator beside its existing Valibot dependency and works
-without a special `solid` condition or manual declaration file. The fragment
-imports only Valibot. The bundle audit permits that exact compiled entry only in
-the SSR plain server graphs; all other tooling entries remain forbidden. Env
-validation adds neither the fragment nor Valibot to the browser.
+bundle; a schema file alone adds no boot validation to raw env reads. The entry
+uses `types` and `default`, following the runtime's security header constants,
+so Node does not need to load TypeScript or enable the `solid` condition. The
+fragment imports only Valibot, supplied by the runtime at the root catalog
+version. The bundle audit rejects every tooling module without exception and
+requires the runtime fragment in the SSR plain server graph. Env validation adds
+neither the fragment nor Valibot to the browser.
 
 No helper wraps the plugin's `{ server, client }` contract. Ordinary spread
 allows an application to replace a preset key; preserving those validators is an
@@ -36,14 +42,15 @@ create `env.ts`, and the preset's client-only behavior is unchanged.
 
 ## Evidence
 
-Before adding the API, a temporary package compiled the proposed fragment and
-installed it with the isolated Bun linker. A build and strict TypeScript check
-proved inference through `solid-env.d.ts`, including `number | undefined` for
-`PORT`, public client keys and no server keys in the client type. Valibot could
-not resolve from the application root, yet schema loading and the build passed.
-The compiled fragment imported only Valibot; the browser inventory contained
-neither. The pilot completed in 5.25 seconds, including cleanup, with cached
-dependencies. This is a functional check, not a throughput benchmark.
+The installed SSR plain scenario loads the packaged JavaScript export directly
+in plain Node and requires the former tooling export to be absent. Its real
+build loads `env.ts` through the module runner and bundles the fragment only on
+the server. Strict TypeScript checks cover inference through `solid-env.d.ts`,
+including `number | undefined` for `PORT`, public client keys and no server keys
+in the client type. The fixture declares no Valibot, including with the isolated
+Bun linker. Runtime contract tests bind the handwritten declaration's
+input/output types to the actual JavaScript outputs and preserve every optional,
+boundary and malformed-value case.
 
 SSR plain permanently checks these contracts with both linkers. Its middleware
 reads an application server variable with a preview value different from the
@@ -55,16 +62,14 @@ build. Existing no-schema, optional-feature and server-error cases remain.
 
 ## Consequences
 
-This is an additive API: existing applications need no migration. The copy
-adopts it without changing its validation rules or dependency versions. Adopters
-declare the tooling package in `dependencies`, because Knip treats `env.ts` as a
-production entry and its strict pass rejects the import from `devDependencies`.
-The copy moves that one declaration and retains all Knip checks. Production-only
-installs therefore include the package's tools too, while the bundle audit
-continues to exclude them. Config-only applications can retain their existing
-development dependency. Applications that only import the fragment need no
-direct Valibot declaration, including isolated installations. Applications that
-write validators using Valibot retain their own dependency, as the copy does.
+The correction replaces the unreleased tooling export with the runtime export.
+The copy keeps its validation rules and dependency versions, declaring the
+runtime in `dependencies` and the tooling in `devDependencies`. Knip's normal
+and strict passes retain their checks. Production-only installs no longer pull
+the tooling package through the env fragment. Applications that only import the
+fragment need no direct Valibot declaration, including isolated installations.
+Applications that write validators using Valibot retain their own dependency, as
+the copy does.
 
 The generated declarations describe virtual modules and do not augment
 `ImportMetaEnv`. The copy keeps its declaration merging for `VITE_SITE_URL` and

@@ -33,7 +33,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0026](0026-runtime-locale-navigation.md)                              | Locale navigation and tags belong to the runtime                       | Accepted                              |
 | [0027](0027-packaged-tool-dependencies.md)                             | Packages supply the tools the application does not import              | Accepted                              |
 | [0028](0028-runtime-server-errors.md)                                  | Server error protection belongs to the runtime                         | Accepted                              |
-| [0029](0029-packaged-environment-schemas.md)                           | The tooling package supplies optional environment validators           | Accepted                              |
+| [0029](0029-packaged-environment-schemas.md)                           | The runtime package supplies optional environment validators           | Accepted                              |
 
 ## Adding a record
 

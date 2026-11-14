@@ -17,6 +17,7 @@ type EnvCommand = {
   cwd: string
   deadline: number
   args: string[]
+  file?: string
   expectedError?: RegExp
 }
 type EnvProbe = {
@@ -62,6 +63,20 @@ export async function prepareEnvScenario({
     !dependencies.valibot,
     'The fragment needs no direct valibot dependency'
   )
+  await run({
+    deadline,
+    cwd: app,
+    file: 'node',
+    args: [
+      '--input-type=module',
+      '--eval',
+      `import assert from 'node:assert/strict'
+import { serverEnv } from '@evertondgn/solid-runtime/env'
+assert.deepEqual(Object.keys(serverEnv), ['HOST', 'PORT', 'BASE_URL_TEST'])
+assert.ok(import.meta.resolve('@evertondgn/solid-runtime/env').endsWith('/src/env/index.js'))
+await assert.rejects(import('@evertondgn/solid-tooling/env'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })`
+    ]
+  })
   // Generate inferred declarations before lint and types on a clean installation.
   await run({ deadline, cwd: app, args: ['build'] })
   return { lintFiles: ['env.ts'], typecheckFlags: ['--strict'] }
@@ -70,11 +85,14 @@ export async function prepareEnvScenario({
 export function checkEnvBundle({ id, scenario, file }: EnvBundle): boolean {
   const hasEnv = scenario === 'ssr-plain'
   const isClient = file === 'scenario-modules-client.json'
-  if (hasEnv && isClient) assert.doesNotMatch(id, /valibot|solid-tooling/u)
+  if (isClient) {
+    assert.doesNotMatch(id, /solid-runtime\/src\/env\//u)
+    if (hasEnv) assert.doesNotMatch(id, /valibot/u)
+  }
   return (
     hasEnv &&
     !isClient &&
-    id.endsWith('/node_modules/@evertondgn/solid-tooling/dist/env.mjs')
+    id.endsWith('/node_modules/@evertondgn/solid-runtime/src/env/index.js')
   )
 }
 

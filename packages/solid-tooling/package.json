@@ -46,7 +46,6 @@
     "./cli": "./dist/cli.mjs",
     "./commitlint": "./dist/commitlint.mjs",
     "./css-filename": "./dist/css-filename.mjs",
-    "./env": "./dist/env.mjs",
     "./fmt": "./dist/fmt.mjs",
     "./i18n-generate": "./dist/i18n-generate.mjs",
     "./knip": "./dist/knip.mjs",

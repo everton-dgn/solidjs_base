@@ -126,6 +126,11 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
 
 ### What changed from the original
 
+- `env.ts` spreads `serverEnv` from `@evertondgn/solid-tooling/env` for the
+  optional preset variables. The copy retains its own `VITE_SITE_URL` schema,
+  Valibot dependency and `ImportMetaEnv` declaration, with unchanged behavior.
+  The tooling package moves to `dependencies` because the schema is a production
+  entry in Knip; versions and the total dependency count stay the same.
 - Left out: the rules that moved to the package, the release automation
   (`tooling/release/`), the CI reuse proof (`tooling/ciReuse/`), `.github/`, Git
   hooks, commitlint and the project changelog.
@@ -303,12 +308,13 @@ node --test --test-timeout=180000 --test-name-pattern='ssr-i18n / isolated' pack
 
 The build audit rejects packaged development tools in every emitted module
 inventory, while allowing the Nitro and routing entries used by the server at
-runtime. Select `client-only / isolated$` with
-`SCENARIO_MUTATION=missing-dependency` to remove `unplugin-icons` from the
-packed manifest before installation; the scenario must fail when loading the
-preset. `SCENARIO_MUTATION=tool-bundle` imports the real packaged formatter from
-the temporary application and must fail at the bundle audit. Both probes leave
-the workspace manifest unchanged.
+runtime. SSR plain also permits exactly `solid-tooling/dist/env.mjs` outside the
+client graph; the client audit rejects both that fragment and Valibot. Select
+`client-only / isolated$` with `SCENARIO_MUTATION=missing-dependency` to remove
+`unplugin-icons` from the packed manifest before installation; the scenario must
+fail when loading the preset. `SCENARIO_MUTATION=tool-bundle` imports the real
+packaged formatter from the temporary application and must fail at the bundle
+audit. Both probes leave the workspace manifest unchanged.
 
 The optional `SCENARIO_MUTATION` values `nitro`, `headers` and `dom` inject
 regressions only into temporary copies. Select `client-only / isolated` for
@@ -403,3 +409,23 @@ Run the copy's full check, Node types, dead-code, coverage, tooling and both E2E
 suites separately from package builds and the installed matrix. The existing
 BackendError, OutsideError and OutdatedPage tests and production log teardown
 remain required for this boundary.
+
+## Packaged environment schemas
+
+`ssr-plain` uses the packaged `serverEnv` fragment, adds `SCENARIO_LABEL` and
+`VITE_SCENARIO_LABEL`, and declares no direct Valibot dependency. It reuses the
+fragment's nonempty-string validator for those application keys. The other
+fixtures keep no `env.ts`. Both linkers check exact inferred types, including
+optional numeric `PORT`, and confirm that the client type exposes only its
+public key. A first build generates declarations before lint and TypeScript on
+the clean installation; the later instrumented build checks the bundle graph.
+
+The preview smoke reads the application's server variable through middleware and
+checks a value different from the build environment. The public value is baked
+into the HTML. Each SSR plain case then starts preview with `PORT=abc`, requests
+the lazy server and requires HTTP 500 plus the boot diagnostic naming `PORT`. It
+also injects a used server env import into the client entry and requires the
+plugin's boundary error, restores the entry, and retains the existing runtime
+server-only probe. These negative checks run in normal `validate`, including
+both linkers. See [ADR 0029](ADRs/0029-packaged-environment-schemas.md) and the
+[environment API](tooling/app-config.md#optional-environment-validation).

@@ -21,6 +21,13 @@ and direct imports of Nitro, filesystem-routing and Playwright Test. Its
 package. The inherited tsconfig reads package-owned type references, so no
 application declaration of `@types/node` or TypeScript is needed.
 
+`env.ts` spreads the package's `serverEnv` validators for `HOST`, `PORT` and
+`BASE_URL_TEST`. This copy keeps its own `VITE_SITE_URL` schema and its direct
+Valibot dependency. Environment behavior and `ImportMetaEnv` declarations stay
+the same. The tooling package is now in `dependencies`, because Knip checks
+`env.ts` as a production entry. See
+[environment and preview](docs/development.md#environment-and-preview).
+
 ## Running it
 
 From the repository root:

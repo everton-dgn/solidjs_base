@@ -43,6 +43,17 @@ installation does not change Git hooks; hook installation is explicit.
 
 ## Environment and preview
 
+`env.ts` imports `serverEnv` from `@evertondgn/solid-tooling/env` and spreads
+its optional `HOST`, `PORT` and `BASE_URL_TEST` validators into `server`. The
+copy keeps the required `VITE_SITE_URL` client validator and declares Valibot
+because its own code imports it. The tooling package is in `dependencies`, since
+`env.ts` is a production entry for Knip's strict pass. No dependency version
+changes. The validation rules are unchanged. The generated `solid-env.d.ts`
+types cover the virtual modules, not `import.meta.env`; keep
+`src/@types/env.d.ts` for `VITE_SITE_URL` and the application's
+`PUBLICATION_BUILD_ID` declaration. See the
+[environment guide](../../../docs/tooling/app-config.md#optional-environment-validation).
+
 To install and start the project, follow [running it](../README.md#running-it).
 
 To check the production build locally, SSR and server functions included:

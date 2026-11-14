@@ -5,11 +5,12 @@
 ## Route metadata
 
 `VITE_SITE_URL` in `.env` is required and sets the public URL of the site,
-validated in `env.ts`. `createSeo({ route: true })`, called once in the root
-callback of the `Router` in `App.tsx`, uses `useHead` from `@solidjs/web` to
-publish `canonical`, `og:url`, `og:type`, the absolute social image (Open Graph
-and Twitter, with dimensions and alternative text) and a
-`<script type="application/ld+json">` for the current route, client navigation
+validated by the application's own client schema in `env.ts`. The preset's
+`serverEnv` fragment does not declare a site URL. `createSeo({ route: true })`,
+called once in the root callback of the `Router` in `App.tsx`, uses `useHead`
+from `@solidjs/web` to publish `canonical`, `og:url`, `og:type`, the absolute
+social image (Open Graph and Twitter, with dimensions and alternative text) and
+a `<script type="application/ld+json">` for the current route, client navigation
 included. The social tags that do not vary per route (`og:locale`,
 `og:site_name`, `twitter:card`, `twitter:site` and `twitter:creator`) also come
 from `createSeo`, to follow the `noindex` rule below; `Document.tsx` keeps only

@@ -29,6 +29,10 @@ const GENERATED_LOCALE_SOURCE = `export { locales, baseLocale, getLocale, setLoc
 // The stand-ins that solidTest serves to the node project of an application:
 // the Solid and routing plugins provide these modules only in a real build.
 const NODE_STUBS = new Map([
+  [
+    'virtual:solid-app/fonts',
+    'export const stylesheet = ""; export const preloads = []'
+  ],
   ['virtual:solid-app/locale', LOCALE_SOURCE],
   [
     'virtual:solid-app/request-middleware',

@@ -94,6 +94,7 @@ export type {
   SolidAppOptions
 } from './types.ts'
 export type { SeoOptions } from '../seo-module.ts'
+export type { FontFamily, FontFile } from '../fonts/types.ts'
 
 export function defineSolidApp(
   options: SolidAppOptions

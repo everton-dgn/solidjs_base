@@ -329,6 +329,8 @@ function assertBuild({ app, scenario }: Target): void {
   assert.ok(modules.length > 0, 'Build module audit must run')
   if (scenario === 'ssr-i18n') {
     assert.ok(config.tasks.includes('i18n-generate'))
+    assert.ok(config.plugins.includes('project:i18n-catalogs'))
+    assert.ok(config.plugins.includes('unplugin-paraglide-js'))
     const publication = readFileSync(
       path.join(app, '.vercel/output/config.json'),
       'utf8'
@@ -352,6 +354,9 @@ function assertBuild({ app, scenario }: Target): void {
     }
   }
   if (scenario !== 'ssr-i18n') {
+    assert.ok(
+      !config.plugins.some(name => /i18n-catalogs|paraglide/iu.test(name))
+    )
     assert.ok(
       !config.tasks.includes('i18n-generate'),
       'Disabled i18n registered a generation task'
@@ -562,6 +567,14 @@ for (const scenario of SCENARIOS) {
           )
         }
         if (scenario === 'ssr-i18n') {
+          // Keep the shared fixture App unchanged while adopting the catalog ID convention.
+          const entry = path.join(app, 'src/App.tsx')
+          const source = readFileSync(entry, 'utf8')
+          assert.ok(source.includes('m.greeting()'))
+          writeFileSync(
+            entry,
+            source.replace('m.greeting()', 'm.scenario_greeting()')
+          )
           await run({ deadline, cwd: app, args: ['run', 'i18n-generate'] })
         }
         if (MUTATION === 'dom') {
@@ -587,12 +600,7 @@ for (const scenario of SCENARIOS) {
         await run({
           deadline,
           cwd: app,
-          args: [
-            'lint',
-            'src',
-            'vite.config.ts',
-            ...(scenario === 'ssr-i18n' ? ['tooling'] : [])
-          ]
+          args: ['lint', 'src', 'vite.config.ts']
         })
         await run({ deadline, cwd: app, args: ['exec', 'tsc', '--noEmit'] })
         await run({

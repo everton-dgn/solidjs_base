@@ -15,10 +15,15 @@ not use reaches its build:
   a static site: no Nitro, no server functions and no server bundle.
 - The rules for the published files (sitemap, `robots.txt`, `llms.txt` and the
   Markdown pages) need `publication: true`.
-- Without `project.inlang/settings.json`, there is no `i18n-generate` task, no
-  Paraglide setup in the browser tests and no locale folder in the rules. The
-  lint preset registers the Paraglide plugin and its rule only where
-  `@inlang/paraglide-js` resolves.
+- `project.inlang/settings.json` enables the packaged catalog validator and
+  Paraglide plugin in dev, build and the `dom` and `browser` test projects. Keep
+  catalogs at `src/**/i18n/<locale>.json` and the compiler options in
+  `project.inlang/paraglide.config.ts`; no application generator or plugin is
+  needed. Locales and the base locale come from the settings, with no fixed set.
+- Without `project.inlang/settings.json`, there is no i18n plugin or
+  `i18n-generate` task, no Paraglide setup in the browser tests and no locale
+  folder in the rules. The lint preset registers the Paraglide plugin and its
+  rule only where `@inlang/paraglide-js` resolves.
 
 ```ts
 // vite.config.ts
@@ -34,24 +39,25 @@ export default defineSolidApp({
 })
 ```
 
-| Option            | Default                 | Use                                                                                                                                          |
-| ----------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `language`        | `en`                    | Single locale when no translation project exists; ignored when generated locale settings exist                                               |
-| `root`            | required                | Application folder. `.env`, `.env.test`, `project.inlang/settings.json` and the icon folders resolve from it                                 |
-| `ssr`             | `true`                  | `false` for a client-only application, which takes only `root`, `language`, `icons`, `e2e.routes`, `extend`, `tasks`, `workspace` and `test` |
-| `securityHeaders` | required with SSR       | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files                      |
-| `publication`     | `false`                 | `true` when the application publishes the sitemap, `robots.txt`, `llms.txt` or Markdown pages, so their files get the headers                |
-| `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                                          |
-| `serverSetup`     | `serverFunctions: true` | `serverFunctions.serverSetup` of the Solid plugin                                                                                            |
-| `e2e`             | production paths        | `{ middleware, routes }` for `--mode e2e`: the middleware chain and the route folder of the fixtures, without route types                    |
-| `icons`           | none                    | Own `unplugin-icons` collections, as name to folder                                                                                          |
-| `publicAssets`    | none                    | `publicAssets` of Nitro. Each entry needs a `baseURL`, which also gets the static headers                                                    |
-| `staticPaths`     | none                    | Other static paths that get the headers, such as `/favicon/**`                                                                               |
-| `routeRules`      | none                    | More Nitro route rules, applied after the static ones. A rule with the same path replaces the static one                                     |
-| `extend`          | none                    | `(context) => ({ plugins, nitroModules })`, for plugins and Nitro modules the application still owns                                         |
-| `tasks`           | none                    | Adds or replaces `vp run` tasks by name                                                                                                      |
-| `workspace`       | none                    | `{ dependsOn, inputs }` for an application inside a monorepo, whose `bun.lock`, `bunfig.toml` and package builds sit at the root             |
-| `test`            | defaults of `solidTest` | `{ domUrl, locale, sourcePackages }` for the test block, described in [Testing](testing.md)                                                  |
+| Option            | Default                 | Use                                                                                                                                                        |
+| ----------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `language`        | `en`                    | Single locale when no translation project exists; ignored when generated locale settings exist                                                             |
+| `root`            | required                | Application folder. `.env`, `.env.test`, `project.inlang/settings.json` and the icon folders resolve from it                                               |
+| `i18nPlugin`      | auto                    | Set `false` to disable only the automatic catalog and Paraglide plugins; locale providers, test setup and the generation task remain enabled by settings   |
+| `ssr`             | `true`                  | `false` for a client-only application, which takes only `root`, `language`, `i18nPlugin`, `icons`, `e2e.routes`, `extend`, `tasks`, `workspace` and `test` |
+| `securityHeaders` | required with SSR       | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files                                    |
+| `publication`     | `false`                 | `true` when the application publishes the sitemap, `robots.txt`, `llms.txt` or Markdown pages, so their files get the headers                              |
+| `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                                                        |
+| `serverSetup`     | `serverFunctions: true` | `serverFunctions.serverSetup` of the Solid plugin                                                                                                          |
+| `e2e`             | production paths        | `{ middleware, routes }` for `--mode e2e`: the middleware chain and the route folder of the fixtures, without route types                                  |
+| `icons`           | none                    | Own `unplugin-icons` collections, as name to folder                                                                                                        |
+| `publicAssets`    | none                    | `publicAssets` of Nitro. Each entry needs a `baseURL`, which also gets the static headers                                                                  |
+| `staticPaths`     | none                    | Other static paths that get the headers, such as `/favicon/**`                                                                                             |
+| `routeRules`      | none                    | More Nitro route rules, applied after the static ones. A rule with the same path replaces the static one                                                   |
+| `extend`          | none                    | `(context) => ({ plugins, nitroModules })`, for plugins and Nitro modules the application still owns                                                       |
+| `tasks`           | none                    | Adds or replaces `vp run` tasks by name                                                                                                                    |
+| `workspace`       | none                    | `{ dependsOn, inputs }` for an application inside a monorepo, whose `bun.lock`, `bunfig.toml` and package builds sit at the root                           |
+| `test`            | defaults of `solidTest` | `{ domUrl, locale, sourcePackages }` for the test block, described in [Testing](testing.md)                                                                |
 
 The preset serves `virtual:solid-app/locale` in development, builds and all
 Vitest projects. With `project.inlang/settings.json`, it re-exports the
@@ -63,13 +69,14 @@ are published at `@evertondgn/solid-tooling/virtual-modules` and loaded by
 
 The preset fixes the rest:
 
-- Plugins, in this order: the locale provider, the `extend` plugins,
-  `unplugin-icons` (Solid compiler, `aria-hidden` on every icon),
-  `@solidjs/vite-plugin` with SSR and server functions, `filesystem-routing`
-  with HTTP methods and the route types in `src/@types/routes.d.ts`, and Nitro
-  with the `vercel` preset. The `dom` and `browser` test projects get the
-  `extend` plugins, the icons, Solid with server functions only and the routes.
-  The `test` mode loads no application plugin and reads `.env.test` into
+- Plugins, in this order: the locale provider, the `extend` plugins, the catalog
+  preparation and Paraglide plugins when i18n is present, `unplugin-icons`
+  (Solid compiler, `aria-hidden` on every icon), `@solidjs/vite-plugin` with SSR
+  and server functions, `filesystem-routing` with HTTP methods and the route
+  types in `src/@types/routes.d.ts`, and Nitro with the `vercel` preset. The
+  `dom` and `browser` test projects get the locale provider, `extend` and i18n
+  plugins, the icons, Solid with server functions only and the routes. The
+  `test` mode loads no application plugin and reads `.env.test` into
   `process.env`.
 - The static headers go to `/assets/**`, each `publicAssets` folder and the
   `staticPaths`. With `publication`, also to `/<locale>/**.md` for each locale
@@ -78,9 +85,9 @@ The preset fixes the rest:
   files leave the CDN without going through the middleware, so these rules give
   them the headers the middleware writes on the other responses.
 - With `ssr: false`, the plugins are the locale provider, the `extend` plugins,
-  the icons, the Solid plugin with `ssr: false` and the routes; the test
-  projects load Solid without server functions. The build writes `dist/` with
-  the page and its assets.
+  the optional i18n plugins, the icons, the Solid plugin with `ssr: false` and
+  the routes; the test projects load Solid without server functions. The build
+  writes `dist/` with the page and its assets.
 - `build.manifest` only in the `e2e` mode, which the `TEST_PREBUILT` check of
   `./playwright` relies on, and no comments in the output.
 - Lightning CSS, with CSS Modules classes named `[content-hash]_[local]`.
@@ -111,22 +118,41 @@ plugin instances on each call. The `plugins` go before the fixed ones, and the
 both, so a value that a plugin and a module share, such as a build id, stays the
 same.
 
+Translations are provided by the preset. Use `extend` only for plugins or
+publication modules owned by the application.
+
+To replace the automatic translation plugins, set `i18nPlugin: false` and return
+your plugin from `extend`. It receives the same app/test targets and must return
+fresh plugin instances. To disable compilation without replacing it, set only
+`i18nPlugin: false`; generate the modules before commands that consume them.
+This option keeps the locale providers and browser setup because the application
+still has a translation project.
+
+The task is independently replaceable by name, like every preset task:
+
 ```ts
 export default defineSolidApp({
   root: import.meta.dirname,
   securityHeaders: SECURITY_HEADERS,
+  i18nPlugin: false,
+  tasks: {
+    'i18n-generate': { command: 'bun tooling/custom-translations.ts', cache: false }
+  },
   async extend() {
-    const { i18nPlugin } = await import('./tooling/i18n/i18nPlugin/index.ts')
-    return { plugins: [i18nPlugin()] }
+    const { customTranslations } = await import('./tooling/custom-translations-plugin.ts')
+    return { plugins: [customTranslations()] }
   }
 })
 ```
+
+The two custom files in this example belong to the application. The default
+configuration requires neither of them.
 
 ### Tasks
 
 | Task                | Command                                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| `i18n-generate`     | `bun tooling/i18n/generate.ts`, only with `project.inlang/settings.json`                                |
+| `i18n-generate`     | `bun '<package>/dist/i18n-generate.mjs'`, only with `project.inlang/settings.json`                      |
 | `lint-css`          | `bun tooling/css/check.ts`                                                                              |
 | `dead-code-project` | `knip-bun --config tooling/knip.ts`, then again with `--strict`                                         |
 | `lint-project`      | `vp lint`, after `lint-css`                                                                             |
@@ -134,14 +160,20 @@ export default defineSolidApp({
 | `typecheck-node`    | `tsc --project tsconfig.node.json`                                                                      |
 | `test-tooling`      | `node --test` over `tooling/**/__tests__` except `tooling/release/`, three workers on CI, with no cache |
 
-The commands run the scripts of the boilerplate layout. An application without
-one of them replaces the task through `tasks`. Knip reads task commands only
-from a `run.tasks` block written in `vite.config.ts`, so it does not see these:
-list the scripts they run as Knip entries.
+The generation entry is compiled and exported as
+`@evertondgn/solid-tooling/i18n-generate`. The task resolves its path relative
+to the package and runs it from the application root. It validates colocated
+catalogs before compiling to `paraglide/`. Its cache covers catalogs, project
+settings, compiler options, dependencies and the workspace package build.
+
+The CSS and Knip commands run scripts of the boilerplate layout. An application
+without one of them replaces the task through `tasks`. Knip reads task commands
+only from a `run.tasks` block written in `vite.config.ts`, so it does not see
+these: list the scripts they run as Knip entries.
 
 With `workspace`, the cache inputs read `bun.lock`, `bunfig.toml` and the
-`inputs` from the workspace root, and `lint-css`, `dead-code-project` and
-`typecheck-node` depend on the tasks in `dependsOn`:
+`inputs` from the workspace root, and `i18n-generate`, `lint-css`,
+`dead-code-project` and `typecheck-node` depend on the tasks in `dependsOn`:
 
 ```ts
 workspace: {

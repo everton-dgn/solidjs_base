@@ -105,7 +105,8 @@ release. Add a tool name to select part of the graph. For example, run
   the CI, Knip runs in the `Quality` job.
 - The `vp run` tasks come from `defineSolidApp` of
   `@evertondgn/solid-tooling/vite`. The ones that run files of `tooling/`, such
-  as `i18n:generate` and the CSS lint, use `bun tooling/<file>.ts`. The `vpx`
+  as the CSS lint, use `bun tooling/<file>.ts`. `i18n:generate` runs the compiled
+  generator from the package. The `vpx`
   recommended in the managed block above applies to standalone scripts, outside
   those flows.
 - To validate changes, use `vp run check:ci` and `vp run test`, not the built-in
@@ -125,7 +126,7 @@ release. Add a tool name to select part of the graph. For example, run
 
 - The official Paraglide CLI can replace and remove modules in `paraglide/`.
   Temporary files produced by the generator in `.paraglide/` can also be removed
-  directly, as can the temporary roots created by the tests of `tooling/i18n/`.
+  directly, as can temporary roots created by the package's i18n tests.
   Skipping the trash applies only to those artifacts; the authored catalogs in
   `src/**/i18n/` still follow the rule of deleting through the trash.
 
@@ -165,6 +166,12 @@ release. Add a tool name to select part of the graph. For example, run
 
 ## Translations
 
+- Generation, catalog validation and the Vite plugin belong to
+  `packages/solid-tooling/src/i18n/`. `defineSolidApp` enables them from
+  `project.inlang/settings.json`; the default application needs no local generator
+  or i18n plugin. Custom pipelines can set `i18nPlugin: false`, supply a plugin
+  through `extend` and replace `i18n-generate` by name through `tasks`.
+  The package tests use other locales and run at the monorepo root.
 - The locales and the base locale come from `project.inlang/settings.json`. Each
   consumer keeps colocated `i18n/{pt,en,es}.json` files. Share in `src/i18n/`
   only from the second production consumer on.

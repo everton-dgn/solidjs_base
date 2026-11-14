@@ -38,8 +38,8 @@ type ContainsOptions = { root: string; file: string; expected: RegExp }
 
 const RUNTIME_FILE = 'paraglide/runtime.js'
 const TIMEOUT_MS = 20_000
-// Entradas lidas pelo compilador. A fixture as grava antes da varredura, e o
-// fs.watch do macOS pode reportar essas escritas depois do ready.
+// The fixture writes compiler inputs before scanning; macOS fs.watch
+// can report those writes after ready.
 const COMPILER_INPUTS = ['**/project.inlang/**', '**/.paraglide/**']
 
 function payloadType(payload: unknown): unknown {
@@ -48,8 +48,8 @@ function payloadType(payload: unknown): unknown {
     : undefined
 }
 
-// Resolve com o erro em vez de rejeitar: createServer pode falhar depois do
-// hook que inicia a espera, e ela não pode virar uma rejeição não tratada.
+// Resolve with the error: createServer can fail after the waiting hook,
+// which must not leave an unhandled rejection.
 async function scanResult(watcher: FSWatcher): Promise<unknown> {
   try {
     await once(watcher, 'ready', { signal: AbortSignal.timeout(TIMEOUT_MS) })
@@ -65,12 +65,12 @@ export const PROJECT_WRITES: ProjectWrite[] = [
   {
     file: 'project.inlang/settings.json',
     update: content =>
-      content.replace('"baseLocale":"pt"', '"baseLocale":"en"'),
+      content.replace('"baseLocale":"de"', '"baseLocale":"fr"'),
     output: RUNTIME_FILE,
-    expected: /baseLocale = "en";/u
+    expected: /baseLocale = "fr";/u
   },
   {
-    file: 'src/routes/Home/i18n/es.json',
+    file: 'src/routes/Home/i18n/it.json',
     update: () => JSON.stringify({ ...MESSAGES, home_body: 'Nuevo' }),
     output: 'paraglide/messages/home_body.js',
     expected: /Nuevo/u
@@ -103,9 +103,8 @@ export async function waitFor(check: () => Promise<boolean>): Promise<void> {
   }
 }
 
-// Servidor de desenvolvimento real, com o watcher do Vite e o plugin oficial,
-// numa raiz temporária. O teardown fecha HTTP e Vite antes de limpar a raiz,
-// para o watcher não reagir à remoção.
+// A real Vite watcher and official plugin in an owned temporary root.
+// Close HTTP and Vite before cleanup so the watcher cannot react to removal.
 export async function startServer({
   context,
   root: existing,
@@ -121,8 +120,8 @@ export async function startServer({
   })
   if (!existing) {
     await writeProject({ root, messages: MESSAGES })
-    // Inicializa os metadados do SDK antes de observar edições do usuário.
-    // Reinícios usam a saída anterior para verificar a recuperação real.
+    // Initialize SDK metadata before observing user edits.
+    // Restarts reuse previous output to test actual recovery.
     await generateMessages(root)
   }
   const server = await createServer({
@@ -130,14 +129,13 @@ export async function startServer({
     configFile: false,
     logLevel: 'silent',
     appType: 'custom',
-    // O Vite entrega ao Chokidar os .env e o public da raiz, que a fixture não
-    // tem, e o Chokidar embutido no Vite+ conta duas vezes o ready de cada
-    // caminho ausente. O evento então sai com subdiretórios por varrer, e a
-    // primeira escrita se perde.
+    // Vite passes missing .env and public paths to Chokidar, whose Vite+ build
+    // counts their ready events twice. Disable them so ready does not precede
+    // the remaining directory scans and lose the first write.
     envDir: false,
     publicDir: false,
-    // fs.watch é o backend do Chokidar no Linux do CI. No macOS o padrão é
-    // FSEvents e, sem ele, polling; os dois mudam a cadência dos eventos.
+    // fs.watch is the Chokidar backend on Linux CI. macOS defaults to FSEvents
+    // or polling, which change the event cadence.
     server: {
       middlewareMode: true,
       watch: {
@@ -151,10 +149,9 @@ export async function startServer({
       i18nPlugin(),
       {
         name: 'test:lifecycle-observer',
-        // O `ready` do chokidar pode sair antes de createServer resolver.
-        // Até o primeiro configureServer o Vite+ só executa microtasks, e a
-        // varredura depende de I/O, então o evento ainda não saiu aqui. Se
-        // uma atualização mudar essa ordem, a espera estoura o TIMEOUT_MS.
+        // Chokidar ready may precede createServer resolution. Before the first
+        // configureServer, Vite+ only runs microtasks and scanning needs I/O.
+        // If that ordering changes, the wait reaches TIMEOUT_MS.
         configureServer: {
           order: 'pre',
           handler: devServer => {
@@ -173,17 +170,17 @@ export async function startServer({
     await once(http, 'close')
   })
   await once(http, 'listening')
-  // Deixa o watcher terminar a varredura inicial antes das mudanças.
+  // Wait for the initial scan before editing files.
   const scanError = await scan
   if (scanError !== null) {
     throw new Error('The watcher did not finish the initial scan', {
       cause: scanError
     })
   }
-  // No macOS, o libuv recria o stream do FSEvents numa thread própria a cada
-  // diretório observado, e o stream novo ignora o que veio antes dele. O ready
-  // não espera essa thread. Fechar um watch de diretório bloqueia até a thread
-  // esvaziar a fila, e os eventos de diretório seguintes chegam ao stream.
+  // On macOS, libuv recreates the FSEvents stream on its own thread for each
+  // watched directory, discarding earlier events. Ready does not wait for that
+  // thread. Closing a directory watch drains its queue so later directory
+  // events reach the new stream.
   watch(root).close()
   const address = http.address()
   if (typeof address !== 'object' || address === null) {

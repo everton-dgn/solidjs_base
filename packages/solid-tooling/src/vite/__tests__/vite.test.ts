@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { env, execPath } from 'node:process'
 import { it, type TestContext } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
 import * as v from 'valibot'
@@ -31,6 +32,7 @@ type WorkspaceGlob = { pattern: string; base: string }
 type RootOptions = { hasI18n?: boolean }
 
 const PRESET = new URL('../../../dist/vite.mjs', import.meta.url).href
+const I18N_COMMAND = `bun '${fileURLToPath(new URL('../../../dist/i18n-generate.mjs', import.meta.url))}'`
 const exec = promisify(execFile)
 const HEADERS = {
   'strict-transport-security': 'max-age=63072000; includeSubDomains',
@@ -60,6 +62,8 @@ const WORKSPACE = {
 // Recorders stand in for the four plugin packages, whose options stay in
 // closures. Each module also records that it was imported.
 const STUBS = {
+  '@inlang/paraglide-js':
+    "record('paraglide'); export const paraglideVitePlugin = options => (record('paraglide', options), { name: 'unplugin-paraglide-js' })",
   '@solidjs/vite-plugin':
     "record('solid'); export default options => (record('solid', options), { name: 'solid' })",
   'filesystem-routing/vite':
@@ -263,15 +267,27 @@ it('places the extension plugins before the fixed ones in each target', async co
     app: [
       'solid-app:locale',
       'extension:app',
+      'project:i18n-catalogs',
+      'unplugin-paraglide-js',
       'icons',
       'solid',
       'fileRoutes',
       'nitro'
     ],
-    dom: ['solid-app:locale', 'extension:test', 'icons', 'solid', 'fileRoutes'],
+    dom: [
+      'solid-app:locale',
+      'extension:test',
+      'project:i18n-catalogs',
+      'unplugin-paraglide-js',
+      'icons',
+      'solid',
+      'fileRoutes'
+    ],
     browser: [
       'solid-app:locale',
       'extension:test',
+      'project:i18n-catalogs',
+      'unplugin-paraglide-js',
       'icons',
       'solid',
       'fileRoutes'
@@ -346,6 +362,8 @@ it('falls back to server functions without setup and no middleware', async conte
   })
   assert.deepEqual(summary.plugins.dom, [
     'solid-app:locale',
+    'project:i18n-catalogs',
+    'unplugin-paraglide-js',
     'icons',
     'solid',
     'fileRoutes'
@@ -440,6 +458,10 @@ it('loads no application plugin and reads .env.test in the test mode', async con
   const root = await createRoot(context)
   const summary = await readSummary({ options: { root }, mode: 'test' })
   assert.deepEqual(summary.plugins.app, [])
+  for (const plugins of [summary.plugins.dom, summary.plugins.browser]) {
+    assert.ok(plugins.includes('project:i18n-catalogs'))
+    assert.ok(plugins.includes('unplugin-paraglide-js'))
+  }
   assert.deepEqual(
     summary.extendCalls.map(call => call.target),
     ['test', 'test']
@@ -522,15 +544,18 @@ it('reads the lockfile and the package build from the workspace root', async con
     }
   })
   assert.deepEqual(summary.tasks['i18n-generate'], {
-    command: 'bun tooling/i18n/generate.ts',
+    command: I18N_COMMAND,
+    dependsOn: WORKSPACE.dependsOn,
     cache: {
       input: [
+        { auto: true },
         'src/**/i18n/*.json',
-        'tooling/i18n/**',
         'project.inlang/settings.json',
         'project.inlang/paraglide.config.ts',
         'package.json',
-        fromWorkspace('bun.lock')
+        fromWorkspace('bun.lock'),
+        fromWorkspace('bunfig.toml'),
+        fromWorkspace('packages/tooling/dist/**')
       ],
       output: ['paraglide/**', '.paraglide/messages/**']
     }
@@ -546,6 +571,7 @@ it('reads the lockfile and the package build from the workspace root', async con
     )
     .map(([name]) => name)
   assert.deepEqual(dependents, [
+    'i18n-generate',
     'lint-css',
     'dead-code-project',
     'typecheck-node'
@@ -758,6 +784,10 @@ it('leaves out the i18n task and the Paraglide setup without its settings', asyn
     TASKS.filter(name => name !== 'i18n-generate')
   )
   assert.deepEqual(summary.setupFiles, [])
+  for (const plugins of Object.values(summary.plugins)) {
+    assert.ok(!plugins.some(name => /i18n-catalogs|paraglide/iu.test(name)))
+  }
+  assert.equal(importsOf(summary).includes('paraglide'), false)
 })
 
 it('loads the real plugins from the package dependencies', async context => {
@@ -766,6 +796,8 @@ it('loads the real plugins from the package dependencies', async context => {
   assert.equal(summary.error, null)
   const order = [
     'extension:app',
+    'project:i18n-catalogs',
+    'unplugin-paraglide-js',
     'unplugin-icons',
     'solid',
     'filesystem-routing',

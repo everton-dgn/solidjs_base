@@ -1,6 +1,7 @@
 # 0021. Minimal applications test installed packages with both Bun linkers
 
-- Status: Accepted
+- Status: Accepted, amended by [0024](0024-runtime-theme.md) and
+  [0025](0025-packaged-i18n-generator.md)
 - Date: 2026-11-13
 
 ## Context

@@ -1,7 +1,9 @@
 import { glob, readFile, stat } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
-import messageFormat from '@inlang/plugin-message-format'
+import type messageFormat from '@inlang/plugin-message-format'
 import { checkBundle } from '@inlang/sdk'
 import * as v from 'valibot'
 
@@ -16,6 +18,7 @@ type CatalogOptions = {
 
 type ParseOptions = { file: string; source: string }
 type ValidationOptions = {
+  parser: typeof messageFormat
   directory: string
   catalogs: Record<string, Catalog>
   baseLocale: string
@@ -32,12 +35,22 @@ type ClaimOptions = {
 type CatalogFileOptions = { root: string; file: string }
 type BudgetOptions = { bytes: number; maxBytes: number; file: string }
 
-// O glob da leitura e o filtro do watcher descrevem o mesmo conjunto: os
-// agregados em .paraglide/ e a saída em paraglide/ nunca são catálogos.
+// Discovery and the watcher match the same files: aggregates in .paraglide/
+// and output in paraglide/ are never catalogs.
 const CATALOG_GLOB = 'src/**/i18n/*.json'
 const CATALOG_EXCLUDES = ['src/tests/**', 'src/**/__tests__/**']
 const CATALOG_PATH = /^src\/(?:[^/]+\/)*i18n\/[^/]+\.json$/u
 const EXCLUDED_PATH = /^src\/tests\/|\/__tests__\//u
+const ParserModuleSchema = v.object({
+  default: v.custom<typeof messageFormat>(
+    value =>
+      value !== null &&
+      typeof value === 'object' &&
+      'importFiles' in value &&
+      typeof value.importFiles === 'function',
+    'Message format parser unavailable'
+  )
+})
 
 function claimMessages({ keys, directory, owners }: ClaimOptions): void {
   for (const key of keys) {
@@ -79,8 +92,8 @@ const CatalogSchema = v.pipe(
   v.minEntries(1, 'Empty catalog')
 )
 
-// JSON.parse aceita silenciosamente propriedades repetidas. Os tokens de
-// string são consumidos inteiros, inclusive escapes, antes de procurar ':'.
+// JSON.parse silently accepts repeated properties. Consume complete string
+// tokens, including escapes, before looking for a colon.
 function assertUniqueProperties({ file, source }: ParseOptions): void {
   const scopes: Set<string>[] = []
   const tokens = source.match(/"(?:\\.|[^"\\])*"|[{}:[\],]/gu) ?? []
@@ -112,17 +125,18 @@ function parseCatalog({ file, source }: ParseOptions): Catalog {
 }
 
 async function validateMessages({
+  parser,
   directory,
   catalogs,
   baseLocale
 }: ValidationOptions): Promise<void> {
-  if (!messageFormat.importFiles) {
+  if (!parser.importFiles) {
     throw new Error('Message format parser unavailable')
   }
   const locales = Object.keys(catalogs)
   let parsed: ImportResult
   try {
-    parsed = await messageFormat.importFiles({
+    parsed = await parser.importFiles({
       files: Object.entries(catalogs).map(([locale, catalog]) => ({
         locale,
         content: new TextEncoder().encode(JSON.stringify(catalog))
@@ -144,7 +158,7 @@ async function validateMessages({
   )
   for (const bundle of parsed.bundles) {
     if (!bundle.id) throw new Error(`[i18n] Message without ID in ${directory}`)
-    // O parser retorna tabelas separadas; o SDK recebe cada mensagem com suas variantes.
+    // The parser returns separate tables; the SDK takes messages with their variants.
     const messages = (messagesByBundle.get(bundle.id) ?? []).map(message => ({
       locale: message.locale,
       id: message.locale,
@@ -206,6 +220,13 @@ export async function readCatalogs({
   )
   const owners = new Map<string, string>()
   let totalBytes = 0
+  // The application owns this plugin and references it from its Inlang settings.
+  // Resolve there so isolated installations do not need another package peer.
+  const resolveFromApp = createRequire(path.join(root, 'package.json'))
+  const loaded: unknown = await import(
+    pathToFileURL(resolveFromApp.resolve('@inlang/plugin-message-format')).href
+  )
+  const parserModule = v.parse(ParserModuleSchema, loaded)
 
   for (const [directory, entries] of filesByDirectory) {
     const present = entries.map(file => path.basename(file, '.json'))
@@ -227,13 +248,18 @@ export async function readCatalogs({
       assertBudget({ bytes: totalBytes + size, maxBytes, file })
       const content = await readFile(location)
       totalBytes += content.byteLength
-      // O arquivo pode crescer entre o stat e a leitura.
+      // The file can grow between stat and read.
       assertBudget({ bytes: totalBytes, maxBytes, file })
       const catalog = parseCatalog({ file, source: content.toString('utf8') })
       current[locale] = catalog
       Object.assign(catalogs[locale] ?? {}, catalog)
     }
-    await validateMessages({ directory, catalogs: current, baseLocale })
+    await validateMessages({
+      directory,
+      catalogs: current,
+      baseLocale,
+      parser: parserModule.default
+    })
     claimMessages({
       keys: Object.keys(current[baseLocale] ?? {}),
       directory,

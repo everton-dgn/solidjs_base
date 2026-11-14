@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url'
+
 import type { RunTask, SolidAppOptions } from './types.ts'
 
 type Task = Exclude<RunTask, string | string[]>
@@ -27,7 +29,6 @@ export function createTasks({
   hasI18n
 }: TaskOptions): Record<string, Task> {
   const install = installInputs({ workspace })
-  const lockfile = workspace ? fromWorkspace('bun.lock') : 'bun.lock'
   const dependsOn = workspace ? { dependsOn: workspace.dependsOn } : {}
   // lint-project and check-project depend on lint-css, which handles the CSS.
   // The explicit inputs cover the declarations that lint and the formatter
@@ -50,15 +51,16 @@ export function createTasks({
   return {
     ...(hasI18n && {
       'i18n-generate': {
-        command: 'bun tooling/i18n/generate.ts',
+        command: `bun '${fileURLToPath(new URL('i18n-generate.mjs', import.meta.url)).replaceAll("'", String.raw`'\''`)}'`,
+        ...dependsOn,
         cache: {
           input: [
+            { auto: true },
             'src/**/i18n/*.json',
-            'tooling/i18n/**',
             'project.inlang/settings.json',
             'project.inlang/paraglide.config.ts',
             'package.json',
-            lockfile
+            ...install
           ],
           output: ['paraglide/**', '.paraglide/messages/**']
         }

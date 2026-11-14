@@ -22,10 +22,9 @@ type ProjectOptions = { parent: string; messages: Messages }
 const execute = promisify(execFile)
 const GENERATE = path.resolve(import.meta.dirname, '../../generate.ts')
 const MESSAGES = { home_title: 'Title {name}', home_body: 'Body' }
-// Cada teste sobe processos bun e o compilador do Paraglide. O limite global
-// de 60 s pega travamentos, mas com a máquina carregada esses testes chegaram
-// a passar dele sem falha de lógica; isolados levam de 5 a 20 s.
-// Por teste: o timeout de um describe não vence o --test-timeout global.
+// Each test starts Bun and Paraglide. Under contention they can exceed the
+// global 60-second deadline. A per-test timeout overrides --test-timeout;
+// a describe timeout does not.
 const SUBPROCESS = { timeout: 180_000 }
 
 async function sandbox(context: TestContext): Promise<string> {
@@ -42,7 +41,7 @@ async function project({ parent, messages }: ProjectOptions): Promise<string> {
   return root
 }
 
-// Conteúdo de paraglide por caminho relativo.
+// Paraglide contents indexed by relative path.
 async function output(root: string): Promise<Map<string, string>> {
   const directory = path.join(root, 'paraglide')
   const files = new Map<string, string>()
@@ -112,11 +111,11 @@ describe('generated messages', () => {
       })
       await generateMessages(root)
       const reference = await output(root)
-      const catalog = path.join(root, 'src/routes/Home/i18n/es.json')
+      const catalog = path.join(root, 'src/routes/Home/i18n/it.json')
       await writeFile(catalog, JSON.stringify({ home_title: 'Title {name}' }))
       await assert.rejects(
         generateMessages(root),
-        /es\.json: missing-translation.*home_body/u
+        /it\.json: missing-translation.*home_body/u
       )
       assert.deepEqual(await output(root), reference)
 

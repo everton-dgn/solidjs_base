@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
@@ -44,10 +44,14 @@ async function fixture({
   locales = LOCALES
 }: FixtureOptions) {
   const root = await mkdtemp(path.join(parent, 'case-'))
+  await symlink(
+    path.resolve(import.meta.dirname, '../../../../node_modules'),
+    path.join(root, 'node_modules')
+  )
   for (const locale of locales) {
     await writeCatalog({ root, locale, value: messages })
   }
-  return { root, locales: LOCALES, baseLocale: 'pt' }
+  return { root, locales: LOCALES, baseLocale: 'de' }
 }
 
 describe('colocated translations', () => {
@@ -86,23 +90,23 @@ describe('colocated translations', () => {
     for (const { value, error } of [
       {
         value: { home_other: 'Hello' },
-        error: /es\.json: missing-translation.*home_hello/u
+        error: /it\.json: missing-translation.*home_hello/u
       },
       {
         value: { home_hello: 'Hello {name}', home_extra: 'Extra' },
-        error: /pt\.json: missing-translation.*home_extra/u
+        error: /de\.json: missing-translation.*home_extra/u
       },
       {
         value: { home_hello: 'Hello' },
-        error: /es\.json: missing-variable.*name/u
+        error: /it\.json: missing-variable.*name/u
       },
       {
         value: { home_hello: 'Hello {username}' },
-        error: /es\.json: unknown-variable.*username/u
+        error: /it\.json: unknown-variable.*username/u
       }
     ]) {
       const options = await fixture({ parent })
-      await writeCatalog({ root: options.root, locale: 'es', value })
+      await writeCatalog({ root: options.root, locale: 'it', value })
       await assert.rejects(readCatalogs(options), error)
     }
   })
@@ -110,8 +114,8 @@ describe('colocated translations', () => {
   it('rejects blank messages, malformed JSON and repeated JSON properties', async context => {
     const parent = await sandbox(context)
     for (const { source, error } of [
-      { source: '{"home_hello":"   "}', error: /es\.json: empty-translation/u },
-      { source: '{bad}', error: /Invalid catalog.*es\.json/u },
+      { source: '{"home_hello":"   "}', error: /it\.json: empty-translation/u },
+      { source: '{bad}', error: /Invalid catalog.*it\.json/u },
       {
         source: '{"home_hello":"a","home_hello":"b"}',
         error: /duplicate key "home_hello"/u
@@ -120,7 +124,7 @@ describe('colocated translations', () => {
     ]) {
       const options = await fixture({ parent })
       await writeFile(
-        path.join(options.root, 'src/routes/Home/i18n/es.json'),
+        path.join(options.root, 'src/routes/Home/i18n/it.json'),
         source
       )
       await assert.rejects(readCatalogs(options), error)
@@ -144,9 +148,9 @@ describe('colocated translations', () => {
     )
     const unexpected = await fixture({
       parent,
-      locales: [...LOCALES, 'fr']
+      locales: [...LOCALES, 'ja']
     })
-    await assert.rejects(readCatalogs(unexpected), /unexpected \[fr\]/u)
+    await assert.rejects(readCatalogs(unexpected), /unexpected \[ja\]/u)
   })
 
   it('supports plural variants and checks their input declarations', async context => {
@@ -163,15 +167,15 @@ describe('colocated translations', () => {
     ]
     const options = await fixture({ parent, messages: { home_count: plural } })
     const catalogs = await readCatalogs(options)
-    assert.deepEqual(catalogs.es?.home_count, plural)
+    assert.deepEqual(catalogs.it?.home_count, plural)
     await writeCatalog({
       root: options.root,
-      locale: 'es',
+      locale: 'it',
       value: { home_count: 'Items' }
     })
     await assert.rejects(
       readCatalogs(options),
-      /es\.json: missing-variable.*home_count/u
+      /it\.json: missing-variable.*home_count/u
     )
   })
 
@@ -195,7 +199,7 @@ describe('colocated translations', () => {
     })
     await writeCatalog({
       root: options.root,
-      locale: 'es',
+      locale: 'it',
       value: {
         home_count: [
           {
@@ -207,7 +211,7 @@ describe('colocated translations', () => {
     })
     await assert.rejects(
       readCatalogs(options),
-      /es\.json: missing-variable.*name/u
+      /it\.json: missing-variable.*name/u
     )
   })
 
@@ -219,17 +223,17 @@ describe('colocated translations', () => {
     )
     const broken = '{'
     await writeFile(
-      path.join(options.root, 'src/routes/Home/i18n/es.json'),
+      path.join(options.root, 'src/routes/Home/i18n/it.json'),
       broken
     )
     const total = valid * (LOCALES.length - 1) + broken.length
     await assert.rejects(
       readCatalogs({ ...options, maxBytes: total - 1 }),
-      /exceed the \d+ byte budget at src\/routes\/Home\/i18n\/es\.json/u
+      /exceed the \d+ byte budget at src\/routes\/Home\/i18n\/it\.json/u
     )
     await assert.rejects(
       readCatalogs({ ...options, maxBytes: total }),
-      /Invalid catalog src\/routes\/Home\/i18n\/es\.json/u
+      /Invalid catalog src\/routes\/Home\/i18n\/it\.json/u
     )
   })
 
@@ -239,14 +243,14 @@ describe('colocated translations', () => {
     const valid = Buffer.byteLength(
       JSON.stringify({ home_hello: 'Hello {name}' })
     )
-    // Um diretório responde ao stat e falha na leitura: o erro do teto prova
-    // que a conferência veio antes de abrir o arquivo.
-    const unreadable = path.join(options.root, 'src/routes/Home/i18n/es.json')
+    // A directory passes stat but cannot be read as a file; the budget error
+    // proves that the limit is checked before opening it.
+    const unreadable = path.join(options.root, 'src/routes/Home/i18n/it.json')
     await rm(unreadable)
     await mkdir(path.join(unreadable, 'entry'), { recursive: true })
     await assert.rejects(
       readCatalogs({ ...options, maxBytes: valid * (LOCALES.length - 1) }),
-      /exceed the \d+ byte budget at src\/routes\/Home\/i18n\/es\.json/u
+      /exceed the \d+ byte budget at src\/routes\/Home\/i18n\/it\.json/u
     )
   })
 })
@@ -255,22 +259,22 @@ describe('catalog file filter', () => {
   it('matches only the colocated catalogs that the generator reads', () => {
     const root = path.join(tmpdir(), 'project')
     const accepted = [
-      'src/routes/(base)/(home)/i18n/pt.json',
-      'src/components/atoms/Button/i18n/en.json',
-      'src/i18n/es.json'
+      'src/routes/(base)/(home)/i18n/de.json',
+      'src/components/atoms/Button/i18n/fr.json',
+      'src/i18n/it.json'
     ]
     const ignored = [
-      '.paraglide/messages/pt.json',
+      '.paraglide/messages/de.json',
       'paraglide/messages/home_title.js',
-      'paraglide/messages/pt.json',
-      'paraglide/i18n/pt.json',
-      'src/routes/Home/messages/pt.json',
-      'src/i18n/messages/pt.json',
-      'src/tests/fixtures/i18n/pt.json',
-      'src/components/Button/__tests__/i18n/pt.json',
-      'src/routes/Home/i18n/nested/pt.json',
-      'src/routes/Home/i18n/pt.js',
-      '../outside/src/routes/Home/i18n/pt.json'
+      'paraglide/messages/de.json',
+      'paraglide/i18n/de.json',
+      'src/routes/Home/messages/de.json',
+      'src/i18n/messages/de.json',
+      'src/tests/fixtures/i18n/de.json',
+      'src/components/Button/__tests__/i18n/de.json',
+      'src/routes/Home/i18n/nested/de.json',
+      'src/routes/Home/i18n/de.js',
+      '../outside/src/routes/Home/i18n/de.json'
     ]
     for (const file of accepted) {
       assert.equal(isCatalogFile({ root, file: path.join(root, file) }), true)

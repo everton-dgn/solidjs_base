@@ -32,6 +32,7 @@ export default defineConfig({
       stylelint: 'src/stylelint/index.ts',
       'solid-plugin': 'src/solid-plugin.ts',
       vite: 'src/vite/index.ts',
+      'i18n-generate': 'src/i18n/generate.ts',
       vitest: 'src/vitest/index.ts',
       'vitest-setup/browser': 'src/vitest/setup/browser.ts',
       playwright: 'src/playwright/index.ts',

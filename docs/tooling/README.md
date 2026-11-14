@@ -33,6 +33,7 @@ update.
 | `./tsconfig.base.json`   | Compiler options, without application paths                               |
 | `./tsconfig.app.json`    | The base plus the `types` and `include` of the boilerplate layout         |
 | `./vite`                 | `defineSolidApp(options)`, the whole `vite.config.ts` of an application   |
+| `./i18n-generate`        | Compiled catalog generator executed by the preset's `i18n-generate` task  |
 | `./vitest`               | `solidTest(options)`, the `test` block of `vite.config.ts`                |
 | `./playwright`           | `definePlaywrightConfig(options)`, the Playwright config                  |
 | `./vitest-setup/browser` | Setup file of the browser project, loaded by `./vitest`                   |

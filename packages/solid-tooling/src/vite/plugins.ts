@@ -3,7 +3,7 @@ import path from 'node:path'
 
 import { lazyPlugins, type PluginOption } from 'vite-plus'
 
-import { I18N_SETTINGS } from '../has-i18n.ts'
+import { hasI18n, I18N_SETTINGS } from '../has-i18n.ts'
 import { localeModule } from '../locale-module.ts'
 import type {
   ExtensionContext,
@@ -17,6 +17,7 @@ type TargetInput = { options: SolidAppOptions; mode: string }
 type ServerTargetInput = { options: ServerAppOptions; mode: string }
 type ExtensionInput = TargetInput & Pick<ExtensionContext, 'target'>
 type PluginSetup = {
+  i18n: PluginOption[]
   modules: PluginModules
   extension: SolidAppExtension
   options: SolidAppOptions
@@ -59,6 +60,12 @@ async function readExtension({
   mode
 }: ExtensionInput): Promise<SolidAppExtension> {
   return (await options.extend?.({ target, mode })) ?? {}
+}
+
+async function i18nPlugins(options: SolidAppOptions): Promise<PluginOption[]> {
+  if (options.i18nPlugin === false || !hasI18n(options.root)) return []
+  const { i18nPlugin } = await import('../i18n/i18nPlugin/index.ts')
+  return i18nPlugin()
 }
 
 // The locales come from the same file as the Paraglide compiler, so the rules
@@ -155,6 +162,7 @@ function staticHeaders({ securityHeaders }: ServerAppOptions) {
 }
 
 function clientPlugins({
+  i18n,
   modules,
   extension,
   options,
@@ -164,6 +172,7 @@ function clientPlugins({
   return [
     localeModule(options),
     ...(extension.plugins ?? []),
+    ...i18n,
     iconsPlugin({ modules, options }),
     modules.solid({ ssr: false }),
     modules.fileRoutes(
@@ -178,11 +187,12 @@ async function serverPlugins({
   options,
   mode
 }: ServerTargetInput): Promise<PluginOption[]> {
-  const [modules, { nitro }, extension, locales] = await Promise.all([
+  const [modules, { nitro }, extension, locales, i18n] = await Promise.all([
     loadPluginModules(),
     import('nitro/vite'),
     readExtension({ options, target: 'app', mode }),
-    options.publication ? readLocales(options.root) : []
+    options.publication ? readLocales(options.root) : [],
+    i18nPlugins(options)
   ])
   const isE2e = mode === 'e2e'
   const middleware = isE2e
@@ -193,6 +203,7 @@ async function serverPlugins({
   return [
     localeModule(options),
     ...(extension.plugins ?? []),
+    ...i18n,
     iconsPlugin({ modules, options }),
     modules.solid({
       start: middleware ? { middleware } : {},
@@ -230,18 +241,19 @@ async function serverPlugins({
   ]
 }
 
-// A client-only application imports neither Nitro nor reads the locales.
+// A client-only application does not import Nitro.
 export function appPlugins({
   options,
   mode
 }: TargetInput): PluginOption[] | undefined {
   return lazyPlugins(async () => {
     if (options.ssr !== false) return serverPlugins({ options, mode })
-    const [modules, extension] = await Promise.all([
+    const [modules, extension, i18n] = await Promise.all([
       loadPluginModules(),
-      readExtension({ options, target: 'app', mode })
+      readExtension({ options, target: 'app', mode }),
+      i18nPlugins(options)
     ])
-    return clientPlugins({ modules, extension, options, mode })
+    return clientPlugins({ modules, extension, options, mode, i18n })
   })
 }
 
@@ -253,13 +265,15 @@ export function testPlugins({
   mode
 }: TargetInput): PluginOption[] | undefined {
   return lazyPlugins(async () => {
-    const [modules, extension] = await Promise.all([
+    const [modules, extension, i18n] = await Promise.all([
       loadPluginModules(),
-      readExtension({ options, target: 'test', mode })
+      readExtension({ options, target: 'test', mode }),
+      i18nPlugins(options)
     ])
     return [
       localeModule(options),
       ...(extension.plugins ?? []),
+      ...i18n,
       iconsPlugin({ modules, options }),
       modules.solid(options.ssr === false ? {} : { serverFunctions: true }),
       modules.fileRoutes({ types: ROUTE_TYPES, httpMethods: true })

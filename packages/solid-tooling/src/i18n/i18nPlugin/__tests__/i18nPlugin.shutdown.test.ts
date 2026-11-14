@@ -18,8 +18,8 @@ import {
 const PLUGIN_URL = pathToFileURL(
   path.resolve(import.meta.dirname, '../index.ts')
 )
-// Outro processo, sem o estado do módulo do plugin oficial: só o cache em
-// disco e a preparação da inicialização decidem a nova compilação.
+// A new process has no official plugin module state; only the disk cache
+// and startup preparation decide whether to compile again.
 const START_IN_NEW_PROCESS = `
 const { createServer } = await import('vite-plus')
 const { i18nPlugin } = await import(${JSON.stringify(PLUGIN_URL.href)})
@@ -50,21 +50,20 @@ describe('i18n dev shutdown', () => {
       const server = await startServer({
         context,
         onClosing: () => closing.resolve(null),
-        // O teste entrega o evento do primeiro agregado e retém o do segundo,
-        // que o watcher só reportaria depois do fechamento. Nenhum outro evento
-        // das entradas do compilador pode iniciar a compilação retida.
+        // Deliver the first aggregate event and hold the second until after close.
+        // No other compiler input event may start the paused compilation.
         shouldIgnoreCompilerInputs: true
       })
-      const source = path.join(server.root, 'src/routes/Home/i18n/es.json')
-      const aggregate = '.paraglide/messages/es.json'
+      const source = path.join(server.root, 'src/routes/Home/i18n/it.json')
+      const aggregate = '.paraglide/messages/it.json'
       const aggregatePath = await realpath(path.join(server.root, aggregate))
       const output = 'paraglide/messages/home_body.js'
       const released = Promise.withResolvers<null>()
       const read = fs.promises.readFile
       let shouldPause = true
 
-      // Preserva os bytes lidos pelo compilador enquanto outra preparação
-      // publica o agregado novo, antes de calcular o digest.
+      // Preserve the bytes read by the compiler while preparation publishes
+      // the next aggregate, before computing its digest.
       context.mock.method(
         fs.promises,
         'readFile',
@@ -134,16 +133,16 @@ describe('i18n dev shutdown', () => {
   it('waits for a pending preparation when the server closes', async context => {
     const server = await startServer({ context })
     await writeFile(
-      path.join(server.root, 'src/routes/Home/i18n/es.json'),
+      path.join(server.root, 'src/routes/Home/i18n/it.json'),
       JSON.stringify({ ...MESSAGES, home_body: 'Cierre' })
     )
-    server.change('src/routes/Home/i18n/es.json')
+    server.change('src/routes/Home/i18n/it.json')
 
     await server.close()
 
     assert.match(
       await readFile(
-        path.join(server.root, '.paraglide/messages/es.json'),
+        path.join(server.root, '.paraglide/messages/it.json'),
         'utf8'
       ),
       /Cierre/u
@@ -151,8 +150,8 @@ describe('i18n dev shutdown', () => {
     assert.deepEqual(await temporaryFiles(server.root), [])
   })
 
-  // O watcher pode fechar antes de entregar o evento da escrita.
-  // A próxima inicialização precisa refletir o arquivo salvo em disco.
+  // The watcher may close before delivering the write event.
+  // The next startup must reflect the file saved on disk.
   for (const { file, update, output, expected } of PROJECT_WRITES) {
     it(`preserves a ${file} write across an immediate shutdown and restart`, async context => {
       const first = await startServer({ context })

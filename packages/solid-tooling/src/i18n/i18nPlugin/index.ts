@@ -33,8 +33,8 @@ function catalogPreparation(): Plugin {
       await prepareMessages(root)
       if (!failure) return
       failure = undefined
-      // Agregados restaurados ao conteúdo anterior não geram compilação nem
-      // HMR, então só um reload remove o overlay do erro.
+      // Identical aggregates trigger no compilation or HMR; a reload clears
+      // the error overlay.
       server?.ws.send({ type: 'full-reload' })
     } catch (error) {
       failure = error instanceof Error ? error : new Error(String(error))
@@ -66,9 +66,8 @@ function catalogPreparation(): Plugin {
     request()
     return pendingPreparation
   }
-  // O chokidar lê um diretório novo antes de observá-lo, e o que surge nesse
-  // intervalo não gera evento de arquivo. A preparação relê todos os
-  // catálogos do disco quando um diretório aparece ou some.
+  // Chokidar scans new directories before watching them, missing files created
+  // in between. Reconcile catalogs when directories appear or disappear.
   const reconcile = (directory: string) => {
     if (canContainCatalogs({ root, file: directory })) request()
   }
@@ -83,8 +82,8 @@ function catalogPreparation(): Plugin {
       server = devServer
       devServer.watcher.on('addDir', reconcile)
       devServer.watcher.on('unlinkDir', reconcile)
-      // Um catálogo inválido não pode continuar sendo servido a partir da
-      // última compilação boa, inclusive num reload completo do navegador.
+      // Invalid catalogs must block responses, including a full browser reload.
+      // oxlint-disable-next-line eslint/max-params -- Connect middleware receives three arguments.
       devServer.middlewares.use((_request, response, next) => {
         if (!failure) {
           next()
@@ -96,9 +95,9 @@ function catalogPreparation(): Plugin {
         response.end(failure.message)
       })
     },
-    // Agregados e saída ficam fora do filtro para não disparar outra preparação.
+    // Exclude generated files to avoid scheduling another preparation.
     watchChange: {
-      // O plugin oficial também lê a configuração; precisa aguardar este evento.
+      // The official plugin also reads the config and must wait for this event.
       sequential: true,
       handler(file) {
         const shouldPrepare =

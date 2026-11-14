@@ -31,9 +31,8 @@ async function readExisting(file: string): Promise<string | undefined> {
   }
 }
 
-// Os agregados entram por rename para o compilador não ler JSON pela metade.
-// O temporário fica fora da pasta lida pelo compilador, que recompila a cada
-// arquivo criado nela.
+// Publish aggregates by rename so the compiler never reads partial JSON.
+// Keep temporary files outside the watched aggregate directory.
 async function writeIfChanged({
   root,
   file,

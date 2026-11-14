@@ -23,16 +23,15 @@ export default defineKnipConfig({
     'src/tests/fixtures/e2e/middleware/index.ts',
     // Scripts das tarefas do vp run. O Knip só lê os comandos de run.tasks
     // escritos no vite.config.ts, e as tarefas vêm do preset.
-    'tooling/i18n/generate.ts',
     'tooling/css/check.ts'
   ],
   // O Kingfisher é externo. O vp do script start vem de uma devDependency, que
   // o modo production (ativado pelo --strict) não considera; o '!' restringe o
   // ignore a esse modo, porque na execução padrão ele viraria hint de redundância.
   ignoreBinaries: ['kingfisher', 'vp!'],
-  // server-only é um módulo virtual do @solidjs/vite-plugin, sem pacote no npm.
-  // Nos testes node, o preset do @evertondgn/solid-tooling o substitui.
-  ignoreDependencies: ['server-only'],
+  // server-only is virtual. Inlang loads the message-format plugin by its
+  // node_modules path in settings.json, outside Knip's import graph.
+  ignoreDependencies: ['server-only', '@inlang/plugin-message-format'],
   // No monorepo, o catálogo de versões fica no package.json da raiz, que o Knip
   // não lê ao rodar nesta pasta. O bun install já recusa referência a uma
   // entrada que não existe no catálogo.

@@ -40,7 +40,7 @@ type PartsOptions = { file: string; content: string }
 
 const SETTLE_MS = 1500
 const HTTP_ERROR = 500
-// Mantém as duas partes dentro da janela de agrupamento dos catálogos.
+// Keep both writes inside the catalog debounce window.
 const WRITE_PAUSE_MS = 20
 
 async function exists(file: string): Promise<boolean> {
@@ -52,8 +52,7 @@ async function exists(file: string): Promise<boolean> {
   }
 }
 
-// Trunca, grava o começo e só depois o restante, como um editor que salva
-// em mais de uma escrita.
+// Save in two parts to reproduce an editor performing multiple writes.
 async function writeInParts({ file, content }: PartsOptions): Promise<void> {
   const middle = content.indexOf(',')
   const handle = await open(file, 'w')
@@ -72,20 +71,20 @@ describe('i18n dev updates', () => {
     assert.notEqual(await server.status(), HTTP_ERROR)
 
     await writeFile(
-      path.join(server.root, 'src/routes/Home/i18n/es.json'),
+      path.join(server.root, 'src/routes/Home/i18n/it.json'),
       JSON.stringify({ home_title: 'Title' })
     )
     await waitFor(async () => (await server.status()) === HTTP_ERROR)
     assert.ok(server.payloads().includes('error'))
     assert.match(
       await server.body(),
-      /es\.json: missing-translation.*home_body/u
+      /it\.json: missing-translation.*home_body/u
     )
 
     await writeMessages({ root: server.root, messages: MESSAGES })
     await waitFor(async () => (await server.status()) !== HTTP_ERROR)
-    // Os agregados voltam ao conteúdo anterior e não geram HMR; o reload da
-    // preparação remove o overlay do erro que ela publicou.
+    // Identical aggregates do not trigger HMR; preparation reloads to clear
+    // the error overlay it published.
     assert.ok(server.payloads().includes('full-reload'))
   })
 
@@ -94,7 +93,7 @@ describe('i18n dev updates', () => {
     const [, catalog] = PROJECT_WRITES
     assert.ok(catalog)
     const target = path.join(server.root, catalog.file)
-    const aggregate = path.join(server.root, '.paraglide/messages/es.json')
+    const aggregate = path.join(server.root, '.paraglide/messages/it.json')
     const output = path.join(server.root, catalog.output)
 
     await writeFile(target, catalog.update(await readFile(target, 'utf8')))
@@ -102,7 +101,7 @@ describe('i18n dev updates', () => {
       contains({ root: server.root, ...catalog, file: catalog.output })
     )
     const before = await Promise.all([stat(aggregate), stat(output)])
-    // Agregados, saída e eventos repetidos não podem gerar outra rodada.
+    // Generated files and repeated events must not start another round.
     await delay(SETTLE_MS)
     const after = await Promise.all([stat(aggregate), stat(output)])
     assert.deepEqual(
@@ -114,15 +113,15 @@ describe('i18n dev updates', () => {
 
   it('regenerates the runtime when the base locale changes', async context => {
     const server = await startServer({ context })
-    assert.match(await readRuntime(server.root), /baseLocale = "pt";/u)
+    assert.match(await readRuntime(server.root), /baseLocale = "de";/u)
 
     await writeSettings({
       root: server.root,
-      baseLocale: 'en',
+      baseLocale: 'fr',
       locales: LOCALES
     })
     await waitFor(async () =>
-      /baseLocale = "en";/u.test(await readRuntime(server.root))
+      /baseLocale = "fr";/u.test(await readRuntime(server.root))
     )
     assert.ok(!server.payloads().includes('error'))
     assert.notEqual(await server.status(), HTTP_ERROR)
@@ -189,20 +188,20 @@ describe('i18n dev updates', () => {
 
     await writeSettings({
       root: server.root,
-      baseLocale: 'pt',
-      locales: [...LOCALES, 'fr']
+      baseLocale: 'de',
+      locales: [...LOCALES, 'ja']
     })
     await waitFor(async () => (await server.status()) === HTTP_ERROR)
-    assert.match(await server.body(), /missing locales \[fr\]/u)
+    assert.match(await server.body(), /missing locales \[ja\]/u)
 
     await writeSettings({
       root: server.root,
-      baseLocale: 'pt',
+      baseLocale: 'de',
       locales: LOCALES
     })
     await waitFor(async () => (await server.status()) !== HTTP_ERROR)
     await waitFor(async () =>
-      /locales = \/\*\* @type \{const\} \*\/ \(\["pt",\s*"en",\s*"es"\]\)/u.test(
+      /locales = \/\*\* @type \{const\} \*\/ \(\["de",\s*"fr",\s*"it"\]\)/u.test(
         await readRuntime(server.root)
       )
     )
@@ -221,7 +220,7 @@ describe('i18n dev updates', () => {
       )
     }
 
-    // Os três idiomas aparecem e somem de uma vez, como numa troca de branch.
+    // All locales appear and disappear together, as in a branch switch.
     await rename(staging, path.join(consumer, 'i18n'))
     await waitFor(() => exists(output))
     await rename(path.join(consumer, 'i18n'), staging)
@@ -240,7 +239,7 @@ describe('i18n dev updates', () => {
 
     assert.deepEqual(await readdir(directory, { recursive: true }), files)
     assert.equal(await readFile(message, 'utf8'), before)
-    assert.match(await readRuntime(server.root), /baseLocale = "pt"/u)
+    assert.match(await readRuntime(server.root), /baseLocale = "de"/u)
   })
 
   it('keeps the watcher disabled when the config disables it', async context => {
@@ -258,7 +257,7 @@ describe('i18n dev updates', () => {
     })
     try {
       assert.equal(server.config.server.watch, null)
-      assert.match(await readRuntime(root), /baseLocale = "pt"/u)
+      assert.match(await readRuntime(root), /baseLocale = "de"/u)
     } finally {
       await server.close()
     }
@@ -299,15 +298,15 @@ describe('i18n dev directory discovery', () => {
     }
     const watch = fs.watch.bind(fs)
     let renames = 0
-    // O chokidar lê o diretório novo e só depois o observa; a troca de nome
-    // entre os dois passos não gera evento de arquivo.
+    // Chokidar scans the directory before watching it; a rename between
+    // those steps emits no file event.
     context.mock.method(fs, 'watch', (...args: Parameters<typeof fs.watch>) => {
       const [target] = args
       if (
         renames === 0 &&
         String(target).endsWith(path.join('src', 'routes', 'About'))
       ) {
-        // oxlint-disable-next-line node/no-sync -- A troca precisa ocorrer antes de o watch existir.
+        // oxlint-disable-next-line node/no-sync -- The rename must happen before the watch exists.
         fs.renameSync(
           path.join(consumer, 'staging'),
           path.join(consumer, 'i18n')

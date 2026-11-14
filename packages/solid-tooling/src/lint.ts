@@ -120,7 +120,6 @@ export const lint: NonNullable<UserConfig['lint']> = {
         'src/**/*.test.{ts,tsx}',
         'src/tests/**/*.{ts,tsx}',
         'tooling/**/__tests__/**/*.ts',
-        'tooling/i18n/i18nPlugin/index.ts',
         'vite.config.ts'
       ],
       rules: { 'eslint/max-params': 'off' }

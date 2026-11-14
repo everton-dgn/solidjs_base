@@ -38,11 +38,9 @@ export default defineSolidApp({
       'packages/solid-runtime/src/**'
     ]
   },
-  // O i18n e a publicação ainda ficam na aplicação. Uma chamada só entrega o
-  // plugin e o módulo do Nitro com o mesmo buildId.
+  // One call shares the publication buildId between its plugin and Nitro module.
   async extend({ target }) {
-    const { i18nPlugin } = await import('./tooling/i18n/i18nPlugin/index.ts')
-    if (target === 'test') return { plugins: [i18nPlugin()] }
+    if (target === 'test') return {}
     const [{ markdownPrerender }, { createPublicationBuild }] =
       await Promise.all([
         import('./tooling/markdownPrerender/index.ts'),
@@ -50,7 +48,7 @@ export default defineSolidApp({
       ])
     const publication = createPublicationBuild()
     return {
-      plugins: [publication.plugin, i18nPlugin()],
+      plugins: [publication.plugin],
       nitroModules: [markdownPrerender({ buildId: publication.buildId })]
     }
   }

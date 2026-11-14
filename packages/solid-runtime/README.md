@@ -1,10 +1,23 @@
 # @evertondgn/solid-runtime
 
-Runtime code for SolidJS applications built with Vite+. The package ships
-TypeScript source, which the application's Vite compiles with its own Solid
-version, plus plain JavaScript for entries loaded from Node. Version `0.1.0` is
-its first release; the first publish is manual, as described in the
-[release guide](https://github.com/everton-dgn/solidjs_base/blob/main/docs/releasing.md#new-package).
+Shared application behavior for SolidJS and Vite+: locale-aware navigation,
+light and dark theme, middleware with nonce-based CSP, server error protection,
+validated environment schemas, SEO and sitemap factories. Import each feature
+through its own entry point.
+
+Translations follow your application locale list; an app without translations
+needs no translation project. Theme behavior comes from `defineTheme`; an app
+without a theme switcher omits theme imports. You keep the UI, palette, content
+and backend adapters. The
+[Solid Base overview](https://github.com/everton-dgn/solidjs_base/blob/main/README.md)
+shows the features and the
+[tooling package](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/README.md)
+supplies their build integration.
+
+The package ships TypeScript source, compiled by your application with its own
+Solid version, plus plain JavaScript for entries loaded from Node. Version
+`0.1.0` is its first release. The first publish follows the
+[new-package procedure](https://github.com/everton-dgn/solidjs_base/blob/main/docs/releasing.md#new-package).
 
 ## What it has
 

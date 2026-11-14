@@ -45,14 +45,15 @@ affect these measurements; the difference is not an isolated benchmark.
 
 ## Consequences
 
-Browser Vitest and Playwright E2E remain in `apps/boilerplate`. This matrix does
-not prove hydration, navigation, layout, desktop packaging, production CDN
-behavior, Vercel deployment, streaming integrity or application-scale load. The
-i18n fixture exercises generated runtime, translated message catalogs, locale
-redirects, Content-Language and cookie persistence. Publication checks cover
-emitted rules, not publication jobs. A fourth publication-without-i18n
-application is not added: the package unit suite already covers that
-combination, and it adds no installation contract.
+Playwright E2E remains in `apps/boilerplate`; runtime browser tests also cover
+locale history after ADR 0025. This matrix does not prove browser hydration,
+layout, desktop packaging, production CDN behavior, Vercel deployment, streaming
+integrity or application-scale load. The i18n fixture exercises generated
+runtime, translated message catalogs, locale redirects, Content-Language and
+cookie persistence. Publication checks cover emitted rules, not publication
+jobs. A fourth publication-without-i18n application is not added: the package
+unit suite already covers that combination, and it adds no installation
+contract.
 
 Dependency counts include the two injected packages: client-only 18, SSR plain
 19, SSR i18n 21. These are direct declarations, not transitive package counts.
@@ -80,3 +81,21 @@ The boilerplate configures theme once in `src/constants/theme.ts`. Its theme
 adapters, types and primitive tests moved to the runtime package, which now runs
 node and happy-dom projects. UI and CSS remain in the copy. See
 [ADR 0024](0024-runtime-theme.md).
+
+## Runtime navigation and tags
+
+ADR 0025 adds DOM navigation to client-only through createLocalizedNavigate,
+plus localeTag and the single-language setLocale contract. The extra client-only
+isolated-language case uses zh-Hant-TW, bringing the matrix to eight installed
+application cases and the version-alignment test. SSR i18n checks regional tags
+fr-FR and de-DE in the HTML through localeTag overrides. The copy keeps its
+pt-BR/en-US/es-ES values.
+
+Select `client-only / isolated$` with `SCENARIO_MUTATION=navigation-provider` to
+inject the real generated provider into the new navigation module, or with
+`locale-setter` to remove the single-language setLocale export. Select
+`ssr-i18n / isolated$` with `locale-tag` to change the expected HTML tag. These
+probes must fail at the bundle audit, provider contract or HTML smoke,
+respectively. They mutate only the temporary installation. The generated
+provider comes from the runtime test project. Browser navigation and hydration
+remain the responsibility of runtime browser tests and the copy's E2E suites.

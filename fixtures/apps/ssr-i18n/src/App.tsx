@@ -1,4 +1,5 @@
 import { localizeHref } from '@evertondgn/solid-runtime/i18n/locale'
+import { localeTag } from '@evertondgn/solid-runtime/i18n/locale-tag'
 import { getRequestEvent, isServer } from '@solidjs/web'
 
 import { m } from '../paraglide/messages.js'
@@ -15,7 +16,10 @@ export default function App() {
     typeof event?.nonce === 'string' ? event.nonce : event?.nonce?.script
   const nonce = scriptNonce === false ? undefined : scriptNonce
   return (
-    <html lang={getLocale()} class={theme === 'system' ? undefined : theme}>
+    <html
+      lang={localeTag(getLocale(), { fr: 'fr-FR', de: 'de-DE' })}
+      class={theme === 'system' ? undefined : theme}
+    >
       <head>
         <title>Scenario application</title>
         <meta name="theme-color" content={themeColor(theme)} />

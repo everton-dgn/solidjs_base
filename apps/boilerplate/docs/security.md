@@ -48,6 +48,12 @@ attribute for any non-null value, and the CSP blocks it. `applyTheme` writes
 `color-scheme` directly on `element.style`, through the CSSOM, which the CSP
 does not block.
 
+The font preset follows the same external-stylesheet rule. `FontLinks` in
+`Document` renders the generated stylesheet and the selected font preloads; both
+use the same content-hashed asset URLs. The plugin also serves external font CSS
+in development. No `style-src` exception or nonce on a style element is needed.
+The application still owns the font files and typography in `src/theme/`.
+
 ## HSTS
 
 `Strict-Transport-Security` goes out with `max-age=63072000; includeSubDomains`,

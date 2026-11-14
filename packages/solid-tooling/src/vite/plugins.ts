@@ -3,6 +3,7 @@ import path from 'node:path'
 
 import { lazyPlugins, type PluginOption } from 'vite-plus'
 
+import { fontsPlugin } from '../fonts/index.ts'
 import { hasI18n, I18N_SETTINGS } from '../has-i18n.ts'
 import { localeModule } from '../locale-module.ts'
 import { seoModule } from '../seo-module.ts'
@@ -172,6 +173,7 @@ function clientPlugins({
   const e2eRoutes = mode === 'e2e' ? options.e2e?.routes : undefined
   return [
     localeModule(options),
+    fontsPlugin(options),
     ...(extension.plugins ?? []),
     ...i18n,
     iconsPlugin({ modules, options }),
@@ -203,6 +205,7 @@ async function serverPlugins({
   const headers = staticHeaders(options)
   return [
     localeModule(options),
+    fontsPlugin(options),
     seoModule({ root: options.root, mode, seo: options.seo }),
     ...(extension.plugins ?? []),
     ...i18n,
@@ -274,6 +277,7 @@ export function testPlugins({
     ])
     return [
       localeModule(options),
+      fontsPlugin(options),
       ...(options.ssr === false
         ? []
         : [seoModule({ root: options.root, mode, seo: options.seo })]),

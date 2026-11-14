@@ -1,3 +1,4 @@
+import { FontLinks } from '@evertondgn/solid-runtime/fonts/font-links'
 import { getLocale, localizeHref } from '@evertondgn/solid-runtime/i18n/locale'
 import { createSeo } from '@evertondgn/solid-runtime/seo/create-seo'
 import { createRouter } from '@solidjs/router'
@@ -31,6 +32,7 @@ export default function App() {
         return (
           <html lang={getLocale()}>
             <head>
+              <FontLinks />
               <title>Scenario application</title>
             </head>
             <body>

@@ -1,3 +1,9 @@
+declare module 'virtual:solid-app/fonts' {
+  type FontPreload = { href: string; type: string }
+  export const stylesheet: string
+  export const preloads: readonly FontPreload[]
+}
+
 declare module 'virtual:solid-app/seo-origin' {
   export const origin: string
 }

@@ -18,6 +18,9 @@
   ],
   "sideEffects": [],
   "exports": {
+    "./fonts/font-links": {
+      "solid": "./src/fonts/FontLinks/index.tsx"
+    },
     "./env": {
       "types": "./src/env/index.d.ts",
       "default": "./src/env/index.js"

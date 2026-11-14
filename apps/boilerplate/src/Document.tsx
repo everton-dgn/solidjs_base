@@ -1,3 +1,4 @@
+import { FontLinks } from '@evertondgn/solid-runtime/fonts/font-links'
 import { getRequestEvent, HydrationScript, isServer } from '@solidjs/web'
 import type { ParentProps } from 'solid-js'
 
@@ -8,8 +9,6 @@ import {
   themeColor,
   themeScript
 } from '@/constants/theme.ts'
-
-import interLatin from './assets/fonts/inter-latin-wght-normal.woff2?url&no-inline'
 
 export default function Document(props: ParentProps) {
   const event = isServer ? getRequestEvent() : undefined
@@ -40,13 +39,7 @@ export default function Document(props: ParentProps) {
         <meta name="theme-color" content={themeColor(theme)} />
         <link rel="describedby" href="/llms.txt" />
         <script nonce={nonce}>{themeScript(theme)}</script>
-        <link
-          rel="preload"
-          href={interLatin}
-          as="font"
-          type="font/woff2"
-          crossorigin="anonymous"
-        />
+        <FontLinks />
         <link rel="icon" href="/favicon/favicon.ico" sizes="16x16 32x32" />
         <link
           rel="icon"

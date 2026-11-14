@@ -1,10 +1,12 @@
 import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
 
+import { FONTS } from './fonts.ts'
 import { ROBOTS } from './src/constants/site/robots.ts'
 import { SECURITY_HEADERS } from './src/middleware/securityHeaders/constants.ts'
 
 export default defineSolidApp({
   root: import.meta.dirname,
+  fonts: FONTS,
   middleware: './src/middleware/index.ts',
   serverSetup: './src/infra/server/configureServerErrors/index.ts',
   e2e: {

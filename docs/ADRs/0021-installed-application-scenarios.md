@@ -5,8 +5,9 @@
   [0026](0026-runtime-locale-navigation.md),
   [0027](0027-packaged-tool-dependencies.md),
   [0028](0028-runtime-server-errors.md),
-  [0029](0029-runtime-middleware-chain.md) and
-  [0030](0030-packaged-environment-schemas.md)
+  [0029](0029-runtime-middleware-chain.md),
+  [0030](0030-packaged-environment-schemas.md) and
+  [0031](0031-runtime-seo-core.md)
 - Date: 2026-11-13
 
 ## Context
@@ -165,3 +166,16 @@ so the test makes a request and requires HTTP 500 plus the boot diagnostic. A
 separate client import of `virtual:solid-env/server` must fail the build. The
 existing runtime server-only probe still runs after restoring that entry. See
 [ADR 0030](0030-packaged-environment-schemas.md).
+
+## Runtime SEO
+
+ADR 0031 adds metadata, JSON-LD and robots to SSR plain in both linkers. A
+single `isolated-meta-only` profile retains meta and JSON-LD with an explicit
+site URL, no origin variable and no robots. There are now nine installation
+cases plus version alignment, which also checks all runtime production
+dependencies. Client-only retains zero SEO modules; an optional `seo-import`
+mutation must fail its bundle audit. The regular SSR plain cases reject invalid
+origin schemes and paths when SEO is enabled; the meta-only case accepts those
+unused values. No new fixture or publication contract is added. The same
+deadlines and cleanup rules apply; full browser security remains an application
+E2E responsibility.

@@ -251,9 +251,11 @@ workspace and installs freshly packed tooling and runtime packages with Bun's
 hoisted and isolated linkers. Every case runs lint, TypeScript, node and dom
 tests, build and output checks. SSR cases also request the local preview.
 
-The fixtures list their own pinned dependencies. No browser download or remote
-page request belongs to this suite; only dependency installation uses the
-network. Paraglide uses a local project without remote modules.
+The fixtures list their own pinned dependencies, and the first test of the file
+fails when a version, an override or the engines differ from the workspace. No
+browser download or remote page request belongs to this suite; only dependency
+installation uses the network. Paraglide uses a local project without remote
+modules.
 
 To select a case, use Node's `--test-name-pattern` with
 `packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts`. For

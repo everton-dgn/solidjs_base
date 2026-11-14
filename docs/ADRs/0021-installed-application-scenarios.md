@@ -56,7 +56,10 @@ suite already covers that combination, and it adds no installation contract.
 Dependency counts include the two injected packages: client-only 18, SSR plain
 19, SSR i18n 20. These are direct declarations, not transitive package counts.
 The fixtures retain currently required test peers even though no browser runs.
-No package production source or dependency contract changes in this decision.
+The fixtures pin every version, because `catalog:` does not resolve outside the
+workspace. A test compares those versions, the overrides and the engines with
+the workspace, so an update cannot leave the matrix on the old versions. No
+package production source or dependency contract changes in this decision.
 
 Optional negative probes inject an actual Nitro plugin, an invalid header value
 or a wrong dom URL into a temporary copy. Their expected failures establish that

@@ -43,9 +43,26 @@ const publicationSchema = v.object({ routes: v.array(routeSchema) })
 const manifestSchema = v.looseObject({
   dependencies: v.record(v.string(), v.string())
 })
+const versionsSchema = v.optional(v.record(v.string(), v.string()), {})
+const pinnedSchema = v.looseObject({
+  catalog: versionsSchema,
+  overrides: versionsSchema,
+  dependencies: versionsSchema,
+  devDependencies: versionsSchema,
+  engines: v.optional(v.unknown()),
+  devEngines: v.optional(v.unknown()),
+  packageManager: v.optional(v.string())
+})
 const MUTATION = env.SCENARIO_MUTATION
 
 type Command = { cwd: string; args: string[]; deadline: number }
+type Target = { app: string; scenario: string }
+type Pinned = v.InferOutput<typeof pinnedSchema>
+type CatalogInput = {
+  versions: Record<string, string>
+  catalog: Pinned['catalog']
+}
+type Versions = Record<string, string | undefined>
 
 async function run({ cwd, args, deadline }: Command): Promise<string> {
   let file = path.join(cwd, 'node_modules/.bin/vp')
@@ -97,13 +114,7 @@ async function freePort(): Promise<number> {
   return port
 }
 
-async function smoke({
-  app,
-  scenario
-}: {
-  app: string
-  scenario: string
-}): Promise<void> {
+async function smoke({ app, scenario }: Target): Promise<void> {
   const port = await freePort()
   const child = spawn(
     path.join(app, 'node_modules/.bin/vp'),
@@ -137,10 +148,10 @@ async function smoke({
     }
     assert.ok(response, `Preview did not start: ${output}`)
     assert.equal(response.status, HTTP_OK)
-    assert.match(
-      await response.text(),
-      /<main[^>]*>Scenario application<\/main>/u
-    )
+    const html = await response.text()
+    assert.match(html, /<main[^>]*>Scenario application<\/main>/u)
+    // The application writes the base locale of the generated runtime.
+    if (scenario === 'ssr-i18n') assert.match(html, /<html[^>]* lang="fr"/u)
     const headers = {
       'x-content-type-options': 'nosniff',
       'x-frame-options': 'DENY',
@@ -197,13 +208,7 @@ export const audit = {
   writeFileSync(file, config)
 }
 
-function assertBuild({
-  app,
-  scenario
-}: {
-  app: string
-  scenario: string
-}): void {
+function assertBuild({ app, scenario }: Target): void {
   const source = readFileSync(path.join(app, 'scenario-config.json'), 'utf8')
   const config = v.parse(configSchema, JSON.parse(source))
   const modules = readdirSync(app).filter(file =>
@@ -269,6 +274,45 @@ function assertBuild({
     }
   }
 }
+
+function readPinned(file: string): Pinned {
+  return v.parse(pinnedSchema, JSON.parse(readFileSync(file, 'utf8')))
+}
+
+function resolveCatalog({ versions, catalog }: CatalogInput): Versions {
+  return Object.fromEntries(
+    Object.entries(versions).map(([name, version]) => [
+      name,
+      version === 'catalog:' ? catalog[name] : version
+    ])
+  )
+}
+
+// The applications sit outside the workspace, where catalog: does not
+// resolve, so they pin each version. Without this check an update of the
+// workspace would leave the matrix testing the old versions.
+test('the applications pin the versions of the workspace', () => {
+  const workspace = readPinned(path.join(ROOT, 'package.json'))
+  const copy = readPinned(path.join(ROOT, 'apps/boilerplate/package.json'))
+  const { catalog } = workspace
+  const expected = resolveCatalog({
+    versions: { ...catalog, ...copy.dependencies, ...copy.devDependencies },
+    catalog
+  })
+  const overrides = resolveCatalog({ versions: workspace.overrides, catalog })
+  for (const scenario of SCENARIOS) {
+    const app = readPinned(
+      path.join(ROOT, 'fixtures/apps', scenario, 'package.json')
+    )
+    for (const [name, version] of Object.entries(app.dependencies)) {
+      assert.equal(version, expected[name], `${scenario}: ${name}`)
+    }
+    assert.deepEqual(app.overrides, overrides, scenario)
+    assert.deepEqual(app.engines, workspace.engines, scenario)
+    assert.deepEqual(app.devEngines, workspace.devEngines, scenario)
+    assert.equal(app.packageManager, workspace.packageManager, scenario)
+  }
+})
 
 for (const scenario of SCENARIOS) {
   for (const linker of LINKERS) {

@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { once } from 'node:events'
 import {
-  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -21,6 +20,12 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 import * as v from 'valibot'
 
+import {
+  assertFontBuild,
+  assertFontHtml,
+  mutateFontsScenario,
+  prepareFontsScenario
+} from '../font-scenarios.ts'
 import { smokeMiddleware } from '../middleware-smoke.ts'
 import {
   assertEnvBootFailure,
@@ -293,6 +298,7 @@ async function smoke({
     }
     assert.equal(response.status, HTTP_OK)
     const html = await response.text()
+    assertFontHtml({ app, scenario, html })
     assert.match(html, /<main[^>]*>Scenario application<\/main>/u)
     if (scenario === 'ssr-plain') {
       assert.equal(
@@ -557,6 +563,7 @@ async function buildScenario({
   instrumentMiddleware({ app, scenario, mutation: MUTATION })
   await run({ deadline, cwd: app, args: ['build'] })
   assertBuild({ app, scenario })
+  assertFontBuild({ app, scenario })
   assertSeoBuild({ app, scenario })
   if (scenario === 'client-only') return
   await smoke({ app, scenario })
@@ -605,9 +612,7 @@ for (const scenario of SCENARIOS) {
           dependencies[`@evertondgn/${name}`] = path.join(destination, tarball)
         }
         const app = path.join(directory, 'app')
-        cpSync(path.join(ROOT, 'fixtures/apps', scenario), app, {
-          recursive: true
-        })
+        prepareFontsScenario({ app, scenario, root: ROOT })
         prepareSeoScenario({
           app,
           scenario,
@@ -773,6 +778,7 @@ export default (event, next) => next()
           )
         }
         mutateTheme({ app, mutation: MUTATION })
+        mutateFontsScenario({ app, scenario, mutation: MUTATION })
         await buildScenario({ app, scenario, deadline })
       } finally {
         rmSync(directory, { recursive: true, force: true })

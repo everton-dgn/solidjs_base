@@ -1,6 +1,8 @@
 import type { NitroConfig, NitroModuleInput, PublicAssetDir } from 'nitro/types'
 import type { PluginOption, UserConfig } from 'vite-plus'
 
+import type { SolidTestSettings } from '../vitest/types.ts'
+
 type StaticSecurityHeaders = Record<
   | 'strict-transport-security'
   | 'x-content-type-options'
@@ -24,6 +26,7 @@ type SharedOptions = {
   ) => SolidAppExtension | Promise<SolidAppExtension>
   workspace?: WorkspaceOptions
   tasks?: Record<string, RunTask>
+  test?: SolidTestSettings
 }
 
 export type RunTask = NonNullable<

@@ -151,6 +151,7 @@ export function defineSolidApp(
       fmt,
       lint,
       test: solidTest({
+        ...options.test,
         root,
         plugins: () => testPlugins({ options, mode })
       })

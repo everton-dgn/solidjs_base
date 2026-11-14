@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { access, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  realpath,
+  rm,
+  writeFile
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { env, execPath } from 'node:process'
@@ -35,6 +42,7 @@ const SECURITY_HEADERS = {
   'content-security-policy': "default-src 'self'"
 }
 const LOCALES = ['en', 'pt']
+const SOURCE_PACKAGE = '@scope/source'
 const TASKS = [
   'i18n-generate',
   'lint-css',
@@ -99,19 +107,25 @@ const names = async value => {
   if (Array.isArray(resolved)) return (await Promise.all(resolved.map(names))).flat()
   return [resolved.name]
 }
-const summary = { error: null, calls: [], extendCalls, plugins: { app: [], dom: [], browser: [] }, tasks: {}, build: null, server: null, preview: null, setupFiles: [], testEnv: null }
+const summary = { error: null, calls: [], extendCalls, plugins: { app: [], dom: [], browser: [] }, tasks: {}, build: null, server: null, preview: null, setupFiles: [], testEnv: null, test: null }
 try {
   const { defineSolidApp } = await import(${JSON.stringify(PRESET)})
   const options = ${JSON.stringify({ securityHeaders: SECURITY_HEADERS, ...options })}
   const app = defineSolidApp(${hasExtension ? '{ ...options, extend }' : 'options'})
   const config = await app({ mode: ${JSON.stringify(mode)}, command: 'build' })
-  const [, dom, browser] = config.test.projects
+  const [node, dom, browser] = config.test.projects
+  const resolver = node.plugins.find(plugin => plugin.name === 'solid-tooling:source-packages')
   summary.plugins = {
     app: (await names(config.plugins)).filter(name => !name.startsWith('vite-plus:')),
     dom: await names(dom.plugins),
     browser: await names(browser.plugins)
   }
   Object.assign(summary, { tasks: config.run.tasks, build: config.build, server: config.server, preview: config.preview, setupFiles: browser.test.setupFiles, testEnv: process.env.SOLID_APP_TEST_PROBE ?? null })
+  summary.test = {
+    domUrl: dom.test.environmentOptions.happyDOM.url,
+    locale: browser.test.browser.provider.options.contextOptions.locale,
+    source: (await resolver.resolveId(${JSON.stringify(`${SOURCE_PACKAGE}/headers`)})) ?? null
+  }
 } catch (error) {
   summary.error = error.message
 }
@@ -129,6 +143,11 @@ const pluginsSchema = v.object({
   browser: namesSchema
 })
 const nullableTextSchema = v.nullable(v.string())
+const testSchema = v.object({
+  domUrl: v.string(),
+  locale: v.string(),
+  source: nullableTextSchema
+})
 const summarySchema = v.object({
   error: nullableTextSchema,
   calls: v.array(callSchema),
@@ -139,7 +158,8 @@ const summarySchema = v.object({
   server: v.unknown(),
   preview: v.unknown(),
   setupFiles: namesSchema,
-  testEnv: nullableTextSchema
+  testEnv: nullableTextSchema,
+  test: v.nullable(testSchema)
 })
 const commandSchema = v.object({ command: v.string() })
 const nitroSchema = v.object({
@@ -171,6 +191,22 @@ async function createRoot(
   await writeFile(path.join(root, '.env'), 'HOST=127.0.0.1\nPORT=4999\n')
   await writeFile(path.join(root, '.env.test'), 'SOLID_APP_TEST_PROBE=loaded\n')
   return root
+}
+
+// A package that ships TypeScript source under the solid condition. Returns
+// the real path of its source file.
+async function installSourcePackage(root: string): Promise<string> {
+  const folder = path.join(root, 'node_modules', SOURCE_PACKAGE)
+  await mkdir(path.join(folder, 'src'), { recursive: true })
+  await writeFile(path.join(folder, 'src/headers.ts'), 'export {}\n')
+  await writeFile(
+    path.join(folder, 'package.json'),
+    JSON.stringify({
+      name: SOURCE_PACKAGE,
+      exports: { './headers': { solid: './src/headers.ts' } }
+    })
+  )
+  return realpath(path.join(folder, 'src/headers.ts'))
 }
 
 async function readSummary(scenario: Scenario): Promise<Summary> {
@@ -572,11 +608,52 @@ it('refuses a static path inside a locale folder', async context => {
 it('names the settings file when it cannot read the locales', async context => {
   const root = await createRoot(context)
   await writeFile(path.join(root, 'project.inlang/settings.json'), '{ locales')
-  const summary = await readSummary({ options: { root, publication: true } })
+  // The test block reads the same file first, unless the application chooses
+  // the URL of the dom project.
+  const test = { domUrl: 'http://localhost/' }
+  const summary = await readSummary({
+    options: { root, publication: true, test }
+  })
   assert.match(
     summary.error ?? '',
     /defineSolidApp: cannot read the locales from project\.inlang\/settings\.json/u
   )
+})
+
+it('names the settings file when the test block cannot read the base locale', async context => {
+  const root = await createRoot(context)
+  await writeFile(path.join(root, 'project.inlang/settings.json'), '{}')
+  const summary = await readSummary({ options: { root } })
+  assert.match(
+    summary.error ?? '',
+    /solidTest: project\.inlang\/settings\.json must declare baseLocale as a string/u
+  )
+})
+
+it('passes the test options of the application to the test block', async context => {
+  const root = await createRoot(context)
+  const source = await installSourcePackage(root)
+  const defaults = await readSummary({ options: { root } })
+  const chosen = await readSummary({
+    options: {
+      root,
+      test: {
+        domUrl: 'http://localhost/app',
+        locale: 'pt-BR',
+        sourcePackages: [SOURCE_PACKAGE]
+      }
+    }
+  })
+  assert.deepEqual(defaults.test, {
+    domUrl: 'http://localhost/en',
+    locale: 'en-US',
+    source: null
+  })
+  assert.deepEqual(chosen.test, {
+    domUrl: 'http://localhost/app',
+    locale: 'pt-BR',
+    source
+  })
 })
 
 it('publishes no locale folder without the Paraglide settings', async context => {

@@ -13,8 +13,9 @@ not use reaches its build:
 
 - `ssr: false` builds a client-only application, such as an Electron renderer or
   a static site: no Nitro, no server functions and no server bundle.
-- The llms and Markdown static rules need `publication: true`. Sitemap static
-  rules need `seo.sitemap: true`; robots is an explicit runtime route.
+- Publication uses independent `seo.markdown`, `seo.llms`, `seo.llmsFull` and
+  `seo.sitemap` options. Static generation is compiled into the tooling package;
+  the application binds runtime factories to its routes and middleware.
 - `project.inlang/settings.json` enables the packaged catalog validator and
   Paraglide plugin in dev, build and the `dom` and `browser` test projects. Keep
   catalogs at `src/**/i18n/<locale>.json` and the compiler options in
@@ -46,7 +47,7 @@ export default defineSolidApp({
 | `i18nPlugin`      | auto                    | Set `false` to disable only the automatic catalog and Paraglide plugins; locale providers, test setup and the generation task remain enabled by settings   |
 | `ssr`             | `true`                  | `false` for a client-only application, which takes only `root`, `language`, `i18nPlugin`, `icons`, `e2e.routes`, `extend`, `tasks`, `workspace` and `test` |
 | `securityHeaders` | required with SSR       | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files                                    |
-| `publication`     | `false`                 | `true` for the static llms and Markdown header rules; sitemap uses `seo.sitemap`                                                                           |
+| `seo`             | disabled                | Data-only options for robots, sitemap, Markdown and editorial indexes                                                                                      |
 | `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                                                        |
 | `serverSetup`     | `serverFunctions: true` | `serverFunctions.serverSetup` of the Solid plugin                                                                                                          |
 | `e2e`             | production paths        | `{ middleware, routes }` for `--mode e2e`: the middleware chain and the route folder of the fixtures, without route types                                  |
@@ -79,12 +80,12 @@ The preset fixes the rest:
   server functions only and the routes. The `test` mode loads no application
   plugin and reads `.env.test` into `process.env`.
 - The static headers go to `/assets/**`, each `publicAssets` folder and the
-  `staticPaths`. With `publication`, also to `/<locale>/**.md` for each locale
-  of `project.inlang/settings.json`, `/llms.txt`, `/llms-full.txt` and
-  `/_markdown/static.json`. `seo.sitemap: true` independently adds
-  `/sitemap.xml` and `/sitemaps/pages/**`. The static files leave the CDN
-  without going through the middleware, so these rules give them the headers the
-  middleware writes on the other responses.
+  `staticPaths`. With `seo.markdown.static`, also to `/<locale>/**.md` for each
+  locale, or `/**.md` without i18n, and `/_markdown/static.json`. `seo.llms`
+  adds `/llms.txt`; `seo.llmsFull` adds `/llms-full.txt`. `seo.sitemap`
+  independently adds `/sitemap.xml` and `/sitemaps/pages/**`. The static files
+  leave the CDN without going through the middleware, so these rules give them
+  the headers the middleware writes on the other responses.
 - With `ssr: false`, the plugins are the locale provider, optional fonts, the
   `extend` plugins, the optional i18n plugins, the icons, the Solid plugin with
   `ssr: false` and the routes; the test projects load Solid without server
@@ -103,9 +104,9 @@ that overlap in part, such as `/pt/blog/**` next to `/pt/**.md`, and falls back
 to its simple mode, with the same result and a warning. `defineSolidApp` throws
 when a `publicAssets` entry has no `baseURL`, or one with a trailing slash, when
 a static path does not start with `/`, and when a client-only application sets
-an option that needs SSR. With `publication`, build, dev and preview fail to
-load the plugins when a `publicAssets` folder or a static path sits inside a
-locale folder.
+an option that needs SSR. With `seo.markdown.static`, build, dev and preview
+fail to load the plugins when a `publicAssets` folder or a static path sits
+inside a locale folder.
 
 ### Fonts
 
@@ -127,8 +128,10 @@ plugin instances on each call. The `plugins` go before the fixed ones, and the
 both, so a value that a plugin and a module share, such as a build id, stays the
 same.
 
-Translations are provided by the preset. Use `extend` only for plugins or
-publication modules owned by the application.
+Translations and publication artifacts are provided by the preset. Use `extend`
+only for additional plugins or Nitro modules owned by the application. The
+publication plugin and module share one build identity without an `extend`
+callback.
 
 To replace the automatic translation plugins, set `i18nPlugin: false` and return
 your plugin from `extend`. It receives the same app/test targets and must return
@@ -219,7 +222,9 @@ export default defineConfig(env =>
 ## Optional SEO configuration
 
 `seo?: SeoOptions | false` is an SSR option. It accepts only serializable data:
-`originEnv?: string`, `sitemap?: boolean` and
+`originEnv?: string`, `sitemap?: boolean | { static: true }`,
+`markdown?: false | { static?, maxInputBytes?, maxOutputBytes?, timeoutMs? }`,
+`llms?: false | { maxBytes? }`, `llmsFull?: false | { maxBytes? }` and
 `robots?: false | { groups?, sitemapPaths?, cacheControl? }`. Each group has
 `userAgents` and optional `allow` and `disallow` string arrays. The plugin
 rejects unknown keys, functions and multiline robots directives. `originEnv`
@@ -233,8 +238,18 @@ module path is accepted. `seo.sitemap` controls static header rules; the
 application explicitly installs `createSitemapRoutes` handlers and declares
 `robots.sitemapPaths`. Disabling the feature removes its route files, source
 binding and array metadata, and omits both the flag and robot announcements. The
-option does not install routes or run Markdown generation. Omit the option and
-origin import for a meta-only profile with an explicit site URL.
+option does not install application route files. `sitemap: { static: true }`
+adds the compiled artifact pipeline; `sitemap: true` retains header rules for
+direct runtime services. Markdown static generation requires
+`markdown: { static: true }`. `llmsFull` requires both `llms` and static
+Markdown and rejects incompatible configurations before building. Omitted or
+false features emit no corresponding artifacts or rules. Remove disabled route
+bindings and document announcements from the application too. Importing a
+disabled runtime factory fails the build. The removed `publication` option is
+rejected with a migration diagnostic. See
+[ADR 0034](../ADRs/0034-runtime-markdown-publication.md) for examples and
+budgets. Omit SEO and the origin import for meta-only use with an explicit site
+URL.
 
 ## Optional environment validation
 

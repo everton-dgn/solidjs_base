@@ -8,7 +8,8 @@
   [0029](0029-runtime-middleware-chain.md),
   [0030](0030-packaged-environment-schemas.md),
   [0031](0031-runtime-seo-core.md), [0032](0032-packaged-fonts.md) and
-  [0033](0033-runtime-sitemap-publication.md)
+  [0033](0033-runtime-sitemap-publication.md) and
+  [0034](0034-runtime-markdown-publication.md)
 - Date: 2026-11-13
 
 ## Context
@@ -60,10 +61,10 @@ integrity or application-scale load. The i18n fixture exercises generated
 runtime, translated message catalogs, locale redirects, Content-Language and
 cookie persistence. Sitemap checks now exercise installed factories, array and
 partitioned sources, GET/HEAD, language alternates and disabled-resource audits
-(ADR 0033). They do not execute the application-owned artifact writers or
-Markdown prerender jobs. An extra `isolated-without-sitemap` profile reuses SSR
-plain with robots and publication enabled. The meta-only profile removes sitemap
-too; no fourth fixture is needed.
+(ADR 0033). ADR 0034 adds the compiled artifact writers and real Markdown
+prerender jobs. An extra `isolated-without-sitemap` profile reuses SSR plain
+with robots and publication enabled. The meta-only profile removes sitemap too;
+no fourth fixture is needed.
 
 At adoption, direct dependency counts including the two injected packages were
 client-only 18, SSR plain 19 and SSR i18n 21. ADR 0027 reduces these to 7, 7 and
@@ -192,3 +193,15 @@ face descriptors and no inline style. SSR i18n keeps fonts disabled and rejects
 font modules and assets. Optional `fonts-href`, `fonts-inline` and
 `fonts-import` mutations must fail the matching audits. Helpers live in
 `src/tarball/font-scenarios.ts`; counts and time budgets stay unchanged.
+
+## Markdown and editorial publication
+
+ADR 0034 adds real Markdown, llms and full-index requests in both linkers and
+with/without i18n. Four isolated SSR plain profiles cover Markdown only, llms
+only, publication disabled and dynamic-only Markdown. The matrix now has
+fourteen installation cases and version alignment. The first expanded run took
+211.518 seconds, compared with the approximately 117-second pre-extraction
+reference; cache and host state prevent treating that difference as an isolated
+benchmark. Optional llms budget, Link and module mutations exercise the failure
+audits. The copy still owns browser, SSR integrity and production-route E2E
+coverage.

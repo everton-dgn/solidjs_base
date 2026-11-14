@@ -78,13 +78,13 @@ upgrades either one needs a package version tested with the new version.
 `import()` inside `lazyPlugins`, so lint and format runs never load them. They
 are package dependencies pinned to the tested versions. The application keeps
 its own direct imports and its root `overrides` and patches, which also apply to
-transitive packages. Publication artifacts still owned by the application enter
-through `extend`; the catalog plugin now belongs to the preset.
+transitive packages. Publication artifacts and the catalog plugin belong to the
+preset. Additional application-specific plugins enter through `extend`.
 [ADR 0027](ADRs/0027-packaged-tool-dependencies.md) records dependency
 ownership. [ADR 0012](ADRs/0012-application-config-preset.md) records the
 options and what stays out of them. Each feature is turned on only when the
 application uses it: `ssr: false` builds a client-only application without
-Nitro, the rules of the published files need `publication: true`, and the
+Nitro, independent `seo` options enable publication artifacts and rules, and the
 Paraglide task, test setup and lint plugin follow the presence of Paraglide
 ([ADR 0016](ADRs/0016-optional-application-features.md)).
 

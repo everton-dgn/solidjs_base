@@ -41,33 +41,35 @@ serializer, and the Markdown uses the settled HTML, without that data. The full
 contract, the refusal response and the criterion to remove the patch are in
 [server errors](../server-errors/ssr-integrity.md#ssr-integrity-for-markdown).
 
-The build prerender goes through the same adapter. The
-`tooling/markdownPrerender/` module asks the middleware for the list of static
-pages (`/_markdown/static.json`), prerenders each `.md` and publishes the list
-as a static file, together with `llms.txt`. The middleware only builds the list
-in the prerender worker, which gets the phase from the process environment and
-from the `x-nitro-prerender` header. In production, any client reads the
-published file, and the header alone does not rebuild the inventory: it
-authenticates nothing. That is why the list can only hold public pages, the same
-ones that the build publishes as `.md`; on a redirect, the header only replaces
-the response with a public 500. A page that fails or is not written, or a list
-that is invalid or does not go through the prerender, stops the build. Nitro
-only fails per route with a recorded error; a rejection in the fetch or in the
-write would leave the file out without failing, which is why the module checks
-at the end that each `.md` of the list was written. The status stays with the
-adapter: only a 200 response becomes Markdown, and a redirect in the prerender
-becomes a 500, which stops the build. The validation of the written artifact
-checks the MIME, the real `fileName`, UTF-8 and the content. A redirect or an
-HTML document written as `.md.html` does not satisfy the expected publication. A
-short page or a legitimate example of HTML inside the Markdown are still valid;
-there is no universal minimum of characters and no ban on isolated tags. The
-result is in `.vercel/output/static`.
+The build prerender goes through the same adapter. The compiled
+`packages/solid-tooling/src/publication/markdownPrerender/` module asks the
+middleware for the list of static pages (`/_markdown/static.json`), prerenders
+each `.md` and publishes the list as a static file, together with `llms.txt`.
+The middleware only builds the list in the prerender worker, which gets the
+phase from the process environment and from the `x-nitro-prerender` header. In
+production, any client reads the published file, and the header alone does not
+rebuild the inventory: it authenticates nothing. That is why the list can only
+hold public pages, the same ones that the build publishes as `.md`; on a
+redirect, the header only replaces the response with a public 500. A page that
+fails or is not written, or a list that is invalid or does not go through the
+prerender, stops the build. Nitro only fails per route with a recorded error; a
+rejection in the fetch or in the write would leave the file out without failing,
+which is why the module checks at the end that each `.md` of the list was
+written. The status stays with the adapter: only a 200 response becomes
+Markdown, and a redirect in the prerender becomes a 500, which stops the build.
+The validation of the written artifact checks the MIME, the real `fileName`,
+UTF-8 and the content. A redirect or an HTML document written as `.md.html` does
+not satisfy the expected publication. A short page or a legitimate example of
+HTML inside the Markdown are still valid; there is no universal minimum of
+characters and no ban on isolated tags. The result is in
+`.vercel/output/static`.
 
 ### llms-full.txt aggregate
 
 The reader of the index is in
-`tooling/markdownPrerender/helpers/readLlmsIndex/`, next to the generator that
-uses it. Its tests use the Node runner of the tooling.
+`packages/solid-tooling/src/publication/markdownPrerender/helpers/readLlmsIndex/`,
+next to the generator that uses it. Its tests use the Node runner of the
+tooling.
 
 The build generates `/llms-full.txt` from the approved static Markdown files,
 selected through the editorial links of `/llms.txt`, the use cases of
@@ -81,13 +83,12 @@ same document and do not repeat its body.
 
 The full bodies are read and written incrementally, with validation of paths and
 symlinks. The publication uses a temporary file promoted only after completion.
-The initial budget is 10 MiB, configurable in
-`tooling/markdownPrerender/constants.ts`; going over it stops the build without
-truncating the content. The file keeps the links of the document and ties
-non-empty fragments, such as `#team`, to the source page, so that reading them
-together does not turn an anchor of one page into an anchor of another. The
-neutral `#` target stays neutral, including when the converter uses it to remove
-an unsafe URL.
+The initial budget is 10 MiB, configurable in `seo.llmsFull.maxBytes` in
+`vite.config.ts`; going over it stops the build without truncating the content.
+The file keeps the links of the document and ties non-empty fragments, such as
+`#team`, to the source page, so that reading them together does not turn an
+anchor of one page into an anchor of another. The neutral `#` target stays
+neutral, including when the converter uses it to remove an unsafe URL.
 
 When no documents are selected, the build leaves out the aggregate and the
 announcement. An `llms-full.txt` already in the static output stops the build,
@@ -225,20 +226,21 @@ of a 404 when the aggregate was not generated. The Nitro preview does not apply
 that configuration; the tests of the Vercel artifact and the local HTTP tests
 are separate proofs.
 
-The limits are in `src/middleware/markdownContent/constants.ts`: a total
-deadline of 15 seconds, HTML of up to 2 MiB before the synchronous conversion
-and Markdown of up to 2 MiB. The read checks each chunk and cancels the reader
-when it goes over the limit; `Content-Length` does not replace that count. The
-current chunk was already allocated by the producer. The conversion only
-publishes after checking the final size. Going over one of the limits or a
-converter failure ends the publication with the public 500 in the locale of the
-request, `private, no-store` and a `[middleware]` record; the cancellation still
-follows the path of the publication. Timeout and disconnection abort the render
-signal, but synchronous code and services that ignore `AbortSignal` are not
-preempted. The async SSR may have built the whole HTML before the read, and the
-conversion keeps intermediate buffers; the limit is not a total memory limit of
-the process. The output reserves cover the bodies owned by the application, not
-the buffers of the socket, CDN or adapter. The
+The defaults come from `server/publication-protocol`, configurable through
+`seo.markdown.{timeoutMs,maxInputBytes,maxOutputBytes}`: a total deadline of 15
+seconds, HTML of up to 2 MiB before the synchronous conversion and Markdown of
+up to 2 MiB. The read checks each chunk and cancels the reader when it goes over
+the limit; `Content-Length` does not replace that count. The current chunk was
+already allocated by the producer. The conversion only publishes after checking
+the final size. Going over one of the limits or a converter failure ends the
+publication with the public 500 in the locale of the request,
+`private, no-store` and a `[middleware]` record; the cancellation still follows
+the path of the publication. Timeout and disconnection abort the render signal,
+but synchronous code and services that ignore `AbortSignal` are not preempted.
+The async SSR may have built the whole HTML before the read, and the conversion
+keeps intermediate buffers; the limit is not a total memory limit of the
+process. The output reserves cover the bodies owned by the application, not the
+buffers of the socket, CDN or adapter. The
 [HTTP pilot](../testing.md#publication-load) measures those effects on local
 Node. The hosting needs its own check.
 
@@ -286,3 +288,31 @@ indexing and external references.
 References: [Markdown negotiation](https://acceptmarkdown.com/guides),
 [llms.txt format](https://llmstxt.org/) and
 [HTTP negotiation in RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#section-12.5.1).
+
+## Package binding and optional converter patch
+
+The application wrapper injects its router, site URL, security headers and
+shared publication controller into `createMarkdownContent` from
+`@evertondgn/solid-runtime/seo/markdown`. The preset's `seo.markdown` option
+configures limits and enables static generation with `static: true`.
+`seo.llmsFull` requires both static Markdown and `seo.llms`.
+
+The runtime declares published `@mdream/js` as its own dependency. The root
+monorepo patch also applies to that resolved copy. A derived application
+installed from tarballs gets the published converter: removing an icon can leave
+a space inside emphasis, and an icon-only link can have no label. To adopt the
+same optional Bun patch, copy `patches/@mdream%2Fjs@2.1.0.patch` from this
+application, then add this entry to the derived application's root manifest and
+install:
+
+```json
+{
+  "patchedDependencies": {
+    "@mdream/js@2.1.0": "patches/@mdream%2Fjs@2.1.0.patch"
+  }
+}
+```
+
+Keep the exact dependency version while applying the patch and retain the
+conversion regressions. It is optional and is not included in the runtime
+tarball.

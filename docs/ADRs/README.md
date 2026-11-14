@@ -39,6 +39,9 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0032](0032-packaged-fonts.md)                                         | The preset loads application-owned fonts                               | Accepted                              |
 | [0033](0033-runtime-sitemap-publication.md)                            | Sitemap and publication admission belong to the runtime                | Accepted                              |
 
+| [0034](0034-runtime-markdown-publication.md) | Markdown, llms and compiled
+publication | Accepted |
+
 ## Adding a record
 
 Copy the shape of an existing record: title, status, date, then the Context,

@@ -634,15 +634,15 @@ and array metadata; omit `seo.sitemap` and the robots `sitemapPaths`. Robots can
 remain installed. No sitemap service is imported by the ordinary SEO or robots
 entries.
 
-| Option                                                      | Default and constraint                                                                        |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `createPublicationController({ total, sitemap, markdown })` | 4 total, 2 per kind; positive safe integers                                                   |
-| `sources`, `perSource`                                      | 4 concurrent source reads, 2 per source object                                                |
-| `outputs`, `reservedBytes`                                  | 4 live outputs, 16,777,216 reserved bytes                                                     |
-| `createSitemapRoutes({ timeoutMs })`                        | 10,000 ms for the full dynamic operation; integer from 1 to 2,147,483,647                     |
-| `byteBudget`                                                | 4,194,304 bytes; at most 52,428,800 uncompressed XML bytes                                    |
-| `cacheControl`                                              | Production: `public, max-age=0, s-maxage=3600, stale-if-error=86400`; development: `no-store` |
-| `usesArtifacts`                                             | `false`; set `true` only with the application artifact writer and prerender integration       |
+| Option                                                      | Default and constraint                                                                         |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `createPublicationController({ total, sitemap, markdown })` | 4 total, 2 per kind; positive safe integers                                                    |
+| `sources`, `perSource`                                      | 4 concurrent source reads, 2 per source object                                                 |
+| `outputs`, `reservedBytes`                                  | 4 live outputs, 16,777,216 reserved bytes                                                      |
+| `createSitemapRoutes({ timeoutMs })`                        | 10,000 ms for the full dynamic operation; integer from 1 to 2,147,483,647                      |
+| `byteBudget`                                                | 4,194,304 bytes; at most 52,428,800 uncompressed XML bytes                                     |
+| `cacheControl`                                              | Production: `public, max-age=0, s-maxage=3600, stale-if-error=86400`; development: `no-store`  |
+| `usesArtifacts`                                             | `false`; set `true` with `seo.sitemap: { static: true }` and the compiled artifact integration |
 
 The route factory and `runPublication` reject timeouts outside that range with
 `RangeError` before scheduling work. This prevents a timer overflow from turning
@@ -673,8 +673,36 @@ The copy's artifact path persists static XML and generation-bound manifests. Its
 reader loads identities only for array-source collision checks and refuses
 missing, oversized or mismatched artifacts without rebuilding on a request.
 `inventory` is a fifth handler restricted to prerender, used by that build
-integration. `tooling/publicationArtifacts` and `tooling/markdownPrerender` stay
-application-owned. They share the plain-JavaScript `server/publication-protocol`
-entry with the server reader; handwritten literal declarations are tied to
-values by a regression test. `server/publication-phase` and
-`routing/walk-static-routes` support the remaining application publishers.
+integration. The compiled tooling owns publication artifacts and Markdown
+prerender. It shares the plain-JavaScript `server/publication-protocol` entry
+with the server reader; handwritten literal declarations are tied to values by a
+regression test. `server/publication-phase` and `routing/walk-static-routes`
+support the remaining application publishers.
+
+## Markdown and editorial indexes
+
+Bind `createMarkdownContent` from `seo/markdown` to the middleware `document`
+slot with
+`{ publication, router, siteUrl, applySecurityHeaders, notFoundMessage? }`. Use
+the same controller as sitemap. Bind `createLlms` from `seo/llms` to the llms
+GET route with `{ site, router, notes?, pages?, fullPage?, cacheControl? }`. The
+copy's wrappers show the complete binding; editorial data stays in the app.
+Route metadata types come from `seo/markdown-types` and `seo/llms-types`.
+`seo/markdown-route` supplies pure path and metadata helpers.
+
+Enable generation with
+`seo: { markdown: { static: true }, llms: {}, llmsFull: {} }` in
+`defineSolidApp`. Omitted or false features stay disabled. Dynamic Markdown uses
+`markdown: {}`; llms alone links to HTML. Remove disabled route bindings and
+document discovery links. The runtime refuses an imported disabled service. The
+server-only `i18n/locale-context` runs with the generated locale context or
+directly for a single-language application. It does not relax `locale-request`.
+
+Defaults are 2 MiB HTML, 2 MiB Markdown and 15 seconds, with the shared
+controller's admission limits. llms and its aggregate default to 1 MiB and 10
+MiB. Full publication requires llms and static Markdown. These are bounded
+documents, while route inventories and editorial selection grow with the entire
+site. [ADR 0034](../../docs/ADRs/0034-runtime-markdown-publication.md) records
+all options, no-i18n behavior, scaling costs and the optional mdream patch.
+Published tarballs use published mdream; the boilerplate's root patch is not
+shipped in this package.

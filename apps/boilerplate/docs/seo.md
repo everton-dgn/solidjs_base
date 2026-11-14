@@ -9,19 +9,20 @@ robots responses. `src/primitives/createSeo/index.ts` is an application adapter
 that injects `SITE`, locale tag overrides and the Markdown alternate callback.
 The router augmentation and SEO types come from
 `@evertondgn/solid-runtime/seo/types`; the sitemap and publication controller
-also live in the runtime. Application registries, Markdown and llms publication
-tooling remain here.
+also live in the runtime, together with Markdown and llms services. The compiled
+tooling owns prerender and artifact validation. Application registries,
+editorial data and thin service bindings remain here.
 
 `VITE_SITE_URL` in `.env` is required by
-`defineSolidApp({ seo: { robots: ROBOTS, sitemap: true } })`. The SEO plugin
-accepts an HTTP(S) origin without a path, query, fragment or credentials and
-exports its normalized value through `@evertondgn/solid-runtime/seo/origin`.
-`SITE.url` reads that value; `env.ts` contains only the optional server
-validators. `createSeo({ route: true })`, called once in the root callback of
-the `Router` in `App.tsx`, uses `useHead` from `@solidjs/web` to publish
-`canonical`, `og:url`, `og:type`, the absolute social image (Open Graph and
-Twitter, with dimensions and alternative text) and a
-`<script type="application/ld+json">` for the current route, client navigation
+`defineSolidApp({ seo: { robots: ROBOTS, sitemap: { static: true }, markdown: { static: true }, llms: {}, llmsFull: {} } })`.
+The SEO plugin accepts an HTTP(S) origin without a path, query, fragment or
+credentials and exports its normalized value through
+`@evertondgn/solid-runtime/seo/origin`. `SITE.url` reads that value; `env.ts`
+contains only the optional server validators. `createSeo({ route: true })`,
+called once in the root callback of the `Router` in `App.tsx`, uses `useHead`
+from `@solidjs/web` to publish `canonical`, `og:url`, `og:type`, the absolute
+social image (Open Graph and Twitter, with dimensions and alternative text) and
+a `<script type="application/ld+json">` for the current route, client navigation
 included. The social tags that do not vary per route (`og:locale`,
 `og:site_name`, `twitter:card`, `twitter:site` and `twitter:creator`) also come
 from `createSeo`, to follow the `noindex` rule below; `Document.tsx` keeps only
@@ -259,3 +260,9 @@ See [llms-full.txt aggregate](seo/markdown.md#llms-fulltxt-aggregate).
 
 See
 [platform artifacts and routing](seo/markdown.md#platform-artifacts-and-routing).
+
+The runtime now owns Markdown and llms services; this application retains their
+thin bindings and editorial values. `seo` in `vite.config.ts` selects the
+compiled publication pipeline. See
+[ADR 0034](../../../docs/ADRs/0034-runtime-markdown-publication.md) for the
+independent options and the single-language configuration.

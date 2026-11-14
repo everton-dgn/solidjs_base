@@ -3,8 +3,9 @@
 - Status: Accepted, amended by [0024](0024-runtime-theme.md),
   [0025](0025-packaged-i18n-generator.md),
   [0026](0026-runtime-locale-navigation.md),
-  [0027](0027-packaged-tool-dependencies.md) and
-  [0028](0028-runtime-server-errors.md)
+  [0027](0027-packaged-tool-dependencies.md),
+  [0028](0028-runtime-server-errors.md) and
+  [0029](0029-runtime-middleware-chain.md)
 - Date: 2026-11-13
 
 ## Context
@@ -126,3 +127,21 @@ Existing scenario assertions remain in place. The runner explicitly removes
 inherited NODE_ENV and verifies each owned PID and process group before stopping
 it. See [ADR 0028](0028-runtime-server-errors.md) for the public API and its
 limits.
+
+## Middleware chain and entry helpers
+
+Both SSR fixtures now use the runtime middleware factory and shared entry
+helpers. The request-middleware seam selects the localized step only when a
+translation project exists; the existing absence-of-provider assertions remain
+unchanged. Client-only exercises entry preparation without i18n in its DOM
+tests.
+
+The smoke adds failures before rendering on the server-function endpoint and
+after rendering a page, plus a thrown bodyless redirect. It checks status,
+public text, security headers, CSP, locale headers and no locale cookie without
+i18n. The preview must log the filtered middleware source; the existing full-log
+private-marker rejection remains. Optional `middleware-body` and
+`middleware-headers` mutations must fail their corresponding smoke assertions.
+The matrix still has eight installation cases and one alignment test, with the
+same budgets and cleanup. Browser hydration and streamed CSS remain covered by
+the copy's E2E gates.

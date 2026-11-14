@@ -1,7 +1,7 @@
+import { localizeHref } from '@evertondgn/solid-runtime/i18n/urls'
 import { baseLocale, locales, type Locale } from '@paraglide/runtime.js'
 
 import { LLMS_FULL_PATH } from '@/constants/llms.ts'
-import { localizeHref } from '@/i18n/urls/index.ts'
 
 import type { LlmsPage } from './types.ts'
 

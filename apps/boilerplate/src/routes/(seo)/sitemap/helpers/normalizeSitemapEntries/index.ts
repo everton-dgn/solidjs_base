@@ -1,7 +1,7 @@
+import { localizeHref } from '@evertondgn/solid-runtime/i18n/urls'
 import { baseLocale } from '@paraglide/runtime.js'
 
 import type { SitemapEntry } from '@/@types/sitemap.ts'
-import { localizeHref } from '@/i18n/urls/index.ts'
 
 type NormalizeSitemapEntriesOptions = {
   entries: readonly SitemapEntry[]

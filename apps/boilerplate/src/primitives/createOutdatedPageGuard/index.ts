@@ -1,7 +1,6 @@
+import { delocalizePathname } from '@evertondgn/solid-runtime/i18n/urls'
 import { useBeforeLeave } from '@solidjs/router'
 import { isServer } from '@solidjs/web'
-
-import { delocalizePathname } from '@/i18n/urls/index.ts'
 
 const RELOAD_STORAGE_KEY = 'outdated-page-reload'
 // Uma falha que volta logo depois da recarga indica um build novo também

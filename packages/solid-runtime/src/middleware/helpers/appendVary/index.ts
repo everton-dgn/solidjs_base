@@ -1,6 +1,6 @@
 type AppendVaryOptions = { response: Response; field: string }
 
-// Preserva os campos existentes; `*` já cobre qualquer cabeçalho.
+// Preserve existing fields; `*` already covers every header.
 export function appendVary({ response, field }: AppendVaryOptions): Response {
   const vary = response.headers.get('vary')
   const fields = vary?.split(',').map(entry => entry.trim().toLowerCase()) ?? []

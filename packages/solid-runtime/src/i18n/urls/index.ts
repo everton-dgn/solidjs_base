@@ -1,11 +1,10 @@
 import {
   deLocalizeUrl,
   getLocale,
-  type Locale,
-  localizeHref as localizeParaglideHref
-} from '@paraglide/runtime.js'
+  localizeHref as localizeRuntimeHref
+} from '../locale/index.ts'
 
-type LocalizeHrefOptions = { href: string; locale?: Locale }
+type LocalizeHrefOptions = { href: string; locale?: string }
 
 type ResolveLocalizedHrefOptions = LocalizeHrefOptions & {
   base?: string
@@ -16,8 +15,7 @@ const LOCAL_ORIGIN = 'https://local.invalid'
 
 export function isAbsoluteHref(href: string): boolean {
   if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/iu.test(href)) return true
-  // O parser de URL descarta TAB e lê '\' como '/': '/\host' e '/<TAB>/host'
-  // apontam para outro host.
+  // URL parsing discards tabs and treats backslashes as slashes, allowing a different host.
   return (
     href.startsWith('/') && new URL(href, LOCAL_ORIGIN).origin !== LOCAL_ORIGIN
   )
@@ -25,7 +23,7 @@ export function isAbsoluteHref(href: string): boolean {
 
 export function localizeHref({ href, locale }: LocalizeHrefOptions): string {
   if (!href.startsWith('/') || isAbsoluteHref(href)) return href
-  return localizeParaglideHref(href, { locale })
+  return localizeRuntimeHref(href, { locale })
 }
 
 export function delocalizePathname(pathname: string): string {

@@ -1,7 +1,7 @@
+import { delocalizePathname } from '@evertondgn/solid-runtime/i18n/urls'
 import { createRouter, type RouteDefinition } from '@solidjs/router'
 
 import type { StaticRoute } from '@/helpers/walkStaticRoutes/types.ts'
-import { delocalizePathname } from '@/i18n/urls/index.ts'
 
 type ConvertOptions = {
   route: StaticRoute

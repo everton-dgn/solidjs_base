@@ -1,3 +1,4 @@
+import { appendVary } from '@evertondgn/solid-runtime/middleware/append-vary'
 import {
   acceptsMarkdown,
   negotiatePageFormat
@@ -9,7 +10,6 @@ import type { RequestEvent } from '@solidjs/web'
 import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND } from '@/constants/http.ts'
 import { runPublication } from '@/infra/server/publication/index.ts'
 
-import { appendVary } from '../helpers/appendVary/index.ts'
 import { MARKDOWN_TIMEOUT_MS, MAX_MARKDOWN_BYTES } from './constants.ts'
 import { boundedRender } from './helpers/boundedRender/index.ts'
 import {

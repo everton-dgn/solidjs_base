@@ -4,21 +4,31 @@
 
 ## Route metadata
 
-`VITE_SITE_URL` in `.env` is required and sets the public URL of the site,
-validated by the application's own client schema in `env.ts`. The preset's
-`serverEnv` fragment does not declare a site URL. `createSeo({ route: true })`,
-called once in the root callback of the `Router` in `App.tsx`, uses `useHead`
-from `@solidjs/web` to publish `canonical`, `og:url`, `og:type`, the absolute
-social image (Open Graph and Twitter, with dimensions and alternative text) and
-a `<script type="application/ld+json">` for the current route, client navigation
-included. The social tags that do not vary per route (`og:locale`,
-`og:site_name`, `twitter:card`, `twitter:site` and `twitter:creator`) also come
-from `createSeo`, to follow the `noindex` rule below; `Document.tsx` keeps only
-`author` and a `<title>` with `SITE.title`. That title is the exception: the
-runtime replaces, in place, the first `<title>` of the shell with the one that
-`createSeo` publishes with `useHead`, and the document goes out with a single
-`<title>`, checked in the SEO E2E tests. Do not repeat in `Document.tsx` another
-tag that `createSeo` publishes, because the crawler reads the first occurrence.
+The runtime owns metadata resolution, head tags, JSON-LD serialization and
+robots responses. `src/primitives/createSeo/index.ts` is an application adapter
+that injects `SITE`, locale tag overrides and the Markdown alternate callback.
+The router augmentation and SEO types come from
+`@evertondgn/solid-runtime/seo/types`; publication and content indexes stay
+here.
+
+`VITE_SITE_URL` in `.env` is required by
+`defineSolidApp({ seo: { robots: ROBOTS } })`. The SEO plugin accepts an HTTP(S)
+origin without a path, query, fragment or credentials and exports its normalized
+value through `@evertondgn/solid-runtime/seo/origin`. `SITE.url` reads that
+value; `env.ts` contains only the optional server validators.
+`createSeo({ route: true })`, called once in the root callback of the `Router`
+in `App.tsx`, uses `useHead` from `@solidjs/web` to publish `canonical`,
+`og:url`, `og:type`, the absolute social image (Open Graph and Twitter, with
+dimensions and alternative text) and a `<script type="application/ld+json">` for
+the current route, client navigation included. The social tags that do not vary
+per route (`og:locale`, `og:site_name`, `twitter:card`, `twitter:site` and
+`twitter:creator`) also come from `createSeo`, to follow the `noindex` rule
+below; `Document.tsx` keeps only `author` and a `<title>` with `SITE.title`.
+That title is the exception: the runtime replaces, in place, the first `<title>`
+of the shell with the one that `createSeo` publishes with `useHead`, and the
+document goes out with a single `<title>`, checked in the SEO E2E tests. Do not
+repeat in `Document.tsx` another tag that `createSeo` publishes, because the
+crawler reads the first occurrence.
 
 Each page keeps its metadata in `seo.ts`, next to `index.tsx`, and imports the
 `seo` object into `route.info.seo`. The contract accepts `title`, `description`,
@@ -55,7 +65,7 @@ For example, a page can declare its metadata in `seo.ts`:
 ```ts
 import { m } from '@paraglide/messages.js'
 
-import type { SeoRouteInfo } from '@/@types/seo.ts'
+import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
 
 export const seo = {
   get title() {
@@ -92,34 +102,40 @@ the JSON-LD: `WebPage` by default, or `Article` with `headline`, `author` (a
 `sameAs`), `publisher` and, when the route declares
 `article: { datePublished, dateModified }` in ISO 8601, those dates in the node
 and in the `article:published_time` and `article:modified_time` metas. Outside
-`article`, the dates are ignored. The JSON-LD, built by the local
-`buildStructuredData` helper of `createSeo`, always publishes a `WebSite` node,
-the page node with the canonical URL, description, locale and image, and an
-`Organization` node with the name, description, URL, logo (`SITE.logo`, at least
-112x112 pixels) and official profiles (`SITE.socialLinks`, in `sameAs`).
-`WebSite.publisher` and `Article.publisher` point to that node through the `@id`
+`article`, the dates are ignored. The JSON-LD, built by the runtime's
+`buildStructuredData` helper, publishes a `WebSite` node, the page node with the
+canonical URL, description, locale and image, and an `Organization` node with
+the name, description, URL, logo (`SITE.logo`, at least 112x112 pixels) and
+official profiles (`SITE.socialLinks`, in `sameAs`). `WebSite.publisher` and
+`Article.publisher` point to that node through the `@id`
 `<VITE_SITE_URL>/#organization`. The graph is typed with `schema-dts`, so an
 invalid property fails the type check; the image dimensions stay only in Open
 Graph. The locale of the page comes from `SITE.locale`, which also feeds the
 `lang` of `Document.tsx` and `og:locale` (with an underscore).
 `og:locale:alternate` lists the other locales, and `WebSite.inLanguage` declares
-the three available locales. The graph and the page's own data use
-`JSON.stringify` and reach `useHead` with `type: 'application/ld+json'`. Solid
-escapes `<` in the server HTML and in the head updates of the streaming; on the
-client, it inserts the content as text. This contract depends on the JSON type
-and on the use of `useHead`: do not interpolate the JSON directly into HTML. The
-`createSeo` and `StructuredData` regression tests check the first chunk before
-the data resolves, malicious content kept as JSON, and the absence of injected
-elements or code execution in the browser, before and after hydration. The
-Twitter handles come from `SITE.twitter` (`twitter:site`, the account of the
-site) and from `SITE.author.twitter` (`twitter:creator`, the account of the
-author). LinkedIn has no meta tag of its own: it reads Open Graph for the
-preview, and the profile goes only into `sameAs`. Indexable pages publish
-`hreflang` for the three locales and `x-default` pointing to English. The
-canonical and the page URL in the JSON-LD include the locale; the identity of
-the organization stays at the site root. The error fallback publishes a
+the three available locales. The runtime applies `JSON.stringify`, then escapes
+`<`, U+2028 and U+2029 in both the graph and page-owned data before passing the
+text to `useHead` with `type: 'application/ld+json'`. Solid's server and client
+serializers provide the HTML and head-update transport. This contract depends on
+the JSON type and on the use of `useHead`: do not interpolate the JSON directly
+into HTML. The `createSeo` and `StructuredData` regression tests check the first
+chunk before the data resolves, malicious content kept as JSON, and the absence
+of injected elements or code execution in the browser, before and after
+hydration. The Twitter handles come from `SITE.twitter` (`twitter:site`, the
+account of the site) and from `SITE.author.twitter` (`twitter:creator`, the
+account of the author). LinkedIn has no meta tag of its own: it reads Open Graph
+for the preview, and the profile goes only into `sameAs`. Indexable pages
+publish `hreflang` for the three locales and `x-default` pointing to English.
+The canonical and the page URL in the JSON-LD include the locale; the identity
+of the organization stays at the site root. The error fallback publishes a
 translated title and description with `noindex`, even when the failure happens
 before the Router.
+
+The runtime requires explicit site title, description, URL, locale and image.
+Author, organization, logo and social fields are optional. Without an
+organization it omits the Organization node and publisher references; without an
+author it omits Person and `twitter:creator`. There are no example identities in
+the package defaults. This copy supplies all its existing editorial fields.
 
 ## Structured data per page
 
@@ -172,7 +188,7 @@ type and the image in `seo.ts`, with the alternative text in a getter too:
 ```ts
 import { m } from '@paraglide/messages.js'
 
-import type { SeoRouteInfo } from '@/@types/seo.ts'
+import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
 
 export const seo = {
   get title() {

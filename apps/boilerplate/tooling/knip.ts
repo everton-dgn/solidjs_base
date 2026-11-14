@@ -5,6 +5,8 @@ import { defineKnipConfig } from '@evertondgn/solid-tooling/knip'
 export default defineKnipConfig({
   root: path.resolve(import.meta.dirname, '..'),
   entry: [
+    // The Vite config serializes these production values into the robots virtual module.
+    'src/constants/site/robots.ts!',
     // serverSetup do @solidjs/vite-plugin, carregado pelo caminho configurado
     // no vite.config.ts.
     'src/infra/server/configureServerErrors/index.ts!',

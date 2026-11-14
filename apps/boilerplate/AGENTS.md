@@ -252,9 +252,9 @@ release. Add a tool name to select part of the graph. For example, run
   single component lives inside the folder of the component.
 - A single-consumer constant lives in the file that uses it. When it is a
   config the project edits, it goes into a `constants.ts` in the folder of the
-  consumer, such as `DropdownMenu/constants.ts` and
-  `(seo)/robots.txt/constants.ts`. Never in `src/constants/` before the second
-  consumer.
+  consumer, such as `DropdownMenu/constants.ts`. Never in `src/constants/`
+  before the second consumer. SEO preset data is kept with the site config in
+  `src/constants/site/robots.ts`; the route itself only re-exports the runtime.
 - Extract constants to express domain meaning, configuration or a shared
   contract. Two consumers, by themselves, do not justify a shared module:
   idiomatic values such as the `-1` of `.at(-1)` stay where they are used. Do
@@ -299,6 +299,12 @@ release. Add a tool name to select part of the graph. For example, run
   location" section.
 
 ## Page modules
+
+- Import `SeoRouteInfo` from `@evertondgn/solid-runtime/seo/types`. The runtime
+  owns the router's SEO augmentation, metadata merging, JSON-LD escaping and
+  robots response factory. The application keeps the thin `createSeo` adapter,
+  editorial `SITE` values and its Markdown callback. `SITE.url` reads the runtime
+  origin entry, validated by the preset's optional `seo` configuration.
 
 - The page's own metadata lives in `seo.ts`, next to `index.tsx`. Export the
   `seo` object with `satisfies SeoRouteInfo` and import it into

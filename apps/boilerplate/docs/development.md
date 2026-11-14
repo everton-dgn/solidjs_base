@@ -45,13 +45,15 @@ installation does not change Git hooks; hook installation is explicit.
 
 `env.ts` imports `serverEnv` from `@evertondgn/solid-runtime/env` and spreads
 its optional `HOST`, `PORT` and `BASE_URL_TEST` validators into `server`. The
-copy keeps the required `VITE_SITE_URL` client validator and declares Valibot
-because its own code imports it. The runtime package supplies the fragment as a
+copy enables the preset's `seo` option, which validates the required
+`VITE_SITE_URL` origin separately. It still declares Valibot because other
+application code imports it. The runtime package supplies the fragment as a
 production dependency; the tooling stays in `devDependencies`, including in
-Knip's strict pass. The dependency versions and validation rules are unchanged.
-The generated `solid-env.d.ts` types cover the virtual modules, not
-`import.meta.env`; keep `src/@types/env.d.ts` for `VITE_SITE_URL` and the
-application's `PUBLICATION_BUILD_ID` declaration. See the
+Knip's strict pass. The server fragment keeps its existing validation rules. The
+generated `solid-env.d.ts` types cover the virtual modules, not
+`import.meta.env`; keep `src/@types/env.d.ts` for the application's
+`PUBLICATION_BUILD_ID` declaration. `SITE.url` imports the runtime SEO origin.
+See the
 [environment guide](../../../docs/tooling/app-config.md#optional-environment-validation).
 
 To install and start the project, follow [running it](../README.md#running-it).

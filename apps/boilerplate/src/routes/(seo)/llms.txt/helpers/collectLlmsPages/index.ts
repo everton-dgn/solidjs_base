@@ -1,5 +1,7 @@
-import type { SeoMetadata } from '@/@types/seo.ts'
-import { resolveRouteSeo } from '@/helpers/resolveRouteSeo/index.ts'
+import { resolveRouteSeo } from '@evertondgn/solid-runtime/seo/resolve-route-seo'
+import type { SeoMetadata } from '@evertondgn/solid-runtime/seo/types'
+
+import { SITE } from '@/constants/site/index.ts'
 import { walkStaticRoutes } from '@/helpers/walkStaticRoutes/index.ts'
 import type { StaticRoute } from '@/helpers/walkStaticRoutes/types.ts'
 
@@ -18,11 +20,17 @@ export function collectLlmsPages(routes: readonly StaticRoute[]): LlmsPage[] {
   const pages = new Map<string, StaticPage>()
   walkStaticRoutes<RouteState>({
     routes,
-    initialState: { seo: resolveRouteSeo([]), llms: resolveRouteLlms({}) },
+    initialState: {
+      seo: resolveRouteSeo({ metadata: [], site: SITE }),
+      llms: resolveRouteLlms({})
+    },
     visit: ({ route, path, parentState }) => {
       const info = route.$$route?.require().route?.info
       const state = {
-        seo: resolveRouteSeo([parentState.seo, info?.seo]),
+        seo: resolveRouteSeo({
+          metadata: [parentState.seo, info?.seo],
+          site: SITE
+        }),
         llms: resolveRouteLlms({ parent: parentState.llms, info: info?.llms })
       }
       if (route.page) pages.set(path, { path, ...state })

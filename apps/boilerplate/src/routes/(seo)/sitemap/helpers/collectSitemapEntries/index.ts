@@ -1,4 +1,5 @@
-import type { SeoRouteInfo } from '@/@types/seo.ts'
+import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
+
 import type { SitemapEntry, SitemapRouteInfo } from '@/@types/sitemap.ts'
 import { walkStaticRoutes } from '@/helpers/walkStaticRoutes/index.ts'
 import type { StaticRoute } from '@/helpers/walkStaticRoutes/types.ts'

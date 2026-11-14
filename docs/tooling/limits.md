@@ -20,6 +20,13 @@ An application with translations also installs `@inlang/paraglide-js`, an
 optional peer dependency pinned the same way. The lint preset then registers its
 plugin.
 
+The application's Inlang settings still load `@inlang/plugin-message-format`
+from `./node_modules/@inlang/plugin-message-format/dist/index.js`, so it remains
+an application dependency. Catalog validation resolves that same installed
+package from the application root, including with Bun's isolated linker.
+`@inlang/sdk` and `valibot` ship as tooling dependencies. Applications only
+declare them when their own source imports them.
+
 `eslint-plugin-solid`, `stylelint` and `stylelint-use-nesting` come with the
 package, so the application does not declare them.
 
@@ -78,11 +85,19 @@ vp add -D @inlang/paraglide-js@<version>
   fixture routes in `src/tests/fixtures/` and the theme in `src/theme/`.
 - The Knip config ignores every unlisted dependency in its own file, not only
   this package.
-- `./vite` expects the same layout: its tasks run scripts in `tooling/`, and the
-  Markdown rules need the locale prefix of the Paraglide `urlPatterns` in every
-  URL. Nitro always uses the `vercel` preset. The plugin packages are pinned, so
-  a new version of Solid, Nitro, the router or the icons plugin needs a package
-  version tested with it.
+- The i18n generator reads `src/**/i18n/<locale>.json`, excluding `src/tests/`
+  and `__tests__/`. Every catalog folder must have all configured locales, with
+  identical global IDs and compatible parameters. IDs use an owner prefix such
+  as `home_title`; duplicate IDs, missing translations and invalid messages fail
+  with the source file or directory and key. The sum of catalog sizes is limited
+  to 8 MiB by `CATALOGS_MAX_BYTES` in the package. Raising it requires measuring
+  build memory: each preparation reads every catalog and Paraglide loads all
+  locales. No incremental or per-request generation is provided.
+- `./vite` expects the same layout: its CSS and Knip tasks run scripts in
+  `tooling/`, and the Markdown rules need the locale prefix of the Paraglide
+  `urlPatterns` in every URL. Nitro always uses the `vercel` preset. The plugin
+  packages are pinned, so a new version of Solid, Nitro, the router or the icons
+  plugin needs a package version tested with it.
 
 ## Versions
 

@@ -89,15 +89,15 @@ explains why the copy exists.
 
 Run its commands from `apps/boilerplate`:
 
-| Command                 | What it does                                                             |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `vp run check:ci`       | Format check, lint with type checking, and the CSS lint                  |
-| `vp run typecheck:node` | Type check `vite.config.ts` and `tooling/`                               |
-| `vp run dead-code`      | Find unused files, exports and dependencies with Knip                    |
-| `vp run test:ci`        | Vitest with coverage: node, dom and browser projects                     |
-| `vp run test:tooling`   | Tests of the application tooling: i18n, Markdown, CSS Module class names |
-| `vp run build`          | Build the application                                                    |
-| `vp run test:e2e`       | Playwright end-to-end tests                                              |
+| Command                 | What it does                                                                       |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| `vp run check:ci`       | Format check, lint with type checking, and the CSS lint                            |
+| `vp run typecheck:node` | Type check `vite.config.ts` and `tooling/`                                         |
+| `vp run dead-code`      | Find unused files, exports and dependencies with Knip                              |
+| `vp run test:ci`        | Vitest with coverage: node, dom and browser projects                               |
+| `vp run test:tooling`   | Tests of the application tooling: Markdown, publication and CSS Module class names |
+| `vp run build`          | Build the application                                                              |
+| `vp run test:e2e`       | Playwright end-to-end tests                                                        |
 
 Every command loads the application's `vite.config.ts`, which imports the
 compiled presets from `dist/` and the security header constants from
@@ -114,8 +114,8 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
 - Left out: the rules that moved to the package, the release automation
   (`tooling/release/`), the CI reuse proof (`tooling/ciReuse/`), `.github/`, Git
   hooks, commitlint and the project changelog.
-- `vite.config.ts`, `tsconfig.json`, `tooling/css/check.ts` and
-  `tooling/testing/lintFixture/` import from the package.
+- `vite.config.ts`, `tsconfig.json` and `tooling/css/check.ts` import from the
+  package. The lint fixture helper lives in the package with its consumers.
 - The Vitest projects, the Playwright config (`playwright.config.ts`, in place
   of `tooling/playwright.ts`), the browser test setup, the test stand-ins of
   `tooling/testing/` and the server log teardown come from the package, with
@@ -124,21 +124,28 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
 - `vite.config.ts` calls `defineSolidApp` from `./vite`: the plugins, the
   headers of the static files, the build, CSS, server and preview blocks and the
   `vp run` tasks come from the package, with `publication: true` for the headers
-  of the published files. The i18n plugin and the publication artifacts still
-  come from `tooling/`, through the `extend` option. The `workspace` option
-  points `bun.lock`, `bunfig.toml` and the package build to the monorepo root; a
-  copy outside the workspace leaves it out.
+  of the published files. Publication artifacts still come from `tooling/`,
+  through `extend`. The `workspace` option points `bun.lock`, `bunfig.toml` and
+  the package build to the monorepo root; a copy outside the workspace leaves it
+  out.
 - `tooling/knip.ts` and `tooling/css/check.ts` call `defineKnipConfig` and
   `checkCss` from the package and pass only what is the application's own: the
   public API entries, the fixture middleware and the ignores below. The
   Stylelint config, the CSS policy tests and the `stylelint` and
   `stylelint-use-nesting` dependencies moved to the package, and the CSS lint
   messages are in English.
-- `tooling/knip.ts` lists `tooling/i18n/generate.ts` and `tooling/css/check.ts`
-  as entries. Knip reads task commands only from a `run.tasks` block written in
-  `vite.config.ts`, and the tasks now come from the package.
+- `tooling/i18n/` and its 36 tests moved to `packages/solid-tooling/src/i18n/`.
+  The preset enables the packaged plugin from `project.inlang/settings.json` and
+  runs its compiled generator. Catalogs and compiler settings remain in the
+  copy; `@inlang/sdk` leaves its manifest, while `valibot` remains used by
+  `src/`.
+- `tooling/knip.ts` lists `tooling/css/check.ts` as an entry. Knip reads task
+  commands only from a `run.tasks` block written in `vite.config.ts`, and the
+  tasks now come from the package.
 - `tooling/knip.ts` lists `server-only` in `ignoreDependencies`: the original
   resolved it through a test alias to `tooling/testing/server-only.ts`.
+- It also ignores `@inlang/plugin-message-format`, which Inlang loads by the
+  node_modules path in settings.json, outside Knip's import graph.
 - `tooling/__tests__/patched-dependencies.test.ts` reads the root `package.json`
   and `bun.lock`.
 - The middleware steps `securityHeaders` (with its constants),
@@ -299,8 +306,11 @@ before Vitest. The copied application's request localization and redirect tests
 now live in that package. Run both development and production E2E suites in the
 copy when changing this request boundary.
 
-The ssr-i18n fixture also has real fr/de/it/ja catalogs and the official message
-format and Vite plugins. Its smoke checks the root redirect, the German page,
-Content-Language and cookie persistence. The request negative probes are
-`request-target` and `request-step` on ssr-i18n, and `request-plain` on
-ssr-plain, selected with SCENARIO_MUTATION.
+The ssr-i18n fixture has real fr/de/it/ja catalogs in `src/i18n/` and uses the
+preset's packaged generator and Vite plugin without an application script or
+plugin. The shared fixture App keeps its original message access; the matrix
+changes that access to `scenario_greeting` only in its temporary copy, matching
+the catalog ID convention without editing the shared App. Its smoke checks the
+root redirect, the German page, Content-Language and cookie persistence. The
+request negative probes are `request-target` and `request-step` on ssr-i18n, and
+`request-plain` on ssr-plain, selected with SCENARIO_MUTATION.

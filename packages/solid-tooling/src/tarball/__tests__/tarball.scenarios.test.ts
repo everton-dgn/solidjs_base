@@ -30,6 +30,7 @@ const PREVIEW_TIMEOUT = 15_000
 const REQUEST_TIMEOUT = 1000
 const POLL_INTERVAL = 100
 const HTTP_OK = 200
+const HTTP_TEMPORARY_REDIRECT = 307
 const configSchema = v.object({
   plugins: v.array(v.string()),
   tasks: v.array(v.string())
@@ -152,6 +153,31 @@ async function smoke({ app, scenario }: Target): Promise<void> {
     assert.match(html, /<main[^>]*>Scenario application<\/main>/u)
     // The application writes the base locale of the generated runtime.
     if (scenario === 'ssr-i18n') assert.match(html, /<html[^>]* lang="fr"/u)
+    if (scenario === 'ssr-i18n') {
+      const origin = `http://127.0.0.1:${port}`
+      const redirect = await fetch(origin, {
+        redirect: 'manual',
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT)
+      })
+      assert.equal(
+        redirect.status,
+        HTTP_TEMPORARY_REDIRECT,
+        'Locale root redirect'
+      )
+      assert.equal(
+        redirect.headers.get('location'),
+        `${origin}/${MUTATION === 'request-target' ? 'ja' : 'fr'}`,
+        'Locale redirect destination'
+      )
+      assert.match(redirect.headers.get('set-cookie') ?? '', /locale=fr/u)
+      const german = await fetch(`${origin}/de`, {
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT)
+      })
+      assert.equal(german.status, HTTP_OK)
+      assert.equal(german.headers.get('content-language'), 'de')
+      assert.match(await german.text(), /Hallo Welt/u)
+      assert.match(german.headers.get('set-cookie') ?? '', /locale=de/u)
+    }
     const localizedPrefix = MUTATION === 'locale-prefix' ? '/de' : '/fr'
     const prefix = scenario === 'ssr-i18n' ? localizedPrefix : ''
     assert.ok(
@@ -268,6 +294,11 @@ function assertBuild({ app, scenario }: Target): void {
       'Disabled i18n registered a generation task'
     )
     for (const file of modules) {
+      assert.doesNotMatch(
+        readFileSync(path.join(app, file), 'utf8'),
+        /solid-app:locale-request/u,
+        'Locale requests require project.inlang/settings.json'
+      )
       assert.doesNotMatch(
         readFileSync(path.join(app, file), 'utf8'),
         /paraglide|inlang/iu
@@ -502,6 +533,25 @@ for (const scenario of SCENARIOS) {
           args: ['test', 'run', '--project', 'node', '--project', 'dom']
         })
         instrument(app)
+        if (MUTATION === 'request-step') {
+          writeFileSync(
+            path.join(app, 'src/middleware.ts'),
+            `import { createSecurityHeaders } from '@evertondgn/solid-runtime/middleware/security-headers'
+const { securityHeaders } = createSecurityHeaders()
+export default (event, next) => securityHeaders(event.request, next)
+`
+          )
+        }
+        if (MUTATION === 'request-plain') {
+          writeFileSync(
+            path.join(app, 'src/middleware.ts'),
+            `import { createLocalizeRequest } from '@evertondgn/solid-runtime/middleware/localize-request'
+const localize = createLocalizeRequest({ applySecurityHeaders: response => response })
+await localize({ request: new Request('https://example.com/'), next: async () => new Response() })
+export default (event, next) => next()
+`
+          )
+        }
         if (MUTATION === 'nitro') {
           const file = path.join(app, 'vite.config.ts')
           writeFileSync(

@@ -30,7 +30,8 @@
     "happy-dom": "21.0.4",
     "playwright": "1.65.0",
     "@testing-library/jest-dom": "7.0.1",
-    "@inlang/paraglide-js": "3.2.2"
+    "@inlang/paraglide-js": "3.2.2",
+    "@inlang/plugin-message-format": "4.6.0"
   },
   "overrides": {
     "@solidjs/compiler": "2.0.0-rc.21",

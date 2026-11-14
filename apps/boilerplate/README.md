@@ -22,10 +22,11 @@ package. The inherited tsconfig reads package-owned type references, so no
 application declaration of `@types/node` or TypeScript is needed.
 
 `env.ts` spreads the runtime package's `serverEnv` validators for `HOST`, `PORT`
-and `BASE_URL_TEST`. This copy keeps its own `VITE_SITE_URL` schema and its
-direct Valibot dependency. Environment behavior and `ImportMetaEnv` declarations
-stay the same. The runtime is in `dependencies`; the tooling remains in
-`devDependencies`, including with Knip's strict production check. See
+and `BASE_URL_TEST`. The SEO preset validates this copy's `VITE_SITE_URL`
+origin; it keeps its direct Valibot dependency. `ImportMetaEnv` now contains
+only the application-owned `PUBLICATION_BUILD_ID`. The runtime is in
+`dependencies`; the tooling remains in `devDependencies`, including with Knip's
+strict production check. See
 [environment and preview](docs/development.md#environment-and-preview).
 
 ## Running it

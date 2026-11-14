@@ -10,6 +10,7 @@ export default defineKnipConfig({
   // A regression test resolves srvx/node through nitro, which installs it.
   // The published middleware types require the Solid plugin; --strict skips
   // type-only imports, so the ignore applies only to that production run.
+  // schema-dts is likewise required by the published SEO type contract.
   // solid-js and the router remain supplied by the application; extraction preserves
   // dependency ownership. Installed scenarios verify both Bun linkers.
   // server-only is a Solid plugin boundary module, not an installed package.
@@ -17,6 +18,7 @@ export default defineKnipConfig({
   ignoreDependencies: [
     'srvx',
     '@solidjs/vite-plugin!',
+    'schema-dts!',
     'solid-js!',
     '@solidjs/router!',
     'server-only'

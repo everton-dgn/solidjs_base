@@ -127,10 +127,11 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
 ### What changed from the original
 
 - `env.ts` spreads `serverEnv` from `@evertondgn/solid-runtime/env` for the
-  optional preset variables. The copy retains its own `VITE_SITE_URL` schema,
-  Valibot dependency and `ImportMetaEnv` declaration, with unchanged behavior.
-  The runtime supplies the schema and its Valibot dependency; the tooling stays
-  in `devDependencies`. No dependency version changes.
+  optional preset variables. The SEO option validates `VITE_SITE_URL`;
+  `SITE.url` reads the runtime origin entry. The copy retains Valibot for its
+  remaining imports and `ImportMetaEnv` for `PUBLICATION_BUILD_ID`. The runtime
+  supplies the schema and its Valibot dependency; the tooling stays in
+  `devDependencies`. No dependency version changes.
 - Left out: the rules that moved to the package, the release automation
   (`tooling/release/`), the CI reuse proof (`tooling/ciReuse/`), `.github/`, Git
   hooks, commitlint and the project changelog.
@@ -329,7 +330,9 @@ client-only fixture uses `createLocalizedNavigate` and `localeTag` while its
 bundle audit keeps rejecting translation modules. It tests unprefixed DOM
 navigation, query, hash, state, history and the single-language `setLocale`
 no-op. Its additional `isolated-language` case sets `language: 'zh-Hant-TW'`.
-The matrix has eight application cases plus the version-alignment test.
+The matrix has nine application cases plus the version-alignment test. The
+alignment check also resolves and compares every runtime production dependency
+against the workspace catalog and application/tooling pins.
 
 The locale negative probes use `SCENARIO_MUTATION=locale-provider` or
 `locale-node` with `ssr-plain / isolated$`, and `locale-prefix` with
@@ -433,6 +436,28 @@ Mutations and fixture instrumentation live in
 `packages/solid-tooling/src/tarball/scenario-mutations.ts` and only modify
 temporary installations. A runtime chain test requires security before the
 terminating API handler. See [ADR 0029](ADRs/0029-runtime-middleware-chain.md).
+
+## Runtime SEO
+
+The copy's route metadata resolver, head publisher, JSON-LD serializer and
+robots factory live in the runtime with 41 migrated executable tests and the
+exclusive-mode type test. Application adapters inject editorial values and the
+Markdown alternate callback; sitemap, llms and publication remain application
+code. Runtime tests also cover optional fields and hostile strings in both site
+and custom structured data. Keep the copy's StructuredData security E2E gate.
+
+SSR plain now renders metadata and JSON-LD on `/` and `/catalog/42`, and serves
+robots GET/HEAD without a sitemap. Its `isolated-meta-only` profile uses an
+explicit site URL, no origin environment variable and no robots route. Both
+invalid scheme and path origins must fail enabled SEO with a named diagnostic;
+the meta-only profile builds successfully with those same unused values.
+
+The build audit rejects SEO modules in client-only and ssr-i18n, where this
+feature is not used, and robots configuration/handlers in every client graph.
+Run `SCENARIO_MUTATION=seo-import` with `client-only / isolated$` to plant a
+used import in the owned temporary application; the audit must fail. The smoke
+and mutations are separate modules under `src/tarball`, keeping the matrix
+runner focused on orchestration. See [ADR 0031](ADRs/0031-runtime-seo-core.md).
 
 ## Packaged environment schemas
 

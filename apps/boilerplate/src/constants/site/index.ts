@@ -1,4 +1,5 @@
 import { localeTag } from '@evertondgn/solid-runtime/i18n/locale-tag'
+import { origin } from '@evertondgn/solid-runtime/seo/origin'
 import { m } from '@paraglide/messages.js'
 import { getLocale } from '@paraglide/runtime.js'
 import type { ContactPoint, PostalAddress } from 'schema-dts'
@@ -59,7 +60,7 @@ export const SITE = {
   get locale(): string {
     return localeTag(getLocale(), LOCALE_TAG_OVERRIDES)
   },
-  url: import.meta.env.VITE_SITE_URL,
+  url: origin,
   repositoryUrl: REPOSITORY_URL,
   socialLinks: [REPOSITORY_URL, ...AUTHOR_PROFILES],
   organization: ORGANIZATION,

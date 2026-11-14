@@ -32,7 +32,7 @@
         "@inlang/plugin-message-format": "4.6.0",
         "@playwright/test": "1.65.0",
         "nitro": "3.0.261103-rc",
-        "schema-dts": "2.1.0",
+        "schema-dts": "catalog:",
         "vite": "catalog:",
         "vite-plus": "catalog:",
       },
@@ -43,6 +43,7 @@
       "dependencies": {
         "@solidjs/vite-plugin": "3.0.0-next.57",
         "filesystem-routing": "0.5.0",
+        "schema-dts": "catalog:",
         "valibot": "catalog:",
       },
       "devDependencies": {
@@ -123,6 +124,7 @@
     "@vitest/browser-playwright": "5.1.0",
     "@vitest/coverage-v8": "5.1.0",
     "@vitest/ui": "5.1.0",
+    "schema-dts": "2.1.0",
     "valibot": "1.5.0",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
     "vite-plus": "1.6.0",

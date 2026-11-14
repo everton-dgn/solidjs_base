@@ -1,3 +1,21 @@
+declare module 'virtual:solid-app/seo-origin' {
+  export const origin: string
+}
+
+declare module 'virtual:solid-app/seo-robots' {
+  type RobotsGroup = {
+    userAgents: readonly string[]
+    allow?: readonly string[]
+    disallow?: readonly string[]
+  }
+  type RobotsConfig = {
+    groups: readonly RobotsGroup[]
+    sitemaps: readonly string[]
+    cacheControl?: string
+  }
+  export const robots: RobotsConfig
+}
+
 declare module 'virtual:solid-app/locale' {
   type UrlInput = string | { readonly href: string }
   type LocalizeOptions = { locale?: string }

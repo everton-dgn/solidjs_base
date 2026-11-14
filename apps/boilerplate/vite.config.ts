@@ -1,5 +1,6 @@
 import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
 
+import { ROBOTS } from './src/constants/site/robots.ts'
 import { SECURITY_HEADERS } from './src/middleware/securityHeaders/constants.ts'
 
 export default defineSolidApp({
@@ -15,6 +16,7 @@ export default defineSolidApp({
   // Sitemap, robots.txt, llms.txt e as páginas em Markdown recebem os cabeçalhos
   // dos estáticos.
   publication: true,
+  seo: { robots: ROBOTS },
   // Sem fallthrough, um arquivo ausente em /images/ recebe o 404 no-store do
   // Nitro em vez da página SSR com o cache imutável.
   publicAssets: [

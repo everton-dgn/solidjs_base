@@ -46,11 +46,13 @@ descriptions that guide the reading of the home page and of the page about the
 project. Rewrite the notes and the use cases in each derived project.
 `Document.tsx` announces this file on every page with
 `<link rel="describedby" href="/llms.txt">`, the discovery that the llms.txt
-spec recommends; agents are not redirected. robots publishes the groups in
-`robots.txt/constants.ts`: `*` with `Allow: /` and a `Disallow` of the server
-function endpoint (`/_server` by default, read from the plugin's
-`virtual:solid-server-function-handler`), AI training robots with `Disallow: /`,
-and the sitemap link. Search engines and agents that read pages at the user's
+spec recommends; agents are not redirected. robots uses a one-line re-export of
+the runtime route. Its factory publishes `*` with `Allow: /` and a `Disallow` of
+the server function endpoint (`/_server` by default, read from the plugin's
+`virtual:solid-server-function-handler`), followed by the AI training groups and
+sitemap path configured in `src/constants/site/robots.ts`. The preset receives
+these serializable values in `seo.robots`; omitting `sitemapPaths` omits all
+`Sitemap:` lines. Search engines and agents that read pages at the user's
 request stay allowed, because they are the audience of llms.txt. `Disallow` is a
 request that badly behaved robots ignore, and it does not remove a URL from the
 index; for that, use `noindex` in `route.info.seo`. In production the process

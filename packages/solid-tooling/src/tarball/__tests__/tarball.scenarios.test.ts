@@ -33,6 +33,12 @@ import {
   prepareEnvScenario
 } from '../scenario-mutations.ts'
 import {
+  checkSeoOriginFailures,
+  prepareSeoScenario,
+  seoEnvironment
+} from '../seo-scenarios.ts'
+import { assertSeoBuild, smokeSeo } from '../seo-smoke.ts'
+import {
   assertServerErrorLog,
   importServerFromClient,
   mutateServerErrors,
@@ -103,6 +109,7 @@ const CHILD_ENV: NodeJS.ProcessEnv = {
   VITE_SCENARIO_LABEL: 'scenario-client-value'
 }
 delete CHILD_ENV.NODE_ENV
+delete CHILD_ENV.VITE_SITE_URL
 
 type Command = {
   cwd: string
@@ -110,6 +117,7 @@ type Command = {
   deadline: number
   file?: string
   expectedError?: RegExp
+  variables?: Record<string, string>
 }
 type Target = { app: string; scenario: string }
 type PreviewTarget = Target & { hasInvalidPort?: boolean }
@@ -141,7 +149,8 @@ async function run({
   args,
   deadline,
   file: executable,
-  expectedError
+  expectedError,
+  variables
 }: Command): Promise<string> {
   let file = executable ?? path.join(cwd, 'node_modules/.bin/vp')
   if (!executable && args[0] === 'install') file = 'bun'
@@ -150,7 +159,7 @@ async function run({
   assert.ok(Date.now() < deadline, 'Scenario execution deadline exceeded')
   const child = spawn(file, args, {
     cwd,
-    env: CHILD_ENV,
+    env: { ...CHILD_ENV, ...seoEnvironment(cwd), ...variables },
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe']
   })
@@ -240,6 +249,7 @@ async function smoke({
       cwd: app,
       env: {
         ...CHILD_ENV,
+        ...seoEnvironment(app),
         SCENARIO_LABEL: 'scenario-preview-value',
         ...(hasInvalidPort ? { PORT: 'abc' } : {})
       },
@@ -357,6 +367,7 @@ async function smoke({
     )
     await smokeServerErrors({ origin: `http://127.0.0.1:${port}`, scenario })
     await smokeMiddleware({ origin: `http://127.0.0.1:${port}`, scenario })
+    await smokeSeo({ app, scenario, origin: `http://127.0.0.1:${port}`, html })
   } finally {
     stopChild(child)
     await closed
@@ -495,6 +506,9 @@ test('the applications pin the versions of the workspace', () => {
   const tooling = readPinned(
     path.join(ROOT, 'packages/solid-tooling/package.json')
   )
+  const runtime = readPinned(
+    path.join(ROOT, 'packages/solid-runtime/package.json')
+  )
   for (const name of PACKAGED_TOOLS) {
     assert.ok(tooling.dependencies[name], `${name} must ship with the tooling`)
   }
@@ -502,6 +516,15 @@ test('the applications pin the versions of the workspace', () => {
     versions: { ...catalog, ...copy.dependencies, ...copy.devDependencies },
     catalog
   })
+  for (const [name, version] of Object.entries(
+    resolveCatalog({ versions: runtime.dependencies, catalog })
+  )) {
+    assert.equal(
+      version,
+      expected[name] ?? tooling.dependencies[name],
+      `runtime dependency: ${name}`
+    )
+  }
   const overrides = resolveCatalog({ versions: workspace.overrides, catalog })
   for (const scenario of SCENARIOS) {
     const app = readPinned(
@@ -534,11 +557,13 @@ async function buildScenario({
   instrumentMiddleware({ app, scenario, mutation: MUTATION })
   await run({ deadline, cwd: app, args: ['build'] })
   assertBuild({ app, scenario })
+  assertSeoBuild({ app, scenario })
   if (scenario === 'client-only') return
   await smoke({ app, scenario })
   if (scenario === 'ssr-plain') {
     await smoke({ app, scenario, hasInvalidPort: true })
     await checkEnvFailures({ app, deadline, run })
+    await checkSeoOriginFailures({ app, deadline, run })
   }
   importServerFromClient(app)
   await run({
@@ -552,7 +577,8 @@ async function buildScenario({
 for (const scenario of SCENARIOS) {
   for (const linker of [
     ...LINKERS,
-    ...(scenario === 'ssr-i18n' ? [] : ['isolated-language'])
+    ...(scenario === 'ssr-i18n' ? [] : ['isolated-language']),
+    ...(scenario === 'ssr-plain' ? ['isolated-meta-only'] : [])
   ]) {
     test(`${scenario} / ${linker}`, { timeout: 180_000 }, async () => {
       const directory = mkdtempSync(path.join(tmpdir(), 'solid-app-scenario-'))
@@ -581,6 +607,12 @@ for (const scenario of SCENARIOS) {
         const app = path.join(directory, 'app')
         cpSync(path.join(ROOT, 'fixtures/apps', scenario), app, {
           recursive: true
+        })
+        prepareSeoScenario({
+          app,
+          scenario,
+          profile: linker,
+          mutation: MUTATION
         })
         const manifestPath = path.join(app, 'package.json')
         const manifest = v.parse(
@@ -656,7 +688,7 @@ for (const scenario of SCENARIOS) {
           args: [
             'install',
             '--linker',
-            linker === 'isolated-language' ? 'isolated' : linker
+            linker.startsWith('isolated-') ? 'isolated' : linker
           ]
         })
         mutateLocaleStandIn({ app, mutation: MUTATION })

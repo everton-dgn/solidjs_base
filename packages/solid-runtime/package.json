@@ -139,6 +139,24 @@
     },
     "./i18n/prepare-client-locale": {
       "solid": "./src/i18n/prepareClientLocale/index.ts"
+    },
+    "./seo/create-seo": {
+      "solid": "./src/seo/createSeo/index.ts"
+    },
+    "./seo/resolve-route-seo": {
+      "solid": "./src/seo/resolveRouteSeo/index.ts"
+    },
+    "./seo/create-robots": {
+      "solid": "./src/seo/createRobots/index.ts"
+    },
+    "./seo/robots-route": {
+      "solid": "./src/seo/robotsRoute/index.ts"
+    },
+    "./seo/types": {
+      "solid": "./src/seo/types.ts"
+    },
+    "./seo/origin": {
+      "solid": "./src/seo/origin/index.ts"
     }
   },
   "scripts": {
@@ -171,6 +189,7 @@
   "dependencies": {
     "valibot": "catalog:",
     "@solidjs/vite-plugin": "3.0.0-next.57",
-    "filesystem-routing": "0.5.0"
+    "filesystem-routing": "0.5.0",
+    "schema-dts": "catalog:"
   }
 }

@@ -1,3 +1,7 @@
+import {
+  PUBLICATION_PHASE_ENV,
+  PUBLICATION_PRERENDER_PHASE
+} from '@evertondgn/solid-runtime/server/publication-protocol'
 import { m } from '@paraglide/messages.js'
 import { baseLocale, getLocale } from '@paraglide/runtime.js'
 import { paraglideMiddleware } from '@paraglide/server.js'
@@ -5,10 +9,6 @@ import type { RouteInfo } from '@solidjs/router'
 
 import { SITE_CACHE_CONTROL } from '@/constants/cache.ts'
 import { HTTP_OK, HTTP_SERVICE_UNAVAILABLE } from '@/constants/http.ts'
-import {
-  PUBLICATION_PHASE_ENV,
-  PUBLICATION_PRERENDER_PHASE
-} from '@/constants/publication.ts'
 import { SITE } from '@/constants/site/index.ts'
 import { Router } from '@/router.ts'
 

@@ -1,8 +1,7 @@
 import { localizeHref } from '@evertondgn/solid-runtime/i18n/urls'
+import type { StaticRoute } from '@evertondgn/solid-runtime/routing/types'
+import { walkStaticRoutes } from '@evertondgn/solid-runtime/routing/walk-static-routes'
 import { locales } from '@paraglide/runtime.js'
-
-import { walkStaticRoutes } from '@/helpers/walkStaticRoutes/index.ts'
-import type { StaticRoute } from '@/helpers/walkStaticRoutes/types.ts'
 
 // Rotas com parâmetro ficam fora: o build não conhece seus valores e elas
 // continuam convertidas na requisição.

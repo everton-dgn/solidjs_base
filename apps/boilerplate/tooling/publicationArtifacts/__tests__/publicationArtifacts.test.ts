@@ -12,16 +12,16 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { after, it } from 'node:test'
 
-import type { PrerenderRoute } from 'nitro/types'
-import * as v from 'valibot'
-
 import {
   PUBLICATION_ARTIFACT_DIR,
   SITEMAP_IDENTITIES_FILE,
   SITEMAP_IDENTITIES_MAX_BYTES,
   SITEMAP_MANIFEST_FILE,
   SITEMAP_MANIFEST_MAX_BYTES
-} from '../../../src/constants/publication.ts'
+} from '@evertondgn/solid-runtime/server/publication-protocol'
+import type { PrerenderRoute } from 'nitro/types'
+import * as v from 'valibot'
+
 import { SITEMAP_INVENTORY_PATH } from '../constants.ts'
 import { createPublicationBuild } from '../helpers/createPublicationBuild/index.ts'
 import { writeServerArtifacts } from '../helpers/writeServerArtifacts/index.ts'

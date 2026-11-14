@@ -53,6 +53,7 @@ failure and logs, under the `sitemap` source, the fixed line
 frames described in [Failure log](logging.md#failure-log), without the error
 message.
 
+Sitemap contracts come from `@evertondgn/solid-runtime/seo/sitemap-types`.
 Partitioned sources live in the `src/infra/server/sitemapSources/` registry,
 outside `route.info` and the client bundle. Their callbacks also use the
 protected adapters for databases and SDKs and pass the signal to the query. The

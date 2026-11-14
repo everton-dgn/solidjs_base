@@ -1,7 +1,7 @@
+import { createPublicationController } from '@evertondgn/solid-runtime/server/publication'
+import type { PublicationLimits } from '@evertondgn/solid-runtime/server/publication-types'
 import { createRequestEvent, type RequestEvent } from '@solidjs/web'
 
-import { createPublicationController } from '@/infra/server/publication/index.ts'
-import type { PublicationLimits } from '@/infra/server/publication/types.ts'
 import { Router } from '@/router.ts'
 
 import { markdownContent as productionMarkdownContent } from '../index.ts'

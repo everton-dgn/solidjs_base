@@ -2,12 +2,12 @@ import assert from 'node:assert/strict'
 import { env } from 'node:process'
 import { it } from 'node:test'
 
-import type { PrerenderRoute } from 'nitro/types'
-
 import {
   PUBLICATION_PHASE_ENV,
   PUBLICATION_PRERENDER_PHASE
-} from '../../../src/constants/publication.ts'
+} from '@evertondgn/solid-runtime/server/publication-protocol'
+import type { PrerenderRoute } from 'nitro/types'
+
 import { MARKDOWN_PRERENDER_PATH } from '../../../src/middleware/markdownContent/constants.ts'
 import { SITEMAP_INVENTORY_PATH } from '../../publicationArtifacts/constants.ts'
 import { LLMS_MAX_BYTES } from '../constants.ts'

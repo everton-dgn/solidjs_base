@@ -1,9 +1,9 @@
+import type { StaticRoute } from '@evertondgn/solid-runtime/routing/types'
+import { walkStaticRoutes } from '@evertondgn/solid-runtime/routing/walk-static-routes'
 import { resolveRouteSeo } from '@evertondgn/solid-runtime/seo/resolve-route-seo'
 import type { SeoMetadata } from '@evertondgn/solid-runtime/seo/types'
 
 import { SITE } from '@/constants/site/index.ts'
-import { walkStaticRoutes } from '@/helpers/walkStaticRoutes/index.ts'
-import type { StaticRoute } from '@/helpers/walkStaticRoutes/types.ts'
 
 import type { LlmsPage, LlmsSelection } from '../../types.ts'
 import { resolveRouteLlms } from '../resolveRouteLlms/index.ts'

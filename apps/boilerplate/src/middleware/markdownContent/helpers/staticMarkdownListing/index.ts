@@ -1,9 +1,9 @@
 import { isPagePath } from '@evertondgn/solid-runtime/middleware/request-classification'
+import { readPublicationPhase } from '@evertondgn/solid-runtime/server/publication-phase'
 import { baseLocale, extractLocaleFromUrl } from '@paraglide/runtime.js'
 import { pageRoutes } from 'virtual:file-routes'
 
 import { isMarkdownRoute, markdownPath } from '@/helpers/markdownRoute/index.ts'
-import { readPublicationPhase } from '@/helpers/readPublicationPhase/index.ts'
 import { resolveSiteUrl } from '@/helpers/resolveSiteUrl/index.ts'
 import { Router } from '@/router.ts'
 

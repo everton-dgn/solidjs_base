@@ -1,4 +1,4 @@
-import type { SitemapEntry } from '@/@types/sitemap.ts'
+import type { SitemapEntry } from '@evertondgn/solid-runtime/seo/sitemap-types'
 
 // Fonte do sitemap para `blog/[slug]`. Server function porque o módulo da
 // rota entra no bundle do cliente; uma fonte real leria o banco aqui. A barra

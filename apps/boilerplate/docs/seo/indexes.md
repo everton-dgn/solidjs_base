@@ -51,7 +51,8 @@ the runtime route. Its factory publishes `*` with `Allow: /` and a `Disallow` of
 the server function endpoint (`/_server` by default, read from the plugin's
 `virtual:solid-server-function-handler`), followed by the AI training groups and
 sitemap path configured in `src/constants/site/robots.ts`. The preset receives
-these serializable values in `seo.robots`; omitting `sitemapPaths` omits all
+these serializable values in `seo.robots`; the sitemap binding uses
+`seo.sitemap: true` for static headers. Omitting `sitemapPaths` omits all
 `Sitemap:` lines. Search engines and agents that read pages at the user's
 request stay allowed, because they are the audience of llms.txt. `Disallow` is a
 request that badly behaved robots ignore, and it does not remove a URL from the

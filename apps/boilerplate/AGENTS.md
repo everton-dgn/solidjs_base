@@ -267,7 +267,13 @@ release. Add a tool name to select part of the graph. For example, run
 - A route that starts needing local modules becomes a folder with `index.ts`:
   `robots.txt.ts` becomes `robots.txt/index.ts`, and what the route consumes
   lives inside that folder. `sitemap.xml/`, `llms.txt/` and `robots.txt/` follow
-  that format.
+  that format. Sitemap routes re-export handlers from `src/infra/server/sitemap/`;
+  the service belongs to `@evertondgn/solid-runtime/seo/sitemap-routes`.
+  Keep source registries and data access server-only in the application.
+  Sitemap and Markdown must share the instance in `src/infra/server/publication/`.
+  Inject named options; do not put application module paths in preset config.
+  Use `seo/sitemap-types` for source types and router augmentation; import types
+  without pulling the server factory into route metadata.
 - When a route or component has two or more local helper modules, group them in
   a `helpers/` folder inside the folder of the route or component. With a single
   local helper, keep it directly in the folder of the consumer. `constants.ts`

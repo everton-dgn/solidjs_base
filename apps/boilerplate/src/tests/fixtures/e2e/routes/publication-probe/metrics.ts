@@ -1,8 +1,9 @@
 import { monitorEventLoopDelay } from 'node:perf_hooks'
 import { memoryUsage, resourceUsage } from 'node:process'
 
+import type { PublicationMetrics } from '@evertondgn/solid-runtime/server/publication-types'
+
 import { getPublicationMetrics } from '@/infra/server/publication/index.ts'
-import type { PublicationMetrics } from '@/infra/server/publication/types.ts'
 
 type ProbeMetrics = {
   publication: PublicationMetrics

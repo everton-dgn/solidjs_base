@@ -37,9 +37,20 @@ const SEO_ENTRIES = await readdir(SEO_ROUTES, {
   recursive: true,
   encoding: 'utf8'
 })
-const LOCAL_MODULES = SEO_ENTRIES.flatMap(
-  entry => localModulePath(entry) ?? []
-).toSorted()
+// Keep the negative probes after extraction removes these modules from the tree.
+const EXTRACTED_MODULE_PATHS = [
+  '/sitemap/constants',
+  '/sitemap/helpers/sitemapService/constants',
+  '/sitemap/helpers/sitemapService/types',
+  '/sitemap/types',
+  '/robots.txt/buildRobotsText'
+]
+const LOCAL_MODULES = [
+  ...new Set([
+    ...SEO_ENTRIES.flatMap(entry => localModulePath(entry) ?? []),
+    ...EXTRACTED_MODULE_PATHS
+  ])
+].toSorted()
 
 test.describe('índices na árvore real de produção', () => {
   for (const method of ['GET', 'HEAD']) {

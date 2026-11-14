@@ -69,7 +69,8 @@ second `console.error` call, after the filtered line:
   `requestJson` and the global wrapper. Each replaces the failure with the
   public error before the runtime, and the hook receives only that error,
   without logging.
-- The sitemap, which answers 503 without going through the runtime.
+- The runtime sitemap service, which answers 503 through its publication
+  boundary.
 
 Inside a publication (Markdown, sitemap, indexes), `protectServerOperation` does
 not log the rejection that is the reason the publication signal was aborted,

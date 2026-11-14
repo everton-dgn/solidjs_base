@@ -1,6 +1,5 @@
 import { protectServerOperation } from '@evertondgn/solid-runtime/server/protect-server-operation'
-
-import { createPublicationController } from '@/infra/server/publication/index.ts'
+import { createPublicationController } from '@evertondgn/solid-runtime/server/publication'
 
 const CONCURRENT_OPERATIONS = 2
 

@@ -4,8 +4,9 @@
   [0025](0025-packaged-i18n-generator.md),
   [0026](0026-runtime-locale-navigation.md),
   [0027](0027-packaged-tool-dependencies.md),
-  [0028](0028-runtime-server-errors.md) and
-  [0029](0029-runtime-middleware-chain.md)
+  [0028](0028-runtime-server-errors.md),
+  [0029](0029-runtime-middleware-chain.md) and
+  [0030](0030-packaged-environment-schemas.md)
 - Date: 2026-11-13
 
 ## Context
@@ -145,3 +146,22 @@ private-marker rejection remains. Optional `middleware-body` and
 The matrix still has eight installation cases and one alignment test, with the
 same budgets and cleanup. Browser hydration and streamed CSS remain covered by
 the copy's E2E gates.
+
+## Packaged environment schemas
+
+SSR plain adds `env.ts` with the package fragment and application server/client
+keys, read by an `extra` step of the middleware factory, without adding Valibot
+to its dependencies. The other fixtures retain the no-schema contract. Both
+linkers check exact generated types and a runtime server value different from
+the build value. Plain Node loads the runtime env export without the `solid`
+condition. The bundle audit requires `solid-runtime/src/env/index.js` in a
+server graph, refuses it and Valibot in the client, and rejects every tooling
+module without exception. A clean build generates the declarations before lint
+and TypeScript; an instrumented build later checks the graph.
+
+Each SSR plain case requires a boot validation error naming `PORT` when preview
+receives `PORT=abc`. Nitro preview opens its listener before loading the server,
+so the test makes a request and requires HTTP 500 plus the boot diagnostic. A
+separate client import of `virtual:solid-env/server` must fail the build. The
+existing runtime server-only probe still runs after restoring that entry. See
+[ADR 0030](0030-packaged-environment-schemas.md).

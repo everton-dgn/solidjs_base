@@ -102,17 +102,22 @@ middleware steps; the application keeps the file that joins them and picks the
 steps, so translations and Markdown stay optional
 ([ADR 0018](ADRs/0018-runtime-package-middleware.md)).
 
-- Each module has its own entry point, with only the `solid` condition, pointing
-  to the `.ts` file. There is no barrel, so a module the application does not
-  import never enters its build.
+- Each TypeScript module has its own entry point, with only the `solid`
+  condition, pointing to the `.ts` file. There is no barrel, so a module the
+  application does not import never enters its build.
 - The security step is a factory, `createSecurityHeaders`, whose `headers` and
   `cspDirectives` options replace the default values. The application calls it
   once and every step that writes a response uses that instance
   ([ADR 0019](ADRs/0019-runtime-security-headers-options.md)).
-- The default header values are the exception to the `.ts` entries:
+- The default header values are one exception to the `.ts` entries:
   `constants.js` with `constants.d.ts`, under `types` and `default`, because the
   application module that spreads them is loaded by `vite.config.ts` through
   Node, which refuses TypeScript inside `node_modules`.
+- `./env` also uses plain JavaScript and a handwritten declaration, under
+  `types` and `default`. Its optional schemas load in Node, Vite's module runner
+  and the server bundle. Valibot belongs to the runtime dependencies; the
+  application keeps the tooling in `devDependencies`
+  ([ADR 0030](ADRs/0030-packaged-environment-schemas.md)).
 - `sideEffects` is an empty list. A module with an intended effect, such as a
   client entry, has to enter it; `false` would let the build drop that module
   without an error.

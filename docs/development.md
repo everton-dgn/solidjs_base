@@ -126,6 +126,11 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
 
 ### What changed from the original
 
+- `env.ts` spreads `serverEnv` from `@evertondgn/solid-runtime/env` for the
+  optional preset variables. The copy retains its own `VITE_SITE_URL` schema,
+  Valibot dependency and `ImportMetaEnv` declaration, with unchanged behavior.
+  The runtime supplies the schema and its Valibot dependency; the tooling stays
+  in `devDependencies`. No dependency version changes.
 - Left out: the rules that moved to the package, the release automation
   (`tooling/release/`), the CI reuse proof (`tooling/ciReuse/`), `.github/`, Git
   hooks, commitlint and the project changelog.
@@ -303,7 +308,9 @@ node --test --test-timeout=180000 --test-name-pattern='ssr-i18n / isolated' pack
 
 The build audit rejects packaged development tools in every emitted module
 inventory, while allowing the Nitro and routing entries used by the server at
-runtime. Select `client-only / isolated$` with
+runtime. There is no exception for tooling modules. SSR plain requires
+`solid-runtime/src/env/index.js` in a server graph; the client audit rejects
+that fragment and Valibot. Select `client-only / isolated$` with
 `SCENARIO_MUTATION=missing-dependency` to remove `unplugin-icons` from the
 packed manifest before installation; the scenario must fail when loading the
 preset. `SCENARIO_MUTATION=tool-bundle` imports the real packaged formatter from
@@ -426,3 +433,26 @@ Mutations and fixture instrumentation live in
 `packages/solid-tooling/src/tarball/scenario-mutations.ts` and only modify
 temporary installations. A runtime chain test requires security before the
 terminating API handler. See [ADR 0029](ADRs/0029-runtime-middleware-chain.md).
+
+## Packaged environment schemas
+
+`ssr-plain` uses `serverEnv` from `@evertondgn/solid-runtime/env`, adds
+`SCENARIO_LABEL` and `VITE_SCENARIO_LABEL`, and declares no direct Valibot
+dependency. It reuses the fragment's nonempty-string validator for those
+application keys. The other fixtures keep no `env.ts`. Both linkers load the
+installed fragment in plain Node, require the old tooling export to be absent,
+and check exact inferred types, including optional numeric `PORT`, and confirm
+that the client type exposes only its public key. A first build generates
+declarations before lint and TypeScript on the clean installation; the later
+instrumented build checks the bundle graph.
+
+The preview smoke reads the application's server variable through an `extra`
+step of the middleware factory and checks a value different from the build
+environment. The public value is baked into the HTML. Each SSR plain case then
+starts preview with `PORT=abc`, requests the lazy server and requires HTTP 500
+plus the boot diagnostic naming `PORT`. It also injects a used server env import
+into the client entry and requires the plugin's boundary error, restores the
+entry, and retains the existing runtime server-only probe. These negative checks
+run in normal `validate`, including both linkers. See
+[ADR 0030](ADRs/0030-packaged-environment-schemas.md) and the
+[environment API](tooling/app-config.md#optional-environment-validation).

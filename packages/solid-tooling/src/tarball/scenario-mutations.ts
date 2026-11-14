@@ -1,7 +1,14 @@
 /* oxlint-disable node/no-sync -- Mutations only touch an owned temporary application and its installed packages. */
 import assert from 'node:assert/strict'
-import { cpSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync
+} from 'node:fs'
 import path from 'node:path'
+import { stdout } from 'node:process'
 
 type SourceMutation = { app: string; mutation: string | undefined }
 type Instrumentation = SourceMutation & { root: string }
@@ -16,6 +23,12 @@ export function instrumentMiddleware({
   const entry = path.join(app, 'src/middleware.ts')
   const source = readFileSync(entry, 'utf8')
   assert.ok(source.includes('security: createSecurityHeaders()'))
+  const extra = source.includes('extra: [')
+    ? source.replace('extra: [', 'extra: [probe, ')
+    : source.replace(
+        'security: createSecurityHeaders()',
+        'security: createSecurityHeaders(), extra: [probe]'
+      )
   writeFileSync(
     entry,
     `import type { Middleware } from '@evertondgn/solid-runtime/middleware/types'
@@ -26,7 +39,7 @@ const probe: Middleware = async (request, next) => {
   if (failure === 'after') await next()
   throw Object.assign(new Error('MESSAGE_PRIVATE_SCENARIO_MIDDLEWARE', { cause: new Error('CAUSE_PRIVATE_SCENARIO_MIDDLEWARE') }), { privateContext: 'PROPERTY_PRIVATE_SCENARIO_MIDDLEWARE' })
 }
-${source.replace('security: createSecurityHeaders()', 'security: createSecurityHeaders(), extra: [probe]')}`
+${extra}`
   )
   const directory = path.join(
     app,
@@ -55,6 +68,109 @@ ${source.replace('security: createSecurityHeaders()', 'security: createSecurityH
         'return ((response: Response) => response)('
       )
     )
+  }
+}
+
+type EnvBundle = { id: string; scenario: string; file: string }
+type EnvCommand = {
+  cwd: string
+  deadline: number
+  args: string[]
+  file?: string
+  expectedError?: RegExp
+}
+type EnvProbe = {
+  app: string
+  deadline: number
+  run: (command: EnvCommand) => Promise<string>
+}
+type EnvPreparation = EnvProbe & {
+  scenario: string
+  dependencies: Record<string, string>
+}
+type EnvChecks = { lintFiles: string[]; typecheckFlags: string[] }
+
+function importEnvFromClient(app: string): () => void {
+  const file = path.join(app, 'src/entry-client.tsx')
+  const source = readFileSync(file, 'utf8')
+  writeFileSync(
+    file,
+    `import { env } from 'virtual:solid-env/server'\nconsole.log(env.PORT)\n${source}`
+  )
+  return () => writeFileSync(file, source)
+}
+
+export function assertEnvBootFailure(output: string): void {
+  const diagnostic =
+    /server env validation failed at boot[^\n]*\n\s*\n\s*[^\n]*PORT: [^\n]+/u
+  assert.match(output, diagnostic)
+  stdout.write(`Expected boot failure: ${diagnostic.exec(output)?.[0]}\n`)
+}
+
+export async function prepareEnvScenario({
+  app,
+  scenario,
+  deadline,
+  dependencies,
+  run
+}: EnvPreparation): Promise<EnvChecks> {
+  if (scenario !== 'ssr-plain') {
+    assert.ok(!existsSync(path.join(app, 'env.ts')))
+    return { lintFiles: [], typecheckFlags: [] }
+  }
+  assert.ok(
+    !dependencies.valibot,
+    'The fragment needs no direct valibot dependency'
+  )
+  await run({
+    deadline,
+    cwd: app,
+    file: 'node',
+    args: [
+      '--input-type=module',
+      '--eval',
+      `import assert from 'node:assert/strict'
+import { serverEnv } from '@evertondgn/solid-runtime/env'
+assert.deepEqual(Object.keys(serverEnv), ['HOST', 'PORT', 'BASE_URL_TEST'])
+assert.ok(import.meta.resolve('@evertondgn/solid-runtime/env').endsWith('/src/env/index.js'))
+await assert.rejects(import('@evertondgn/solid-tooling/env'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })`
+    ]
+  })
+  // Generate inferred declarations before lint and types on a clean installation.
+  await run({ deadline, cwd: app, args: ['build'] })
+  return { lintFiles: ['env.ts'], typecheckFlags: ['--strict'] }
+}
+
+export function checkEnvBundle({ id, scenario, file }: EnvBundle): boolean {
+  const hasEnv = scenario === 'ssr-plain'
+  const isClient = file === 'scenario-modules-client.json'
+  if (isClient) {
+    assert.doesNotMatch(id, /solid-runtime\/src\/env\//u)
+    if (hasEnv) assert.doesNotMatch(id, /valibot/u)
+  }
+  return (
+    hasEnv &&
+    !isClient &&
+    id.endsWith('/node_modules/@evertondgn/solid-runtime/src/env/index.js')
+  )
+}
+
+export async function checkEnvFailures({
+  app,
+  deadline,
+  run
+}: EnvProbe): Promise<void> {
+  const restore = importEnvFromClient(app)
+  try {
+    await run({
+      deadline,
+      cwd: app,
+      args: ['build'],
+      expectedError:
+        /virtual:solid-env\/server is server-only and was imported from the client module graph/u
+    })
+  } finally {
+    restore()
   }
 }
 

@@ -206,3 +206,74 @@ export default defineConfig(env =>
   mergeConfig(app(env), { server: { strictPort: true } })
 )
 ```
+
+## Optional environment validation
+
+An SSR application can add `env.ts` at its root. The Solid plugin discovers it
+in Start mode; omitting it keeps environment validation disabled. A client-only
+application does not need an environment file or a site URL. This preset keeps
+the plugin's existing client-only behavior, without adding an env option.
+
+Use the package's validators for the variables consumed by the presets:
+
+```ts
+// env.ts
+import { serverEnv } from '@evertondgn/solid-runtime/env'
+
+const env = { server: { ...serverEnv } }
+
+export default env
+```
+
+All three keys are optional. `HOST` accepts a nonempty string. `PORT` accepts
+decimal digits and produces an integer from 0 through 65535. `BASE_URL_TEST`
+accepts a URL; the Playwright preset additionally requires an explicit port. The
+fragment defines schemas, not environment values or defaults.
+
+When adopting the fragment, declare `@evertondgn/solid-runtime` in
+`dependencies`: `env.ts` is a production entry in the Knip preset, and the
+server bundle imports its schema. Keep `@evertondgn/solid-tooling` in
+`devDependencies`. No validator library is added to a fragment-only
+application's manifest: the runtime supplies Valibot. The plain JavaScript
+export and its declaration load without a `solid` condition, including from
+Node.
+
+Extend the maps with the application's own Standard Schema validators:
+
+```ts
+import { serverEnv } from '@evertondgn/solid-runtime/env'
+import * as v from 'valibot'
+
+const env = {
+  server: { ...serverEnv, API_URL: v.pipe(v.string(), v.url()) },
+  client: { VITE_SITE_URL: v.pipe(v.string(), v.url()) }
+}
+
+export default env
+```
+
+Only an application that imports Valibot itself needs to declare it, as in this
+second example. A fragment-only application uses the package dependency, also
+with Bun's isolated linker. Validators can come from different Standard Schema
+libraries per key. Preserve the preset keys when extending: ordinary object
+spread permits replacing a validator, and the package does not intercept that
+replacement. Server validators must be synchronous.
+
+Import validated values from `virtual:solid-env/server` in server-only code, or
+from `virtual:solid-env/client` for public `VITE_` keys. Client values are
+validated and baked at build time without shipping the validator. Server values
+are read and validated when the server virtual module loads at boot; invalid
+server values warn during build and fail that module's initialization. A schema
+file alone does not add boot validation to raw env reads: import the server
+virtual module from a server entry or middleware when that check is required.
+Nitro preview loads the server on its first request, so an invalid `PORT`
+produces HTTP 500 and the per-key boot diagnostic even though the preview
+listener has started. Importing the server virtual module into a client graph
+fails the build.
+
+The plugin generates `solid-env.d.ts` beside the schema. Run a dev server or
+build before checking types in a clean checkout, and keep both files in the
+tsconfig `include` (`tsconfig.app.json` already does). Inference crosses the
+package boundary, including the optional numeric output of `PORT`. Generated
+virtual-module types do not augment `ImportMetaEnv`; applications using
+`import.meta.env` keep their own declarations.

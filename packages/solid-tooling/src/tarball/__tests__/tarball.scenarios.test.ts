@@ -23,10 +23,14 @@ import * as v from 'valibot'
 
 import { smokeMiddleware } from '../middleware-smoke.ts'
 import {
+  assertEnvBootFailure,
+  checkEnvBundle,
+  checkEnvFailures,
   instrument,
   instrumentMiddleware,
   mutateLocaleStandIn,
-  mutateTheme
+  mutateTheme,
+  prepareEnvScenario
 } from '../scenario-mutations.ts'
 import {
   assertServerErrorLog,
@@ -34,6 +38,7 @@ import {
   mutateServerErrors,
   smokeServerErrors
 } from '../server-errors.ts'
+import { smokeTheme } from '../theme-smoke.ts'
 
 const ROOT = path.resolve(import.meta.dirname, '../../../../..')
 const VP = path.join(ROOT, 'node_modules/.bin/vp')
@@ -45,6 +50,7 @@ const PREVIEW_TIMEOUT = 15_000
 const REQUEST_TIMEOUT = 1000
 const POLL_INTERVAL = 100
 const HTTP_OK = 200
+const HTTP_SERVER_ERROR = 500
 const HTTP_TEMPORARY_REDIRECT = 307
 const PACKAGED_TOOLS = [
   '@playwright/test',
@@ -91,7 +97,11 @@ const pinnedSchema = v.looseObject({
   packageManager: v.optional(v.string())
 })
 const MUTATION = env.SCENARIO_MUTATION
-const CHILD_ENV = { ...env }
+const CHILD_ENV: NodeJS.ProcessEnv = {
+  ...env,
+  SCENARIO_LABEL: 'scenario-build-value',
+  VITE_SCENARIO_LABEL: 'scenario-client-value'
+}
 delete CHILD_ENV.NODE_ENV
 
 type Command = {
@@ -102,6 +112,7 @@ type Command = {
   expectedError?: RegExp
 }
 type Target = { app: string; scenario: string }
+type PreviewTarget = Target & { hasInvalidPort?: boolean }
 type Pinned = v.InferOutput<typeof pinnedSchema>
 type CatalogInput = {
   versions: Record<string, string>
@@ -163,8 +174,10 @@ async function run({
       `${args.join(' ')}: ${Math.round(performance.now() - started)} ms\n`
     )
     if (expectedError) {
-      assert.notEqual(code, 0, 'A client import of server-only code must fail')
+      assert.equal(result[1], null, 'Expected a diagnostic exit, not a signal')
+      assert.notEqual(code, 0, 'The negative probe must fail')
       assert.match(output, expectedError)
+      stdout.write(`Expected failure: ${output.match(expectedError)?.[0]}\n`)
     } else {
       assert.equal(code, 0, `${args.join(' ')}\n${output}`)
     }
@@ -214,59 +227,22 @@ async function freePort(): Promise<number> {
   return port
 }
 
-type ThemeSmoke = { html: string; response: Response; origin: string }
-
-async function smokeTheme({
-  html,
-  response,
-  origin
-}: ThemeSmoke): Promise<void> {
-  const themeScriptTag =
-    /<script(?<attributes>[^>]*)>[^<]*prefers-color-scheme/u.exec(html)
-  assert.ok(themeScriptTag, 'Theme script must exist')
-  const nonce = /nonce="(?<value>[^"]+)"/u.exec(
-    themeScriptTag.groups?.attributes ?? ''
-  )?.groups?.value
-  assert.ok(nonce, 'Theme script must carry a nonce')
-  assert.ok(
-    response.headers
-      .get('content-security-policy')
-      ?.includes(`'nonce-${nonce}'`),
-    'Theme nonce must match CSP'
-  )
-  const rootTag = /<html[^>]*>/u.exec(html)?.[0] ?? ''
-  assert.doesNotMatch(
-    rootTag,
-    /class="[^"]*\b(?:light|dark)\b/u,
-    'System theme must not emit an SSR theme class'
-  )
-  const dark = await fetch(`${origin}/fr`, {
-    headers: { cookie: 'scenario-theme=dark' },
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT)
-  })
-  assert.equal(dark.status, HTTP_OK)
-  const darkHtml = await dark.text()
-  assert.match(
-    darkHtml,
-    /<html[^>]*class="dark"/u,
-    'Cookie must set dark class'
-  )
-  assert.ok(
-    darkHtml.includes(
-      `name="theme-color" content="${MUTATION === 'theme-color' ? '#wrong' : '#09090b'}"`
-    ),
-    'Dark theme-color must match configuration'
-  )
-}
-
-async function smoke({ app, scenario }: Target): Promise<void> {
+async function smoke({
+  app,
+  scenario,
+  hasInvalidPort = false
+}: PreviewTarget): Promise<void> {
   const port = await freePort()
   const child = spawn(
     path.join(app, 'node_modules/.bin/vp'),
     ['preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'],
     {
       cwd: app,
-      env: CHILD_ENV,
+      env: {
+        ...CHILD_ENV,
+        SCENARIO_LABEL: 'scenario-preview-value',
+        ...(hasInvalidPort ? { PORT: 'abc' } : {})
+      },
       detached: true,
       stdio: ['ignore', 'pipe', 'pipe']
     }
@@ -297,9 +273,24 @@ async function smoke({ app, scenario }: Target): Promise<void> {
       }
     }
     assert.ok(response, `Preview did not start: ${output}`)
+    if (hasInvalidPort) {
+      assert.equal(
+        response.status,
+        HTTP_SERVER_ERROR,
+        'Invalid PORT must prevent server boot'
+      )
+      return
+    }
     assert.equal(response.status, HTTP_OK)
     const html = await response.text()
     assert.match(html, /<main[^>]*>Scenario application<\/main>/u)
+    if (scenario === 'ssr-plain') {
+      assert.equal(
+        response.headers.get('x-scenario-env'),
+        'scenario-preview-value'
+      )
+      assert.match(html, /data-env="scenario-client-value"/u)
+    }
     if (scenario === 'ssr-i18n') {
       assert.match(
         html,
@@ -309,7 +300,7 @@ async function smoke({ app, scenario }: Target): Promise<void> {
         'Runtime localeTag must set the document language tag'
       )
       const origin = `http://127.0.0.1:${port}`
-      await smokeTheme({ html, response, origin })
+      await smokeTheme({ mutation: MUTATION, html, response, origin })
       const redirect = await fetch(origin, {
         redirect: 'manual',
         signal: AbortSignal.timeout(REQUEST_TIMEOUT)
@@ -369,6 +360,7 @@ async function smoke({ app, scenario }: Target): Promise<void> {
   } finally {
     stopChild(child)
     await closed
+    if (hasInvalidPort) assertEnvBootFailure(output)
   }
   assertServerErrorLog(output)
   assert.ok(
@@ -383,10 +375,14 @@ function assertBuild({ app, scenario }: Target): void {
     file.startsWith('scenario-modules-')
   )
   assert.ok(modules.length > 0, 'Build module audit must run')
+  let hasServerEnv = false
   for (const file of modules) {
     const content = readFileSync(path.join(app, file), 'utf8')
     const ids = v.parse(v.array(v.string()), JSON.parse(content))
     for (const id of ids) {
+      if (checkEnvBundle({ id, scenario, file })) {
+        hasServerEnv = true
+      }
       assert.doesNotMatch(
         id,
         BUILD_TOOLS,
@@ -397,6 +393,7 @@ function assertBuild({ app, scenario }: Target): void {
       `${scenario}: audited ${ids.length} module IDs in ${file}, no development tools\n`
     )
   }
+  assert.equal(hasServerEnv, scenario === 'ssr-plain')
   if (scenario === 'ssr-i18n') {
     assert.ok(config.tasks.includes('i18n-generate'))
     assert.ok(config.plugins.includes('project:i18n-catalogs'))
@@ -493,6 +490,8 @@ test('the applications pin the versions of the workspace', () => {
   const workspace = readPinned(path.join(ROOT, 'package.json'))
   const copy = readPinned(path.join(ROOT, 'apps/boilerplate/package.json'))
   const { catalog } = workspace
+  assert.ok(!copy.dependencies['@evertondgn/solid-tooling'])
+  assert.ok(copy.devDependencies['@evertondgn/solid-tooling'])
   const tooling = readPinned(
     path.join(ROOT, 'packages/solid-tooling/package.json')
   )
@@ -537,6 +536,10 @@ async function buildScenario({
   assertBuild({ app, scenario })
   if (scenario === 'client-only') return
   await smoke({ app, scenario })
+  if (scenario === 'ssr-plain') {
+    await smoke({ app, scenario, hasInvalidPort: true })
+    await checkEnvFailures({ app, deadline, run })
+  }
   importServerFromClient(app)
   await run({
     deadline,
@@ -688,12 +691,23 @@ for (const scenario of SCENARIOS) {
             )
           )
         }
+        const envChecks = await prepareEnvScenario({
+          app,
+          scenario,
+          deadline,
+          dependencies: manifest.dependencies,
+          run
+        })
         await run({
           deadline,
           cwd: app,
-          args: ['lint', 'src', 'vite.config.ts']
+          args: ['lint', 'src', 'vite.config.ts', ...envChecks.lintFiles]
         })
-        await run({ deadline, cwd: app, args: ['run', 'tsc', '--noEmit'] })
+        await run({
+          deadline,
+          cwd: app,
+          args: ['run', 'tsc', '--noEmit', ...envChecks.typecheckFlags]
+        })
         await run({
           deadline,
           cwd: app,

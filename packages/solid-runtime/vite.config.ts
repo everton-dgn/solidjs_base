@@ -157,7 +157,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text'],
       thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
-      include: ['src/**/*.{ts,tsx}'],
+      include: ['src/**/*.{ts,tsx}', 'src/env/index.js'],
       exclude: [
         'src/**/*.d.ts',
         'src/**/{constants,types}.{ts,tsx}',

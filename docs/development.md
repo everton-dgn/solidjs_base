@@ -89,15 +89,16 @@ explains why the copy exists.
 
 Run its commands from `apps/boilerplate`:
 
-| Command                 | What it does                                                                       |
-| ----------------------- | ---------------------------------------------------------------------------------- |
-| `vp run check:ci`       | Format check, lint with type checking, and the CSS lint                            |
-| `vp run typecheck:node` | Type check `vite.config.ts` and `tooling/`                                         |
-| `vp run dead-code`      | Find unused files, exports and dependencies with Knip                              |
-| `vp run test:ci`        | Vitest with coverage: node, dom and browser projects                               |
-| `vp run test:tooling`   | Tests of the application tooling: Markdown, publication and CSS Module class names |
-| `vp run build`          | Build the application                                                              |
-| `vp run test:e2e`       | Playwright end-to-end tests                                                        |
+| Command                      | What it does                                                                       |
+| ---------------------------- | ---------------------------------------------------------------------------------- |
+| `vp run check:ci`            | Format check, lint with type checking, and the CSS lint                            |
+| `vp run typecheck:node`      | Type check `vite.config.ts` and `tooling/`                                         |
+| `vp run dead-code`           | Find unused files, exports and dependencies with Knip                              |
+| `vp run test:ci`             | Vitest with coverage: node, dom and browser projects                               |
+| `vp run test:tooling`        | Tests of the application tooling: Markdown, publication and CSS Module class names |
+| `vp run build`               | Build the application                                                              |
+| `vp run test:e2e`            | Playwright end-to-end tests                                                        |
+| `vp run test:e2e:production` | Playwright tests against the production routes and build                           |
 
 Every command loads the application's `vite.config.ts`, which imports the
 compiled presets from `dist/` and the security header constants from
@@ -183,9 +184,12 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
 - `src/i18n/urls`, `src/i18n/buildLocaleAlternates` and
   `src/middleware/helpers/appendVary` moved with their tests to the runtime.
   Consumers use package specifiers. Request locale handling, persistence and
-  localized redirects also moved with their tests in ADR 0023. Locale tags,
-  LocalizedLink and messages remain in the copy. The unused redirect constant
-  and the old Knip entry were removed with their consumers.
+  localized redirects also moved with their tests in ADR 0023. ADR 0026 moves
+  navigation, its guards and all 10 navigation cases into the runtime, including
+  real-browser history tests. `localeTag` canonicalizes tags with optional
+  application overrides; the copy keeps `LOCALE_TAG_OVERRIDES`, LocalizedLink
+  and messages. The unused redirect constant and the old Knip entry were removed
+  with their consumers.
 
 ### Updating the copy
 
@@ -289,8 +293,11 @@ Nitro and `ssr-plain / isolated` for the other two; each command must fail. See
 The locale seam adds an `ssr-plain / isolated-language` case with
 `language: 'de'`, checked in node and dom. SSR fixtures render a runtime locale
 link: unprefixed without translations and prefixed with /fr with them. The
-client-only fixture reads the runtime locale while its bundle audit keeps
-rejecting translation modules.
+client-only fixture uses `createLocalizedNavigate` and `localeTag` while its
+bundle audit keeps rejecting translation modules. It tests unprefixed DOM
+navigation, query, hash, state, history and the single-language `setLocale`
+no-op. Its additional `isolated-language` case sets `language: 'zh-Hant-TW'`.
+The matrix has eight application cases plus the version-alignment test.
 
 The locale negative probes use `SCENARIO_MUTATION=locale-provider` or
 `locale-node` with `ssr-plain / isolated$`, and `locale-prefix` with
@@ -314,6 +321,15 @@ the catalog ID convention without editing the shared App. Its smoke checks the
 root redirect, the German page, Content-Language and cookie persistence. The
 request negative probes are `request-target` and `request-step` on ssr-i18n, and
 `request-plain` on ssr-plain, selected with SCENARIO_MUTATION.
+
+Navigation probes use `SCENARIO_MUTATION=navigation-provider` and
+`locale-setter` with `client-only / isolated$`, and `locale-tag` with
+`ssr-i18n / isolated$`. Each must fail. The first rewires the installed
+navigation module to the runtime's generated test provider, so run the runtime
+tests or root validate first to generate it. The second removes only the
+single-language setter from the installed tooling. The third changes the
+expected HTML tag. The SSR smoke normally checks fr-FR and de-DE. Mutations
+affect only owned temporary installations and are removed in finally.
 
 ## Optional runtime theme
 

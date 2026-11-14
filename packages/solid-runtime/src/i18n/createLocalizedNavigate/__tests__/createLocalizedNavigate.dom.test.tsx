@@ -1,7 +1,6 @@
 import { createRouter, memoryHistory, useLocation } from '@solidjs/router'
 
-import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
-
+import { renderComponent } from '../../../tests/renderComponent/index.tsx'
 import { createLocalizedNavigate } from '../index.ts'
 
 describe('createLocalizedNavigate contracts', () => {
@@ -19,29 +18,28 @@ describe('createLocalizedNavigate contracts', () => {
       )
     }
     const Router = createRouter({
-      history: memoryHistory('/en/docs/chapter?filter=active#old'),
+      history: memoryHistory('/de/docs/chapter?filter=active#old'),
       routes: [{ path: '*all', component: Page }]
     })
-    const host = renderComponent(
-      () => <Router>{props => props.children}</Router>,
-      { hasProviders: false }
-    )
+    const host = renderComponent(() => (
+      <Router>{props => props.children}</Router>
+    ))
     await expect
       .poll(() => host.textContent)
-      .toBe('/en/docs/chapter?filter=active#old')
+      .toBe('/de/docs/chapter?filter=active#old')
     assert(navigate)
     navigate({ href: '#section' })
     await expect
       .poll(() => host.textContent)
-      .toBe('/en/docs/chapter?filter=active#section')
+      .toBe('/de/docs/chapter?filter=active#section')
     navigate({ href: '' })
     await expect
       .poll(() => host.textContent)
-      .toBe('/en/docs/chapter?filter=active')
+      .toBe('/de/docs/chapter?filter=active')
   })
 
   it('navigates in the Router with query/hash, relative URLs, and state', async () => {
-    const history = memoryHistory('/en/docs')
+    const history = memoryHistory('/de/docs')
     let navigate: ReturnType<typeof createLocalizedNavigate> | undefined
     function Page() {
       navigate = createLocalizedNavigate()
@@ -58,40 +56,39 @@ describe('createLocalizedNavigate contracts', () => {
       history,
       routes: [{ path: '*all', component: Page }]
     })
-    const host = renderComponent(
-      () => <Router>{props => props.children}</Router>,
-      { hasProviders: false }
-    )
-    await expect.poll(() => host.textContent).toBe('/en/docs')
+    const host = renderComponent(() => (
+      <Router>{props => props.children}</Router>
+    ))
+    await expect.poll(() => host.textContent).toBe('/de/docs')
     assert(navigate)
     navigate({ href: '/docs/start' })
-    await expect.poll(() => host.textContent).toBe('/en/docs/start')
+    await expect.poll(() => host.textContent).toBe('/de/docs/start')
     navigate({
       href: '../next?q=1#part',
-      locale: 'en',
+      locale: 'de',
       state: { source: 'test' },
       replace: true
     })
-    await expect.poll(() => host.textContent).toBe('/en/next?q=1#part')
+    await expect.poll(() => host.textContent).toBe('/de/next?q=1#part')
     expect(host.querySelector('output')?.dataset.state).toBe(
       '{"source":"test"}'
     )
     history.back()
-    await expect.poll(() => host.textContent).toBe('/en/docs')
-    navigate({ href: '/es/final', locale: 'en' })
-    await expect.poll(() => host.textContent).toBe('/en/final')
+    await expect.poll(() => host.textContent).toBe('/de/docs')
+    navigate({ href: '/ja/final', locale: 'de' })
+    await expect.poll(() => host.textContent).toBe('/de/final')
   })
 
   it('uses document navigation for a different locale, external URLs, and endpoints', async () => {
     const assign = vi
       .spyOn(globalThis.location, 'assign')
       .mockImplementation(() => {
-        /* Mantém este teste no próprio documento. */
+        /* Keep the test in its document. */
       })
     const replace = vi
       .spyOn(globalThis.location, 'replace')
       .mockImplementation(() => {
-        /* Mantém este teste no próprio documento. */
+        /* Keep the test in its document. */
       })
     let navigate: ReturnType<typeof createLocalizedNavigate> | undefined
     function Page() {
@@ -99,17 +96,16 @@ describe('createLocalizedNavigate contracts', () => {
       return <p>Ready</p>
     }
     const Router = createRouter({
-      history: memoryHistory('/en/docs'),
+      history: memoryHistory('/de/docs'),
       routes: [{ path: '*all', component: Page }]
     })
-    const host = renderComponent(
-      () => <Router>{props => props.children}</Router>,
-      { hasProviders: false }
-    )
+    const host = renderComponent(() => (
+      <Router>{props => props.children}</Router>
+    ))
     await expect.poll(() => host.textContent).toBe('Ready')
     assert(navigate)
-    navigate({ href: '/docs?q=1#part', locale: 'pt' })
-    expect(assign).toHaveBeenLastCalledWith('/pt/docs?q=1#part')
+    navigate({ href: '/docs?q=1#part', locale: 'fr' })
+    expect(assign).toHaveBeenLastCalledWith('/fr/docs?q=1#part')
     navigate({ href: '/api/report', shouldLocalize: false, replace: true })
     expect(replace).toHaveBeenCalledWith('/api/report')
     navigate({ href: 'https://example.com' })

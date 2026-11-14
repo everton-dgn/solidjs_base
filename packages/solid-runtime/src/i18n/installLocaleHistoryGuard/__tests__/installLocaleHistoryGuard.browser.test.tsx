@@ -1,8 +1,7 @@
 import { createRouter, useLocation } from '@solidjs/router'
 import { render } from '@solidjs/web'
 
-import { createLocaleNavigationGuard } from '@/primitives/createLocaleNavigationGuard/index.ts'
-
+import { createLocaleNavigationGuard } from '../../createLocaleNavigationGuard/index.ts'
 import { installLocaleHistoryGuard } from '../index.ts'
 
 function Page() {
@@ -15,11 +14,11 @@ describe('document locale history guard in a real browser', () => {
     const originalUrl = globalThis.location.href
     const originalState: unknown = globalThis.history.state
     const order: string[] = []
-    globalThis.history.replaceState({ position: 'start' }, '', '/pt/start')
+    globalThis.history.replaceState({ position: 'start' }, '', '/fr/start')
     const stopGuard = installLocaleHistoryGuard(() => {
       order.push('reload')
     })
-    // O histórico padrão instala o ouvinte real de popstate do Router depois do nosso.
+    // The default history installs the real Router listener after our guard.
     const Router = createRouter({ routes: [{ path: '*all', component: Page }] })
     const host = document.createElement('div')
     document.body.append(host)
@@ -45,13 +44,13 @@ describe('document locale history guard in a real browser', () => {
       globalThis.history.replaceState(originalState, '', originalUrl)
       host.remove()
     })
-    await expect.poll(() => host.textContent).toBe('/pt/start')
+    await expect.poll(() => host.textContent).toBe('/fr/start')
     globalThis.history.pushState(
-      { position: 'spanish' },
+      { position: 'japanese' },
       '',
-      '/es/destination?q=1#part'
+      '/ja/destination?q=1#part'
     )
-    globalThis.history.pushState({ position: 'portuguese' }, '', '/pt/end')
+    globalThis.history.pushState({ position: 'french' }, '', '/fr/ded')
     const { length } = globalThis.history
     globalThis.history.back()
     await expect.poll(() => order).toStrictEqual(['reload'])
@@ -64,22 +63,21 @@ describe('document locale history guard in a real browser', () => {
       length: globalThis.history.length,
       rendered: host.textContent
     }).toStrictEqual({
-      path: '/es/destination?q=1#part',
-      state: { position: 'spanish' },
+      path: '/ja/destination?q=1#part',
+      state: { position: 'japanese' },
       length,
-      rendered: '/pt/start'
+      rendered: '/fr/start'
     })
-    // Uma reversão teria saído da entrada em espanhol; avançar deve selecionar
-    // exatamente a entrada em português sem criar outra entrada.
+    // Forward must select the existing French entry without adding another one.
     globalThis.history.forward()
-    await expect.poll(() => host.textContent).toBe('/pt/end')
+    await expect.poll(() => host.textContent).toBe('/fr/ded')
     expect({
       order,
       state: globalThis.history.state as unknown,
       length: globalThis.history.length
     }).toMatchObject({
       order: ['reload', 'observer'],
-      state: { position: 'portuguese' },
+      state: { position: 'french' },
       length
     })
   })
@@ -90,11 +88,11 @@ describe('document locale history guard in a real browser', () => {
     onTestFinished(() =>
       globalThis.history.replaceState(state, '', originalUrl)
     )
-    globalThis.history.replaceState(null, '', '/pt/start')
+    globalThis.history.replaceState(null, '', '/fr/start')
     const reload = vi.fn<() => void>()
     const stop = installLocaleHistoryGuard(reload)
     stop()
-    globalThis.history.replaceState(null, '', '/es/end')
+    globalThis.history.replaceState(null, '', '/ja/ded')
     globalThis.dispatchEvent(new PopStateEvent('popstate'))
     expect(reload).not.toHaveBeenCalled()
   })

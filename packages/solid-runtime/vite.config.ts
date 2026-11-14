@@ -1,5 +1,8 @@
+import { env } from 'node:process'
+
 import solid from '@solidjs/vite-plugin'
 import { defineConfig, type Plugin } from 'vite-plus'
+import { playwright } from 'vite-plus/test/browser-playwright'
 
 import { lint } from '../solid-tooling/src/lint.ts'
 import { LOCALE_SOURCE } from './tooling/testing/locale-source.ts'
@@ -22,6 +25,7 @@ const jsPlugins = (lint.jsPlugins ?? []).map(plugin =>
 )
 
 const STUB_PREFIX = '\0solid-runtime-stub:'
+const GENERATED_LOCALE_SOURCE = `export { locales, baseLocale, getLocale, setLocale, extractLocaleFromUrl, localizeHref, deLocalizeUrl } from '${import.meta.dirname}/tooling/testing/generated/runtime.js'`
 // The stand-ins that solidTest serves to the node project of an application:
 // the Solid and routing plugins provide these modules only in a real build.
 const NODE_STUBS = new Map([
@@ -38,14 +42,18 @@ const NODE_STUBS = new Map([
   ]
 ])
 
-function nodeStubs(): Plugin {
+function nodeStubs(localeSource = LOCALE_SOURCE): Plugin {
+  const stubs = new Map([
+    ...NODE_STUBS,
+    ['virtual:solid-app/locale', localeSource]
+  ])
   return {
     name: 'solid-runtime:node-stubs',
     enforce: 'pre',
-    resolveId: id => (NODE_STUBS.has(id) ? `${STUB_PREFIX}${id}` : undefined),
+    resolveId: id => (stubs.has(id) ? `${STUB_PREFIX}${id}` : undefined),
     load: id =>
       id.startsWith(STUB_PREFIX)
-        ? NODE_STUBS.get(id.slice(STUB_PREFIX.length))
+        ? stubs.get(id.slice(STUB_PREFIX.length))
         : undefined
   }
 }
@@ -57,7 +65,6 @@ export default defineConfig({
   // vp lint reads this block from the package folder; vp check and the
   // formatter use the root config.
   lint: { ...lint, jsPlugins },
-  plugins: [nodeStubs()],
   test: {
     pool: 'threads',
     globals: true,
@@ -67,6 +74,7 @@ export default defineConfig({
     expect: { requireAssertions: true, poll: { interval: 10 } },
     projects: [
       {
+        plugins: [nodeStubs()],
         test: {
           name: 'node',
           environment: 'node',
@@ -74,13 +82,30 @@ export default defineConfig({
         }
       },
       {
-        plugins: [solid()],
+        plugins: [nodeStubs(GENERATED_LOCALE_SOURCE), solid()],
         test: {
           name: 'dom',
           environment: 'happy-dom',
-          environmentOptions: { happyDOM: { url: 'http://localhost/' } },
+          environmentOptions: { happyDOM: { url: 'http://localhost/de' } },
           setupFiles: ['./tooling/testing/dom.ts'],
           include: ['src/**/*.dom.test.{ts,tsx}']
+        }
+      },
+      {
+        plugins: [nodeStubs(GENERATED_LOCALE_SOURCE), solid()],
+        optimizeDeps: { include: ['@inlang/paraglide-js/urlpattern-polyfill'] },
+        test: {
+          name: 'browser',
+          include: ['src/**/*.browser.test.{ts,tsx}'],
+          setupFiles: ['./tooling/testing/browser.ts'],
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright({
+              launchOptions: env.CI ? { channel: 'chrome' } : {}
+            }),
+            instances: [{ browser: 'chromium' }]
+          }
         }
       }
     ],

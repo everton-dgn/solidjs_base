@@ -2,6 +2,7 @@ export const LOCALE_SOURCE = `
 export const locales = ['fr', 'de', 'ja']
 export const baseLocale = 'de'
 export const getLocale = () => 'fr'
+export const setLocale = () => undefined
 export function extractLocaleFromUrl(url) {
   const segment = new URL(url).pathname.split('/')[1]
   return locales.includes(segment) ? segment : undefined

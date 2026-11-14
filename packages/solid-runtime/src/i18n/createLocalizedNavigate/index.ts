@@ -1,9 +1,4 @@
 import {
-  isAbsoluteHref,
-  resolveLocalizedHref
-} from '@evertondgn/solid-runtime/i18n/urls'
-import { getLocale, type Locale } from '@paraglide/runtime.js'
-import {
   useLocation,
   useNavigate,
   type NavigateOptions,
@@ -11,13 +6,16 @@ import {
 } from '@solidjs/router'
 import { isServer } from '@solidjs/web'
 
+import { getLocale } from '../locale/index.ts'
+import { isAbsoluteHref, resolveLocalizedHref } from '../urls/index.ts'
+
 type LocalizedNavigateOptions = Omit<Partial<NavigateOptions>, 'resolve'> & {
   href: string | TypedPath
-  locale?: Locale
+  locale?: string
   shouldLocalize?: boolean
 }
 
-/** Requer um Router. A navegação de documento não transporta estado do roteador nem opções de rolagem. */
+// Document navigation cannot carry router state or scroll options.
 export function createLocalizedNavigate() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -29,8 +27,7 @@ export function createLocalizedNavigate() {
     ...options
   }: LocalizedNavigateOptions): void => {
     const requestedHref = String(href)
-    // Fragmentos de âncora podem permanecer relativos; a navegação com resolve: false
-    // precisa do caminho completo da página atual, incluindo os parâmetros de consulta.
+    // With resolve: false, fragments need the current path and query.
     const resolvedHref =
       requestedHref === '' || requestedHref.startsWith('#')
         ? `${location.pathname}${location.search}${requestedHref}`

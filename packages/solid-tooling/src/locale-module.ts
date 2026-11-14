@@ -17,11 +17,12 @@ function localeRequestSource({ root }: LocaleOptions): string {
 
 export function localeSource({ root, language = 'en' }: LocaleOptions): string {
   if (hasI18n(root)) {
-    return `export { locales, baseLocale, getLocale, extractLocaleFromUrl, localizeHref, deLocalizeUrl } from ${JSON.stringify(path.join(root, 'paraglide/runtime.js'))}`
+    return `export { locales, baseLocale, getLocale, setLocale, extractLocaleFromUrl, localizeHref, deLocalizeUrl } from ${JSON.stringify(path.join(root, 'paraglide/runtime.js'))}`
   }
   return `export const baseLocale = ${JSON.stringify(language)}
 export const locales = [baseLocale]
 export const getLocale = () => baseLocale
+export const setLocale = () => undefined
 export const extractLocaleFromUrl = () => undefined
 export const localizeHref = href => href
 export const deLocalizeUrl = url => url instanceof URL ? url : new URL(typeof url === 'string' ? url : url.href)

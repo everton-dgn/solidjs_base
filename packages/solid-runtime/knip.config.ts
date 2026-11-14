@@ -8,9 +8,14 @@ export default defineKnipConfig({
   // A regression test resolves srvx/node through nitro, which installs it.
   // filesystem-routing is an optional peer, which --strict does not accept;
   // the '!' limits that ignore to the production run.
-  // solid-js remains supplied by the application; theme extraction preserves
+  // solid-js and the router remain supplied by the application; extraction preserves
   // dependency ownership. Installed scenarios verify both Bun linkers.
-  ignoreDependencies: ['srvx', 'filesystem-routing!', 'solid-js!'],
+  ignoreDependencies: [
+    'srvx',
+    'filesystem-routing!',
+    'solid-js!',
+    '@solidjs/router!'
+  ],
   // The catalog sits in the root package.json, which Knip does not read from
   // this folder. bun install already refuses an entry missing from the catalog.
   exclude: ['catalogReferences']

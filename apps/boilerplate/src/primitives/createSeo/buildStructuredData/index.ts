@@ -1,9 +1,11 @@
+import { locales } from '@evertondgn/solid-runtime/i18n/locale'
+import { localeTag } from '@evertondgn/solid-runtime/i18n/locale-tag'
 import type { Article, Graph, Organization, WebPage, WebSite } from 'schema-dts'
 
 import type { SeoMetadata } from '@/@types/seo.ts'
 import { SITE } from '@/constants/site/index.ts'
 import { resolveSiteUrl } from '@/helpers/resolveSiteUrl/index.ts'
-import { LOCALE_TAGS } from '@/i18n/localeTags/index.ts'
+import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.ts'
 
 type BuildStructuredDataOptions = {
   seo: SeoMetadata
@@ -61,7 +63,9 @@ export function buildStructuredData({
         url: resolveSiteUrl('/'),
         name: SITE.title,
         description: SITE.description,
-        inLanguage: Object.values(LOCALE_TAGS),
+        inLanguage: locales.map(locale =>
+          localeTag(locale, LOCALE_TAG_OVERRIDES)
+        ),
         publisher: { '@id': organizationId }
       },
       page,

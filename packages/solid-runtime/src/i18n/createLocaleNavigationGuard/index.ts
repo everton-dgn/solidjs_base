@@ -1,6 +1,7 @@
-import { extractLocaleFromUrl, getLocale } from '@paraglide/runtime.js'
 import { useBeforeLeave } from '@solidjs/router'
 import { isServer } from '@solidjs/web'
+
+import { extractLocaleFromUrl, getLocale } from '../locale/index.ts'
 
 export function createLocaleNavigationGuard(): void {
   if (isServer) return

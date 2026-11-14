@@ -1,4 +1,3 @@
-import { localizedRedirect } from '@evertondgn/solid-runtime/i18n/localized-redirect'
 import {
   createRouter,
   formAction,
@@ -16,8 +15,8 @@ import {
   type Component
 } from 'solid-js'
 
-import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
-
+import { renderComponent } from '../../../tests/renderComponent/index.tsx'
+import { localizedRedirect } from '../../localizedRedirect/index.ts'
 import { createLocaleNavigationGuard } from '../index.ts'
 
 type GuardedRouterOptions = {
@@ -33,17 +32,14 @@ function renderGuardedRouter({
     history,
     routes: [{ path: '*all', component: page }]
   })
-  return renderComponent(
-    () => (
-      <Router>
-        {props => {
-          createLocaleNavigationGuard()
-          return props.children
-        }}
-      </Router>
-    ),
-    { hasProviders: false }
-  )
+  return renderComponent(() => (
+    <Router>
+      {props => {
+        createLocaleNavigationGuard()
+        return props.children
+      }}
+    </Router>
+  ))
 }
 
 describe('locale navigation guard', () => {
@@ -51,14 +47,14 @@ describe('locale navigation guard', () => {
     const replace = vi
       .spyOn(globalThis.location, 'replace')
       .mockImplementation(() => {
-        /* Permanece no documento do teste. */
+        /* Keep the test in its document. */
       })
     const assign = vi
       .spyOn(globalThis.location, 'assign')
       .mockImplementation(() => {
-        /* Permanece no documento do teste. */
+        /* Keep the test in its document. */
       })
-    const history = memoryHistory('/en/start')
+    const history = memoryHistory('/de/start')
     let navigate: ReturnType<typeof useNavigate> | undefined
     function Page() {
       navigate = useNavigate()
@@ -66,27 +62,27 @@ describe('locale navigation guard', () => {
       return <output>{location.pathname}</output>
     }
     const host = renderGuardedRouter({ history, page: Page })
-    await expect.poll(() => host.textContent).toBe('/en/start')
+    await expect.poll(() => host.textContent).toBe('/de/start')
     assert(navigate)
-    navigate('/es/destination?q=1#part', { replace: true })
+    navigate('/ja/destination?q=1#part', { replace: true })
     flush()
     expect(replace).toHaveBeenCalledWith(
-      `${globalThis.location.origin}/es/destination?q=1#part`
+      `${globalThis.location.origin}/ja/destination?q=1#part`
     )
-    navigate('/pt/destination?q=2#part')
+    navigate('/fr/destination?q=2#part')
     flush()
     expect(assign).toHaveBeenCalledWith(
-      `${globalThis.location.origin}/pt/destination?q=2#part`
+      `${globalThis.location.origin}/fr/destination?q=2#part`
     )
-    expect(host.textContent).toBe('/en/start')
-    navigate('/en/next')
-    await expect.poll(() => host.textContent).toBe('/en/next')
+    expect(host.textContent).toBe('/de/start')
+    navigate('/de/next')
+    await expect.poll(() => host.textContent).toBe('/de/next')
     history.back()
-    await expect.poll(() => host.textContent).toBe('/en/start')
+    await expect.poll(() => host.textContent).toBe('/de/start')
   })
 
   it('keeps same-locale navigation, state and back/forward in the Router', async () => {
-    const history = memoryHistory('/en/start')
+    const history = memoryHistory('/de/start')
     let navigate: ReturnType<typeof useNavigate> | undefined
     function Page() {
       navigate = useNavigate()
@@ -100,17 +96,17 @@ describe('locale navigation guard', () => {
       )
     }
     const host = renderGuardedRouter({ history, page: Page })
-    await expect.poll(() => host.textContent).toBe('/en/start')
+    await expect.poll(() => host.textContent).toBe('/de/start')
     assert(navigate)
-    navigate('/en/next?q=1#part', { state: { marker: 'kept' } })
-    await expect.poll(() => host.textContent).toBe('/en/next?q=1#part')
+    navigate('/de/next?q=1#part', { state: { marker: 'kept' } })
+    await expect.poll(() => host.textContent).toBe('/de/next?q=1#part')
     expect(host.querySelector('output')?.dataset.state).toBe(
       '{"marker":"kept"}'
     )
     history.back()
-    await expect.poll(() => host.textContent).toBe('/en/start')
+    await expect.poll(() => host.textContent).toBe('/de/start')
     history.forward()
-    await expect.poll(() => host.textContent).toBe('/en/next?q=1#part')
+    await expect.poll(() => host.textContent).toBe('/de/next?q=1#part')
   })
 })
 
@@ -119,20 +115,19 @@ describe('locale guard with Router response processing', () => {
     const replace = vi
       .spyOn(globalThis.location, 'replace')
       .mockImplementation(() => {
-        /* Observa a chamada sem sair do teste. */
+        /* Observe navigation without leaving the test. */
       })
     const submit = formAction(
       () =>
         Promise.resolve(
           localizedRedirect({
             href: '/destination?q=action#part',
-            locale: 'es'
+            locale: 'ja'
           })
         ),
       'locale-guard-action-test'
     )
-    // A ação do router só recebe o contexto dele quando está ligada a um
-    // formulário; o envio passa pelo mesmo tratamento de redirect.
+    // Bind the action to a form to exercise the Router redirect processing.
     function Page() {
       return (
         <form action={submit} method="post">
@@ -141,7 +136,7 @@ describe('locale guard with Router response processing', () => {
       )
     }
     const host = renderGuardedRouter({
-      history: memoryHistory('/en/start'),
+      history: memoryHistory('/de/start'),
       page: Page
     })
     await expect.poll(() => host.textContent).toBe('Ready')
@@ -150,19 +145,19 @@ describe('locale guard with Router response processing', () => {
     button.click()
     await expect
       .poll(() => replace.mock.lastCall?.[0])
-      .toBe(`${globalThis.location.origin}/es/destination?q=action#part`)
+      .toBe(`${globalThis.location.origin}/ja/destination?q=action#part`)
   })
 
   it('turns a query Response redirect into a document replacement', async () => {
     const replace = vi
       .spyOn(globalThis.location, 'replace')
       .mockImplementation(() => {
-        /* Observa a chamada sem sair do teste. */
+        /* Observe navigation without leaving the test. */
       })
     const read = query(
       () =>
         Promise.resolve(
-          localizedRedirect({ href: '/destination?q=query#part', locale: 'pt' })
+          localizedRedirect({ href: '/destination?q=query#part', locale: 'fr' })
         ),
       'locale-guard-query-test'
     )
@@ -183,7 +178,7 @@ describe('locale guard with Router response processing', () => {
       )
     }
     const host = renderGuardedRouter({
-      history: memoryHistory('/en/start'),
+      history: memoryHistory('/de/start'),
       page: Page
     })
     await expect.poll(() => host.textContent).toBe('Ready')
@@ -191,6 +186,6 @@ describe('locale guard with Router response processing', () => {
     request()
     await expect
       .poll(() => replace.mock.lastCall?.[0])
-      .toBe(`${globalThis.location.origin}/pt/destination?q=query#part`)
+      .toBe(`${globalThis.location.origin}/fr/destination?q=query#part`)
   })
 })

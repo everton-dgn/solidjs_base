@@ -1,3 +1,4 @@
+import { createLocalizedNavigate } from '@evertondgn/solid-runtime/i18n/create-localized-navigate'
 import { useSearchParams, type RouteDefinition } from '@solidjs/router'
 import { createSignal } from 'solid-js'
 
@@ -7,7 +8,6 @@ import { LocalizedLink } from '@/components/atoms/LocalizedLink/index.tsx'
 import { Textarea } from '@/components/atoms/Textarea/index.tsx'
 import { useToast } from '@/components/atoms/ToastProvider/useToast/index.ts'
 import { Dialog } from '@/components/molecules/Dialog/index.tsx'
-import { createLocalizedNavigate } from '@/primitives/createLocalizedNavigate/index.ts'
 
 import S from './styles.module.css'
 

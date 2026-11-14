@@ -196,9 +196,14 @@ async function smoke({ app, scenario }: Target): Promise<void> {
     assert.equal(response.status, HTTP_OK)
     const html = await response.text()
     assert.match(html, /<main[^>]*>Scenario application<\/main>/u)
-    // The application writes the base locale of the generated runtime.
-    if (scenario === 'ssr-i18n') assert.match(html, /<html[^>]* lang="fr"/u)
     if (scenario === 'ssr-i18n') {
+      assert.match(
+        html,
+        MUTATION === 'locale-tag'
+          ? /<html[^>]* lang="ja-JP"/u
+          : /<html[^>]* lang="fr-FR"/u,
+        'Runtime localeTag must set the document language tag'
+      )
       const origin = `http://127.0.0.1:${port}`
       await smokeTheme({ html, response, origin })
       const redirect = await fetch(origin, {
@@ -221,7 +226,9 @@ async function smoke({ app, scenario }: Target): Promise<void> {
       })
       assert.equal(german.status, HTTP_OK)
       assert.equal(german.headers.get('content-language'), 'de')
-      assert.match(await german.text(), /Hallo Welt/u)
+      const germanHtml = await german.text()
+      assert.match(germanHtml, /Hallo Welt/u)
+      assert.match(germanHtml, /<html[^>]* lang="de-DE"/u)
       assert.match(german.headers.get('set-cookie') ?? '', /locale=de/u)
     }
     const localizedPrefix = MUTATION === 'locale-prefix' ? '/de' : '/fr'
@@ -278,6 +285,37 @@ function mutateTheme(app: string): void {
   }
 }
 
+function mutateLocaleStandIn(app: string): void {
+  if (MUTATION === 'locale-node' || MUTATION === 'locale-setter') {
+    const dist = path.join(app, 'node_modules/@evertondgn/solid-tooling/dist')
+    let replacements = 0
+    for (const name of readdirSync(dist).filter(entry =>
+      entry.endsWith('.mjs')
+    )) {
+      const file = path.join(dist, name)
+      const source = readFileSync(file, 'utf8')
+      const changed =
+        MUTATION === 'locale-setter'
+          ? source.replace('export const setLocale = () => undefined', '')
+          : source.replace(
+              '[...NODE_STUBS, ["virtual:solid-app/locale", source]]',
+              'NODE_STUBS'
+            )
+      if (source !== changed) {
+        replacements += 1
+        writeFileSync(file, changed)
+      }
+    }
+    assert.equal(
+      replacements,
+      1,
+      MUTATION === 'locale-setter'
+        ? 'Remove exactly one single-language setLocale export'
+        : 'Remove exactly one node locale stand-in'
+    )
+  }
+}
+
 function instrument(app: string): void {
   // Observes the resolved plugins and bundled module IDs without replacing the preset.
   writeFileSync(
@@ -294,6 +332,23 @@ export const audit = {
 }
 `
   )
+  if (MUTATION === 'navigation-provider') {
+    const generated = path.join(app, 'paraglide')
+    cpSync(
+      path.join(ROOT, 'packages/solid-runtime/tooling/testing/generated'),
+      generated,
+      { recursive: true }
+    )
+    const entry = path.join(
+      app,
+      'node_modules/@evertondgn/solid-runtime/src/i18n/createLocalizedNavigate/index.ts'
+    )
+    const runtime = JSON.stringify(path.join(generated, 'runtime.js'))
+    writeFileSync(
+      entry,
+      readFileSync(entry, 'utf8').replace("'../locale/index.ts'", runtime)
+    )
+  }
   if (MUTATION === 'locale-provider') {
     const generated = path.join(app, 'paraglide')
     cpSync(path.join(ROOT, 'apps/boilerplate/paraglide'), generated, {
@@ -374,7 +429,8 @@ function assertBuild({ app, scenario }: Target): void {
       )
       assert.doesNotMatch(
         readFileSync(path.join(app, file), 'utf8'),
-        /paraglide|inlang/iu
+        /paraglide|inlang/iu,
+        'Disabled i18n bundled Paraglide or Inlang modules'
       )
     }
   }
@@ -444,7 +500,7 @@ test('the applications pin the versions of the workspace', () => {
 for (const scenario of SCENARIOS) {
   for (const linker of [
     ...LINKERS,
-    ...(scenario === 'ssr-plain' ? ['isolated-language'] : [])
+    ...(scenario === 'ssr-i18n' ? [] : ['isolated-language'])
   ]) {
     test(`${scenario} / ${linker}`, { timeout: 180_000 }, async () => {
       const directory = mkdtempSync(path.join(tmpdir(), 'solid-app-scenario-'))
@@ -481,7 +537,10 @@ for (const scenario of SCENARIOS) {
             dependencies: { ...manifest.dependencies, ...dependencies }
           })
         )
-        if (MUTATION === 'locale-provider') {
+        if (
+          MUTATION === 'locale-provider' ||
+          MUTATION === 'navigation-provider'
+        ) {
           const source = readPinned(
             path.join(ROOT, 'apps/boilerplate/package.json')
           )
@@ -511,23 +570,26 @@ for (const scenario of SCENARIOS) {
           )
         }
         if (linker === 'isolated-language') {
+          const language = scenario === 'client-only' ? 'zh-Hant-TW' : 'de'
           const config = path.join(app, 'vite.config.ts')
           writeFileSync(
             config,
             readFileSync(config, 'utf8').replace(
               'root: import.meta.dirname,',
-              "root: import.meta.dirname, language: 'de',"
+              `root: import.meta.dirname, language: '${language}',`
             )
           )
-          for (const project of ['node', 'dom']) {
-            const file = path.join(
-              app,
-              'src/helpers/probe/__tests__',
-              `probe.locale.${project}.test.ts`
-            )
+          for (const name of [
+            'probe.locale.node.test.ts',
+            'probe.locale.dom.test.ts',
+            ...(scenario === 'client-only'
+              ? ['probe.navigation.dom.test.tsx']
+              : [])
+          ]) {
+            const file = path.join(app, 'src/helpers/probe/__tests__', name)
             writeFileSync(
               file,
-              readFileSync(file, 'utf8').replaceAll("'en'", "'de'")
+              readFileSync(file, 'utf8').replaceAll("'en'", `'${language}'`)
             )
           }
         }
@@ -540,32 +602,7 @@ for (const scenario of SCENARIOS) {
             linker === 'isolated-language' ? 'isolated' : linker
           ]
         })
-        if (MUTATION === 'locale-node') {
-          const dist = path.join(
-            app,
-            'node_modules/@evertondgn/solid-tooling/dist'
-          )
-          let replacements = 0
-          for (const name of readdirSync(dist).filter(entry =>
-            entry.endsWith('.mjs')
-          )) {
-            const file = path.join(dist, name)
-            const source = readFileSync(file, 'utf8')
-            const changed = source.replace(
-              '[...NODE_STUBS, ["virtual:solid-app/locale", source]]',
-              'NODE_STUBS'
-            )
-            if (source !== changed) {
-              replacements += 1
-              writeFileSync(file, changed)
-            }
-          }
-          assert.equal(
-            replacements,
-            1,
-            'Remove exactly one node locale stand-in'
-          )
-        }
+        mutateLocaleStandIn(app)
         if (scenario === 'ssr-i18n') {
           // Keep the shared fixture App unchanged while adopting the catalog ID convention.
           const entry = path.join(app, 'src/App.tsx')

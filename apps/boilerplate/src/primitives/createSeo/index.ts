@@ -1,4 +1,5 @@
 import { buildLocaleAlternates } from '@evertondgn/solid-runtime/i18n/build-locale-alternates'
+import { localeTag } from '@evertondgn/solid-runtime/i18n/locale-tag'
 import { localizeHref } from '@evertondgn/solid-runtime/i18n/urls'
 import { getLocale, locales } from '@paraglide/runtime.js'
 import { useLocation, useRouteMatches } from '@solidjs/router'
@@ -13,7 +14,7 @@ import {
 } from '@/helpers/markdownRoute/index.ts'
 import { resolveRouteSeo } from '@/helpers/resolveRouteSeo/index.ts'
 import { resolveSiteUrl } from '@/helpers/resolveSiteUrl/index.ts'
-import { LOCALE_TAGS } from '@/i18n/localeTags/index.ts'
+import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.ts'
 
 import { buildStructuredData } from './buildStructuredData/index.ts'
 
@@ -113,7 +114,10 @@ function publishRouteSeo(): void {
           key: `og:locale:alternate:${locale}`,
           props: {
             property: 'og:locale:alternate',
-            content: LOCALE_TAGS[locale].replaceAll('-', '_')
+            content: localeTag(locale, LOCALE_TAG_OVERRIDES).replaceAll(
+              '-',
+              '_'
+            )
           }
         })),
       { tag: 'meta', props: { property: 'og:site_name', content: SITE.title } },

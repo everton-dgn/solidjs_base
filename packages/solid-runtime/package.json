@@ -90,6 +90,18 @@
     },
     "./theme/create-theme/types": {
       "solid": "./src/theme/createTheme/types.ts"
+    },
+    "./i18n/create-localized-navigate": {
+      "solid": "./src/i18n/createLocalizedNavigate/index.ts"
+    },
+    "./i18n/create-locale-navigation-guard": {
+      "solid": "./src/i18n/createLocaleNavigationGuard/index.ts"
+    },
+    "./i18n/install-locale-history-guard": {
+      "solid": "./src/i18n/installLocaleHistoryGuard/index.ts"
+    },
+    "./i18n/locale-tag": {
+      "solid": "./src/i18n/localeTag/index.ts"
     }
   },
   "scripts": {
@@ -126,6 +138,9 @@
     "vitest": "catalog:",
     "@inlang/paraglide-js": "3.2.2",
     "happy-dom": "21.0.4",
-    "@testing-library/jest-dom": "7.0.1"
+    "@testing-library/jest-dom": "7.0.1",
+    "@solidjs/router": "2.0.0-next.44",
+    "@vitest/browser-playwright": "catalog:",
+    "playwright": "1.65.0"
   }
 }

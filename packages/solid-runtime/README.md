@@ -26,7 +26,7 @@ The entries `./i18n/locale`, `./i18n/urls`, `./i18n/build-locale-alternates` and
 `./middleware/append-vary` provide the locale contract, URL helpers, alternate
 links and Vary header merging.
 
-`./i18n/locale` exports `locales`, `baseLocale`, `getLocale`,
+`./i18n/locale` exports `locales`, `baseLocale`, `getLocale`, `setLocale`,
 `extractLocaleFromUrl`, `localizeHref` and `deLocalizeUrl`, with locales typed
 as strings. Its `localizeHref(href, options?)` follows the provider contract;
 the URL helper entry takes `localizeHref({ href, locale })` and preserves
@@ -36,11 +36,56 @@ The preset supplies `virtual:solid-app/locale` in builds, development and all
 three Vitest projects. With an application translation project it forwards the
 generated runtime. Otherwise the single locale is `language` (default `en`),
 links and URLs remain unprefixed, and URL locale extraction returns undefined.
+`setLocale(locale, { reload? })` forwards the generated provider; without a
+translation project it does nothing, never reloads and keeps `language`.
 Applications using the preset need no locale setup. The tooling app tsconfig
 loads the virtual module declarations.
 
 Runtime tests use an independent three-locale provider (fr, de, ja). They test
 the helper contracts; installed application scenarios test the real providers.
+
+### Navigation and language tags
+
+Each entry is independent, with no barrel:
+
+| Entry point                             | Export                               |
+| --------------------------------------- | ------------------------------------ |
+| `./i18n/create-localized-navigate`      | `createLocalizedNavigate()`          |
+| `./i18n/create-locale-navigation-guard` | `createLocaleNavigationGuard()`      |
+| `./i18n/install-locale-history-guard`   | `installLocaleHistoryGuard(reload?)` |
+| `./i18n/locale-tag`                     | `localeTag(locale?, overrides?)`     |
+
+Call `createLocalizedNavigate` under the application's Router. Its returned
+function takes `{ href, locale?, shouldLocalize?, ...navigateOptions }` and
+preserves relative paths, query strings, fragments, state and replace behavior.
+An explicit different locale, an external URL or `shouldLocalize: false` uses
+document navigation. Router state and scroll options apply only to SPA
+navigation. Call `createLocaleNavigationGuard` at the Router root to cover
+action and query redirects, and install the history guard before mounting the
+Router. Dispose its returned listener cleanup on teardown or HMR.
+
+`localeTag()` reads the provider on each call. It uses `Intl.Locale` to
+canonicalize a BCP 47 tag, preserving scripts, regions and extensions without
+guessing a region or maintaining a locale list. Pass a map keyed by locale to
+override specific tags; missing entries use the locale itself. Invalid tags
+throw the native `RangeError`. Without translations, the default is the preset's
+`language`, or `en` when omitted.
+
+```tsx
+import { createLocalizedNavigate } from '@evertondgn/solid-runtime/i18n/create-localized-navigate'
+import { localeTag } from '@evertondgn/solid-runtime/i18n/locale-tag'
+
+// Inside a component under the Router:
+const navigate = createLocalizedNavigate()
+const goToGuide = () => navigate({ href: '/guide?q=1#intro' })
+const language = localeTag('fr', { fr: 'fr-CA' }) // fr-CA
+```
+
+The application keeps its link component, regional overrides and locale
+switcher. Navigation modules read only the locale seam, with no direct
+translation imports. Their moved DOM and real-browser tests use the generated
+de/fr/ja test project. `@solidjs/router`, like `solid-js`, is supplied by the
+application; this extraction preserves peer dependencies and ownership.
 
 ## Building the chain
 

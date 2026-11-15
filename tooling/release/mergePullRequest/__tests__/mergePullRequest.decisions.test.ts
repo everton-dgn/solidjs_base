@@ -26,6 +26,7 @@ const PULL_REQUEST: PullRequest = {
   baseBranch: 'main',
   isCrossRepository: false,
   mergeStateStatus: 'CLEAN',
+  mergeSha: undefined,
   url: 'https://github.com/everton-dgn/solidjs_base/pull/42'
 }
 

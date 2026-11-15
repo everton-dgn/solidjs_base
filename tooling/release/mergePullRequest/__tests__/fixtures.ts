@@ -85,6 +85,8 @@ function pullRequestJson(pullRequest: FakePullRequest): unknown {
     baseRefName: pullRequest.baseBranch,
     isCrossRepository: pullRequest.isCrossRepository,
     mergeStateStatus: pullRequest.mergeStateStatus,
+    mergeCommit:
+      pullRequest.mergeSha === undefined ? null : { oid: pullRequest.mergeSha },
     url: `https://github.com/everton-dgn/solidjs_base/pull/${pullRequest.number}`
   }
 }
@@ -315,6 +317,7 @@ export type FakePullRequest = {
   baseBranch: string
   isCrossRepository: boolean
   mergeStateStatus: string
+  mergeSha: string | undefined
 }
 
 export type FakeThread = {
@@ -412,7 +415,8 @@ export function featureGitHub(): FakeGitHub {
       headOwner: 'everton-dgn',
       baseBranch: 'main',
       isCrossRepository: false,
-      mergeStateStatus: 'CLEAN'
+      mergeStateStatus: 'CLEAN',
+      mergeSha: undefined
     },
     threadPages: [[]],
     behindBy: 0,

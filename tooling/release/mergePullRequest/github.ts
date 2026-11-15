@@ -42,6 +42,7 @@ const PULL_REQUEST_FIELDS = [
   'baseRefName',
   'isCrossRepository',
   'mergeStateStatus',
+  'mergeCommit',
   'url'
 ].join(',')
 const THREADS_QUERY = `query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
@@ -209,6 +210,7 @@ export function createGitHub(run: RunCommand): GitHub {
         baseBranch: pullRequest.string('baseRefName'),
         isCrossRepository: pullRequest.boolean('isCrossRepository'),
         mergeStateStatus: pullRequest.string('mergeStateStatus'),
+        mergeSha: pullRequest.optionalFields('mergeCommit')?.string('oid'),
         url: pullRequest.string('url')
       }
     },

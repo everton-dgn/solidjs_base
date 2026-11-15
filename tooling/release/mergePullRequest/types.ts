@@ -37,6 +37,7 @@ export type PullRequest = {
   baseBranch: string
   isCrossRepository: boolean
   mergeStateStatus: string
+  mergeSha: string | undefined
   url: string
 }
 

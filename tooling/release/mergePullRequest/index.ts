@@ -21,6 +21,8 @@ type BehindStep = Step & { behindBy: number }
 
 type UpdateStep = Step & { baseSha: string }
 
+type MergedStep = Step & { mergeSha: string; isDryRun: boolean }
+
 // The dry run builds the same commands as a real run, so a write that slips
 // through a branch of the flow fails here instead of reaching GitHub.
 function refuseWrites(run: RunCommand): RunCommand {
@@ -99,6 +101,30 @@ async function dryRun({
   log(`To merge this head: vp run release:merge ${number} --sha ${headSha}`)
 }
 
+// A run that stopped after the merge, at a timeout or a failed read, cannot
+// merge again, so a merged release pull request goes to the publication check.
+async function checkMergedRelease({
+  session,
+  pullRequest,
+  mergeSha,
+  isDryRun
+}: MergedStep): Promise<void> {
+  const { log } = session.environment
+  log(
+    `#${pullRequest.number} was merged as ${shortSha(mergeSha)}. Checking its publication only.`
+  )
+  if (isDryRun) {
+    await describePublication({
+      session,
+      ref: mergeSha,
+      previousRef: `${mergeSha}^1`
+    })
+    return
+  }
+  await verifyPublication({ session, sha: mergeSha })
+  log('The release is published.')
+}
+
 export async function mergePullRequest(request: MergeRequest): Promise<void> {
   const { number, expectedSha, isDryRun, timing, environment } = request
   const { log } = environment
@@ -110,6 +136,15 @@ export async function mergePullRequest(request: MergeRequest): Promise<void> {
     registry: createRegistry(run)
   }
   const pullRequest = await session.github.readPullRequest(number)
+  const { state, mergeSha } = pullRequest
+  if (
+    state === 'MERGED' &&
+    mergeSha !== undefined &&
+    isReleasePullRequest(pullRequest)
+  ) {
+    await checkMergedRelease({ session, pullRequest, mergeSha, isDryRun })
+    return
+  }
   const refusal =
     refusePullRequest(pullRequest) ??
     refuseHead({ pullRequest, expectedSha, isDryRun })

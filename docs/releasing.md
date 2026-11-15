@@ -103,6 +103,10 @@ run, and optional for the others. Without `--dry-run`, the command:
    `.release-please-manifest.json` and the names from the package `package.json`
    at the merge commit.
 
+For a release pull request that is already merged, the command runs only the
+last step, with its merge commit and without `--sha`. Run it again when the
+first run stopped after the merge, at a timeout or a failed read.
+
 Every refusal or failure ends with a message and a nonzero exit code. A `gh` or
 `npm` call that does not finish within 2 minutes is stopped and counts as a
 failed call. While the command waits, a read that fails with an HTTP 5xx or 429

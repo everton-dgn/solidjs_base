@@ -470,6 +470,41 @@ describe('mergePullRequest merge and publication', () => {
     )
   })
 
+  it('checks again the publication of a merged release pull request, without --sha or a write', async () => {
+    for (const isDryRun of [false, true]) {
+      const github = releaseGitHub()
+      github.pullRequest.state = 'MERGED'
+      github.pullRequest.mergeSha = MERGE_SHA
+      const harness = createHarness({ github, isDryRun })
+      const { calls, lines } = harness
+      const request = { ...harness.request, expectedSha: undefined }
+
+      await mergePullRequest(request)
+
+      assert.deepEqual(writes(calls), [])
+      assert.equal(
+        lines[0],
+        '#42 was merged as 0123456. Checking its publication only.'
+      )
+      assert.equal(
+        lines.at(-1),
+        isDryRun
+          ? 'Dry run: would wait for the Release workflow of the merge commit and check @evertondgn/solid-tooling@0.7.0, @evertondgn/solid-runtime@0.7.0 on npm.'
+          : 'The release is published.'
+      )
+    }
+  })
+
+  it('refuses a merged pull request that is not a release', async () => {
+    const github = featureGitHub()
+    github.pullRequest.state = 'MERGED'
+    github.pullRequest.mergeSha = MERGE_SHA
+    const { request, calls } = createHarness({ github })
+
+    await assert.rejects(mergePullRequest(request), /#7 is merged/u)
+    assert.deepEqual(endpoints(calls), ['gh pr view'])
+  })
+
   it('fails when the Release workflow fails, with its link', async () => {
     const github = releaseGitHub()
     github.workflowRuns[MERGE_SHA] = [

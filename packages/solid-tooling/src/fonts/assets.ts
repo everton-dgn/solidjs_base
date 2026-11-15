@@ -86,8 +86,9 @@ function isInside(root: string, file: string): boolean {
   )
 }
 
-// Vite keeps './' only in a client build; it turns every other relative base
-// into an absolute pathname.
+// In a client build Vite keeps './' and turns '' into './'; it warns about any
+// other base that starts with '.' and uses '/', so './' is the only relative
+// base that reaches the plugin.
 function isRelativeBase({ base, ssr }: BaseOptions): boolean {
   if (base !== RELATIVE_BASE) return false
   if (ssr !== false) {

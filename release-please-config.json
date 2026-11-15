@@ -8,6 +8,7 @@
   "tag-separator": "@",
   "bump-minor-pre-major": true,
   "packages": {
-    "packages/solid-tooling": {}
+    "packages/solid-tooling": {},
+    "packages/solid-runtime": {}
   }
 }

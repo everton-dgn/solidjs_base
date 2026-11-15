@@ -100,8 +100,7 @@ export const lint: NonNullable<UserConfig['lint']> = {
         'src/**/*.node.test.{ts,tsx}',
         'src/tests/pages/**/*.e2e.test.ts',
         'src/tests/helpers/readSiteOrigin/index.ts',
-        'src/tests/fixtures/e2e/routes/publication-probe/metrics.ts',
-        'src/infra/server/publicationScope/index.ts'
+        'src/tests/fixtures/e2e/routes/publication-probe/metrics.ts'
       ],
       rules: { 'import/no-nodejs-modules': 'off' }
     },
@@ -120,7 +119,6 @@ export const lint: NonNullable<UserConfig['lint']> = {
         'src/**/*.test.{ts,tsx}',
         'src/tests/**/*.{ts,tsx}',
         'tooling/**/__tests__/**/*.ts',
-        'tooling/i18n/i18nPlugin/index.ts',
         'vite.config.ts'
       ],
       rules: { 'eslint/max-params': 'off' }
@@ -138,11 +136,7 @@ export const lint: NonNullable<UserConfig['lint']> = {
       }
     },
     {
-      files: [
-        'src/@types/solid.d.ts',
-        'src/@types/env.d.ts',
-        'src/@types/router.d.ts'
-      ],
+      files: ['src/@types/solid.d.ts', 'src/@types/env.d.ts'],
       rules: {
         'import/no-unassigned-import': 'off',
         // These declarations extend third-party interfaces through declaration

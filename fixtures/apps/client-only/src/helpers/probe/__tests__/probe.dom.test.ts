@@ -5,3 +5,11 @@ describe('application location', () => {
     expect(globalThis.location.pathname).toBe('/')
   })
 })
+
+describe('packaged DOM matchers', () => {
+  it('registers matchers without an application dependency', () => {
+    const element = document.createElement('p')
+    element.textContent = 'Packaged DOM matchers'
+    expect(element).toHaveTextContent('Packaged DOM matchers')
+  })
+})

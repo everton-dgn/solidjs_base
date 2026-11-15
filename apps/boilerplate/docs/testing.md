@@ -14,14 +14,15 @@ names: `Name[.qualifier].environment.test.ts(x)` in `src`, with the `node`,
 `dom`, `browser` or `e2e` environment; `Name[.qualifier].test-d.ts(x)` for
 type-only tests; and `Name[.qualifier].test.ts` in `tooling`. `Name` is the
 exact subject, which by default is the folder that contains `__tests__`, such as
-`isTheme` in `helpers/isTheme/__tests__/isTheme.node.test.ts`; subjects with a
-dot, such as `llms.txt`, are valid too. Qualifiers are separated by a dot, start
-with a lowercase letter and continue in camelCase, as in
-`Home.themeCss.e2e.test.ts`. Suites without a colocated module, such as those of
-`src/__tests__/` and `tooling/__tests__/`, and each page in
-`src/tests/pages/<Folder>/` declare their subjects in the `subjects` map of that
-file. The first E2E suite of a new page requires the matching entry, and the
-files of those folders use only the `e2e` environment.
+`isTheme` in the runtime package at
+`src/theme/isTheme/__tests__/isTheme.node.test.ts`; subjects with a dot, such as
+`llms.txt`, are valid too. Qualifiers are separated by a dot, start with a
+lowercase letter and continue in camelCase, as in `Home.themeCss.e2e.test.ts`.
+Suites without a colocated module, such as those of `src/__tests__/` and
+`tooling/__tests__/`, and each page in `src/tests/pages/<Folder>/` declare their
+subjects in the `subjects` map of that file. The first E2E suite of a new page
+requires the matching entry, and the files of those folders use only the `e2e`
+environment.
 
 Long suites can be split by responsibility using the qualifiers of the name. The
 shared setup lives in `fixtures.ts` inside the same `__tests__`; shared types
@@ -70,14 +71,20 @@ one of them in Vitest would fail on `expect.requireAssertions`, because
 
 The `node` and `dom` projects use `pool: 'threads'` and `css: false`. The `node`
 project does not load happy-dom or the component plugins. The `dom` project
-loads happy-dom, Solid and icons, without Nitro or the SSR configuration.
-`@solidjs/vite-plugin` registers the `@testing-library/jest-dom` matchers in
-that project, without a `setupFiles` of its own, and the types come from
-`tsconfig.json`. The injection only happens in DOM projects outside the browser
-mode, such as `happy-dom`, and is skipped when some `setupFiles` has `jest-dom`
-in its path. The `browser` project uses Chromium with CSS enabled and the same
-Lightning CSS as the application. Import the CSS in the test when you need to
-check styles.
+loads happy-dom, Solid and icons, without Nitro or the SSR configuration. The
+preset resolves `@testing-library/jest-dom/vitest` from its own installation and
+loads it as the DOM project's setup file. The Solid plugin skips its own
+automatic injection because that setup path already includes `jest-dom`. Types
+come from the inherited `tsconfig.json`. The `browser` project uses Chromium
+with CSS enabled and the same Lightning CSS as the application. Import the CSS
+in the test when you need to check styles.
+
+The tooling package supplies the Vitest providers, DOM environment, matchers and
+Playwright executable. This application's E2E files import `@playwright/test`
+directly, so its declaration stays aligned with the tooling version. Type
+declarations come from the package-owned `app-env.d.ts` and `node-env.d.ts`
+loaded by the inherited tsconfig. Do not add `types: ["node"]` to a derived
+config.
 
 Locally, the browser and E2E tests use the Chromium installed by Playwright.
 With `CI=true`, they use the Chrome of the runner through the `chrome` channel.
@@ -123,17 +130,18 @@ In the tests, import from `vite-plus/test` instead of `vitest` (the
 isolated linker of Bun creates more than one copy of `vitest` and of the
 `@vitest/*` packages in the store, because of the peer cycle between them
 ([oven-sh/bun#46208](https://github.com/oven-sh/bun/issues/46208)): the copies
-of `@vitest/browser-playwright` and `@vitest/coverage-v8` linked at the root
-point to a `vitest` different from the one that runs. Through `vite-plus`, each
-process loads a single copy of `vitest`; that is why the provider comes from
-`vite-plus/test/browser-playwright`, and a direct import of
+of `@vitest/browser-playwright` and `@vitest/coverage-v8` resolved separately
+can point to a `vitest` different from the one that runs. Through `vite-plus`,
+each process loads a single copy of `vitest`; that is why the provider comes
+from `vite-plus/test/browser-playwright`, and a direct import of
 `@vitest/browser-playwright` would bring the second one. Several `vitest@`
 entries in `node_modules/.bun` are expected until Bun publishes the fix
 ([oven-sh/bun#46454](https://github.com/oven-sh/bun/pull/46454)). The request
 context of the middlewares is tested with `provideRequestEvent` from
-`@solidjs/web/storage`. Each middleware of `src/middleware/` has its own suite
-in `__tests__/`, and `src/middleware/__tests__/middleware.node.test.ts` covers
-the default export and the chain built by `createMiddleware`.
+`@solidjs/web/storage`. Containment and its 54 cases live in the runtime
+package, alongside the chain and entry-helper tests. The application retains its
+Markdown suites, and `src/middleware/__tests__/middleware.node.test.ts` covers
+the default export and the configured package chain through 18 cases.
 
 ## Full application tests
 

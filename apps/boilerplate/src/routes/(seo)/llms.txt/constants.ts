@@ -1,9 +1,7 @@
 import { localizeHref } from '@evertondgn/solid-runtime/i18n/urls'
+import type { LlmsPage } from '@evertondgn/solid-runtime/seo/llms-types'
+import { LLMS_FULL_PATH } from '@evertondgn/solid-runtime/server/publication-protocol'
 import { baseLocale, locales, type Locale } from '@paraglide/runtime.js'
-
-import { LLMS_FULL_PATH } from '@/constants/llms.ts'
-
-import type { LlmsPage } from './types.ts'
 
 // As notas são em inglês, então os idiomas também são nomeados em inglês.
 const LANGUAGE_NAMES = new Intl.DisplayNames(['en'], { type: 'language' })

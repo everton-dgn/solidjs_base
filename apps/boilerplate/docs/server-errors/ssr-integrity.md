@@ -4,14 +4,18 @@
 
 ## SSR integrity for Markdown
 
-The entry creates the state with `createRenderIntegrity()`, from
-[renderIntegrity](../../src/infra/server/renderIntegrity/index.ts), and stores
-it in `event.locals.ssrRenderState` before calling `renderToStream`. The state
-is read-only: the `configureServerErrors` hook sets `hasErrors` through
-`markRenderFailure` when it receives a failure with `kind: "render"`, and
-`onCompleteAll` sets `hasCompleted` through the `complete` function of the same
-factory. A state created outside it is not marked. Control signals mark it too:
-a `redirect()` or `respond()` thrown in the render and caught by a nested
+The entry calls `createRenderOptions()` from
+`@evertondgn/solid-runtime/server/create-render-options` before rendering. That
+helper creates the state with `createRenderIntegrity()`, from
+[renderIntegrity](../../../../packages/solid-runtime/src/infra/server/renderIntegrity/index.ts),
+and stores it in `event.locals.ssrRenderState` before the entry calls
+`renderToStream`. Its returned options carry the request nonce, signal and
+completion callback; the authored Document/App tree stays in the application.
+The state is read-only: the `configureServerErrors` hook sets `hasErrors`
+through `markRenderFailure` when it receives a failure with `kind: "render"`,
+and `onCompleteAll` sets `hasCompleted` through the `complete` function of the
+same factory. A state created outside it is not marked. Control signals mark it
+too: a `redirect()` or `respond()` thrown in the render and caught by a nested
 `<Errored>` becomes a fallback with a 200 HTML response. Since
 [solidjs/solid#4130](https://github.com/solidjs/solid/pull/4130), the hook
 receives each error once per kind in each request. A server function failure
@@ -129,6 +133,7 @@ they settle. Common operations, outside that context, keep the previous
 behavior. `containFailures` recognizes that rejection by identity with
 `signal.reason`, so the reason has to arrive unwrapped; otherwise, the
 cancellation goes back to the `[middleware]` log. The regression tests are in
-`markdownContent.abort.node.test.ts`, `containFailures.abort.node.test.ts`,
+`markdownContent.abort.node.test.ts` in the application,
+`containFailures.abort.node.test.ts` in the runtime,
 `publicationScope.node.test.ts` and the HTTP disconnection scenario of
 `PublicationLoad`. When upgrading Solid, check this contract too.

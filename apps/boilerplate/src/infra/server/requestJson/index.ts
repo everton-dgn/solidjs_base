@@ -1,7 +1,6 @@
 import 'server-only'
+import { protectServerOperation } from '@evertondgn/solid-runtime/server/protect-server-operation'
 import * as v from 'valibot'
-
-import { protectServerOperation } from '../protectServerOperation/index.ts'
 
 type RequestJsonOptions<T> = {
   url: string | URL

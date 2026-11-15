@@ -17,11 +17,12 @@ function localeRequestSource({ root }: LocaleOptions): string {
 
 export function localeSource({ root, language = 'en' }: LocaleOptions): string {
   if (hasI18n(root)) {
-    return `export { locales, baseLocale, getLocale, extractLocaleFromUrl, localizeHref, deLocalizeUrl } from ${JSON.stringify(path.join(root, 'paraglide/runtime.js'))}`
+    return `export { locales, baseLocale, getLocale, setLocale, extractLocaleFromUrl, localizeHref, deLocalizeUrl } from ${JSON.stringify(path.join(root, 'paraglide/runtime.js'))}`
   }
   return `export const baseLocale = ${JSON.stringify(language)}
 export const locales = [baseLocale]
 export const getLocale = () => baseLocale
+export const setLocale = () => undefined
 export const extractLocaleFromUrl = () => undefined
 export const localizeHref = href => href
 export const deLocalizeUrl = url => url instanceof URL ? url : new URL(typeof url === 'string' ? url : url.href)
@@ -32,12 +33,30 @@ export function localeModule(options: LocaleOptions): Plugin {
   return {
     name: 'solid-app:locale',
     resolveId: id => {
+      if (id === 'virtual:solid-app/locale-context') {
+        return '\0solid-app:locale-context'
+      }
+      if (id === 'virtual:solid-app/request-middleware') {
+        return '\0solid-app:request-middleware'
+      }
       if (id === 'virtual:solid-app/locale-request') {
         return '\0solid-app:locale-request'
       }
       return id === MODULE_ID ? RESOLVED_ID : undefined
     },
     load: id => {
+      if (id === '\0solid-app:locale-context') {
+        if (!hasI18n(options.root)) {
+          return `export const requestLocale = () => ${JSON.stringify(options.language ?? 'en')}; export const withLocaleContext = ({run}) => Promise.resolve().then(run)`
+        }
+        return `import { extractLocaleFromRequest } from ${JSON.stringify(path.join(options.root, 'paraglide/runtime.js'))}; import { paraglideMiddleware } from ${JSON.stringify(path.join(options.root, 'paraglide/server.js'))}; export const requestLocale = extractLocaleFromRequest; export const withLocaleContext = ({url, run}) => paraglideMiddleware(new Request(url), run)`
+      }
+      if (id === '\0solid-app:request-middleware') {
+        // Keep the request provider out of applications without translations.
+        return hasI18n(options.root)
+          ? "export { createLocalizeRequest as createRequestLocale } from '@evertondgn/solid-runtime/middleware/localize-request'"
+          : 'export const createRequestLocale = () => ({ next }) => next()'
+      }
       if (id === '\0solid-app:locale-request') {
         return localeRequestSource(options)
       }

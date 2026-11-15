@@ -33,7 +33,7 @@ const COMMAND_TIMEOUT = 120_000
 // These protocols only resolve inside the workspace; in a published package
 // the application install would fail.
 const WORKSPACE_PROTOCOLS = ['catalog:', 'workspace:']
-const SHARED_VERSIONS = ['typescript', 'vite-plus']
+const SHARED_VERSIONS = ['vite', 'vite-plus']
 const EXPECTED: Expected[] = [
   { filename: 'src/helpers/export-list.ts', code: 'project(no-export-list)' },
   {
@@ -148,6 +148,18 @@ function install({ app, tarball }: Installation): void {
     })
   )
   run({ file: VP, args: ['install'], cwd: app })
+  assert.equal(
+    existsSync(path.join(app, 'lefthook.yml')),
+    false,
+    'Dependency installation must not generate a hook config'
+  )
+  for (const name of ['lefthook', 'commitlint', 'tsc']) {
+    assert.equal(
+      existsSync(path.join(app, 'node_modules/.bin', name)),
+      false,
+      `${name} must resolve from the tooling package`
+    )
+  }
 }
 
 function lint(app: string): Diagnostic[] {
@@ -176,12 +188,22 @@ function lefthook(app: string, args: string[]): SpawnSyncReturns<string> {
   const binaries = path.join(app, 'node_modules/.bin')
   // The shared jobs call `vp`: the application's own binary answers, with or
   // without the global CLI on the machine.
-  return spawnSync(path.join(binaries, 'lefthook'), args, {
-    cwd: app,
-    encoding: 'utf8',
-    timeout: COMMAND_TIMEOUT,
-    env: { ...env, PATH: `${binaries}${path.delimiter}${env.PATH ?? ''}` }
-  })
+  return spawnSync(
+    path.join(binaries, 'vp'),
+    [
+      'exec',
+      'node',
+      'node_modules/@evertondgn/solid-tooling/dist/cli.mjs',
+      'lefthook',
+      ...args
+    ],
+    {
+      cwd: app,
+      encoding: 'utf8',
+      timeout: COMMAND_TIMEOUT,
+      env: { ...env, PATH: `${binaries}${path.delimiter}${env.PATH ?? ''}` }
+    }
+  )
 }
 
 function sharedHooks(app: string): string[] {
@@ -194,7 +216,13 @@ function sharedHooks(app: string): string[] {
 function checkCommitMessage({ app, message }: CommitMessage): number | null {
   const file = path.join(app, 'COMMIT_EDITMSG')
   writeFileSync(file, `${message}\n`)
-  return lefthook(app, ['run', 'commit-msg', file]).status
+  const binaries = path.join(app, 'node_modules/.bin')
+  return spawnSync(path.join(app, '.git/hooks/commit-msg'), [file], {
+    cwd: app,
+    encoding: 'utf8',
+    timeout: COMMAND_TIMEOUT,
+    env: { ...env, PATH: `${binaries}${path.delimiter}${env.PATH ?? ''}` }
+  }).status
 }
 
 function isFile(diagnostic: Diagnostic, filename: string): boolean {
@@ -262,6 +290,8 @@ test('the application extends the shared hooks and the commitlint config', conte
   install({ app, tarball: pack(directory) })
   // Lefthook finds its config from the root of a Git repository.
   run({ file: 'git', args: ['init', '--quiet'], cwd: app })
+  const installed = lefthook(app, ['install'])
+  assert.equal(installed.status, 0, installed.stderr)
 
   assert.deepEqual(sharedHooks(app), SHARED_HOOKS)
   assert.equal(checkCommitMessage({ app, message: ACCEPTED_MESSAGE }), 0)

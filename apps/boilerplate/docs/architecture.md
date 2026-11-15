@@ -117,9 +117,9 @@ the controller stay in the file itself.
 `data/errorApi/` (normalization of domain errors from APIs) are conventions for
 the first consumers and do not have modules yet. Public errors that only the
 server uses are in
-[`infra/server/publicErrors/`](../src/infra/server/publicErrors/index.ts), next
-to the protection of the backend operations; requests and persistence live in
-`infra/`.
+[`@evertondgn/solid-runtime/server/public-errors`](../../../packages/solid-runtime/src/infra/server/publicErrors/index.ts),
+next to the protection of the backend operations; requests and persistence live
+in `infra/`.
 
 ## Component layers
 

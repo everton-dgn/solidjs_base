@@ -1,7 +1,6 @@
 {
   "name": "@evertondgn/solid-runtime",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "Runtime code for SolidJS applications built with Vite+, shipped as TypeScript source.",
   "author": "Éverton Toffanetto",
   "license": "MIT",
@@ -10,13 +9,44 @@
     "url": "git+https://github.com/everton-dgn/solidjs_base.git",
     "directory": "packages/solid-runtime"
   },
+  "keywords": [
+    "solidjs",
+    "solid",
+    "vite",
+    "vite-plus",
+    "nitro",
+    "ssr",
+    "middleware",
+    "csp",
+    "security-headers",
+    "i18n",
+    "paraglide",
+    "seo",
+    "json-ld",
+    "sitemap",
+    "robots-txt",
+    "theme",
+    "dark-mode",
+    "server-errors"
+  ],
   "type": "module",
   "files": [
     "src",
-    "!src/**/__tests__"
+    "!src/**/__tests__",
+    "!src/tests"
   ],
   "sideEffects": [],
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
+    "./fonts/font-links": {
+      "solid": "./src/fonts/FontLinks/index.tsx"
+    },
+    "./env": {
+      "types": "./src/env/index.d.ts",
+      "default": "./src/env/index.js"
+    },
     "./middleware/api-routes": {
       "solid": "./src/middleware/apiRoutes/index.ts"
     },
@@ -59,6 +89,148 @@
     },
     "./i18n/localized-redirect": {
       "solid": "./src/i18n/localizedRedirect/index.ts"
+    },
+    "./theme/is-theme": {
+      "solid": "./src/theme/isTheme/index.ts"
+    },
+    "./theme/apply-theme": {
+      "solid": "./src/theme/applyTheme/index.ts"
+    },
+    "./theme/theme-storage": {
+      "solid": "./src/theme/themeStorage/index.ts"
+    },
+    "./theme/make-system-theme": {
+      "solid": "./src/theme/makeSystemTheme/index.ts"
+    },
+    "./theme/make-theme-channel": {
+      "solid": "./src/theme/makeThemeChannel/index.ts"
+    },
+    "./theme/make-broadcast-channel": {
+      "solid": "./src/theme/makeBroadcastChannel/index.ts"
+    },
+    "./theme/create-theme": {
+      "solid": "./src/theme/createTheme/index.ts"
+    },
+    "./theme/define-theme": {
+      "solid": "./src/theme/defineTheme/index.ts"
+    },
+    "./theme/types": {
+      "solid": "./src/theme/types.ts"
+    },
+    "./theme/create-theme/types": {
+      "solid": "./src/theme/createTheme/types.ts"
+    },
+    "./i18n/create-localized-navigate": {
+      "solid": "./src/i18n/createLocalizedNavigate/index.ts"
+    },
+    "./i18n/create-locale-navigation-guard": {
+      "solid": "./src/i18n/createLocaleNavigationGuard/index.ts"
+    },
+    "./i18n/install-locale-history-guard": {
+      "solid": "./src/i18n/installLocaleHistoryGuard/index.ts"
+    },
+    "./i18n/locale-tag": {
+      "solid": "./src/i18n/localeTag/index.ts"
+    },
+    "./server/is-control-response": {
+      "solid": "./src/infra/server/isControlResponse/index.ts"
+    },
+    "./server/log-server-failure": {
+      "solid": "./src/infra/server/logServerFailure/index.ts"
+    },
+    "./server/render-integrity": {
+      "solid": "./src/infra/server/renderIntegrity/index.ts"
+    },
+    "./server/public-errors": {
+      "solid": "./src/infra/server/publicErrors/index.ts"
+    },
+    "./server/publication-scope": {
+      "solid": "./src/infra/server/publicationScope/index.ts"
+    },
+    "./server/protect-server-operation": {
+      "solid": "./src/infra/server/protectServerOperation/index.ts"
+    },
+    "./server/configure-server-errors": {
+      "solid": "./src/infra/server/configureServerErrors/index.ts"
+    },
+    "./middleware/create-middleware": {
+      "solid": "./src/middleware/createMiddleware/index.ts"
+    },
+    "./middleware/contain-failures": {
+      "solid": "./src/middleware/containFailures/index.ts"
+    },
+    "./server/create-render-options": {
+      "solid": "./src/infra/server/createRenderOptions/index.ts"
+    },
+    "./i18n/prepare-client-locale": {
+      "solid": "./src/i18n/prepareClientLocale/index.ts"
+    },
+    "./seo/create-seo": {
+      "solid": "./src/seo/createSeo/index.ts"
+    },
+    "./seo/resolve-route-seo": {
+      "solid": "./src/seo/resolveRouteSeo/index.ts"
+    },
+    "./seo/create-robots": {
+      "solid": "./src/seo/createRobots/index.ts"
+    },
+    "./seo/robots-route": {
+      "solid": "./src/seo/robotsRoute/index.ts"
+    },
+    "./seo/types": {
+      "solid": "./src/seo/types.ts"
+    },
+    "./seo/origin": {
+      "solid": "./src/seo/origin/index.ts"
+    },
+    "./server/publication": {
+      "solid": "./src/infra/server/publication/index.ts"
+    },
+    "./server/publication-types": {
+      "solid": "./src/infra/server/publication/types.ts"
+    },
+    "./server/publication-phase": {
+      "solid": "./src/infra/server/readPublicationPhase/index.ts"
+    },
+    "./routing/walk-static-routes": {
+      "solid": "./src/routing/walkStaticRoutes/index.ts"
+    },
+    "./routing/types": {
+      "solid": "./src/routing/walkStaticRoutes/types.ts"
+    },
+    "./seo/sitemap-types": {
+      "solid": "./src/seo/sitemap/source-types.ts"
+    },
+    "./seo/sitemap-routes": {
+      "solid": "./src/seo/sitemap/helpers/sitemapRoutes/index.ts"
+    },
+    "./server/publication-protocol": {
+      "types": "./src/infra/server/publication/protocol.d.ts",
+      "default": "./src/infra/server/publication/protocol.js"
+    },
+    "./seo/markdown": {
+      "solid": "./src/seo/markdown/index.ts"
+    },
+    "./seo/markdown-route": {
+      "solid": "./src/seo/markdownRoute/index.ts"
+    },
+    "./seo/convert-html": {
+      "solid": "./src/seo/markdown/helpers/convertHtml/index.ts"
+    },
+    "./seo/markdown-types": {
+      "solid": "./src/seo/markdown/types.ts"
+    },
+    "./seo/llms": {
+      "solid": "./src/seo/llms/index.ts"
+    },
+    "./seo/llms-types": {
+      "solid": "./src/seo/llms/types.ts"
+    },
+    "./i18n/locale-context": {
+      "solid": "./src/i18n/localeContext/index.ts"
+    },
+    "./seo/collect-static-markdown-pages": {
+      "solid": "./src/seo/markdown/helpers/collectStaticMarkdownPages/index.ts"
     }
   },
   "scripts": {
@@ -68,24 +240,12 @@
     "test:tarball": "node --test --test-timeout=120000 tooling/tarball/__tests__/tarball.test.ts"
   },
   "peerDependencies": {
-    "@solidjs/vite-plugin": "3.0.0-next.57",
-    "@solidjs/web": "2.0.0-rc.21",
-    "filesystem-routing": "0.5.0"
-  },
-  "peerDependenciesMeta": {
-    "@solidjs/vite-plugin": {
-      "optional": true
-    },
-    "filesystem-routing": {
-      "optional": true
-    }
+    "@solidjs/web": "2.0.0-rc.21"
   },
   "devDependencies": {
-    "@solidjs/vite-plugin": "3.0.0-next.57",
     "@solidjs/web": "2.0.0-rc.21",
     "@types/node": "24.19.2",
     "@vitest/coverage-v8": "catalog:",
-    "filesystem-routing": "0.5.0",
     "knip": "6.45.1",
     "nitro": "3.0.261103-rc",
     "solid-js": "2.0.0-rc.21",
@@ -93,6 +253,21 @@
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vitest": "catalog:",
-    "@inlang/paraglide-js": "3.2.2"
+    "@inlang/paraglide-js": "3.2.2",
+    "happy-dom": "21.0.4",
+    "@testing-library/jest-dom": "7.0.1",
+    "@solidjs/router": "2.0.0-next.44",
+    "@vitest/browser-playwright": "catalog:",
+    "playwright": "1.65.0"
+  },
+  "dependencies": {
+    "valibot": "catalog:",
+    "@solidjs/vite-plugin": "3.0.0-next.57",
+    "filesystem-routing": "0.5.0",
+    "schema-dts": "catalog:",
+    "@mdream/js": "catalog:"
+  },
+  "imports": {
+    "#solid-runtime/*": "./src/*"
   }
 }

@@ -1,25 +1,5 @@
-import * as v from 'valibot'
+import { serverEnv } from '@evertondgn/solid-runtime/env'
 
-const MAX_PORT = 65_535
-
-const env = {
-  server: {
-    HOST: v.optional(v.pipe(v.string(), v.nonEmpty())),
-    PORT: v.optional(
-      v.pipe(
-        v.string(),
-        v.regex(/^\d+$/u),
-        v.toNumber(),
-        v.integer(),
-        v.minValue(0),
-        v.maxValue(MAX_PORT)
-      )
-    ),
-    BASE_URL_TEST: v.optional(v.pipe(v.string(), v.url()))
-  },
-  client: {
-    VITE_SITE_URL: v.pipe(v.string(), v.url())
-  }
-}
+const env = { server: { ...serverEnv } }
 
 export default env

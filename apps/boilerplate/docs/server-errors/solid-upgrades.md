@@ -4,6 +4,11 @@
 
 ## Upgrading Solid
 
+The shared registration and protection live in
+`packages/solid-runtime/src/infra/server/`. The application's
+`src/infra/server/configureServerErrors/index.ts` remains the `serverSetup`
+entry and supplies the catalog callback to the package configurator.
+
 Check the dependencies of [package.json](../../package.json), the `catalog` of
 the [root package.json](../../../../package.json) and the resolution in
 [bun.lock](../../../../bun.lock). `vp toolchain` shows the tools of the active

@@ -1,6 +1,7 @@
 # 0015. The commitlint config and the Git hooks ship in the tooling package
 
-- Status: Accepted
+- Status: Accepted; tool dependency ownership superseded by
+  [0027](0027-packaged-tool-dependencies.md)
 - Date: 2026-11-13
 
 ## Context

@@ -1,4 +1,1 @@
-import { createIndexRoute } from '@/routes/(seo)/sitemap/helpers/sitemapRoutes/index.ts'
-import { fixtureSitemapSources } from '@/tests/fixtures/e2e/sitemapSources/index.ts'
-
-export const GET = createIndexRoute(fixtureSitemapSources)
+export { index as GET } from '@/tests/fixtures/e2e/sitemap/index.ts'

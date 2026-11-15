@@ -4,11 +4,11 @@
 
 An application built from boilerplate_solidjs takes code from three places.
 
-| Place                       | Content                                                                                                                                                                                                                                                                                                                                           | Shipped as                          |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `@evertondgn/solid-tooling` | Lint preset, the `project`, `backend`, `architecture` and `solid` lint plugins, formatter preset, TypeScript configs, Vitest and Playwright configs, Knip and Stylelint configs, the `defineSolidApp()` preset for Vite and Nitro, the commitlint config and the Git hooks                                                                        | Compiled JavaScript with type files |
-| `@evertondgn/solid-runtime` | Today, the middleware steps: security headers and CSP, API routes, page methods, request classification, page format and Vary merging; locale requests, cookie persistence, localized redirects and URL helpers. Planned: server errors, theme logic, primitives, SEO, Markdown pages, and the sitemap, robots and llms.txt handlers as factories | TypeScript source                   |
-| The application             | Pages, UI components, message catalogs, the theme palette, `App`, `Document`, the `entry-*` pair, a thin middleware, one-line SEO routes, version pins and patches                                                                                                                                                                                | Its own repository                  |
+| Place                       | Content                                                                                                                                                                                                                                                                                                                                                        | Shipped as                          |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `@evertondgn/solid-tooling` | Lint preset, the `project`, `backend`, `architecture` and `solid` lint plugins, formatter preset, TypeScript configs, Vitest and Playwright configs, Knip and Stylelint configs, the `defineSolidApp()` preset for Vite and Nitro, the commitlint config and the Git hooks                                                                                     | Compiled JavaScript with type files |
+| `@evertondgn/solid-runtime` | Today, the middleware steps: security headers and CSP, API routes, page methods, request classification, page format and Vary merging; locale requests, cookie persistence, localized redirects and URL helpers. Configurable theme logic. Planned: server errors, primitives, SEO, Markdown pages, and the sitemap, robots and llms.txt handlers as factories | TypeScript source                   |
+| The application             | Pages, UI components, message catalogs, the theme palette, `App`, `Document`, the `entry-*` pair, a thin middleware, one-line SEO routes, version pins and patches                                                                                                                                                                                             | Its own repository                  |
 
 The two packages ship in different forms because of how each one runs. See
 [ADR 0002](ADRs/0002-compiled-tooling-package.md) and
@@ -76,14 +76,15 @@ upgrades either one needs a package version tested with the new version.
 `./vite` builds the whole `vite.config.ts` of an application and loads
 `@solidjs/vite-plugin`, `nitro`, `filesystem-routing` and `unplugin-icons` with
 `import()` inside `lazyPlugins`, so lint and format runs never load them. They
-are optional peer dependencies, pinned the same way, and the application keeps
-them as direct dependencies: Bun applies `overrides` and patches only from the
-root `package.json` of the application. Code that is still in the application,
-such as the i18n plugin and the publication artifacts, enters through the
-`extend` option. [ADR 0012](ADRs/0012-application-config-preset.md) records the
+are package dependencies pinned to the tested versions. The application keeps
+its own direct imports and its root `overrides` and patches, which also apply to
+transitive packages. Publication artifacts and the catalog plugin belong to the
+preset. Additional application-specific plugins enter through `extend`.
+[ADR 0027](ADRs/0027-packaged-tool-dependencies.md) records dependency
+ownership. [ADR 0012](ADRs/0012-application-config-preset.md) records the
 options and what stays out of them. Each feature is turned on only when the
 application uses it: `ssr: false` builds a client-only application without
-Nitro, the rules of the published files need `publication: true`, and the
+Nitro, independent `seo` options enable publication artifacts and rules, and the
 Paraglide task, test setup and lint plugin follow the presence of Paraglide
 ([ADR 0016](ADRs/0016-optional-application-features.md)).
 
@@ -101,17 +102,22 @@ middleware steps; the application keeps the file that joins them and picks the
 steps, so translations and Markdown stay optional
 ([ADR 0018](ADRs/0018-runtime-package-middleware.md)).
 
-- Each module has its own entry point, with only the `solid` condition, pointing
-  to the `.ts` file. There is no barrel, so a module the application does not
-  import never enters its build.
+- Each TypeScript module has its own entry point, with only the `solid`
+  condition, pointing to the `.ts` file. There is no barrel, so a module the
+  application does not import never enters its build.
 - The security step is a factory, `createSecurityHeaders`, whose `headers` and
   `cspDirectives` options replace the default values. The application calls it
   once and every step that writes a response uses that instance
   ([ADR 0019](ADRs/0019-runtime-security-headers-options.md)).
-- The default header values are the exception to the `.ts` entries:
+- The default header values are one exception to the `.ts` entries:
   `constants.js` with `constants.d.ts`, under `types` and `default`, because the
   application module that spreads them is loaded by `vite.config.ts` through
   Node, which refuses TypeScript inside `node_modules`.
+- `./env` also uses plain JavaScript and a handwritten declaration, under
+  `types` and `default`. Its optional schemas load in Node, Vite's module runner
+  and the server bundle. Valibot belongs to the runtime dependencies; the
+  application keeps the tooling in `devDependencies`
+  ([ADR 0030](ADRs/0030-packaged-environment-schemas.md)).
 - `sideEffects` is an empty list. A module with an intended effect, such as a
   client entry, has to enter it; `false` would let the build drop that module
   without an error.

@@ -2,6 +2,7 @@ export {
   locales,
   baseLocale,
   getLocale,
+  setLocale,
   extractLocaleFromUrl,
   localizeHref,
   deLocalizeUrl

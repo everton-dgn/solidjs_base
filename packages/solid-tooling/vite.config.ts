@@ -24,7 +24,10 @@ export default defineConfig({
       lint: 'src/lint.ts',
       fmt: 'src/fmt.ts',
       commitlint: 'src/commitlint/index.ts',
+      cli: 'src/cli/index.ts',
       'project-plugin': 'src/project-plugin.ts',
+      'publication/read-llms-index':
+        'src/publication/markdownPrerender/helpers/readLlmsIndex/index.ts',
       'backend-plugin': 'src/backendPolicy/plugin.ts',
       'architecture-plugin': 'src/architecturePolicy/index.ts',
       'css-filename': 'src/css/css-filename.ts',
@@ -32,6 +35,7 @@ export default defineConfig({
       stylelint: 'src/stylelint/index.ts',
       'solid-plugin': 'src/solid-plugin.ts',
       vite: 'src/vite/index.ts',
+      'i18n-generate': 'src/i18n/generate.ts',
       vitest: 'src/vitest/index.ts',
       'vitest-setup/browser': 'src/vitest/setup/browser.ts',
       playwright: 'src/playwright/index.ts',
@@ -47,6 +51,7 @@ export default defineConfig({
         ...exports,
         './tsconfig.base.json': './tsconfig.base.json',
         './tsconfig.app.json': './tsconfig.app.json',
+        './app-env': { types: './app-env.d.ts' },
         './virtual-modules': { types: './virtual-modules.d.ts' },
         './lefthook.yml': './lefthook.yml'
       })

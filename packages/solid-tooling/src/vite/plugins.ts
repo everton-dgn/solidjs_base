@@ -3,8 +3,12 @@ import path from 'node:path'
 
 import { lazyPlugins, type PluginOption } from 'vite-plus'
 
-import { I18N_SETTINGS } from '../has-i18n.ts'
+import { fontsPlugin } from '../fonts/index.ts'
+import { hasI18n, I18N_SETTINGS } from '../has-i18n.ts'
 import { localeModule } from '../locale-module.ts'
+import type { publicationBuild } from '../publication/index.ts'
+import { seoModule } from '../seo-module.ts'
+import { staticFilePaths } from './static-paths.ts'
 import type {
   ExtensionContext,
   ServerAppOptions,
@@ -17,23 +21,15 @@ type TargetInput = { options: SolidAppOptions; mode: string }
 type ServerTargetInput = { options: ServerAppOptions; mode: string }
 type ExtensionInput = TargetInput & Pick<ExtensionContext, 'target'>
 type PluginSetup = {
+  i18n: PluginOption[]
   modules: PluginModules
   extension: SolidAppExtension
   options: SolidAppOptions
   mode: string
 }
 type IconsInput = { modules: PluginModules; options: SolidAppOptions }
-type StaticPathsInput = { options: ServerAppOptions; locales: string[] }
-type LocalePathInput = { staticPath: string; locales: string[] }
 
 const ROUTE_TYPES = 'src/@types/routes.d.ts'
-const SEO_FILE_PATHS = [
-  '/llms.txt',
-  '/llms-full.txt',
-  '/sitemap.xml',
-  '/sitemaps/pages/**',
-  '/_markdown/static.json'
-]
 
 // The plugins are imported only when Vite really runs. vp lint, fmt, check,
 // staged and the editor tooling read the config without paying that cost or
@@ -59,6 +55,12 @@ async function readExtension({
   mode
 }: ExtensionInput): Promise<SolidAppExtension> {
   return (await options.extend?.({ target, mode })) ?? {}
+}
+
+async function i18nPlugins(options: SolidAppOptions): Promise<PluginOption[]> {
+  if (options.i18nPlugin === false || !hasI18n(options.root)) return []
+  const { i18nPlugin } = await import('../i18n/i18nPlugin/index.ts')
+  return i18nPlugin()
 }
 
 // The locales come from the same file as the Paraglide compiler, so the rules
@@ -101,34 +103,6 @@ async function readLocales(root: string): Promise<string[]> {
   return locales
 }
 
-function isUnderLocale({ staticPath, locales }: LocalePathInput): boolean {
-  const [firstSegment] = staticPath.split('/').slice(1)
-  return locales.includes(firstSegment ?? '')
-}
-
-// Nitro compiles the routeRules with the preMerge of h3, which refuses a partial
-// overlap: a path inside a locale folder would cross its /<locale>/**.md rule,
-// and the compilation would fall back to the simple mode with a warning. The
-// published .md files sit under the locale prefix of the Paraglide urlPatterns.
-function staticFilePaths({ options, locales }: StaticPathsInput): string[] {
-  const appPaths = [
-    ...(options.publicAssets ?? []).map(asset => `${asset.baseURL}/**`),
-    ...(options.staticPaths ?? [])
-  ]
-  const collision = appPaths.find(staticPath =>
-    isUnderLocale({ staticPath, locales })
-  )
-  if (collision) {
-    throw new Error(
-      `defineSolidApp: the static path ${collision} is inside a locale folder; move it out of /${collision.split('/')[1]}/.`
-    )
-  }
-  const publishedPaths = options.publication
-    ? [...locales.map(locale => `/${locale}/**.md`), ...SEO_FILE_PATHS]
-    : []
-  return ['/assets/**', ...appPaths, ...publishedPaths]
-}
-
 function iconsPlugin({ modules, options }: IconsInput) {
   return modules.Icons({
     compiler: 'solid',
@@ -155,6 +129,7 @@ function staticHeaders({ securityHeaders }: ServerAppOptions) {
 }
 
 function clientPlugins({
+  i18n,
   modules,
   extension,
   options,
@@ -163,7 +138,9 @@ function clientPlugins({
   const e2eRoutes = mode === 'e2e' ? options.e2e?.routes : undefined
   return [
     localeModule(options),
+    fontsPlugin(options),
     ...(extension.plugins ?? []),
+    ...i18n,
     iconsPlugin({ modules, options }),
     modules.solid({ ssr: false }),
     modules.fileRoutes(
@@ -174,15 +151,36 @@ function clientPlugins({
   ]
 }
 
+function hasStaticMarkdown(options: ServerAppOptions): boolean {
+  return (
+    typeof options.seo === 'object' &&
+    typeof options.seo.markdown === 'object' &&
+    options.seo.markdown.static === true
+  )
+}
+async function createPublication(options: ServerAppOptions) {
+  const features = typeof options.seo === 'object' ? options.seo : {}
+  const enabled =
+    hasStaticMarkdown(options) ||
+    typeof features.llms === 'object' ||
+    typeof features.sitemap === 'object'
+  let publication: ReturnType<typeof publicationBuild> | undefined
+  if (enabled) {
+    const { publicationBuild } = await import('../publication/index.ts')
+    publication = publicationBuild(features)
+  }
+  return publication
+}
 async function serverPlugins({
   options,
   mode
 }: ServerTargetInput): Promise<PluginOption[]> {
-  const [modules, { nitro }, extension, locales] = await Promise.all([
+  const [modules, { nitro }, extension, locales, i18n] = await Promise.all([
     loadPluginModules(),
     import('nitro/vite'),
     readExtension({ options, target: 'app', mode }),
-    options.publication ? readLocales(options.root) : []
+    hasStaticMarkdown(options) ? readLocales(options.root) : [],
+    i18nPlugins(options)
   ])
   const isE2e = mode === 'e2e'
   const middleware = isE2e
@@ -190,9 +188,14 @@ async function serverPlugins({
     : options.middleware
   const e2eRoutes = isE2e ? options.e2e?.routes : undefined
   const headers = staticHeaders(options)
+  const publication = await createPublication(options)
   return [
     localeModule(options),
+    fontsPlugin(options),
+    seoModule({ root: options.root, mode, seo: options.seo }),
+    ...(publication ? [publication.plugin] : []),
     ...(extension.plugins ?? []),
+    ...i18n,
     iconsPlugin({ modules, options }),
     modules.solid({
       start: middleware ? { middleware } : {},
@@ -211,7 +214,10 @@ async function serverPlugins({
     nitro({
       serverEntry: false,
       preset: 'vercel',
-      modules: extension.nitroModules ?? [],
+      modules: [
+        ...(publication ? [publication.module] : []),
+        ...(extension.nitroModules ?? [])
+      ],
       // Nitro already registers the assetsDir of Vite, which serves /assets/.
       publicAssets: options.publicAssets ?? [],
       // The static files leave the CDN without going through the middleware,
@@ -230,18 +236,19 @@ async function serverPlugins({
   ]
 }
 
-// A client-only application imports neither Nitro nor reads the locales.
+// A client-only application does not import Nitro.
 export function appPlugins({
   options,
   mode
 }: TargetInput): PluginOption[] | undefined {
   return lazyPlugins(async () => {
     if (options.ssr !== false) return serverPlugins({ options, mode })
-    const [modules, extension] = await Promise.all([
+    const [modules, extension, i18n] = await Promise.all([
       loadPluginModules(),
-      readExtension({ options, target: 'app', mode })
+      readExtension({ options, target: 'app', mode }),
+      i18nPlugins(options)
     ])
-    return clientPlugins({ modules, extension, options, mode })
+    return clientPlugins({ modules, extension, options, mode, i18n })
   })
 }
 
@@ -253,13 +260,19 @@ export function testPlugins({
   mode
 }: TargetInput): PluginOption[] | undefined {
   return lazyPlugins(async () => {
-    const [modules, extension] = await Promise.all([
+    const [modules, extension, i18n] = await Promise.all([
       loadPluginModules(),
-      readExtension({ options, target: 'test', mode })
+      readExtension({ options, target: 'test', mode }),
+      i18nPlugins(options)
     ])
     return [
       localeModule(options),
+      fontsPlugin(options),
+      ...(options.ssr === false
+        ? []
+        : [seoModule({ root: options.root, mode, seo: options.seo })]),
       ...(extension.plugins ?? []),
+      ...i18n,
       iconsPlugin({ modules, options }),
       modules.solid(options.ssr === false ? {} : { serverFunctions: true }),
       modules.fileRoutes({ types: ROUTE_TYPES, httpMethods: true })

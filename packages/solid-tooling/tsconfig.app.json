@@ -2,16 +2,7 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "customConditions": ["solid"],
-    "types": [
-      "node",
-      "vite/client",
-      "vite-plus/test/globals",
-      "@testing-library/jest-dom/vitest",
-      "@solidjs/vite-plugin/boundary-modules",
-      "@solidjs/vite-plugin/virtual-modules",
-      "@evertondgn/solid-tooling/virtual-modules",
-      "filesystem-routing/types"
-    ]
+    "types": ["@evertondgn/solid-tooling/app-env"]
   },
   "include": [
     "${configDir}/src",
@@ -20,5 +11,6 @@
     "${configDir}/vite.config.ts",
     "${configDir}/playwright.config.ts",
     "${configDir}/tooling/**/*.ts"
-  ]
+  ],
+  "files": ["./node-env.d.ts"]
 }

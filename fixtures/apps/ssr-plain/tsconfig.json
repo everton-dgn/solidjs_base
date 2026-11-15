@@ -1,3 +1,8 @@
 {
-  "extends": "@evertondgn/solid-tooling/tsconfig.app.json"
+  "extends": "@evertondgn/solid-tooling/tsconfig.app.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
 }

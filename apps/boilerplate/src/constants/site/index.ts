@@ -1,8 +1,10 @@
+import { localeTag } from '@evertondgn/solid-runtime/i18n/locale-tag'
+import { origin } from '@evertondgn/solid-runtime/seo/origin'
 import { m } from '@paraglide/messages.js'
 import { getLocale } from '@paraglide/runtime.js'
 import type { ContactPoint, PostalAddress } from 'schema-dts'
 
-import { LOCALE_TAGS } from '@/i18n/localeTags/index.ts'
+import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.ts'
 
 type ContactPointNode = Extract<ContactPoint, { '@type': 'ContactPoint' }>
 type PostalAddressNode = Extract<PostalAddress, { '@type': 'PostalAddress' }>
@@ -56,9 +58,9 @@ export const SITE = {
   // BCP 47: `lang` do documento e `inLanguage` do JSON-LD; o `og:locale`
   // deriva daqui trocando o hífen por sublinhado.
   get locale(): string {
-    return LOCALE_TAGS[getLocale()]
+    return localeTag(getLocale(), LOCALE_TAG_OVERRIDES)
   },
-  url: import.meta.env.VITE_SITE_URL,
+  url: origin,
   repositoryUrl: REPOSITORY_URL,
   socialLinks: [REPOSITORY_URL, ...AUTHOR_PROFILES],
   organization: ORGANIZATION,

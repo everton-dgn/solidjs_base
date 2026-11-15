@@ -1,7 +1,8 @@
-import { getLocale } from '@evertondgn/solid-runtime/i18n/locale'
+import { createRouter } from '@solidjs/router'
 import { render } from '@solidjs/web'
 
-render(
-  () => <main lang={getLocale()}>Scenario application</main>,
-  document.body
-)
+import App from './App.tsx'
+
+const Router = createRouter({ routes: [{ path: '*all', component: App }] })
+
+render(() => <Router>{props => props.children}</Router>, document.body)

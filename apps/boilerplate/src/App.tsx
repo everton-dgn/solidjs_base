@@ -1,3 +1,4 @@
+import { createLocaleNavigationGuard } from '@evertondgn/solid-runtime/i18n/create-locale-navigation-guard'
 import { getRequestEvent, isServer, type JSX } from '@solidjs/web'
 import {
   createSignal,
@@ -13,7 +14,6 @@ import { Provider } from '@/components/molecules/Provider/index.tsx'
 import { ErrorFallback } from '@/components/organisms/ErrorFallback/index.tsx'
 import { createSeo } from '@/primitives/createSeo/index.ts'
 
-import { createLocaleNavigationGuard } from './primitives/createLocaleNavigationGuard/index.ts'
 import {
   claimOutdatedPageReload,
   createOutdatedPageGuard,

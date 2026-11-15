@@ -1,13 +1,13 @@
+import { isPublicError } from '@evertondgn/solid-runtime/server/public-errors'
+import { MAX_HTML_BYTES } from '@evertondgn/solid-runtime/server/publication-protocol'
 import { getLocale, shouldRedirect } from '@paraglide/runtime.js'
 import { createRequestEvent, type RequestEvent } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
 
-import { isPublicError } from '@/infra/server/publicErrors/index.ts'
 import { Router } from '@/router.ts'
 import { readLog } from '@/tests/helpers/readLog/index.ts'
 
 import middleware, { createMiddleware } from '../index.ts'
-import { MAX_HTML_BYTES } from '../markdownContent/constants.ts'
 
 const TEST_ORIGIN = 'http://localhost'
 // vi.mock é içado para o topo do arquivo; o caminho sobe junto.
@@ -94,6 +94,10 @@ function mockProductionLog(): void {
 }
 
 describe('export padrão do middleware', () => {
+  beforeAll(async () => {
+    await import('@/infra/server/configureServerErrors/index.ts')
+  })
+
   beforeEach(mockProductionLog)
 
   it('compõe a cadeia de produção dentro da contenção', async () => {
@@ -134,6 +138,10 @@ describe('export padrão do middleware', () => {
 })
 
 describe('contenção do adaptador Markdown', () => {
+  beforeAll(async () => {
+    await import('@/infra/server/configureServerErrors/index.ts')
+  })
+
   beforeEach(mockProductionLog)
 
   it.each(['pt', 'en', 'es'])(
@@ -298,6 +306,10 @@ describe('contenção do adaptador Markdown', () => {
 })
 
 describe('falhas próprias do adaptador Markdown', () => {
+  beforeAll(async () => {
+    await import('@/infra/server/configureServerErrors/index.ts')
+  })
+
   beforeEach(mockProductionLog)
 
   // Sem prefixo de idioma, o fallback devolve o redirect em vez da página.
@@ -360,6 +372,10 @@ describe('falhas próprias do adaptador Markdown', () => {
 })
 
 describe('respostas com headers imutáveis', () => {
+  beforeAll(async () => {
+    await import('@/infra/server/configureServerErrors/index.ts')
+  })
+
   beforeEach(mockProductionLog)
 
   // Response.redirect() chega com headers imutáveis e sem corpo.
@@ -410,6 +426,10 @@ describe('respostas com headers imutáveis', () => {
 })
 
 describe('cadeia de produção', () => {
+  beforeAll(async () => {
+    await import('@/infra/server/configureServerErrors/index.ts')
+  })
+
   beforeEach(() => {
     // A CSP só sai nos builds de produção; o Vitest roda com DEV.
     vi.stubEnv('DEV', false)

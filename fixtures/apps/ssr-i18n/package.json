@@ -16,20 +16,8 @@
     "@solidjs/web": "2.0.0-rc.21",
     "solid-js": "2.0.0-rc.21",
     "@solidjs/router": "2.0.0-next.44",
-    "filesystem-routing": "0.5.0",
-    "@solidjs/vite-plugin": "3.0.0-next.57",
-    "nitro": "3.0.261103-rc",
-    "unplugin-icons": "24.0.0",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
     "vite-plus": "1.6.0",
-    "vitest": "5.1.0",
-    "typescript": "7.0.2",
-    "@types/node": "24.19.2",
-    "@vitest/browser-playwright": "5.1.0",
-    "@vitest/coverage-v8": "5.1.0",
-    "happy-dom": "21.0.4",
-    "playwright": "1.65.0",
-    "@testing-library/jest-dom": "7.0.1",
     "@inlang/paraglide-js": "3.2.2",
     "@inlang/plugin-message-format": "4.6.0"
   },
@@ -39,5 +27,6 @@
     "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
     "vitest": "5.1.0"
   },
-  "packageManager": "bun@1.4.4"
+  "packageManager": "bun@1.4.4",
+  "trustedDependencies": []
 }

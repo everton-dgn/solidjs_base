@@ -1,5 +1,4 @@
+import type { ThemeState } from '@evertondgn/solid-runtime/theme/create-theme/types'
 import { createContext } from 'solid-js'
-
-import type { ThemeState } from '@/primitives/createTheme/types.ts'
 
 export const ThemeContext = createContext<ThemeState>()

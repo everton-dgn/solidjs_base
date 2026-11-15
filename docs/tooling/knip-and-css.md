@@ -1,5 +1,11 @@
 # Knip and CSS
 
+The Knip preset ignores `happy-dom`, `@vitest/coverage-v8` and
+`@testing-library/jest-dom`, which Knip attributes to the resolved application
+config even though the test preset owns them. Set `packagedTestTools: false`
+when defining your own test config and declaring those dependencies, as the
+runtime package does. Direct imports still require application declarations.
+
 [Tooling reference](README.md)
 
 ## Knip
@@ -19,8 +25,10 @@ export default defineKnipConfig({
 })
 ```
 
-Run it with `knip-bun --config tooling/knip.ts`, then with `--strict`. The
-config lists:
+Run `vp run knip --config tooling/knip.ts`, then add `--strict`. The task uses
+the package-owned `knip-bun` executable. The config enables the `unplugin-icons`
+plugin explicitly, so virtual icon imports and icon collections remain
+recognized without an application dependency on that plugin. It lists:
 
 - `src/entry-server.tsx`, `src/entry-client.tsx`, `src/middleware/index.ts`,
   `env.ts` and `paraglide/runtime.js` as production entries. The Solid plugin

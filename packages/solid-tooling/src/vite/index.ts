@@ -6,6 +6,7 @@ import { defineConfig, loadEnv, type ViteUserConfigFnObject } from 'vite-plus'
 import { fmt } from '../fmt.ts'
 import { hasI18n } from '../has-i18n.ts'
 import { lint } from '../lint.ts'
+import { validatePublicationFeatures } from '../publication/options.ts'
 import { solidTest } from '../vitest/index.ts'
 import { appPlugins, testPlugins } from './plugins.ts'
 import { createTasks } from './tasks.ts'
@@ -33,10 +34,17 @@ const SERVER_OPTIONS = [
   'publicAssets',
   'staticPaths',
   'routeRules',
-  'publication'
+  'publication',
+  'seo'
 ]
 
 function validateServerOptions(options: ServerAppOptions): void {
+  if ('publication' in options) {
+    throw new Error(
+      'publication was replaced by seo.markdown, seo.llms and seo.llmsFull'
+    )
+  }
+  if (typeof options.seo === 'object') validatePublicationFeatures(options.seo)
   const asset = (options.publicAssets ?? []).find(
     ({ baseURL }) => !isPathPrefix(baseURL)
   )
@@ -92,6 +100,8 @@ export type {
   ServerAppOptions,
   SolidAppOptions
 } from './types.ts'
+export type { SeoOptions } from '../seo-module.ts'
+export type { FontFamily, FontFile } from '../fonts/types.ts'
 
 export function defineSolidApp(
   options: SolidAppOptions
@@ -154,6 +164,7 @@ export function defineSolidApp(
         ...options.test,
         root,
         language: options.language,
+        seo: options.ssr === false ? undefined : options.seo,
         plugins: () => testPlugins({ options, mode })
       })
     }

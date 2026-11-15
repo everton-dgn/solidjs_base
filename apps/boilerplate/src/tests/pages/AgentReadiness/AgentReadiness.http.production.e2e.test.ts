@@ -1,6 +1,5 @@
+import { LLMS_DESCRIBEDBY_LINK } from '@evertondgn/solid-runtime/server/publication-protocol'
 import { expect, test } from '@playwright/test'
-
-import { LLMS_DESCRIBEDBY_LINK } from '@/constants/llms.ts'
 
 const HTTP_OK = 200
 const HTTP_REDIRECT = 307

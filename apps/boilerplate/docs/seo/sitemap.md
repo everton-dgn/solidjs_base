@@ -33,7 +33,7 @@ comparison uses the localized URL that goes into the XML, so `/a/../b` and `/b`,
 `/café` and `/caf%C3%A9` or `/pt/blog/x` and `/blog/x` count as the same page. A
 `lastmod` outside W3C Datetime is left out. A failure of any source, an invalid
 entry, an exceeded deadline or a sitemap over the protocol limits (of URLs and
-of bytes, in `sitemap/constants.ts`) answer 503 without a body and with
+of bytes, in the runtime sitemap constants) answer 503 without a body and with
 `no-store`. The expected abort and timeout of the controller are silent; real
 exceptions log the fixed `[sitemap]` line described in
 [server errors](../server-errors/logging.md#failure-log). The crawler tries
@@ -45,7 +45,9 @@ network and DNS failures as examples; that the 503 of this route also triggers
 the old copy is a hypothesis not yet measured. Titles loaded at run time can
 still use `useHead`, but the generator does not read those changes.
 
-Each page produces one URL per locale, with alternates and `x-default`. The
+With i18n, each page produces one URL per locale, with alternates and
+`x-default`. Without `project.inlang`, paths have no language prefix and XML has
+no language alternates. The standalone runtime does not require Paraglide. The
 locales of the same page stay together in one part. The static inventory is
 split automatically by the URL count and by the UTF-8 bytes of the whole XML,
 including alternates and escapes. See the
@@ -55,7 +57,7 @@ Small inventories keep `/sitemap.xml` as a `urlset`. With several parts or a
 partitioned source, that entry publishes a `sitemapindex`, and `robots.txt`
 still points to it. Each file stays within 50,000 URLs and 52,428,800
 uncompressed bytes. The initial operating budget is smaller, 4 MiB per response,
-configurable in `src/routes/(seo)/sitemap/constants.ts` within the protocol
+configurable through `createSitemapRoutes({ byteBudget })` within the protocol
 limit. The localized URLs also need to fit in 2048 characters. A locale group
 that goes over the budget on its own fails, as does an oversized index; there
 are no nested indexes and no partial publication with a success status.
@@ -74,11 +76,12 @@ sources fit separately, but the sum goes over the count or the bytes,
 `/sitemap.xml` publishes an index with the valid parts. An `array.xml` part that
 goes over the limits on its own still fails explicitly.
 
-The four handlers share the modules in `src/routes/(seo)/sitemap/`. That folder
-organizes the service and does not declare a route. In production, they reuse
-the same manifest and matcher per instance, including when reading a part after
-the index. In development, the context is rebuilt on every call. The results of
-the dynamic sources do not go into that cache.
+The four public handlers and prerender inventory share one runtime factory,
+bound in `src/infra/server/sitemap/index.ts`. Each application route re-exports
+its handler; the service lives under `solid-runtime/src/seo/sitemap/`. In
+production, they reuse the same manifest and matcher per instance, including
+when reading a part after the index. In development, the context is rebuilt on
+every call. The results of the dynamic sources do not go into that cache.
 
 ### Partitioned sources
 

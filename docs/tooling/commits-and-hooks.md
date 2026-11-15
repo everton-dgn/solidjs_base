@@ -5,7 +5,7 @@
 `./commitlint` is the commitlint config: the Conventional Commits rules of
 `@commitlint/config-conventional`, with the header limited to 100 characters, a
 blank line required before the footer, and a warning for body and footer lines
-over 100 characters. The application installs `@commitlint/cli` and points its
+over 100 characters. The package installs the CLI and the application points its
 config to the package:
 
 ```json
@@ -13,12 +13,12 @@ config to the package:
 { "extends": ["@evertondgn/solid-tooling/commitlint"] }
 ```
 
-`./lefthook.yml` holds the Git hooks. The application installs `lefthook`,
-allows its install script and extends the file from its own `.lefthook.yml`:
+`./lefthook.yml` holds the Git hooks. Lefthook comes with the package. The
+application opts out of automatic install scripts and extends the shared config:
 
 ```json
 // package.json
-{ "trustedDependencies": ["lefthook"] }
+{ "trustedDependencies": [] }
 ```
 
 ```yaml
@@ -47,5 +47,17 @@ Lefthook applies the files in `extends` over `.lefthook.yml`, so:
   Commit the file to change the job for everyone, or keep it out of Git to
   change it on one machine.
 
-Create `.lefthook.yml` before the first install. Without it, the install script
-of Lefthook writes a `lefthook.yml` of its own, which Lefthook reads first.
+Create `.lefthook.yml` before installing hooks, then run:
+
+```bash
+vp exec node node_modules/@evertondgn/solid-tooling/dist/cli.mjs lefthook install
+```
+
+With `defineSolidApp`, `vp run lefthook install` is equivalent. The shared
+`commit-msg` job calls the packaged command entry, so it also works with Bun's
+isolated linker and no application-level `commitlint` binary. No direct
+`@commitlint/cli` or `lefthook` dependency is required. Repeat the install
+command after relocating an installation: generated hooks record the executable
+path. Keeping `trustedDependencies: []` prevents Bun's default trusted Lefthook
+postinstall from generating a sample config or changing hooks during an ordinary
+dependency install.

@@ -22,6 +22,7 @@ type KnipOptions = AppSettings & {
   configFile?: string
   entry?: string[]
   solidPluginImport?: SolidPluginImport
+  packagedTestTools?: boolean
 }
 
 type ConfigureKnip = () => Promise<KnipConfiguration>
@@ -109,6 +110,7 @@ export function defineKnipConfig({
   configFile = DEFAULT_CONFIG_FILE,
   entry = [],
   solidPluginImport = 'lazy',
+  packagedTestTools = true,
   ignoreBinaries,
   ignoreDependencies,
   ignoreIssues = {},
@@ -143,8 +145,17 @@ export function defineKnipConfig({
       // The plugin takes every file in src/routes as an entry and would hide
       // unused helpers next to the routes; the routes come from the router.
       'filesystem-routing': false,
+      // The preset loads icons even when the application has no direct plugin dependency.
+      'unplugin-icons': true,
       ...(ignoreBinaries ? { ignoreBinaries } : {}),
-      ...(ignoreDependencies ? { ignoreDependencies } : {}),
+      // Knip attributes the preset's resolved environment, coverage provider
+      // and matcher setup to vite.config.ts, although this package owns them.
+      ignoreDependencies: [
+        ...(packagedTestTools
+          ? ['@vitest/coverage-v8', 'happy-dom', '@testing-library/jest-dom']
+          : []),
+        ...(ignoreDependencies ?? [])
+      ],
       ignoreIssues: {
         ...ignoreIssues,
         [configFile]: [...new Set([...configIssues, 'unlisted' as const])]

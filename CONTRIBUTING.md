@@ -33,6 +33,14 @@ vp run build
 `apps/boilerplate` loads the presets from there, so run it again after you
 change a package.
 
+When changing tooling dependencies, update the package manifest and lockfile. Do
+not add a dependency back to an application just to make the workspace pass: the
+installed fixtures exercise both Bun linkers with reduced manifests. Keep
+application-owned imports and Vite+ overrides aligned with the package versions.
+Use `vp run tsc`, `vp run knip` and `vp run playwright` in applications using
+`defineSolidApp`; their executables resolve from the tooling package. See
+[the dependency contract](docs/tooling/limits.md).
+
 ## Where things live
 
 ```text

@@ -1,6 +1,7 @@
 # 0002. The tooling package ships compiled JavaScript
 
-- Status: Accepted
+- Status: Accepted; tool dependency ownership superseded by
+  [0027](0027-packaged-tool-dependencies.md)
 - Date: 2026-11-11
 
 ## Context

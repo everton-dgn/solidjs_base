@@ -14,13 +14,13 @@ by the client does not unlock that phase. The public Markdown inventory has only
 publishable paths.
 
 The build checks the bytes of the published files and writes a manifest next to
-the function bundle. `createPublicationBuild()` generates an identifier per
-build; its plugin embeds it in the SSR, and `markdownPrerender({ buildId })`
-writes the same value in the manifest. Both have to come from the same call. The
-prerender checks the link, and the function refuses a manifest from another
-build, even if the site and the budget are the same. This detects mixed
-artifacts; it does not authenticate someone who has write access to the function
-folder.
+the function bundle. The compiled tooling generates one identifier per build
+from the `seo` options; its plugin embeds it in the SSR, and its Nitro module
+writes the same value in the manifest. The application does not compose these
+through `extend`. The prerender checks the link, and the function refuses a
+manifest from another build, even if the site and the budget are the same. This
+detects mixed artifacts; it does not authenticate someone who has write access
+to the function folder.
 
 The origin reads that manifest once per instance; a read or validation failure
 results in a 503 `no-store`, without rebuilding every page in the request.
@@ -32,13 +32,15 @@ the hash, and the name of the identity file is fixed. Above those budgets, move
 the catalog to partitioned sources. The matcher of the sources is also prepared
 once, on the first dynamic read.
 
-`src/infra/server/publication/` limits the dynamic work per process: four
-producers, with up to two for the sitemap and two for Markdown; four source
-reads, with up to two per source; four outputs and 16 MiB of output reserve. The
-reserve uses the maximum budget of the operation before starting it. The limits
-are starting values to calibrate in the derived application, according to CPU,
-memory and backend capacity. Raising the budget of a response requires checking
-the total reserve; a request whose budget does not fit is refused.
+`src/infra/server/publication/` creates the application's single runtime
+`createPublicationController()` instance. Sitemap and Markdown inject this same
+instance, preserving shared process limits: four producers, with up to two for
+the sitemap and two for Markdown; four source reads, with up to two per source;
+four outputs and 16 MiB of output reserve. The reserve uses the maximum budget
+of the operation before starting it. The limits are starting values to calibrate
+in the derived application, according to CPU, memory and backend capacity.
+Raising the budget of a response requires checking the total reserve; a request
+whose budget does not fit is refused.
 
 There is no queue or internal retry. A refused admission answers a small 503,
 `no-store` and `Retry-After: 1`; Markdown also keeps `private`. The array
@@ -177,8 +179,8 @@ pilot checks the cost and the number of operations, without showing HTTP
 latency, percentiles or capacity under concurrency.
 
 The [sitemap protocol](https://www.sitemaps.org/protocol.html) limits each file
-to 50,000 URLs and 52,428,800 uncompressed bytes, the values of
-`sitemap/constants.ts`; that is why the historical measurement of 100,000 routes
+to 50,000 URLs and 52,428,800 uncompressed bytes, the values of the runtime
+sitemap constants; that is why the historical measurement of 100,000 routes
 covered only the sitemap collector, without generating a single XML, which would
 be invalid. `llms.txt` has no equivalent limit, and the 12 MB body with 100,000
 pages shows why a large site needs to select what it publishes. `noindex` goes

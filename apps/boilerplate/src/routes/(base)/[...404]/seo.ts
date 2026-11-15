@@ -1,6 +1,5 @@
+import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
 import { m } from '@paraglide/messages.js'
-
-import type { SeoRouteInfo } from '@/@types/seo.ts'
 
 export const seo = {
   get title() {

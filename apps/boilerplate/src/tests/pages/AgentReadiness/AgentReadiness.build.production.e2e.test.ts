@@ -2,15 +2,16 @@ import { access, readdir, readFile } from 'node:fs/promises'
 import nodePath from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import {
+  PUBLICATION_ARTIFACT_DIR,
+  SITEMAP_MANIFEST_FILE,
+  LLMS_DESCRIBEDBY_LINK,
+  LLMS_FULL_PATH
+} from '@evertondgn/solid-runtime/server/publication-protocol'
+import { readLlmsIndex } from '@evertondgn/solid-tooling/publication/read-llms-index'
 import { expect, test, type APIRequestContext } from '@playwright/test'
 import * as v from 'valibot'
 
-import { readLlmsIndex } from '@/../tooling/markdownPrerender/helpers/readLlmsIndex/index.ts'
-import { LLMS_DESCRIBEDBY_LINK, LLMS_FULL_PATH } from '@/constants/llms.ts'
-import {
-  PUBLICATION_ARTIFACT_DIR,
-  SITEMAP_MANIFEST_FILE
-} from '@/constants/publication.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
 
 type Destination = { url: URL; fragments: Set<string> }

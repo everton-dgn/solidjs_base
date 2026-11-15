@@ -10,6 +10,10 @@ The files in `src/` break rules on purpose: one for each plugin of the package,
 one from the Solid plugin and one type error. `clean.ts` and `vite.config.ts`
 are the controls and must produce no diagnostics.
 
-The fixture declares only what an application has to declare. Bun's isolated
-linker does not hoist dependencies, so if the package uses a dependency it does
-not declare itself, the test fails here.
+The fixture declares only the tooling package, Vite+ and its Vite alias, with
+Vite/Vitest overrides. TypeScript, commitlint and Lefthook come with the
+tooling. It disables automatic install scripts and explicitly installs the hooks
+through the packaged command entry before invoking the real generated commit-msg
+hook. The fixture declares only what an application has to declare. Bun's
+isolated linker does not hoist dependencies, so if the package uses a dependency
+it does not declare itself, the test fails here.

@@ -1,16 +1,14 @@
+import { FontLinks } from '@evertondgn/solid-runtime/fonts/font-links'
 import { getRequestEvent, HydrationScript, isServer } from '@solidjs/web'
 import type { ParentProps } from 'solid-js'
 
 import { SITE } from '@/constants/site/index.ts'
 import {
-  DARK_MEDIA_QUERY,
   DEFAULT_THEME,
-  THEME_COLORS
+  readTheme,
+  themeColor,
+  themeScript
 } from '@/constants/theme.ts'
-import { applyTheme } from '@/infra/adapters/applyTheme/index.ts'
-import { readTheme } from '@/infra/adapters/themeStorage/index.ts'
-
-import interLatin from './assets/fonts/inter-latin-wght-normal.woff2?url&no-inline'
 
 export default function Document(props: ParentProps) {
   const event = isServer ? getRequestEvent() : undefined
@@ -38,25 +36,10 @@ export default function Document(props: ParentProps) {
           name="format-detection"
           content="telephone=no,email=no,address=no,date=no,url=no"
         />
-        <meta
-          name="theme-color"
-          content={THEME_COLORS[explicitTheme ?? 'light']}
-        />
+        <meta name="theme-color" content={themeColor(theme)} />
         <link rel="describedby" href="/llms.txt" />
-        <script nonce={nonce}>
-          {`(() => {
-            const theme = ${JSON.stringify(theme)};
-            const dark = theme === 'dark' || (theme === 'system' && matchMedia(${JSON.stringify(DARK_MEDIA_QUERY)}).matches);
-            (${applyTheme.toString()})({ theme: dark ? 'dark' : 'light', color: dark ? ${JSON.stringify(THEME_COLORS.dark)} : ${JSON.stringify(THEME_COLORS.light)} });
-          })();`}
-        </script>
-        <link
-          rel="preload"
-          href={interLatin}
-          as="font"
-          type="font/woff2"
-          crossorigin="anonymous"
-        />
+        <script nonce={nonce}>{themeScript(theme)}</script>
+        <FontLinks />
         <link rel="icon" href="/favicon/favicon.ico" sizes="16x16 32x32" />
         <link
           rel="icon"

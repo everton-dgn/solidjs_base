@@ -1,4 +1,1 @@
-import { sitemapSources } from '@/infra/server/sitemapSources/index.ts'
-import { createInventoryRoute } from '@/routes/(seo)/sitemap/helpers/sitemapRoutes/index.ts'
-
-export const GET = createInventoryRoute(sitemapSources)
+export { inventory as GET } from '@/infra/server/sitemap/index.ts'

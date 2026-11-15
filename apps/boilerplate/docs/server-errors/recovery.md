@@ -76,11 +76,22 @@ For a local retry with a query, invalidate the key before `reset()`:
 
 After changing that boundary, run:
 
+From the workspace root, run `env -u NODE_ENV vp run validate`. This includes
+the runtime unit tests, the backend policy corpus and the installed tarball
+matrix. The runtime owns the shared protection tests; this application retains
+the catalog, publication-controller integration, composed Markdown-chain tests
+and end-to-end tests. The 54 containment cases now run in the runtime package;
+entry-helper tests cover completion, cancellation and pre-hydration locale
+changes there as well.
+
+Then run in this application:
+
 ```bash
-vp run test:tooling
-vp run test:unit
-vp run test:e2e src/tests/pages/BackendError src/tests/pages/OutsideError src/tests/pages/OutdatedPage
-vp run check:ci
+env -u NODE_ENV vp run test:tooling
+env -u NODE_ENV vp run test:unit
+env -u NODE_ENV vp run test:e2e src/tests/pages/BackendError src/tests/pages/OutsideError src/tests/pages/OutdatedPage
+env -u NODE_ENV vp run test:e2e:production
+env -u NODE_ENV vp run check:ci
 ```
 
 The

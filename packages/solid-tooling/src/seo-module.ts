@@ -1,0 +1,137 @@
+import * as v from 'valibot'
+import { loadEnv, type Plugin } from 'vite-plus'
+
+import {
+  MarkdownSchema,
+  LlmsSchema,
+  LlmsFullSchema,
+  SitemapSchema,
+  validatePublicationFeatures,
+  type PublicationFeatures
+} from './publication/options.ts'
+
+const LineSchema = v.pipe(v.string(), v.nonEmpty(), v.regex(/^[^\r\n]+$/u))
+const GroupSchema = v.strictObject({
+  userAgents: v.array(LineSchema),
+  allow: v.optional(v.array(LineSchema)),
+  disallow: v.optional(v.array(LineSchema))
+})
+const RobotsSchema = v.strictObject({
+  groups: v.optional(v.array(GroupSchema), []),
+  sitemapPaths: v.optional(v.array(LineSchema), []),
+  cacheControl: v.optional(LineSchema)
+})
+const RobotsOptionSchema = v.union([v.literal(false), RobotsSchema])
+const DisabledSchema = v.literal(false)
+const MarkdownOptionSchema = v.union([DisabledSchema, MarkdownSchema])
+const LlmsOptionSchema = v.union([DisabledSchema, LlmsSchema])
+const LlmsFullOptionSchema = v.union([DisabledSchema, LlmsFullSchema])
+const SeoSchema = v.strictObject({
+  originEnv: v.optional(LineSchema, 'VITE_SITE_URL'),
+  robots: v.optional(RobotsOptionSchema),
+  sitemap: v.optional(SitemapSchema),
+  markdown: v.optional(MarkdownOptionSchema),
+  llms: v.optional(LlmsOptionSchema),
+  llmsFull: v.optional(LlmsFullOptionSchema)
+})
+
+type ModuleOptions = { root: string; mode: string; seo?: SeoOptions | false }
+type OriginOptions = { root: string; mode: string; key: string }
+type SeoPlugin = {
+  name: string
+  configResolved: () => void
+  resolveId: (id: string) => string | undefined
+  load: (id: string) => string | null
+}
+
+function readOrigin({ root, mode, key }: OriginOptions): string {
+  const value = loadEnv(mode, root, key)[key]
+  if (!value) throw new Error(`Missing site origin: ${key}`)
+  let origin: URL
+  try {
+    origin = new URL(value)
+  } catch {
+    throw new Error(
+      `${key} must be an HTTP(S) origin without a path, query, fragment or credentials`
+    )
+  }
+  if (
+    !['http:', 'https:'].includes(origin.protocol) ||
+    origin.pathname !== '/' ||
+    origin.search ||
+    origin.hash ||
+    origin.username ||
+    origin.password
+  ) {
+    throw new Error(
+      `${key} must be an HTTP(S) origin without a path, query, fragment or credentials`
+    )
+  }
+  return origin.origin
+}
+
+export type SeoOptions = PublicationFeatures & {
+  originEnv?: string
+  robots?:
+    | false
+    | {
+        groups?: readonly {
+          userAgents: readonly string[]
+          allow?: readonly string[]
+          disallow?: readonly string[]
+        }[]
+        sitemapPaths?: readonly string[]
+        cacheControl?: string
+      }
+}
+
+export function seoModule({ root, mode, seo }: ModuleOptions): SeoPlugin {
+  const config = v.parse(SeoSchema, seo === false ? {} : (seo ?? {}))
+  validatePublicationFeatures(config)
+  const origin = () => readOrigin({ root, mode, key: config.originEnv })
+  return {
+    name: 'solid-app:seo',
+    configResolved() {
+      if (seo !== false && seo !== undefined) origin()
+    },
+    resolveId: id =>
+      [
+        'virtual:solid-app/seo-origin',
+        'virtual:solid-app/seo-robots',
+        'virtual:solid-app/seo-markdown',
+        'virtual:solid-app/seo-llms'
+      ].includes(id)
+        ? `\0${id}`
+        : undefined,
+    load: id => {
+      if (id === '\0virtual:solid-app/seo-markdown') {
+        if (typeof config.markdown !== 'object') {
+          throw new TypeError('Markdown requires seo.markdown')
+        }
+        return `export const markdown = ${JSON.stringify({ ...config.markdown, hasLlms: Boolean(config.llms) })}`
+      }
+      if (id === '\0virtual:solid-app/seo-llms') {
+        if (typeof config.llms !== 'object') {
+          throw new TypeError('llms requires seo.llms')
+        }
+        return `export const llms = ${JSON.stringify({ ...config.llms, hasMarkdown: Boolean(config.markdown), hasLlmsFull: Boolean(config.llmsFull) })}`
+      }
+      if (id === '\0virtual:solid-app/seo-origin') {
+        return `export const origin = ${JSON.stringify(origin())}`
+      }
+      if (id !== '\0virtual:solid-app/seo-robots') return null
+      if (config.robots === false || config.robots === undefined) {
+        throw new Error(
+          'The robots route requires defineSolidApp({ seo: { robots: {} } })'
+        )
+      }
+      const { groups, sitemapPaths, cacheControl } = config.robots
+      const siteOrigin = origin()
+      return `export const robots = ${JSON.stringify({
+        groups,
+        sitemaps: sitemapPaths.map(path => new URL(path, siteOrigin).href),
+        cacheControl
+      })}`
+    }
+  } satisfies Plugin
+}

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { access, readFile, rm, writeFile } from 'node:fs/promises'
+import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
 import { pathToFileURL } from 'node:url'
@@ -106,6 +106,78 @@ describe('solidIcons', () => {
     await assert.rejects(access(path.join(root, TYPES_FILE)))
   })
 
+  it('names the missing icon in the build error', async context => {
+    await assert.rejects(
+      buildImport({ context, source: 'icon:hugeicons/no-such-icon' }),
+      /Icon "hugeicons\/no-such-icon" not found in @iconify-json\/hugeicons\./u
+    )
+  })
+
+  it('names the missing collection in the build error', async context => {
+    await assert.rejects(
+      buildImport({ context, source: 'icon:not-installed/github' }),
+      /Icon collection "not-installed" not found: install @iconify-json\/not-installed/u
+    )
+  })
+
+  it('names a missing export and suggests the closest one', async context => {
+    await assert.rejects(
+      buildEntry({
+        context,
+        code: "import { Githb } from 'icon:hugeicons'\nconsole.log(Githb)\n"
+      }),
+      /"Githb" is not an icon of 'icon:hugeicons'\. Did you mean Github\?/u
+    )
+  })
+
+  it('lists the ways to import an ambiguous name', async context => {
+    await assert.rejects(
+      buildEntry({
+        context,
+        code: "import { ArrowDown01 } from 'icon:hugeicons'\nconsole.log(ArrowDown01)\n"
+      }),
+      /"ArrowDown01" names more than one icon of 'icon:hugeicons': import ArrowDown_01 for arrow-down-01, or 'icon:hugeicons\/arrow-down01' for arrow-down01\./u
+    )
+  })
+
+  it('names a missing export of a folder collection', async context => {
+    await assert.rejects(
+      buildEntry({
+        context,
+        code: "import { Sun } from 'icon:own'\nconsole.log(Sun)\n"
+      }),
+      /"Sun" is not an icon of 'icon:own'\./u
+    )
+  })
+
+  it('refuses the imports of a whole collection', async context => {
+    const cases = [
+      [
+        'import * as Icons from "icon:hugeicons"\nconsole.log(Icons)',
+        /A namespace import of 'icon:hugeicons' is not supported/u
+      ],
+      [
+        'import Icons from "icon:hugeicons"\nconsole.log(Icons)',
+        /A default import of 'icon:hugeicons' is not supported/u
+      ],
+      ['import "icon:hugeicons"', /import 'icon:hugeicons' is not supported/u],
+      [
+        'export const load = () => import("icon:hugeicons")',
+        /import\('icon:hugeicons'\) is not supported/u
+      ],
+      // The transform reads string literals; the resolver catches the rest.
+      [
+        'export const load = () => import(`icon:hugeicons`)',
+        /import\('icon:hugeicons'\) is not supported/u
+      ]
+    ] as const
+    for (const [code, message] of cases) {
+      await assert.rejects(buildEntry({ context, code }), message)
+    }
+  })
+})
+
+describe('the modules of the icons', () => {
   it('loads the icon a name ending in .tsx names', async context => {
     const root = await createFixtureApp()
     context.after(() => rm(root, { recursive: true, force: true }))
@@ -175,73 +247,55 @@ describe('solidIcons', () => {
     )
   })
 
-  it('names the missing icon in the build error', async context => {
-    await assert.rejects(
-      buildImport({ context, source: 'icon:hugeicons/no-such-icon' }),
-      /Icon "hugeicons\/no-such-icon" not found in @iconify-json\/hugeicons\./u
+  it('names the file of an import by name it cannot rewrite', async context => {
+    const root = await createFixtureApp({ installed: {} })
+    context.after(() => rm(root, { recursive: true, force: true }))
+    const library = path.join(root, 'node_modules/icon-library')
+    await mkdir(library)
+    await writeFile(
+      path.join(library, 'package.json'),
+      JSON.stringify({ name: 'icon-library', type: 'module', main: 'index.js' })
     )
-  })
-
-  it('names the missing collection in the build error', async context => {
-    await assert.rejects(
-      buildImport({ context, source: 'icon:not-installed/github' }),
-      /Icon collection "not-installed" not found: install @iconify-json\/not-installed/u
+    await writeFile(
+      path.join(library, 'index.js'),
+      "import { Star } from 'icon:own'\nexport { Star }\n"
     )
-  })
+    await writeFile(
+      path.join(root, 'entry.js'),
+      "import { Star } from 'icon-library'\nconsole.log(Star)\n"
+    )
 
-  it('names a missing export and suggests the closest one', async context => {
     await assert.rejects(
-      buildEntry({
-        context,
-        code: "import { Githb } from 'icon:hugeicons'\nconsole.log(Githb)\n"
+      build({
+        ...fixtureConfig({ root, isSsr: false, typesFile: false }),
+        logLevel: 'silent',
+        build: {
+          write: false,
+          rolldownOptions: { input: path.join(root, 'entry.js') }
+        }
       }),
-      /"Githb" is not an icon of 'icon:hugeicons'\. Did you mean Github\?/u
+      /import 'icon:own' in node_modules\/icon-library\/index\.js is not supported: the imports by name work in the \.js, \.ts, \.jsx and \.tsx files of the application, outside node_modules, that parse\. Import each icon by its path there, as in import <Name> from 'icon:own\/<name>'\./u
     )
   })
 
-  it('lists the ways to import an ambiguous name', async context => {
-    await assert.rejects(
-      buildEntry({
-        context,
-        code: "import { ArrowDown01 } from 'icon:hugeicons'\nconsole.log(ArrowDown01)\n"
-      }),
-      /"ArrowDown01" names more than one icon of 'icon:hugeicons': import ArrowDown_01 for arrow-down-01, or 'icon:hugeicons\/arrow-down01' for arrow-down01\./u
+  it('reads an import by name whose specifier has an escape', async context => {
+    const root = await createFixtureApp()
+    context.after(() => rm(root, { recursive: true, force: true }))
+    await writeFile(
+      path.join(root, 'entry.js'),
+      "import { Moon } from 'icon:\\u006fwn'\nimport { Star } from 'ic\\x6fn:own'\nconsole.log(Moon, Star)\n"
     )
-  })
+    const output = await build({
+      ...fixtureConfig({ root, isSsr: false, typesFile: false }),
+      logLevel: 'silent',
+      build: {
+        write: false,
+        rolldownOptions: { input: path.join(root, 'entry.js') }
+      }
+    })
+    const code = JSON.stringify(output)
 
-  it('names a missing export of a folder collection', async context => {
-    await assert.rejects(
-      buildEntry({
-        context,
-        code: "import { Sun } from 'icon:own'\nconsole.log(Sun)\n"
-      }),
-      /"Sun" is not an icon of 'icon:own'\./u
-    )
-  })
-
-  it('refuses the imports of a whole collection', async context => {
-    const cases = [
-      [
-        'import * as Icons from "icon:hugeicons"\nconsole.log(Icons)',
-        /A namespace import of 'icon:hugeicons' is not supported/u
-      ],
-      [
-        'import Icons from "icon:hugeicons"\nconsole.log(Icons)',
-        /A default import of 'icon:hugeicons' is not supported/u
-      ],
-      ['import "icon:hugeicons"', /import 'icon:hugeicons' is not supported/u],
-      [
-        'export const load = () => import("icon:hugeicons")',
-        /import\('icon:hugeicons'\) is not supported/u
-      ],
-      // The transform reads string literals; the resolver catches the rest.
-      [
-        'export const load = () => import(`icon:hugeicons`)',
-        /import\('icon:hugeicons'\) is not supported/u
-      ]
-    ] as const
-    for (const [code, message] of cases) {
-      await assert.rejects(buildEntry({ context, code }), message)
-    }
+    assert.match(code, /M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z/u)
+    assert.match(code, /M12 2l3 7h7l-6 4 2 7-6-4-6 4 2-7-6-4h7z/u)
   })
 })

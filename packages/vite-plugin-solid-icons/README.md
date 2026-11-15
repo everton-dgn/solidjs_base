@@ -429,6 +429,14 @@ shows the imports to use:
 | `import 'icon:hugeicons'`                 | `import 'icon:hugeicons' is not supported: a collection of icons is not a module.`, followed by the same two imports                                                                                            |
 | `import('icon:hugeicons')`                | `import('icon:hugeicons') is not supported: load one icon by its path, as in import('icon:hugeicons/<name>').`                                                                                                  |
 
+The imports by name are rewritten in the `.js`, `.ts`, `.jsx` and `.tsx` files
+of the application, `.mjs`, `.cjs`, `.mts` and `.cts` included, outside
+`node_modules`. Another type of file, such as `.mdx`, a package in
+`node_modules`, published as source or linked from a workspace, and a file with
+a syntax error are not rewritten. The build then stops with the file that
+imported, as in `import 'icon:hugeicons' in src/page.mdx is not supported`, and
+the import by path works there.
+
 The plugin supports only Vite+ and SolidJS 2. Other bundlers and other UI
 frameworks are out of its scope.
 

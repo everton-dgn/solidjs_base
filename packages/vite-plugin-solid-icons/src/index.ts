@@ -28,6 +28,7 @@ import {
 import {
   importError,
   isImportError,
+  unreachedImport,
   unsupportedImport
 } from './importErrors/index.ts'
 import { loadIconSvg } from './loadIconSvg/index.ts'
@@ -46,9 +47,11 @@ const ICON_MODULE = /^\0?icon:/u
 // the exact form.
 const ICON_SPECIFIER = /icon:/u
 // The quoted name of a collection alone, as an import of the collection
-// writes it; a module with only imports of one icon skips the parser.
+// writes it; a module with only imports of one icon skips the parser. A
+// string that reaches an escape before any character outside that name may
+// spell one, as in 'icon:\u006fwn', so the parser reads its value.
 const COLLECTION_IMPORT =
-  /(?<quote>["'])icon:[a-z0-9]+(?:-[a-z0-9]+)*\k<quote>/u
+  /(?<quote>["'])(?:icon:[a-z0-9]+(?:-[a-z0-9]+)*\k<quote>|[\da-z:-]*\\)/u
 
 function track({ ids, key, id }: TrackedId): void {
   const tracked = ids.get(key) ?? new Set<string>()
@@ -98,6 +101,13 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
 
   function warn(message: string): void {
     logger?.warn(`[plugin ${PLUGIN_NAME}] ${message}`)
+  }
+
+  // The file of a module id, relative to the root, for an error.
+  function relativeFile(id: string | undefined): string | undefined {
+    if (id === undefined) return undefined
+    const [file = id] = id.split('?', 1)
+    return path.relative(root, file)
   }
 
   function idsOfFile(file: string): Set<string> {
@@ -177,15 +187,20 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     resolveId: {
       filter: { id: ICON_SPECIFIER },
       // oxlint-disable-next-line eslint/max-params -- Vite calls resolveId with the source, the importer and the options.
-      handler(source, _importer, resolveOptions) {
+      handler(source, importer, resolveOptions) {
         const collection = collectionOfImport(source)
         if (collection !== undefined) {
           if (isDependencyScan(resolveOptions)) {
             return { id: source, external: true }
           }
-          const form =
-            resolveOptions.kind === 'dynamic-import' ? 'dynamic' : 'bare'
-          this.error(unsupportedImport({ collection, form }))
+          if (resolveOptions.kind === 'dynamic-import') {
+            this.error(unsupportedImport({ collection, form: 'dynamic' }))
+          }
+          // The transform rewrites or refuses every import of a collection
+          // in the files it reads, so this one comes from another file.
+          this.error(
+            unreachedImport({ collection, importer: relativeFile(importer) })
+          )
         }
         let request: IconRequest | undefined
         try {

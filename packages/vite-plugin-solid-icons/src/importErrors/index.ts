@@ -1,5 +1,6 @@
 type ErrorInput = { message: string; position: number }
 type UnsupportedInput = { collection: string; form: UnsupportedForm }
+type UnreachedInput = { collection: string; importer: string | undefined }
 
 function usage(collection: string): string {
   return `Import the icons by name, as in import { <Name> } from 'icon:${collection}', or each icon by its path, as in import <Name> from 'icon:${collection}/<name>'.`
@@ -46,4 +47,14 @@ export function unsupportedImport({
   form
 }: UnsupportedInput): string {
   return UNSUPPORTED[form](collection)
+}
+
+// An import of a collection in a file that the transform does not read:
+// another type of file, a file in node_modules or a file that does not parse.
+export function unreachedImport({
+  collection,
+  importer
+}: UnreachedInput): string {
+  const place = importer === undefined ? '' : ` in ${importer}`
+  return `import 'icon:${collection}'${place} is not supported: the imports by name work in the .js, .ts, .jsx and .tsx files of the application, outside node_modules, that parse. Import each icon by its path there, as in import <Name> from 'icon:${collection}/<name>'.`
 }

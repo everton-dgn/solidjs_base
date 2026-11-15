@@ -21,6 +21,8 @@ type BuildWait = {
   step: string
   // What the build has to do, for the message of a timeout.
   goal: string
+  // The builds that ended before the step, counted before its edit.
+  after: number
   isDone: () => Promise<boolean>
 }
 
@@ -80,17 +82,19 @@ function builds(output: BuildOutput): number {
   return output.stdout.match(BUILT)?.length ?? 0
 }
 
-// Waits for the end of each build until the check holds. A build that fails
+// Waits for the end of each build after the edit of the step until the
+// check holds, also a build that ended before the wait. A build that fails
 // writes its error, which stops the wait with it.
 async function waitForBuild({
   child,
   output,
   step,
   goal,
+  after,
   isDone
 }: BuildWait): Promise<void> {
   const deadline = Date.now() + BUILD_TIMEOUT
-  let seen = builds(output)
+  let seen = after
   for (;;) {
     const errors = buildErrors(output)
     if (errors !== '') {
@@ -159,28 +163,33 @@ test('a watched build reads a new SVG of a folder', async context => {
     output,
     step: 'at the start',
     goal: 'bundles the star',
+    after: 0,
     isDone: () => hasBundleText({ root, text: 'M12 2l3 7h7' })
   })
 
   // The SVG first and the import after the build it starts, as an editor
   // saves them; a build that read the import first would fail on it.
+  const beforeSvg = builds(output)
   await writeFile(path.join(root, 'icons/sun.svg'), SUN_SVG)
   await waitForBuild({
     child,
     output,
     step: 'after a new SVG',
     goal: 'declares Sun',
+    after: beforeSvg,
     isDone: async () => {
       const declarations = await readFile(types, 'utf8')
       return declarations.includes('export const Sun: IconComponent')
     }
   })
+  const beforeImport = builds(output)
   await writeFile(entry, "import { Sun } from 'icon:own'\nconsole.log(Sun)\n")
   await waitForBuild({
     child,
     output,
     step: 'after an import of the new SVG',
     goal: 'bundles the sun',
+    after: beforeImport,
     isDone: () => hasBundleText({ root, text: SUN_PATH })
   })
 

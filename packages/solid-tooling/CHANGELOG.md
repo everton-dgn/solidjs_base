@@ -5,11 +5,10 @@
 
 ### ⚠ BREAKING CHANGES
 
-* **seo:** Replace publication with seo.markdown, seo.llms and seo.llmsFull. Use seo.sitemap with static: true for compiled sitemap artifacts.
-* **tooling:** Set seo.sitemap to true to emit static sitemap header rules. The publication option now covers only llms and Markdown files.
+* **tooling:** the header rules of `/sitemap.xml`, `/sitemaps/pages/**`, `/llms.txt`, `/llms-full.txt`, the Markdown files and `/_markdown/static.json` are no longer emitted by default. Enable each one with its SEO option in `defineSolidApp`: `seo.sitemap` (`true`, or `{ static: true }` for the compiled sitemap artifacts), `seo.llms`, `seo.llmsFull` and `seo.markdown: { static: true }`. The `publication` option, added and removed during this release, is rejected with a migration message.
 * **tooling:** Remove preset-only @solidjs/vite-plugin, nitro, filesystem-routing, unplugin-icons, knip, happy-dom, playwright, @playwright/test, @vitest/browser-playwright, @vitest/coverage-v8, @vitest/ui, @testing-library/jest-dom, @types/node, typescript, @commitlint/cli and lefthook from application manifests. Keep any library the application imports directly. Use packaged tasks for tool binaries and inherit the package type references. The standalone vitest declaration is unnecessary when using vite-plus/test; keep the Vite/Vitest overrides, Vite+ and application runtime dependencies.
-* **tooling:** the dom project no longer starts at `http://localhost/en` in every application. Without `project.inlang/settings.json` it starts at `http://localhost/`. With it, it starts under the base locale of that file, such as `http://localhost/fr`, so an application whose base locale is not `en` changes too. Set `domUrl` to `http://localhost/en` (`test.domUrl` in `defineSolidApp`) to keep the old URL. A settings file that cannot be read or has no `baseLocale` now fails the config, unless `domUrl` is set.
-* **tooling:** the header rules of the sitemap, llms.txt and Markdown files need publication: true, and an SSR application without project.inlang no longer fails to load the plugins.
+* **tooling:** the dom project no longer starts at `http://localhost/en` in every application. Without `project.inlang/settings.json` it starts at `http://localhost/`. With it, it starts under the base locale of that file, such as `http://localhost/fr`, so an application whose base locale is not `en` changes too. Set `domUrl` to `http://localhost/en` (`test.domUrl` in `defineSolidApp`) to keep the old URL. A settings file that cannot be read or has no `baseLocale` now fails the config, unless `domUrl` is set. `domUrl` skips only that base locale read: with `seo.markdown: { static: true }`, a settings file whose locales cannot be read still fails the config.
+* **tooling:** an SSR application without project.inlang no longer fails to load the plugins.
 
 ### Features
 

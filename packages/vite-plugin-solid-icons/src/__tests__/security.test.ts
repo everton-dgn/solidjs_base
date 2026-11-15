@@ -23,13 +23,17 @@ type TextScope = { page: Page; scope: string }
 // leaves out of the component and of the raw text.
 const TRAP_TEXT = '{globalThis.__iconPwned = 1}'
 const TRAP_VALUE = '"><img src="x" onerror="globalThis.__iconPwned = 2">'
+// The lines and the indentation of the texts keep them as strings in the
+// component, which the compiler escapes, also on the server.
 const TRAP_TSPAN =
-  '</tspan></text></svg><img src="x" onerror="globalThis.__iconPwned = 6">'
+  '</tspan></text></svg><img src="x" onerror="globalThis.__iconPwned = 6">\n      '
 // A browser reads the content of <title> and <desc> as HTML: the text has to
 // stay text in the component, on the server and in the raw text.
-const TRAP_TITLE = '</title><img src="x" onerror="globalThis.__iconPwned = 8">'
-const TRAP_DESC = '</desc><img src="x" onerror="globalThis.__iconPwned = 9">'
-const TRAP_BODY = `<title>&lt;/title&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 8&quot;&gt;</title><desc><![CDATA[${TRAP_DESC}]]></desc><text data-trap="&quot;&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 2&quot;&gt;">${TRAP_TEXT}</text><text><tspan>&lt;/tspan&gt;&lt;/text&gt;&lt;/svg&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 6&quot;&gt;</tspan></text><style><![CDATA[text > tspan { fill: red }]]></style><metadata><p><iframe srcdoc="&lt;script&gt;globalThis.__iconPwned = 7&lt;/script&gt;"></iframe></p></metadata>`
+const TRAP_TITLE =
+  '\n    </title><img src="x" onerror="globalThis.__iconPwned = 8">\n  '
+const TRAP_DESC =
+  '\n    </desc><img src="x" onerror="globalThis.__iconPwned = 9">\n  '
+const TRAP_BODY = `<title>\n    &lt;/title&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 8&quot;&gt;\n  </title><desc><![CDATA[${TRAP_DESC}]]></desc><text data-trap="&quot;&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 2&quot;&gt;">${TRAP_TEXT}</text><text><tspan>&lt;/tspan&gt;&lt;/text&gt;&lt;/svg&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 6&quot;&gt;\n      </tspan></text><style><![CDATA[text > tspan { fill: red }]]></style><metadata><p><iframe srcdoc="&lt;script&gt;globalThis.__iconPwned = 7&lt;/script&gt;"></iframe></p></metadata>`
 const TRAP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">${TRAP_BODY}</svg>\n`
 const TRAP_APP = `import Trap from 'icon:own/trap'
 import trapSvg from 'icon:own/trap?raw'
@@ -262,7 +266,7 @@ describe('the markup of an SVG file', () => {
     assert.equal(await page.evaluate(probe, PROBE), undefined)
     assert.match(
       (await page.locator('#raw').textContent()) ?? '',
-      /^<svg aria-hidden="true" width="1\.2em" .*<title>&lt;\/title>&lt;img .*data-trap="&quot;>&lt;img/u
+      /^<svg aria-hidden="true" width="1\.2em" .*<title>\n {4}&lt;\/title>&lt;img .*data-trap="&quot;>&lt;img/su
     )
   })
 

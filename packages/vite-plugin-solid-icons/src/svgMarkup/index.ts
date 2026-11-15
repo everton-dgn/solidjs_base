@@ -6,7 +6,14 @@ type Attribute = {
   value: string
 }
 
-type TextNode = { kind: 'text'; raw: string; value: string; isCdata: boolean }
+type TextNode = {
+  kind: 'text'
+  raw: string
+  value: string
+  isCdata: boolean
+  // Whether the text is part of what an element draws or holds as text.
+  isTextContent: boolean
+}
 
 type ElementNode = {
   kind: 'element'
@@ -14,6 +21,9 @@ type ElementNode = {
   attributes: Attribute[]
   children: SvgNode[]
   drop: DropKind
+  // Whether the element is one of TEXT_CONTENT or inside one, where every
+  // space of a text draws or belongs to it.
+  isTextContent: boolean
 }
 
 // Editor data is left out whole: the element that starts it, and what it
@@ -190,6 +200,19 @@ const XMLNS_PREFIX = 'xmlns:'
 // of the server, where a "<" could end the element.
 const TEXT_ONLY = new Set(['desc', 'style', 'title'])
 const UNESCAPED_TEXT = 'style'
+// The elements whose texts keep their spaces: what <text> draws, with the
+// elements inside it, and the text of <title>, <desc> and <style>.
+const TEXT_CONTENT = new Set([
+  'desc',
+  'style',
+  'text',
+  'textPath',
+  'title',
+  'tspan'
+])
+// WHY: JSX trims a text around its line breaks and joins its spaces, which
+// changes the text that an element draws.
+const JSX_CHANGED_SPACES = /^\s|\s$|\s\s|[^\S ]/u
 const ANIMATED_ATTRIBUTE = 'attributename'
 const LINK_ATTRIBUTE = 'href'
 const VALUE_LIST = 'values'
@@ -549,7 +572,16 @@ function pushText({ parent, raw }: TextInput): void {
   }
   const value = decode(raw)
   checkText({ parent, value })
-  appendText({ parent, text: { kind: 'text', raw, value, isCdata: false } })
+  appendText({
+    parent,
+    text: {
+      kind: 'text',
+      raw,
+      value,
+      isCdata: false,
+      isTextContent: parent.isTextContent
+    }
+  })
 }
 
 function readElement({
@@ -570,7 +602,8 @@ function readElement({
         ? keptAttributes({ attributes: tag.attributes, drops })
         : tag.attributes,
     children: [],
-    drop
+    drop,
+    isTextContent: parent.isTextContent || TEXT_CONTENT.has(tag.name)
   }
   // The content of editor data is left out with it, so it is not checked.
   if (drop !== 'none') {
@@ -596,7 +629,13 @@ function readNode(input: NodeInput): ElementNode | undefined {
     checkText({ parent, value })
     appendText({
       parent,
-      text: { kind: 'text', raw: section, value, isCdata: true }
+      text: {
+        kind: 'text',
+        raw: section,
+        value,
+        isCdata: true,
+        isTextContent: parent.isTextContent
+      }
     })
     return undefined
   }
@@ -637,10 +676,15 @@ function attributeJsx({ name, rawValue, value }: Attribute): string {
     : ` ${name}={${JSON.stringify(value)}}`
 }
 
+// A text that JSX reads as it is stays as written; the others, and the
+// text of an element whose spaces draw, are a string, which the compiler
+// writes into the template as it is and escaped.
 function textJsx(node: TextNode): string {
-  return !node.isCdata && PLAIN_TEXT.test(node.raw)
-    ? node.raw
-    : `{${JSON.stringify(node.value)}}`
+  const isKept =
+    !node.isCdata &&
+    PLAIN_TEXT.test(node.raw) &&
+    !(node.isTextContent && JSX_CHANGED_SPACES.test(node.raw))
+  return isKept ? node.raw : `{${JSON.stringify(node.value)}}`
 }
 
 function startTagJsx({ node, isRoot }: TagInput): string {
@@ -727,7 +771,8 @@ export function parseSvg({ svg, isComponent }: ParseInput): ParsedSvg {
       drops
     }),
     children: [],
-    drop: 'none'
+    drop: 'none',
+    isTextContent: false
   }
   checkElement({ node: root, parent: undefined, isComponent })
   if (!rootStart.isSelfClosing) {

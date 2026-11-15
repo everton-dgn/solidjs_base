@@ -419,6 +419,40 @@ describe('the markup of an icon', () => {
     }
   })
 
+  it('keeps the spaces of a text that draws, and leaves out the ones between elements', () => {
+    const svg = [
+      '<svg>',
+      '  <g>',
+      '    <text>a',
+      '      <tspan>b</tspan>',
+      '      c <a href="#x">d  e</a></text>',
+      '    <text xml:space="preserve">  x   y  </text>',
+      '    <text><tspan>f</tspan>',
+      '      <tspan>g</tspan></text>',
+      '    <title>',
+      '      A title',
+      '    </title>',
+      '    <text>one space, kept as written</text>',
+      '    <text>h <tspan>i</tspan> j</text>',
+      '  </g>',
+      '</svg>'
+    ].join('\n')
+
+    assert.equal(
+      component(svg),
+      `export default (props = {}) => <svg {...props}>
+  <g>
+    <text>{"a\\n      "}<tspan>b</tspan>{"\\n      c "}<a href="#x">{"d  e"}</a></text>
+    <text xml:space="preserve">{"  x   y  "}</text>
+    <text><tspan>f</tspan>{"\\n      "}<tspan>g</tspan></text>
+    <title>{"\\n      A title\\n    "}</title>
+    <text>one space, kept as written</text>
+    <text>{"h "}<tspan>i</tspan>{" j"}</text>
+  </g>
+</svg>\n`
+    )
+  })
+
   it('keeps the first of a repeated attribute of the root', () => {
     const svg =
       '<svg aria-hidden="true" viewBox="0 0 1 1" aria-hidden="false"><path/></svg>'

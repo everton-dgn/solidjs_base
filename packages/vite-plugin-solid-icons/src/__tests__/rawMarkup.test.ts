@@ -22,7 +22,16 @@ const EDITOR_FILES: Record<string, string> = {
   sketch: SKETCH,
   'sketch-old': SKETCH_OLD
 }
-const NAMES = Object.keys(EDITOR_FILES)
+// Texts whose spaces draw: lines with their indentation, and the spaces that
+// xml:space="preserve" keeps.
+const TEXT_FILES: Record<string, string> = {
+  'text-lines':
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40">\n  <text x="4" y="26" font-size="16">a\n    <tspan fill="red">b</tspan>\n    c</text>\n</svg>\n',
+  'text-preserve':
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40"><text x="4" y="26" font-size="16" xml:space="preserve">  x   y  <tspan>z</tspan></text></svg>\n'
+}
+const ICON_FILES = { ...EDITOR_FILES, ...TEXT_FILES }
+const NAMES = Object.keys(ICON_FILES)
 
 function identifier(name: string): string {
   return name.replaceAll(/-(?<letter>[a-z])/gu, (_, letter: string) =>
@@ -57,7 +66,7 @@ export default function App() {
 test('the raw text of an icon draws as its component', async context => {
   const root = await createFixtureApp()
   defer({ context, task: () => rm(root, { recursive: true, force: true }) })
-  for (const [name, file] of Object.entries(EDITOR_FILES)) {
+  for (const [name, file] of Object.entries(ICON_FILES)) {
     await writeFile(path.join(root, `icons/${name}.svg`), file)
   }
   await writeFile(path.join(root, 'src/App.tsx'), APP)

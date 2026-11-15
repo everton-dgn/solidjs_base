@@ -893,13 +893,11 @@
       /* Captures of the running boilerplate, shown at 1:1 CSS scale. */
       .cap-pad { position: relative; padding: 28px 23px 24px; }
       .cap-pad > .eyebrow, .cap-pad > .title, .cap-pad > .lede { margin-left: 4px; }
-      .cap-pad > .title + .cap-grid, .cap-pad > .lede + .cap-grid, .cap-pad > .title + .cap-stack, .cap-pad > .lede + .cap-stack { margin-top: 20px; }
+      .cap-pad > .title + .cap-stack, .cap-pad > .lede + .cap-stack { margin-top: 20px; }
       .cap-win { box-shadow: none; }
       .cap-win img { display: block; }
       .cap-win .win-bar .chip { height: 24px; font-size: 14px; }
       .cap-stack { display: grid; gap: 12px; }
-      .cap-grid { display: grid; grid-template-columns: 370px 370px; gap: 12px; align-items: start; }
-      .cap-col { display: grid; gap: 12px; }
       .cap-pad .caption { margin: 14px 4px 0; }
 
       /* Diagrams */
@@ -1939,60 +1937,6 @@ Disallow: /_server</pre>
         <p class="caption">
           Real captures of the production build. Navigation, title and language
           switcher come from the colocated catalogs.
-        </p>
-      </div>
-    </section>
-
-    <section class="figure" id="ui-kit">
-      <div class="cap-pad">
-        <p class="eyebrow">UI kit of the boilerplate</p>
-        <h2 class="title">Six components, captured from the running app.</h2>
-        <p class="lede">
-          Clips of the /ui-kit E2E fixture route at 1:1 scale, 368 px wide.
-        </p>
-        <div class="cap-grid">
-          <div class="cap-col">
-            <div class="win cap-win">
-              <div class="win-bar"><span>DropdownMenu</span></div>
-              <img data-capture="ui-kit-menu" width="368" height="169" alt="" />
-            </div>
-            <div class="win cap-win">
-              <div class="win-bar"><span>Input</span></div>
-              <img
-                data-capture="ui-kit-input"
-                width="368"
-                height="100"
-                alt=""
-              />
-            </div>
-            <div class="win cap-win">
-              <div class="win-bar"><span>Textarea · Button</span></div>
-              <img data-capture="ui-kit-form" width="368" height="240" alt="" />
-            </div>
-          </div>
-          <div class="cap-col">
-            <div class="win cap-win">
-              <div class="win-bar"><span>Dialog</span></div>
-              <img
-                data-capture="ui-kit-dialog"
-                width="368"
-                height="278"
-                alt=""
-              />
-            </div>
-            <div class="win cap-win">
-              <div class="win-bar"><span>Toast</span></div>
-              <img
-                data-capture="ui-kit-toast"
-                width="368"
-                height="210"
-                alt=""
-              />
-            </div>
-          </div>
-        </div>
-        <p class="caption">
-          Toast messages render as text, so the markup in the error stays inert.
         </p>
       </div>
     </section>

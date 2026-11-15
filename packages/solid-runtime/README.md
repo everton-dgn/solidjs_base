@@ -86,11 +86,11 @@ values through `securityHeaders`. Everything else in this page is opt-in.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/runtime-entries-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/runtime-entries-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/runtime-entries-light.webp" alt="solid-runtime has 63 entry points in 8 groups: seo 15, middleware 12, server 12, i18n 10, theme 10, routing 2, env 1 and fonts 1, with examples such as create-seo, create-middleware, configure-server-errors, locale-tag and define-theme. Counted from the exports of the package manifest; a group you never import never enters your build." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/runtime-entries-light.webp" alt="solid-runtime has 64 entry points in 8 groups: seo 15, middleware 12, server 12, theme 11, i18n 10, routing 2, env 1 and fonts 1, with examples such as create-seo, create-middleware, configure-server-errors, locale-tag and define-theme. Counted from the exports of the package manifest; a group you never import never enters your build." width="800" />
 </picture>
 
-The package has 63 entry points in 8 groups and no barrel: `seo` 15,
-`middleware` 12, `server` 12, `i18n` 10, `theme` 10, `routing` 2, `env` 1 and
+The package has 64 entry points in 8 groups and no barrel: `seo` 15,
+`middleware` 12, `server` 12, `theme` 11, `i18n` 10, `routing` 2, `env` 1 and
 `fonts` 1. A single-language app needs no translation project, and a theme or
 SEO module enters the bundle only when your code imports it.
 
@@ -224,8 +224,10 @@ Light, dark or system. On the server, `readTheme` reads the choice from the
 request cookie, and `themeColor` gives the matching `theme-color` for the HTML
 class you render. `themeScript`, inside a script with the request nonce,
 resolves the system preference before hydration. A choice made in one tab
-reaches the others through BroadcastChannel, with no localStorage. One factory,
-`defineTheme`, binds it all:
+reaches the others through BroadcastChannel. The choice stays in a cookie, which
+the server reads; an app with no server keeps it in localStorage instead, as
+[Optional theme](#optional-theme) shows. One factory, `defineTheme`, binds it
+all:
 
 ```ts
 import { defineTheme } from '@evertondgn/solid-runtime/theme/define-theme'
@@ -836,23 +838,55 @@ Read the request cookie with `readTheme(cookieHeader) ?? defaultTheme`. Use an
 explicit light/dark preference as the HTML class and `themeColor(theme)` as the
 meta color. Render `themeScript(theme)` inside your own script with the request
 nonce. Keep .light/.dark color-scheme CSS rules in the application. The factory
-validates cookieName, positive integer cookieMaxAge, nonempty
-colors.light/colors.dark and defaultTheme, and copies the configuration. Colors
-remain application-owned CSS values; validation does not parse CSS. readTheme
-returns null for absent/invalid preferences and undefined for blocked access.
-themeColor uses light for system during SSR; the script resolves the actual
-system preference before hydration.
+validates cookieName and a positive integer cookieMaxAge, or a nonempty
+storageKey, plus nonempty colors.light/colors.dark and defaultTheme, and copies
+the configuration. Colors remain application-owned CSS values; validation does
+not parse CSS. readTheme returns null for absent/invalid preferences and
+undefined for blocked access. themeColor uses light for system during SSR; the
+script resolves the actual system preference before hydration.
 
 Call createTheme once per provider tree. It applies choices before persistence,
-uses the cookie name for BroadcastChannel, and reconciles focus, pageshow and
-visibility changes. No localStorage is used.
+names its BroadcastChannel after the cookie name, or the storage key of the
+local form below, and reconciles focus, pageshow and visibility changes. The
+cookie is the default storage and the only one a server can read.
+
+An application with no server, such as a static site, a page served by another
+backend or an app shell like Electron, Tauri or Capacitor, can pass
+`storage: 'local-storage'` and a `storageKey` instead of `cookieName` and
+`cookieMaxAge`. Each file opened by `file://` keeps no cookie, and a static host
+never reads one. With that storage, `readTheme` reads `localStorage` and ignores
+the cookie header, `createTheme` saves there with the same `isPersisted` check,
+and BroadcastChannel uses the storage key. `themeScript` still needs a server
+and its nonce.
+
+```ts
+export const { createTheme, defaultTheme, themes } = defineTheme({
+  storage: 'local-storage',
+  storageKey: 'app-theme',
+  colors: { light: '#ffffff', dark: '#09090b' },
+  defaultTheme: 'system'
+})
+```
+
+To paint the first frame in the stored theme, `storedThemeScript` from
+`@evertondgn/solid-runtime/theme/stored-theme-script` returns the code of a
+classic script that reads the same key and applies the class, `color-scheme` and
+`theme-color`, with the system preference as fallback. A `theme-color` meta that
+follows the script in `<head>` gets the color once the parser adds it. That
+entry is plain JavaScript with types, so `vite.config.ts` can import it from
+Node. Emit the code as an external file loaded at the start of `<head>`, so it
+needs no nonce and runs from `file://`; the
+[no-server guide](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)
+has a plugin for that.
 
 Separate entries also expose `theme/types`, `theme/is-theme`,
-`theme/apply-theme`, `theme/theme-storage`, `theme/make-system-theme`,
-`theme/make-theme-channel`, `theme/make-broadcast-channel`, `theme/create-theme`
-and `theme/create-theme/types`. Storage, theme channel and primitive take
-ThemeOptions as their first argument. The factory binds those options for normal
-application use.
+`theme/apply-theme`, `theme/stored-theme-script`, `theme/theme-storage`,
+`theme/make-system-theme`, `theme/make-theme-channel`,
+`theme/make-broadcast-channel`, `theme/create-theme` and
+`theme/create-theme/types`. Storage, theme channel and primitive take
+ThemeConfig, which is ThemeOptions for the cookie or LocalStorageThemeOptions,
+as their first argument. The factory binds those options for normal application
+use.
 
 `solid-js` comes from your application. Knip's strict production pass has a
 scoped `solid-js!` exception for it. Installed builds exercise resolution with

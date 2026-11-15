@@ -11,8 +11,10 @@ static files, the build, CSS, server and preview blocks, the `vp run` tasks, and
 Each feature is turned on only when the application uses it, so nothing it does
 not use reaches its build:
 
-- `ssr: false` builds a client-only application, such as an Electron renderer or
-  a static site: no Nitro, no server functions and no server bundle.
+- `ssr: false` builds a client-only application: no Nitro, no server functions
+  and no server bundle. It runs with no server, on a static host, in a folder,
+  inside another backend or in an app shell such as Electron, Tauri or
+  Capacitor; see [applications with no server](no-server.md).
 - Publication uses independent `seo.markdown`, `seo.llms`, `seo.llmsFull` and
   `seo.sitemap` options. Static generation is compiled into the tooling package;
   the application binds runtime factories to its routes and middleware.
@@ -40,25 +42,25 @@ export default defineSolidApp({
 })
 ```
 
-| Option            | Default                 | Use                                                                                                                                                        |
-| ----------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `language`        | `en`                    | Single locale when no translation project exists; ignored when generated locale settings exist                                                             |
-| `root`            | required                | Application folder. `.env`, `.env.test`, `project.inlang/settings.json` and the icon folders resolve from it                                               |
-| `i18nPlugin`      | auto                    | Set `false` to disable only the automatic catalog and Paraglide plugins; locale providers, test setup and the generation task remain enabled by settings   |
-| `ssr`             | `true`                  | `false` for a client-only application, which takes only `root`, `language`, `i18nPlugin`, `icons`, `e2e.routes`, `extend`, `tasks`, `workspace` and `test` |
-| `securityHeaders` | required with SSR       | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files                                    |
-| `seo`             | disabled                | Data-only options for robots, sitemap, Markdown and editorial indexes                                                                                      |
-| `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                                                        |
-| `serverSetup`     | `serverFunctions: true` | `serverFunctions.serverSetup` of the Solid plugin                                                                                                          |
-| `e2e`             | production paths        | `{ middleware, routes }` for `--mode e2e`: the middleware chain and the route folder of the fixtures, without route types                                  |
-| `icons`           | none                    | Own `unplugin-icons` collections, as name to folder                                                                                                        |
-| `publicAssets`    | none                    | `publicAssets` of Nitro. Each entry needs a `baseURL`, which also gets the static headers                                                                  |
-| `staticPaths`     | none                    | Other static paths that get the headers, such as `/favicon/**`                                                                                             |
-| `routeRules`      | none                    | More Nitro route rules, applied after the static ones. A rule with the same path replaces the static one                                                   |
-| `extend`          | none                    | `(context) => ({ plugins, nitroModules })`, for plugins and Nitro modules the application still owns                                                       |
-| `tasks`           | none                    | Adds or replaces `vp run` tasks by name                                                                                                                    |
-| `workspace`       | none                    | `{ dependsOn, inputs }` for an application inside a monorepo, whose `bun.lock`, `bunfig.toml` and package builds sit at the root                           |
-| `test`            | defaults of `solidTest` | `{ domUrl, locale, sourcePackages }` for the test block, described in [Testing](testing.md)                                                                |
+| Option            | Default                 | Use                                                                                                                                                                 |
+| ----------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `language`        | `en`                    | Single locale when no translation project exists; ignored when generated locale settings exist                                                                      |
+| `root`            | required                | Application folder. `.env`, `.env.test`, `project.inlang/settings.json` and the icon folders resolve from it                                                        |
+| `i18nPlugin`      | auto                    | Set `false` to disable only the automatic catalog and Paraglide plugins; locale providers, test setup and the generation task remain enabled by settings            |
+| `ssr`             | `true`                  | `false` for a client-only application, which takes only `root`, `language`, `i18nPlugin`, `icons`, `fonts`, `e2e.routes`, `extend`, `tasks`, `workspace` and `test` |
+| `securityHeaders` | required with SSR       | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files                                             |
+| `seo`             | disabled                | Data-only options for robots, sitemap, Markdown and editorial indexes                                                                                               |
+| `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                                                                 |
+| `serverSetup`     | `serverFunctions: true` | `serverFunctions.serverSetup` of the Solid plugin                                                                                                                   |
+| `e2e`             | production paths        | `{ middleware, routes }` for `--mode e2e`: the middleware chain and the route folder of the fixtures, without route types                                           |
+| `icons`           | none                    | Own `unplugin-icons` collections, as name to folder                                                                                                                 |
+| `publicAssets`    | none                    | `publicAssets` of Nitro. Each entry needs a `baseURL`, which also gets the static headers                                                                           |
+| `staticPaths`     | none                    | Other static paths that get the headers, such as `/favicon/**`                                                                                                      |
+| `routeRules`      | none                    | More Nitro route rules, applied after the static ones. A rule with the same path replaces the static one                                                            |
+| `extend`          | none                    | `(context) => ({ plugins, nitroModules })`, for plugins and Nitro modules the application still owns                                                                |
+| `tasks`           | none                    | Adds or replaces `vp run` tasks by name                                                                                                                             |
+| `workspace`       | none                    | `{ dependsOn, inputs }` for an application inside a monorepo, whose `bun.lock`, `bunfig.toml` and package builds sit at the root                                    |
+| `test`            | defaults of `solidTest` | `{ domUrl, locale, sourcePackages }` for the test block, described in [Testing](testing.md)                                                                         |
 
 The preset serves `virtual:solid-app/locale` in development, builds and all
 Vitest projects. With `project.inlang/settings.json`, it re-exports the

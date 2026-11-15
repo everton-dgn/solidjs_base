@@ -98,6 +98,11 @@ export default defineConfig({
         rules: { 'typescript/no-magic-numbers': 'off' }
       },
       {
+        // The serialized body runs in the page, where document is a global.
+        files: ['src/theme/applyTheme/apply-theme.js'],
+        env: { browser: true }
+      },
+      {
         files: ['src/infra/server/readPublicationPhase/index.ts'],
         rules: { 'node/no-process-env': 'off' }
       },
@@ -205,7 +210,9 @@ export default defineConfig({
       include: [
         'src/**/*.{ts,tsx}',
         'src/env/index.js',
-        'src/infra/server/publication/protocol.js'
+        'src/infra/server/publication/protocol.js',
+        'src/theme/applyTheme/apply-theme.js',
+        'src/theme/storedThemeScript/index.js'
       ],
       exclude: [
         'src/**/*.d.ts',

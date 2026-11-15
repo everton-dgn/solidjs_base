@@ -434,6 +434,26 @@ adapters, types and primitive tests moved to the runtime package, which now runs
 node and happy-dom projects. UI and CSS remain in the copy. See
 [ADR 0024](ADRs/0024-runtime-theme.md).
 
+## Client-only build in a browser
+
+The `client-only / isolated` case also opens its build in a browser, after the
+default build and its audits. It rewrites the installed copy as the
+[no-server guide](tooling/no-server.md) shows, lints and type-checks it, builds
+it with the base `/meu-repo/` and with `./`, serves the first over HTTP from
+that folder and opens the second from `file://` with
+`--allow-file-access-from-files`. Only this case runs it, and not under a
+`SCENARIO_MUTATION`. It launches the Chromium of Playwright, or the Chrome of
+the runner on CI, so `vp run validate` needs one of them. To run it alone, build
+the packages and select it:
+
+```bash
+vp run build
+node --test --test-timeout=180000 --test-name-pattern='client-only / isolated$' packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts
+```
+
+See [ADR 0036](ADRs/0036-no-server-mode.md) for what it proves and what it
+leaves to a real app shell.
+
 ## Runtime server errors
 
 The seven server error modules and their unit tests live in

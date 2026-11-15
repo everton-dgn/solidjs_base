@@ -1,6 +1,6 @@
 # 0032. The preset loads application-owned fonts
 
-- Status: Accepted
+- Status: Accepted, amended by [0036](0036-no-server-mode.md)
 - Date: 2026-11-14
 
 ## Context

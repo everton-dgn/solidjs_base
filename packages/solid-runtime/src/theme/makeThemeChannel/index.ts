@@ -1,7 +1,7 @@
 import { isTheme } from '../isTheme/index.ts'
 import { makeBroadcastChannel } from '../makeBroadcastChannel/index.ts'
 import { readTheme } from '../themeStorage/index.ts'
-import type { Theme, ThemeOptions } from '../types.ts'
+import type { Theme, ThemeConfig } from '../types.ts'
 
 type ThemeMessage = {
   theme: Theme
@@ -40,8 +40,14 @@ function isThemeMessage(message: unknown): message is ThemeMessage {
   )
 }
 
+function channelName(options: ThemeConfig): string {
+  return options.storage === 'local-storage'
+    ? options.storageKey
+    : options.cookieName
+}
+
 export function makeThemeChannel(
-  options: ThemeOptions,
+  options: ThemeConfig,
   receive: (theme: Theme) => void
 ): ThemeConnection {
   let isTemporary = false
@@ -85,7 +91,7 @@ export function makeThemeChannel(
   }
 
   const channel = makeBroadcastChannel<ThemeMessage>({
-    name: options.cookieName,
+    name: channelName(options),
     receive: onMessage
   })
   globalThis.addEventListener('focus', restore)

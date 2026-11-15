@@ -1,5 +1,7 @@
 import type { IconRequest } from '../types.ts'
 
+type RequestPart = { specifier: string; part: string }
+
 const ICON_PREFIX = 'icon:'
 const RAW_PREFIX = `\0${ICON_PREFIX}`
 const COMPONENT_SUFFIX = '.tsx'
@@ -15,7 +17,7 @@ function invalidRequest(specifier: string): Error {
   return new Error(`Invalid icon import "${specifier}". ${USAGE}`)
 }
 
-function isRawQuery(specifier: string, query: string): boolean {
+function isRawQuery({ specifier, part: query }: RequestPart): boolean {
   if (query === '') return false
   const params = new URLSearchParams(query)
   const keys = [...params.keys()]
@@ -27,7 +29,7 @@ function isRawQuery(specifier: string, query: string): boolean {
   )
 }
 
-function splitPath(specifier: string, path: string): IconRequest {
+function splitPath({ specifier, part: path }: RequestPart): IconRequest {
   const slash = path.indexOf('/')
   if (slash === -1) {
     throw new Error(
@@ -52,10 +54,11 @@ export function isCollectionName(name: string): boolean {
 export function readIconId(id: string): IconRequest | undefined {
   if (id.startsWith(RAW_PREFIX) && id.endsWith(RAW_SUFFIX)) {
     const path = id.slice(RAW_PREFIX.length, -RAW_SUFFIX.length)
-    return { ...splitPath(id, path), isRaw: true }
+    return { ...splitPath({ specifier: id, part: path }), isRaw: true }
   }
   if (id.startsWith(ICON_PREFIX) && id.endsWith(COMPONENT_SUFFIX)) {
-    return splitPath(id, id.slice(ICON_PREFIX.length, -COMPONENT_SUFFIX.length))
+    const path = id.slice(ICON_PREFIX.length, -COMPONENT_SUFFIX.length)
+    return splitPath({ specifier: id, part: path })
   }
   return undefined
 }
@@ -74,6 +77,6 @@ export function parseIconRequest(specifier: string): IconRequest | undefined {
   if (!specifier.startsWith(ICON_PREFIX)) return undefined
   const [path = '', ...query] = specifier.slice(ICON_PREFIX.length).split('?')
   if (query.length > 1) throw invalidRequest(specifier)
-  const request = splitPath(specifier, path)
-  return { ...request, isRaw: isRawQuery(specifier, query[0] ?? '') }
+  const request = splitPath({ specifier, part: path })
+  return { ...request, isRaw: isRawQuery({ specifier, part: query[0] ?? '' }) }
 }

@@ -16,6 +16,7 @@ type Folders = Map<string, string>
 type ModuleIds = Map<string, Set<string>>
 type TrackedLoad = { ids: ModuleIds; file: string; id: string }
 type FileIcon = { collection: string; name: string }
+type FileLookup = { folders: Folders; file: string }
 
 const PLUGIN_NAME = 'vite-plugin-solid-icons'
 const SVG_EXTENSION = '.svg'
@@ -39,7 +40,7 @@ function track({ ids, file, id }: TrackedLoad): void {
 
 // The icon of a file in the folder of a collection, also when no module
 // loaded it yet: a new file answers an import that failed before.
-function iconOfFile(folders: Folders, file: string): FileIcon | undefined {
+function iconOfFile({ folders, file }: FileLookup): FileIcon | undefined {
   if (path.extname(file) !== SVG_EXTENSION) return undefined
   const folder = path.dirname(file)
   for (const [collection, collectionFolder] of folders) {
@@ -64,7 +65,7 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
 
   function idsOfFile(file: string): Set<string> {
     const ids = new Set(idsByFile.get(file))
-    const icon = iconOfFile(folders, file)
+    const icon = iconOfFile({ folders, file })
     if (icon) {
       ids.add(iconId({ ...icon, isRaw: false }))
       ids.add(iconId({ ...icon, isRaw: true }))

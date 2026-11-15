@@ -40,6 +40,7 @@ bundle carries these three and nothing else of either collection.
 [Import by name](#import-icons-by-name) ·
 [Import by path](#import-one-icon-by-its-path) · [SVG text](#the-svg-as-text) ·
 [Collections](#installed-collections-and-your-own-folders) ·
+[SVG files](#what-the-plugin-does-with-your-svg-files) ·
 [Names](#names-you-can-predict) ·
 [Types](#typed-names-and-a-suggestion-on-a-typo) ·
 [Errors](#build-errors-that-name-the-icon) ·
@@ -187,9 +188,49 @@ solidIcons({
   and `Logo`.
 - A file name may contain dots, as in `logo.v2.svg`, imported as
   `icon:brand/logo.v2` or by its name, `LogoV2`.
+- An import names the file exactly, in the same case, on every file system:
+  `icon:brand/Logo` does not load `logo.svg` on macOS either, and the error
+  names the file that the folder has.
+- A symbolic link to an SVG file is not read, so an icon cannot reach a file
+  outside the folder. The error says that the file is a link. The folder itself
+  may be a link.
+- A file whose name an import cannot spell, as in `my icon.svg` or `ícone.svg`,
+  has no import and no export name. The dev server and the build warn once with
+  its name.
 - A collection name uses lowercase letters, digits and single hyphens. Another
   name stops the configuration with the list of the invalid names.
 - A folder declared with the name of an installed collection takes its place.
+
+## What the plugin does with your SVG files
+
+The SVG files of a folder collection are part of your application, as its source
+files are: the plugin does not sanitize them, and you review them as you review
+code. What the plugin guarantees is that the markup of a file stays markup:
+
+- The component writes again the elements, attributes and text that the file
+  parses to, as literals. No text of the file becomes JavaScript, a JSX
+  expression, a component or a DOM property, and Solid escapes the text and the
+  values when it renders them.
+- The build stops, with the icon and the reason, on markup that runs code in a
+  page: a `<script>` element, an event handler attribute such as `onload`, a
+  `javascript:` or `vbscript:` URL in any attribute, and `<foreignObject>`,
+  which embeds HTML. The same check applies to `?raw`.
+- The component also refuses the markup that JSX reads as code: a tag with a
+  capital letter, a dot or a colon, the attributes `innerHTML`, `textContent`,
+  `innerText`, `children` and `ref`, and the namespaces that Solid reads, such
+  as `prop:` and `use:`. `?raw` keeps them as text.
+- A file that is not well-formed XML stops the build with what is wrong in it.
+  What comes before the `<svg>` root, such as a DOCTYPE, is left out. The plugin
+  reads the five entities of XML and the numeric references only, so an entity
+  of a DOCTYPE, such as an external entity, stops the build instead of
+  expanding.
+- Comments and processing instructions are left out of the component and kept in
+  `?raw`.
+
+The checks do not make an untrusted SVG safe: they leave external references,
+such as an `<image>` or a `<use>` that points to a URL, or a CSS `url()`. An SVG
+that a user uploads needs a sanitizer at runtime, not a folder collection. The
+icons of an installed collection go through the same checks.
 
 ## Names you can predict
 
@@ -376,7 +417,11 @@ frameworks are out of its scope.
 | `typesFile`     | `string \| false`                            | `'src/icon-collections.d.ts'` | The declaration file of the names, relative to the Vite root, or `false` to write none                          |
 
 `customizeIcon` receives the name of the collection, the name of the icon and
-the attributes as an object of strings, which it edits in place:
+the attributes as an object of strings, which it edits in place. A value is
+text: the plugin escapes `&`, `"`, `<` and `>` in the values it sets, so write
+them as they are. A name that is not an attribute name, or a value that is not a
+string, stops the build with the icon and the attribute, and an event handler is
+refused as in a file:
 
 ```ts
 solidIcons({
@@ -398,11 +443,18 @@ solidIcons({
 - Vite+ (`vite-plus`) and `@solidjs/web` in the versions of the peer
   dependencies, and `@solidjs/vite-plugin` in the plugins of the application.
   The plugin reads your imports with the parser that `vite-plus` exports.
-- When the declaration file is on, which is the default, the dev server and the
-  build stop at startup if a folder in `collections` cannot be read, or if the
-  `package.json` lists an `@iconify-json/<collection>` that is not installed.
-  With `typesFile: false`, the same problems stop only the import that needs
-  them.
+- A folder in `collections` that cannot be read, an `@iconify-json/<collection>`
+  that the `package.json` lists but that is not installed, and a declaration
+  file that cannot be written do not stop the dev server or the build. The
+  plugin logs a warning with the folder, the collection or the file and the
+  error code, the declaration file keeps its last content, and only an import
+  that needs the missing icons fails. `writeIconTypes` and `checkIconTypes` fail
+  on the same problems.
+- The declaration file is written to a temporary file next to it and renamed, so
+  a type check that reads it while the dev server or a build writes it reads a
+  whole file.
+- An installed collection is read once per process. After you update an
+  `@iconify-json/<collection>` package, restart the dev server.
 - The declaration of the imports by path accepts any name, so a typo in a path
   passes the type check and stops the build. The imports by name are checked by
   the type check too.

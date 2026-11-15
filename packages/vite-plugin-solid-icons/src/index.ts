@@ -41,6 +41,10 @@ const PLUGIN_NAME = 'vite-plugin-solid-icons'
 const SCRIPT_ID = /\.[cm]?[jt]sx?(?:\?.*)?$/u
 const NODE_MODULES = /[/\\]node_modules[/\\]/u
 const ICON_MODULE = /^\0?icon:/u
+// The hooks that resolve and load see every module of the application;
+// the filter keeps the others away from the plugin. The handlers check
+// the exact form.
+const ICON_SPECIFIER = /icon:/u
 // The quoted name of a collection alone, as an import of the collection
 // writes it; a module with only imports of one icon skips the parser.
 const COLLECTION_IMPORT =
@@ -85,6 +89,8 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
   let typesFile: string | undefined
   let logger: Logger | undefined
   let runningTypes = Promise.resolve()
+  let queuedTypes: Promise<void> | undefined
+  let lastTypesEvent = ''
   const warnedFiles = new Set<string>()
   const idsByFile: ModuleIds = new Map()
   const importersByCollection: ModuleIds = new Map()
@@ -124,13 +130,18 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     await warnSkippedFiles()
   }
 
-  // One write at a time, so the last list of icons is the one on disk.
+  // One write at a time, so the last list of icons is the one on disk. The
+  // updates asked while one waits share it, so a burst of new files writes
+  // the file twice at most.
   function updateTypes(): Promise<void> {
+    if (queuedTypes) return queuedTypes
     const previous = runningTypes
     const update = (async () => {
       await previous
+      queuedTypes = undefined
       await writeTypes()
     })()
+    queuedTypes = update
     runningTypes = settled(update)
     return update
   }
@@ -162,24 +173,27 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     configureServer(server) {
       server.watcher.add([...folders.values()])
     },
-    // oxlint-disable-next-line eslint/max-params -- Vite calls resolveId with the source, the importer and the options.
-    resolveId(source, _importer, resolveOptions) {
-      const collection = collectionOfImport(source)
-      if (collection !== undefined) {
-        if (isDependencyScan(resolveOptions)) {
-          return { id: source, external: true }
+    resolveId: {
+      filter: { id: ICON_SPECIFIER },
+      // oxlint-disable-next-line eslint/max-params -- Vite calls resolveId with the source, the importer and the options.
+      handler(source, _importer, resolveOptions) {
+        const collection = collectionOfImport(source)
+        if (collection !== undefined) {
+          if (isDependencyScan(resolveOptions)) {
+            return { id: source, external: true }
+          }
+          const form =
+            resolveOptions.kind === 'dynamic-import' ? 'dynamic' : 'bare'
+          this.error(unsupportedImport({ collection, form }))
         }
-        const form =
-          resolveOptions.kind === 'dynamic-import' ? 'dynamic' : 'bare'
-        this.error(unsupportedImport({ collection, form }))
+        let request: IconRequest | undefined
+        try {
+          request = parseIconRequest(source)
+        } catch (error) {
+          this.error(messageOf(error))
+        }
+        return request && { id: iconId(request), moduleSideEffects: false }
       }
-      let request: IconRequest | undefined
-      try {
-        request = parseIconRequest(source)
-      } catch (error) {
-        this.error(messageOf(error))
-      }
-      return request && { id: iconId(request), moduleSideEffects: false }
     },
     transform: {
       filter: {
@@ -210,26 +224,29 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
         }
       }
     },
-    async load(id) {
-      const request = readIconId(id)
-      if (!request) return null
-      const { collection, name, isRaw } = request
-      const folder = folders.get(collection)
-      const { svg, file } = await loadIconSvg({
-        ...request,
-        root,
-        folder:
-          folder === undefined
-            ? undefined
-            : { path: folder, files: await tables.files(collection) },
-        customizeIcon: options.customizeIcon
-      })
-      if (file !== undefined) {
-        this.addWatchFile(file)
-        track({ ids: idsByFile, key: fileKey(file), id })
+    load: {
+      filter: { id: ICON_SPECIFIER },
+      async handler(id) {
+        const request = readIconId(id)
+        if (!request) return null
+        const { collection, name, isRaw } = request
+        const folder = folders.get(collection)
+        const { svg, file } = await loadIconSvg({
+          ...request,
+          root,
+          folder:
+            folder === undefined
+              ? undefined
+              : { path: folder, files: await tables.files(collection) },
+          customizeIcon: options.customizeIcon
+        })
+        if (file !== undefined) {
+          this.addWatchFile(file)
+          track({ ids: idsByFile, key: fileKey(file), id })
+        }
+        const icon = `${collection}/${name}`
+        return { code: compileIcon({ svg, isRaw, icon }), map: null }
       }
-      const icon = `${collection}/${name}`
-      return { code: compileIcon({ svg, isRaw, icon }), map: null }
     },
     async hotUpdate(context) {
       const graph = this.environment.moduleGraph
@@ -241,8 +258,14 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
         for (const id of importersByCollection.get(icon.collection) ?? []) {
           ids.add(id)
         }
-        tables.invalidate(icon.collection)
-        await reportTypes()
+        // Every environment receives the same event; the names and the
+        // declarations change once for it.
+        const event = `${context.type}:${context.timestamp}:${file}`
+        if (event !== lastTypesEvent) {
+          lastTypesEvent = event
+          tables.invalidate(icon.collection)
+          await reportTypes()
+        }
       }
       const modules = [...ids].flatMap(id => graph.getModuleById(id) ?? [])
       if (context.type === 'update' || modules.length === 0) {

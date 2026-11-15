@@ -337,9 +337,27 @@ describe('the modules of the icons', () => {
   it('reads an import by name whose specifier has an escape', async context => {
     const root = await createFixtureApp()
     context.after(() => rm(root, { recursive: true, force: true }))
+    const backslash = '\\'
+    // One spelling per module: the filter of the transform reads each file
+    // on its own.
+    const spellings: Record<string, [name: string, specifier: string]> = {
+      'u00.js': ['Moon', `icon:${backslash}u006fwn`],
+      'x.js': ['Star', `ic${backslash}x6fn:own`],
+      'brace.js': ['Star', `icon:o${backslash}u{77}n`],
+      'letter.js': ['LogoV2', `icon:${backslash}own`],
+      'lf.js': ['Moon', `ic${backslash}\non:own`],
+      'crlf.js': ['Star', `icon:o${backslash}\r\nwn`]
+    }
+    for (const [file, [name, specifier]] of Object.entries(spellings)) {
+      await writeFile(
+        path.join(root, file),
+        `import { ${name} } from '${specifier}'\nexport default ${name}\n`
+      )
+    }
+    const modules = Object.keys(spellings)
     await writeFile(
       path.join(root, 'entry.js'),
-      "import { Moon } from 'icon:\\u006fwn'\nimport { Star } from 'ic\\x6fn:own'\nimport { LogoV2 } from 'icon:\\own'\nconsole.log(Moon, Star, LogoV2)\n"
+      `${modules.map((file, index) => `import icon${index} from './${file}'`).join('\n')}\nconsole.log(${modules.map((_, index) => `icon${index}`).join(', ')})\n`
     )
     const output = await build({
       ...fixtureConfig({ root, isSsr: false, typesFile: false }),

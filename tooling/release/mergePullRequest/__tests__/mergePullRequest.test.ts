@@ -244,6 +244,30 @@ describe('mergePullRequest CI and branch', () => {
     )
   })
 
+  it('reads every page of the CI required checks and of the workflow runs', async () => {
+    const github = featureGitHub()
+    github.pageSize = 1
+    github.checkRuns = {
+      [HEAD]: [[checkRun({ id: 90, suiteId: 8000 }), checkRun({ id: 100 })]]
+    }
+    github.workflowRuns = {
+      [HEAD]: [
+        [
+          workflowRun({ id: 400, event: 'workflow_dispatch', suiteId: 8000 }),
+          workflowRun({})
+        ]
+      ]
+    }
+    const { request, calls } = createHarness({ github })
+
+    await mergePullRequest(request)
+
+    assert.deepEqual(
+      writes(calls).map(call => call.args[1]),
+      ['repos/{owner}/{repo}/pulls/7/merge']
+    )
+  })
+
   it('refuses a held CI run of a pull request that is not a release', async () => {
     const github = featureGitHub()
     github.checkRuns = { [HEAD]: [[]] }

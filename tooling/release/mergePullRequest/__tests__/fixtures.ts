@@ -29,7 +29,9 @@ type ContentsRequest = { github: FakeGitHub; file: string; ref: string }
 
 type ArgLookup = { command: Command; name: string }
 
-type RouteMatch = { github: FakeGitHub; groups: Record<string, string> }
+type RouteMatch = FakeCommand & { groups: Record<string, string> }
+
+type PagedList = FakeCommand & { key: string; items: readonly unknown[] }
 
 type Route = {
   pattern: RegExp
@@ -123,35 +125,42 @@ function threadsJson({ github, command }: FakeCommand): unknown {
   }
 }
 
-function checkRunsJson(checks: readonly FakeCheckRun[]): unknown {
+function checkRunJson(check: FakeCheckRun): unknown {
   return {
-    total_count: checks.length,
-    check_runs: checks.map(check => ({
-      id: check.id,
-      name: 'CI required',
-      status: check.status,
-      conclusion: check.conclusion,
-      html_url: `${RUN_URL}/${check.suiteId}/job/${check.id}`,
-      check_suite: { id: check.suiteId }
-    }))
+    id: check.id,
+    name: 'CI required',
+    status: check.status,
+    conclusion: check.conclusion,
+    html_url: `${RUN_URL}/${check.suiteId}/job/${check.id}`,
+    check_suite: { id: check.suiteId }
   }
 }
 
-function workflowRunsJson(runs: readonly FakeWorkflowRun[]): unknown {
+function workflowRunJson(run: FakeWorkflowRun): unknown {
   return {
-    total_count: runs.length,
-    workflow_runs: runs.map(run => ({
-      id: run.id,
-      name: run.path === CI_WORKFLOW ? 'CI' : 'Release',
-      path: run.path,
-      event: run.event,
-      status: run.status,
-      conclusion: run.conclusion,
-      head_sha: run.headSha,
-      check_suite_id: run.suiteId,
-      html_url: `${RUN_URL}/${run.id}`
-    }))
+    id: run.id,
+    name: run.path === CI_WORKFLOW ? 'CI' : 'Release',
+    path: run.path,
+    event: run.event,
+    status: run.status,
+    conclusion: run.conclusion,
+    head_sha: run.headSha,
+    check_suite_id: run.suiteId,
+    html_url: `${RUN_URL}/${run.id}`
   }
+}
+
+// Without --paginate and --slurp, gh prints only the first page, as an object.
+function paged({ github, command, key, items }: PagedList): CommandResult {
+  const pages: unknown[] = []
+  for (let start = 0; start === 0 || start < items.length;) {
+    const page = items.slice(start, start + github.pageSize)
+    pages.push({ total_count: items.length, [key]: page })
+    start += github.pageSize
+  }
+  const isPaginated =
+    command.args.includes('--paginate') && command.args.includes('--slurp')
+  return json(isPaginated ? pages : pages[0])
 }
 
 function contents({ github, file, ref }: ContentsRequest): CommandResult {
@@ -188,16 +197,28 @@ const ROUTES: readonly Route[] = [
   {
     pattern: /^commits\/(?<sha>\w+)\/check-runs\?/u,
     method: 'GET',
-    respond: ({ github, groups }) =>
-      json(checkRunsJson(nextOf(github.checkRuns[groups.sha ?? '']) ?? []))
+    respond: ({ github, command, groups }) =>
+      paged({
+        github,
+        command,
+        key: 'check_runs',
+        items: (nextOf(github.checkRuns[groups.sha ?? '']) ?? []).map(check =>
+          checkRunJson(check)
+        )
+      })
   },
   {
     pattern: /^actions\/runs\?head_sha=(?<sha>\w+)&/u,
     method: 'GET',
-    respond: ({ github, groups }) =>
-      json(
-        workflowRunsJson(nextOf(github.workflowRuns[groups.sha ?? '']) ?? [])
-      )
+    respond: ({ github, command, groups }) =>
+      paged({
+        github,
+        command,
+        key: 'workflow_runs',
+        items: (nextOf(github.workflowRuns[groups.sha ?? '']) ?? []).map(run =>
+          workflowRunJson(run)
+        )
+      })
   },
   {
     pattern: /^actions\/runs\/\d+\/approve$/u,
@@ -212,9 +233,12 @@ const ROUTES: readonly Route[] = [
   {
     pattern: /^actions\/runs\/(?<id>\d+)\/jobs\?/u,
     method: 'GET',
-    respond: ({ github, groups }) =>
-      json({
-        jobs: (github.jobs[groups.id ?? ''] ?? []).map(job => ({
+    respond: ({ github, command, groups }) =>
+      paged({
+        github,
+        command,
+        key: 'jobs',
+        items: (github.jobs[groups.id ?? ''] ?? []).map(job => ({
           name: job.name,
           status: job.status,
           conclusion: job.conclusion,
@@ -232,13 +256,14 @@ const ROUTES: readonly Route[] = [
 
 function respondToEndpoint({
   github,
+  command,
   path,
   method
 }: FakeEndpoint): CommandResult | undefined {
   for (const route of ROUTES) {
     const match = route.pattern.exec(path)
     if (match && route.method === method) {
-      return route.respond({ github, groups: { ...match.groups } })
+      return route.respond({ github, command, groups: { ...match.groups } })
     }
   }
   return undefined
@@ -319,6 +344,7 @@ export type FakeGitHub = {
   jobs: Record<string, FakeJob[]>
   files: Record<string, string>
   registry: Record<string, CommandResult[]>
+  pageSize: number
 }
 
 export const HEAD = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678'
@@ -388,7 +414,8 @@ export function featureGitHub(): FakeGitHub {
     }),
     jobs: {},
     files: {},
-    registry: {}
+    registry: {},
+    pageSize: 100
   }
 }
 

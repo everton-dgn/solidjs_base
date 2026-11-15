@@ -11,6 +11,14 @@ import type {
 
 type GhCall = { args: readonly string[]; action: string }
 
+type ListCall = GhCall & { key: string }
+
+type Caller = {
+  gh: (call: GhCall) => Promise<string>
+  ghFields: (call: GhCall) => Promise<Fields>
+  ghList: (call: ListCall) => Promise<Fields[]>
+}
+
 type ThreadsRequest = { number: number; cursor: string | undefined }
 
 type ThreadsPage = { threads: ReviewThread[]; cursor: string | undefined }
@@ -98,7 +106,7 @@ function toJob(job: Fields): Job {
   }
 }
 
-export function createGitHub(run: RunCommand): GitHub {
+function createCaller(run: RunCommand): Caller {
   async function gh({ args, action }: GhCall): Promise<string> {
     const result = await run({ file: 'gh', args })
     if (result.exitCode !== 0) {
@@ -112,6 +120,25 @@ export function createGitHub(run: RunCommand): GitHub {
     const text = await gh(call)
     return readFields({ value: parseJson({ text, label }), label })
   }
+
+  // --slurp prints every page in one JSON list, so a long list is read whole.
+  async function ghList({ args, action, key }: ListCall): Promise<Fields[]> {
+    const label = `response to "${action}"`
+    const text = await gh({ action, args: [...args, '--paginate', '--slurp'] })
+    const pages = parseJson({ text, label })
+    if (!Array.isArray(pages)) {
+      throw new TypeError(`Unexpected ${label}: expected a list of pages.`)
+    }
+    return (pages as unknown[]).flatMap((page, index) =>
+      readFields({ value: page, label: `${label}[${index}]` }).list(key)
+    )
+  }
+
+  return { gh, ghFields, ghList }
+}
+
+export function createGitHub(run: RunCommand): GitHub {
+  const { gh, ghFields, ghList } = createCaller(run)
 
   async function readThreadsPage({
     number,
@@ -225,24 +252,24 @@ export function createGitHub(run: RunCommand): GitHub {
     },
 
     async listCheckRuns(sha) {
-      const response = await ghFields({
+      const checks = await ghList({
         action: `list the CI required checks of ${sha}`,
+        key: 'check_runs',
         args: [
           'api',
           `${REPOSITORY}/commits/${sha}/check-runs?check_name=CI%20required&${PAGE_SIZE}`
         ]
       })
-      return response.list('check_runs').map(check => toCheckRun(check))
+      return checks.map(check => toCheckRun(check))
     },
 
     async listWorkflowRuns(sha) {
-      const response = await ghFields({
+      const workflowRuns = await ghList({
         action: `list the workflow runs of ${sha}`,
+        key: 'workflow_runs',
         args: ['api', `${REPOSITORY}/actions/runs?head_sha=${sha}&${PAGE_SIZE}`]
       })
-      return response
-        .list('workflow_runs')
-        .map(workflowRun => toWorkflowRun(workflowRun))
+      return workflowRuns.map(workflowRun => toWorkflowRun(workflowRun))
     },
 
     async approveRun(id) {
@@ -289,11 +316,12 @@ export function createGitHub(run: RunCommand): GitHub {
     },
 
     async listJobs(runId) {
-      const response = await ghFields({
+      const jobs = await ghList({
         action: `list the jobs of the workflow run ${runId}`,
+        key: 'jobs',
         args: ['api', `${REPOSITORY}/actions/runs/${runId}/jobs?${PAGE_SIZE}`]
       })
-      return response.list('jobs').map(job => toJob(job))
+      return jobs.map(job => toJob(job))
     },
 
     readFile({ path, ref }) {

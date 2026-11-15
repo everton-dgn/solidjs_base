@@ -214,9 +214,12 @@ solidIcons({
   server. A checkout that removes the folder and creates it again does the same.
 - An icon is read from the file that the listing of the folder found. A file
   that an editor saves by writing a new file and renaming it over the icon is
-  listed again and read; a file replaced by a hard link is refused.
+  listed again and read; a file replaced by a hard link after the listing is
+  refused.
 - These checks leave a hard link that is in the folder when the plugin lists it,
-  which reads as a file of the folder. Node reads a folder by its path, so a
+  which reads as a file of the folder. The dev server and a watched build list
+  the folder again when a file is added or removed there, so a hard link that
+  replaced a file reads as one after that. Node reads a folder by its path, so a
   folder swapped and put back between two checks of one listing is not seen.
   Windows has no flag to open a file without following a link, and the identity
   of a file comes from its file system there: the checks are tested on macOS and

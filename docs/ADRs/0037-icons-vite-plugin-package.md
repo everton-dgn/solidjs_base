@@ -120,9 +120,10 @@ The options were:
   keeps the device and the inode of each file, and the read checks them on the
   opened file. A file with another identity, as an editor writes when it saves
   to a new file and renames it, is listed again and read when it has one link; a
-  hard link that replaced the file is refused. A hard link that is already in
-  the folder at the listing is read, and Node reads a folder by its path, so a
-  swap undone between two checks is not seen.
+  hard link that replaced the file after the listing is refused. A hard link
+  that is in the folder when it is listed, as after the add that the watcher
+  reports, is read, and Node reads a folder by its path, so a swap undone
+  between two checks is not seen.
 - A folder that cannot be read, a collection that is declared and not installed,
   and a declaration file that cannot be written log a warning and stop only the
   imports that need them, so the dev server keeps running.

@@ -180,6 +180,18 @@ function openProblem(error: unknown): FileProblem | undefined {
   return undefined
 }
 
+// The folder is the one that the plugin read first, checked on every read
+// before any problem of the file, so a replaced folder names itself.
+function checkSourceFolder(source: FolderSource): Promise<void> {
+  const { collection, root, folder } = source
+  return checkFolder({
+    collection,
+    folder: folder.path,
+    root,
+    identity: folder.files.identity
+  })
+}
+
 async function openFolderFile(source: FolderSource): Promise<FileHandle> {
   const { name, folder } = source
   try {
@@ -189,27 +201,20 @@ async function openFolderFile(source: FolderSource): Promise<FileHandle> {
     )
   } catch (error) {
     const problem = openProblem(error)
-    if (problem) throw missingFolderIcon({ ...source, problem })
-    throw error
+    if (!problem) throw error
+    await checkSourceFolder(source)
+    throw missingFolderIcon({ ...source, problem })
   }
 }
 
-// The opened file comes from the folder that the plugin read first, checked
-// on every read, and is the one of the listing. An editor that saves to a
-// new file and renames it over the icon gives it another identity: the
-// folder is listed again, and the new file is read when that listing has
-// it.
+// The opened file is the one of the listing. An editor that saves to a new
+// file and renames it over the icon gives it another identity: the folder is
+// listed again, and the new file is read when that listing has it.
 async function checkListedFile({
   stats,
   ...source
 }: OpenedFile): Promise<void> {
-  const { collection, name, root, folder } = source
-  await checkFolder({
-    collection,
-    folder: folder.path,
-    root,
-    identity: folder.files.identity
-  })
+  const { name, folder } = source
   const listed = folder.files.icons.get(name)
   if (listed && isSameFile({ first: listed, second: stats })) return
   const files = await folder.refresh()
@@ -231,6 +236,7 @@ async function readFolderSvg(source: FolderSource): Promise<string> {
   let text: string
   try {
     const stats = await handle.stat({ bigint: true })
+    await checkSourceFolder(source)
     if (!stats.isFile()) {
       throw missingFolderIcon({ ...source, problem: 'irregular' })
     }

@@ -607,6 +607,20 @@ describe('loadIconSvg of a folder that changes after the listing', () => {
     await assert.rejects(readStar(), REPLACED_FOLDER)
   })
 
+  it('names the replaced folder before a problem of its file', async context => {
+    const folder = await iconFolder(context)
+    const readStar = await pluginReads(folder)
+    await rename(folder, `${folder}-old`)
+    context.after(() => rm(`${folder}-old`, { recursive: true, force: true }))
+
+    // A folder without the file.
+    await mkdir(folder)
+    await assert.rejects(readStar(), REPLACED_FOLDER)
+    // A folder whose file is a FIFO.
+    await promisify(execFile)('mkfifo', [path.join(folder, 'star.svg')])
+    await assert.rejects(readStar(), REPLACED_FOLDER)
+  })
+
   it('refuses a folder moved and replaced by a link to it', async context => {
     const folder = await iconFolder(context)
     const readStar = await pluginReads(folder)

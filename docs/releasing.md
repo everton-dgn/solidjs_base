@@ -62,8 +62,46 @@ version too. From 1.0.0 on, a breaking change raises the major version.
 ## Merging a pull request
 
 Merge every pull request, release pull requests included, with a merge commit
-through the GitHub API and an empty commit body. With `sha`, GitHub refuses the
-merge when the head changed after the review and the CI run:
+and an empty commit body. Run the command at the root, with `gh` signed in to an
+account that can merge:
+
+```bash
+vp run release:merge <number> --dry-run
+vp run release:merge <number>
+```
+
+`--dry-run` reads the state and prints what the command would do, without
+updating the branch, approving a run or merging. Without it, the command:
+
+1. Refuses a pull request that is closed, a draft or in conflict, and one with
+   an unresolved review conversation, which it lists with the path, the line and
+   the author.
+2. Merges `main` into a branch that is behind, through the GitHub API and never
+   with a rebase, and goes on with the new head.
+3. Waits for `CI required` on the head. It counts only the checks of runs
+   started by an event the ruleset accepts, such as `pull_request`, and ignores
+   the check of a `workflow_dispatch` run. When the check is missing and the CI
+   run of that head waits for approval, it approves that run, and only that one,
+   if the pull request is a release pull request from a branch of this
+   repository. For any other pull request it stops, so you review the changes
+   and approve the run on GitHub.
+4. Merges with `sha` set to that head, so GitHub refuses the merge when the head
+   changed in the meantime, and checks that the API answered `merged: true`.
+5. For a release pull request, waits for the `Release` workflow of the merge
+   commit, prints the result of each job and checks that each released version
+   is on npm with its provenance statement. It reads the versions from
+   `.release-please-manifest.json` and the names from the package `package.json`
+   at the merge commit.
+
+Every refusal or failure ends with a message and a nonzero exit code.
+`--interval <seconds>` sets the time between two reads (30 by default),
+`--timeout <minutes>` the longest wait for `CI required` and for the `Release`
+workflow (60), and `--registry-timeout <minutes>` the longest wait for each
+version on npm (10). The command lives in `tooling/release/`, and
+`vp run test:release` runs its tests.
+
+Without the command, read the head and merge through the API. With `sha`, GitHub
+refuses the merge when the head changed after the review and the CI run:
 
 ```bash
 gh pr view <number> --json headRefOid,headRepositoryOwner,headRefName
@@ -107,11 +145,14 @@ into the branch, never rebase it, and wait for `CI required` again.
 3. For the first automated release of a package, create the trusted publisher
    now
    ([First automated release of a package](#first-automated-release-of-a-package)).
-4. Wait for `CI required` on the head you are about to merge. The release
-   workflow starts that run, and a push from your account starts another.
-5. Merge with the command in [Merging a pull request](#merging-a-pull-request).
-6. After the publish job, check the registry. The version can take a few minutes
-   to appear, and the output has the version and the provenance statement:
+4. Merge with `vp run release:merge <number>`
+   ([Merging a pull request](#merging-a-pull-request)). It approves the held CI
+   run of the head it merges, waits for `CI required`, merges, waits for the
+   `Release` workflow and checks each released version on npm.
+5. Without the command, approve only the held run of the head you merge, wait
+   for `CI required`, merge with the API call of the same section and, after the
+   publish job, check the registry. The version can take a few minutes to
+   appear, and the output has the version and the provenance statement:
 
    ```bash
    npm view @evertondgn/<package>@<version> version dist.attestations.provenance --json

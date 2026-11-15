@@ -92,7 +92,9 @@ async function runChild({
     stdout += chunk.toString()
   })
   try {
-    await once(child, 'exit', { signal: AbortSignal.timeout(timeout) })
+    // WHY: the child can exit before its output closes; close comes after
+    // the last chunk of stdout.
+    await once(child, 'close', { signal: AbortSignal.timeout(timeout) })
     return { exitCode: child.exitCode, stdout, ms: performance.now() - started }
   } catch (error) {
     child.kill()

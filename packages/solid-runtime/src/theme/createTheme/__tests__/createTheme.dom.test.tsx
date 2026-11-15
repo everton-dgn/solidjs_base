@@ -18,6 +18,10 @@ import { stubBroadcastChannel } from '../../../tests/theme/stub-broadcast-channe
 import type { ResolvedTheme, Theme } from '../../types.ts'
 import type { ThemeState } from '../types.ts'
 
+function blocked(): never {
+  throw new Error('blocked')
+}
+
 describe('theme primitive', () => {
   let state: ThemeState
   let media: EventTarget & { matches: boolean }
@@ -189,5 +193,22 @@ describe('theme primitive with localStorage', () => {
     state?.setTheme('light')
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
     expect(document.cookie).toBe('')
+  })
+
+  it('keeps switching when localStorage is blocked', async () => {
+    vi.stubGlobal('localStorage', { getItem: blocked, setItem: blocked })
+    let state: ThemeState | undefined
+    const host = document.createElement('div')
+    document.body.append(host)
+    onTestFinished(() => host.remove())
+    const dispose = render(() => {
+      state = localTheme.createTheme()
+      return <span>{state.theme()}</span>
+    }, host)
+    onTestFinished(dispose)
+    await expect.poll(() => state?.isReady()).toBe(true)
+    expect(state?.theme()).toBe('system')
+    state?.setTheme('dark')
+    expect(document.documentElement).toHaveClass('dark')
   })
 })

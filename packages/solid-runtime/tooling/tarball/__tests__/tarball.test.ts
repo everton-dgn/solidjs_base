@@ -39,6 +39,7 @@ const BUILD_TOOLS = [SOLID_PLUGIN, 'vite', 'vite-plus', 'vitest', 'rolldown']
 const VP = path.join(PACKAGE_ROOT, 'node_modules/.bin/vp')
 const PACKAGE_NAME = '@evertondgn/solid-runtime'
 const CONSTANTS_SPECIFIER = `${PACKAGE_NAME}/middleware/security-headers/constants`
+const THEME_SCRIPT_SPECIFIER = `${PACKAGE_NAME}/theme/stored-theme-script`
 const COMMAND_TIMEOUT = 60_000
 
 const execFileAsync = promisify(execFile)
@@ -121,6 +122,39 @@ async function assertConstantsLoad({
   })
 }
 
+// A Node config builds the script, so the entry and its imports stay
+// JavaScript that Node loads from node_modules.
+async function assertThemeScriptLoads({
+  app,
+  packageFolder
+}: Installation): Promise<void> {
+  const script = [
+    `const specifier = ${JSON.stringify(THEME_SCRIPT_SPECIFIER)}`,
+    'const { storedThemeScript } = await import(specifier)',
+    'const url = import.meta.resolve(specifier)',
+    "const code = storedThemeScript({ storageKey: 'app-theme', colors: { light: '#fff', dark: '#000' }, defaultTheme: 'system' })",
+    'console.log(JSON.stringify({ url, code }))'
+  ].join('\n')
+  const output = await run({
+    file: execPath,
+    args: ['--input-type=module', '--eval', script],
+    cwd: app
+  })
+  const loaded: unknown = JSON.parse(output)
+
+  assert.ok(typeof loaded === 'object' && loaded !== null)
+  assert.ok('url' in loaded && 'code' in loaded)
+  assert.equal(
+    loaded.url,
+    pathToFileURL(
+      path.join(packageFolder, 'src/theme/storedThemeScript/index.js')
+    ).href
+  )
+  assert.ok(typeof loaded.code === 'string')
+  assert.ok(loaded.code.includes('localStorage.getItem("app-theme")'))
+  assert.ok(loaded.code.includes('function applyTheme'))
+}
+
 async function assertExportTargets({
   entries,
   packageFolder
@@ -199,6 +233,9 @@ test('the packed package installs as a dependency', async context => {
 
   await context.test('the header constants load in plain Node', () =>
     assertConstantsLoad(installation)
+  )
+  await context.test('the stored theme script loads in plain Node', () =>
+    assertThemeScriptLoads(installation)
   )
   await context.test('every target of exports is in the tarball', () =>
     assertExportTargets(installation)

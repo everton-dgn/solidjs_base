@@ -11,10 +11,10 @@ import { isTheme } from '../isTheme/index.ts'
 import { makeSystemTheme } from '../makeSystemTheme/index.ts'
 import { makeThemeChannel } from '../makeThemeChannel/index.ts'
 import { saveTheme } from '../themeStorage/index.ts'
-import type { ResolvedTheme, Theme, ThemeOptions } from '../types.ts'
+import type { ResolvedTheme, Theme, ThemeConfig } from '../types.ts'
 import type { ThemeState } from './types.ts'
 
-export function createTheme(options: ThemeOptions): ThemeState {
+export function createTheme(options: ThemeConfig): ThemeState {
   const apply = (resolved: ResolvedTheme): void => {
     applyTheme({ theme: resolved, color: options.colors[resolved] })
   }

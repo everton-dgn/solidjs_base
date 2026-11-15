@@ -86,6 +86,17 @@ overrides `files` must also include
 
 ## Known limits
 
+- An application with no server (`ssr: false` on a static host, in a folder, in
+  another backend or in an app shell) needs the hash history of the router under
+  `file://`. Translations by URL prefix need a server, and the document
+  navigation of `createLocalizedNavigate` and `createLocaleNavigationGuard`
+  leaves a folder base and fails under `file://`. The installed scenario opens
+  the build in Chromium with `--allow-file-access-from-files`, which approaches
+  a shell such as Electron and does not replace a test in one.
+  `storage: 'local-storage'` is accepted with SSR, but the server cannot read
+  the choice, so the page shows the default theme until `createTheme` applies
+  it; the cookie is the storage for SSR. See
+  [applications with no server](no-server.md#limits).
 - `@evertondgn/solid-runtime/env` exports optional preset validators, with
   Valibot supplied by the runtime package. Valibot requires no application
   declaration unless the application imports Valibot itself. The isolated

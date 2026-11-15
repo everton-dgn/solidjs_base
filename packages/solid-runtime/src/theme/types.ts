@@ -4,11 +4,21 @@ export type Theme = 'light' | 'dark' | 'system'
 export type ResolvedTheme = Exclude<Theme, 'system'>
 
 export type ThemeOptions = {
+  storage?: 'cookie'
   cookieName: string
   cookieMaxAge: number
   colors: Record<ResolvedTheme, string>
   defaultTheme: Theme
 }
+
+export type LocalStorageThemeOptions = {
+  storage: 'local-storage'
+  storageKey: string
+  colors: Record<ResolvedTheme, string>
+  defaultTheme: Theme
+}
+
+export type ThemeConfig = ThemeOptions | LocalStorageThemeOptions
 
 export type ThemeDefinition = {
   themes: readonly Theme[]

@@ -4,6 +4,7 @@
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | [Lint](lint.md)                                       | Understand the rules, backend restrictions and expected layout, or change the preset |
 | [Application config](app-config.md)                   | Configure `defineSolidApp`, optional features, plugins and tasks                     |
+| [Applications with no server](no-server.md)           | Ship a client-only build to a static host, a folder, another backend or an app shell |
 | [Testing](testing.md)                                 | Set up the node, DOM, browser and end-to-end tests                                   |
 | [Knip and CSS](knip-and-css.md)                       | Find unused code and apply the CSS token policy                                      |
 | [Commit messages and Git hooks](commits-and-hooks.md) | Install and customize commitlint and Lefthook                                        |

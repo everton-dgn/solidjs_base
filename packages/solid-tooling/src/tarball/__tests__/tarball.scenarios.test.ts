@@ -27,6 +27,15 @@ import {
   prepareFontsScenario
 } from '../font-scenarios.ts'
 import { smokeMiddleware } from '../middleware-smoke.ts'
+import {
+  assertGuidePlugin,
+  checkBrowserCloseFailure,
+  checkHandlerFailure,
+  checkLaunchFailure,
+  checkNoServer,
+  checkProfileFailure,
+  checkServerContainment
+} from '../no-server-scenarios.ts'
 import { mutatePublication } from '../publication-mutations.ts'
 import { PUBLICATION_PROFILES } from '../publication-scenarios.ts'
 import { smokePublication } from '../publication-smoke.ts'
@@ -60,6 +69,7 @@ const SCENARIOS = ['client-only', 'ssr-plain', 'ssr-i18n']
 const LINKERS = ['hoisted', 'isolated']
 const SCENARIO_TIMEOUT = 150_000
 const PREVIEW_TIMEOUT = 15_000
+const CHECK_TIMEOUT = 30_000
 const REQUEST_TIMEOUT = 1000
 const POLL_INTERVAL = 100
 const HTTP_OK = 200
@@ -424,6 +434,32 @@ function resolveCatalog({ versions, catalog }: CatalogInput): Versions {
   )
 }
 
+test('the no-server guide shows the plugin of the scenario', () => {
+  const guide = path.join(ROOT, 'docs/tooling/no-server.md')
+  assertGuidePlugin(readFileSync(guide, 'utf8'))
+})
+test('the no-server server serves nothing outside dist', checkServerContainment)
+test(
+  'the no-server server closes when the browser does not launch',
+  checkLaunchFailure
+)
+// A limit, so a handler that never answers fails instead of holding the run.
+test(
+  'the no-server server answers and closes when a request throws',
+  { timeout: CHECK_TIMEOUT },
+  checkHandlerFailure
+)
+test(
+  'the no-server server closes when the browser does not close',
+  { timeout: CHECK_TIMEOUT },
+  checkBrowserCloseFailure
+)
+test(
+  'the no-server profile folder is removed when the profile does not open',
+  { timeout: CHECK_TIMEOUT },
+  checkProfileFailure
+)
+
 // The applications sit outside the workspace, where catalog: does not
 // resolve, so they pin each version. Without this check an update of the
 // workspace would leave the matrix testing the old versions.
@@ -492,7 +528,14 @@ async function buildScenario({
   assertBuild({ app, scenario })
   assertFontBuild({ app, scenario })
   assertSeoBuild({ app, scenario })
-  if (scenario === 'client-only') return
+  if (scenario === 'client-only') {
+    // Runs after the audits of the default build, which must stay without a
+    // theme; a mutation probe must fail on its own target.
+    if (profile === 'isolated' && MUTATION === undefined) {
+      await checkNoServer({ app, deadline, run, buildTools: BUILD_TOOLS })
+    }
+    return
+  }
   await smoke({ app, scenario })
   if (scenario === 'ssr-plain' && profile === 'isolated') {
     await smoke({ app, scenario, hasInvalidPort: true })

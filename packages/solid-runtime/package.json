@@ -114,6 +114,10 @@
     "./theme/define-theme": {
       "solid": "./src/theme/defineTheme/index.ts"
     },
+    "./theme/stored-theme-script": {
+      "types": "./src/theme/storedThemeScript/index.d.ts",
+      "default": "./src/theme/storedThemeScript/index.js"
+    },
     "./theme/types": {
       "solid": "./src/theme/types.ts"
     },

@@ -4,7 +4,12 @@ import {
   makeThemeChannel
 } from '../../../tests/theme/config.ts'
 /* oxlint-disable unicorn/no-document-cookie -- Tests exercise cookie persistence and blocking directly. */
+import {
+  THEME_STORAGE_KEY,
+  localOptions
+} from '../../../tests/theme/local-config.ts'
 import { stubBroadcastChannel } from '../../../tests/theme/stub-broadcast-channel.ts'
+import { makeThemeChannel as connect } from '../index.ts'
 
 const NOW = 10
 const SECOND_CALL = 2
@@ -303,5 +308,22 @@ describe('theme channel lifecycle', () => {
     ).not.toThrow()
     expect(channel.close).toHaveBeenCalledExactlyOnceWith()
     sync.dispose()
+  })
+})
+
+describe('localStorage theme synchronization', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setup()
+  })
+
+  it('names the channel after the storage key and reads the stored choice', () => {
+    const receive = vi.fn<() => void>()
+    const sync = connect(localOptions, receive)
+    onTestFinished(sync.dispose)
+    expect(BroadcastChannel).toHaveBeenCalledWith(THEME_STORAGE_KEY)
+    localStorage.setItem(THEME_STORAGE_KEY, 'dark')
+    globalThis.dispatchEvent(new Event('focus'))
+    expect(receive).toHaveBeenLastCalledWith('dark')
   })
 })

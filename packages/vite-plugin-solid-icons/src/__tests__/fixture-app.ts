@@ -169,13 +169,25 @@ export const TYPES_FILE = 'src/icon-collections.d.ts'
 
 // Runs the task after the test, before the tasks deferred earlier: a server
 // closes before the folder it watches is removed. The hooks of node:test
-// run in the order they were added.
+// run in the order they were added, and one that throws skips the next ones,
+// so each task runs: a server or browser left open keeps the process of the
+// test file alive, and node --test waits for it with no limit.
 export function defer({ context, task }: DeferInput): void {
   const tasks = deferred.get(context) ?? []
   if (tasks.length === 0) {
     deferred.set(context, tasks)
     context.after(async () => {
-      for (const cleanup of tasks.toReversed()) await cleanup()
+      const errors: unknown[] = []
+      for (const cleanup of tasks.toReversed()) {
+        try {
+          await cleanup()
+        } catch (error) {
+          errors.push(error)
+        }
+      }
+      if (errors.length > 0) {
+        throw new AggregateError(errors, 'A cleanup of the test failed')
+      }
     })
   }
   tasks.push(task)

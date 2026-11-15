@@ -247,8 +247,6 @@ jobs:
       - name: Run end-to-end tests
         run: vp run test:e2e
 
-  # The only check the main ruleset requires. A job skipped by its `if`
-  # reports success, so this passes when every job passed or was skipped.
   # WHY: release-please reads the body of a merge commit as one more commit, so
   # the title of a pull request merged with the merge button becomes a changelog
   # entry. This run cannot undo the merge; it fails so the entry is removed
@@ -275,6 +273,8 @@ jobs:
             exit 1
           fi
 
+  # The only check the main ruleset requires. A job skipped by its `if`
+  # reports success, so this passes when every job passed or was skipped.
   required:
     name: CI required
     needs: [changes, docs, packages, app, app-e2e, merge-message]

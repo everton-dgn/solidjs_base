@@ -103,7 +103,7 @@ into the branch, never rebase it, and wait for `CI required` again.
    discards the edit, when a new merge changes the release it computes. Editing
    the notes does not change the version. When the version is wrong too, do not
    edit `package.json` or the manifest by hand: merge a pull request that sets
-   `release-as` for the package in `release-please-config.json`, let
+   `release-as` for both packages in `release-please-config.json`, let
    release-please write the release pull request again, and remove `release-as`
    after the release.
 3. For the first automated release of a package, create the trusted publisher
@@ -134,8 +134,9 @@ so the published package does not change.
 
 - `release-please-config.json` lists the packages and the rules. A new package
   goes under `packages`, keyed by its folder, and its component goes into the
-  `linked-versions` group. `release-as` under a package sets its next version by
-  hand; remove it after that release, or release-please keeps proposing it.
+  `linked-versions` group. `release-as` under both packages sets the next
+  version by hand; remove it after that release, or release-please keeps
+  proposing it.
 - `.release-please-manifest.json` holds the last released version of each
   package. release-please updates it. Edit it by hand only to add a package that
   already has a published version.
@@ -191,7 +192,8 @@ expires if the workflow does not publish with it within two days, so create it
 only when a release is ready:
 
 1. Wait for release-please to open the release pull request. It opens after a
-   `fix` or `feat` for the package reaches `main`.
+   `fix` or `feat` for any package of the group reaches `main`, and is titled
+   `chore: release main`, on the branch `release-please--branches--main`.
 2. Create the trusted publisher on npmjs.com, with the values in
    [One-time setup](#one-time-setup).
 3. Merge the release pull request within two days.

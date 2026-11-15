@@ -19,6 +19,8 @@ type BuildWait = {
   child: ChildProcessWithoutNullStreams
   output: BuildOutput
   step: string
+  // What the build has to do, for the message of a timeout.
+  goal: string
   isDone: () => Promise<boolean>
 }
 
@@ -84,6 +86,7 @@ async function waitForBuild({
   child,
   output,
   step,
+  goal,
   isDone
 }: BuildWait): Promise<void> {
   const deadline = Date.now() + BUILD_TIMEOUT
@@ -100,7 +103,7 @@ async function waitForBuild({
     const left = deadline - Date.now()
     if (left <= 0) {
       throw new Error(
-        `The watched build did not end a build in ${BUILD_TIMEOUT} ms ${step}:\n${output.stdout}`
+        `The watched build did not end a build that ${goal} in ${BUILD_TIMEOUT} ms ${step}:\n${output.stdout}`
       )
     }
     const signal = AbortSignal.timeout(left)
@@ -150,22 +153,36 @@ test('a watched build reads a new SVG of a folder', async context => {
     output.stderr += chunk.toString()
   })
   defer({ context, task: () => stop({ child, closed }) })
+  const types = path.join(root, TYPES_FILE)
   await waitForBuild({
     child,
     output,
     step: 'at the start',
+    goal: 'bundles the star',
     isDone: () => hasBundleText({ root, text: 'M12 2l3 7h7' })
   })
 
+  // The SVG first and the import after the build it starts, as an editor
+  // saves them; a build that read the import first would fail on it.
   await writeFile(path.join(root, 'icons/sun.svg'), SUN_SVG)
+  await waitForBuild({
+    child,
+    output,
+    step: 'after a new SVG',
+    goal: 'declares Sun',
+    isDone: async () => {
+      const declarations = await readFile(types, 'utf8')
+      return declarations.includes('export const Sun: IconComponent')
+    }
+  })
   await writeFile(entry, "import { Sun } from 'icon:own'\nconsole.log(Sun)\n")
   await waitForBuild({
     child,
     output,
-    step: 'after a new SVG and an import of it',
+    step: 'after an import of the new SVG',
+    goal: 'bundles the sun',
     isDone: () => hasBundleText({ root, text: SUN_PATH })
   })
 
-  const types = await readFile(path.join(root, TYPES_FILE), 'utf8')
-  assert.match(types, /export const Sun: IconComponent/u)
+  assert.equal(buildErrors(output), '')
 })

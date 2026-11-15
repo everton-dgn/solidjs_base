@@ -1,18 +1,20 @@
 import assert from 'node:assert/strict'
 import { readFile, rename, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { env } from 'node:process'
 import { test } from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 
-import { chromium, type Page } from 'playwright'
+import solid from '@solidjs/vite-plugin'
+import type { Page } from 'playwright'
 import {
   createLogger,
   createServer,
-  type FSWatcher,
-  type Logger
+  type Logger,
+  type ViteDevServer
 } from 'vite-plus'
 
+import { solidIcons } from '../index.ts'
+import { launchBrowser } from './browser.ts'
 import {
   createFixtureApp,
   defer,
@@ -23,14 +25,16 @@ import {
 } from './fixture-app.ts'
 
 type PayloadLog = { types: string[]; loads: number }
-type TypesWait = { file: string; pattern: RegExp }
+type TypesWait = { file: string; pattern: RegExp; module: string }
+type FileEvent = { server: ViteDevServer; event: WatchEvent; file: string }
+type WatchEvent = 'add' | 'change' | 'unlink'
 
-const WAIT_TIMEOUT = 30_000
-const QUIET_TIME = 1000
+// Generous, so a loaded runner finishes; a failure names what it waited for.
+const WAIT_TIMEOUT = 60_000
 const POLL_INTERVAL = 100
 const STAR = '[data-icon="star"]'
 const MOON = '[data-icon="moon"]'
-const OWN_MODULE = "declare module 'icon:own' {"
+const SVG = '<svg viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>'
 
 function payloadType(frame: string): string {
   const payload: unknown = JSON.parse(frame)
@@ -57,20 +61,11 @@ function watchPage(page: Page): PayloadLog {
   return log
 }
 
-// The watcher still reports the files the fixture has just written, and Vite
-// reloads the page for them; the test starts once those events are over.
-async function settle(watcher: FSWatcher): Promise<void> {
-  let lastEvent = Date.now()
-  const onEvent = () => {
-    lastEvent = Date.now()
-  }
-  async function waitForQuiet(): Promise<void> {
-    await delay(QUIET_TIME)
-    if (Date.now() - lastEvent < QUIET_TIME) await waitForQuiet()
-  }
-  watcher.on('all', onEvent)
-  await waitForQuiet()
-  watcher.off('all', onEvent)
+// WHY: the dev server of these tests has no file watcher, whose events come
+// late on a loaded machine; the test reports each change itself, as the
+// watcher would.
+function report({ server, event, file }: FileEvent): void {
+  server.watcher.emit(event, file)
 }
 
 // A logger that keeps the errors of the dev server, where the dependency scan
@@ -84,18 +79,26 @@ function errorLog(errors: string[]): Logger {
   }
 }
 
-// The declarations of the folder collection, once the plugin wrote them
-// after the watcher reported the file.
-async function waitForOwnTypes({ file, pattern }: TypesWait): Promise<string> {
+// The declarations of a collection, once the plugin wrote them after the
+// change.
+async function waitForTypes({
+  file,
+  pattern,
+  module
+}: TypesWait): Promise<string> {
   const deadline = Date.now() + WAIT_TIMEOUT
-  async function poll(): Promise<string> {
+  const start = `declare module 'icon:${module}' {`
+  for (;;) {
     const types = await readFile(file, 'utf8')
-    const own = types.slice(types.indexOf(OWN_MODULE))
-    if (pattern.test(own) || Date.now() > deadline) return own
+    const declarations = types.slice(types.indexOf(start)).split('\n}')[0] ?? ''
+    if (pattern.test(declarations)) return declarations
+    if (Date.now() > deadline) {
+      throw new Error(
+        `The declarations of icon:${module} did not match ${String(pattern)} in ${WAIT_TIMEOUT} ms.`
+      )
+    }
     await delay(POLL_INTERVAL)
-    return poll()
   }
-  return poll()
 }
 
 test('a folder icon follows its SVG file in the dev server', async context => {
@@ -105,20 +108,11 @@ test('a folder icon follows its SVG file in the dev server', async context => {
   const server = await createServer({
     ...fixtureConfig({ root, isSsr: false }),
     customLogger: errorLog(errors),
-    // Polling, because a loaded machine delays the file events of the system
-    // for tens of seconds.
-    server: {
-      port: 0,
-      strictPort: false,
-      watch: { usePolling: true, interval: POLL_INTERVAL }
-    }
+    server: { port: 0, strictPort: false, watch: null }
   })
   defer({ context, task: () => server.close() })
   await server.listen()
-  await settle(server.watcher)
-  // The CI runner has the Chrome of the system, as in the browser tests of
-  // the runtime package.
-  const browser = await chromium.launch(env.CI ? { channel: 'chrome' } : {})
+  const browser = await launchBrowser()
   defer({ context, task: () => browser.close() })
   const page = await browser.newPage()
   const log = watchPage(page)
@@ -143,6 +137,7 @@ test('a folder icon follows its SVG file in the dev server', async context => {
   await context.test('an edited SVG updates without a reload', async () => {
     log.types.length = 0
     await writeFile(star, original.replace('fill="red"', 'fill="green"'))
+    report({ server, event: 'change', file: star })
     await starFill('green')
 
     assert.equal(log.loads, 1)
@@ -152,6 +147,7 @@ test('a folder icon follows its SVG file in the dev server', async context => {
 
   await context.test('a removed SVG shows the error', async () => {
     await rm(star)
+    report({ server, event: 'unlink', file: star })
 
     await page
       .locator('vite-error-overlay')
@@ -165,6 +161,7 @@ test('a folder icon follows its SVG file in the dev server', async context => {
     // page; the file changes once the page is idle.
     await page.waitForLoadState('networkidle')
     await writeFile(star, original.replace('fill="red"', 'fill="blue"'))
+    report({ server, event: 'add', file: star })
     await starFill('blue')
 
     assert.equal(await page.locator('vite-error-overlay').count(), 0)
@@ -180,15 +177,18 @@ test('a folder icon follows its SVG file in the dev server', async context => {
       await page.locator(MOON).waitFor({ timeout: WAIT_TIMEOUT })
       await page.waitForLoadState('networkidle')
       await rename(moon, renamedMoon)
+      report({ server, event: 'unlink', file: moon })
+      report({ server, event: 'add', file: renamedMoon })
 
       await page
         .locator('vite-error-overlay')
         .getByText(`"Moon" is not an icon of 'icon:own'. Did you mean Moon2?`)
         .first()
         .waitFor({ timeout: WAIT_TIMEOUT })
-      const declarations = await waitForOwnTypes({
+      const declarations = await waitForTypes({
         file: types,
-        pattern: /export const Moon2:/u
+        pattern: /export const Moon2:/u,
+        module: 'own'
       })
       assert.match(declarations, /export const Moon2: IconComponent/u)
       assert.doesNotMatch(declarations, /export const Moon: /u)
@@ -200,14 +200,52 @@ test('a folder icon follows its SVG file in the dev server', async context => {
     async () => {
       await page.waitForLoadState('networkidle')
       await rename(renamedMoon, moon)
+      report({ server, event: 'unlink', file: renamedMoon })
+      report({ server, event: 'add', file: moon })
 
       await page.locator(MOON).waitFor({ timeout: WAIT_TIMEOUT })
       assert.equal(await page.locator('vite-error-overlay').count(), 0)
-      const declarations = await waitForOwnTypes({
+      const declarations = await waitForTypes({
         file: types,
-        pattern: /export const Moon: /u
+        pattern: /export const Moon: /u,
+        module: 'own'
       })
       assert.doesNotMatch(declarations, /export const Moon2:/u)
     }
   )
+})
+
+test('a new SVG reaches every collection of a shared folder', async context => {
+  const root = await createFixtureApp()
+  defer({ context, task: () => rm(root, { recursive: true, force: true }) })
+  await writeFile(
+    path.join(root, 'src/brand.ts'),
+    "import { Sun } from 'icon:brand'\nexport { Sun }\n"
+  )
+  const server = await createServer({
+    ...fixtureConfig({ root, isSsr: false }),
+    plugins: [
+      solidIcons({ collections: { own: './icons', brand: './icons' } }),
+      solid()
+    ],
+    optimizeDeps: { noDiscovery: true },
+    server: { middlewareMode: true, watch: null }
+  })
+  defer({ context, task: () => server.close() })
+  const { client } = server.environments
+  await assert.rejects(
+    client.transformRequest('/src/brand.ts'),
+    /"Sun" is not an icon of 'icon:brand'/u
+  )
+
+  const sun = path.join(root, 'icons/sun.svg')
+  await writeFile(sun, SVG)
+  report({ server, event: 'add', file: sun })
+
+  const types = path.join(root, TYPES_FILE)
+  for (const module of ['own', 'brand']) {
+    await waitForTypes({ file: types, pattern: /export const Sun:/u, module })
+  }
+  const brand = await client.transformRequest('/src/brand.ts')
+  assert.match(brand?.code ?? '', /icon:brand\/sun/u)
 })

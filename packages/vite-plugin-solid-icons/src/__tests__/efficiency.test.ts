@@ -205,10 +205,8 @@ console.log(Star, Moon, ${plain.map(index => `value${index}`).join(', ')})
         ...(fixtureConfig({ root, isSsr: true }).plugins ?? []).slice(1)
       ],
       optimizeDeps: { noDiscovery: true },
-      server: {
-        middlewareMode: true,
-        watch: { usePolling: true, interval: POLL_INTERVAL }
-      }
+      // The test reports each new file, as the file watcher would.
+      server: { middlewareMode: true, watch: null }
     })
     defer({ context, task: () => server.close() })
     assert.deepEqual(Object.keys(server.environments).toSorted(), [
@@ -231,14 +229,15 @@ console.log(Star, Moon, ${plain.map(index => `value${index}`).join(', ')})
     const before = reads()
 
     await writeFile(path.join(root, 'icons/sun.svg'), SVG)
+    server.watcher.emit('add', path.join(root, 'icons/sun.svg'))
     await waitFor(declares('Sun'))
     await delay(QUIET_TIME)
     const single = reads() - before
 
     const burst = Array.from({ length: 10 }, (_, index) => `burst-${index}`)
-    await Promise.all(
-      burst.map(name => writeFile(path.join(root, `icons/${name}.svg`), SVG))
-    )
+    const burstFiles = burst.map(name => path.join(root, `icons/${name}.svg`))
+    await Promise.all(burstFiles.map(file => writeFile(file, SVG)))
+    for (const file of burstFiles) server.watcher.emit('add', file)
     await waitFor(declares('Burst9'))
     await delay(QUIET_TIME)
     const burstReads = reads() - before - single

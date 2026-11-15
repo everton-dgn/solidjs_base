@@ -4,7 +4,7 @@ import type { Logger, Plugin } from 'vite-plus'
 
 import { compileIcon } from './compileIcon/index.ts'
 import { messageOf } from './errorText/index.ts'
-import { fileKey, iconOfFile } from './fileIcons/index.ts'
+import { fileKey, iconsOfFile } from './fileIcons/index.ts'
 import {
   createNameTables,
   type Folders,
@@ -37,6 +37,7 @@ import type { SolidIconsOptions } from './types.ts'
 
 type ModuleIds = Map<string, Set<string>>
 type TrackedId = { ids: ModuleIds; key: string; id: string }
+type ModuleFile = { root: string; id: string | undefined }
 
 const PLUGIN_NAME = 'vite-plugin-solid-icons'
 const SCRIPT_ID = /\.[cm]?[jt]sx?(?:\?.*)?$/u
@@ -65,6 +66,13 @@ async function settled(task: Promise<void>): Promise<void> {
   } catch {
     // The caller of the task reports its error.
   }
+}
+
+// The file of a module id, relative to the root, for an error.
+function relativeFile({ root, id }: ModuleFile): string | undefined {
+  if (id === undefined) return undefined
+  const [file = id] = id.split('?', 1)
+  return path.relative(root, file)
 }
 
 // WHY: the dependency scan of the dev server resolves the imports of the
@@ -103,17 +111,9 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     logger?.warn(`[plugin ${PLUGIN_NAME}] ${message}`)
   }
 
-  // The file of a module id, relative to the root, for an error.
-  function relativeFile(id: string | undefined): string | undefined {
-    if (id === undefined) return undefined
-    const [file = id] = id.split('?', 1)
-    return path.relative(root, file)
-  }
-
   function idsOfFile(file: string): Set<string> {
     const ids = new Set(idsByFile.get(file))
-    const icon = iconOfFile({ folders, file })
-    if (icon) {
+    for (const icon of iconsOfFile({ folders, file })) {
       ids.add(iconId({ ...icon, isRaw: false }))
       ids.add(iconId({ ...icon, isRaw: true }))
     }
@@ -206,7 +206,10 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
           // The transform rewrites or refuses every import of a collection
           // in the files it reads, so this one comes from another file.
           this.error(
-            unreachedImport({ collection, importer: relativeFile(importer) })
+            unreachedImport({
+              collection,
+              importer: relativeFile({ root, id: importer })
+            })
           )
         }
         let request: IconRequest | undefined
@@ -283,20 +286,21 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
       const graph = this.environment.moduleGraph
       const file = fileKey(context.file)
       const ids = idsOfFile(file)
-      const icon = iconOfFile({ folders, file })
-      // A new, removed or renamed SVG changes the names of its collection.
-      if (icon && context.type !== 'update') {
-        for (const id of importersByCollection.get(icon.collection) ?? []) {
-          ids.add(id)
-        }
-        // Every environment receives the same event; the names and the
-        // declarations change once for it.
-        const event = `${context.type}:${context.timestamp}:${file}`
-        if (event !== lastTypesEvent) {
-          lastTypesEvent = event
-          tables.invalidate(icon.collection)
-          await reportTypes()
-        }
+      // A new, removed or renamed SVG changes the names of the collections
+      // whose folder holds it.
+      const icons =
+        context.type === 'update' ? [] : iconsOfFile({ folders, file })
+      const importers = icons.flatMap(({ collection }) => [
+        ...(importersByCollection.get(collection) ?? [])
+      ])
+      for (const id of importers) ids.add(id)
+      // Every environment receives the same event; the names and the
+      // declarations change once for it.
+      const event = `${context.type}:${context.timestamp}:${file}`
+      if (icons.length > 0 && event !== lastTypesEvent) {
+        lastTypesEvent = event
+        for (const { collection } of icons) tables.invalidate(collection)
+        await reportTypes()
       }
       const modules = [...ids].flatMap(id => graph.getModuleById(id) ?? [])
       if (context.type === 'update' || modules.length === 0) {

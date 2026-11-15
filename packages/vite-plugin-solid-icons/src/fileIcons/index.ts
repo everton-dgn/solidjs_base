@@ -15,19 +15,15 @@ export function fileKey(file: string): string {
   return path.posix.normalize(file.replaceAll('\\', '/'))
 }
 
-// The icon of a file in the folder of a collection, also when no module
-// loaded it yet: a new file answers an import that failed before.
-export function iconOfFile({
-  folders,
-  file
-}: FileLookup): FileIcon | undefined {
+// The icons of a file in the folders of the collections, also when no
+// module loaded them yet: a new file answers an import that failed before.
+// Two collections may share a folder, and each has the file as an icon.
+export function iconsOfFile({ folders, file }: FileLookup): FileIcon[] {
   const key = fileKey(file)
-  if (path.posix.extname(key) !== SVG_EXTENSION) return undefined
+  if (path.posix.extname(key) !== SVG_EXTENSION) return []
   const folder = path.posix.dirname(key)
-  for (const [collection, collectionFolder] of folders) {
-    if (fileKey(collectionFolder) === folder) {
-      return { collection, name: path.posix.basename(key, SVG_EXTENSION) }
-    }
-  }
-  return undefined
+  const name = path.posix.basename(key, SVG_EXTENSION)
+  return [...folders]
+    .filter(([, collectionFolder]) => fileKey(collectionFolder) === folder)
+    .map(([collection]) => ({ collection, name }))
 }

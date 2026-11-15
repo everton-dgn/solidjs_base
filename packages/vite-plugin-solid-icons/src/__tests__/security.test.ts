@@ -1,13 +1,12 @@
 import assert from 'node:assert/strict'
 import { mkdir, rm, symlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { env } from 'node:process'
 import { describe, it, type TestContext } from 'node:test'
 import { pathToFileURL } from 'node:url'
 
-import { chromium } from 'playwright'
 import { build, createServer, preview } from 'vite-plus'
 
+import { launchBrowser } from './browser.ts'
 import { createFixtureApp, defer, fixtureConfig } from './fixture-app.ts'
 
 type ServerEntry = { html: () => string }
@@ -211,7 +210,7 @@ describe('the markup of an SVG file', () => {
       preview: { port: 0, strictPort: false }
     })
     defer({ context, task: () => server.close() })
-    const browser = await chromium.launch(env.CI ? { channel: 'chrome' } : {})
+    const browser = await launchBrowser()
     defer({ context, task: () => browser.close() })
     const page = await browser.newPage()
     const [url = ''] = server.resolvedUrls?.local ?? []

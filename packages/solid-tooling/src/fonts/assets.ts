@@ -18,6 +18,8 @@ type FontUrls = {
   html: (fileName: string) => string
 }
 const RELATIVE_BASE = './'
+// A browser resolves an encoded segment such as %2e%2e as the parent folder.
+const PARENT_SEGMENT = /^(?:\.|%2e){2}$/iu
 const HASH_LENGTH = 16
 const MAX_WEIGHT = 1000
 const FORMATS: Record<string, string | undefined> = {
@@ -121,7 +123,10 @@ export async function readFontAssets({
   ssr
 }: AssetOptions): Promise<FontAssets> {
   const urls = fontUrls({ base, ssr })
-  if (path.isAbsolute(assetsDir) || assetsDir.split(/[\\/]/u).includes('..')) {
+  if (
+    path.isAbsolute(assetsDir) ||
+    assetsDir.split(/[\\/]/u).some(segment => PARENT_SEGMENT.test(segment))
+  ) {
     throw new Error(
       'defineSolidApp fonts: assetsDir must stay inside the client output.'
     )

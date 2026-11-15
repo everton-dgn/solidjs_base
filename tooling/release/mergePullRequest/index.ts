@@ -11,7 +11,7 @@ import {
 import { describePublication, verifyPublication } from './publication.ts'
 import { createSession } from './session.ts'
 import type { MergeRequest, PullRequest, Session } from './types.ts'
-import { describeDuration, waitFor } from './wait.ts'
+import { describeDuration, readAgain, waitFor } from './wait.ts'
 
 type Step = { session: Session; pullRequest: PullRequest }
 
@@ -19,13 +19,45 @@ type BehindStep = Step & { behindBy: number }
 
 type UpdateStep = Step & { baseSha: string }
 
+type UpdatedHead = UpdateStep & { head: string }
+
+type UncheckedHead = { number: number; head: string; problems: string[] }
+
 type MergedStep = Step & { mergeSha: string; isDryRun: boolean }
 
-async function updateBranch({
+function describeUncheckedHead({
+  number,
+  head,
+  problems
+}: UncheckedHead): string {
+  return [
+    `The command could not confirm what the new head ${head} of #${number} holds:`,
+    ...problems.map(problem => `  ${problem}`),
+    'Nothing was approved or merged. Review the new head and merge it with:',
+    `  vp run release:merge ${number} --sha ${head}`
+  ].join('\n')
+}
+
+async function findUpdateProblems({
   session,
   pullRequest,
-  baseSha
-}: UpdateStep): Promise<string> {
+  baseSha,
+  head
+}: UpdatedHead): Promise<string[]> {
+  const { headSha, baseBranch } = pullRequest
+  const parents = await readAgain({
+    session,
+    read: () => session.github.readParents(head)
+  })
+  return isBranchUpdate({ parents, head: headSha, base: baseSha })
+    ? []
+    : [
+        `Its parents are ${parents.join(' and ') || 'none'}, not ${headSha} and ${baseBranch} at ${baseSha}.`
+      ]
+}
+
+async function updateBranch(step: UpdateStep): Promise<string> {
+  const { session, pullRequest, baseSha } = step
   const { log } = session.environment
   const { number, headSha, baseBranch } = pullRequest
   log(`Merging ${baseBranch} into the branch, never rebasing it.`)
@@ -40,14 +72,18 @@ async function updateBranch({
       return current.headSha === headSha ? undefined : current.headSha
     }
   })
-  const parents = await session.github.readParents(head)
-  if (!isBranchUpdate({ parents, head: headSha, base: baseSha })) {
-    throw new Error(
-      `The new head ${head} of #${number} is not the merge of ${baseBranch} at ${baseSha} into ${headSha}: its parents are ${parents.join(' and ') || 'none'}. Nothing was approved or merged. Review the new head and run vp run release:merge ${number} --dry-run again.`
-    )
+  log(`New head: ${head}. Checking it before anything is approved or merged.`)
+  let problems: string[]
+  try {
+    problems = await findUpdateProblems({ ...step, head })
+  } catch (error) {
+    problems = [error instanceof Error ? error.message : String(error)]
+  }
+  if (problems.length > 0) {
+    throw new Error(describeUncheckedHead({ number, head, problems }))
   }
   log(
-    `New head: ${head}, the merge of ${baseBranch} at ${shortSha(baseSha)} into ${shortSha(headSha)}. A second run takes it with --sha.`
+    `${shortSha(head)} is the merge of ${baseBranch} at ${shortSha(baseSha)} into ${shortSha(headSha)}. A second run takes it with --sha.`
   )
   return head
 }

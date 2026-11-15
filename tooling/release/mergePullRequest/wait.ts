@@ -9,8 +9,11 @@ type Wait<Result> = {
   describeTimeout: () => string
 }
 
+type Read<Result> = { session: Session; read: () => Promise<Result> }
+
 const MILLISECONDS_PER_SECOND = 1000
 const SECONDS_PER_MINUTE = 60
+const READ_AGAIN_TIMEOUT = 120_000
 
 // A read that failed for a reason that passes, such as an HTTP 502. A wait
 // counts it as one more attempt within the deadline and stops on any other
@@ -49,4 +52,29 @@ export async function waitFor<Result>({
     if (now() >= deadline) throw new Error(describeTimeout())
     await sleep(session.timing.interval)
   }
+}
+
+// WHY: a read right after a write, such as the new head after an update or the
+// manifest after a merge, would otherwise end the command on one HTTP 502 and
+// leave the write without its check.
+export async function readAgain<Result>({
+  session,
+  read
+}: Read<Result>): Promise<Result> {
+  let failure = ''
+  const { value } = await waitFor({
+    session,
+    timeout: READ_AGAIN_TIMEOUT,
+    describeTimeout: () =>
+      `${failure} Stopped reading again after ${describeDuration(READ_AGAIN_TIMEOUT)}.`,
+    attempt: async () => {
+      try {
+        return { value: await read() }
+      } catch (error) {
+        if (error instanceof PassingReadError) failure = error.message
+        throw error
+      }
+    }
+  })
+  return value
 }

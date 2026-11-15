@@ -157,7 +157,7 @@ describe('mergePullRequest branch update', () => {
     )
     assert.ok(
       lines.includes(
-        `New head: ${UPDATED_HEAD}, the merge of main at b0b1b2b into a1b2c3d. A second run takes it with --sha.`
+        'f0e1d2c is the merge of main at b0b1b2b into a1b2c3d. A second run takes it with --sha.'
       )
     )
   })
@@ -174,13 +174,22 @@ describe('mergePullRequest branch update', () => {
       }
       const { request, calls } = createHarness({ github })
 
-      await assert.rejects(
-        mergePullRequest(request),
-        new RegExp(
-          `The new head ${UPDATED_HEAD} of #42 is not the merge of main at ${BASE_SHA} into ${HEAD}`,
-          'u'
+      await assert.rejects(mergePullRequest(request), (error: unknown) => {
+        assert.ok(error instanceof Error)
+        assert.match(
+          error.message,
+          new RegExp(
+            `could not confirm what the new head ${UPDATED_HEAD} of #42 holds:\\n  Its parents are .+, not ${HEAD} and main at ${BASE_SHA}\\.`,
+            'u'
+          )
         )
-      )
+        assert.ok(
+          error.message.endsWith(
+            `vp run release:merge 42 --sha ${UPDATED_HEAD}`
+          )
+        )
+        return true
+      })
       assert.deepEqual(
         writes(calls).map(call => call.args[1]),
         ['repos/{owner}/{repo}/pulls/42/update-branch']
@@ -204,6 +213,56 @@ describe('mergePullRequest branch update', () => {
       mergePullRequest(request),
       /Could not update the branch of #7: .+\(HTTP 422\)/u
     )
+    assert.deepEqual(
+      writes(calls).map(call => call.args[1]),
+      ['repos/{owner}/{repo}/pulls/7/update-branch']
+    )
+  })
+
+  it('prints the new head and reads its parents again after a read that failed for a reason that passes', async () => {
+    const github = featureGitHub()
+    github.behindBy = 1
+    github.checkRuns = { [UPDATED_HEAD]: [[checkRun({})]] }
+    github.workflowRuns = {
+      [UPDATED_HEAD]: [[workflowRun({ headSha: UPDATED_HEAD })]]
+    }
+    github.failures = { [`commits/${UPDATED_HEAD}`]: [BAD_GATEWAY] }
+    const { request, calls, lines } = createHarness({ github })
+
+    await mergePullRequest(request)
+
+    const printed = lines.indexOf(
+      `New head: ${UPDATED_HEAD}. Checking it before anything is approved or merged.`
+    )
+    const readAgain = lines.indexOf(
+      `  Could not read the commit ${UPDATED_HEAD}: gh: Bad Gateway (HTTP 502) Reading again.`
+    )
+    assert.ok(printed !== -1 && printed < readAgain)
+    assert.ok(writes(calls).at(-1)?.args.includes(`sha=${UPDATED_HEAD}`))
+  })
+
+  it('stops with the new head and the command to merge it when its parents cannot be read', async () => {
+    const github = featureGitHub()
+    github.behindBy = 1
+    github.failures = {
+      [`commits/${UPDATED_HEAD}`]: Array.from(
+        { length: 200 },
+        () => BAD_GATEWAY
+      )
+    }
+    const { request, calls } = createHarness({ github })
+
+    await assert.rejects(mergePullRequest(request), (error: unknown) => {
+      assert.ok(error instanceof Error)
+      assert.match(
+        error.message,
+        /Could not read the commit .+ \(HTTP 502\) Stopped reading again after 2 minute\(s\)\./u
+      )
+      assert.ok(
+        error.message.endsWith(`vp run release:merge 7 --sha ${UPDATED_HEAD}`)
+      )
+      return true
+    })
     assert.deepEqual(
       writes(calls).map(call => call.args[1]),
       ['repos/{owner}/{repo}/pulls/7/update-branch']
@@ -406,6 +465,27 @@ describe('mergePullRequest failed reads', () => {
     await mergePullRequest(request)
 
     assert.equal(lines.at(-1), 'The release is published.')
+  })
+
+  it('reads the manifest and the jobs again after the merge', async () => {
+    const github = releaseGitHub()
+    github.failures = {
+      [`.release-please-manifest.json?ref=${MERGE_SHA}`]: [BAD_GATEWAY],
+      'runs/700/jobs': [BAD_GATEWAY]
+    }
+    const { request, calls, lines } = createHarness({ github })
+
+    await mergePullRequest(request)
+
+    assert.deepEqual(
+      lines.filter(line => line.endsWith('Reading again.')),
+      [
+        `  Could not read .release-please-manifest.json at ${MERGE_SHA}: gh: Bad Gateway (HTTP 502) Reading again.`,
+        '  Could not list the jobs of the workflow run 700: gh: Bad Gateway (HTTP 502) Reading again.'
+      ]
+    )
+    assert.equal(lines.at(-1), 'The release is published.')
+    assert.equal(writes(calls).length, 1)
   })
 
   it('stops at once on a read that failed for another reason', async () => {

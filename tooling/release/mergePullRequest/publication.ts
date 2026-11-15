@@ -13,7 +13,7 @@ import type {
   Session,
   WorkflowRun
 } from './types.ts'
-import { describeDuration, waitFor } from './wait.ts'
+import { describeDuration, readAgain, waitFor } from './wait.ts'
 
 type ManifestRef = { session: Session; ref: string }
 
@@ -127,14 +127,16 @@ export async function verifyPublication({
   sha
 }: MergedRelease): Promise<void> {
   const { log } = session.environment
-  const releases = await readReleases({
+  const releases = await readAgain({
     session,
-    ref: sha,
-    previousRef: `${sha}^1`
+    read: () => readReleases({ session, ref: sha, previousRef: `${sha}^1` })
   })
   log(`Waiting for the Release workflow of ${shortSha(sha)}.`)
   const run = await waitForReleaseRun({ session, sha })
-  const jobs = await session.github.listJobs(run.id)
+  const jobs = await readAgain({
+    session,
+    read: () => session.github.listJobs(run.id)
+  })
   for (const job of jobs) {
     const result = job.conclusion ?? job.status
     const link = SETTLED_CONCLUSIONS.has(result) ? '' : ` ${job.url}`

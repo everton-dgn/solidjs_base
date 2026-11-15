@@ -24,13 +24,21 @@ the ones that cost a fix after a release when they were missed.
 
 ## Commits
 
+- Write [Conventional Commits](https://www.conventionalcommits.org/), one change
+  per commit, with the package as the scope: `fix(tooling): ...`. The changelog
+  publishes the messages as written.
 - release-please finds the package by the folder of the changed files, not by
   the commit scope. A commit for one package must not touch the folder of the
   other: a `fix` that edits `packages/solid-tooling/` also releases the tooling.
-- `docs`, `test` and `chore` commits do not start a release on their own.
+- `fix` and `feat` commits start a release. `docs`, `test` and `chore` commits
+  do not, unless they carry a breaking change marker.
 - A `BREAKING CHANGE:` footer is published as written. Describe what changes for
   an application that updates from the last published version and what it has
   to do, not the difference from your previous commit.
+- Do not write a breaking change footer for an option that never reached a
+  published version. When a branch changes again something it already
+  announced, the earlier footer cannot be edited without rewriting history, so
+  it is fixed in the release pull request before the merge.
 
 ## Package dependencies
 

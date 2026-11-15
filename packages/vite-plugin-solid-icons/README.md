@@ -473,7 +473,7 @@ next build reads them.
 The icon module goes through the Solid plugin of the application as a TSX file,
 so the Solid compiler you install writes both the DOM output and the server
 output. The icons render to a string with `renderToString` in a server build and
-and in the dev server.
+in the dev server.
 
 ## What is not supported, and why
 

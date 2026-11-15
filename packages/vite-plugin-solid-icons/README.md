@@ -25,7 +25,7 @@ export function Footer() {
   return (
     <footer>
       <ArrowLeft01 />
-      <Github class="social" aria-label="GitHub" />
+      <Github class="social" />
       <Logo />
     </footer>
   )
@@ -221,8 +221,9 @@ The rule, in the order the plugin applies it:
 4. An icon whose strict name is the same as the plain one, as `arrow-down01`, or
    whose strict name another icon also claims, keeps only its import by path.
 5. An alias of an Iconify collection gets a name by the same rule and loads the
-   same module as its icon, so it is never a collision. An alias that flips or
-   rotates its icon is an icon of its own.
+   same module as its icon, so an alias and its own icon never collide. An alias
+   whose name matches a different icon is a collision, as in step 3. An alias
+   that flips or rotates its icon is an icon of its own.
 
 The result does not depend on the order of the icons in the collection. A strict
 name always has an underscore, which no plain name has, so it never takes the
@@ -236,7 +237,8 @@ their import by path: `arrow-down01`, `arrow-up01`, `book-up2`, `circle-slash2`,
 Ten of those names are also globals of the browser or of JavaScript:
 `Clipboard`, `Function`, `Gamepad`, `History`, `Lock`, `Map`, `Math`,
 `Navigation`, `Option` and `Text`. Importing one under its own name hides the
-global in that module, so `new Map()` would call the icon. Rename it on import:
+global in that module, so that module can no longer reach the global `Map`.
+Rename it on import:
 
 ```ts
 import { Map as MapIcon } from 'icon:hugeicons'
@@ -258,8 +260,8 @@ declare module 'icon:hugeicons' {
 }
 ```
 
-Your editor completes the names of a collection from that file, and a name that
-is not an icon is a type error with the closest name:
+TypeScript checks every import by name against those exports, so a name that is
+not an icon is a type error with the closest name:
 
 ```text
 typo.ts(1,10): error TS2724: '"icon:hugeicons"' has no exported member named 'Githb'. Did you mean 'Github'?
@@ -393,9 +395,9 @@ solidIcons({
 
 ## Requirements and limits
 
-- Vite+ (`vite-plus`), `@solidjs/web` and `@solidjs/vite-plugin` in the
-  application, in the versions of the peer dependencies. The plugin reads your
-  imports with the parser that `vite-plus` exports.
+- Vite+ (`vite-plus`) and `@solidjs/web` in the versions of the peer
+  dependencies, and `@solidjs/vite-plugin` in the plugins of the application.
+  The plugin reads your imports with the parser that `vite-plus` exports.
 - When the declaration file is on, which is the default, the dev server and the
   build stop at startup if a folder in `collections` cannot be read, or if the
   `package.json` lists an `@iconify-json/<collection>` that is not installed.

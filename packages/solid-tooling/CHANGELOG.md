@@ -16,7 +16,6 @@
 * **fonts:** load application fonts through the preset ([8e2d430](https://github.com/everton-dgn/solidjs_base/commit/8e2d430444cdc9ad4e9e0678aa652341c9f2a4ef))
 * move localized redirects and request tests into runtime ([4c1ce1f](https://github.com/everton-dgn/solidjs_base/commit/4c1ce1f404a819bdcc38149661023b0b2f27ebfe))
 * provide an optional runtime locale module ([025d0d7](https://github.com/everton-dgn/solidjs_base/commit/025d0d77fec027ee582536d321b26d60ce77c633))
-* release 0.6.0 with the runtime package and optional features ([36b20fb](https://github.com/everton-dgn/solidjs_base/commit/36b20fb2b854169ef06049cbf09133fc21828f37))
 * **runtime:** expose locale navigation and language tags ([d7f45c9](https://github.com/everton-dgn/solidjs_base/commit/d7f45c9d85810cf3207ee3eb86ebe81b560e5614))
 * **runtime:** package middleware composition and entry helpers ([a65ce01](https://github.com/everton-dgn/solidjs_base/commit/a65ce0189fa3f7fbc0add4cd6165c60d8cbd7764))
 * **seo:** add configurable runtime metadata and robots APIs ([08013d8](https://github.com/everton-dgn/solidjs_base/commit/08013d8c7d8f8a3e67d74c5c7a554d5447af1f5f))

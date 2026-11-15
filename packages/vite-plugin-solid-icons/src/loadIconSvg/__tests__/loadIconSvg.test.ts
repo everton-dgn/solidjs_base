@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  realpath,
+  rm,
+  symlink,
+  writeFile
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
@@ -16,6 +23,8 @@ type CustomizedAttribute = [
   message: RegExp
 ]
 type IconFolder = NonNullable<Parameters<typeof loadIconSvg>[0]['folder']>
+
+type OddIcon = { root: string; name: string }
 
 type FolderIcon = {
   context: TestContext
@@ -48,6 +57,55 @@ function loadInstalled(name: string) {
     collection: 'hugeicons',
     name,
     root: PACKAGE_ROOT,
+    folder: undefined,
+    customizeIcon: undefined
+  })
+}
+
+// A collection of the application with the names that @iconify/utils looks
+// up as icons[name], where a member of every object would answer.
+const ODD_SET = {
+  prefix: 'odd',
+  width: 24,
+  height: 24,
+  icons: {
+    real: { body: '<path d="M0 0"/>' },
+    constructor: { body: '<path d="M1 1"/>' },
+    bodiless: {},
+    // A valid body that @iconify/utils cannot draw.
+    weird: { body: '<path/>', hFlip: true, left: { toString: null } }
+  },
+  aliases: {
+    hasOwnProperty: { parent: 'real' },
+    builder: { parent: 'constructor' },
+    ghost: { parent: 'toString' },
+    flipped: { parent: 'valueOf', hFlip: true },
+    loop: { parent: 'loop-back' },
+    'loop-back': { parent: 'loop' },
+    dangling: { parent: 'no-such-icon' },
+    empty: { parent: 'bodiless' }
+  }
+}
+
+async function oddRoot(context: TestContext): Promise<string> {
+  const prefix = path.join(tmpdir(), 'solid-icons-odd-')
+  const root = await realpath(await mkdtemp(prefix))
+  context.after(() => rm(root, { recursive: true, force: true }))
+  const folder = path.join(root, 'node_modules/@iconify-json/odd')
+  await mkdir(folder, { recursive: true })
+  await writeFile(path.join(folder, 'icons.json'), JSON.stringify(ODD_SET))
+  await writeFile(
+    path.join(folder, 'package.json'),
+    '{"name":"@iconify-json/odd","version":"0.0.0"}'
+  )
+  return root
+}
+
+function loadOdd({ root, name }: OddIcon) {
+  return loadIconSvg({
+    collection: 'odd',
+    name,
+    root,
     folder: undefined,
     customizeIcon: undefined
   })
@@ -188,6 +246,47 @@ describe('loadIconSvg', () => {
         }
       )
     }
+  })
+
+  it('finds no icon through a chain that leaves the own names', async context => {
+    const root = await oddRoot(context)
+    for (const name of [
+      'ghost',
+      'flipped',
+      'loop',
+      'dangling',
+      'bodiless',
+      'empty',
+      'toString'
+    ]) {
+      await assert.rejects(loadOdd({ root, name }), {
+        message: `Icon "odd/${name}" not found in @iconify-json/odd.`
+      })
+    }
+  })
+
+  it('loads an alias or an icon named as a member of an object', async context => {
+    const root = await oddRoot(context)
+    const drawn = {
+      hasOwnProperty: 'M0 0',
+      constructor: 'M1 1',
+      builder: 'M1 1'
+    }
+    for (const [name, pathData] of Object.entries(drawn)) {
+      const { svg } = await loadOdd({ root, name })
+
+      assert.match(svg, new RegExp(`<path d="${pathData}"/></svg>$`, 'u'), name)
+      assert.doesNotMatch(svg, /undefined/u, name)
+    }
+  })
+
+  it('names the icon that @iconify/utils cannot draw', async context => {
+    const root = await oddRoot(context)
+
+    await assert.rejects(loadOdd({ root, name: 'weird' }), {
+      message:
+        'Icon "odd/weird" cannot be drawn: Cannot convert object to primitive value'
+    })
   })
 
   it('loads an installed icon by its exact name only', async () => {

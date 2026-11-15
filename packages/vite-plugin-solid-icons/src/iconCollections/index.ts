@@ -35,17 +35,21 @@ function isPlainAlias(alias: object): boolean {
   return Object.keys(alias).every(key => key === 'parent')
 }
 
+function ownAlias({ aliases, name }: AliasInput) {
+  return Object.hasOwn(aliases, name) ? aliases[name] : undefined
+}
+
 // An alias without transformations draws the SVG of its parent, so both
 // names load the same icon; an alias that flips or rotates is an icon of its
-// own.
+// own. A parent that is not an own alias, such as toString, ends the chain.
 function aliasIcon({ aliases, name }: AliasInput): string {
   const seen = new Set<string>()
   let current = name
-  let alias = aliases[current]
+  let alias = ownAlias({ aliases, name: current })
   while (alias && isPlainAlias(alias) && !seen.has(current)) {
     seen.add(current)
     current = alias.parent
-    alias = aliases[current]
+    alias = ownAlias({ aliases, name: current })
   }
   return current
 }

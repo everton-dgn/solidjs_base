@@ -8,7 +8,8 @@ import {
   searchForIcon
 } from '@iconify/utils'
 
-import { loadIconSet } from '../loadIconSet/index.ts'
+import { messageOf } from '../errorText/index.ts'
+import { type IconSet, loadIconSet } from '../loadIconSet/index.ts'
 import type { FolderFiles } from '../readFolderFiles/index.ts'
 import type { IconCustomizer } from '../types.ts'
 
@@ -31,6 +32,12 @@ type Customization = {
   name: string
   attributes: Record<string, string>
   customizeIcon: IconCustomizer | undefined
+}
+type ChainInput = { iconSet: IconSet; name: string }
+type DrawInput = {
+  collection: string
+  name: string
+  draw: () => Promise<string | undefined>
 }
 
 // WHY: icons render at 1.2 times the font size, the size the applications
@@ -62,6 +69,14 @@ const ESCAPES: Record<string, string> = {
   '>': '&gt;'
 }
 
+// An error of the attributes that customizeIcon sets, which names the icon.
+class CustomizerError extends Error {
+  public constructor(message: string) {
+    super(message)
+    this.name = 'CustomizerError'
+  }
+}
+
 function escapeValue(value: string): string {
   return value.replaceAll(
     MARKUP_CHARACTERS,
@@ -85,12 +100,12 @@ async function customize({
     const written: unknown = value
     if (before[attribute] === written) continue
     if (!ATTRIBUTE_NAME.test(attribute)) {
-      throw new Error(
+      throw new CustomizerError(
         `customizeIcon set the attribute "${attribute}" on the icon ${icon}: an attribute name starts with a letter or "_" and has letters, digits, "_", "-", "." or ":".`
       )
     }
     if (typeof written !== 'string') {
-      throw new TypeError(
+      throw new CustomizerError(
         `customizeIcon set the attribute ${attribute} of the icon ${icon} to a ${typeof written}: an attribute value is a string.`
       )
     }
@@ -191,19 +206,63 @@ async function readFolderSvg(source: FolderSource): Promise<string> {
   return text.slice(start).replace(BARE_SVG_START, `${SVG_START} `)
 }
 
+// An error of @iconify/utils, or of a customizeIcon that throws, names the
+// icon it stopped.
+async function drawIcon({
+  collection,
+  name,
+  draw
+}: DrawInput): Promise<string | undefined> {
+  try {
+    return await draw()
+  } catch (error) {
+    if (error instanceof CustomizerError) throw error
+    throw new Error(
+      `Icon "${collection}/${name}" cannot be drawn: ${messageOf(error)}`,
+      { cause: error }
+    )
+  }
+}
+
 async function loadFolderIcon(source: FolderSource): Promise<IconSvg> {
   const { collection, name, folder, customizeIcon } = source
   const text = await readFolderSvg(source)
-  const svg = await getCustomIcon(
-    () => text,
+  const svg = await drawIcon({
     collection,
     name,
-    loaderOptions(customizeIcon)
-  )
+    draw: () =>
+      getCustomIcon(() => text, collection, name, loaderOptions(customizeIcon))
+  })
   return {
     svg: svg ?? text,
     file: path.join(folder.path, `${name}${SVG_EXTENSION}`)
   }
+}
+
+// WHY: @iconify/utils looks an icon and its parents up as icons[name], where
+// a name such as toString finds a member of every object. The icon set it
+// receives holds only the own icon and aliases of the name, in objects
+// without a prototype; a chain that leaves the own properties, loops or ends
+// in an icon without a body finds nothing.
+function ownIconChain({ iconSet, name }: ChainInput): IconSet | undefined {
+  const icons: IconSet['icons'] = {}
+  const aliases: NonNullable<IconSet['aliases']> = {}
+  Object.setPrototypeOf(icons, null)
+  Object.setPrototypeOf(aliases, null)
+  const allAliases = iconSet.aliases ?? {}
+  let current = name
+  while (!Object.hasOwn(iconSet.icons, current)) {
+    const isAlias =
+      Object.hasOwn(allAliases, current) && !Object.hasOwn(aliases, current)
+    const alias = isAlias ? allAliases[current] : undefined
+    if (typeof alias?.parent !== 'string') return undefined
+    aliases[current] = alias
+    current = alias.parent
+  }
+  const icon = iconSet.icons[current]
+  if (typeof icon?.body !== 'string') return undefined
+  icons[current] = icon
+  return { ...iconSet, icons, aliases }
 }
 
 async function loadInstalledIcon({
@@ -213,20 +272,19 @@ async function loadInstalledIcon({
   customizeIcon
 }: IconSource): Promise<IconSvg> {
   const packageName = `${COLLECTION_SCOPE}/${collection}`
-  const iconSet = await loadIconSet({ collection, root })
-  // WHY: the exact name only, as in a folder, so one icon has one module;
-  // and an own property only, so a name such as constructor finds nothing.
-  const hasIcon =
-    Object.hasOwn(iconSet.icons, name) ||
-    Object.hasOwn(iconSet.aliases ?? {}, name)
-  const svg = hasIcon
-    ? await searchForIcon(
-        iconSet,
-        collection,
-        [name],
-        loaderOptions(customizeIcon)
-      )
-    : undefined
+  // WHY: the exact name only, as in a folder, so one icon has one module.
+  const chain = ownIconChain({
+    iconSet: await loadIconSet({ collection, root }),
+    name
+  })
+  const svg =
+    chain &&
+    (await drawIcon({
+      collection,
+      name,
+      draw: () =>
+        searchForIcon(chain, collection, [name], loaderOptions(customizeIcon))
+    }))
   if (svg === undefined) {
     throw new Error(`Icon "${collection}/${name}" not found in ${packageName}.`)
   }

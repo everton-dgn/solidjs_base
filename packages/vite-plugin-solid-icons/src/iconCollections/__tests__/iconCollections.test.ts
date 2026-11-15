@@ -63,6 +63,33 @@ describe('createNameTables', () => {
     })
   })
 
+  it('follows an alias to an icon named as a member of an object', async context => {
+    const iconSet = {
+      prefix: 'odd',
+      icons: { constructor: BODY },
+      aliases: {
+        builder: { parent: 'constructor' },
+        ghost: { parent: 'toString' }
+      }
+    }
+    const root = await folderWith({
+      context,
+      files: {
+        'node_modules/@iconify-json/odd/package.json':
+          '{"name":"@iconify-json/odd"}',
+        'node_modules/@iconify-json/odd/icons.json': JSON.stringify(iconSet)
+      }
+    })
+    const table = await createNameTables({ root, folders: new Map() }).get(
+      'odd'
+    )
+
+    assert.deepEqual(Object.fromEntries(table.exports), {
+      Builder: 'constructor',
+      Constructor: 'constructor'
+    })
+  })
+
   it('reads the SVG files of a folder collection', async context => {
     const folder = await folderWith({
       context,

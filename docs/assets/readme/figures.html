@@ -889,6 +889,78 @@
       .meter { grid-template-columns: 152px 1fr 104px; gap: 12px; }
       .col-head { flex-wrap: wrap; gap: 10px; }
       .col-head .chip { font-size: 14px; }
+
+      /* Captures of the running boilerplate, shown at 1:1 CSS scale. */
+      .cap-pad { position: relative; padding: 28px 23px 24px; }
+      .cap-pad > .eyebrow, .cap-pad > .title, .cap-pad > .lede { margin-left: 4px; }
+      .cap-pad > .title + .cap-grid, .cap-pad > .lede + .cap-grid, .cap-pad > .title + .cap-stack, .cap-pad > .lede + .cap-stack { margin-top: 20px; }
+      .cap-win { box-shadow: none; }
+      .cap-win img { display: block; }
+      .cap-win .win-bar .chip { height: 24px; font-size: 14px; }
+      .cap-stack { display: grid; gap: 12px; }
+      .cap-grid { display: grid; grid-template-columns: 370px 370px; gap: 12px; align-items: start; }
+      .cap-col { display: grid; gap: 12px; }
+      .cap-pad .caption { margin: 14px 4px 0; }
+
+      /* Diagrams */
+      .term-win .code { white-space: pre; overflow-wrap: normal; word-break: normal; }
+      .term-win .hl { color: var(--accent-ink); font-weight: 600; }
+      .term-win .ok-t { color: var(--ok); font-weight: 600; }
+      .stack-rows { display: grid; gap: 8px; margin-top: 22px; }
+      .layer-row { display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: center; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); }
+      .layer-row b { font-size: 16px; font-weight: 600; }
+      .layer-row span { font-size: 14px; color: var(--text-2); line-height: 1.45; }
+      .layer-row.top { border-color: var(--accent-fill); background: var(--track); }
+      .layer-down { display: flex; align-items: center; gap: 10px; margin: 2px 0 0 18px; font-size: 14px; color: var(--accent-ink); font-weight: 600; }
+      .rule-msg { margin-top: 18px; padding: 16px 18px; border-radius: 12px; border: 1px solid var(--warn); background: var(--warn-bg); }
+      .rule-msg b { display: block; font-size: 14px; color: var(--warn); font-weight: 600; }
+      .rule-msg code { display: block; margin-top: 8px; font-size: 14px; line-height: 1.55; color: var(--text); }
+      .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 22px; }
+      .card { padding: 16px; }
+      .card .big { display: block; font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+      .card .big small { font-size: 16px; font-weight: 600; letter-spacing: 0; color: var(--text-2); }
+      .card .what { display: block; margin-top: 8px; font-size: 14px; line-height: 1.45; color: var(--text-2); }
+      .card .src { display: block; margin-top: 8px; font-size: 14px; color: var(--text-3); }
+      .group-head { margin: 22px 0 0; font-size: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+      .group-head + .cards { margin-top: 10px; }
+      .hbars { margin-top: 22px; padding: 10px 20px; }
+      .hbar { display: grid; grid-template-columns: 132px 1fr 44px; gap: 14px; align-items: center; height: 34px; border-top: 1px solid var(--hair); font-size: 15px; }
+      .hbar:first-child { border-top: 0; }
+      .hbar .lbl { font-weight: 500; }
+      .hbar .track { position: relative; display: flex; height: 12px; border-radius: 999px; background: var(--track); overflow: hidden; }
+      .hbar .track i { display: block; height: 100%; background: var(--accent-fill); }
+      .hbar .track i.prod { background: var(--ok); }
+      .hbar .n { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+      .hbar .ex { grid-column: 2 / 4; }
+      .entry-bars .hbar { grid-template-columns: 112px 1fr 34px; height: 40px; }
+      .entry-bars .ex { display: block; font-size: 14px; color: var(--text-3); white-space: nowrap; overflow: hidden; }
+      .entry-bars .hbar { height: auto; padding: 8px 0; row-gap: 4px; }
+      .legend i.prod { background: var(--ok); }
+      .legend i.fix { background: var(--accent-fill); }
+      .proj-table { margin-top: 22px; padding: 4px 20px; }
+      .proj-row { display: grid; grid-template-columns: 92px 1fr 96px; gap: 18px; align-items: center; padding: 14px 0; border-top: 1px solid var(--hair); }
+      .proj-row:first-child { border-top: 0; }
+      .proj-row > b { font-size: 17px; font-weight: 600; }
+      .proj-row code { display: block; font-size: 14px; color: var(--code-str); }
+      .proj-row span.env { display: block; margin-top: 4px; font-size: 14px; color: var(--text-2); }
+      .proj-row .count { text-align: right; }
+      .proj-row .count b { display: block; font-size: 24px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+      .proj-row .count span { font-size: 14px; color: var(--text-3); }
+      .hook-flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; margin-top: 24px; }
+      .hook-flow .station { padding: 16px 16px 18px; }
+      .hook-flow .station h3 { font-size: 17px; }
+      .job { display: block; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--panel-2); font-size: 14px; line-height: 1.4; }
+      .job code { color: var(--code-fn); }
+      .job span { display: block; margin-top: 2px; color: var(--text-2); }
+      .job.par { border-left: 2px solid var(--accent-fill); }
+      .css-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
+      .css-pair .win-bar .chip { margin-left: auto; height: 24px; }
+      .token-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+      .flow4 { grid-template-columns: repeat(4, 1fr); gap: 18px; }
+      .notice-mock { margin-top: 12px; padding: 14px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--panel-solid); }
+      .notice-mock b { display: block; font-size: 15px; font-weight: 600; }
+      .notice-mock p { margin: 6px 0 0; font-size: 14px; line-height: 1.45; color: var(--text-2); }
+      .notice-mock .btn { display: inline-block; margin-top: 10px; padding: 5px 12px; border-radius: 7px; font-size: 14px; font-weight: 600; background: var(--accent-fill); color: #ffffff; }
     </style>
   </head>
   <body>
@@ -1017,11 +1089,12 @@
             </svg>
             Solid Base
             <span class="sep"></span>
-            <span class="for">for SolidJS 2 and Vite+</span>
+            <span class="for">for SolidJS 2 RC and Vite+</span>
           </div>
           <h1>
-            Build your app.<br /><span class="grad-text">Keep the base</span
-            ><br />in packages.
+            Build your Solid app.<br /><span class="grad-text"
+              >Stop rebuilding</span
+            ><br />its foundation.
           </h1>
           <p class="sub">
             Optional languages and theme. Shared server protection, SEO, assets
@@ -1165,18 +1238,18 @@
         <div class="ba">
           <div>
             <div class="hero-pre">About</div>
-            <div class="hero-num grad-text">86<small>%</small></div>
+            <div class="hero-num grad-text">87<small>%</small></div>
             <div class="hero-cap">less configuration in your repository</div>
-            <div class="hero-sub">945 lines before.<br />136 lines after.</div>
+            <div class="hero-sub">945 lines before.<br />125 lines after.</div>
           </div>
           <div>
             <div class="panel meters">
               <div class="meter">
                 <span class="name mono">vite.config.ts</span>
-                <span class="bar"><i style="width: 13.8%"></i></span>
+                <span class="bar"><i style="width: 11.2%"></i></span>
                 <span class="nums mono"
                   ><span class="was">427</span><span class="arrow">→</span
-                  ><span class="now">59</span></span
+                  ><span class="now">48</span></span
                 >
               </div>
               <div class="meter">
@@ -1307,10 +1380,10 @@ Export on the declaration itself (export function, export const, export type) in
           <div class="panel station">
             <span class="when">Current revision</span>
             <h3>Tests and inventory</h3>
-            <div class="figs"><b>1,169</b><span>Vitest passed</span></div>
+            <div class="figs"><b>1,186</b><span>Vitest passed</span></div>
             <div class="figs"><b>319</b><span>E2E listed</span></div>
             <p>
-              775 runtime + 394 app.<br />164 fixture + 155 production E2E
+              1,001 runtime + 185 app.<br />164 E2E build + 155 production
               cases.
             </p>
           </div>
@@ -1769,8 +1842,8 @@ Disallow: /_server</pre>
             ><span>Fewer</span>
           </div>
           <div class="deps-row">
-            <b>Boilerplate</b><span>28</span><strong>16</strong
-            ><span class="saving">12</span>
+            <b>Boilerplate</b><span>28</span><strong>14</strong
+            ><span class="saving">14</span>
           </div>
           <div class="deps-row">
             <b>Client-only</b><span>16</span><strong>5</strong
@@ -1803,9 +1876,802 @@ Disallow: /_server</pre>
       </div>
     </section>
 
+    <!-- Captures: real screenshots of apps/boilerplate in captures/, 1:1 scale. -->
+    <section class="figure" id="app-home">
+      <div class="cap-pad">
+        <div class="win cap-win">
+          <div class="win-bar">
+            <i></i><i></i><i></i><span class="mono">/en</span
+            ><span class="chip accent push"
+              >apps/boilerplate · production build</span
+            >
+          </div>
+          <img data-capture="app-home" width="750" height="820" alt="" />
+        </div>
+        <p class="caption">
+          Real capture of the home page in headless Chromium, 750 px wide.
+        </p>
+      </div>
+    </section>
+
+    <section class="figure" id="app-locales">
+      <div class="cap-pad">
+        <p class="eyebrow">Three locales from one catalog set</p>
+        <h2 class="title">The same home page in pt, en and es.</h2>
+        <div class="cap-stack">
+          <div class="win cap-win">
+            <div class="win-bar">
+              <i></i><i></i><i></i><span class="mono">/pt</span
+              ><span class="chip accent push">lang="pt-BR"</span>
+            </div>
+            <img
+              data-capture="app-locales-pt"
+              width="750"
+              height="323"
+              alt=""
+            />
+          </div>
+          <div class="win cap-win">
+            <div class="win-bar">
+              <i></i><i></i><i></i><span class="mono">/en</span
+              ><span class="chip accent push">lang="en-US"</span>
+            </div>
+            <img
+              data-capture="app-locales-en"
+              width="750"
+              height="323"
+              alt=""
+            />
+          </div>
+          <div class="win cap-win">
+            <div class="win-bar">
+              <i></i><i></i><i></i><span class="mono">/es</span
+              ><span class="chip accent push">lang="es-ES"</span>
+            </div>
+            <img
+              data-capture="app-locales-es"
+              width="750"
+              height="323"
+              alt=""
+            />
+          </div>
+        </div>
+        <p class="caption">
+          Real captures of the production build. Navigation, title and language
+          switcher come from the colocated catalogs.
+        </p>
+      </div>
+    </section>
+
+    <section class="figure" id="ui-kit">
+      <div class="cap-pad">
+        <p class="eyebrow">UI kit of the boilerplate</p>
+        <h2 class="title">Six components, captured from the running app.</h2>
+        <p class="lede">
+          Clips of the /ui-kit E2E fixture route at 1:1 scale, 368 px wide.
+        </p>
+        <div class="cap-grid">
+          <div class="cap-col">
+            <div class="win cap-win">
+              <div class="win-bar"><span>DropdownMenu</span></div>
+              <img data-capture="ui-kit-menu" width="368" height="169" alt="" />
+            </div>
+            <div class="win cap-win">
+              <div class="win-bar"><span>Input</span></div>
+              <img
+                data-capture="ui-kit-input"
+                width="368"
+                height="100"
+                alt=""
+              />
+            </div>
+            <div class="win cap-win">
+              <div class="win-bar"><span>Textarea · Button</span></div>
+              <img data-capture="ui-kit-form" width="368" height="240" alt="" />
+            </div>
+          </div>
+          <div class="cap-col">
+            <div class="win cap-win">
+              <div class="win-bar"><span>Dialog</span></div>
+              <img
+                data-capture="ui-kit-dialog"
+                width="368"
+                height="278"
+                alt=""
+              />
+            </div>
+            <div class="win cap-win">
+              <div class="win-bar"><span>Toast</span></div>
+              <img
+                data-capture="ui-kit-toast"
+                width="368"
+                height="210"
+                alt=""
+              />
+            </div>
+          </div>
+        </div>
+        <p class="caption">
+          Toast messages render as text, so the markup in the error stays inert.
+        </p>
+      </div>
+    </section>
+
+    <section class="figure" id="security-headers">
+      <div class="pad">
+        <div class="feature-head">
+          <div>
+            <p class="eyebrow">Security headers by default</p>
+            <h2 class="title">Eight headers and a nonce CSP, unconfigured.</h2>
+          </div>
+          <svg class="feature-mark" viewBox="0 0 166 155.3" aria-hidden="true">
+            <use href="#i-solid" />
+          </svg>
+        </div>
+        <div class="win term term-win feature-code">
+          <div class="win-bar">
+            <i></i><i></i><i></i
+            ><span class="mono">curl -sI http://127.0.0.1:4417/en</span>
+          </div>
+          <pre class="code mono">HTTP/1.1 200
+<span class="hl">strict-transport-security</span>: max-age=63072000; includeSubDomains
+<span class="hl">x-frame-options</span>: DENY
+<span class="hl">x-content-type-options</span>: nosniff
+<span class="hl">referrer-policy</span>: strict-origin-when-cross-origin
+<span class="hl">permissions-policy</span>: camera=(), microphone=(), geolocation=()
+<span class="hl">cross-origin-opener-policy</span>: same-origin
+<span class="hl">cross-origin-embedder-policy</span>: require-corp
+<span class="hl">cross-origin-resource-policy</span>: same-origin
+<span class="hl">content-security-policy</span>: default-src 'self'; style-src 'self';
+  object-src 'none'; base-uri 'self'; form-action 'self';
+  frame-ancestors 'none'; <span class="ok-t">script-src 'nonce-seGiW1g0/83jp8gg5cKA1Q=='</span>
+  <span class="ok-t">'strict-dynamic'</span></pre>
+        </div>
+        <div class="two feature-two">
+          <div class="panel feature-panel">
+            <h3>A new nonce per request</h3>
+            <p>
+              The next request carried nonce-LY2ymQSP… and the one after
+              nonce-jUCZqyQT…. Only scripts with it run.
+            </p>
+          </div>
+          <div class="panel feature-panel">
+            <h3>Defaults you can change</h3>
+            <p>
+              Spread SECURITY_HEADERS and CSP_DIRECTIVES, change a value, and
+              pass the result to createSecurityHeaders.
+            </p>
+          </div>
+        </div>
+        <p class="caption">
+          Security lines from the production preview of apps/boilerplate, which
+          keeps the package defaults. CSP wrapped for display.
+        </p>
+      </div>
+    </section>
+
+    <section class="figure" id="markdown-llms">
+      <div class="pad">
+        <div class="feature-head">
+          <div>
+            <p class="eyebrow">Markdown and llms.txt</p>
+            <h2 class="title">Every opted-in page, also as Markdown.</h2>
+          </div>
+          <svg class="feature-mark" viewBox="0 0 166 155.3" aria-hidden="true">
+            <use href="#i-solid" />
+          </svg>
+        </div>
+        <p class="lede">
+          The runtime converts the settled HTML of the same page, so there is no
+          second copy of the content.
+        </p>
+        <div class="first">
+          <div class="win term term-win">
+            <div class="win-bar">
+              <i></i><i></i><i></i
+              ><span class="mono"
+                >curl -s -H 'Accept: text/markdown' /en/about</span
+              >
+            </div>
+            <pre class="code mono"><span class="dim">HTTP/1.1 200</span>
+<span class="hl">content-type</span>: text/markdown; charset=utf-8
+<span class="hl">link</span>: &lt;/llms.txt&gt;; rel="describedby"
+<span class="hl">vary</span>: Cookie, Accept
+
+# About SolidJS Boilerplate
+## Purpose and features
+## Source code and documentation       <span class="c">(headings only)</span></pre>
+          </div>
+          <div class="win term term-win">
+            <div class="win-bar">
+              <i></i><i></i><i></i><span class="mono">curl -s /llms.txt</span>
+            </div>
+            <pre class="code mono"># SolidJS Boilerplate
+## When to use
+## Pages
+- [About SolidJS Boilerplate](…/en/about.md)
+## Optional
+- [Full Markdown of the static pages](…/llms-full.txt)   <span class="c">(excerpt)</span></pre>
+          </div>
+        </div>
+        <p class="caption">
+          Excerpts from the production preview of apps/boilerplate. The build
+          also writes static .md files and llms-full.txt.
+        </p>
+      </div>
+    </section>
+
+    <section class="figure" id="outdated-page">
+      <div class="pad">
+        <div class="feature-head">
+          <div>
+            <p class="eyebrow">Outdated page after a deploy</p>
+            <h2 class="title">
+              Tabs from the previous build reload only where nothing is lost.
+            </h2>
+          </div>
+          <svg class="feature-mark" viewBox="0 0 166 155.3" aria-hidden="true">
+            <use href="#i-solid" />
+          </svg>
+        </div>
+        <div class="pipeline flow4">
+          <div>
+            <b>Deploy</b><span>Old chunks and server function ids go away</span>
+          </div>
+          <div>
+            <b>Detect</b
+            ><span
+              >A missing chunk, or a server function refused with 404 or
+              409</span
+            >
+          </div>
+          <div>
+            <b>Mark</b
+            ><span>The page is flagged as outdated, nothing reloads yet</span>
+          </div>
+          <div>
+            <b>Recover</b
+            ><span>The next path change loads a fresh document</span>
+          </div>
+        </div>
+        <div class="two feature-two">
+          <div class="panel feature-panel">
+            <h3>Refused submission</h3>
+            <div class="notice-mock">
+              <b>Your submission was not completed</b>
+              <p>
+                This page may be out of date. Reload and try again. Anything you
+                have not saved may be lost.
+              </p>
+              <span class="btn">Reload page</span>
+            </div>
+          </div>
+          <div class="panel feature-panel">
+            <h3>Root error boundary</h3>
+            <p>
+              A missing chunk at the root reloads once, already on the target. A
+              repeat within 30 seconds shows the error page with a manual
+              reload.
+            </p>
+            <p>
+              Pages that register unsaved changes keep the navigation on the
+              client.
+            </p>
+          </div>
+        </div>
+        <p class="caption">
+          Notice text from the English catalog of OutdatedPageNotice.
+        </p>
+      </div>
+    </section>
+
+    <section class="figure" id="publication-limits">
+      <div class="pad">
+        <div class="feature-head">
+          <div>
+            <p class="eyebrow">Publication limits</p>
+            <h2 class="title">Sitemaps and Markdown run inside a budget.</h2>
+          </div>
+          <svg class="feature-mark" viewBox="0 0 166 155.3" aria-hidden="true">
+            <use href="#i-solid" />
+          </svg>
+        </div>
+        <p class="group-head">Shared controller, per process</p>
+        <div class="cards">
+          <div class="panel card">
+            <b class="big">4 <small>at once</small></b
+            ><span class="what"
+              >Publications, 2 per kind: sitemap and Markdown</span
+            >
+          </div>
+          <div class="panel card">
+            <b class="big">4 <small>reads</small></b
+            ><span class="what">Concurrent source reads, 2 per source</span>
+          </div>
+          <div class="panel card">
+            <b class="big">16 <small>MiB</small></b
+            ><span class="what"
+              >Output bytes reserved across 4 live outputs</span
+            >
+          </div>
+        </div>
+        <p class="group-head">Each response</p>
+        <div class="cards">
+          <div class="panel card">
+            <b class="big">10 <small>s · 4 MiB</small></b
+            ><span class="what">Sitemap deadline and response budget</span>
+          </div>
+          <div class="panel card">
+            <b class="big">50,000 <small>URLs</small></b
+            ><span class="what"
+              >Per sitemap, 2,048 characters per location</span
+            >
+          </div>
+          <div class="panel card">
+            <b class="big">2 <small>MiB · 15 s</small></b
+            ><span class="what">Markdown: HTML in, Markdown out, deadline</span>
+          </div>
+        </div>
+        <div class="foot-rail">
+          <b>503, never partial XML</b
+          ><span
+            >Overload adds Retry-After: 1. An oversized source answers with an
+            empty body. Both are no-store.</span
+          >
+        </div>
+        <p class="caption">
+          Package defaults. llms.txt and llms-full.txt fail the build above 1
+          MiB and 10 MiB.
+        </p>
+      </div>
+    </section>
+
+    <section class="figure" id="runtime-entries">
+      <div class="pad">
+        <div class="feature-head">
+          <div>
+            <p class="eyebrow">Entries of @evertondgn/solid-runtime</p>
+            <h2 class="title">63 entries. Import the ones you use.</h2>
+          </div>
+          <svg class="feature-mark" viewBox="0 0 166 155.3" aria-hidden="true">
+            <use href="#i-solid" />
+          </svg>
+        </div>
+        <div class="panel hbars entry-bars">
+          <div class="hbar">
+            <span class="lbl mono">seo</span
+            ><span class="track"><i style="width: 100%"></i></span
+            ><span class="n">15</span
+            ><span class="ex mono"
+              >create-seo · robots-route · sitemap-routes · llms</span
+            >
+          </div>
+          <div class="hbar">
+            <span class="lbl mono">middleware</span
+            ><span class="track"><i style="width: 80%"></i></span
+            ><span class="n">12</span
+            ><span class="ex mono"
+              >create-middleware · security-headers · api-routes</span
+            >
+          </div>
+          <div class="hbar">
+            <span class="lbl mono">server</span
+            ><span class="track"><i style="width: 80%"></i></span
+            ><span class="n">12</span
+            ><span class="ex mono"
+              >configure-server-errors · public-errors · publication</span
+            >
+          </div>
+          <div class="hbar">
+            <span class="lbl mono">i18n</span
+            ><span class="track"><i style="width: 66.7%"></i></span
+            ><span class="n">10</span
+            ><span class="ex mono"
+              >urls · locale-tag · create-localized-navigate</span
+            >
+          </div>
+          <div class="hbar">
+            <span class="lbl mono">theme</span
+            ><span class="track"><i style="width: 66.7%"></i></span
+            ><span class="n">10</span
+            ><span class="ex mono"
+              >define-theme · create-theme · theme-storage</span
+            >
+          </div>
+          <div class="hbar">
+            <span class="lbl mono">routing</span
+            ><span class="track"><i style="width: 13.3%"></i></span
+            ><span class="n">2</span
+            ><span class="ex mono">walk-static-routes · types</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl mono">env</span
+            ><span class="track"><i style="width: 6.7%"></i></span
+            ><span class="n">1</span
+            ><span class="ex mono">env: serverEnv validators</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl mono">fonts</span
+            ><span class="track"><i style="width: 6.7%"></i></span
+            ><span class="n">1</span><span class="ex mono">font-links</span>
+          </div>
+        </div>
+        <p class="caption">
+          Counted from the exports of the package manifest. An entry you do not
+          import stays out of your build.
+        </p>
+      </div>
+    </section>
+
+    <section class="figure" id="layers">
+      <div class="pad">
+        <div class="feature-head">
+          <div>
+            <p class="eyebrow">architecture/layer-imports</p>
+            <h2 class="title">Imports only point down the layers.</h2>
+          </div>
+          <svg class="feature-mark" viewBox="0 0 166 155.3" aria-hidden="true">
+            <use href="#i-solid" />
+          </svg>
+        </div>
+        <div class="stack-rows">
+          <div class="layer-row top">
+            <b>Routes, entries</b
+            ><span
+              >App, Document, entry-server, entry-client, router,
+              middleware</span
+            >
+          </div>
+          <div class="layer-row">
+            <b>Organisms</b><span>Sections such as Topbar</span>
+          </div>
+          <div class="layer-row">
+            <b>Molecules</b><span>Do not import organisms</span>
+          </div>
+          <div class="layer-row">
+            <b>Atoms</b><span>Do not import molecules or organisms</span>
+          </div>
+          <div class="layer-row">
+            <b>Primitives</b
+            ><span>src/primitives: no components, routes or entries</span>
+          </div>
+          <div class="layer-row">
+            <b>Base</b
+            ><span
+              >@types, constants, helpers, data, infra, theme, i18n,
+              paraglide</span
+            >
+          </div>
+        </div>
+        <div class="rule-msg term">
+          <b>vp lint, after an atom imports a molecule</b>
+          <code class="mono"
+            ><span class="dim"
+              >src/components/atoms/PageBadge/index.tsx:3:1:</span
+            >
+            <span class="err">error</span>
+            <span class="rule">architecture(layer-imports):</span> Layer atoms
+            must not depend on molecules
+            (src/components/molecules/PageHero/index.tsx). See the layer rules
+            in docs/architecture.md.</code
+          >
+        </div>
+        <p class="caption">
+          Real output on a copy of apps/boilerplate. Production code also cannot
+          import tests or tooling/.
+        </p>
+      </div>
+    </section>
+
+    <section class="figure" id="git-hooks">
+      <div class="pad">
+        <div class="feature-head">
+          <div>
+            <p class="eyebrow">Shared lefthook.yml</p>
+            <h2 class="title">Each Git step runs the checks that fit it.</h2>
+          </div>
+          <svg class="feature-mark" viewBox="0 0 166 155.3" aria-hidden="true">
+            <use href="#i-solid" />
+          </svg>
+        </div>
+        <div class="hook-flow">
+          <div class="panel station">
+            <span class="when mono">commit-msg</span>
+            <h3>Message format</h3>
+            <span class="job"
+              ><code>commitlint</code
+              ><span>Conventional Commits, 100-character header</span></span
+            >
+          </div>
+          <div class="panel station">
+            <span class="when mono">pre-commit</span>
+            <h3>Staged files</h3>
+            <span class="job"
+              ><code>check:fix</code
+              ><span>Format and lint, then stage the fixes</span></span
+            >
+            <span class="job"
+              ><code>scan:secrets</code
+              ><span>kingfisher, when installed</span></span
+            >
+          </div>
+          <div class="panel station">
+            <span class="when mono">pre-push</span>
+            <h3>The whole app</h3>
+            <span class="job"><code>check:ci</code></span>
+            <span class="job"><code>typecheck:node</code></span>
+            <span class="job"><code>test:ci</code></span>
+            <span class="job par"
+              ><code>test:tooling</code><br /><code>dead-code</code
+              ><span>In parallel</span></span
+            >
+          </div>
+        </div>
+        <div class="foot-rail">
+          <b>Stops at the first failure</b
+          ><span>pre-push runs piped. pre-commit skips merge and rebase.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="figure" id="css-tokens">
+      <div class="pad">
+        <div class="feature-head">
+          <div>
+            <p class="eyebrow">CSS policy with Stylelint</p>
+            <h2 class="title">
+              Colors, radii and font sizes come from tokens.
+            </h2>
+          </div>
+          <svg class="feature-mark" viewBox="0 0 166 155.3" aria-hidden="true">
+            <use href="#i-solid" />
+          </svg>
+        </div>
+        <div class="css-pair">
+          <div class="win">
+            <div class="win-bar">
+              <span class="mono">styles.module.css</span
+              ><span class="chip warn"
+                ><svg class="ico"><use href="#i-warn" /></svg>Refused</span
+              >
+            </div>
+            <pre class="code mono"><span class="k">.card</span> {
+<span class="err-line">  color: <span class="squiggle">#0b1525</span>;</span>}</pre>
+          </div>
+          <div class="win">
+            <div class="win-bar">
+              <span class="mono">styles.module.css</span
+              ><span class="chip ok"
+                ><svg class="ico"><use href="#i-check" /></svg>Passes</span
+              >
+            </div>
+            <pre class="code mono"><span class="k">.card</span> {
+  color: <span class="f">var</span>(<span class="s">--color-foreground</span>);
+}</pre>
+          </div>
+        </div>
+        <div class="rule-msg">
+          <b>Stylelint message</b>
+          <code class="mono"
+            >Use only var() tokens in this property; an exception needs a
+            stylelint-disable comment with the reason.</code
+          >
+        </div>
+        <p class="group-head">
+          Token files of the boilerplate, custom properties
+        </p>
+        <div class="token-row">
+          <span class="chip accent">colors 36</span
+          ><span class="chip accent">fonts 11</span
+          ><span class="chip accent">shadows 7</span
+          ><span class="chip accent">grids 6</span
+          ><span class="chip accent">radius 5</span
+          ><span class="chip accent">zIndex 3</span>
+        </div>
+        <p class="caption">
+          Outside src/theme/, literal colors are errors. Classes use snake_case.
+        </p>
+      </div>
+    </section>
+
+    <section class="figure" id="dead-code">
+      <div class="pad">
+        <div class="feature-head">
+          <div>
+            <p class="eyebrow">Knip, packaged</p>
+            <h2 class="title">Dead code is reported before the push.</h2>
+          </div>
+          <svg class="feature-mark" viewBox="0 0 166 155.3" aria-hidden="true">
+            <use href="#i-solid" />
+          </svg>
+        </div>
+        <p class="lede">
+          vp run dead-code-project runs Knip with the entries of a Solid app,
+          then again with --strict.
+        </p>
+        <div class="first">
+          <div class="win term term-win">
+            <div class="win-bar">
+              <i></i><i></i><i></i
+              ><span class="mono">knip --config tooling/knip.ts</span>
+            </div>
+            <pre class="code mono"><span class="hl">Unused files</span> (1)
+src/helpers/formatPrice/index.ts
+<span class="hl">Unused dependencies</span> (1)
+date-fns  <span class="dim">package.json:45:6</span>
+<span class="hl">Unused exports</span> (1)
+THEME_COOKIE_NAME  <span class="dim">src/constants/theme.ts:6:14</span></pre>
+          </div>
+        </div>
+        <p class="caption">
+          The first pass, on a copy of apps/boilerplate with an unused file,
+          dependency and export added. It fails, so the task stops there.
+        </p>
+      </div>
+    </section>
+
+    <section class="figure" id="vitest-projects">
+      <div class="pad">
+        <div class="feature-head">
+          <div>
+            <p class="eyebrow">solidTest from solid-tooling</p>
+            <h2 class="title">Node, DOM and a real browser in one run.</h2>
+          </div>
+          <svg class="feature-mark" viewBox="0 0 166 155.3" aria-hidden="true">
+            <use href="#i-solid" />
+          </svg>
+        </div>
+        <div class="panel proj-table">
+          <div class="proj-row">
+            <b class="mono">node</b>
+            <div>
+              <code class="mono">src/**/*.node.test.{ts,tsx}</code
+              ><span class="env"
+                >Node, with stand-ins for build-only modules</span
+              >
+            </div>
+            <div class="count"><b>68</b><span>12 files</span></div>
+          </div>
+          <div class="proj-row">
+            <b class="mono">dom</b>
+            <div>
+              <code class="mono">src/**/*.dom.test.{ts,tsx}</code
+              ><span class="env">happy-dom</span>
+            </div>
+            <div class="count"><b>87</b><span>13 files</span></div>
+          </div>
+          <div class="proj-row">
+            <b class="mono">browser</b>
+            <div>
+              <code class="mono">src/**/*.browser.test.{ts,tsx}</code
+              ><span class="env"
+                >Chromium through Playwright, with the CSS loaded</span
+              >
+            </div>
+            <div class="count"><b>30</b><span>7 files</span></div>
+          </div>
+        </div>
+        <div class="foot-rail">
+          <b>185 passed</b
+          ><span
+            >apps/boilerplate at this revision. Coverage thresholds: 80% lines,
+            functions and statements, 75% branches.</span
+          >
+        </div>
+      </div>
+    </section>
+
+    <section class="figure" id="e2e-coverage">
+      <div class="pad">
+        <div class="feature-head">
+          <div>
+            <p class="eyebrow">Playwright inventory of apps/boilerplate</p>
+            <h2 class="title">319 E2E cases across 15 areas.</h2>
+          </div>
+          <svg class="feature-mark" viewBox="0 0 166 155.3" aria-hidden="true">
+            <use href="#i-solid" />
+          </svg>
+        </div>
+        <div class="legend">
+          <span><i class="fix"></i>E2E build, 164 cases</span
+          ><span><i class="prod"></i>Production build, 155 cases</span>
+        </div>
+        <div class="panel hbars">
+          <div class="hbar">
+            <span class="lbl">AgentReadiness</span
+            ><span class="track"><i class="prod" style="width: 100%"></i></span
+            ><span class="n">77</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">I18n</span
+            ><span class="track"
+              ><i style="width: 23.4%"></i
+              ><i class="prod" style="width: 28.6%"></i></span
+            ><span class="n">40</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">Home</span
+            ><span class="track"
+              ><i style="width: 36.4%"></i
+              ><i class="prod" style="width: 10.4%"></i></span
+            ><span class="n">36</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">SeoIndexes</span
+            ><span class="track"
+              ><i style="width: 3.9%"></i
+              ><i class="prod" style="width: 33.8%"></i></span
+            ><span class="n">29</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">Markdown</span
+            ><span class="track"><i style="width: 35.1%"></i></span
+            ><span class="n">27</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">BackendError</span
+            ><span class="track"><i style="width: 32.5%"></i></span
+            ><span class="n">25</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">BuildOutput</span
+            ><span class="track"><i class="prod" style="width: 28.6%"></i></span
+            ><span class="n">22</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">OutsideError</span
+            ><span class="track"><i style="width: 23.4%"></i></span
+            ><span class="n">18</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">Hydration</span
+            ><span class="track"><i style="width: 23.4%"></i></span
+            ><span class="n">18</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">UiKit</span
+            ><span class="track"><i style="width: 10.4%"></i></span
+            ><span class="n">8</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">OutdatedPage</span
+            ><span class="track"><i style="width: 9.1%"></i></span
+            ><span class="n">7</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">StructuredData</span
+            ><span class="track"><i style="width: 7.8%"></i></span
+            ><span class="n">6</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">FragmentCss</span
+            ><span class="track"><i style="width: 2.6%"></i></span
+            ><span class="n">2</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">LateRedirect</span
+            ><span class="track"><i style="width: 2.6%"></i></span
+            ><span class="n">2</span>
+          </div>
+          <div class="hbar">
+            <span class="lbl">NotFound</span
+            ><span class="track"><i style="width: 2.6%"></i></span
+            ><span class="n">2</span>
+          </div>
+        </div>
+        <p class="caption">
+          Enumerated with playwright test --list, without running them: 26 files
+          for the E2E build and 12 for the production build.
+        </p>
+      </div>
+    </section>
+
     <script>
       const params = new URLSearchParams(location.search)
       document.documentElement.dataset.theme = params.get('theme') ?? 'dark'
+      for (const image of document.querySelectorAll('img[data-capture]')) {
+        image.src = `captures/${image.dataset.capture}-${document.documentElement.dataset.theme}.webp`
+      }
       const figure = params.get('figure')
       for (const section of document.querySelectorAll('.figure')) {
         section.classList.toggle('on', figure === null || section.id === figure)

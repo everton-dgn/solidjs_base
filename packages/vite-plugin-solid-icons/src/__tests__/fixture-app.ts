@@ -22,6 +22,7 @@ type FixtureOptions = {
   installed?: Record<string, IconSetFile>
 }
 type ModulesInput = { root: string; installed: Record<string, IconSetFile> }
+type LinkInput = { from: string; to: string }
 type Task = () => unknown
 type DeferInput = { context: TestContext; task: Task }
 type ConfigInput = {
@@ -118,7 +119,7 @@ export const html = () => renderToString(() => <App />)
   'icons/moon.svg': MOON_SVG
 }
 
-async function linkEntries(from: string, to: string): Promise<void> {
+async function linkEntries({ from, to }: LinkInput): Promise<void> {
   await mkdir(to, { recursive: true })
   for (const entry of await readdir(from)) {
     if (entry === COLLECTION_SCOPE) continue
@@ -133,7 +134,7 @@ async function installCollections({
   installed
 }: ModulesInput): Promise<void> {
   const modules = path.join(root, 'node_modules')
-  await linkEntries(MODULES, modules)
+  await linkEntries({ from: MODULES, to: modules })
   const scope = path.join(modules, COLLECTION_SCOPE)
   await mkdir(scope)
   for (const entry of await readdir(path.join(MODULES, COLLECTION_SCOPE))) {

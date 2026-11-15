@@ -9,7 +9,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0002](0002-compiled-tooling-package.md)                               | The tooling package ships compiled JavaScript                          | Accepted, amended by 0027             |
 | [0003](0003-runtime-package-as-source.md)                              | The runtime package will ship TypeScript source                        | Accepted, implemented in part by 0018 |
 | [0004](0004-public-npm-scope.md)                                       | Packages go to the public npm registry under `@evertondgn`             | Accepted                              |
-| [0005](0005-release-please.md)                                         | release-please versions each package                                   | Accepted                              |
+| [0005](0005-release-please.md)                                         | release-please versions each package                                   | Accepted, amended by 0035             |
 | [0006](0006-trusted-publishing.md)                                     | The workflow publishes through npm trusted publishing                  | Accepted                              |
 | [0007](0007-english.md)                                                | Packages and repository documentation are written in English           | Accepted, partly superseded by 0014   |
 | [0008](0008-merge-commits.md)                                          | Pull requests are merged with merge commits                            | Accepted                              |
@@ -21,7 +21,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0014](0014-boilerplate-copy-docs-in-english.md)                       | The guides of the boilerplate copy are written in English              | Accepted                              |
 | [0015](0015-commitlint-and-lefthook-configs-in-the-tooling-package.md) | The commitlint config and the Git hooks ship in the tooling package    | Accepted, amended by 0027             |
 | [0016](0016-optional-application-features.md)                          | The application presets turn on only the features the application uses | Accepted, amended by 0027 and 0034    |
-| [0017](0017-main-reuses-the-pull-request-run.md)                       | A push to main reuses the pull request run that checked the same tree  | Accepted                              |
+| [0017](0017-main-reuses-the-pull-request-run.md)                       | A push to main reuses the pull request run that checked the same tree  | Accepted, amended by 0035             |
 | [0018](0018-runtime-package-middleware.md)                             | The runtime package starts with the middleware steps                   | Accepted, amended by 0019 and 0020    |
 | [0019](0019-runtime-security-headers-options.md)                       | The runtime package takes the security header values as options        | Accepted                              |
 | [0020](0020-runtime-package-checks-in-its-own-folder.md)               | The runtime package runs its checks in its own folder                  | Accepted                              |
@@ -39,6 +39,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0032](0032-packaged-fonts.md)                                         | The preset loads application-owned fonts                               | Accepted                              |
 | [0033](0033-runtime-sitemap-publication.md)                            | Sitemap and publication admission belong to the runtime                | Accepted                              |
 | [0034](0034-runtime-markdown-publication.md)                           | Runtime Markdown and compiled publication                              | Accepted                              |
+| [0035](0035-release-pull-request-app.md)                               | A GitHub App opens the release pull request                            | Accepted                              |
 
 ## Adding a record
 

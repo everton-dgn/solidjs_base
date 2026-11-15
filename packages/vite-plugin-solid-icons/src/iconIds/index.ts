@@ -2,9 +2,10 @@ type RequestPart = { specifier: string; part: string }
 
 const ICON_PREFIX = 'icon:'
 const RAW_PREFIX = `\0${ICON_PREFIX}`
-// WHY: a name has no slash, so no import of an icon spells the id of a
-// component, and an icon named logo.tsx keeps its own module.
-const COMPONENT_SUFFIX = '/component.tsx'
+// WHY: an import of an icon starts with icon:, so no import spells the id
+// of a component, whatever the name of the icon, as in component.tsx.
+const COMPONENT_PREFIX = `solid-${ICON_PREFIX}`
+const COMPONENT_SUFFIX = '.tsx'
 const COLLECTION_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u
 const RAW_SUFFIX = '.js'
 // A dot only between characters, so a name cannot climb out of the folder of
@@ -63,17 +64,21 @@ export function iconImport({ collection, name }: IconPath): string {
   return `${ICON_PREFIX}${collection}/${name}`
 }
 
-// The ids that load receives. The component id ends in .tsx and has no null
-// byte, so the Solid plugin compiles it; the raw id stays away from the ?raw
-// handling of Vite and from the Solid plugin. Neither id is an import of an
-// icon, which has one slash and no null byte.
+// The ids that load receives, and that the transform of the application
+// leaves alone.
+export const ICON_MODULE_ID = /^(?:\0|solid-)icon:/u
+
+// The component id ends in .tsx and has no null byte, so the Solid plugin
+// compiles it; the raw id stays away from the ?raw handling of Vite and from
+// the Solid plugin. Neither id starts with icon:, as an import of an icon
+// does.
 export function readIconId(id: string): IconRequest | undefined {
   if (id.startsWith(RAW_PREFIX) && id.endsWith(RAW_SUFFIX)) {
     const path = id.slice(RAW_PREFIX.length, -RAW_SUFFIX.length)
     return { ...splitPath({ specifier: id, part: path }), isRaw: true }
   }
-  if (id.startsWith(ICON_PREFIX) && id.endsWith(COMPONENT_SUFFIX)) {
-    const path = id.slice(ICON_PREFIX.length, -COMPONENT_SUFFIX.length)
+  if (id.startsWith(COMPONENT_PREFIX) && id.endsWith(COMPONENT_SUFFIX)) {
+    const path = id.slice(COMPONENT_PREFIX.length, -COMPONENT_SUFFIX.length)
     return splitPath({ specifier: id, part: path })
   }
   return undefined
@@ -82,7 +87,7 @@ export function readIconId(id: string): IconRequest | undefined {
 export function iconId({ collection, name, isRaw }: IconRequest): string {
   return isRaw
     ? `${RAW_PREFIX}${collection}/${name}${RAW_SUFFIX}`
-    : `${ICON_PREFIX}${collection}/${name}${COMPONENT_SUFFIX}`
+    : `${COMPONENT_PREFIX}${collection}/${name}${COMPONENT_SUFFIX}`
 }
 
 // The dev server requests a module by its resolved id again, so a resolved id

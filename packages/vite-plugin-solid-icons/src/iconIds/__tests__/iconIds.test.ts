@@ -85,7 +85,35 @@ describe('iconId', () => {
   it('ends the component id in .tsx without a null byte', () => {
     const id = iconId({ collection: 'own', name: 'logo.v2', isRaw: false })
 
-    assert.equal(id, 'icon:own/logo.v2/component.tsx')
+    assert.equal(id, 'solid-icon:own/logo.v2.tsx')
+  })
+
+  it('reads no import of an icon as its own id', () => {
+    // An import starts with icon:, also with a name that a later rule may
+    // accept, such as one with a slash.
+    for (const specifier of [
+      'icon:own/component.tsx',
+      'icon:own/logo.tsx',
+      'icon:own/logo/component.tsx',
+      'icon:own/a/b.tsx',
+      'icon:own/logo.js'
+    ]) {
+      assert.equal(readIconId(specifier), undefined, specifier)
+    }
+  })
+
+  it('keeps an icon named component.tsx', () => {
+    const request = { collection: 'own', name: 'component.tsx', isRaw: false }
+
+    assert.deepEqual(parseIconRequest('icon:own/component.tsx'), request)
+    assert.deepEqual(parseIconRequest('icon:own/component.tsx?raw'), {
+      ...request,
+      isRaw: true
+    })
+    for (const resolved of [request, { ...request, isRaw: true }]) {
+      assert.deepEqual(parseIconRequest(iconId(resolved)), resolved)
+      assert.deepEqual(readIconId(iconId(resolved)), resolved)
+    }
   })
 
   it('keeps an icon whose name ends in .tsx apart from its neighbor', () => {

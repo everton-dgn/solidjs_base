@@ -14,6 +14,7 @@ import {
 } from './iconCollections/index.ts'
 import {
   collectionOfImport,
+  ICON_MODULE_ID,
   iconId,
   type IconRequest,
   parseIconRequest,
@@ -42,7 +43,6 @@ type ModuleFile = { root: string; id: string | undefined }
 const PLUGIN_NAME = 'vite-plugin-solid-icons'
 const SCRIPT_ID = /\.[cm]?[jt]sx?(?:\?.*)?$/u
 const NODE_MODULES = /[/\\]node_modules[/\\]/u
-const ICON_MODULE = /^\0?icon:/u
 // The hooks that resolve and load see every module of the application;
 // the filter keeps the others away from the plugin. The handlers check
 // the exact form.
@@ -223,7 +223,7 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     },
     transform: {
       filter: {
-        id: { include: SCRIPT_ID, exclude: [NODE_MODULES, ICON_MODULE] },
+        id: { include: SCRIPT_ID, exclude: [NODE_MODULES, ICON_MODULE_ID] },
         code: COLLECTION_IMPORT
       },
       async handler(code, id) {

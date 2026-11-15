@@ -13,21 +13,26 @@ type BuildInput = { context: TestContext; source: string }
 type EntryInput = { context: TestContext; code: string }
 type RenderedLogos = Record<string, string>
 
-// Two files whose names differ by .tsx, as the id of a component ends.
+// Files whose names end as the id of a component does.
 const LOGOS = `import { renderToString } from '@solidjs/web'
 import Plain from 'icon:own/logo'
 import Dotted from 'icon:own/logo.tsx'
+import Component from 'icon:own/component.tsx'
 import plainRaw from 'icon:own/logo?raw'
 import dottedRaw from 'icon:own/logo.tsx?raw'
-import { Logo, LogoTsx } from 'icon:own'
+import componentRaw from 'icon:own/component.tsx?raw'
+import { ComponentTsx, Logo, LogoTsx } from 'icon:own'
 
 export const logos = () => ({
   plain: renderToString(() => <Plain />),
   dotted: renderToString(() => <Dotted />),
+  component: renderToString(() => <Component />),
   named: renderToString(() => <Logo />),
   namedDotted: renderToString(() => <LogoTsx />),
+  namedComponent: renderToString(() => <ComponentTsx />),
   plainRaw,
-  dottedRaw
+  dottedRaw,
+  componentRaw
 })
 `
 
@@ -181,11 +186,12 @@ describe('the modules of the icons', () => {
   it('loads the icon a name ending in .tsx names', async context => {
     const root = await createFixtureApp()
     context.after(() => rm(root, { recursive: true, force: true }))
-    await writeFile(path.join(root, 'icons/logo.svg'), titledSvg('logo.svg'))
-    await writeFile(
-      path.join(root, 'icons/logo.tsx.svg'),
-      titledSvg('logo.tsx.svg')
-    )
+    for (const name of ['logo', 'logo.tsx', 'component.tsx']) {
+      await writeFile(
+        path.join(root, `icons/${name}.svg`),
+        titledSvg(`${name}.svg`)
+      )
+    }
     await writeFile(path.join(root, 'src/logos.tsx'), LOGOS)
     await build({
       ...fixtureConfig({ root, isSsr: true, typesFile: false }),
@@ -203,6 +209,13 @@ describe('the modules of the icons', () => {
     }
     for (const key of ['dotted', 'namedDotted', 'dottedRaw']) {
       assert.match(rendered[key] ?? '', /<title>logo\.tsx\.svg<\/title>/u, key)
+    }
+    for (const key of ['component', 'namedComponent', 'componentRaw']) {
+      assert.match(
+        rendered[key] ?? '',
+        /<title>component\.tsx\.svg<\/title>/u,
+        key
+      )
     }
   })
 
@@ -230,10 +243,7 @@ describe('the modules of the icons', () => {
       server.environments.client,
       server.environments.ssr
     ]) {
-      for (const url of [
-        'icon:own/drawn/component.tsx',
-        '\0icon:own/drawn.js'
-      ]) {
+      for (const url of ['solid-icon:own/drawn.tsx', '\0icon:own/drawn.js']) {
         const result = await environment.transformRequest(url)
         assert.doesNotMatch(result?.code ?? '', /sodipodi|metadata/u, url)
       }

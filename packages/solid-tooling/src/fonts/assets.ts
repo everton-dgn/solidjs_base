@@ -12,6 +12,12 @@ import type {
 } from './types.ts'
 
 type AssetOptions = FontOptions & { base: string; assetsDir: string }
+type BaseOptions = Pick<AssetOptions, 'base' | 'ssr'>
+type FontUrls = {
+  css: (fileName: string) => string
+  html: (fileName: string) => string
+}
+const RELATIVE_BASE = './'
 const HASH_LENGTH = 16
 const MAX_WEIGHT = 1000
 const FORMATS: Record<string, string | undefined> = {
@@ -78,17 +84,43 @@ function isInside(root: string, file: string): boolean {
   )
 }
 
-export async function readFontAssets({
-  root,
-  fonts,
-  base,
-  assetsDir
-}: AssetOptions): Promise<FontAssets> {
+// Vite keeps './' only in a client build; it turns every other relative base
+// into an absolute pathname.
+function isRelativeBase({ base, ssr }: BaseOptions): boolean {
+  if (base !== RELATIVE_BASE) return false
+  if (ssr !== false) {
+    throw new Error('defineSolidApp fonts: a relative base needs ssr: false.')
+  }
+  return true
+}
+
+function fontUrls({ base, ssr }: BaseOptions): FontUrls {
+  if (isRelativeBase({ base, ssr })) {
+    return {
+      // INVARIANT: the fonts and the stylesheet share assetsDir, so a URL
+      // relative to the stylesheet is the file name.
+      css: fileName => path.posix.basename(fileName),
+      html: fileName => `${RELATIVE_BASE}${fileName}`
+    }
+  }
   if (!base.startsWith('/') || base.startsWith('//') || /[?#]/u.test(base)) {
     throw new Error(
       'defineSolidApp fonts: base must be a same-origin absolute pathname.'
     )
   }
+  const url = (fileName: string): string =>
+    `${base.replace(/\/$/u, '')}/${fileName}`
+  return { css: url, html: url }
+}
+
+export async function readFontAssets({
+  root,
+  fonts,
+  base,
+  assetsDir,
+  ssr
+}: AssetOptions): Promise<FontAssets> {
+  const urls = fontUrls({ base, ssr })
   if (path.isAbsolute(assetsDir) || assetsDir.split(/[\\/]/u).includes('..')) {
     throw new Error(
       'defineSolidApp fonts: assetsDir must stay inside the client output.'
@@ -100,7 +132,6 @@ export async function readFontAssets({
   const files = new Set<string>()
   const preloads = new Map<string, FontPreload>()
   const rules: string[] = []
-  const url = (fileName: string) => `${base.replace(/\/$/u, '')}/${fileName}`
   for (const { family, files: faces } of families) {
     for (const face of faces) {
       if (path.isAbsolute(face.path) || /[?#]/u.test(face.path)) {
@@ -136,10 +167,10 @@ export async function readFontAssets({
         assets.set(key, asset)
       }
       files.add(file)
-      const href = url(asset.fileName)
+      const href = urls.html(asset.fileName)
       if (face.preload) preloads.set(href, { href, type: asset.type })
       rules.push(
-        `@font-face {\n  font-family: ${cssString(family)};\n  font-style: ${face.style};\n  font-display: ${face.display};\n  font-weight: ${face.weight};\n  src: url(${cssString(href)}) format(${cssString(format)});${face.unicodeRange ? `\n  unicode-range: ${face.unicodeRange};` : ''}\n}`
+        `@font-face {\n  font-family: ${cssString(family)};\n  font-style: ${face.style};\n  font-display: ${face.display};\n  font-weight: ${face.weight};\n  src: url(${cssString(urls.css(asset.fileName))}) format(${cssString(format)});${face.unicodeRange ? `\n  unicode-range: ${face.unicodeRange};` : ''}\n}`
       )
     }
   }
@@ -148,7 +179,7 @@ export async function readFontAssets({
   return {
     assets: [...assets.values(), { fileName, source, type: 'text/css' }],
     files: [...files],
-    stylesheet: url(fileName),
+    stylesheet: urls.html(fileName),
     preloads: [...preloads.values()]
   }
 }

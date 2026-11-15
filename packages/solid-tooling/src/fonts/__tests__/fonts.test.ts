@@ -198,10 +198,59 @@ it('rejects executable or injectable descriptors and files outside the root', as
       }),
     /inside the application root/u
   )
-  await assert.rejects(
-    () => readFontAssets({ ...options, base: './' }),
-    /same-origin absolute pathname/u
+  for (const base of ['//cdn.example/', 'https://cdn.example/', '/app/?v=1']) {
+    await assert.rejects(
+      () => readFontAssets({ ...options, base }),
+      /same-origin absolute pathname/u
+    )
+  }
+  for (const ssr of [true, undefined]) {
+    await assert.rejects(
+      () => readFontAssets({ ...options, ssr, base: './' }),
+      /a relative base needs ssr: false/u
+    )
+  }
+})
+
+it('resolves the relative URLs of a client-only build to the same font', async context => {
+  const options = await fixture(context)
+  await build({
+    configFile: false,
+    root: options.root,
+    base: './',
+    plugins: [fontsPlugin(options)],
+    logLevel: 'silent'
+  })
+  const html = await readFile(
+    path.join(options.root, 'dist/index.html'),
+    'utf8'
   )
+  const stylesheet =
+    /href="(?<href>\.\/assets\/solid-fonts-[\da-f]+\.css)"/u.exec(html)?.groups
+      ?.href
+  const preload = /rel="preload" href="(?<href>[^"]+)"/u.exec(html)?.groups
+    ?.href
+  assert.ok(stylesheet, html)
+  assert.ok(preload, html)
+  assert.ok(preload.startsWith('./assets/small-'), preload)
+  const css = await readFile(
+    path.join(options.root, 'dist', stylesheet),
+    'utf8'
+  )
+  const font = /url\("(?<url>[^"]+)"\)/u.exec(css)?.groups?.url
+  assert.ok(font, css)
+  assert.match(font, /^small-[\da-f]+\.woff2$/u)
+  const document = new URL('file:///shell/dist/index.html')
+  const fromCss = new URL(font, new URL(stylesheet, document))
+  assert.equal(fromCss.href, new URL(preload, document).href)
+  const emitted = await readFile(
+    path.join(
+      options.root,
+      'dist',
+      path.posix.relative('/shell/dist', fromCss.pathname)
+    )
+  )
+  assert.deepEqual(emitted, FONT_FIXTURE)
 })
 
 it('registers no plugin when fonts are absent or empty', () => {

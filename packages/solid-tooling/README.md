@@ -217,11 +217,11 @@ tested versions.
 
 Each feature turns on only when the application uses it:
 
-| Feature             | Selection                                                                                                                              |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Client-only build   | Set `ssr: false` and omit SSR options such as `middleware` and `securityHeaders`; the build has no Nitro or server bundle              |
-| Publication headers | Set `seo.markdown`, `seo.llms` and `seo.sitemap` one by one; `seo.llmsFull` also needs `seo.llms` and `seo.markdown.static`            |
-| Translations        | `project.inlang/settings.json` enables the generation task and browser test setup; the lint plugin loads only where Paraglide resolves |
+| Feature             | Selection                                                                                                                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Client-only build   | Set `ssr: false` and omit SSR options such as `middleware` and `securityHeaders`; the build has no Nitro or server bundle and accepts a relative `./` base |
+| Publication headers | Set `seo.markdown`, `seo.llms` and `seo.sitemap` one by one; `seo.llmsFull` also needs `seo.llms` and `seo.markdown.static`                                |
+| Translations        | `project.inlang/settings.json` enables the generation task and browser test setup; the lint plugin loads only where Paraglide resolves                     |
 
 When the standard does not fit, change it without a fork: `extend` adds plugins
 and Nitro modules, `tasks` adds or replaces a `vp run` task, `routeRules`,
@@ -453,8 +453,9 @@ every icon. The application does not declare the plugin.
 Pass a data-only `fonts` array to `defineSolidApp` to generate external
 `@font-face` CSS and matching preloads for application-owned files. SSR uses
 `FontLinks` from `@evertondgn/solid-runtime/fonts/font-links` in the Document
-head; client-only applications receive both links in `index.html`. Leave `fonts`
-out and nothing is generated. Typography tokens stay in the app. See the
+head; client-only applications receive both links in `index.html`, also with a
+relative `./` base for `file://` and app shells. Leave `fonts` out and nothing
+is generated. Typography tokens stay in the app. See the
 [font API and migration examples](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/fonts.md).
 
 ## SEO configured as data

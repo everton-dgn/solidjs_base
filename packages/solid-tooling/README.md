@@ -494,14 +494,17 @@ for factories, the one-line route and examples with and without translations.
 
 ### Publication artifacts
 
-Crawlers get files, not renders. With `markdown: { static: true }` the build
-prerenders the `.md` copies, `llms.txt` and `llms-full.txt`, and with
-`sitemap: { static: true }` the sitemap XML too. Before the build ends, it
-checks every artifact: each one within its byte budget, `llms.txt` announcing
-`llms-full.txt` only when that file exists, no static page resolving to another
-route, and all of them stamped with the same build identity as the SSR bundle.
-Your config needs no `extend` callback for this. `publication/read-llms-index`
-exposes the compiled index reader for artifact checks in Node. See
+Crawlers get files, not renders. The build writes what you turn on: a `.md` copy
+of each opted-in page with `markdown: { static: true }`, `llms.txt` with `llms`,
+`llms-full.txt` with `llmsFull`, and the sitemap XML with
+`sitemap: { static: true }`. A bad artifact fails the build instead of reaching
+production: a `.md` file that is empty, not UTF-8 or still an HTML document, an
+index or sitemap file over its byte budget, an `llms.txt` whose link to
+`llms-full.txt` disagrees with the files built, a static page that resolves to
+another route, or a Markdown list or sitemap inventory from a different build
+than the SSR bundle. Your config needs no `extend` callback for this.
+`publication/read-llms-index` exposes the compiled index reader for artifact
+checks in Node. See
 [ADR 0034](https://github.com/everton-dgn/solidjs_base/blob/main/docs/ADRs/0034-runtime-markdown-publication.md)
 for the feature options, defaults, disabled-resource behavior and scale.
 

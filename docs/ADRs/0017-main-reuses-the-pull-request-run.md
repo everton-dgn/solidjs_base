@@ -1,6 +1,6 @@
 # 0017. A push to main reuses the pull request run that checked the same tree
 
-- Status: Accepted
+- Status: Accepted, amended by [0035](0035-release-pull-request-app.md)
 - Date: 2026-11-13
 
 ## Context
@@ -50,5 +50,6 @@ classification:
   up-to-date merge is the one of its pull request.
 - The check is by name: renaming `CI required` has to change the query in
   `ci.yml` too.
-- The release pull request is opened by the workflow token, so its run waits for
-  an approval. Approve it once, when the release is about to be merged.
+- The release pull request was opened by the workflow token, so its run waited
+  for an approval. Since [ADR 0035](0035-release-pull-request-app.md) a GitHub
+  App opens it, and its CI starts on its own.

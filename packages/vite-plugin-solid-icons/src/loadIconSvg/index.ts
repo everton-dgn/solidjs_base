@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises'
+import { constants } from 'node:fs'
+import { type FileHandle, open } from 'node:fs/promises'
 import path from 'node:path'
 
 import {
@@ -24,6 +25,8 @@ type IconSource = {
 }
 type FolderSource = IconSource & { folder: IconFolder }
 type IconSvg = { svg: string; file: string | undefined }
+type FileProblem = 'missing' | 'link' | 'irregular'
+type MissingInput = FolderSource & { problem: FileProblem }
 type Customization = {
   collection: string
   name: string
@@ -39,6 +42,12 @@ const SVG_EXTENSION = '.svg'
 const SVG_START = '<svg'
 // @iconify/utils writes the attributes after "<svg" and one space.
 const BARE_SVG_START = /^<svg(?=[/>])/u
+// WHY: the listing of the folder is cached, so a file that became a link
+// after it is refused when it opens. Without O_NONBLOCK a FIFO in its place
+// would block the open. Windows has no O_NOFOLLOW, and keeps only the check
+// of the listing.
+const OPEN_FLAGS =
+  constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0)
 const ATTRIBUTE_NAME = /^[A-Za-z_][\w.:-]*$/u
 const MARKUP_CHARACTERS = /[&"<>]/gu
 const ESCAPES: Record<string, string> = {
@@ -98,42 +107,73 @@ function loaderOptions(
   }
 }
 
-function missingFolderIcon({ collection, name, root, folder }: FolderSource) {
+function missingFolderIcon({
+  collection,
+  name,
+  root,
+  folder,
+  problem
+}: MissingInput): Error {
   const relative = path.relative(root, folder.path) || '.'
   const file = `${name}${SVG_EXTENSION}`
+  const place = `in the folder "${relative}" of the collection "${collection}"`
   const lowerName = name.toLowerCase()
   const sameLetters = [...folder.files.icons].find(
     icon => icon.toLowerCase() === lowerName
   )
-  const reason = folder.files.links.has(name)
-    ? `${file} in the folder "${relative}" of the collection "${collection}" is a symbolic link, and the plugin reads regular files only`
-    : `the folder "${relative}" of the collection "${collection}" has no ${file}`
+  const reasons: Record<FileProblem, string> = {
+    missing: `the folder "${relative}" of the collection "${collection}" has no ${file}`,
+    link: `${file} ${place} is a symbolic link, and the plugin reads regular files only`,
+    irregular: `${file} ${place} is not a regular file, and the plugin reads regular files only`
+  }
   const hint =
-    sameLetters === undefined
+    sameLetters === undefined || problem !== 'missing'
       ? ''
       : `; names are case-sensitive, and the folder has ${sameLetters}${SVG_EXTENSION}`
-  return new Error(`Icon "${collection}/${name}" not found: ${reason}${hint}.`)
+  return new Error(
+    `Icon "${collection}/${name}" not found: ${reasons[problem]}${hint}.`
+  )
 }
 
-function isMissingFile(error: unknown): boolean {
-  return error instanceof Error && 'code' in error && error.code === 'ENOENT'
+function openProblem(error: unknown): FileProblem | undefined {
+  const code = error instanceof Error && 'code' in error ? error.code : ''
+  if (code === 'ENOENT') return 'missing'
+  if (code === 'ELOOP') return 'link'
+  return undefined
+}
+
+async function openFolderFile(source: FolderSource): Promise<FileHandle> {
+  const { name, folder } = source
+  try {
+    return await open(
+      path.join(folder.path, `${name}${SVG_EXTENSION}`),
+      OPEN_FLAGS
+    )
+  } catch (error) {
+    const problem = openProblem(error)
+    if (problem) throw missingFolderIcon({ ...source, problem })
+    throw error
+  }
 }
 
 // The file is read only when the listing of the folder has its exact name,
 // so a name never reaches a file outside the folder, a link or a file whose
-// name differs in case.
+// name differs in case. The open checks the file again, as it is now.
 async function readFolderSvg(source: FolderSource): Promise<string> {
   const { collection, name, folder } = source
-  if (!folder.files.icons.has(name)) throw missingFolderIcon(source)
+  if (!folder.files.icons.has(name)) {
+    const problem = folder.files.links.has(name) ? 'link' : 'missing'
+    throw missingFolderIcon({ ...source, problem })
+  }
+  const handle = await openFolderFile(source)
   let text: string
   try {
-    text = await readFile(
-      path.join(folder.path, `${name}${SVG_EXTENSION}`),
-      'utf8'
-    )
-  } catch (error) {
-    if (isMissingFile(error)) throw missingFolderIcon(source)
-    throw error
+    if (!(await handle.stat()).isFile()) {
+      throw missingFolderIcon({ ...source, problem: 'irregular' })
+    }
+    text = await handle.readFile('utf8')
+  } finally {
+    await handle.close()
   }
   const start = text.indexOf(SVG_START)
   if (start === -1) {

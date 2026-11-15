@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
+import { execFile } from 'node:child_process'
 import { mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
+import { promisify } from 'node:util'
 
 import { compileIcon } from '../../compileIcon/index.ts'
 import { readFolderFiles } from '../../readFolderFiles/index.ts'
@@ -214,6 +216,71 @@ describe('loadIconSvg of a folder', () => {
       }),
       /link\.svg in the folder "[^"]+" of the collection "own" is a symbolic link, and the plugin reads regular files only\./u
     )
+  })
+
+  it('refuses a file that became a link after the listing', async context => {
+    const folder = await iconFolder(context)
+    const outside = path.join(
+      path.dirname(folder),
+      `${path.basename(folder)}-secret.svg`
+    )
+    await writeFile(outside, '<svg><text>secret</text></svg>')
+    context.after(() => rm(outside, { force: true }))
+    const icons = await listed(folder)
+    await rm(path.join(folder, 'star.svg'))
+    await symlink(outside, path.join(folder, 'star.svg'))
+
+    assert.equal(icons.files.icons.has('star'), true)
+    await assert.rejects(
+      loadIconSvg({
+        collection: 'own',
+        name: 'star',
+        root: path.dirname(folder),
+        folder: icons,
+        customizeIcon: undefined
+      }),
+      /star\.svg in the folder "[^"]+" of the collection "own" is a symbolic link, and the plugin reads regular files only\./u
+    )
+  })
+
+  it('refuses a file that became a FIFO after the listing', async context => {
+    const folder = await iconFolder(context)
+    const icons = await listed(folder)
+    await rm(path.join(folder, 'star.svg'))
+    await promisify(execFile)('mkfifo', [path.join(folder, 'star.svg')])
+
+    // Without a writer, a blocking open of the FIFO would never return.
+    await assert.rejects(
+      loadIconSvg({
+        collection: 'own',
+        name: 'star',
+        root: path.dirname(folder),
+        folder: icons,
+        customizeIcon: undefined
+      }),
+      /star\.svg in the folder "[^"]+" of the collection "own" is not a regular file, and the plugin reads regular files only\./u
+    )
+  })
+
+  it('reads the files of a folder that is a link', async context => {
+    const folder = await iconFolder(context)
+    const linked = `${folder}-link`
+    await symlink(folder, linked)
+    context.after(() => rm(linked, { force: true }))
+    const files = await readFolderFiles({
+      collection: 'own',
+      folder: linked,
+      root: path.dirname(folder)
+    })
+    const { svg } = await loadIconSvg({
+      collection: 'own',
+      name: 'star',
+      root: path.dirname(folder),
+      folder: { path: linked, files },
+      customizeIcon: undefined
+    })
+
+    assert.match(svg, /<path d="M0 0"\/>/u)
   })
 
   it('adds the attributes to an <svg> without attributes', async context => {

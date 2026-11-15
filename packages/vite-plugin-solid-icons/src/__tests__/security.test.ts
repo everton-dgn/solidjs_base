@@ -256,10 +256,10 @@ describe('an icon import', () => {
     await server.listen()
     const [url = ''] = server.resolvedUrls?.local ?? []
     const paths = [
-      '@id/icon:own/..%2Fsecret.tsx',
-      '@id/icon:own/..%2F..%2Fsecret.tsx',
+      '@id/icon:own/..%2Fsecret/component.tsx',
+      '@id/icon:own/..%2F..%2Fsecret/component.tsx',
       '@id/__x00__icon:own/..%2Fsecret.js',
-      '@id/icon:own%2F..%2Fsecret.tsx'
+      '@id/icon:own%2F..%2Fsecret/component.tsx'
     ]
     for (const request of paths) {
       const response = await fetch(new URL(request, url))
@@ -268,7 +268,7 @@ describe('an icon import', () => {
       assert.notEqual(response.status, HTTP_OK, request)
       assert.doesNotMatch(body, new RegExp(SECRET, 'u'), request)
     }
-    const star = await fetch(new URL('@id/icon:own/star.tsx', url))
+    const star = await fetch(new URL('@id/icon:own/star/component.tsx', url))
     assert.equal(star.status, HTTP_OK)
   })
 

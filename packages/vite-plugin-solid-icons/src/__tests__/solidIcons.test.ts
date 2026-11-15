@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { access, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
+import { pathToFileURL } from 'node:url'
 
 import { build } from 'vite-plus'
 
@@ -10,6 +11,34 @@ import { createFixtureApp, fixtureConfig, TYPES_FILE } from './fixture-app.ts'
 
 type BuildInput = { context: TestContext; source: string }
 type EntryInput = { context: TestContext; code: string }
+type RenderedLogos = Record<string, string>
+
+// Two files whose names differ by .tsx, as the id of a component ends.
+const LOGOS = `import { renderToString } from '@solidjs/web'
+import Plain from 'icon:own/logo'
+import Dotted from 'icon:own/logo.tsx'
+import plainRaw from 'icon:own/logo?raw'
+import dottedRaw from 'icon:own/logo.tsx?raw'
+import { Logo, LogoTsx } from 'icon:own'
+
+export const logos = () => ({
+  plain: renderToString(() => <Plain />),
+  dotted: renderToString(() => <Dotted />),
+  named: renderToString(() => <Logo />),
+  namedDotted: renderToString(() => <LogoTsx />),
+  plainRaw,
+  dottedRaw
+})
+`
+
+function isLogos(value: unknown): value is { logos: () => RenderedLogos } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'logos' in value &&
+    typeof value.logos === 'function'
+  )
+}
 
 async function buildEntry({ context, code }: EntryInput): Promise<void> {
   const root = await createFixtureApp()
@@ -71,6 +100,33 @@ describe('solidIcons', () => {
     await buildWith(false)
     await assert.rejects(access(custom))
     await assert.rejects(access(path.join(root, TYPES_FILE)))
+  })
+
+  it('loads the icon a name ending in .tsx names', async context => {
+    const root = await createFixtureApp()
+    context.after(() => rm(root, { recursive: true, force: true }))
+    const svg = (file: string) =>
+      `<svg viewBox="0 0 16 16"><title>${file}</title></svg>`
+    await writeFile(path.join(root, 'icons/logo.svg'), svg('logo.svg'))
+    await writeFile(path.join(root, 'icons/logo.tsx.svg'), svg('logo.tsx.svg'))
+    await writeFile(path.join(root, 'src/logos.tsx'), LOGOS)
+    await build({
+      ...fixtureConfig({ root, isSsr: true, typesFile: false }),
+      logLevel: 'silent',
+      build: { ssr: 'src/logos.tsx', outDir: 'dist/server' }
+    })
+    const module: unknown = await import(
+      pathToFileURL(path.join(root, 'dist/server/logos.mjs')).href
+    )
+    assert.ok(isLogos(module))
+    const rendered = module.logos()
+
+    for (const key of ['plain', 'named', 'plainRaw']) {
+      assert.match(rendered[key] ?? '', /<title>logo\.svg<\/title>/u, key)
+    }
+    for (const key of ['dotted', 'namedDotted', 'dottedRaw']) {
+      assert.match(rendered[key] ?? '', /<title>logo\.tsx\.svg<\/title>/u, key)
+    }
   })
 
   it('names the missing icon in the build error', async context => {

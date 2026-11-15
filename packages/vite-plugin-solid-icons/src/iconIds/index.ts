@@ -2,7 +2,9 @@ type RequestPart = { specifier: string; part: string }
 
 const ICON_PREFIX = 'icon:'
 const RAW_PREFIX = `\0${ICON_PREFIX}`
-const COMPONENT_SUFFIX = '.tsx'
+// WHY: a name has no slash, so no import of an icon spells the id of a
+// component, and an icon named logo.tsx keeps its own module.
+const COMPONENT_SUFFIX = '/component.tsx'
 const COLLECTION_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u
 const RAW_SUFFIX = '.js'
 // A dot only between characters, so a name cannot climb out of the folder of
@@ -63,7 +65,8 @@ export function iconImport({ collection, name }: IconPath): string {
 
 // The ids that load receives. The component id ends in .tsx and has no null
 // byte, so the Solid plugin compiles it; the raw id stays away from the ?raw
-// handling of Vite and from the Solid plugin.
+// handling of Vite and from the Solid plugin. Neither id is an import of an
+// icon, which has one slash and no null byte.
 export function readIconId(id: string): IconRequest | undefined {
   if (id.startsWith(RAW_PREFIX) && id.endsWith(RAW_SUFFIX)) {
     const path = id.slice(RAW_PREFIX.length, -RAW_SUFFIX.length)

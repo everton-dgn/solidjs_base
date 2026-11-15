@@ -85,7 +85,24 @@ describe('iconId', () => {
   it('ends the component id in .tsx without a null byte', () => {
     const id = iconId({ collection: 'own', name: 'logo.v2', isRaw: false })
 
-    assert.equal(id, 'icon:own/logo.v2.tsx')
+    assert.equal(id, 'icon:own/logo.v2/component.tsx')
+  })
+
+  it('keeps an icon whose name ends in .tsx apart from its neighbor', () => {
+    const dotted = { collection: 'own', name: 'logo.tsx', isRaw: false }
+    const plain = { collection: 'own', name: 'logo', isRaw: false }
+
+    assert.deepEqual(parseIconRequest('icon:own/logo.tsx'), dotted)
+    assert.deepEqual(parseIconRequest('icon:own/logo.tsx?raw'), {
+      ...dotted,
+      isRaw: true
+    })
+    assert.notEqual(iconId(dotted), iconId(plain))
+    // The dev server resolves the id of a module again.
+    for (const request of [dotted, plain, { ...dotted, isRaw: true }]) {
+      assert.deepEqual(parseIconRequest(iconId(request)), request)
+      assert.deepEqual(readIconId(iconId(request)), request)
+    }
   })
 
   it('keeps the raw id away from the Solid plugin and the ?raw of Vite', () => {
@@ -102,6 +119,7 @@ describe('iconId', () => {
   it('reads only its own ids', () => {
     assert.equal(readIconId('/src/App.tsx'), undefined)
     assert.equal(readIconId('icon:hugeicons/github'), undefined)
+    assert.equal(readIconId('icon:hugeicons/github.tsx'), undefined)
   })
 })
 

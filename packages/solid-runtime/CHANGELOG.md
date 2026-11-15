@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/everton-dgn/solidjs_base/compare/solid-runtime@0.6.0...solid-runtime@0.7.0) (2026-11-15)
+
+
+### Features
+
+* **runtime:** persist the theme choice in localStorage ([319c842](https://github.com/everton-dgn/solidjs_base/commit/319c842a7fa4f23f8112ff0797950759a8bce8f1))
+* **runtime:** set theme-color once the meta follows the stored theme script ([0eadfff](https://github.com/everton-dgn/solidjs_base/commit/0eadfff449be17cf6ae9c7f7b8ed670651ec99df))
+
 ## [0.6.0](https://github.com/everton-dgn/solidjs_base/compare/solid-runtime@0.1.0...solid-runtime@0.6.0) (2026-11-15)
 
 

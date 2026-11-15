@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.6.0...solid-tooling@0.7.0) (2026-11-15)
+
+
+### Features
+
+* **tooling:** accept a relative base for client-only fonts ([74a3bfb](https://github.com/everton-dgn/solidjs_base/commit/74a3bfba2da97814523bf538a7b71077acd355d1))
+
+
+### Bug Fixes
+
+* **tooling:** refuse a fonts assetsDir that a host decodes into a parent ([484f4bf](https://github.com/everton-dgn/solidjs_base/commit/484f4bff146a453009e18c6a77faa87ff77a95e2))
+* **tooling:** refuse a fonts assetsDir whose URL leaves the output ([a68f4c0](https://github.com/everton-dgn/solidjs_base/commit/a68f4c0213b9d8edced0ee4310c73119a3f861ad))
+* **tooling:** refuse a fonts assetsDir with an encoded parent segment ([e18b958](https://github.com/everton-dgn/solidjs_base/commit/e18b95898107ef8cb7a3c289c50a20d9151e21f5))
+
 ## [0.6.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.5.0...solid-tooling@0.6.0) (2026-11-15)
 
 

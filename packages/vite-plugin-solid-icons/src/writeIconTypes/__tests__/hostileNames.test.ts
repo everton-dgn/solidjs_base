@@ -105,9 +105,11 @@ describe('the names of hostile files and icons', () => {
       assert.match(own, new RegExp(`export const ${name}: IconComponent`, 'u'))
     }
     assert.doesNotMatch(types, /evil|uote|tick|ícone|sp ace|a:b|\*\/x/u)
-    // The icon __proto__ and the alias __proto__ of star both claim Proto,
-    // so the alias is kept as a name and not lost to the prototype.
-    assert.doesNotMatch(installed, /export const Proto: /u)
+    // An import of __proto__ loads the icon, not the alias of the same name.
+    assert.match(
+      installed,
+      /\/\*\* icon:hostile\/__proto__ \*\/\n {2}export const Proto: IconComponent/u
+    )
     assert.match(installed, /export const Class: IconComponent/u)
   })
 

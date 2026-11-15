@@ -8,7 +8,11 @@ import {
   type IconList,
   type NameTable
 } from '../iconNames/index.ts'
-import { type IconSet, loadIconSet } from '../loadIconSet/index.ts'
+import {
+  type IconSet,
+  loadIconSet,
+  ownIconChain
+} from '../loadIconSet/index.ts'
 import {
   type FolderFiles,
   type FolderIdentity,
@@ -63,12 +67,17 @@ function aliasIcon({ aliases, name }: AliasInput): string {
 
 // A name the import of one icon cannot spell has no export name either,
 // and stays out of the declarations, where it would be written in a comment.
+// A name is declared when it loads: the chain that the load follows decides,
+// so an alias that is no object or an icon without a body is left out.
 function iconSetList(iconSet: IconSet): IconList {
   const aliases = iconSet.aliases ?? {}
-  const icons = Object.keys(iconSet.icons).filter(name => isIconName(name))
+  const loads = (name: string) =>
+    isIconName(name) && ownIconChain({ iconSet, name }) !== undefined
+  const icons = Object.keys(iconSet.icons).filter(name => loads(name))
   const plainAliases: [string, string][] = []
   for (const [name, alias] of Object.entries(aliases)) {
-    if (!isIconName(name)) continue
+    // The load reads an icon before an alias of the same name.
+    if (Object.hasOwn(iconSet.icons, name) || !loads(name)) continue
     if (isPlainAlias(alias)) {
       plainAliases.push([name, aliasIcon({ aliases, name })])
     } else {

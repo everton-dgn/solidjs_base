@@ -1,6 +1,7 @@
 import { loadCollectionFromFS } from '@iconify/utils/lib/loader/fs'
 
 type CollectionSource = { collection: string; root: string }
+type ChainInput = { iconSet: IconSet; name: string }
 
 const COLLECTION_SCOPE = '@iconify-json'
 // WHY: @iconify/utils keeps the promise only after its first await, so the
@@ -46,4 +47,33 @@ export function loadIconSet(source: CollectionSource): Promise<IconSet> {
   })()
   iconSets.set(key, loading)
   return loading
+}
+
+// WHY: @iconify/utils looks an icon and its parents up as icons[name], where
+// a name such as toString finds a member of every object. The icon set it
+// receives holds only the own icon and aliases of the name, in objects
+// without a prototype; a chain that leaves the own properties, loops or ends
+// in an icon without a body finds nothing.
+export function ownIconChain({
+  iconSet,
+  name
+}: ChainInput): IconSet | undefined {
+  const icons: IconSet['icons'] = {}
+  const aliases: NonNullable<IconSet['aliases']> = {}
+  Object.setPrototypeOf(icons, null)
+  Object.setPrototypeOf(aliases, null)
+  const allAliases = iconSet.aliases ?? {}
+  let current = name
+  while (!Object.hasOwn(iconSet.icons, current)) {
+    const isAlias =
+      Object.hasOwn(allAliases, current) && !Object.hasOwn(aliases, current)
+    const alias = isAlias ? allAliases[current] : undefined
+    if (typeof alias?.parent !== 'string') return undefined
+    aliases[current] = alias
+    current = alias.parent
+  }
+  const icon = iconSet.icons[current]
+  if (typeof icon?.body !== 'string') return undefined
+  icons[current] = icon
+  return { ...iconSet, icons, aliases }
 }

@@ -9,7 +9,7 @@ import {
 } from '@iconify/utils'
 
 import { messageOf } from '../errorText/index.ts'
-import { type IconSet, loadIconSet } from '../loadIconSet/index.ts'
+import { loadIconSet, ownIconChain } from '../loadIconSet/index.ts'
 import {
   checkFolder,
   type FolderFiles,
@@ -45,7 +45,6 @@ type Customization = {
   attributes: Record<string, string>
   customizeIcon: IconCustomizer | undefined
 }
-type ChainInput = { iconSet: IconSet; name: string }
 type DrawInput = {
   collection: string
   name: string
@@ -281,32 +280,6 @@ async function loadFolderIcon(source: FolderSource): Promise<IconSvg> {
     svg: svg ?? text,
     file: path.join(folder.path, `${name}${SVG_EXTENSION}`)
   }
-}
-
-// WHY: @iconify/utils looks an icon and its parents up as icons[name], where
-// a name such as toString finds a member of every object. The icon set it
-// receives holds only the own icon and aliases of the name, in objects
-// without a prototype; a chain that leaves the own properties, loops or ends
-// in an icon without a body finds nothing.
-function ownIconChain({ iconSet, name }: ChainInput): IconSet | undefined {
-  const icons: IconSet['icons'] = {}
-  const aliases: NonNullable<IconSet['aliases']> = {}
-  Object.setPrototypeOf(icons, null)
-  Object.setPrototypeOf(aliases, null)
-  const allAliases = iconSet.aliases ?? {}
-  let current = name
-  while (!Object.hasOwn(iconSet.icons, current)) {
-    const isAlias =
-      Object.hasOwn(allAliases, current) && !Object.hasOwn(aliases, current)
-    const alias = isAlias ? allAliases[current] : undefined
-    if (typeof alias?.parent !== 'string') return undefined
-    aliases[current] = alias
-    current = alias.parent
-  }
-  const icon = iconSet.icons[current]
-  if (typeof icon?.body !== 'string') return undefined
-  icons[current] = icon
-  return { ...iconSet, icons, aliases }
 }
 
 async function loadInstalledIcon({

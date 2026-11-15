@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
 
+import { loadIconSvg } from '../../loadIconSvg/index.ts'
 import {
   createNameTables,
   declaredCollections,
@@ -88,6 +89,98 @@ describe('createNameTables', () => {
       Builder: 'constructor',
       Constructor: 'constructor'
     })
+  })
+
+  it('keeps an alias named __proto__', async context => {
+    // JSON.parse makes __proto__ a key, as this does.
+    const aliases = Object.fromEntries([['__proto__', { parent: 'star' }]])
+    const iconSet = { prefix: 'odd', icons: { star: BODY }, aliases }
+    const root = await folderWith({
+      context,
+      files: {
+        'node_modules/@iconify-json/odd/package.json':
+          '{"name":"@iconify-json/odd"}',
+        'node_modules/@iconify-json/odd/icons.json': JSON.stringify(iconSet)
+      }
+    })
+    const table = await createNameTables({ root, folders: new Map() }).get(
+      'odd'
+    )
+
+    assert.deepEqual(Object.fromEntries(table.exports), {
+      Proto: 'star',
+      Star: 'star'
+    })
+  })
+
+  it('declares the names of a malformed icons.json that load, and no other', async context => {
+    const iconSet = {
+      prefix: 'odd',
+      icons: {
+        real: BODY,
+        twin: { body: '<path d="M1 1"/>' },
+        bodiless: {},
+        numeric: { body: 1 },
+        empty: null
+      },
+      aliases: {
+        'real-alias': { parent: 'real' },
+        'real-flipped': { parent: 'real', hFlip: true },
+        'null-alias': null,
+        'number-alias': 3,
+        'list-alias': ['real'],
+        'numeric-parent': { parent: 5 },
+        'to-bodiless': { parent: 'bodiless' },
+        'flipped-bodiless': { parent: 'bodiless', vFlip: true },
+        'flipped-ghost': { parent: 'valueOf', hFlip: true },
+        'through-null': { parent: 'null-alias' },
+        dangling: { parent: 'no-such-icon' },
+        loop: { parent: 'loop-back' },
+        'loop-back': { parent: 'loop' },
+        // An icon of the same name loads before the alias.
+        twin: { parent: 'real' },
+        bodiless: { parent: 'real' }
+      }
+    }
+    const root = await folderWith({
+      context,
+      files: {
+        'node_modules/@iconify-json/odd/package.json':
+          '{"name":"@iconify-json/odd"}',
+        'node_modules/@iconify-json/odd/icons.json': JSON.stringify(iconSet)
+      }
+    })
+    const table = await createNameTables({ root, folders: new Map() }).get(
+      'odd'
+    )
+    const loads = async (name: string) => {
+      try {
+        await loadIconSvg({
+          collection: 'odd',
+          name,
+          root,
+          folder: undefined,
+          customizeIcon: undefined
+        })
+        return true
+      } catch {
+        return false
+      }
+    }
+    const names = [
+      ...Object.keys(iconSet.icons),
+      ...Object.keys(iconSet.aliases)
+    ]
+    const loaded = []
+    for (const name of new Set(names)) if (await loads(name)) loaded.push(name)
+
+    assert.deepEqual(Object.fromEntries(table.exports), {
+      Real: 'real',
+      RealAlias: 'real',
+      RealFlipped: 'real-flipped',
+      Twin: 'twin'
+    })
+    assert.deepEqual(loaded, ['real', 'twin', 'real-alias', 'real-flipped'])
   })
 
   it('reads the SVG files of a folder collection', async context => {

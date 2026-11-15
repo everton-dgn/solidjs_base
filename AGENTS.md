@@ -32,6 +32,8 @@ the ones that cost a fix after a release when they were missed.
 - release-please finds the package by the folder of the changed files, not by
   the commit scope. A commit for one package must not touch the folder of the
   other: a `fix` that edits `packages/solid-tooling/` also releases the tooling.
+- Both packages share one version number: a release of one raises the other to
+  the same version, in one release pull request.
 - `fix` and `feat` commits start a release. `docs`, `test` and `chore` commits
   do not, unless they carry a breaking change marker.
 - A `BREAKING CHANGE:` footer is published as written. Describe what changes for

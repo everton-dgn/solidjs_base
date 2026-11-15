@@ -11,32 +11,39 @@ versions from Conventional Commits. It runs only in CI, from
 1. A commit on `main` that changes files of a package goes into the next version
    of that package. The package is found by the folder of the changed files. The
    commit scope (`feat(tooling): ...`) is only for people reading the history.
-2. The workflow keeps one release pull request open per package, with the new
-   version and the package `CHANGELOG.md`.
-3. Merging that pull request creates the tag, such as `solid-tooling@0.2.0`, and
-   the GitHub Release. The workflow then validates the workspace, packs the
-   package and publishes it.
+2. The packages share one version number. When a commit releases one of them,
+   release-please raises both to the same version (`linked-versions`), so a
+   package can get a version without changes of its own.
+3. The workflow keeps one release pull request open for both packages, with the
+   new version and the `CHANGELOG.md` of each.
+4. Merging that pull request creates one tag for each package, such as
+   `solid-tooling@0.7.0` and `solid-runtime@0.7.0`, and their GitHub Releases.
+   The workflow then validates the workspace, packs each package and publishes
+   it.
 
 The release pull request is opened with the workflow's `GITHUB_TOKEN`, so GitHub
-holds its CI runs until someone with write access selects **Approve workflows to
-run** in the pull request
+holds its `pull_request` runs until someone with write access selects **Approve
+workflows to run**
 ([GitHub docs](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)).
-`CI required` has to pass before the merge, as in any other pull request. A
-commit pushed to the release branch from a person's account starts the CI at
-once, without the approval.
+The release workflow does not wait for that: after it opens or rewrites the pull
+request, it starts the CI on the release branch with `workflow_dispatch`, which
+GitHub does not hold. That run checks everything and reports `CI required` on
+the head of the pull request, as in any other pull request. The held run stays
+in the list and needs no approval.
 
-release-please rewrites the release pull request after every merge that changes
-the next version, and each rewrite holds a new run. Approve only the run of the
-head you are about to merge: an approved run starts every job.
-
-From a terminal, list the held runs and approve the one of that head. The branch
-ends with the package: `solid-tooling` or `solid-runtime`.
+When `CI required` does not appear on the head of the release pull request,
+start the run by hand or approve the held one of that head:
 
 ```bash
-gh run list --branch release-please--branches--main--components--<package> \
+gh pr view <number> --json headRefName --jq .headRefName
+gh workflow run ci.yml --ref <release-branch>
+gh run list --branch <release-branch> \
   --status action_required --json databaseId,workflowName,headSha
 gh api -X POST repos/everton-dgn/solidjs_base/actions/runs/<run-id>/approve
 ```
+
+A commit pushed to the release branch from a person's account also starts the CI
+at once.
 
 The publish step uses no token. npm authenticates the workflow through OIDC
 ([trusted publishing](https://docs.npmjs.com/trusted-publishers)) and attaches
@@ -100,8 +107,8 @@ into the branch, never rebase it, and wait for `CI required` again.
 3. For the first automated release of a package, create the trusted publisher
    now
    ([First automated release of a package](#first-automated-release-of-a-package)).
-4. Approve only the held run of the head you are about to merge and wait for
-   `CI required`. A push from your account starts the CI without the approval.
+4. Wait for `CI required` on the head you are about to merge. The release
+   workflow starts that run, and a push from your account starts another.
 5. Merge with the command in [Merging a pull request](#merging-a-pull-request).
 6. After the publish job, check the registry. The version can take a few minutes
    to appear, and the output has the version and the provenance statement:
@@ -124,7 +131,9 @@ so the published package does not change.
 ## Configuration files
 
 - `release-please-config.json` lists the packages and the rules. A new package
-  goes under `packages`, keyed by its folder.
+  goes under `packages`, keyed by its folder, and its component goes into the
+  `linked-versions` group. `release-as` under a package sets its next version by
+  hand; remove it after that release, or release-please keeps proposing it.
 - `.release-please-manifest.json` holds the last released version of each
   package. release-please updates it. Edit it by hand only to add a package that
   already has a published version.
@@ -201,18 +210,18 @@ release and the changes from `main`. Do not rebase the branch.
 
 ```bash
 git fetch origin
-git switch --detach origin/release-please--branches--main--components--solid-tooling
+git switch --detach origin/<release-branch>
 git merge origin/main
 # Resolve the conflict, then: git add <file> && git commit --no-edit
 git diff --stat origin/main HEAD
-git push origin HEAD:release-please--branches--main--components--solid-tooling
+git push origin HEAD:<release-branch>
 ```
 
-The `git diff` must list only `.release-please-manifest.json`, the package
-`CHANGELOG.md` and the package `package.json`. The push comes from your account,
-so the CI of the release pull request starts without **Approve workflows to
-run**. Merge the release pull request after `CI required` passes, with the
-command in [Merging a pull request](#merging-a-pull-request).
+The `git diff` must list only `.release-please-manifest.json` and, for each
+package, its `CHANGELOG.md` and `package.json`. The push comes from your
+account, so the CI of the release pull request starts at once. Merge the release
+pull request after `CI required` passes, with the command in
+[Merging a pull request](#merging-a-pull-request).
 
 ## When the publish job fails
 

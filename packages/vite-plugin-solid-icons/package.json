@@ -38,7 +38,8 @@
     "build": "vp pack",
     "dev": "vp pack --watch",
     "test": "vp run test-plugin",
-    "test:tarball": "vp run test-tarball"
+    "test:tarball": "vp run test-tarball",
+    "dead-code": "knip-bun && knip-bun --strict"
   },
   "dependencies": {
     "@iconify/utils": "3.1.7"
@@ -52,6 +53,7 @@
     "@solidjs/vite-plugin": "3.0.0-next.57",
     "@solidjs/web": "2.0.0-rc.21",
     "@types/node": "24.19.2",
+    "knip": "6.45.1",
     "playwright": "1.65.0",
     "solid-js": "2.0.0-rc.21",
     "typescript": "7.0.2",

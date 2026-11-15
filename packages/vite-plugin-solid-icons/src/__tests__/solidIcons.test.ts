@@ -16,7 +16,12 @@ import { pathToFileURL } from 'node:url'
 import { build, createLogger, createServer } from 'vite-plus'
 
 import { solidIcons } from '../index.ts'
-import { createFixtureApp, fixtureConfig, TYPES_FILE } from './fixture-app.ts'
+import {
+  createFixtureApp,
+  defer,
+  fixtureConfig,
+  TYPES_FILE
+} from './fixture-app.ts'
 
 type BuildInput = { context: TestContext; source: string }
 type EntryInput = { context: TestContext; code: string }
@@ -267,7 +272,7 @@ describe('the modules of the icons', () => {
 
   it('warns once for the editor data of a file', async context => {
     const root = await createFixtureApp()
-    context.after(() => rm(root, { recursive: true, force: true }))
+    defer({ context, task: () => rm(root, { recursive: true, force: true }) })
     await writeFile(
       path.join(root, 'icons/drawn.svg'),
       '<svg xmlns:sodipodi="x"><sodipodi:namedview/><metadata>by me</metadata><path d="M0 0" sodipodi:nodetypes="cc"/></svg>'
@@ -284,7 +289,7 @@ describe('the modules of the icons', () => {
       optimizeDeps: { noDiscovery: true },
       server: { middlewareMode: true, watch: null }
     })
-    context.after(() => server.close())
+    defer({ context, task: () => server.close() })
     for (const environment of [
       server.environments.client,
       server.environments.ssr

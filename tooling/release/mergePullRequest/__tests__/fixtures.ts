@@ -550,7 +550,7 @@ export function releaseGitHub(): FakeGitHub {
     jobs: {
       700: [
         {
-          name: 'Release PRs and tags',
+          name: 'Tags and GitHub Releases',
           status: 'completed',
           conclusion: 'success'
         },
@@ -561,6 +561,11 @@ export function releaseGitHub(): FakeGitHub {
         },
         {
           name: 'Publish packages/solid-runtime',
+          status: 'completed',
+          conclusion: 'success'
+        },
+        {
+          name: 'Release pull request',
           status: 'completed',
           conclusion: 'success'
         }

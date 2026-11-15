@@ -553,6 +553,39 @@ describe('mergePullRequest publication', () => {
     }
   })
 
+  it('follows the conclusion of the whole Release run, so a failed Release pull request job stops it before npm', async () => {
+    const github = releaseGitHub()
+    github.workflowRuns[MERGE_SHA] = [
+      [
+        workflowRun({
+          id: 700,
+          path: RELEASE_WORKFLOW,
+          event: 'push',
+          conclusion: 'failure',
+          headSha: MERGE_SHA
+        })
+      ]
+    ]
+    const releasePullRequestJob = github.jobs['700']?.find(
+      job => job.name === 'Release pull request'
+    )
+    assert.ok(releasePullRequestJob)
+    releasePullRequestJob.conclusion = 'failure'
+    const { request, calls, lines } = createHarness({ github })
+
+    await assert.rejects(
+      mergePullRequest(request),
+      /The Release workflow ended as failure: https:\/\/github\.com\/.+\/runs\/700/u
+    )
+    assert.ok(lines.includes('  Publish packages/solid-runtime: success'))
+    assert.ok(
+      lines.some(line =>
+        line.startsWith('  Release pull request: failure https://')
+      )
+    )
+    assert.ok(calls.every(call => call.file === 'gh'))
+  })
+
   it('fails when the Release workflow of the merge commit does not finish in time', async () => {
     const github = releaseGitHub()
     github.workflowRuns[MERGE_SHA] = [[]]

@@ -450,10 +450,11 @@ for extension examples, boot validation and type generation.
   resolves the package through the same condition, and the `tsconfig.app.json`
   of the tooling package sets it for TypeScript.
 - `@solidjs/web` is a peer dependency, pinned to the version the package is
-  tested with. `@solidjs/vite-plugin` and `filesystem-routing` are package
-  dependencies: the middleware type and routing helpers resolve from the runtime
-  package. Applications retain a direct routing dependency only when their own
-  source imports it.
+  tested with. `filesystem-routing` is a package dependency: the routing helpers
+  resolve from the runtime package. The `StartMiddleware` type copies the one of
+  `@solidjs/vite-plugin`, so the plugin, and Vite with it, stays out of the
+  production install. Applications retain a direct routing dependency only when
+  their own source imports it.
 
 ## Limits
 

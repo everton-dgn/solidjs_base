@@ -30,11 +30,12 @@ both peer dependency maps. Vite+ remains an exact peer; Paraglide remains an
 exact optional peer because generated application code imports its runtime.
 Inlang settings still load the application-owned message-format plugin.
 
-The runtime owns filesystem-routing, which its middleware imports, and the Solid
-plugin that supplies its re-exported StartMiddleware type. Applications can
-import that type from the existing runtime middleware/types entry. Keep Solid,
-its web package and router in the application so the compiler and application
-use the same instance.
+The runtime owns filesystem-routing, which its middleware imports. Its
+StartMiddleware type copies the one of the Solid plugin, so the plugin stays a
+development dependency and out of production installs. Applications can import
+that type from the existing runtime middleware/types entry. Keep Solid, its web
+package and router in the application so the compiler and application use the
+same instance.
 
 Applications retain libraries their own source imports. The copy keeps Nitro for
 publication tooling, filesystem-routing for API helpers and tests, and

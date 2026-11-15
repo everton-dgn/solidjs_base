@@ -244,6 +244,7 @@
   },
   "devDependencies": {
     "@solidjs/web": "2.0.0-rc.21",
+    "@solidjs/vite-plugin": "3.0.0-next.57",
     "@types/node": "24.19.2",
     "@vitest/coverage-v8": "catalog:",
     "knip": "6.45.1",
@@ -262,7 +263,6 @@
   },
   "dependencies": {
     "valibot": "catalog:",
-    "@solidjs/vite-plugin": "3.0.0-next.57",
     "filesystem-routing": "0.5.0",
     "schema-dts": "catalog:",
     "@mdream/js": "catalog:"

@@ -413,7 +413,8 @@ the repository does not reach it. What to do depends on where the cause is:
   the release pull request: re-run that publish job alone, from the button next
   to it in the run summary or with `gh run rerun --job <job id>`, and fix the
   test in a pull request before the next release. A hung job stops at its
-  `timeout-minutes`; to re-run it sooner, cancel the run first.
+  `timeout-minutes`. To re-run it sooner, cancel the run, but only after the
+  other jobs of the run have finished: cancelling stops them too.
 - Outside the package folder, such as a workflow step or the workspace
   configuration that validation uses: open the fix as a pull request, keep it
   unmerged, and

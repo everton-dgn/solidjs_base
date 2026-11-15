@@ -9,14 +9,24 @@ import {
 } from './decisions.ts'
 import { describePublication, verifyPublication } from './publication.ts'
 import { createSession } from './session.ts'
-import type { MergeRequest, PullRequest, Session } from './types.ts'
+import type {
+  MergeOutcome,
+  MergeRequest,
+  PullRequest,
+  Session
+} from './types.ts'
 import { updateBranch } from './update.ts'
+import { readAgain } from './wait.ts'
 
 type Step = { session: Session; pullRequest: PullRequest }
 
 type BehindStep = Step & { behindBy: number }
 
 type MergedStep = Step & { mergeSha: string; isDryRun: boolean }
+
+type MergeFailure = Extract<MergeOutcome, { isMerged: false }>
+
+type UnconfirmedMerge = Step & { head: string; failure: MergeFailure }
 
 async function dryRun({
   session,
@@ -76,6 +86,40 @@ async function checkMergedRelease({
   log('The release is published.')
 }
 
+// WHY: GitHub may have accepted a merge that timed out or got an HTTP 5xx, and
+// sending it again is not safe, so the pull request is read instead.
+async function confirmMerge({
+  session,
+  pullRequest,
+  head,
+  failure
+}: UnconfirmedMerge): Promise<string> {
+  const { number } = pullRequest
+  const unconfirmed = `GitHub did not confirm the merge of #${number}: ${failure.message}`
+  if (!failure.isUncertain) throw new Error(unconfirmed)
+  session.environment.log(`${unconfirmed} Reading #${number} again.`)
+  let state: string
+  try {
+    const current = await readAgain({
+      session,
+      read: () => session.github.readPullRequest(number)
+    })
+    if (current.state === 'MERGED' && current.mergeSha !== undefined) {
+      return current.mergeSha
+    }
+    state = `#${number} is ${current.state.toLowerCase()}`
+  } catch (error) {
+    state = error instanceof Error ? error.message : String(error)
+  }
+  throw new Error(
+    [
+      unconfirmed,
+      `${state}, and the merge was not sent again. GitHub may still merge it. Run the command again, which reads the pull request first:`,
+      `  vp run release:merge ${number} --sha ${head}`
+    ].join('\n')
+  )
+}
+
 export async function mergePullRequest(request: MergeRequest): Promise<void> {
   const { number, expectedSha, isDryRun, timing, environment } = request
   const { log } = environment
@@ -130,16 +174,14 @@ export async function mergePullRequest(request: MergeRequest): Promise<void> {
     sha: head,
     title: mergeCommitTitle(pullRequest)
   })
-  if (!outcome.isMerged) {
-    throw new Error(
-      `GitHub did not confirm the merge of #${number}: ${outcome.message}`
-    )
-  }
-  log(`Merged #${number} as ${shortSha(outcome.sha)}.`)
+  const mergeCommit = outcome.isMerged
+    ? outcome.sha
+    : await confirmMerge({ session, pullRequest, head, failure: outcome })
+  log(`Merged #${number} as ${shortSha(mergeCommit)}.`)
   if (!isReleasePullRequest(pullRequest)) {
     log('Not a release pull request: there is no publication to check.')
     return
   }
-  await verifyPublication({ session, sha: outcome.sha })
+  await verifyPublication({ session, sha: mergeCommit })
   log('The release is published.')
 }

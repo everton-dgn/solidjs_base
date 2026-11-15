@@ -98,9 +98,11 @@ export type BranchUpdate = { number: number; head: string }
 
 export type MergeCall = { number: number; sha: string; title: string }
 
+// isUncertain marks a merge that stopped at the time limit or got an answer
+// such as an HTTP 502, which GitHub may have accepted.
 export type MergeOutcome =
   | { isMerged: true; sha: string }
-  | { isMerged: false; message: string }
+  | { isMerged: false; message: string; isUncertain: boolean }
 
 export type FileAtRef = { path: string; ref: string }
 

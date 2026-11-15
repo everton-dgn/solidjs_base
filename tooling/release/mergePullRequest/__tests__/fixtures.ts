@@ -251,7 +251,10 @@ const ROUTES: readonly Route[] = [
   {
     pattern: /^pulls\/\d+\/merge$/u,
     method: 'PUT',
-    respond: ({ github }) => github.mergeResult
+    respond: ({ github }) => {
+      Object.assign(github.pullRequest, github.pullRequestAfterMerge)
+      return github.mergeResult
+    }
   },
   {
     pattern: /^actions\/runs\/(?<id>\d+)\/jobs\?/u,
@@ -397,6 +400,7 @@ export type FakeGitHub = {
   checkRuns: Sequences<FakeCheckRun>
   workflowRuns: Sequences<FakeWorkflowRun>
   mergeResult: CommandResult
+  pullRequestAfterMerge: Partial<FakePullRequest>
   jobs: Record<string, FakeJob[]>
   files: Record<string, string>
   registry: Record<string, CommandResult[]>
@@ -498,6 +502,7 @@ export function featureGitHub(): FakeGitHub {
       merged: true,
       message: 'Pull Request successfully merged'
     }),
+    pullRequestAfterMerge: {},
     jobs: {},
     files: {},
     registry: {},
@@ -602,6 +607,15 @@ export function releaseGitHub(): FakeGitHub {
     }
   }
 }
+
+export const BAD_GATEWAY = failure('gh: Bad Gateway (HTTP 502)')
+
+export const HELD_RUN = workflowRun({
+  id: 501,
+  status: 'completed',
+  conclusion: 'action_required',
+  suiteId: 9001
+})
 
 export function failedCommand(stderr: string): CommandResult {
   return failure(stderr)

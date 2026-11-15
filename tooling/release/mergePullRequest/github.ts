@@ -369,7 +369,11 @@ export function createGitHub(run: RunCommand): GitHub {
         isWrite: true
       })
       if (result.exitCode !== 0) {
-        return { isMerged: false, message: failureDetail(result) }
+        return {
+          isMerged: false,
+          message: failureDetail(result),
+          isUncertain: isPassingFailure(result)
+        }
       }
       const label = `response to the merge of #${number}`
       const response = readFields({
@@ -382,7 +386,8 @@ export function createGitHub(run: RunCommand): GitHub {
             isMerged: false,
             message:
               response.optionalString('message') ??
-              'GitHub answered merged: false'
+              'GitHub answered merged: false',
+            isUncertain: false
           }
     },
 

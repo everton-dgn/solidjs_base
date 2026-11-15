@@ -111,6 +111,7 @@ config imports it from Node:
 ```ts
 // vite.config.ts
 import { createHash } from 'node:crypto'
+import path from 'node:path'
 
 import { storedThemeScript } from '@evertondgn/solid-runtime/theme/stored-theme-script'
 import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
@@ -128,12 +129,13 @@ function storedTheme(): Plugin {
     .update(source)
     .digest('hex')
     .slice(0, HASH_LENGTH)
-  const fileName = `assets/theme-${hash}.js`
+  let fileName = ''
   let base = '/'
   return {
     name: 'app:stored-theme',
     configResolved(config) {
       ;({ base } = config)
+      fileName = path.posix.join(config.build.assetsDir, `theme-${hash}.js`)
     },
     generateBundle() {
       this.emitFile({ type: 'asset', fileName, source })

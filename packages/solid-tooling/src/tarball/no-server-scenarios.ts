@@ -3,10 +3,12 @@ import assert from 'node:assert/strict'
 import { once } from 'node:events'
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
   rmSync,
+  statSync,
   writeFileSync
 } from 'node:fs'
 import {
@@ -14,12 +16,19 @@ import {
   type IncomingMessage,
   type ServerResponse
 } from 'node:http'
+import { connect } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { env, stdout } from 'node:process'
 import { pathToFileURL } from 'node:url'
 
-import { chromium, type BrowserContext, type Page } from 'playwright'
+import {
+  chromium,
+  type Browser,
+  type BrowserContext,
+  type LaunchOptions,
+  type Page
+} from 'playwright'
 
 import type { run as runCommand } from './scenario-process.ts'
 
@@ -30,7 +39,7 @@ type NoServerInput = {
   run: Run
   buildTools: RegExp
 }
-type BuildInput = NoServerInput & { base: string }
+type BuildInput = NoServerInput & { base: string; assetsDir: string }
 type Opened = { page: Page; fonts: string[] }
 type Exercise = Opened & { canReusePreload: boolean }
 type StaticServer = { origin: string; close: () => Promise<void> }
@@ -38,7 +47,16 @@ type StaticServer = { origin: string; close: () => Promise<void> }
 // The base of the GitHub Pages project sites; the host serves the build there.
 const SUBFOLDER = '/meu-repo/'
 const STORAGE_KEY = 'scenario-theme'
-const BROWSER_TIMEOUT = 10_000
+// The default of Playwright for every action.
+const BROWSER_TIMEOUT = 30_000
+const DEFAULT_ASSETS_DIR = 'assets'
+// A second folder proves that the plugin of the guide reads build.assetsDir.
+const OTHER_ASSETS_DIR = 'static'
+const LIGHT_COLOR = '#ffffff'
+const DARK_COLOR = '#09090b'
+// Differs from both theme colors, so only a theme script can replace it.
+const INITIAL_COLOR = '#123456'
+const THEME_COLOR_META = `<meta name="theme-color" content="${INITIAL_COLOR}" />`
 const HTTP_NOT_FOUND = 404
 const HTTP_OK = 200
 const CONTENT_TYPES: Record<string, string> = {
@@ -53,7 +71,7 @@ const CHANNEL = env.CI ? 'chrome' : undefined
 // them unless this flag is set.
 const FILE_ACCESS = '--allow-file-access-from-files'
 
-// Kept equal to the plugin in docs/tooling/no-server.md.
+// A test keeps it equal to the plugin in docs/tooling/no-server.md.
 const STORED_THEME_PLUGIN = `// Applies the stored theme before the first paint, from a classic script that
 // needs no nonce and runs from file://.
 const HASH_LENGTH = 8
@@ -64,12 +82,13 @@ function storedTheme(): Plugin {
     .update(source)
     .digest('hex')
     .slice(0, HASH_LENGTH)
-  const fileName = \`assets/theme-\${hash}.js\`
+  let fileName = ''
   let base = '/'
   return {
     name: 'app:stored-theme',
     configResolved(config) {
       ;({ base } = config)
+      fileName = path.posix.join(config.build.assetsDir, \`theme-\${hash}.js\`)
     },
     generateBundle() {
       this.emitFile({ type: 'asset', fileName, source })
@@ -91,12 +110,13 @@ const THEME_OPTIONS = `import type { LocalStorageThemeOptions } from '@evertondg
 export const themeOptions: LocalStorageThemeOptions = {
   storage: 'local-storage',
   storageKey: '${STORAGE_KEY}',
-  colors: { light: '#ffffff', dark: '#09090b' },
+  colors: { light: '${LIGHT_COLOR}', dark: '${DARK_COLOR}' },
   defaultTheme: 'light'
 }
 `
 
-const CONFIG = `import { createHash } from 'node:crypto'
+const NO_SERVER_CONFIG = `import { createHash } from 'node:crypto'
+import path from 'node:path'
 
 import { storedThemeScript } from '@evertondgn/solid-runtime/theme/stored-theme-script'
 import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
@@ -179,9 +199,15 @@ export function ThemeToggle() {
 `
 
 // The installed client-only application, rewritten for a host with no server:
-// hash routing, the theme in localStorage and its script in index.html.
+// hash routing, the theme in localStorage and its script in index.html, which
+// also gets a theme-color meta after the place of that script.
 function writeNoServerApp(app: string): void {
-  writeFileSync(path.join(app, 'vite.config.ts'), CONFIG)
+  const index = path.join(app, 'index.html')
+  const html = readFileSync(index, 'utf8')
+  const withMeta = html.replace('<title>', `${THEME_COLOR_META}\n    <title>`)
+  assert.notEqual(withMeta, html, 'The copy must have a title in its head')
+  writeFileSync(index, withMeta)
+  writeFileSync(path.join(app, 'vite.config.ts'), NO_SERVER_CONFIG)
   writeFileSync(path.join(app, 'src/theme-options.ts'), THEME_OPTIONS)
   writeFileSync(path.join(app, 'src/theme-toggle.tsx'), TOGGLE)
   writeFileSync(path.join(app, 'src/entry-client.tsx'), ENTRY)
@@ -204,10 +230,15 @@ async function buildFor({
   deadline,
   run,
   buildTools,
-  base
+  base,
+  assetsDir
 }: BuildInput): Promise<string> {
   rmSync(path.join(app, 'dist'), { recursive: true, force: true })
-  await run({ deadline, cwd: app, args: ['build', '--base', base] })
+  await run({
+    deadline,
+    cwd: app,
+    args: ['build', '--base', base, '--assetsDir', assetsDir]
+  })
   const ids = readModules(app)
   assert.ok(
     ids.some(id => /solid-runtime\/src\/theme\//u.test(id)),
@@ -221,12 +252,17 @@ async function buildFor({
     /<script src="(?<src>[^"]*theme-[\da-f]+\.js)"><\/script>/u.exec(html)
       ?.groups?.src
   assert.ok(theme, `The build must load the theme script: ${html}`)
-  assert.ok(theme.startsWith(`${base}assets/`), theme)
+  assert.ok(theme.startsWith(`${base}${assetsDir}/`), theme)
   const file = path.join(app, 'dist', theme.slice(base.length))
   assert.ok(existsSync(file), file)
   assert.ok(
     html.indexOf(theme) < html.indexOf('type="module"'),
     'The theme script must run before the application module'
+  )
+  // The order the guide produces: the script cannot see the meta yet.
+  assert.ok(
+    html.indexOf(theme) < html.indexOf('name="theme-color"'),
+    'The theme script must run before the parser reaches the meta'
   )
   return html
 }
@@ -238,15 +274,29 @@ function entryScript(html: string): string {
   return entry
 }
 
+function isFileInside(root: string, file: string): boolean {
+  const relative = path.relative(root, file)
+  return (
+    relative !== '' &&
+    relative !== '..' &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative) &&
+    existsSync(file) &&
+    statSync(file).isFile()
+  )
+}
+
+// Serves only the files of dist under SUBFOLDER; anything else is not found.
 async function serve(dist: string): Promise<StaticServer> {
+  const root = path.resolve(dist)
   const server = createServer(
     (request: IncomingMessage, response: ServerResponse) => {
       const { pathname } = new URL(request.url ?? '/', 'http://localhost')
       const relative = pathname.startsWith(SUBFOLDER)
         ? pathname.slice(SUBFOLDER.length) || 'index.html'
         : undefined
-      const file = relative ? path.join(dist, relative) : undefined
-      if (!file?.startsWith(dist) || !existsSync(file)) {
+      const file = relative ? path.resolve(root, relative) : undefined
+      if (!file || !isFileInside(root, file)) {
         response.writeHead(HTTP_NOT_FOUND).end()
         return
       }
@@ -265,8 +315,34 @@ async function serve(dist: string): Promise<StaticServer> {
     close: async () => {
       const closed = once(server, 'close')
       server.close()
+      // A keep-alive connection of a browser that did not close holds close.
+      server.closeAllConnections()
       await closed
     }
+  }
+}
+
+async function withServer<T>(
+  dist: string,
+  use: (origin: string) => Promise<T>
+): Promise<T> {
+  const server = await serve(dist)
+  try {
+    return await use(server.origin)
+  } finally {
+    await server.close()
+  }
+}
+
+async function withBrowser<T>(
+  options: LaunchOptions,
+  use: (browser: Browser) => Promise<T>
+): Promise<T> {
+  const browser = await chromium.launch(options)
+  try {
+    return await use(browser)
+  } finally {
+    await browser.close()
   }
 }
 
@@ -289,9 +365,13 @@ async function exercise({
   fonts,
   canReusePreload
 }: Exercise): Promise<void> {
-  // A string runs in the page; the tooling types have no DOM library.
+  // A string runs in the page; the tooling types have no DOM library. The
+  // timer gives the font its own limit, which evaluate does not have.
   const loaded: unknown = await page.evaluate(
-    `document.fonts.load('16px "Scenario Font"', 'A').then(faces => faces.map(face => face.status))`
+    `Promise.race([
+      document.fonts.load('16px "Scenario Font"', 'A').then(faces => faces.map(face => face.status)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('The font did not load in ${BROWSER_TIMEOUT} ms')), ${BROWSER_TIMEOUT}))
+    ])`
   )
   assert.deepEqual(loaded, ['loaded'], 'The packaged font must load')
   assert.deepEqual(
@@ -318,67 +398,192 @@ async function exercise({
   assert.equal(stored, 'dark')
 }
 
+// Without the application module, only the classic theme script can set the
+// theme, so this proves the stored choice is applied before the first paint.
+async function openWithoutModule(
+  context: BrowserContext,
+  { url, html }: { url: string; html: string }
+): Promise<void> {
+  const page = await context.newPage()
+  page.setDefaultTimeout(BROWSER_TIMEOUT)
+  const entry = new URL(entryScript(html), url).href
+  let blocked = 0
+  await page.route(entry, async route => {
+    blocked += 1
+    await route.abort()
+  })
+  await page.goto(url)
+  await page.locator('html.dark').waitFor({ state: 'attached' })
+  assert.equal(blocked, 1, `The entry module must be blocked: ${entry}`)
+  assert.equal(await page.locator('main').count(), 0)
+  const applied: unknown = await page.evaluate(
+    `({ colorScheme: document.documentElement.style.colorScheme, themeColor: document.querySelector('meta[name="theme-color"]')?.content })`
+  )
+  assert.deepEqual(applied, { colorScheme: 'dark', themeColor: DARK_COLOR })
+  await page.close()
+}
+
 async function checkSubfolder(input: NoServerInput): Promise<void> {
-  const html = await buildFor({ ...input, base: SUBFOLDER })
-  const server = await serve(path.join(input.app, 'dist'))
-  const browser = await chromium.launch({ channel: CHANNEL })
+  const html = await buildFor({
+    ...input,
+    base: SUBFOLDER,
+    assetsDir: DEFAULT_ASSETS_DIR
+  })
+  await withServer(path.join(input.app, 'dist'), origin =>
+    withBrowser({ channel: CHANNEL }, async browser => {
+      const context = await browser.newContext()
+      const url = `${origin}${SUBFOLDER}`
+      const first = await open(context, url)
+      assert.ok(
+        first.fonts[0]?.startsWith(`${url}${DEFAULT_ASSETS_DIR}/`),
+        `The font must load from the subfolder: ${first.fonts.join(', ')}`
+      )
+      await exercise({ ...first, canReusePreload: true })
+      await first.page.close()
+      await openWithoutModule(context, { url, html })
+    })
+  )
+}
+
+async function withProfile<T>(
+  profile: string,
+  use: (context: BrowserContext) => Promise<T>
+): Promise<T> {
+  const context = await chromium.launchPersistentContext(profile, {
+    channel: CHANNEL,
+    args: [FILE_ACCESS]
+  })
   try {
-    const context = await browser.newContext()
-    const url = `${server.origin}${SUBFOLDER}`
-    const first = await open(context, url)
-    assert.ok(
-      first.fonts[0]?.startsWith(`${url}assets/`),
-      `The font must load from the subfolder: ${first.fonts.join(', ')}`
-    )
-    await exercise({ ...first, canReusePreload: true })
-    await first.page.close()
-    // Without the application module, only the classic theme script can set
-    // the class, so this proves the choice is applied before the first paint.
-    const second = await context.newPage()
-    second.setDefaultTimeout(BROWSER_TIMEOUT)
-    const entry = new URL(entryScript(html), url).href
-    await second.route(entry, route => route.abort())
-    await second.goto(url)
-    await second.locator('html.dark').waitFor({ state: 'attached' })
-    assert.equal(await second.locator('main').count(), 0)
+    return await use(context)
   } finally {
-    await browser.close()
-    await server.close()
+    await context.close()
   }
 }
 
 async function checkFileProtocol(input: NoServerInput): Promise<void> {
-  await buildFor({ ...input, base: './' })
+  const html = await buildFor({
+    ...input,
+    base: './',
+    assetsDir: OTHER_ASSETS_DIR
+  })
   const url = pathToFileURL(path.join(input.app, 'dist/index.html')).href
   const profile = mkdtempSync(path.join(tmpdir(), 'solid-no-server-profile-'))
-  const launch = (): Promise<BrowserContext> =>
-    chromium.launchPersistentContext(profile, {
-      channel: CHANNEL,
-      args: [FILE_ACCESS]
-    })
   try {
-    const first = await launch()
-    try {
-      const opened = await open(first, url)
-      const assets = pathToFileURL(path.join(input.app, 'dist/assets/')).href
+    await withProfile(profile, async context => {
+      const opened = await open(context, url)
+      const assets = pathToFileURL(
+        path.join(input.app, 'dist', OTHER_ASSETS_DIR, '/')
+      ).href
       assert.ok(
         opened.fonts[0]?.startsWith(assets),
         `The font must load beside the stylesheet: ${opened.fonts.join(', ')}`
       )
       await exercise({ ...opened, canReusePreload: false })
-    } finally {
-      await first.close()
-    }
-    // A shell keeps its profile between launches; localStorage must survive.
-    const second = await launch()
-    try {
-      const { page } = await open(second, url)
+    })
+    // A shell keeps its profile between launches; localStorage must survive,
+    // and the classic script must read it from file:// too.
+    await withProfile(profile, async context => {
+      await openWithoutModule(context, { url, html })
+      const { page } = await open(context, url)
       await page.locator('html.dark').waitFor({ state: 'attached' })
-    } finally {
-      await second.close()
-    }
+    })
   } finally {
     rmSync(profile, { recursive: true, force: true })
+  }
+}
+
+async function rawStatus(origin: string, target: string): Promise<number> {
+  const socket = connect(Number(new URL(origin).port), '127.0.0.1')
+  await once(socket, 'connect')
+  // A raw request line: fetch and URL would normalize the path first.
+  socket.write(
+    `GET ${target} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n`
+  )
+  let response = ''
+  for await (const chunk of socket) response += String(chunk)
+  const status = /^HTTP\/1\.1 (?<status>\d{3})/u.exec(response)?.groups?.status
+  assert.ok(status, response)
+  return Number(status)
+}
+
+// The guide shows the plugin that the scenario builds; a change to one side
+// alone would leave the scenario testing another plugin.
+export function assertGuidePlugin(guide: string): void {
+  const config = /```ts\n\/\/ vite\.config\.ts\n(?<code>[\s\S]*?)```/u.exec(
+    guide
+  )?.groups?.code
+  assert.ok(config, 'The guide must show its vite.config.ts')
+  const start = config.indexOf('// Applies the stored theme')
+  const end = config.indexOf('\n\nexport default')
+  assert.ok(start !== -1 && end > start, config)
+  assert.equal(config.slice(start, end), STORED_THEME_PLUGIN)
+  const imports = config.split('\n').filter(line => line.startsWith('import'))
+  for (const line of imports) {
+    assert.ok(NO_SERVER_CONFIG.includes(line), `The scenario must ${line}`)
+  }
+}
+
+export async function checkServerContainment(): Promise<void> {
+  const root = mkdtempSync(path.join(tmpdir(), 'solid-no-server-serve-'))
+  try {
+    const dist = path.join(root, 'dist')
+    mkdirSync(path.join(dist, 'assets'), { recursive: true })
+    mkdirSync(path.join(root, 'dist-x'))
+    writeFileSync(path.join(dist, 'index.html'), '<!doctype html>')
+    writeFileSync(path.join(dist, 'assets/app.js'), '')
+    writeFileSync(path.join(root, 'secret.txt'), 'secret')
+    writeFileSync(path.join(root, 'dist-x/secret.txt'), 'secret')
+    const outside = [
+      `${SUBFOLDER}../secret.txt`,
+      `${SUBFOLDER}assets/../../secret.txt`,
+      `${SUBFOLDER}%2e%2e/secret.txt`,
+      `${SUBFOLDER}..%2fsecret.txt`,
+      `${SUBFOLDER}%2e%2e%2fsecret.txt`,
+      String.raw`${SUBFOLDER}..\secret.txt`,
+      `${SUBFOLDER}../dist-x/secret.txt`,
+      `${SUBFOLDER}%00`,
+      `http://127.0.0.1${SUBFOLDER}../secret.txt`,
+      `//127.0.0.1${SUBFOLDER}../secret.txt`,
+      '/secret.txt',
+      '/dist/index.html',
+      `${SUBFOLDER}assets`,
+      `${SUBFOLDER}assets/`
+    ]
+    await withServer(dist, async origin => {
+      for (const target of outside) {
+        assert.equal(await rawStatus(origin, target), HTTP_NOT_FOUND, target)
+      }
+      for (const target of [SUBFOLDER, `${SUBFOLDER}assets/app.js`]) {
+        assert.equal(await rawStatus(origin, target), HTTP_OK, target)
+      }
+    })
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+}
+
+export async function checkLaunchFailure(): Promise<void> {
+  const dist = mkdtempSync(path.join(tmpdir(), 'solid-no-server-launch-'))
+  try {
+    writeFileSync(path.join(dist, 'index.html'), '<!doctype html>')
+    let origin = ''
+    const missing = path.join(dist, 'missing-browser')
+    await assert.rejects(
+      withServer(dist, async served => {
+        origin = served
+        // A keep-alive connection stays open across the failed launch.
+        const response = await fetch(`${served}${SUBFOLDER}`)
+        assert.equal(response.status, HTTP_OK)
+        await withBrowser({ executablePath: missing }, () => {
+          throw new Error('The browser must not launch')
+        })
+      }),
+      (error: unknown) =>
+        error instanceof Error && error.message.includes(missing)
+    )
+    await assert.rejects(fetch(`${origin}${SUBFOLDER}`), /fetch failed/u)
+  } finally {
+    rmSync(dist, { recursive: true, force: true })
   }
 }
 
@@ -395,7 +600,10 @@ export async function checkNoServer(input: NoServerInput): Promise<void> {
     cwd: input.app,
     args: ['run', 'tsc', '--noEmit']
   })
-  writeFileSync(path.join(input.app, 'vite.config.ts'), auditedConfig(CONFIG))
+  writeFileSync(
+    path.join(input.app, 'vite.config.ts'),
+    auditedConfig(NO_SERVER_CONFIG)
+  )
   await checkSubfolder(input)
   await checkFileProtocol(input)
   stdout.write(

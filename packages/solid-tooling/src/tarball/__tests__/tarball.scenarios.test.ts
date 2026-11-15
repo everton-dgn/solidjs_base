@@ -27,7 +27,12 @@ import {
   prepareFontsScenario
 } from '../font-scenarios.ts'
 import { smokeMiddleware } from '../middleware-smoke.ts'
-import { checkNoServer } from '../no-server-scenarios.ts'
+import {
+  assertGuidePlugin,
+  checkLaunchFailure,
+  checkNoServer,
+  checkServerContainment
+} from '../no-server-scenarios.ts'
 import { mutatePublication } from '../publication-mutations.ts'
 import { PUBLICATION_PROFILES } from '../publication-scenarios.ts'
 import { smokePublication } from '../publication-smoke.ts'
@@ -424,6 +429,16 @@ function resolveCatalog({ versions, catalog }: CatalogInput): Versions {
     ])
   )
 }
+
+test('the no-server guide shows the plugin of the scenario', () => {
+  const guide = path.join(ROOT, 'docs/tooling/no-server.md')
+  assertGuidePlugin(readFileSync(guide, 'utf8'))
+})
+test('the no-server server serves nothing outside dist', checkServerContainment)
+test(
+  'the no-server server closes when the browser does not launch',
+  checkLaunchFailure
+)
 
 // The applications sit outside the workspace, where catalog: does not
 // resolve, so they pin each version. Without this check an update of the

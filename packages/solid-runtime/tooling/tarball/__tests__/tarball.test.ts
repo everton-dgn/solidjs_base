@@ -23,8 +23,19 @@ import {
 type Command = { file: string; args: string[]; cwd: string }
 type Installation = { entries: string[]; packageFolder: string; app: string }
 type InstallOptions = { tarball: string; app: string }
+type DependencyMap = Record<string, string>
+type Manifest = {
+  dependencies?: DependencyMap
+  peerDependencies?: DependencyMap
+  optionalDependencies?: DependencyMap
+  devDependencies?: DependencyMap
+}
 
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, '../../..')
+const SOLID_PLUGIN = '@solidjs/vite-plugin'
+// WHY: any of these in a production section brings Vite and its test tools into
+// the production install of every application.
+const BUILD_TOOLS = [SOLID_PLUGIN, 'vite', 'vite-plus', 'vitest', 'rolldown']
 const VP = path.join(PACKAGE_ROOT, 'node_modules/.bin/vp')
 const PACKAGE_NAME = '@evertondgn/solid-runtime'
 const CONSTANTS_SPECIFIER = `${PACKAGE_NAME}/middleware/security-headers/constants`
@@ -133,6 +144,40 @@ async function assertExportTargets({
   assert.deepEqual(missing, [])
 }
 
+function isManifest(value: unknown): value is Manifest {
+  return typeof value === 'object' && value !== null
+}
+
+async function readManifest(file: string): Promise<Manifest> {
+  const manifest: unknown = JSON.parse(await readFile(file, 'utf8'))
+  assert.ok(isManifest(manifest), `${file} is not a manifest.`)
+  return manifest
+}
+
+async function assertBuildToolsStayOut({
+  packageFolder
+}: Installation): Promise<void> {
+  const published = await readManifest(path.join(packageFolder, 'package.json'))
+  const source = await readManifest(path.join(PACKAGE_ROOT, 'package.json'))
+  const tooling = await readManifest(
+    path.join(PACKAGE_ROOT, '../solid-tooling/package.json')
+  )
+  const productionNames = Object.keys({
+    ...published.dependencies,
+    ...published.peerDependencies,
+    ...published.optionalDependencies
+  })
+
+  assert.deepEqual(
+    BUILD_TOOLS.filter(name => productionNames.includes(name)),
+    []
+  )
+  assert.equal(
+    source.devDependencies?.[SOLID_PLUGIN],
+    tooling.dependencies?.[SOLID_PLUGIN]
+  )
+}
+
 function assertNoTests({ entries }: Installation): void {
   const published = entries.filter(
     entry =>
@@ -161,4 +206,7 @@ test('the packed package installs as a dependency', async context => {
   await context.test('no __tests__ folder is published', () => {
     assertNoTests(installation)
   })
+  await context.test('build tools stay out of the production install', () =>
+    assertBuildToolsStayOut(installation)
+  )
 })

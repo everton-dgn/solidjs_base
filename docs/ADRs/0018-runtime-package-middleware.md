@@ -52,10 +52,9 @@ installed by tarball, moved the middleware steps to the package and measured:
   them in `vp run test` and `vp run validate` at the root. `nitro` is a
   development dependency, because a regression test loads the `srvx` adapter
   through it.
-- `@solidjs/web` is a peer dependency. `@solidjs/vite-plugin` and
-  `filesystem-routing` are optional peers, because only the entries that read
-  the routes and the server functions endpoint need them
-  ([ADR 0016](0016-optional-application-features.md)).
+- `@solidjs/web` is a peer dependency. `filesystem-routing` is a dependency, and
+  `@solidjs/vite-plugin` is a development dependency whose `StartMiddleware`
+  type the runtime copies ([ADR 0027](0027-packaged-tool-dependencies.md)).
 - The root lint gives the runtime sources the overrides the preset writes for
   the `src/` of an application, mapped to `packages/solid-runtime/src/`: the
   backend policy and the test exceptions.

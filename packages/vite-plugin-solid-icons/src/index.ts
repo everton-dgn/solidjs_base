@@ -131,8 +131,8 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
   }
 
   // One write at a time, so the last list of icons is the one on disk. The
-  // updates asked while one waits share it, so a burst of new files writes
-  // the file twice at most.
+  // updates asked while one waits share it, so a burst of new files does not
+  // render the file once per file.
   function updateTypes(): Promise<void> {
     if (queuedTypes) return queuedTypes
     const previous = runningTypes

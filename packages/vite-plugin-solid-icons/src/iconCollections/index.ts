@@ -2,7 +2,6 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { messageOf } from '../errorText/index.ts'
-import { type FolderFiles, readFolderFiles } from '../folderFiles/index.ts'
 import { isCollectionName, isIconName } from '../iconIds/index.ts'
 import {
   buildNameTable,
@@ -10,6 +9,7 @@ import {
   type NameTable
 } from '../iconNames/index.ts'
 import { type IconSet, loadIconSet } from '../loadIconSet/index.ts'
+import { type FolderFiles, readFolderFiles } from '../readFolderFiles/index.ts'
 
 type CollectionPlace = { root: string; folders: Folders }
 type CollectionSource = CollectionPlace & {
@@ -20,6 +20,8 @@ type AliasInput = { aliases: NonNullable<IconSet['aliases']>; name: string }
 type FolderInput = { root: string; collections: Record<string, string> }
 type Manifest = Partial<Record<DependencyField, Record<string, string>>>
 type DependencyField = (typeof DEPENDENCY_FIELDS)[number]
+type CachedInput<Value> = { key: string; read: () => Promise<Value> }
+type CachedRead<Value> = (input: CachedInput<Value>) => Promise<Value>
 
 const COLLECTION_SCOPE = '@iconify-json/'
 const DEPENDENCY_FIELDS = [
@@ -108,10 +110,8 @@ async function findManifest(folder: string): Promise<Manifest | undefined> {
   return isManifest(manifest) ? manifest : undefined
 }
 
-function cached<Value>(
-  cache: Map<string, Promise<Value>>
-): (key: string, read: () => Promise<Value>) => Promise<Value> {
-  return (key, read) => {
+function cached<Value>(cache: Map<string, Promise<Value>>): CachedRead<Value> {
+  return ({ key, read }) => {
     const known = cache.get(key)
     if (known) return known
     const value = (async () => {
@@ -169,19 +169,26 @@ export function createNameTables({
   const table = cached(tables)
   const listing = cached(listings)
   function files(collection: string): Promise<FolderFiles> {
-    return listing(collection, async () => {
-      const folder = folders.get(collection)
-      if (folder === undefined) {
-        throw new Error(`The icon collection "${collection}" has no folder.`)
+    return listing({
+      key: collection,
+      read: async () => {
+        const folder = folders.get(collection)
+        if (folder === undefined) {
+          throw new Error(`The icon collection "${collection}" has no folder.`)
+        }
+        return readFolderFiles({ collection, folder, root })
       }
-      return readFolderFiles({ collection, folder, root })
     })
   }
   return {
     get: collection =>
-      table(collection, async () =>
-        buildNameTable(await readIconList({ collection, root, folders, files }))
-      ),
+      table({
+        key: collection,
+        read: async () =>
+          buildNameTable(
+            await readIconList({ collection, root, folders, files })
+          )
+      }),
     files,
     invalidate: collection => {
       tables.delete(collection)

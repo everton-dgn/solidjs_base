@@ -150,7 +150,6 @@ function character(reference: string): string {
   return String.fromCodePoint(value)
 }
 
-// The text of a value or of a text node, with its references read.
 function decode(text: string): string {
   if (!text.includes('&')) return text
   if (text.replaceAll(REFERENCES, '').includes('&')) {
@@ -349,8 +348,6 @@ function readElement({
   return tag.isSelfClosing ? undefined : node
 }
 
-// The node that starts at the next "<" of the content; it returns the
-// element that the node opens.
 function readNode(input: NodeInput): ElementNode | undefined {
   const { scanner, parent } = input
   const { svg, at } = scanner

@@ -5,10 +5,14 @@ import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
 
 import { compileIcon } from '../../compileIcon/index.ts'
-import { readFolderFiles } from '../../folderFiles/index.ts'
+import { readFolderFiles } from '../../readFolderFiles/index.ts'
 import type { IconCustomizer } from '../../types.ts'
 import { loadIconSvg } from '../index.ts'
 
+type CustomizedAttribute = [
+  attributes: Record<string, unknown>,
+  message: RegExp
+]
 type IconFolder = NonNullable<Parameters<typeof loadIconSvg>[0]['folder']>
 
 type FolderIcon = {
@@ -250,7 +254,7 @@ describe('loadIconSvg of a folder', () => {
   })
 
   it('names an attribute that the customizer cannot set', async context => {
-    const cases: [Record<string, unknown>, RegExp][] = [
+    const cases: CustomizedAttribute[] = [
       [
         { 'a b': 'x' },
         /customizeIcon set the attribute "a b" on the icon "own\/star": an attribute name starts with a letter or "_"/u

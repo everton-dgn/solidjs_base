@@ -8,8 +8,8 @@ import {
 } from '@iconify/utils'
 import { getPossibleIconNames } from '@iconify/utils/lib/loader/utils'
 
-import type { FolderFiles } from '../folderFiles/index.ts'
 import { loadIconSet } from '../loadIconSet/index.ts'
+import type { FolderFiles } from '../readFolderFiles/index.ts'
 import type { IconCustomizer } from '../types.ts'
 
 type IconFolder = { path: string; files: FolderFiles }

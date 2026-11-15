@@ -37,7 +37,7 @@
     },
     "packages/solid-runtime": {
       "name": "@evertondgn/solid-runtime",
-      "version": "0.6.0",
+      "version": "0.1.0",
       "dependencies": {
         "@mdream/js": "catalog:",
         "filesystem-routing": "0.5.0",

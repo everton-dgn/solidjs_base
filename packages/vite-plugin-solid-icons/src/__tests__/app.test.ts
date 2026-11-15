@@ -83,10 +83,7 @@ test('an application renders the icons', async context => {
       const html = entry.html()
 
       assert.equal(count(html, /<svg/gu), RENDERED_ICONS)
-      assert.equal(
-        count(html, /<svg[^>]*aria-hidden="true"/gu),
-        RENDERED_ICONS
-      )
+      assert.equal(count(html, /<svg[^>]*aria-hidden="true"/gu), RENDERED_ICONS)
       assert.match(html, /data-icon="logo"/u)
       assert.match(html, /<output id="raw">&lt;svg viewBox="0 0 24 24"/u)
     }

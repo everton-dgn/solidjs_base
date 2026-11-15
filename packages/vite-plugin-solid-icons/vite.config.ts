@@ -7,7 +7,7 @@ export default defineConfig({
       // does not track; every run has to execute for real.
       'test-plugin': {
         command:
-          "node --test --test-concurrency=1 --test-timeout=180000 'src/**/__tests__/*.test.ts'",
+          "node --test --test-concurrency=1 --test-timeout=180000 'src/__tests__/*.test.ts' 'src/!(tarball)/**/__tests__/*.test.ts'",
         cache: false
       },
       'test-tarball': {

@@ -15,6 +15,7 @@ import {
 
 import {
   createFixtureApp,
+  defer,
   fixtureConfig,
   MOON_FILE,
   STAR_FILE,
@@ -99,7 +100,7 @@ async function waitForOwnTypes({ file, pattern }: TypesWait): Promise<string> {
 
 test('a folder icon follows its SVG file in the dev server', async context => {
   const root = await createFixtureApp()
-  context.after(() => rm(root, { recursive: true, force: true }))
+  defer({ context, task: () => rm(root, { recursive: true, force: true }) })
   const errors: string[] = []
   const server = await createServer({
     ...fixtureConfig({ root, isSsr: false }),
@@ -112,13 +113,13 @@ test('a folder icon follows its SVG file in the dev server', async context => {
       watch: { usePolling: true, interval: POLL_INTERVAL }
     }
   })
-  context.after(() => server.close())
+  defer({ context, task: () => server.close() })
   await server.listen()
   await settle(server.watcher)
   // The CI runner has the Chrome of the system, as in the browser tests of
   // the runtime package.
   const browser = await chromium.launch(env.CI ? { channel: 'chrome' } : {})
-  context.after(() => browser.close())
+  defer({ context, task: () => browser.close() })
   const page = await browser.newPage()
   const log = watchPage(page)
   const [url = ''] = server.resolvedUrls?.local ?? []

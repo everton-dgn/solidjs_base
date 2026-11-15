@@ -24,7 +24,12 @@ import { build, createLogger, createServer, type Logger } from 'vite-plus'
 
 import { writeTypesFile } from '../iconTypes/index.ts'
 import { checkIconTypes, writeIconTypes } from '../index.ts'
-import { createFixtureApp, fixtureConfig, TYPES_FILE } from './fixture-app.ts'
+import {
+  createFixtureApp,
+  defer,
+  fixtureConfig,
+  TYPES_FILE
+} from './fixture-app.ts'
 
 type ChildRun = { code: string; args: string[]; timeout: number }
 type ChildResult = { exitCode: number | null; stdout: string; ms: number }
@@ -105,13 +110,13 @@ function warnings(list: string[]): Logger {
 async function tempFolder({ context, name }: FolderInput): Promise<string> {
   const created = await mkdtemp(path.join(tmpdir(), name))
   const folder = await realpath(created)
-  context.after(() => rm(folder, { recursive: true, force: true }))
+  defer({ context, task: () => rm(folder, { recursive: true, force: true }) })
   return folder
 }
 
 async function app(context: TestContext): Promise<string> {
   const root = await createFixtureApp()
-  context.after(() => rm(root, { recursive: true, force: true }))
+  defer({ context, task: () => rm(root, { recursive: true, force: true }) })
   return root
 }
 
@@ -187,9 +192,12 @@ describe('the declarations file', () => {
       cacheDir: '.vite-dev',
       server: { watch: null, middlewareMode: true }
     })
-    context.after(async () => {
-      const server = await starting
-      await server.close()
+    defer({
+      context,
+      task: async () => {
+        const server = await starting
+        await server.close()
+      }
     })
     await Promise.all([starting, buildOnce(), buildOnce()])
 
@@ -288,7 +296,7 @@ describe('a folder of icons', () => {
         watch: { usePolling: true, interval: POLL_INTERVAL }
       }
     })
-    context.after(() => server.close())
+    defer({ context, task: () => server.close() })
     const { client } = server.environments
     await client.transformRequest('icon:own/star')
 

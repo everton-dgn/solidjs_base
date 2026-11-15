@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url'
 import { chromium } from 'playwright'
 import { build, createServer, preview } from 'vite-plus'
 
-import { createFixtureApp, fixtureConfig } from './fixture-app.ts'
+import { createFixtureApp, defer, fixtureConfig } from './fixture-app.ts'
 
 type ServerEntry = { html: () => string }
 type EntryInput = { context: TestContext; code: string; files?: Files }
@@ -77,7 +77,7 @@ async function writeFiles({ root, files }: FilesInput): Promise<void> {
 
 async function trapApp(context: TestContext): Promise<string> {
   const root = await createFixtureApp()
-  context.after(() => rm(root, { recursive: true, force: true }))
+  defer({ context, task: () => rm(root, { recursive: true, force: true }) })
   await writeFiles({
     root,
     files: {
@@ -90,7 +90,7 @@ async function trapApp(context: TestContext): Promise<string> {
 
 async function buildEntry({ context, code, files = {} }: EntryInput) {
   const root = await createFixtureApp()
-  context.after(() => rm(root, { recursive: true, force: true }))
+  defer({ context, task: () => rm(root, { recursive: true, force: true }) })
   await writeFiles({ root, files: { ...files, 'entry.js': code } })
   await build({
     ...fixtureConfig({ root, isSsr: false, typesFile: false }),
@@ -140,9 +140,9 @@ describe('the markup of an SVG file', () => {
       build: { outDir: 'dist/client' },
       preview: { port: 0, strictPort: false }
     })
-    context.after(() => server.close())
+    defer({ context, task: () => server.close() })
     const browser = await chromium.launch(env.CI ? { channel: 'chrome' } : {})
-    context.after(() => browser.close())
+    defer({ context, task: () => browser.close() })
     const page = await browser.newPage()
     const [url = ''] = server.resolvedUrls?.local ?? []
     await page.goto(url)
@@ -238,7 +238,7 @@ describe('an icon import', () => {
 
   it('refuses a traversal sent to the dev server', async context => {
     const root = await createFixtureApp()
-    context.after(() => rm(root, { recursive: true, force: true }))
+    defer({ context, task: () => rm(root, { recursive: true, force: true }) })
     await writeFiles({
       root,
       files: {
@@ -250,7 +250,7 @@ describe('an icon import', () => {
       logLevel: 'silent',
       server: { port: 0, strictPort: false, watch: null }
     })
-    context.after(() => server.close())
+    defer({ context, task: () => server.close() })
     await server.listen()
     const [url = ''] = server.resolvedUrls?.local ?? []
     const paths = [
@@ -273,7 +273,7 @@ describe('an icon import', () => {
   it('does not follow a symbolic link out of the folder', async context => {
     const files = { 'outside/secret.svg': `<svg><text>${SECRET}</text></svg>` }
     const root = await createFixtureApp()
-    context.after(() => rm(root, { recursive: true, force: true }))
+    defer({ context, task: () => rm(root, { recursive: true, force: true }) })
     await writeFiles({ root, files })
     await symlink(
       path.join(root, 'outside/secret.svg'),

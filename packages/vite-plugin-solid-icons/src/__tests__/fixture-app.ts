@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, realpath, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import type { TestContext } from 'node:test'
 
 import solid from '@solidjs/vite-plugin'
 import type { InlineConfig } from 'vite-plus'
@@ -8,6 +9,8 @@ import type { InlineConfig } from 'vite-plus'
 import { solidIcons } from '../index.ts'
 
 type FixtureFiles = Record<string, string>
+type Task = () => unknown
+type DeferInput = { context: TestContext; task: Task }
 type ConfigInput = {
   root: string
   isSsr: boolean
@@ -15,6 +18,7 @@ type ConfigInput = {
 }
 
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, '../..')
+const deferred = new WeakMap<TestContext, Task[]>()
 
 const STAR_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="red" d="M12 2l3 7h7l-6 4 2 7-6-4-6 4 2-7-6-4h7z"/></svg>\n'
@@ -111,6 +115,20 @@ export const STAR_FILE = 'icons/star.svg'
 export const MOON_FILE = 'icons/moon.svg'
 export const NAMED_ICONS_FILE = 'src/NamedIcons.tsx'
 export const TYPES_FILE = 'src/icon-collections.d.ts'
+
+// Runs the task after the test, before the tasks deferred earlier: a server
+// closes before the folder it watches is removed. The hooks of node:test
+// run in the order they were added.
+export function defer({ context, task }: DeferInput): void {
+  const tasks = deferred.get(context) ?? []
+  if (tasks.length === 0) {
+    deferred.set(context, tasks)
+    context.after(async () => {
+      for (const cleanup of tasks.toReversed()) await cleanup()
+    })
+  }
+  tasks.push(task)
+}
 
 // A Solid 2 application in a temporary folder. Its node_modules points at the
 // one of this package, so Vite resolves Solid and the collections from there.

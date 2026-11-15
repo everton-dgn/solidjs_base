@@ -223,12 +223,15 @@ of the original at the copied commit.
 
 ## README figures
 
-The root and package READMEs share the themed `.webp` files in
-`docs/assets/readme/`. Their source is `figures.html`, with fifteen figures
-drawn in HTML and CSS from repository code, measured counts and command output.
-Open it with `?figure=<id>&theme=<dark|light>` to see one section, or without
-parameters to see them all. The new runtime figures reuse the existing color
-tokens, sans-serif type and SolidJS symbol.
+The root, application and package READMEs share the themed `.webp` files in
+`docs/assets/readme/`. Their source is `figures.html`, with twenty-eight
+figures. Twenty-five are drawn in HTML and CSS from repository code, measured
+counts and command output; `app-home`, `app-locales` and `ui-kit` frame real
+captures of the boilerplate app. Open it with `?figure=<id>&theme=<dark|light>`
+to see one section, or without parameters to see them all. The figures reuse the
+existing color tokens, sans-serif type and SolidJS symbol. Package READMEs load
+them from `raw.githubusercontent.com`, so a renamed figure breaks the npm page
+of the last published version.
 
 Export each section in a separate headless browser context with an 800 px
 viewport, device scale factor 2 and a transparent screenshot background. Convert
@@ -241,12 +244,40 @@ require at least 14 px at the 800 px CSS width. Check text bounds for clipping,
 inspect the exported images, and record their dimensions and alpha channel. The
 output width is 1600 pixels; the README displays it at 800.
 
+### Captures of the running app
+
+The capture figures load screenshots from `docs/assets/readme/captures/`, named
+`<figure>[-<part>]-<theme>.webp`. They are versioned next to `figures.html` so
+the file opens complete. Take them from the running copy, never from a drawing:
+
+1. Run `vp run build` at the root. In `apps/boilerplate`, run
+   `vp run build --mode e2e` first, for `/ui-kit`, which exists only in that
+   build; then `vp run build`, for the home page, so the last build in
+   `.vercel/output` is the production one.
+2. Start each build with
+   `HOST=127.0.0.1 PORT=<free port> NODE_ENV=production vp run start --strictPort`.
+   Record the PID of the listener and stop it, and only it, after capturing.
+3. Capture in headless Chromium, in a process of its own, with device scale
+   factor 2 and the theme set by the `app-theme` cookie. Check the class and
+   `lang` of `<html>` before each capture.
+4. Capture at the CSS width the figure shows: 750 px for `app-home` and
+   `app-locales`, 368 px for the four `ui-kit` states (language menu, form,
+   dialog and toasts). The figure shows them at 1:1, so the app text keeps its
+   own size. Grow each clip until every text it touches is whole.
+5. Save lossless WebP. The figure export fails when a capture does not load or
+   is not shown at 1:1.
+
+The 14 px rule covers the text drawn in `figures.html`. Inside a capture, record
+the smallest text of the app instead: 12 px in `app-home` and `app-locales`, the
+uppercase badge and footer line of the home page, and 14 px in `ui-kit`.
+Recapture when the pages, the UI kit or the theme change.
+
 Every numeric claim in a figure also appears in the README text. Recount current
-configuration lines, direct manifest declarations and test cases before export.
-Keep authored fixture dependencies separate from packages injected by the
-installed test harness. Preserve the historical baseline and identify whether a
-test count was executed or only enumerated. Update the image, alt text and
-README together whenever those numbers change.
+configuration lines, direct manifest declarations, runtime entries, test cases
+and E2E areas before export. Keep authored fixture dependencies separate from
+packages injected by the installed test harness. Preserve the historical
+baseline and identify whether a test count was executed or only enumerated.
+Update the image, alt text and README together whenever those numbers change.
 
 ## CI
 

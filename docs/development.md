@@ -224,12 +224,15 @@ of the original at the copied commit.
 ## README figures
 
 The root, application and package READMEs share the themed `.webp` files in
-`docs/assets/readme/`. Their source is `figures.html`, with twenty-eight
-figures. Twenty-five are drawn in HTML and CSS from repository code, measured
-counts and command output; `app-home`, `app-locales` and `ui-kit` frame real
-captures of the boilerplate app. Open it with `?figure=<id>&theme=<dark|light>`
-to see one section, or without parameters to see them all. The figures reuse the
-existing color tokens, sans-serif type and SolidJS symbol.
+`docs/assets/readme/`. Their source is `figures.html`, with twenty-nine figures.
+Twenty-six are drawn in HTML and CSS from repository code, measured counts and
+command output; `app-home`, `app-locales` and `ui-kit` frame real captures of
+the boilerplate app. The lint message in `layers` and the Knip report in
+`dead-code` are real output, taken from a temporary copy of the app with the
+violation added, so the repository keeps no violation. Open it with
+`?figure=<id>&theme=<dark|light>` to see one section, or without parameters to
+see them all. The figures reuse the existing color tokens, sans-serif type and
+SolidJS symbol.
 
 Package READMEs load the figures from `raw.githubusercontent.com` on `main`.
 Three consequences follow:
@@ -269,11 +272,21 @@ the file opens complete. Take them from the running copy, never from a drawing:
    factor 2 and the theme set by the `app-theme` cookie. Check the class and
    `lang` of `<html>` before each capture.
 4. Capture at the CSS width the figure shows: 750 px for `app-home` and
-   `app-locales`, 368 px for the four `ui-kit` states (language menu, form,
-   dialog and toasts). The figure shows them at 1:1, so the app text keeps its
-   own size. Grow each clip until every text it touches is whole.
-5. Save lossless WebP. The figure export fails when a capture does not load or
-   is not shown at 1:1.
+   `app-locales`, 368 px for the five `ui-kit` clips (language menu, input,
+   textarea with buttons, dialog and toasts). The figure shows them at 1:1, so
+   the app text keeps its own size. Grow each clip until every text it touches
+   is whole.
+5. Keep page content out from under overlays. The top bar is fixed over the
+   fixture route, and the menu, the dialog backdrop and the toasts cover the
+   page. Clip the language menu from the right edge of a 1,400 px viewport,
+   where it opens beside the 640 px page column, and capture the dialog and the
+   toasts in a 368 by 2,400 px viewport, where they sit below the fixture
+   content. Check every text node that touches a clip with
+   `document.elementFromPoint`: none may be cut by the edge or covered by
+   another element.
+6. Save lossless WebP. Set the `width` and `height` of each `<img>` to the clip
+   size in CSS pixels. The figure export fails when a capture does not load or
+   is not shown at 1:1 in both directions.
 
 The 14 px rule covers the text drawn in `figures.html`. Inside a capture, record
 the smallest text of the app instead: 12 px in `app-home` and `app-locales`, the

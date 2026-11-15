@@ -1948,17 +1948,26 @@ Disallow: /_server</pre>
         <p class="eyebrow">UI kit of the boilerplate</p>
         <h2 class="title">Six components, captured from the running app.</h2>
         <p class="lede">
-          The /ui-kit E2E fixture route at 1:1 scale, 368 px wide.
+          Clips of the /ui-kit E2E fixture route at 1:1 scale, 368 px wide.
         </p>
         <div class="cap-grid">
           <div class="cap-col">
             <div class="win cap-win">
               <div class="win-bar"><span>DropdownMenu</span></div>
-              <img data-capture="ui-kit-menu" width="368" height="180" alt="" />
+              <img data-capture="ui-kit-menu" width="368" height="169" alt="" />
             </div>
             <div class="win cap-win">
-              <div class="win-bar"><span>Input · Textarea · Button</span></div>
-              <img data-capture="ui-kit-form" width="368" height="414" alt="" />
+              <div class="win-bar"><span>Input</span></div>
+              <img
+                data-capture="ui-kit-input"
+                width="368"
+                height="100"
+                alt=""
+              />
+            </div>
+            <div class="win cap-win">
+              <div class="win-bar"><span>Textarea · Button</span></div>
+              <img data-capture="ui-kit-form" width="368" height="240" alt="" />
             </div>
           </div>
           <div class="cap-col">
@@ -1967,7 +1976,7 @@ Disallow: /_server</pre>
               <img
                 data-capture="ui-kit-dialog"
                 width="368"
-                height="301"
+                height="278"
                 alt=""
               />
             </div>
@@ -1976,7 +1985,7 @@ Disallow: /_server</pre>
               <img
                 data-capture="ui-kit-toast"
                 width="368"
-                height="202"
+                height="210"
                 alt=""
               />
             </div>
@@ -2334,16 +2343,22 @@ Disallow: /_server</pre>
             >
           </div>
         </div>
-        <div class="rule-msg">
-          <b>Lint error when an import points up</b>
+        <div class="rule-msg term">
+          <b>vp lint, after an atom imports a molecule</b>
           <code class="mono"
-            >Layer {{from}} must not depend on {{to}} ({{target}}). See the
-            layer rules in docs/architecture.md.</code
+            ><span class="dim"
+              >src/components/atoms/PageBadge/index.tsx:3:1:</span
+            >
+            <span class="err">error</span>
+            <span class="rule">architecture(layer-imports):</span> Layer atoms
+            must not depend on molecules
+            (src/components/molecules/PageHero/index.tsx). See the layer rules
+            in docs/architecture.md.</code
           >
         </div>
         <p class="caption">
-          Production code also cannot import tests or tooling/. Message text
-          from the rule source.
+          Real output on a copy of apps/boilerplate. Production code also cannot
+          import tests or tooling/.
         </p>
       </div>
     </section>
@@ -2455,6 +2470,42 @@ Disallow: /_server</pre>
         </div>
         <p class="caption">
           Outside src/theme/, literal colors are errors. Classes use snake_case.
+        </p>
+      </div>
+    </section>
+
+    <section class="figure" id="dead-code">
+      <div class="pad">
+        <div class="feature-head">
+          <div>
+            <p class="eyebrow">Knip, packaged</p>
+            <h2 class="title">Dead code is reported before the push.</h2>
+          </div>
+          <svg class="feature-mark" viewBox="0 0 166 155.3" aria-hidden="true">
+            <use href="#i-solid" />
+          </svg>
+        </div>
+        <p class="lede">
+          vp run dead-code-project runs Knip with the entries of a Solid app,
+          then again with --strict.
+        </p>
+        <div class="first">
+          <div class="win term term-win">
+            <div class="win-bar">
+              <i></i><i></i><i></i
+              ><span class="mono">knip --config tooling/knip.ts</span>
+            </div>
+            <pre class="code mono"><span class="hl">Unused files</span> (1)
+src/helpers/formatPrice/index.ts
+<span class="hl">Unused dependencies</span> (1)
+date-fns  <span class="dim">package.json:45:6</span>
+<span class="hl">Unused exports</span> (1)
+THEME_COOKIE_NAME  <span class="dim">src/constants/theme.ts:6:14</span></pre>
+          </div>
+        </div>
+        <p class="caption">
+          The first pass, on a copy of apps/boilerplate with an unused file,
+          dependency and export added. It fails, so the task stops there.
         </p>
       </div>
     </section>

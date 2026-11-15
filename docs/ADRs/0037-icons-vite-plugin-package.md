@@ -158,13 +158,16 @@ The options were:
     ms written again, against 48.6 ms for their components, and an SVG of 4.1 MB
     with 150,000 elements took 129 ms and 187 ms, against 183 ms for its
     component: milliseconds for a whole collection.
-  - Checking the folder on every read of an icon adds about 37 µs per read: in
-    eleven alternated rounds, reading the 500 icons of a folder took 56 ms,
-    against 37 ms with the check in the listing only.
-  - The name table and the declarations of `hugeicons`, 6,106 names, take about
-    25 ms and write 485 KB; a synthetic collection of 20,200 names takes about
-    60 ms and writes 1.6 MB. They are computed once per dev session and again
-    only for a folder collection whose files change.
+  - Checking the folder on every read of an icon adds about 30 µs per read: in
+    eleven alternated rounds, reading the 500 icons of a folder took 49 ms,
+    against 34 ms with the check in the listing only.
+  - The name table and the declarations of `hugeicons`, 6,106 names, write 485
+    KB and take about 19 ms the first time in a process, as the median of seven
+    runs that alternate the versions; following the chain that the load follows
+    for each name added about 4 ms to the 15 ms they took before. A synthetic
+    collection of 20,200 names took about 60 ms and wrote 1.6 MB before that
+    change. They are computed once per dev session and again only for a folder
+    collection whose files change.
   - The first page of the dev server takes the same time as with the plugin the
     tooling uses today, within the noise, for 2, 50 and 500 icons. A hot update
     of an edited SVG of a folder took 40 to 120 ms, with a watcher that polls

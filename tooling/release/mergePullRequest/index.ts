@@ -107,14 +107,15 @@ async function confirmMerge({
     if (current.state === 'MERGED' && current.mergeSha !== undefined) {
       return current.mergeSha
     }
-    state = `#${number} is ${current.state.toLowerCase()}`
+    state = `#${number} is ${current.state.toLowerCase()}.`
   } catch (error) {
     state = error instanceof Error ? error.message : String(error)
   }
   throw new Error(
     [
       unconfirmed,
-      `${state}, and the merge was not sent again. GitHub may still merge it. Run the command again, which reads the pull request first:`,
+      state,
+      'The merge was not sent again, and GitHub may still merge it. Run the command again, which reads the pull request first:',
       `  vp run release:merge ${number} --sha ${head}`
     ].join('\n')
   )

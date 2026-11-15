@@ -409,7 +409,8 @@ describe('mergePullRequest merge', () => {
           error.message,
           [
             `GitHub did not confirm the merge of #7: ${failure.stderr}`,
-            '#7 is open, and the merge was not sent again. GitHub may still merge it. Run the command again, which reads the pull request first:',
+            '#7 is open.',
+            'The merge was not sent again, and GitHub may still merge it. Run the command again, which reads the pull request first:',
             `  vp run release:merge 7 --sha ${HEAD}`
           ].join('\n')
         )

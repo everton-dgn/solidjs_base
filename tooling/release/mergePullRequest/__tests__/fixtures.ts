@@ -269,7 +269,20 @@ function respondToEndpoint({
   return undefined
 }
 
+// A test lists the failures the next calls to an endpoint get, before the
+// responses of the fake.
+function takeFailure({
+  github,
+  command
+}: FakeCommand): CommandResult | undefined {
+  const endpoint = command.args[1] ?? ''
+  const part = Object.keys(github.failures).find(key => endpoint.includes(key))
+  return part === undefined ? undefined : github.failures[part]?.shift()
+}
+
 function respond({ github, command }: FakeCommand): CommandResult | undefined {
+  const injected = takeFailure({ github, command })
+  if (injected) return injected
   const [first, second] = command.args
   if (command.file === 'npm') {
     return first === 'view'
@@ -345,6 +358,7 @@ export type FakeGitHub = {
   files: Record<string, string>
   registry: Record<string, CommandResult[]>
   pageSize: number
+  failures: Record<string, CommandResult[]>
 }
 
 export const HEAD = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678'
@@ -415,7 +429,8 @@ export function featureGitHub(): FakeGitHub {
     jobs: {},
     files: {},
     registry: {},
-    pageSize: 100
+    pageSize: 100,
+    failures: {}
   }
 }
 

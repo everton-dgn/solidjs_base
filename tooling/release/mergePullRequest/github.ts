@@ -1,6 +1,9 @@
+import { isReadCommand } from './decisions.ts'
 import { type Fields, parseJson, readFields } from './json.ts'
+import { TIMED_OUT_EXIT_CODE } from './runner.ts'
 import type {
   CheckRun,
+  Command,
   CommandResult,
   GitHub,
   Job,
@@ -8,6 +11,7 @@ import type {
   RunCommand,
   WorkflowRun
 } from './types.ts'
+import { PassingReadError } from './wait.ts'
 
 type GhCall = { args: readonly string[]; action: string }
 
@@ -24,6 +28,8 @@ type ThreadsRequest = { number: number; cursor: string | undefined }
 type ThreadsPage = { threads: ReviewThread[]; cursor: string | undefined }
 
 const REPOSITORY = 'repos/{owner}/{repo}'
+const PASSING_FAILURE =
+  /HTTP (?:429|5\d{2})|rate limit|error connecting|i\/o timeout|connection reset/iu
 const PAGE_SIZE = 'per_page=100'
 const PULL_REQUEST_FIELDS = [
   'number',
@@ -60,6 +66,13 @@ function failureDetail(result: CommandResult): string {
     result.stderr.trim() ||
     result.stdout.trim() ||
     `exit code ${result.exitCode}`
+  )
+}
+
+function isPassingFailure(result: CommandResult): boolean {
+  return (
+    result.exitCode === TIMED_OUT_EXIT_CODE ||
+    PASSING_FAILURE.test(result.stderr)
   )
 }
 
@@ -108,11 +121,13 @@ function toJob(job: Fields): Job {
 
 function createCaller(run: RunCommand): Caller {
   async function gh({ args, action }: GhCall): Promise<string> {
-    const result = await run({ file: 'gh', args })
-    if (result.exitCode !== 0) {
-      throw new Error(`Could not ${action}: ${failureDetail(result)}`)
-    }
-    return result.stdout
+    const command: Command = { file: 'gh', args }
+    const result = await run(command)
+    if (result.exitCode === 0) return result.stdout
+    const message = `Could not ${action}: ${failureDetail(result)}`
+    throw isReadCommand(command) && isPassingFailure(result)
+      ? new PassingReadError(message)
+      : new Error(message)
   }
 
   async function ghFields(call: GhCall): Promise<Fields> {

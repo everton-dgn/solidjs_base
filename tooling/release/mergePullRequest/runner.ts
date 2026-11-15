@@ -8,8 +8,6 @@ type ExitFailure = { code: number; stdout: string; stderr: string }
 
 const execute = promisify(execFile)
 const MAX_OUTPUT_BYTES = 67_108_864
-// The exit code the timeout utility reports for a command it stopped.
-const TIMED_OUT_EXIT_CODE = 124
 // The subcommand and the endpoint, without the fields and the GraphQL query.
 const NAMED_ARGUMENTS = 2
 
@@ -39,6 +37,9 @@ function isTimeout(error: unknown): boolean {
     error.code === null
   )
 }
+
+// The exit code the timeout utility reports for a command it stopped.
+export const TIMED_OUT_EXIT_CODE = 124
 
 export function createRunner(timeout: number): RunCommand {
   return async ({ file, args }: Command): Promise<CommandResult> => {

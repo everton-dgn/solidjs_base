@@ -105,7 +105,10 @@ run, and optional for the others. Without `--dry-run`, the command:
 
 Every refusal or failure ends with a message and a nonzero exit code. A `gh` or
 `npm` call that does not finish within 2 minutes is stopped and counts as a
-failed call. `--interval <seconds>` sets the time between two reads (30 by
+failed call. While the command waits, a read that fails with an HTTP 5xx or 429
+answer, a network error or that stop is read again at the next interval, until
+the wait times out. Any other failed call ends the command, and a failed write
+is never repeated. `--interval <seconds>` sets the time between two reads (30 by
 default), `--timeout <minutes>` the longest wait for `CI required` and for the
 `Release` workflow (60), and `--registry-timeout <minutes>` the longest wait for
 each version on npm (10). The command lives in `tooling/release/`, and

@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 
 import { RELEASE_WORKFLOW } from '../decisions.ts'
 import { mergePullRequest } from '../index.ts'
+import { TIMED_OUT_EXIT_CODE } from '../runner.ts'
 import {
   BASE_SHA,
   checkRun,
@@ -20,6 +21,8 @@ import {
   workflowRun,
   writes
 } from './fixtures.ts'
+
+const BAD_GATEWAY = failedCommand('gh: Bad Gateway (HTTP 502)')
 
 const HELD_RUN = workflowRun({
   id: 501,
@@ -312,6 +315,71 @@ describe('mergePullRequest CI and branch', () => {
       /CI required did not pass on a1b2c3d within 1 minute/u
     )
     assert.deepEqual(writes(calls), [])
+  })
+})
+
+describe('mergePullRequest failed reads', () => {
+  it('reads again after a read that failed for a reason that passes', async () => {
+    const timedOut = {
+      exitCode: TIMED_OUT_EXIT_CODE,
+      stdout: '',
+      stderr: 'gh api did not finish within 2 minute(s) and was stopped.'
+    }
+    for (const failure of [BAD_GATEWAY, timedOut]) {
+      const github = featureGitHub()
+      github.failures = { 'check-runs': [failure] }
+      const { request, calls, lines } = createHarness({ github })
+
+      await mergePullRequest(request)
+
+      assert.ok(
+        lines.includes(
+          `  Could not list the CI required checks of ${HEAD}: ${failure.stderr} Reading again.`
+        )
+      )
+      assert.equal(writes(calls).length, 1)
+    }
+  })
+
+  it('reads again while waiting for the Release workflow after the merge', async () => {
+    const github = releaseGitHub()
+    github.failures = { [`actions/runs?head_sha=${MERGE_SHA}`]: [BAD_GATEWAY] }
+    const { request, lines } = createHarness({ github })
+
+    await mergePullRequest(request)
+
+    assert.equal(lines.at(-1), 'The release is published.')
+  })
+
+  it('stops at once on a read that failed for another reason', async () => {
+    const github = featureGitHub()
+    github.failures = {
+      'check-runs': [failedCommand('gh: Bad credentials (HTTP 401)')]
+    }
+    const { request, calls } = createHarness({ github })
+
+    await assert.rejects(
+      mergePullRequest(request),
+      /Could not list the CI required checks of .+: gh: Bad credentials \(HTTP 401\)/u
+    )
+    assert.deepEqual(writes(calls), [])
+  })
+
+  it('never repeats a write that failed', async () => {
+    const github = releaseGitHub()
+    github.checkRuns = { [HEAD]: [[]] }
+    github.workflowRuns = { [HEAD]: [[HELD_RUN]] }
+    github.failures = { '/approve': [BAD_GATEWAY] }
+    const { request, calls } = createHarness({ github })
+
+    await assert.rejects(
+      mergePullRequest(request),
+      /Could not approve the workflow run 501: gh: Bad Gateway \(HTTP 502\)/u
+    )
+    assert.deepEqual(
+      writes(calls).map(call => call.args[1]),
+      ['repos/{owner}/{repo}/actions/runs/501/approve']
+    )
   })
 })
 

@@ -91,7 +91,12 @@ into the branch, never rebase it, and wait for `CI required` again.
    with the commands of
    [When the release pull request has a conflict](#when-the-release-pull-request-has-a-conflict),
    right before merging: release-please writes the pull request again, and
-   discards the edit, when a new merge changes the release it computes.
+   discards the edit, when a new merge changes the release it computes. Editing
+   the notes does not change the version. When the version is wrong too, do not
+   edit `package.json` or the manifest by hand: merge a pull request that sets
+   `release-as` for the package in `release-please-config.json`, let
+   release-please write the release pull request again, and remove `release-as`
+   after the release.
 3. For the first automated release of a package, create the trusted publisher
    now
    ([First automated release of a package](#first-automated-release-of-a-package)).

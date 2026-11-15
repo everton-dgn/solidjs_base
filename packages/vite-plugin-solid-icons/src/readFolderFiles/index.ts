@@ -9,6 +9,7 @@ type FolderRead = FolderPlace & { identity: FolderIdentity }
 type FileCheck = { folder: string; name: string }
 type ListedFile = { name: string; identity: FileIdentity | undefined }
 type UnreadableInput = FolderPlace & { error: unknown }
+type FilePair = { first: FileIdentity; second: FileIdentity }
 
 const SVG_EXTENSION = '.svg'
 
@@ -63,7 +64,7 @@ export function unreadableFolder({
   )
 }
 
-export function isSameFile(first: FileIdentity, second: FileIdentity): boolean {
+export function isSameFile({ first, second }: FilePair): boolean {
   return first.dev === second.dev && first.ino === second.ino
 }
 
@@ -88,7 +89,8 @@ export async function readFolderFiles({
   const isFirstFolder = async () => {
     const current = await folderIdentity(folder)
     return (
-      current.realPath === identity.realPath && isSameFile(current, identity)
+      current.realPath === identity.realPath &&
+      isSameFile({ first: current, second: identity })
     )
   }
   let listed: ListedFile[]

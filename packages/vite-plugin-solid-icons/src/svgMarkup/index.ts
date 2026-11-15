@@ -68,6 +68,7 @@ type WalkInput = {
   pending: (SvgNode | string)[]
 }
 type NodeWriter = (input: WalkInput) => string
+type MarkupInput = { root: ElementNode; write: NodeWriter }
 type EscapeInput = { text: string; pattern: RegExp }
 
 const NAME = /[A-Za-z_][\w.:-]*/uy
@@ -667,7 +668,7 @@ function nodeText({ node, root, pending }: WalkInput): string {
 
 // Walks the markup without recursion, so its depth cannot overflow the
 // stack.
-function writeMarkup(root: ElementNode, write: NodeWriter): string {
+function writeMarkup({ root, write }: MarkupInput): string {
   const output: string[] = []
   const pending: (SvgNode | string)[] = [root]
   for (let node = pending.pop(); node !== undefined; node = pending.pop()) {
@@ -720,7 +721,7 @@ export function parseSvg({ svg, isComponent }: ParseInput): ParsedSvg {
 // The JSX of the root element, with the props spread last so they win over
 // the attributes of the file.
 export function svgJsx(root: ElementNode): string {
-  return writeMarkup(root, nodeJsx)
+  return writeMarkup({ root, write: nodeJsx })
 }
 
 // WHY: the SVG text of a raw import is written again from what the file
@@ -729,5 +730,5 @@ export function svgJsx(root: ElementNode): string {
 // Comments, processing instructions and what comes before the root are left
 // out, and a CDATA section becomes escaped text.
 export function svgText(root: ElementNode): string {
-  return writeMarkup(root, nodeText)
+  return writeMarkup({ root, write: nodeText })
 }

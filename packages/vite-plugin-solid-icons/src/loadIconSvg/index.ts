@@ -196,10 +196,14 @@ async function checkListedFile({
 }: OpenedFile): Promise<void> {
   const { name, folder } = source
   const listed = folder.files.icons.get(name)
-  if (listed && isSameFile(listed, stats)) return
+  if (listed && isSameFile({ first: listed, second: stats })) return
   const files = await folder.refresh()
   const relisted = files.icons.get(name)
-  if (relisted && isSameFile(relisted, stats) && stats.nlink === 1n) return
+  const isNewFile =
+    relisted !== undefined &&
+    isSameFile({ first: relisted, second: stats }) &&
+    stats.nlink === 1n
+  if (isNewFile) return
   throw missingFolderIcon({ ...source, problem: 'replaced' })
 }
 

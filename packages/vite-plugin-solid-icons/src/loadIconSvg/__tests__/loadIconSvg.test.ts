@@ -534,15 +534,24 @@ describe('loadIconSvg with customizeIcon', () => {
       )
       assert.ok(component.code.includes(JSON.stringify(label)), component.code)
     }
-    // A height that @iconify/utils derives from a customized width.
-    const { svg } = await loadFolderIcon({
-      context,
-      name: 'star',
+    // A height that @iconify/utils derives from a customized width, half of
+    // it in a wide icon: the "$" stays, and the digits are scaled.
+    const folder = await iconFolder(context)
+    await writeFile(
+      path.join(folder, 'wide.svg'),
+      '<svg viewBox="0 0 48 24"><path d="M0 0"/></svg>'
+    )
+    const { svg } = await loadIconSvg({
+      collection: 'own',
+      name: 'wide',
+      root: path.dirname(folder),
+      folder: await listed(folder),
       customizeIcon: ({ attributes }) => {
         attributes.width = '$2em'
       }
     })
-    assert.match(svg, /^<svg width="\$2em" height="\$2em" /u)
+    const { code } = compileIcon({ svg, isRaw: false, icon: 'own/wide' })
+    assert.match(code, /<svg width="\$2em" height="\$1em" /u)
   })
 
   it('names an attribute that the customizer cannot set', async context => {

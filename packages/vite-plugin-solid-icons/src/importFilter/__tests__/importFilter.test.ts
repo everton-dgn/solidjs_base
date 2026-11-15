@@ -6,6 +6,7 @@ import { parse } from 'vite-plus'
 import { COLLECTION_IMPORT } from '../index.ts'
 
 type Spelling = { form: string; literal: string }
+type Continuation = { at: number; terminator: string }
 
 // The characters themselves: a backslash and the line terminators. The
 // parser checks that each spelling below is the import it stands for.
@@ -31,7 +32,7 @@ function quoted(text: string): string {
   return `'${text}'`
 }
 
-function continued(at: number, terminator: string): string {
+function continued({ at, terminator }: Continuation): string {
   return quoted(
     `${IMPORT.slice(0, at)}${BACKSLASH}${terminator}${IMPORT.slice(at)}`
   )
@@ -50,7 +51,7 @@ const MATCHES: Spelling[] = [
   ...Object.entries(LINE_TERMINATORS).flatMap(([terminator, characters]) =>
     Object.entries(PLACES).map(([place, at]) => ({
       form: `line continuation with ${terminator} ${place}`,
-      literal: continued(at, characters)
+      literal: continued({ at, terminator: characters })
     }))
   )
 ]

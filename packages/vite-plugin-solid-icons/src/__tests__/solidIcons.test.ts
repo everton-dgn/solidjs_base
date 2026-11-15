@@ -346,7 +346,9 @@ describe('the modules of the icons', () => {
       'brace.js': ['Star', `icon:o${backslash}u{77}n`],
       'letter.js': ['LogoV2', `icon:${backslash}own`],
       'lf.js': ['Moon', `ic${backslash}\non:own`],
-      'crlf.js': ['Star', `icon:o${backslash}\r\nwn`]
+      'crlf.js': ['Star', `icon:o${backslash}\r\nwn`],
+      'line-separator.js': ['Moon', `icon:${backslash}\u2028own`],
+      'paragraph-separator.js': ['LogoV2', `icon:own${backslash}\u2029`]
     }
     for (const [file, [name, specifier]] of Object.entries(spellings)) {
       await writeFile(

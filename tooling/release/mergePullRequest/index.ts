@@ -2,6 +2,7 @@ import { inspectCi, waitForCi } from './ci.ts'
 import {
   describeOpenThreads,
   isBranchUpdate,
+  isReadCommand,
   isReleasePullRequest,
   mergeCommitTitle,
   refuseHead,
@@ -11,13 +12,7 @@ import {
 import { createGitHub } from './github.ts'
 import { describePublication, verifyPublication } from './publication.ts'
 import { createRegistry } from './registry.ts'
-import type {
-  Command,
-  MergeRequest,
-  PullRequest,
-  RunCommand,
-  Session
-} from './types.ts'
+import type { MergeRequest, PullRequest, RunCommand, Session } from './types.ts'
 import { describeDuration, waitFor } from './wait.ts'
 
 type Step = { session: Session; pullRequest: PullRequest }
@@ -25,18 +20,6 @@ type Step = { session: Session; pullRequest: PullRequest }
 type BehindStep = Step & { behindBy: number }
 
 type UpdateStep = Step & { baseSha: string }
-
-const READ_METHODS = new Set(['GET'])
-
-function isReadCommand({ file, args }: Command): boolean {
-  if (file === 'npm') return args[0] === 'view'
-  if (args[0] === 'pr') return args[1] === 'view'
-  const method = args.indexOf('-X')
-  return (
-    args[0] === 'api' &&
-    (method === -1 || READ_METHODS.has(args[method + 1] ?? ''))
-  )
-}
 
 // The dry run builds the same commands as a real run, so a write that slips
 // through a branch of the flow fails here instead of reaching GitHub.

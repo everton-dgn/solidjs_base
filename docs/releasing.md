@@ -263,8 +263,10 @@ gh run view <run-id> --json jobs --jq '.jobs[] | {name, databaseId}'
 gh run rerun --job <database-id>
 ```
 
-The rerun also runs `Tags and GitHub Releases` again, the job it depends on.
-That job finds no release to create, and the publish job does not run again.
+The rerun runs only that job: no job depends on it, and
+`Tags and GitHub Releases` keeps its outputs from the first attempt
+([GitHub docs](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs)).
+Nothing is tagged or published again.
 
 The job can also pass without opening or updating the release pull request. When
 its log says `There are untagged, merged release PRs outstanding - aborting`, a

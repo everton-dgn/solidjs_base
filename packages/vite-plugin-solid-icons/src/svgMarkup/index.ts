@@ -91,6 +91,20 @@ const LAST_SURROGATE = 57_343
 // oxlint-disable-next-line eslint/no-control-regex -- the control characters are the ones a browser drops.
 const URL_IGNORED = /[\u0000- ]/gu
 const SCRIPT_URL = /^(?:javascript|vbscript):/u
+const DATA_URL = /^data:(?<type>[^,;]*)/u
+// WHY: a link opens a data: URL as a page of its own, and <use> reads one as
+// a document; an image runs no code, so <image> and <feImage> take the data:
+// URL of an image.
+const DATA_LINK_ELEMENTS = new Set(['a', 'use'])
+const IMAGE_ELEMENTS = new Set(['feImage', 'image'])
+const IMAGE_TYPES = new Set([
+  'image/avif',
+  'image/gif',
+  'image/jpeg',
+  'image/png',
+  'image/svg+xml',
+  'image/webp'
+])
 // The elements of SVG 2 and of its filters and animations, as written in
 // SVG. The HTML parser of a page reads some other names, such as <p> or
 // <img>, as HTML even inside an <svg>, where they can run code.
@@ -347,8 +361,29 @@ function localName(name: string): string {
   return name.slice(name.indexOf(':') + 1).toLowerCase()
 }
 
+function urlOf(value: string): string {
+  return value.replaceAll(URL_IGNORED, '').toLowerCase()
+}
+
 function isScriptUrl(value: string): boolean {
-  return SCRIPT_URL.test(value.replaceAll(URL_IGNORED, '').toLowerCase())
+  return SCRIPT_URL.test(urlOf(value))
+}
+
+function checkDataUrl({ attribute, element }: AttributeCheck): void {
+  const { name, value } = attribute
+  if (localName(name) !== LINK_ATTRIBUTE) return
+  const type = DATA_URL.exec(urlOf(value))?.groups?.type
+  if (type === undefined) return
+  if (DATA_LINK_ELEMENTS.has(element)) {
+    throw new SvgError(
+      `the attribute ${name} of <${element}> is a data: URL, which a page opens as a document of its own`
+    )
+  }
+  if (IMAGE_ELEMENTS.has(element) && !IMAGE_TYPES.has(type)) {
+    throw new SvgError(
+      `the attribute ${name} of <${element}> is a data: URL of ${type === '' ? 'text' : type}, not of an image: a data: URL here takes the PNG, JPEG, GIF, WebP, AVIF or SVG of an image`
+    )
+  }
 }
 
 function checkScriptAttribute({ attribute, element }: AttributeCheck): void {
@@ -420,6 +455,7 @@ function checkElement({ node, parent, isComponent }: CheckInput): void {
   }
   for (const attribute of node.attributes) {
     checkScriptAttribute({ attribute, element: node.name })
+    checkDataUrl({ attribute, element: node.name })
     if (isComponent) checkJsxAttribute({ attribute, element: node.name })
   }
 }

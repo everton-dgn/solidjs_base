@@ -229,6 +229,10 @@ code. What the plugin guarantees is that the markup of a file stays markup:
   page: a `<script>` element, an event handler attribute such as `onload`, a
   `javascript:` or `vbscript:` URL in any attribute or in an entry of the
   `values` of an animation, and an animation of `href`.
+- The build stops on a `data:` URL that a page opens as a document of its own:
+  in the `href` or `xlink:href` of an `<a>` or of a `<use>`, and in an `<image>`
+  or a `<feImage>` unless it holds an image, a PNG, JPEG, GIF, WebP, AVIF or
+  SVG.
 - The build stops on markup that a page reads as HTML, where it can run code:
   - an element outside the elements of SVG 2, its filters and its animations,
     such as `<p>`, `<iframe>`, `<img>`, `<embed>` or `<meta>`, at any depth;
@@ -265,9 +269,9 @@ code. What the plugin guarantees is that the markup of a file stays markup:
   `?raw`.
 
 The checks do not make an untrusted SVG safe: they leave external references,
-such as an `<image>` or a `<use>` that points to a URL, or a CSS `url()`. An SVG
-that a user uploads needs a sanitizer at runtime, not a folder collection. The
-icons of an installed collection go through the same checks.
+such as an `<image>`, a `<use>` or an `<a>` that points to a URL, or a CSS
+`url()`. An SVG that a user uploads needs a sanitizer at runtime, not a folder
+collection. The icons of an installed collection go through the same checks.
 
 ## Names you can predict
 

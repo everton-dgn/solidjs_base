@@ -73,7 +73,51 @@ const CODE: Refusal[] = [
   {
     svg: '<svg><foreignObject><img src="x"/></foreignObject></svg>',
     message: /the SVG has a <foreignObject> element, which embeds HTML/u
+  },
+  {
+    svg: '<svg><a href="data:text/html;base64,PHNjcmlwdD4="><path/></a></svg>',
+    message:
+      /the attribute href of <a> is a data: URL, which a page opens as a document of its own/u
+  },
+  {
+    svg: '<svg><a xlink:href=" DATA:image/png;base64,iVBORw0KGgo="><path/></a></svg>',
+    message: /the attribute xlink:href of <a> is a data: URL/u
+  },
+  {
+    svg: '<svg><a HREF="da&#9;ta:text/html,x"><path/></a></svg>',
+    message: /the attribute HREF of <a> is a data: URL/u
+  },
+  {
+    svg: '<svg><use href="data:image/svg+xml,%3Csvg%2F%3E#a"/></svg>',
+    message: /the attribute href of <use> is a data: URL/u
+  },
+  {
+    svg: '<svg><image href="data:text/html,x"/></svg>',
+    message:
+      /the attribute href of <image> is a data: URL of text\/html, not of an image/u
+  },
+  {
+    svg: '<svg><image xlink:href="data:,x"/></svg>',
+    message:
+      /the attribute xlink:href of <image> is a data: URL of text, not of an image/u
+  },
+  {
+    svg: '<svg><filter><feImage href="data:application/xml;base64,eA=="/></filter></svg>',
+    message:
+      /the attribute href of <feImage> is a data: URL of application\/xml, not of an image/u
   }
+]
+
+// References that the checks leave: an image as a data: URL, a link inside
+// the icon and a URL outside it.
+const REFERENCES = [
+  '<image href="data:image/png;base64,iVBORw0KGgo="/>',
+  '<image xlink:href="DATA:Image/SVG+XML;utf8,%3Csvg%2F%3E"/>',
+  '<image href="data:image/jpeg;base64,eA=="/><image href="data:image/gif;base64,eA=="/><image href="data:image/avif;base64,eA=="/>',
+  '<filter><feImage href="data:image/webp;base64,eA=="/></filter>',
+  '<image href="https://example.com/a.png"/>',
+  '<a href="#x"><path/></a><a href="https://example.com"><path/></a>',
+  '<use href="#p"/><use xlink:href="sprite.svg#p"/>'
 ]
 
 // Elements that are not SVG: the HTML parser of a page reads some of them as
@@ -248,6 +292,15 @@ describe('the markup of an icon', () => {
     for (const { svg, message } of CODE) {
       assert.throws(() => component(svg), message, svg)
       assert.throws(() => raw(svg), message, svg)
+    }
+  })
+
+  it('accepts the data: URL of an image and the other references', () => {
+    for (const body of REFERENCES) {
+      const svg = `<svg>${body}</svg>`
+
+      assert.doesNotThrow(() => component(svg), svg)
+      assert.doesNotThrow(() => raw(svg), svg)
     }
   })
 

@@ -17,6 +17,7 @@ import {
 } from './fixture-app.ts'
 
 type HookName = 'resolveId' | 'load' | 'transform'
+type Handler = (...args: unknown[]) => unknown
 type HookCalls = Record<HookName, number>
 type ReadCount = {
   context: TestContext
@@ -39,7 +40,7 @@ function isPlugin(value: unknown): value is Plugin {
   return typeof value === 'object' && value !== null && 'name' in value
 }
 
-function isHandler(value: unknown): value is (...args: unknown[]) => unknown {
+function isHandler(value: unknown): value is Handler {
   return typeof value === 'function'
 }
 
@@ -158,12 +159,18 @@ console.log(Star, Moon, ${plain.map(index => `value${index}`).join(', ')})
     assert.equal(reads(), 1)
   })
 
-  it('reads the folder of a collection once in a dev session', async context => {
+  it('reads the folder and writes the declarations once in a dev session', async context => {
     const root = await app(context)
     const reads = countReads({
       context,
       method: 'readdir',
       ending: `${path.sep}icons`
+    })
+    // writeTypesFile reads the file before each render.
+    const renders = countReads({
+      context,
+      method: 'readFile',
+      ending: TYPES_FILE
     })
     const server = await createServer({
       ...fixtureConfig({ root, isSsr: true }),
@@ -180,6 +187,7 @@ console.log(Star, Moon, ${plain.map(index => `value${index}`).join(', ')})
     }
 
     assert.equal(reads(), 1)
+    assert.equal(renders(), 1)
   })
 
   it('writes the declarations once for a new SVG file', async context => {

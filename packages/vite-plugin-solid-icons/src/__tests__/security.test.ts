@@ -13,6 +13,7 @@ import { createFixtureApp, defer, fixtureConfig } from './fixture-app.ts'
 type ServerEntry = { html: () => string }
 type EntryInput = { context: TestContext; code: string; files?: Files }
 type Files = Record<string, string>
+type RefusedSvg = [name: string, svg: string, message: RegExp]
 type FilesInput = { root: string; files: Files }
 
 // Text and a value that would run code if the markup reached the module or
@@ -160,7 +161,7 @@ describe('the markup of an SVG file', () => {
   })
 
   it('stops the build with the icon and the problem', async context => {
-    const cases: [string, string, RegExp][] = [
+    const cases: RefusedSvg[] = [
       [
         'script',
         '<svg><script>globalThis.__iconPwned = 3</script></svg>',

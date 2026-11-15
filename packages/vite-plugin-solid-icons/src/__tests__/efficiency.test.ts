@@ -196,6 +196,7 @@ console.log(Star, Moon, ${plain.map(index => `value${index}`).join(', ')})
         solidIcons({ collections: { own: './icons' } }),
         ...(fixtureConfig({ root, isSsr: true }).plugins ?? []).slice(1)
       ],
+      optimizeDeps: { noDiscovery: true },
       server: {
         middlewareMode: true,
         watch: { usePolling: true, interval: POLL_INTERVAL }

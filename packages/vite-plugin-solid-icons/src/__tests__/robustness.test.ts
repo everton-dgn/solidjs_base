@@ -190,6 +190,7 @@ describe('the declarations file', () => {
       // The optimizer of the dev server keeps its own folder, away from the
       // builds.
       cacheDir: '.vite-dev',
+      optimizeDeps: { noDiscovery: true },
       server: { watch: null, middlewareMode: true }
     })
     defer({
@@ -291,6 +292,7 @@ describe('a folder of icons', () => {
     const server = await createServer({
       ...fixtureConfig({ root, isSsr: false }),
       customLogger: warnings(list),
+      optimizeDeps: { noDiscovery: true },
       server: {
         middlewareMode: true,
         watch: { usePolling: true, interval: POLL_INTERVAL }
@@ -404,6 +406,7 @@ import { createServer } from 'vite-plus'
 import { fixtureConfig } from ${JSON.stringify(fixture)}
 const server = await createServer({
   ...fixtureConfig({ root: process.argv[1], isSsr: false }),
+  optimizeDeps: { noDiscovery: true },
   server: { port: 0, strictPort: false, watch: { usePolling: true, interval: 100 } }
 })
 await server.listen()

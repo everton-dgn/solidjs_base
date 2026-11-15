@@ -248,6 +248,7 @@ describe('an icon import', () => {
     const server = await createServer({
       ...fixtureConfig({ root, isSsr: false, typesFile: false }),
       logLevel: 'silent',
+      optimizeDeps: { noDiscovery: true },
       server: { port: 0, strictPort: false, watch: null }
     })
     defer({ context, task: () => server.close() })

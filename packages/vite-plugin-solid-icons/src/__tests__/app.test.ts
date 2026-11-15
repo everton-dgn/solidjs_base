@@ -179,6 +179,7 @@ test('an application renders the icons', async context => {
     async () => {
       const server = await createServer({
         ...fixtureConfig({ root, isSsr: true }),
+        optimizeDeps: { noDiscovery: true },
         server: { middlewareMode: true, ws: false },
         appType: 'custom'
       })

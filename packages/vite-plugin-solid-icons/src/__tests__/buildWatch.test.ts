@@ -28,6 +28,7 @@ const BUILD_TIMEOUT = 60_000
 const CLOSE_TIMEOUT = 30_000
 // The log line of Vite that ends each build of a watched build.
 const BUILT = /built in \d+ms/gu
+const NODE_WARNING = /^\(node:\d+\) |^\(Use `node --trace-/u
 const SUN_PATH = 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z'
 const SUN_SVG = `<svg viewBox="0 0 24 24"><path d="${SUN_PATH}"/></svg>`
 const FIXTURE = pathToFileURL(path.join(import.meta.dirname, 'fixture-app.ts'))
@@ -63,6 +64,16 @@ async function hasBundleText({ root, text }: BundleText): Promise<boolean> {
   return contents.some(content => content.includes(text))
 }
 
+// The output of the build without the warnings of Node itself, so only an
+// error of the build stops the wait.
+function buildErrors(output: BuildOutput): string {
+  return output.stderr
+    .split('\n')
+    .filter(line => !NODE_WARNING.test(line))
+    .join('\n')
+    .trim()
+}
+
 function builds(output: BuildOutput): number {
   return output.stdout.match(BUILT)?.length ?? 0
 }
@@ -78,8 +89,9 @@ async function waitForBuild({
   const deadline = Date.now() + BUILD_TIMEOUT
   let seen = builds(output)
   for (;;) {
-    if (output.stderr !== '') {
-      throw new Error(`The watched build failed ${step}:\n${output.stderr}`)
+    const errors = buildErrors(output)
+    if (errors !== '') {
+      throw new Error(`The watched build failed ${step}:\n${errors}`)
     }
     if (builds(output) > seen) {
       seen = builds(output)

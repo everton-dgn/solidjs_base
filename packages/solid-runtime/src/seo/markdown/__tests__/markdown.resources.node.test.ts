@@ -1,11 +1,11 @@
 import { Router } from '@testing/markdown/router.ts'
 import { readLog } from '@testing/readLog/index.ts'
 import { SITE } from '@testing/seo/site.ts'
+import { markdown } from 'virtual:solid-app/seo-markdown'
 
 import {
   MARKDOWN_TIMEOUT_MS,
-  MAX_HTML_BYTES,
-  MAX_MARKDOWN_BYTES
+  MAX_HTML_BYTES
 } from '#solid-runtime/infra/server/publication/protocol.js'
 
 import {
@@ -19,6 +19,7 @@ import {
 } from './fixtures.ts'
 
 const EXPANDING_LINK = '<a href="/">x</a> '
+const EXPANDING_LINK_COUNT = 10
 const HTTP_SERVER_ERROR = 500
 const HTTP_UNAVAILABLE = 503
 const LOG_MESSAGE = '[middleware] Unexpected failure; private details omitted'
@@ -200,12 +201,21 @@ describe('markdown resource bounds', () => {
   })
 
   it('rejects Markdown that grows beyond the output budget from valid HTML', async () => {
-    const expectedLink = `[x](${new URL('/', SITE.url).href}) `
-    const count = Math.floor(MAX_MARKDOWN_BYTES / expectedLink.length) + 1
-    const htmlBody = `<main>${EXPANDING_LINK.repeat(count)}</main>`
-    expect(new TextEncoder().encode(htmlBody).byteLength).toBeLessThan(
-      MAX_HTML_BYTES
+    const expectedLink = `[x](${new URL('/', SITE.url).href})`
+    const htmlBody = `<main>${EXPANDING_LINK.repeat(EXPANDING_LINK_COUNT)}</main>`
+    const htmlBytes = new TextEncoder().encode(htmlBody).byteLength
+    expect(expectedLink.length * EXPANDING_LINK_COUNT).toBeGreaterThan(
+      htmlBytes
     )
+    // WHY: the default budget needs megabytes of HTML to overflow, and their
+    // conversion outlasts the test timeout on a busy machine. A budget the size
+    // of this HTML keeps the same case: valid input that grows past the limit.
+    const { maxOutputBytes } = markdown
+    markdown.maxOutputBytes = htmlBytes
+    onTestFinished(() => {
+      markdown.maxOutputBytes = maxOutputBytes
+    })
+    resetPublicationController()
     vi.spyOn(console, 'error').mockReturnValue()
     const response = await markdownContent(
       event({ path: '/fr/about.md' }),

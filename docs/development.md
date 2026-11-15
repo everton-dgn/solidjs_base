@@ -225,9 +225,9 @@ of the original at the copied commit.
 ## README figures
 
 The root, application and package READMEs share the themed `.webp` files in
-`docs/assets/readme/`. Their source is `figures.html`, with twenty-nine figures.
-Twenty-six are drawn in HTML and CSS from repository code, measured counts and
-command output; `app-home`, `app-locales` and `ui-kit` frame real captures of
+`docs/assets/readme/`. Their source is `figures.html`, with twenty-eight
+figures. Twenty-six are drawn in HTML and CSS from repository code, measured
+counts and command output; `app-home` and `app-locales` frame real captures of
 the boilerplate app. The lint message in `layers` and the Knip report in
 `dead-code` are real output, taken from a temporary copy of the app with the
 violation added, so the repository keeps no violation. Open it with
@@ -262,37 +262,27 @@ The capture figures load screenshots from `docs/assets/readme/captures/`, named
 `<figure>[-<part>]-<theme>.webp`. They are versioned next to `figures.html` so
 the file opens complete. Take them from the running copy, never from a drawing:
 
-1. Run `vp run build` at the root. In `apps/boilerplate`, run
-   `vp run build --mode e2e` first, for `/ui-kit`, which exists only in that
-   build; then `vp run build`, for the home page, so the last build in
-   `.vercel/output` is the production one.
-2. Start each build with
+1. Run `vp run build` at the root, then `vp run build` in `apps/boilerplate`, so
+   `.vercel/output` holds the production build of the app.
+2. Start the build with
    `HOST=127.0.0.1 PORT=<free port> NODE_ENV=production vp run start --strictPort`.
    Record the PID of the listener and stop it, and only it, after capturing.
 3. Capture in headless Chromium, in a process of its own, with device scale
    factor 2 and the theme set by the `app-theme` cookie. Check the class and
    `lang` of `<html>` before each capture.
 4. Capture at the CSS width the figure shows: 750 px for `app-home` and
-   `app-locales`, 368 px for the five `ui-kit` clips (language menu, input,
-   textarea with buttons, dialog and toasts). The figure shows them at 1:1, so
-   the app text keeps its own size. Grow each clip until every text it touches
-   is whole.
-5. Keep page content out from under overlays. The top bar is fixed over the
-   fixture route, and the menu, the dialog backdrop and the toasts cover the
-   page. Clip the language menu from the right edge of a 1,400 px viewport,
-   where it opens beside the 640 px page column, and capture the dialog and the
-   toasts in a 368 by 2,400 px viewport, where they sit below the fixture
-   content. Check every text node that touches a clip with
-   `document.elementFromPoint`: none may be cut by the edge or covered by
-   another element.
-6. Save lossless WebP. Set the `width` and `height` of each `<img>` to the clip
+   `app-locales`. The figure shows them at 1:1, so the app text keeps its own
+   size. Grow each clip until every text it touches is whole. Check every text
+   node that touches a clip with `document.elementFromPoint`: none may be cut by
+   the edge or covered by another element.
+5. Save lossless WebP. Set the `width` and `height` of each `<img>` to the clip
    size in CSS pixels. The figure export fails when a capture does not load or
    is not shown at 1:1 in both directions.
 
 The 14 px rule covers the text drawn in `figures.html`. Inside a capture, record
 the smallest text of the app instead: 12 px in `app-home` and `app-locales`, the
-uppercase badge and footer line of the home page, and 14 px in `ui-kit`.
-Recapture when the pages, the UI kit or the theme change.
+uppercase badge and footer line of the home page. Recapture when the pages or
+the theme change.
 
 Every numeric claim in a figure also appears in the README text. Recount current
 configuration lines, direct manifest declarations, runtime entries, test cases

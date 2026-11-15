@@ -846,9 +846,9 @@ undefined for blocked access. themeColor uses light for system during SSR; the
 script resolves the actual system preference before hydration.
 
 Call createTheme once per provider tree. It applies choices before persistence,
-uses the cookie name for BroadcastChannel, and reconciles focus, pageshow and
-visibility changes. The cookie is the default storage and the only one a server
-can read.
+names its BroadcastChannel after the cookie name, or the storage key of the
+local form below, and reconciles focus, pageshow and visibility changes. The
+cookie is the default storage and the only one a server can read.
 
 An application with no server, such as a static site, a page served by another
 backend or an app shell like Electron, Tauri or Capacitor, can pass
@@ -871,17 +871,19 @@ export const { createTheme, defaultTheme, themes } = defineTheme({
 To paint the first frame in the stored theme, `storedThemeScript` from
 `@evertondgn/solid-runtime/theme/stored-theme-script` returns the code of a
 classic script that reads the same key and applies the class, `color-scheme` and
-`theme-color`, with the system preference as fallback. That entry is plain
-JavaScript with types, so `vite.config.ts` can import it from Node. Emit the
-code as an external file loaded at the start of `<head>`, so it needs no nonce
-and runs from `file://`; the
+`theme-color`, with the system preference as fallback. A `theme-color` meta that
+follows the script in `<head>` gets the color once the parser adds it. That
+entry is plain JavaScript with types, so `vite.config.ts` can import it from
+Node. Emit the code as an external file loaded at the start of `<head>`, so it
+needs no nonce and runs from `file://`; the
 [no-server guide](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)
 has a plugin for that.
 
 Separate entries also expose `theme/types`, `theme/is-theme`,
-`theme/apply-theme`, `theme/theme-storage`, `theme/make-system-theme`,
-`theme/make-theme-channel`, `theme/make-broadcast-channel`, `theme/create-theme`
-and `theme/create-theme/types`. Storage, theme channel and primitive take
+`theme/apply-theme`, `theme/stored-theme-script`, `theme/theme-storage`,
+`theme/make-system-theme`, `theme/make-theme-channel`,
+`theme/make-broadcast-channel`, `theme/create-theme` and
+`theme/create-theme/types`. Storage, theme channel and primitive take
 ThemeConfig, which is ThemeOptions for the cookie or LocalStorageThemeOptions,
 as their first argument. The factory binds those options for normal application
 use.

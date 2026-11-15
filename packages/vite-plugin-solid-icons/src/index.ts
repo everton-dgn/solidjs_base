@@ -192,6 +192,7 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
   let tables: NameTables = createNameTables({ root, folders })
   let typesFile: string | undefined
   let logger: Logger | undefined
+  let isWatchedBuild = false
   let lastTypesEvent = ''
   const warnedIcons = new Set<string>()
   const idsByFile: ModuleIds = new Map()
@@ -220,6 +221,7 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     enforce: 'pre',
     async configResolved(config) {
       ;({ root, logger } = config)
+      isWatchedBuild = config.command === 'build' && Boolean(config.build.watch)
       folders = resolveFolders({ root, collections })
       // The folders that the build reads from now on.
       const identities = await readFolderIdentities(folders)
@@ -232,6 +234,20 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     },
     configureServer(server) {
       server.watcher.add([...folders.values()])
+    },
+    // WHY: a watched build sees a new SVG only in a folder it watches, and
+    // keeps the names of the collections between its builds; the dev server
+    // answers the same changes in hotUpdate.
+    buildStart() {
+      if (!isWatchedBuild) return
+      for (const folder of folders.values()) this.addWatchFile(folder)
+    },
+    async watchChange(id, { event }) {
+      if (!isWatchedBuild || event === 'update') return
+      const icons = iconsOfFile({ folders, file: fileKey(id) })
+      if (icons.length === 0) return
+      for (const { collection } of icons) tables.invalidate(collection)
+      await reportTypes()
     },
     resolveId: {
       filter: { id: ICON_SPECIFIER },

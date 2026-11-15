@@ -438,6 +438,10 @@ The dev server follows the files of every folder collection:
 Adding, removing and renaming reload the page, because a page whose import
 failed cannot apply a hot update.
 
+A build with `--watch` follows the same folders: a file added, removed or
+renamed changes the names of its collection and the declaration file, and the
+next build reads them.
+
 ## Server rendering
 
 The icon module goes through the Solid plugin of the application as a TSX file,

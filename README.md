@@ -117,17 +117,17 @@ application entries, Router, App and Document. The
 
 ## What you get
 
-| You need            | Solid Base gives you                                                                                      | From                                             |
-| ------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| An app config       | `vite.config.ts` in one call: plugins, build, SSR, lint, formatting, test projects and `vp run` tasks     | `solid-tooling`                                  |
-| Languages           | Your own locale list, validated catalogs, localized URLs, redirects, cookies and navigation               | Both packages                                    |
-| A theme             | Light, dark or system without a flash, kept in sync across tabs                                           | `solid-runtime`                                  |
-| Server protection   | Eight security headers and a nonce CSP by default, a shared middleware chain and private server errors    | `solid-runtime`                                  |
-| SEO and publication | Metadata, escaped JSON-LD, robots, sitemaps, Markdown copies of your pages and `llms.txt`, within budgets | `solid-runtime`                                  |
-| Assets and env      | Icons from Iconify or your SVGs, fonts with matching preloads, validated environment values               | Both packages                                    |
-| Quality rules       | Layer rules, backend restrictions, CSS tokens, dead code detection, commit format and a secret scan       | `solid-tooling`                                  |
-| Tests               | Node, DOM and browser Vitest projects, and a Playwright config that checks the server log                 | `solid-tooling`                                  |
-| A running app       | UI kit, five pages, three locales, SEO routes, outdated-page recovery and 319 E2E cases to learn from     | [`apps/boilerplate`](apps/boilerplate/README.md) |
+| You need            | Solid Base gives you                                                                                                | From                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| An app config       | `vite.config.ts` in one call: plugins, build, SSR, lint, formatting, test projects and `vp run` tasks               | `solid-tooling`                                  |
+| Languages           | Your own locale list, validated catalogs, localized URLs, redirects, cookies and navigation                         | Both packages                                    |
+| A theme             | Light, dark or system without a flash, kept in sync across tabs                                                     | `solid-runtime`                                  |
+| Server protection   | Eight security headers by default, a nonce CSP in production builds, one middleware chain and private server errors | `solid-runtime`                                  |
+| SEO and publication | Metadata, escaped JSON-LD, robots, sitemaps, Markdown copies of your pages and `llms.txt`, within budgets           | `solid-runtime`                                  |
+| Assets and env      | Icons from Iconify or your SVGs, fonts with matching preloads, validated environment values                         | Both packages                                    |
+| Quality rules       | Layer rules, backend restrictions, CSS tokens, dead code detection, commit format and a secret scan                 | `solid-tooling`                                  |
+| Tests               | Node, DOM and browser Vitest projects, and a Playwright config that checks the server log                           | `solid-tooling`                                  |
+| A running app       | UI kit, five pages, three locales, SEO routes, outdated-page recovery and 319 E2E cases to learn from               | [`apps/boilerplate`](apps/boilerplate/README.md) |
 
 ## Only what you use
 
@@ -300,13 +300,15 @@ theme switching needs none of these imports or settings. See the
   <img src="docs/assets/readme/security-headers-light.webp" alt="Output of curl -sI on the boilerplate production preview at /en: strict-transport-security max-age=63072000 with includeSubDomains, x-frame-options DENY, x-content-type-options nosniff, referrer-policy strict-origin-when-cross-origin, a permissions-policy that blocks camera, microphone and geolocation, same-origin opener and resource policies, require-corp embedder policy, and a content-security-policy whose script-src carries a request nonce and strict-dynamic. The next requests carried different nonces." width="800" />
 </picture>
 
-With `createSecurityHeaders()` and no options, every page response gets eight
-security headers and a Content Security Policy. `script-src` is built from a
-nonce that changes on each request, so only the scripts that carry it, and the
-modules they load, can run. The six other directives keep resources, styles,
-base URLs and form targets on the same origin, and block plugins and framing.
-Change a value by spreading `SECURITY_HEADERS` or `CSP_DIRECTIVES` and passing
-the result to `createSecurityHeaders`, as the
+In a production build, `createSecurityHeaders()` with no options puts eight
+security headers and a Content Security Policy on every page response. The
+development server sends the eight headers without the CSP, because hot module
+replacement injects inline styles. `script-src` is built from a nonce that
+changes on each request, so only the scripts that carry it, and the modules they
+load, can run. The six other directives keep resources, styles, base URLs and
+form targets on the same origin, and block plugins and framing. Change a value
+by spreading `SECURITY_HEADERS` or `CSP_DIRECTIVES` and passing the result to
+`createSecurityHeaders`, as the
 [copy does](apps/boilerplate/src/middleware/securityHeaders/constants.ts).
 
 | Header                         | Default value                                                                                                                                 |
@@ -443,13 +445,16 @@ and the copy's [SEO guide](apps/boilerplate/docs/seo.md).
 
 Give crawlers and agents a clean text version of your pages without writing it
 twice. Turn on a Markdown copy of your pages and an `llms.txt` index with preset
-data:
+data, next to the SSR options from the [quick start](#quick-start):
 
 ```ts
+import { SECURITY_HEADERS } from '@evertondgn/solid-runtime/middleware/security-headers/constants'
 import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
 
 export default defineSolidApp({
   root: import.meta.dirname,
+  securityHeaders: SECURITY_HEADERS,
+  middleware: './src/middleware.ts',
   seo: {
     markdown: { static: true },
     llms: {},
@@ -457,6 +462,9 @@ export default defineSolidApp({
   }
 })
 ```
+
+With `seo` set, the preset reads your site origin from `VITE_SITE_URL` and stops
+with `Missing site origin` when the variable is empty.
 
 A page opts in with `route.info.markdown`. A request for the `.md` URL, or for
 the page with `Accept: text/markdown`, gets the Markdown, and the response links
@@ -466,9 +474,12 @@ settled HTML of the same page, so there is no second copy of the content.
 shares the publication controller with the sitemap. The build writes static
 `.md` files when `markdown.static` is on; `markdown: {}` converts per request
 only. `createLlms` returns the `GET` handler of `llms.txt`, and your app chooses
-the notes and pages it lists. Each feature is independent: leave one out and its
-routes, modules, header rules and `Link` announcements stay out of the build.
-Without i18n, the files are served without a locale prefix.
+the notes and pages it lists. Pick the parts you want: a feature you leave out
+keeps its routes, modules, header rules and `Link` announcements out of the
+build. `llmsFull` is the one with prerequisites, since the full file is built
+from the static Markdown: it needs `llms` and `markdown: { static: true }`, and
+the config fails to load without them. Without i18n, the files are served
+without a locale prefix.
 
 Conversion has input and output byte budgets and a deadline, and the indexes
 fail the build instead of being truncated when they pass their budget. The

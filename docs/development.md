@@ -229,9 +229,17 @@ figures. Twenty-five are drawn in HTML and CSS from repository code, measured
 counts and command output; `app-home`, `app-locales` and `ui-kit` frame real
 captures of the boilerplate app. Open it with `?figure=<id>&theme=<dark|light>`
 to see one section, or without parameters to see them all. The figures reuse the
-existing color tokens, sans-serif type and SolidJS symbol. Package READMEs load
-them from `raw.githubusercontent.com`, so a renamed figure breaks the npm page
-of the last published version.
+existing color tokens, sans-serif type and SolidJS symbol.
+
+Package READMEs load the figures from `raw.githubusercontent.com` on `main`.
+Three consequences follow:
+
+- A renamed or removed figure breaks the npm page of the last published version.
+- A regenerated figure changes under the README already on npm. Its numbers can
+  disagree with that README's text until the next version publishes the matching
+  text.
+- A figure that exists only on a branch is missing from npm. Publish a package
+  version only after every figure its README references is on `main`.
 
 Export each section in a separate headless browser context with an 800 px
 viewport, device scale factor 2 and a transparent screenshot background. Convert
@@ -371,9 +379,10 @@ client-only fixture uses `createLocalizedNavigate` and `localeTag` while its
 bundle audit keeps rejecting translation modules. It tests unprefixed DOM
 navigation, query, hash, state, history and the single-language `setLocale`
 no-op. Its additional `isolated-language` case sets `language: 'zh-Hant-TW'`.
-The matrix has nine application cases plus the version-alignment test. The
-alignment check also resolves and compares every runtime production dependency
-against the workspace catalog and application/tooling pins.
+The matrix has 14 application cases plus the version-alignment test: 3
+client-only, 9 SSR plain and 2 SSR i18n. The alignment check also resolves and
+compares every runtime production dependency against the workspace catalog and
+application/tooling pins.
 
 The locale negative probes use `SCENARIO_MUTATION=locale-provider` or
 `locale-node` with `ssr-plain / isolated$`, and `locale-prefix` with
@@ -544,8 +553,8 @@ The installed client-only and SSR plain fixtures generate a 448-byte original
 CC0 WOFF2 font from `src/tarball/font-fixture.ts`, without a new dependency.
 Both linkers audit single emission, external CSS, absence of inline style and
 exact CSS/preload hash equality. SSR i18n retains the no-font case and rejects
-font assets, face declarations and bundled runtime font modules. The matrix
-still has nine installed cases plus version alignment.
+font assets, face declarations and bundled runtime font modules. The fonts
+checks add no case to the matrix.
 
 Use `SCENARIO_MUTATION=fonts-href` or `fonts-inline` with
 `ssr-plain / isolated$`, and `fonts-import` with `ssr-i18n / isolated$`, to

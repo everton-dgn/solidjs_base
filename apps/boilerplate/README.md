@@ -33,18 +33,18 @@ the copy exists.
 
 ## What comes ready
 
-| Feature            | What you get in this app                                                                                     | Guide                                                                          |
-| ------------------ | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| Pages | Home, about, contact, privacy and a 404, a top bar, language and theme switchers, `LocalizedLink` and an error page | [Architecture](docs/architecture.md)                                           |
-| Three languages    | Portuguese, English and Spanish from colocated catalogs, English as the base locale, the locale in the URL   | [I18n](docs/i18n.md)                                                           |
-| Theme              | Light, dark or system, applied before hydration and kept in sync across tabs, with tokens from `light-dark()` | [UI](docs/ui.md)                                                               |
-| UI kit             | `Button`, `Input`, `Textarea`, `Dialog`, toasts and `DropdownMenu`, all in this folder for you to restyle    | [UI](docs/ui.md)                                                               |
-| Security headers   | Eight headers and a nonce CSP from the runtime defaults, three of them also on static files                  | [Security](docs/security.md)                                                   |
-| Server errors      | Fresh public errors in production, one HTTP exit (`requestJson`) and wrapped SDK adapters                    | [Server errors](docs/server-errors.md)                                         |
-| SEO routes         | `robots.txt`, `sitemap.xml`, partitioned `sitemaps/`, `llms.txt` and a Markdown copy of each opted-in page   | [SEO](docs/seo.md)                                                             |
-| Outdated pages     | A tab from the previous build moves to the new one and reloads only where nothing is lost                     | [Recovery](docs/server-errors/recovery.md#outdated-page-after-a-deploy)        |
-| Env, icons, fonts  | Validated `env.ts`, icons as Solid components and two Inter subsets with matching preloads                    | [UI](docs/ui.md#fonts)                                                         |
-| Tests              | Node, DOM and browser Vitest projects and 319 Playwright cases across 15 areas                               | [Testing](docs/testing.md)                                                     |
+| Feature           | What you get in this app                                                                                            | Guide                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Pages             | Home, about, contact, privacy and a 404, a top bar, language and theme switchers, `LocalizedLink` and an error page | [Architecture](docs/architecture.md)                                    |
+| Three languages   | Portuguese, English and Spanish from colocated catalogs, English as the base locale, the locale in the URL          | [I18n](docs/i18n.md)                                                    |
+| Theme             | Light, dark or system, applied before hydration and kept in sync across tabs, with tokens from `light-dark()`       | [UI](docs/ui.md)                                                        |
+| UI kit            | `Button`, `Input`, `Textarea`, `Dialog`, toasts and `DropdownMenu`, all in this folder for you to restyle           | [UI](docs/ui.md)                                                        |
+| Security headers  | Eight headers from the runtime defaults, three of them also on static files, and a nonce CSP in production          | [Security](docs/security.md)                                            |
+| Server errors     | Fresh public errors in production, one HTTP exit (`requestJson`) and wrapped SDK adapters                           | [Server errors](docs/server-errors.md)                                  |
+| SEO routes        | `robots.txt`, `sitemap.xml`, partitioned `sitemaps/`, `llms.txt` and a Markdown copy of each opted-in page          | [SEO](docs/seo.md)                                                      |
+| Outdated pages    | A tab from the previous build moves to the new one and reloads only where nothing is lost                           | [Recovery](docs/server-errors/recovery.md#outdated-page-after-a-deploy) |
+| Env, icons, fonts | Validated `env.ts`, icons as Solid components and two Inter subsets with matching preloads                          | [UI](docs/ui.md#fonts)                                                  |
+| Tests             | Node, DOM and browser Vitest projects and 319 Playwright cases across 15 areas                                      | [Testing](docs/testing.md)                                              |
 
 ### The same page in three languages
 
@@ -57,8 +57,8 @@ the copy exists.
 Every page lives under `/pt`, `/en` or `/es`, with `lang`, the navigation and
 the metadata in that language. Messages sit next to the component that uses
 them, in `i18n/{pt,en,es}.json`. `vp run i18n:generate`, which `check:ci`,
-`lint` and the test scripts call first, fails on a missing translation, a duplicate ID or a
-parameter that differs between locales.
+`lint` and the test scripts call first, fails on a missing translation, a
+duplicate ID or a parameter that differs between locales.
 
 ### A UI kit to restyle
 
@@ -69,8 +69,8 @@ parameter that differs between locales.
 </picture>
 
 - `Button` with variants, sizes and a `label` shortcut for text-only buttons.
-- `Input` and `Textarea` with native props, the initial value in the server
-  HTML and a destructive variant that sets `aria-invalid`.
+- `Input` and `Textarea` with native props, the initial value in the server HTML
+  and a destructive variant that sets `aria-invalid`.
 - `Dialog` on the native `dialog` element: the browser confines the focus and
   returns it to the control that opened it.
 - Toasts that queue up to five, pause on hover, focus or a hidden tab, and
@@ -80,8 +80,8 @@ parameter that differs between locales.
   switchers of the top bar.
 
 The capture comes from the `/ui-kit` route at 368 px wide, an E2E fixture that
-only exists in the `e2e` build (`src/tests/fixtures/e2e/routes/(base)/ui-kit/`). In your app,
-the components come from `src/components/`.
+only exists in the `e2e` build (`src/tests/fixtures/e2e/routes/(base)/ui-kit/`).
+In your app, the components come from `src/components/`.
 
 ### Outdated pages after a deploy
 
@@ -94,9 +94,9 @@ the components come from `src/components/`.
 `installOutdatedPageDetection` marks the page when a chunk of the previous build
 is gone or a server function answers 404 or 409 with
 `X-Server-Function-Unknown`. `createOutdatedPageGuard` turns the next path
-change into a document navigation, unless the page registered unsaved changes.
-A refused submission shows `OutdatedPageNotice` instead of reloading by itself.
-At the root, `ErrorFallback` gives way to a single reload; if the failure comes
+change into a document navigation, unless the page registered unsaved changes. A
+refused submission shows `OutdatedPageNotice` instead of reloading by itself. At
+the root, `ErrorFallback` gives way to a single reload; if the failure comes
 back within 30 seconds, the error page appears with a manual reload.
 
 ## Running it
@@ -130,9 +130,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
 
 `curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
 nonce that changes on every request. `/en/about.md`, or `/en/about` with
-`Accept: text/markdown`, returns the page as Markdown, and `/llms.txt` lists
-the pages. The [scripts table](docs/development.md#scripts) lists every command,
-and the [root development guide](../../docs/development.md#the-boilerplate-app)
+`Accept: text/markdown`, returns the page as Markdown, and `/llms.txt` lists the
+pages. The [scripts table](docs/development.md#scripts) lists every command, and
+the [root development guide](../../docs/development.md#the-boilerplate-app)
 lists what changed from the original and how to update the copy.
 
 The development scripts include `vp run dev:phone`, to open the app on a phone
@@ -161,17 +161,18 @@ declares 14 direct dependencies, against 28 before the packages.
 
 `env.ts` spreads the runtime package's `serverEnv` validators for `HOST`, `PORT`
 and `BASE_URL_TEST`. The SEO preset validates this copy's `VITE_SITE_URL`
-origin; it keeps its direct Valibot dependency. `ImportMetaEnv` now contains
-only the application-owned `PUBLICATION_BUILD_ID`. The runtime is in
-`dependencies`; the tooling remains in `devDependencies`, including with Knip's
-strict production check. See
+origin; it keeps its direct Valibot dependency. `ImportMetaEnv` declares only
+the application-owned `PUBLICATION_BUILD_ID`. The runtime is in `dependencies`;
+the tooling remains in `devDependencies`, including with Knip's strict
+production check. See
 [environment and preview](docs/development.md#environment-and-preview).
 
 Bun applies two patches from `patches/`, registered in the root `package.json`:
 one fixes conversion differences of `@mdream/js`
 ([Markdown guide](docs/seo/markdown.md)), and one makes `@solidjs/web` end the
 render when the default serializer fails synchronously
-([SSR integrity](docs/server-errors/ssr-integrity.md)). The packages do not ship these patches.
+([SSR integrity](docs/server-errors/ssr-integrity.md)). The packages do not ship
+these patches.
 
 Middleware, security headers, server errors, the theme, locale navigation, SEO,
 sitemaps, Markdown and `llms.txt` come from runtime factories. The copy keeps
@@ -183,25 +184,25 @@ metadata and its content sources.
 The guides describe this copy. Their sections about releases, CI, Git hooks and
 the Vercel deploy describe the original repository.
 
-| Guide                                                          | What you will find                                                     |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| [Architecture and conventions](docs/architecture.md)           | Routes, component layers, modules and the import rules between layers |
-| [Development and delivery](docs/development.md)                | Prerequisites, environment, build, preview and every script           |
-| [Internationalization](docs/i18n.md)                           | Locales, catalogs, localized links, navigation and redirects          |
-| [Security headers and CSP](docs/security.md)                   | Header values, the nonce, static files and known limits               |
-| [SEO and site indexes](docs/seo.md)                            | Page metadata, `seo.ts` modules, robots and structured data           |
-| [Sitemap and content sources](docs/seo/sitemap.md)             | Array and partitioned sources, alternates and the sitemap index       |
-| [Markdown and reading by agents](docs/seo/markdown.md)         | Markdown copies, negotiation and the `@mdream/js` patch               |
-| [Editorial indexes, endpoints and cache](docs/seo/indexes.md)  | `llms.txt`, `llms-full.txt` and cache headers                         |
-| [Publication artifacts and capacity](docs/seo/publication.md)  | Static artifacts, the shared controller and its limits                |
-| [Server errors and backend calls](docs/server-errors.md)       | The public error contract and where each guide fits                   |
-| [Backend calls](docs/server-errors/backend.md)                 | `requestJson`, SDK adapters and their use in pages                    |
-| [Server failure logging](docs/server-errors/logging.md)        | The `[server-error]` line and what it filters                         |
+| Guide                                                           | What you will find                                                    |
+| --------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [Architecture and conventions](docs/architecture.md)            | Routes, component layers, modules and the import rules between layers |
+| [Development and delivery](docs/development.md)                 | Prerequisites, environment, build, preview and every script           |
+| [Internationalization](docs/i18n.md)                            | Locales, catalogs, localized links, navigation and redirects          |
+| [Security headers and CSP](docs/security.md)                    | Header values, the nonce, static files and known limits               |
+| [SEO and site indexes](docs/seo.md)                             | Page metadata, `seo.ts` modules, robots and structured data           |
+| [Sitemap and content sources](docs/seo/sitemap.md)              | Array and partitioned sources, alternates and the sitemap index       |
+| [Markdown and reading by agents](docs/seo/markdown.md)          | Markdown copies, negotiation and the `@mdream/js` patch               |
+| [Editorial indexes, endpoints and cache](docs/seo/indexes.md)   | `llms.txt`, `llms-full.txt` and cache headers                         |
+| [Publication artifacts and capacity](docs/seo/publication.md)   | Static artifacts, the shared controller and its limits                |
+| [Server errors and backend calls](docs/server-errors.md)        | The public error contract and where each guide fits                   |
+| [Backend calls](docs/server-errors/backend.md)                  | `requestJson`, SDK adapters and their use in pages                    |
+| [Server failure logging](docs/server-errors/logging.md)         | The `[server-error]` line and what it filters                         |
 | [Error validation and recovery](docs/server-errors/recovery.md) | Validation, recovery and the outdated page after a deploy             |
-| [SSR integrity](docs/server-errors/ssr-integrity.md)           | Render integrity before publishing converted HTML                     |
-| [Solid upgrades](docs/server-errors/solid-upgrades.md)         | What to check in the error contracts when Solid changes               |
-| [Components, theme and styles](docs/ui.md)                     | The UI kit, the theme, tokens, CSS rules, icons and fonts             |
-| [Tests](docs/testing.md)                                       | Vitest projects, E2E suites, production checks and reports            |
+| [SSR integrity](docs/server-errors/ssr-integrity.md)            | Render integrity before publishing converted HTML                     |
+| [Solid upgrades](docs/server-errors/solid-upgrades.md)          | What to check in the error contracts when Solid changes               |
+| [Components, theme and styles](docs/ui.md)                      | The UI kit, the theme, tokens, CSS rules, icons and fonts             |
+| [Tests](docs/testing.md)                                        | Vitest projects, E2E suites, production checks and reports            |
 
 `AGENTS.md` and the guides in `docs/` are in English. The code comments and the
 test titles are in Portuguese, as in the original.
@@ -236,11 +237,17 @@ in 12 files against the production build, 319 in total:
 | FragmentCss    |         2 |                0 |     2 |
 | LateRedirect   |         2 |                0 |     2 |
 | NotFound       |         2 |                0 |     2 |
- The listing records the
-inventory; those E2E cases were not run for this documentation update.
 
-The CI runs this app's check, Node type check, dead code, Vitest with
-coverage, tooling tests and the E2E suite of the `e2e` build on every pull
-request that changes the app, a package, a fixture or the root configuration.
-Run `vp run test:e2e:production` locally for the production suite. See
+`playwright test --list` gives those counts without running the cases. A
+sixteenth area stays out of both: `TEST_PUBLICATION_LOAD=true vp run test:e2e`
+runs `PublicationLoad`, 6 cases in 1 file, alone against two servers of the same
+build. It fills the publication slots on purpose, checks that normal HTML still
+answers and that the second server takes the work the first one refuses, so it
+never shares a run with the other suites. See
+[publication load](docs/testing.md#publication-load).
+
+The CI runs this app's check, Node type check, dead code, Vitest with coverage,
+tooling tests and the E2E suite of the `e2e` build on every pull request that
+changes the app, a package, a fixture or the root configuration. Run
+`vp run test:e2e:production` locally for the production suite. See
 [CI coverage](../../docs/development.md#ci).

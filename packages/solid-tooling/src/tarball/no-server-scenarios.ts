@@ -20,6 +20,7 @@ import { connect } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { env, stdout } from 'node:process'
+import { mock } from 'node:test'
 import { pathToFileURL } from 'node:url'
 
 import {
@@ -42,7 +43,14 @@ type NoServerInput = {
 type BuildInput = NoServerInput & { base: string; assetsDir: string }
 type Opened = { page: Page; fonts: string[] }
 type Exercise = Opened & { canReusePreload: boolean }
-type StaticServer = { origin: string; close: () => Promise<void> }
+type StaticServer = {
+  origin: string
+  // The first error of the request handler, which the scenario must report.
+  failure: () => Failure | undefined
+  close: () => Promise<void>
+}
+type Read = (file: string) => Buffer
+type Failure = { error: unknown }
 
 // The base of the GitHub Pages project sites; the host serves the build there.
 const SUBFOLDER = '/meu-repo/'
@@ -59,6 +67,7 @@ const INITIAL_COLOR = '#123456'
 const THEME_COLOR_META = `<meta name="theme-color" content="${INITIAL_COLOR}" />`
 const HTTP_NOT_FOUND = 404
 const HTTP_OK = 200
+const HTTP_SERVER_ERROR = 500
 const CONTENT_TYPES: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'text/javascript',
@@ -286,32 +295,55 @@ function isFileInside(root: string, file: string): boolean {
   )
 }
 
+function respond({
+  root,
+  read,
+  request,
+  response
+}: {
+  root: string
+  read: Read
+  request: IncomingMessage
+  response: ServerResponse
+}): void {
+  const { pathname } = new URL(request.url ?? '/', 'http://localhost')
+  const relative = pathname.startsWith(SUBFOLDER)
+    ? pathname.slice(SUBFOLDER.length) || 'index.html'
+    : undefined
+  const file = relative ? path.resolve(root, relative) : undefined
+  if (!file || !isFileInside(root, file)) {
+    response.writeHead(HTTP_NOT_FOUND).end()
+    return
+  }
+  const body = read(file)
+  response.writeHead(HTTP_OK, {
+    'content-type': CONTENT_TYPES[path.extname(file)] ?? 'text/plain'
+  })
+  response.end(body)
+}
+
 // Serves only the files of dist under SUBFOLDER; anything else is not found.
-async function serve(dist: string): Promise<StaticServer> {
+async function serve(dist: string, read: Read): Promise<StaticServer> {
   const root = path.resolve(dist)
-  const server = createServer(
-    (request: IncomingMessage, response: ServerResponse) => {
-      const { pathname } = new URL(request.url ?? '/', 'http://localhost')
-      const relative = pathname.startsWith(SUBFOLDER)
-        ? pathname.slice(SUBFOLDER.length) || 'index.html'
-        : undefined
-      const file = relative ? path.resolve(root, relative) : undefined
-      if (!file || !isFileInside(root, file)) {
-        response.writeHead(HTTP_NOT_FOUND).end()
-        return
-      }
-      response.writeHead(HTTP_OK, {
-        'content-type': CONTENT_TYPES[path.extname(file)] ?? 'text/plain'
-      })
-      response.end(readFileSync(file))
+  let failure: Failure | undefined
+  // WHY: an error thrown in the handler is uncaught and ends the process
+  // before any finally closes the browser and removes the folders.
+  const server = createServer((request, response) => {
+    try {
+      respond({ root, read, request, response })
+    } catch (error) {
+      failure ??= { error }
+      if (!response.headersSent) response.writeHead(HTTP_SERVER_ERROR)
+      response.end()
     }
-  )
+  })
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
   const address = server.address()
   assert.ok(address !== null && typeof address === 'object')
   return {
     origin: `http://127.0.0.1:${address.port}`,
+    failure: () => failure,
     close: async () => {
       const closed = once(server, 'close')
       server.close()
@@ -323,12 +355,18 @@ async function serve(dist: string): Promise<StaticServer> {
 }
 
 async function withServer<T>(
-  dist: string,
+  { dist, read = readFileSync }: { dist: string; read?: Read },
   use: (origin: string) => Promise<T>
 ): Promise<T> {
-  const server = await serve(dist)
+  const server = await serve(dist, read)
   try {
-    return await use(server.origin)
+    // WHY: use settles first, so the browser it opened is closed before the
+    // error of a request replaces the one it caused.
+    const [result] = await Promise.allSettled([use(server.origin)])
+    const failure = server.failure()
+    if (failure) throw failure.error
+    if (result.status === 'rejected') throw result.reason
+    return result.value
   } finally {
     await server.close()
   }
@@ -429,7 +467,7 @@ async function checkSubfolder(input: NoServerInput): Promise<void> {
     base: SUBFOLDER,
     assetsDir: DEFAULT_ASSETS_DIR
   })
-  await withServer(path.join(input.app, 'dist'), origin =>
+  await withServer({ dist: path.join(input.app, 'dist') }, origin =>
     withBrowser({ channel: CHANNEL }, async browser => {
       const context = await browser.newContext()
       const url = `${origin}${SUBFOLDER}`
@@ -460,6 +498,17 @@ async function withProfile<T>(
   }
 }
 
+async function withProfileFolder<T>(
+  use: (profile: string) => Promise<T>
+): Promise<T> {
+  const profile = mkdtempSync(path.join(tmpdir(), 'solid-no-server-profile-'))
+  try {
+    return await use(profile)
+  } finally {
+    rmSync(profile, { recursive: true, force: true })
+  }
+}
+
 async function checkFileProtocol(input: NoServerInput): Promise<void> {
   const html = await buildFor({
     ...input,
@@ -467,8 +516,7 @@ async function checkFileProtocol(input: NoServerInput): Promise<void> {
     assetsDir: OTHER_ASSETS_DIR
   })
   const url = pathToFileURL(path.join(input.app, 'dist/index.html')).href
-  const profile = mkdtempSync(path.join(tmpdir(), 'solid-no-server-profile-'))
-  try {
+  await withProfileFolder(async profile => {
     await withProfile(profile, async context => {
       const opened = await open(context, url)
       const assets = pathToFileURL(
@@ -487,9 +535,7 @@ async function checkFileProtocol(input: NoServerInput): Promise<void> {
       const { page } = await open(context, url)
       await page.locator('html.dark').waitFor({ state: 'attached' })
     })
-  } finally {
-    rmSync(profile, { recursive: true, force: true })
-  }
+  })
 }
 
 async function rawStatus(origin: string, target: string): Promise<number> {
@@ -549,7 +595,7 @@ export async function checkServerContainment(): Promise<void> {
       `${SUBFOLDER}assets`,
       `${SUBFOLDER}assets/`
     ]
-    await withServer(dist, async origin => {
+    await withServer({ dist }, async origin => {
       for (const target of outside) {
         assert.equal(await rawStatus(origin, target), HTTP_NOT_FOUND, target)
       }
@@ -569,7 +615,7 @@ export async function checkLaunchFailure(): Promise<void> {
     let origin = ''
     const missing = path.join(dist, 'missing-browser')
     await assert.rejects(
-      withServer(dist, async served => {
+      withServer({ dist }, async served => {
         origin = served
         // A keep-alive connection stays open across the failed launch.
         const response = await fetch(`${served}${SUBFOLDER}`)
@@ -585,6 +631,102 @@ export async function checkLaunchFailure(): Promise<void> {
   } finally {
     rmSync(dist, { recursive: true, force: true })
   }
+}
+
+// A request that throws in the handler gets a 500 and fails the scenario with
+// that error, after the server closes.
+export async function checkHandlerFailure(): Promise<void> {
+  const dist = mkdtempSync(path.join(tmpdir(), 'solid-no-server-handler-'))
+  try {
+    writeFileSync(path.join(dist, 'index.html'), '<!doctype html>')
+    let origin = ''
+    // The raw target // names an empty host, so new URL throws.
+    await assert.rejects(
+      withServer({ dist }, async served => {
+        origin = served
+        assert.equal(await rawStatus(served, '//'), HTTP_SERVER_ERROR)
+        assert.equal(await rawStatus(served, SUBFOLDER), HTTP_OK)
+      }),
+      { code: 'ERR_INVALID_URL' }
+    )
+    await assert.rejects(fetch(`${origin}${SUBFOLDER}`), /fetch failed/u)
+    const unreadable = new Error('The file cannot be read')
+    const statuses: number[] = []
+    await assert.rejects(
+      withServer(
+        {
+          dist,
+          read: () => {
+            throw unreadable
+          }
+        },
+        async served => {
+          origin = served
+          statuses.push(await rawStatus(served, SUBFOLDER))
+          // The page of a scenario fails too; the error of the read wins.
+          throw new Error('The page did not load')
+        }
+      ),
+      (error: unknown) => error === unreadable
+    )
+    assert.deepEqual(statuses, [HTTP_SERVER_ERROR])
+    await assert.rejects(fetch(`${origin}${SUBFOLDER}`), /fetch failed/u)
+  } finally {
+    rmSync(dist, { recursive: true, force: true })
+  }
+}
+
+export async function checkBrowserCloseFailure(): Promise<void> {
+  const dist = mkdtempSync(path.join(tmpdir(), 'solid-no-server-close-'))
+  const browsers: Browser[] = []
+  try {
+    writeFileSync(path.join(dist, 'index.html'), '<!doctype html>')
+    let origin = ''
+    const closing = new Error('The browser did not close')
+    await assert.rejects(
+      withServer({ dist }, served => {
+        origin = served
+        return withBrowser({ channel: CHANNEL }, async browser => {
+          browsers.push(browser)
+          mock.method(browser, 'close', () => Promise.reject(closing))
+          // The page keeps a connection open, which close must end.
+          const page = await browser.newPage()
+          await page.goto(`${served}${SUBFOLDER}`)
+        })
+      }),
+      (error: unknown) => error === closing
+    )
+    assert.equal(browsers.length, 1)
+    await assert.rejects(fetch(`${origin}${SUBFOLDER}`), /fetch failed/u)
+  } finally {
+    mock.restoreAll()
+    await Promise.all(browsers.map(browser => browser.close()))
+    rmSync(dist, { recursive: true, force: true })
+  }
+}
+
+export async function checkProfileFailure(): Promise<void> {
+  const launching = new Error('The profile did not open')
+  mock.method(chromium, 'launchPersistentContext', () =>
+    Promise.reject(launching)
+  )
+  const profiles: string[] = []
+  try {
+    await assert.rejects(
+      withProfileFolder(profile => {
+        profiles.push(profile)
+        assert.ok(existsSync(profile), profile)
+        return withProfile(profile, () => {
+          throw new Error('The profile must not open')
+        })
+      }),
+      (error: unknown) => error === launching
+    )
+  } finally {
+    mock.restoreAll()
+  }
+  assert.equal(profiles.length, 1)
+  for (const profile of profiles) assert.ok(!existsSync(profile), profile)
 }
 
 export async function checkNoServer(input: NoServerInput): Promise<void> {

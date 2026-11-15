@@ -83,11 +83,11 @@ run, and optional for the others. Without `--dry-run`, the command:
 1. Refuses a pull request that is closed, a draft or in conflict, one whose head
    is not the one passed with `--sha`, and one with an unresolved review
    conversation, which it lists with the path, the line and the author.
-2. Merges `main` into a branch that is behind, through the GitHub API and never
-   with a rebase. It goes on only when the new head is a merge commit whose
-   parents are the reviewed head and the tip of `main` it read before the
-   update, and stops otherwise, before approving or merging anything. It prints
-   the new head, which a second run takes with `--sha`.
+2. Merges the base branch, `main` here, into a branch that is behind, through
+   the GitHub API and never with a rebase. It goes on only when the new head is
+   a merge commit whose parents are the reviewed head and the tip of the base it
+   read before the update, and stops otherwise, before approving or merging
+   anything. It prints the new head, which a second run takes with `--sha`.
 3. Waits for `CI required` on the head. It counts only the checks of runs
    started by an event the ruleset accepts, such as `pull_request`, and ignores
    the check of a `workflow_dispatch` run. When the check is missing and the CI
@@ -113,10 +113,11 @@ failed call. While the command waits, a read that fails with an HTTP 5xx or 429
 answer, a network error or that stop is read again at the next interval, until
 the wait times out. Any other failed call ends the command, and a failed write
 is never repeated. `--interval <seconds>` sets the time between two reads (30 by
-default), `--timeout <minutes>` the longest wait for `CI required` and for the
-`Release` workflow (60), and `--registry-timeout <minutes>` the longest wait for
-each version on npm (10). The command lives in `tooling/release/`, and
-`vp run test:release` runs its tests.
+default), `--timeout <minutes>` the longest wait for the new head after an
+update, for `CI required` and for the `Release` workflow (60), and
+`--registry-timeout <minutes>` the longest wait for each version on npm (10).
+The command lives in `tooling/release/`, and `vp run test:release` runs its
+tests.
 
 Without the command, read the head and merge through the API. With `sha`, GitHub
 refuses the merge when the head changed after the review and the CI run:

@@ -9,6 +9,7 @@ application:
 | `packages/solid-runtime` | `@evertondgn/solid-runtime`: runtime helpers, published as TypeScript source       |
 | `apps/boilerplate`       | The boilerplate application, with its own [AGENTS.md](apps/boilerplate/AGENTS.md) |
 | `fixtures/apps`          | Minimal applications for the installed application scenarios                      |
+| `tooling/release`        | The command that merges a pull request, `vp run release:merge`                    |
 
 Read [Contributing](CONTRIBUTING.md), [Development](docs/development.md) and
 [Releasing](docs/releasing.md) before changing a package. The rules below are

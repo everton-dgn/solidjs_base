@@ -53,8 +53,9 @@ checks the publication of a release pull request.
                                 updating the branch, approving a run or merging
   --interval <seconds>          Time between two reads of a check, a workflow run
                                 or the registry (default 30)
-  --timeout <minutes>           Longest wait for CI required, and for the Release
-                                workflow after the merge (default 60)
+  --timeout <minutes>           Longest wait for the new head after an update, for
+                                CI required, and for the Release workflow after
+                                the merge (default 60)
   --registry-timeout <minutes>  Longest wait for each version on npm (default 10)
   -h, --help                    Print this help`
 

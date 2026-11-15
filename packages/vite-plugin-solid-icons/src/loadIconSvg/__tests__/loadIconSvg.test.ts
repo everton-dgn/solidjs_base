@@ -7,7 +7,9 @@ import { describe, it, type TestContext } from 'node:test'
 import { compileIcon } from '../../compileIcon/index.ts'
 import { readFolderFiles } from '../../folderFiles/index.ts'
 import type { IconCustomizer } from '../../types.ts'
-import { type IconFolder, loadIconSvg } from '../index.ts'
+import { loadIconSvg } from '../index.ts'
+
+type IconFolder = NonNullable<Parameters<typeof loadIconSvg>[0]['folder']>
 
 type FolderIcon = {
   context: TestContext

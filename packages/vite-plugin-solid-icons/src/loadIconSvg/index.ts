@@ -12,6 +12,8 @@ import type { FolderFiles } from '../folderFiles/index.ts'
 import { loadIconSet } from '../loadIconSet/index.ts'
 import type { IconCustomizer } from '../types.ts'
 
+type IconFolder = { path: string; files: FolderFiles }
+
 type IconSource = {
   collection: string
   name: string
@@ -177,8 +179,6 @@ async function loadInstalledIcon({
   }
   return { svg, file: undefined }
 }
-
-export type IconFolder = { path: string; files: FolderFiles }
 
 export function loadIconSvg(source: IconSource): Promise<IconSvg> {
   const { folder } = source

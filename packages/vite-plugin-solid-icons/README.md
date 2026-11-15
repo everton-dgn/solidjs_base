@@ -172,8 +172,9 @@ The string is written again from the markup that the file parses to, as the
 component is, so a browser reads the same elements as the plugin did:
 
 - It has the elements, attributes and text of the file, with one space between
-  the attributes. A value escapes `&`, `<` and `"`, and a text escapes `&` and
-  `<`.
+  the attributes. A value escapes `&`, `<` and `"`, and a text escapes `&`, `<`
+  and a `]]>`, also one that the pieces of a text form around a comment or a
+  CDATA section, so an XML parser reads the string back.
 - Comments, processing instructions, the XML declaration and a DOCTYPE are left
   out.
 - A CDATA section becomes escaped text. An `&` in the CSS of a `<style>` is
@@ -207,23 +208,26 @@ solidIcons({
 - A symbolic link to an SVG file is not read, so an icon cannot reach a file
   outside the folder. The error says that the file is a link. The folder itself
   may be a link.
-- The plugin reads the folder that it found when the dev server or the build
-  started, where a folder declared as a link led then. A folder replaced after
-  that, or a folder above it, by a link or by another folder, stops the imports
-  of its icons with the folder in the error, until you stop and start the dev
-  server. A checkout that removes the folder and creates it again does the same.
-- An icon is read from the file that the listing of the folder found. A file
-  that an editor saves by writing a new file and renaming it over the icon is
-  listed again and read; a file replaced by a hard link after the listing is
-  refused.
-- These checks leave a hard link that is in the folder when the plugin lists it,
-  which reads as a file of the folder. The dev server and a watched build list
-  the folder again when a file is added or removed there, so a hard link that
-  replaced a file reads as one after that. Node reads a folder by its path, so a
-  folder swapped and put back between two checks of one listing is not seen.
-  Windows has no flag to open a file without following a link, and the identity
-  of a file comes from its file system there: the checks are tested on macOS and
-  Linux.
+- The plugin keeps the folder that it found when the dev server or the build
+  started: its real path, where a folder declared as a link led then, and its
+  device and inode. Every read of an icon checks both, so a folder replaced
+  after that, or a folder above it, stops the imports of its icons with the
+  folder in the error, until you stop and start the dev server. That covers a
+  folder replaced by another folder, by a link to another folder, and a folder
+  moved away and replaced by a link to it, which keeps its files. A folder
+  declared as a link that leads to another folder after the start, and a
+  checkout that removes the folder and creates it again, stop the imports too.
+- The listing knows a file of the folder by its device and inode, not by its
+  path. A file with another identity, as an editor writes when it saves to a new
+  file and renames it over the icon, is listed again and read. A hard link reads
+  as the regular file it is, on every read: making one takes a write in the
+  folder, as a new SVG does, and a file moved over the icon reads the same way.
+- So an icon comes from a regular file of the folder that the plugin found
+  first, which does not tell where the content of the file came from. Node reads
+  a folder by its path, so a folder swapped and put back between two checks is
+  not seen. Windows has no flag to open a file without following a link, and the
+  identity of a file comes from its file system there: the checks are tested on
+  macOS and Linux.
 - A file whose name an import cannot spell, as in `my icon.svg` or `ícone.svg`,
   has no import and no export name. The dev server and the build warn once with
   its name.
@@ -242,6 +246,11 @@ code. What the plugin guarantees is that the markup of a file stays markup:
   a component or a DOM property, and Solid escapes the text and the values when
   it renders them. No part of the file that the plugin skips, such as a comment,
   reaches the page, where the HTML parser could end it in another place.
+- The text of `<text>` and of the elements inside it, and of `<title>`, `<desc>`
+  and `<style>`, keeps its line breaks and spaces in the component, on the
+  client and on the server, so it draws as in the file and in `?raw`, also with
+  `xml:space="preserve"`. The spaces between the other elements draw nothing and
+  stay out of the component.
 - The build stops, with the icon and the reason, on markup that runs code in a
   page: a `<script>` element, an event handler attribute such as `onload`, a
   `javascript:` or `vbscript:` URL in any attribute or in an entry of the
@@ -323,6 +332,9 @@ The rule, in the order the plugin applies it:
    same module as its icon, so an alias and its own icon never collide. An alias
    whose name matches a different icon is a collision, as in step 3. An alias
    that flips or rotates its icon is an icon of its own.
+6. A name gets an export only when its icon loads: an icon of `icons.json`
+   without a body, an alias that is not an object and an alias that leads to no
+   icon with a body have none, and an icon wins over an alias of its name.
 
 The result does not depend on the order of the icons in the collection. A strict
 name always has an underscore, which no plain name has, so it never takes the
@@ -488,10 +500,11 @@ frameworks are out of its scope.
 
 `customizeIcon` receives the name of the collection, the name of the icon and
 the attributes as an object of strings, which it edits in place. A value is
-text: the plugin escapes `&`, `"`, `<` and `>` in the values it sets, so write
-them as they are. A name that is not an attribute name, or a value that is not a
-string, stops the build with the icon and the attribute, and an event handler is
-refused as in a file:
+text: the plugin escapes `&`, `"`, `<` and `>` in the values it sets and keeps a
+`$`, which `@iconify/utils` would read as a pattern of `String.replace`, so
+write them as they are. A name that is not an attribute name, or a value that is
+not a string, stops the build with the icon and the attribute, and an event
+handler is refused as in a file:
 
 ```ts
 solidIcons({

@@ -97,33 +97,42 @@ The options were:
   markup that a page reads as HTML (an element outside SVG 2, `<foreignObject>`,
   an element in `<title>`, `<desc>` and `<style>`, a `<` in the text of
   `<style>`) and on markup that JSX reads as code. `?raw` escapes `&`, `<` and
-  `"` in the values and `&` and `<` in the text, and leaves out comments,
-  processing instructions and the DOCTYPE. A copy of the file kept the comments
-  and the processing instructions, which the parser of the package skips and the
-  HTML parser of a page ends at another `>`: an `<img>` with an event handler
-  hidden in one ran when the text was set with `innerHTML`. The data that
-  drawing applications write for themselves, such as `<metadata>` and the
-  `inkscape:` namespace, is left out with a warning. Writing the markup into JSX
-  as it was let an element such as `<globalThis.fn/>` call a function at render
-  and let `innerHTML` reach the server output as HTML; both were reproduced
-  before the change. An SVG that a user uploads still needs a sanitizer at
-  runtime.
+  `"` in the values and `&`, `<` and `]]>` in the text, after it joins the
+  pieces of a text that a comment or a CDATA section split, and leaves out
+  comments, processing instructions and the DOCTYPE. The component writes the
+  text of `<text>`, of the elements inside it, of `<title>`, `<desc>` and
+  `<style>` as a string when JSX would trim or join its spaces, so it draws as
+  the file and `?raw` do and hydrates as the server rendered it. A copy of the
+  file kept the comments and the processing instructions, which the parser of
+  the package skips and the HTML parser of a page ends at another `>`: an
+  `<img>` with an event handler hidden in one ran when the text was set with
+  `innerHTML`. The data that drawing applications write for themselves, such as
+  `<metadata>` and the `inkscape:` namespace, is left out with a warning.
+  Writing the markup into JSX as it was let an element such as
+  `<globalThis.fn/>` call a function at render and let `innerHTML` reach the
+  server output as HTML; both were reproduced before the change. An SVG that a
+  user uploads still needs a sanitizer at runtime.
 - A folder icon is read only when the listing of the folder has its exact file
   name, so a link, a name in another case and a path outside the folder are
   refused on every file system. The file is opened without following a link and
   read only if it is a regular file, so a file replaced by a link after the
   listing is refused too, except on Windows, which has no such flag.
 - The plugin keeps the real path, the device and the inode of each folder when
-  the configuration resolves, and every listing checks them before and after it
-  reads the folder, so a folder replaced by a link or by another folder, or a
-  folder above it, is refused until the dev server starts again. The listing
-  keeps the device and the inode of each file, and the read checks them on the
-  opened file. A file with another identity, as an editor writes when it saves
-  to a new file and renames it, is listed again and read when it has one link; a
-  hard link that replaced the file after the listing is refused. A hard link
-  that is in the folder when it is listed, as after the add that the watcher
-  reports, is read, and Node reads a folder by its path, so a swap undone
-  between two checks is not seen.
+  the configuration resolves. Every listing checks them before and after it
+  reads the folder, and every read of an icon checks them before it accepts the
+  file, so a folder replaced by a link or by another folder, or a folder above
+  it, is refused until the dev server starts again. The real path catches a
+  folder moved away and replaced by a link to it, whose files keep their
+  identity; the device and the inode catch another folder of the same name. A
+  folder declared as a link that leads to another folder after the start is
+  refused as well; it read the folder of the start before.
+- A file is known by its device and inode, not by its path. The listing keeps
+  them, and the read checks them on the opened file; a file with another
+  identity, as an editor writes when it saves to a new file and renames it, is
+  listed again and read. A hard link is read as the regular file it is: making
+  one takes a write in the folder, as a new SVG does, and a file moved over the
+  icon is read the same way, so refusing it guarded nothing. Node reads a folder
+  by its path, so a swap undone between two checks is not seen.
 - A folder that cannot be read, a collection that is declared and not installed,
   and a declaration file that cannot be written log a warning and stop only the
   imports that need them, so the dev server keeps running.
@@ -142,11 +151,16 @@ The options were:
     for byte, by name, by path and with the plugin the tooling uses today. The
     build took 6 to 15 ms more than with that plugin, before and after the
     change.
-  - Writing `?raw` again from the parsed markup costs what the copy of the file
-    cost, measured against the compile of the component in the same round on a
-    loaded machine: the 6,117 icons and aliases of `hugeicons` took 1.08 times
-    the components before and after, and an SVG of 3.1 MB with 150,000 elements
-    took 0.74 and 0.77 times its component.
+  - Writing `?raw` again from the parsed markup costs what the compile of the
+    component costs, and 28% to 45% more than the copy of the file did. In
+    eleven rounds that alternate the versions, with a load average of about 3,
+    the 6,117 icons and aliases of `hugeicons` took 38.9 ms as a copy and 49.6
+    ms written again, against 48.6 ms for their components, and an SVG of 4.1 MB
+    with 150,000 elements took 129 ms and 187 ms, against 183 ms for its
+    component: milliseconds for a whole collection.
+  - Checking the folder on every read of an icon adds about 37 µs per read: in
+    eleven alternated rounds, reading the 500 icons of a folder took 56 ms,
+    against 37 ms with the check in the listing only.
   - The name table and the declarations of `hugeicons`, 6,106 names, take about
     25 ms and write 485 KB; a synthetic collection of 20,200 names takes about
     60 ms and writes 1.6 MB. They are computed once per dev session and again

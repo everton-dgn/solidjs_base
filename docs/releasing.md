@@ -141,8 +141,7 @@ New GitHub App, on the account that owns the repository:
 - Any name and homepage URL. Turn off the webhook (uncheck **Active**), and keep
   the App installable only on this account.
 - Repository permissions: Contents, Issues and Pull requests, each with read and
-  write access. The job asks for exactly these, and the token request fails when
-  the App lacks one of them.
+  write access. The job asks for exactly these.
 - After saving, generate a private key on the App page, then install the App on
   this repository only (Install App > Only select repositories).
 

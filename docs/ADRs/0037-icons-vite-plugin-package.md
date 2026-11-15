@@ -56,6 +56,14 @@ The options were:
   publisher needs the package to exist on npm, and then adds it to the release
   automation
   ([First automated release](../releasing.md#first-automated-release-of-a-package)).
+- The package takes `vite-plus` and `@solidjs/web` as peer dependencies. The
+  rule that keeps `vite-plus` and the other build tools out of the production
+  sections is the rule of the runtime package, which applications install in
+  production; a Vite plugin runs in the build of the application, with the Vite+
+  the application installs, so its peer is that installation and not a copy of
+  its own. The other build tools of the package, such as `@solidjs/vite-plugin`,
+  stay in `devDependencies`, and its tarball test checks that none of them
+  reaches `dependencies` or `optionalDependencies`.
 - The switch of `defineSolidApp` to this plugin, the generated declarations in
   the tooling and the migration of the imports of the boilerplate app are a
   second step, after the first publication. Until then, the tooling and the app

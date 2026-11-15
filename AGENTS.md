@@ -1,15 +1,17 @@
 # Working in this repository
 
-This monorepo publishes two npm packages and keeps a copy of the boilerplate
-application:
+This monorepo publishes three npm packages and keeps a copy of the boilerplate
+application. The icons plugin enters the release automation at its first
+publication:
 
-| Folder                   | Content                                                                            |
-| ------------------------ | ---------------------------------------------------------------------------------- |
-| `packages/solid-tooling` | `@evertondgn/solid-tooling`: presets, lint rules, tasks and test setup             |
-| `packages/solid-runtime` | `@evertondgn/solid-runtime`: runtime helpers, published as TypeScript source       |
-| `apps/boilerplate`       | The boilerplate application, with its own [AGENTS.md](apps/boilerplate/AGENTS.md) |
-| `fixtures/apps`          | Minimal applications for the installed application scenarios                      |
-| `tooling/release`        | The command that merges a pull request, `vp run release:merge`                    |
+| Folder                             | Content                                                                           |
+| ---------------------------------- | --------------------------------------------------------------------------------- |
+| `packages/solid-tooling`           | `@evertondgn/solid-tooling`: presets, lint rules, tasks and test setup            |
+| `packages/solid-runtime`           | `@evertondgn/solid-runtime`: runtime helpers, published as TypeScript source      |
+| `packages/vite-plugin-solid-icons` | `@evertondgn/vite-plugin-solid-icons`: the Vite plugin of the icons               |
+| `apps/boilerplate`                 | The boilerplate application, with its own [AGENTS.md](apps/boilerplate/AGENTS.md) |
+| `fixtures/apps`                    | Minimal applications for the installed application scenarios                      |
+| `tooling/release`                  | The command that merges a pull request, `vp run release:merge`                    |
 
 Read [Contributing](CONTRIBUTING.md), [Development](docs/development.md) and
 [Releasing](docs/releasing.md) before changing a package. The rules below are
@@ -49,11 +51,16 @@ the ones that cost a fix after a release when they were missed.
 
 - Applications install the runtime in production. Keep build and test tools,
   such as `vite`, `vite-plus`, `vitest`, `rolldown` and `@solidjs/vite-plugin`,
-  out of its `dependencies`, `peerDependencies` and `optionalDependencies`. Copy
-  a type instead of importing it from one of them. `vp run test:tarball` fails
-  when one of these names reaches a production section. It does not follow the
-  dependencies of a dependency, so check the `dependencies` and required
-  `peerDependencies` of every production dependency you add.
+  out of the `dependencies`, `peerDependencies` and `optionalDependencies` of
+  `packages/solid-runtime`. Copy a type instead of importing it from one of
+  them. `vp run test:tarball` fails when one of these names reaches a
+  production section. It does not follow the dependencies of a dependency, so
+  check the `dependencies` and required `peerDependencies` of every production
+  dependency you add.
+- The icons plugin runs in the build of the application, so it takes
+  `vite-plus` as a peer, as
+  [ADR 0037](docs/ADRs/0037-icons-vite-plugin-package.md) records. Its other
+  build tools stay in `devDependencies`.
 
 ## Pull requests and releases
 

@@ -260,6 +260,31 @@ const UNUSUAL_FONTS = [
   'a..b.woff2'
 ]
 const OUTPUT = 'file:///shell/dist/'
+const LEGITIMATE_ASSETS_DIRS = [
+  'assets',
+  'a/b',
+  './static',
+  'my assets',
+  'ç',
+  '',
+  '.well-known',
+  'v1.2/assets',
+  'a..b',
+  'my.assets',
+  '...'
+]
+// WHY: a URL keeps %2f, %5c, a double encoding and U+FF0E inside one path
+// segment, so the browser reads each as a folder name, not a parent.
+const LITERAL_ASSETS_DIRS = [
+  '%252e%252e',
+  'a/%252E%252e/b',
+  '..%2fx',
+  '%2e%2e%2Fx',
+  '..%5cx',
+  '%2E%2E%5Cx',
+  '\uFF0E\uFF0E',
+  'a/\uFF0E\uFF0E/b'
+]
 
 function assertInside(url: URL, label: string): void {
   assert.ok(
@@ -291,7 +316,7 @@ async function unusualOptions(context: TestContext): Promise<FontOptions> {
 it('keeps relative font URLs inside the output for unusual names', async context => {
   const options = await unusualOptions(context)
   const document = new URL('index.html', OUTPUT)
-  for (const assetsDir of ['assets', 'a/b', './static', 'my assets', 'ç', '']) {
+  for (const assetsDir of [...LEGITIMATE_ASSETS_DIRS, ...LITERAL_ASSETS_DIRS]) {
     const result = await readFontAssets({ ...options, base: './', assetsDir })
     for (const asset of result.assets) {
       assertInside(new URL(asset.fileName, OUTPUT), asset.fileName)
@@ -321,9 +346,12 @@ it('keeps relative font URLs inside the output for unusual names', async context
     String.raw`a\..\..`,
     '/abs',
     '%2e%2e',
+    '%2E%2E',
     'a/%2E%2e/b',
     '.%2e',
+    '.%2E',
     '%2e.',
+    '%2E.',
     '.\t.',
     '.\n.',
     'a/.\r./..'
@@ -334,6 +362,26 @@ it('keeps relative font URLs inside the output for unusual names', async context
         /assetsDir must stay inside the client output/u,
         `${base} ${assetsDir}`
       )
+    }
+  }
+})
+
+it('keeps the fonts of an absolute base under it for literal folder names', async context => {
+  const options = await unusualOptions(context)
+  const page = 'https://example.test/app/index.html'
+  for (const assetsDir of [...LEGITIMATE_ASSETS_DIRS, ...LITERAL_ASSETS_DIRS]) {
+    const result = await readFontAssets({
+      ...options,
+      base: '/app/',
+      assetsDir
+    })
+    const hrefs = [
+      result.stylesheet,
+      ...result.preloads.map(({ href }) => href)
+    ]
+    for (const href of hrefs) {
+      const url = new URL(href, page)
+      assert.ok(url.pathname.startsWith('/app/'), `${assetsDir}: ${url.href}`)
     }
   }
 })

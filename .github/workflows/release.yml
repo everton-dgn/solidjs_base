@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   release-please:
-    name: Release PRs and tags
+    name: Tags and GitHub Releases
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -29,6 +29,7 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          skip-github-pull-request: true
 
   publish:
     name: Publish ${{ matrix.path }}
@@ -78,3 +79,32 @@ jobs:
 
       - name: Publish to npm
         run: npm publish "$RUNNER_TEMP"/release/*.tgz --access public
+
+  # WHY: GitHub holds the CI of a pull request opened with the GITHUB_TOKEN
+  # until someone approves it; with the App token the CI starts on its own. The
+  # job needs release-please so the tags exist before the next release pull
+  # request is computed, and stays apart from it so a failure of the App does
+  # not stop the publication.
+  release-pull-request:
+    name: Release pull request
+    needs: release-please
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Create the App token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: write
+
+      - name: Run release-please
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-release: true

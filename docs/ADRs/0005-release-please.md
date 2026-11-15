@@ -1,6 +1,6 @@
 # 0005. release-please versions each package
 
-- Status: Accepted
+- Status: Accepted, amended by [0035](0035-release-pull-request-app.md)
 - Date: 2026-11-11
 
 ## Context

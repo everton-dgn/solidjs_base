@@ -127,7 +127,7 @@ application entries, Router, App and Document. The
 | Assets and env      | Icons from Iconify or your SVGs, fonts with matching preloads, validated environment values                         | Both packages                                    |
 | Quality rules       | Layer rules, backend restrictions, CSS tokens, dead code detection, commit format and a secret scan                 | `solid-tooling`                                  |
 | Tests               | Node, DOM and browser Vitest projects, and a Playwright config that checks the server log                           | `solid-tooling`                                  |
-| A running app       | UI kit, five pages, three locales, SEO routes, outdated-page recovery and 319 E2E cases to learn from               | [`apps/boilerplate`](apps/boilerplate/README.md) |
+| A running app       | Five pages, three locales, SEO routes, outdated-page recovery and 319 E2E cases to learn from                       | [`apps/boilerplate`](apps/boilerplate/README.md) |
 
 ## Only what you use
 
@@ -174,30 +174,6 @@ through it, then read the code you would otherwise write yourself.
 - Ready SEO routes: `robots.txt`, `sitemap.xml`, partitioned `sitemaps/` and
   `llms.txt`, plus a Markdown copy of each opted-in page.
 - One exit for backend HTTP calls, `requestJson`, which the lint enforces.
-
-### A UI kit you can restyle
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/ui-kit-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/ui-kit-light.webp" />
-  <img src="docs/assets/readme/ui-kit-light.webp" alt="Five clips of the /ui-kit E2E fixture route, each 368 pixels wide. The language DropdownMenu open under the top bar with PT Português, EN English and ES Español. A Name Input with the value Ada. A Message Textarea with two lines above the Submit form and Reset form buttons. A modal Dialog titled Fixture dialog with a field and two buttons, over its backdrop. Two toasts, Success with Fixture saved and Error showing the literal text strong Plain text, because messages render as text." width="800" />
-</picture>
-
-The components live in the app, so you change their markup and CSS freely:
-
-- `Button` with variants, sizes and a `label` shortcut for text-only buttons.
-- `Input` and `Textarea` with native props and a destructive variant that also
-  sets `aria-invalid`.
-- `Dialog` on the native `dialog` element: the browser confines the focus and
-  returns it to the control that opened it.
-- Toasts that queue up to five, pause on hover, focus or a hidden tab, and
-  announce errors through the assertive live region. Messages render as plain
-  text.
-- `DropdownMenu` on the APG menu pattern, used by the language and theme
-  switchers.
-
-The clips come from the `/ui-kit` route of the E2E build, the route the UI kit
-tests use, at 1:1 scale. See the [UI guide](apps/boilerplate/docs/ui.md).
 
 ### Outdated pages recover after a deploy
 
@@ -885,7 +861,7 @@ app imports only the features it uses: `seo` has 15, `middleware` and `server`
 | ----------------------------------------------------- | -------------------------------------------- |
 | [Tooling reference](docs/tooling/README.md)           | Presets, configuration and limits            |
 | [Runtime reference](packages/solid-runtime/README.md) | Independent feature APIs and integration     |
-| [Boilerplate app](apps/boilerplate/README.md)         | The running app, its UI kit and its guides   |
+| [Boilerplate app](apps/boilerplate/README.md)         | The running app and its guides               |
 | [Development](docs/development.md)                    | Workspace setup, tests and CI                |
 | [Architecture](docs/architecture.md)                  | Package boundaries and application ownership |
 | [Releasing](docs/releasing.md)                        | Versions, publishing and recovery            |

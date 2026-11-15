@@ -2,9 +2,9 @@
 
 A complete SolidJS 2 application running on `@evertondgn/solid-tooling` and
 `@evertondgn/solid-runtime`. Open it to see every package feature working
-together in a real app: pages in three languages, a theme without a flash, a UI
-kit, security headers, private server errors, SEO routes, Markdown pages and an
-E2E suite you can learn from.
+together in a real app: pages in three languages, a theme without a flash,
+security headers, private server errors, SEO routes, Markdown pages and an E2E
+suite you can learn from.
 
 > [!IMPORTANT]
 > SolidJS 2 is still a release candidate. This app uses the release candidate
@@ -38,7 +38,6 @@ the copy exists.
 | Pages             | Home, about, contact, privacy and a 404, a top bar, language and theme switchers, `LocalizedLink` and an error page | [Architecture](docs/architecture.md)                                    |
 | Three languages   | Portuguese, English and Spanish from colocated catalogs, English as the base locale, the locale in the URL          | [I18n](docs/i18n.md)                                                    |
 | Theme             | Light, dark or system, applied before hydration and kept in sync across tabs, with tokens from `light-dark()`       | [UI](docs/ui.md)                                                        |
-| UI kit            | `Button`, `Input`, `Textarea`, `Dialog`, toasts and `DropdownMenu`, all in this folder for you to restyle           | [UI](docs/ui.md)                                                        |
 | Security headers  | Eight headers from the runtime defaults, three of them also on static files, and a nonce CSP in production          | [Security](docs/security.md)                                            |
 | Server errors     | Fresh public errors in production, one HTTP exit (`requestJson`) and wrapped SDK adapters                           | [Server errors](docs/server-errors.md)                                  |
 | SEO routes        | `robots.txt`, `sitemap.xml`, partitioned `sitemaps/`, `llms.txt` and a Markdown copy of each opted-in page          | [SEO](docs/seo.md)                                                      |
@@ -60,28 +59,14 @@ them, in `i18n/{pt,en,es}.json`. `vp run i18n:generate`, which `check:ci`,
 `lint` and the test scripts call first, fails on a missing translation, a
 duplicate ID or a parameter that differs between locales.
 
-### A UI kit to restyle
+### Components of the test app
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/ui-kit-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/ui-kit-light.webp" />
-  <img src="../../docs/assets/readme/ui-kit-light.webp" alt="Five clips of the /ui-kit E2E fixture route, each 368 pixels wide. The language DropdownMenu open under the top bar with PT Português, EN English and ES Español. A Name Input with the value Ada. A Message Textarea with two lines above the Submit form and Reset form buttons. A modal Dialog titled Fixture dialog with a field and two buttons, over its backdrop. Two toasts, Success with Fixture saved and Error showing the literal text strong Plain text, because messages render as text." width="800" />
-</picture>
-
-- `Button` with variants, sizes and a `label` shortcut for text-only buttons.
-- `Input` and `Textarea` with native props, the initial value in the server HTML
-  and a destructive variant that sets `aria-invalid`.
-- `Dialog` on the native `dialog` element: the browser confines the focus and
-  returns it to the control that opened it.
-- Toasts that queue up to five, pause on hover, focus or a hidden tab, and
-  announce by priority, errors in the assertive region. Messages render as plain
-  text.
-- `DropdownMenu` on the APG menu pattern, behind the language and theme
-  switchers of the top bar.
-
-The clips come from the `/ui-kit` route at 1:1 scale, an E2E fixture that only
-exists in the `e2e` build (`src/tests/fixtures/e2e/routes/(base)/ui-kit/`). In
-your app, the components come from `src/components/`.
+`Button`, `Input`, `Textarea`, `Dialog`, the toasts and `DropdownMenu` are part
+of this test app. They exist so the tests can exercise the packages in a real
+interface, and no package publishes them. Their guide is [UI](docs/ui.md). The
+`/ui-kit` route is an E2E fixture that only exists in the `e2e` build
+(`src/tests/fixtures/e2e/routes/(base)/ui-kit/`), covered by the `UiKit` area of
+the [Proof](#proof) table.
 
 ### Outdated pages after a deploy
 
@@ -213,7 +198,7 @@ the Vercel deploy describe the original repository.
 | [Error validation and recovery](docs/server-errors/recovery.md) | Validation, recovery and the outdated page after a deploy             |
 | [SSR integrity](docs/server-errors/ssr-integrity.md)            | Render integrity before publishing converted HTML                     |
 | [Solid upgrades](docs/server-errors/solid-upgrades.md)          | What to check in the error contracts when Solid changes               |
-| [Components, theme and styles](docs/ui.md)                      | The UI kit, the theme, tokens, CSS rules, icons and fonts             |
+| [Components, theme and styles](docs/ui.md)                      | Test app components, the theme, tokens, CSS rules, icons and fonts    |
 | [Tests](docs/testing.md)                                        | Vitest projects, E2E suites, production checks and reports            |
 
 `AGENTS.md` and the guides in `docs/` are in English. The code comments and the

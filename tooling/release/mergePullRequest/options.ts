@@ -48,7 +48,8 @@ checks the publication of a release pull request.
 
   --sha <head>                  The full head you reviewed. The command stops when
                                 the pull request has another head. Required for a
-                                release pull request; --dry-run prints it
+                                release pull request, whose merge publishes on
+                                npm; --dry-run prints it
   --dry-run                     Read the state and print what would happen, without
                                 updating the branch, approving a run or merging
   --interval <seconds>          Time between two reads of a check, a workflow run

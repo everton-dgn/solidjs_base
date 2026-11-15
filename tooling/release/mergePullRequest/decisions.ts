@@ -143,9 +143,9 @@ export function isReleasePullRequest(pullRequest: PullRequest): boolean {
   )
 }
 
-// WHY: release-please rewrites the release pull request after a merge to main,
-// and the command approves its held CI run, so a real run of a release pull
-// request needs the head that was reviewed.
+// WHY: merging a release pull request publishes its versions on npm, and
+// release-please rewrites it after a merge to main, so a real run of a release
+// pull request needs the head that was reviewed.
 export function refuseHead({
   pullRequest,
   expectedSha,

@@ -27,7 +27,7 @@ type CollectionSource = CollectionPlace & {
   collection: string
   files: (collection: string) => Promise<FolderFiles>
 }
-type AliasInput = { aliases: NonNullable<IconSet['aliases']>; name: string }
+type AliasInput = { chain: IconSet; name: string }
 type FolderInput = { root: string; collections: Record<string, string> }
 type Manifest = Partial<Record<DependencyField, Record<string, string>>>
 type DependencyField = (typeof DEPENDENCY_FIELDS)[number]
@@ -46,21 +46,17 @@ function isPlainAlias(alias: object): boolean {
   return Object.keys(alias).every(key => key === 'parent')
 }
 
-function ownAlias({ aliases, name }: AliasInput) {
-  return Object.hasOwn(aliases, name) ? aliases[name] : undefined
-}
-
 // An alias without transformations draws the SVG of its parent, so both
 // names load the same icon; an alias that flips or rotates is an icon of its
-// own. A parent that is not an own alias, such as toString, ends the chain.
-function aliasIcon({ aliases, name }: AliasInput): string {
-  const seen = new Set<string>()
+// own. The chain is the one the load follows, which ends at an own icon even
+// where an alias has the name of that icon, and its aliases have no
+// prototype, so a name such as toString finds none.
+function aliasIcon({ chain, name }: AliasInput): string {
   let current = name
-  let alias = ownAlias({ aliases, name: current })
-  while (alias && isPlainAlias(alias) && !seen.has(current)) {
-    seen.add(current)
+  let alias = chain.aliases?.[current]
+  while (alias && isPlainAlias(alias)) {
     current = alias.parent
-    alias = ownAlias({ aliases, name: current })
+    alias = chain.aliases?.[current]
   }
   return current
 }
@@ -68,18 +64,22 @@ function aliasIcon({ aliases, name }: AliasInput): string {
 // A name the import of one icon cannot spell has no export name either,
 // and stays out of the declarations, where it would be written in a comment.
 // A name is declared when it loads: the chain that the load follows decides,
-// so an alias that is no object or an icon without a body is left out.
+// so an alias that is no object or an icon without a body is left out. An
+// alias whose icon no import spells loads through a module of its own.
 function iconSetList(iconSet: IconSet): IconList {
-  const aliases = iconSet.aliases ?? {}
-  const loads = (name: string) =>
-    isIconName(name) && ownIconChain({ iconSet, name }) !== undefined
-  const icons = Object.keys(iconSet.icons).filter(name => loads(name))
+  const chainOf = (name: string) =>
+    isIconName(name) ? ownIconChain({ iconSet, name }) : undefined
+  const icons = Object.keys(iconSet.icons).filter(
+    name => chainOf(name) !== undefined
+  )
   const plainAliases: [string, string][] = []
-  for (const [name, alias] of Object.entries(aliases)) {
+  for (const name of Object.keys(iconSet.aliases ?? {})) {
     // The load reads an icon before an alias of the same name.
-    if (Object.hasOwn(iconSet.icons, name) || !loads(name)) continue
-    if (isPlainAlias(alias)) {
-      plainAliases.push([name, aliasIcon({ aliases, name })])
+    const chain = Object.hasOwn(iconSet.icons, name) ? undefined : chainOf(name)
+    if (chain === undefined) continue
+    const icon = aliasIcon({ chain, name })
+    if (icon !== name && isIconName(icon)) {
+      plainAliases.push([name, icon])
     } else {
       icons.push(name)
     }

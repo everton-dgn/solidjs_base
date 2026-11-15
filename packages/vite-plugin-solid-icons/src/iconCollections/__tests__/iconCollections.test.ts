@@ -13,6 +13,12 @@ import {
 
 type Files = Record<string, string>
 type FolderInput = { context: TestContext; files: Files }
+type DrawingInput = { root: string; name: string }
+type IconSetCase = {
+  icons: Record<string, { body: string }>
+  aliases: Record<string, { parent: string }>
+  exports: Record<string, string>
+}
 
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"/>'
 const BODY = { body: '<path d="M0 0h24v24H0z"/>' }
@@ -27,6 +33,24 @@ const DEMO_SET = {
     'arrow-right': { parent: 'arrow-left', hFlip: true },
     missing: { parent: 'no-such-icon' }
   }
+}
+
+async function drawing({ root, name }: DrawingInput): Promise<string> {
+  const { svg } = await loadIconSvg({
+    collection: 'odd',
+    name,
+    root,
+    folder: undefined,
+    customizeIcon: undefined
+  })
+  return svg
+}
+
+function exportName(name: string): string {
+  return name
+    .split('-')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')
 }
 
 async function folderWith({ context, files }: FolderInput): Promise<string> {
@@ -234,6 +258,62 @@ describe('createNameTables', () => {
       tables.get('not-installed'),
       /Icon collection "not-installed" not found: install @iconify-json\/not-installed/u
     )
+  })
+})
+
+describe('the exports of an installed collection', () => {
+  it('loads by export name the icon that each name loads by path', async context => {
+    const real = { body: '<path d="M1 1"/>' }
+    const twin = { body: '<path d="M2 2"/>' }
+    const cases: IconSetCase[] = [
+      {
+        // An icon wins over an alias of its name, also as the parent of an
+        // alias.
+        icons: { real, twin },
+        aliases: { twin: { parent: 'real' }, 'to-twin': { parent: 'twin' } },
+        exports: { Real: 'real', ToTwin: 'twin', Twin: 'twin' }
+      },
+      {
+        icons: { a: real },
+        aliases: { a: { parent: 'b' }, b: { parent: 'a' }, c: { parent: 'b' } },
+        exports: { A: 'a', B: 'a', C: 'a' }
+      },
+      {
+        // No import spells the icon, so its aliases load it themselves.
+        icons: { real, 'two words': twin },
+        aliases: {
+          spaced: { parent: 'two words' },
+          'to-spaced': { parent: 'spaced' }
+        },
+        exports: { Real: 'real', Spaced: 'spaced', ToSpaced: 'to-spaced' }
+      }
+    ]
+    for (const { icons, aliases, exports } of cases) {
+      const iconSet = { prefix: 'odd', icons, aliases }
+      const root = await folderWith({
+        context,
+        files: {
+          'node_modules/@iconify-json/odd/package.json':
+            '{"name":"@iconify-json/odd"}',
+          'node_modules/@iconify-json/odd/icons.json': JSON.stringify(iconSet)
+        }
+      })
+      const table = await createNameTables({ root, folders: new Map() }).get(
+        'odd'
+      )
+      const names = new Set([...Object.keys(icons), ...Object.keys(aliases)])
+      const spelled = [...names].filter(name => /^[a-z-]+$/u.test(name))
+
+      assert.deepEqual(Object.fromEntries(table.exports), exports)
+      for (const name of spelled) {
+        const module = table.exports.get(exportName(name))
+        assert.ok(module !== undefined, name)
+        const byName = await drawing({ root, name: module })
+        const byPath = await drawing({ root, name })
+
+        assert.equal(byName, byPath, name)
+      }
+    }
   })
 })
 

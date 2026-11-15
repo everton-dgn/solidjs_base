@@ -331,10 +331,12 @@ The rule, in the order the plugin applies it:
 5. An alias of an Iconify collection gets a name by the same rule and loads the
    same module as its icon, so an alias and its own icon never collide. An alias
    whose name matches a different icon is a collision, as in step 3. An alias
-   that flips or rotates its icon is an icon of its own.
+   that flips or rotates its icon is an icon of its own, and so is an alias of
+   an icon whose name no import can spell.
 6. A name gets an export only when its icon loads: an icon of `icons.json`
    without a body, an alias that is not an object and an alias that leads to no
-   icon with a body have none, and an icon wins over an alias of its name.
+   icon with a body have none, and an icon wins over an alias of its name, also
+   where another alias points to that name.
 
 The result does not depend on the order of the icons in the collection. A strict
 name always has an underscore, which no plain name has, so it never takes the

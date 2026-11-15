@@ -8,9 +8,10 @@
 Each package needs its own version, changelog and tag. The options were:
 
 - [release-please](https://github.com/googleapis/release-please): reads the
-  Conventional Commits already in use and keeps one release pull request open
-  per package. It runs as a GitHub Action with two JSON files, without a
-  dependency in the project.
+  Conventional Commits already in use and keeps a release pull request open. It
+  runs as a GitHub Action with two JSON files, without a dependency in the
+  project. From the release after 0.6.0 the packages share one version number
+  and one release pull request ([Releasing](../releasing.md)).
 - Changesets: a file written by hand for each change, saying which package goes
   up and by how much. It adds a dependency and a manual step to every pull
   request.

@@ -3,9 +3,7 @@
 ## [0.6.0](https://github.com/everton-dgn/solidjs_base/compare/solid-runtime@0.1.0...solid-runtime@0.6.0) (2026-11-15)
 
 
-### Features
-
-* release 0.6.0 with the runtime package and optional features ([36b20fb](https://github.com/everton-dgn/solidjs_base/commit/36b20fb2b854169ef06049cbf09133fc21828f37))
+The version number follows `@evertondgn/solid-tooling`: both packages share the same number from this release on.
 
 
 ### Bug Fixes

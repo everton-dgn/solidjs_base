@@ -81,6 +81,24 @@ async function listed(folder: string): Promise<IconFolder> {
   }
 }
 
+// Reads the SVG of star.svg as the plugin does: each read takes the listing
+// that the tables keep now, which a refresh replaces.
+async function pluginReads(folder: string) {
+  const tables = createNameTables({
+    root: path.dirname(folder),
+    folders: new Map([['own', folder]])
+  })
+  await tables.files('own')
+  return async () => {
+    const { svg } = await loadStar({
+      path: folder,
+      files: await tables.files('own'),
+      refresh: () => tables.refresh('own')
+    })
+    return svg
+  }
+}
+
 function loadInstalled(name: string) {
   return loadIconSvg({
     collection: 'hugeicons',
@@ -528,7 +546,7 @@ describe('loadIconSvg of a folder', () => {
 describe('loadIconSvg of a folder that changes after the listing', () => {
   it('refuses a folder replaced after the listing', async context => {
     const folder = await iconFolder(context)
-    const icons = await listed(folder)
+    const readStar = await pluginReads(folder)
     const other = `${folder}-other`
     context.after(() => rm(other, { recursive: true, force: true }))
     await secretFolder(other)
@@ -537,11 +555,30 @@ describe('loadIconSvg of a folder that changes after the listing', () => {
     await rename(folder, `${folder}-old`)
     context.after(() => rm(`${folder}-old`, { recursive: true, force: true }))
     await symlink(other, folder)
-    await assert.rejects(loadStar(icons), REPLACED_FOLDER)
+    await assert.rejects(readStar(), REPLACED_FOLDER)
+    await assert.rejects(readStar(), REPLACED_FOLDER)
     // By another folder of the same name.
     await rm(folder)
     await secretFolder(folder)
-    await assert.rejects(loadStar(icons), REPLACED_FOLDER)
+    await assert.rejects(readStar(), REPLACED_FOLDER)
+    await assert.rejects(readStar(), REPLACED_FOLDER)
+  })
+
+  it('refuses a folder moved and replaced by a link to it', async context => {
+    const folder = await iconFolder(context)
+    const readStar = await pluginReads(folder)
+    const moved = `${folder}-moved`
+    context.after(() => rm(moved, { recursive: true, force: true }))
+
+    // The file keeps its device and inode; the path of the folder does not.
+    await rename(folder, moved)
+    await symlink(moved, folder)
+    await assert.rejects(readStar(), REPLACED_FOLDER)
+    await assert.rejects(readStar(), REPLACED_FOLDER)
+    // The folder put back is the one that the plugin read first.
+    await rm(folder)
+    await rename(moved, folder)
+    assert.match(await readStar(), /<path d="M0 0"\/>/u)
   })
 
   it('refuses a folder whose parent was replaced after the listing', async context => {
@@ -549,12 +586,48 @@ describe('loadIconSvg of a folder that changes after the listing', () => {
     const folder = path.join(parent, 'brand/icons')
     await mkdir(folder, { recursive: true })
     await writeFile(path.join(folder, 'star.svg'), STAR)
-    const icons = await listed(folder)
+    const readStar = await pluginReads(folder)
 
     await rename(path.join(parent, 'brand'), path.join(parent, 'brand-old'))
     await secretFolder(path.join(parent, 'other/icons'))
     await symlink(path.join(parent, 'other'), path.join(parent, 'brand'))
-    await assert.rejects(loadStar(icons), REPLACED_FOLDER)
+    await assert.rejects(readStar(), REPLACED_FOLDER)
+    await assert.rejects(readStar(), REPLACED_FOLDER)
+  })
+
+  it('refuses a folder whose parent was moved and replaced by a link to it', async context => {
+    const parent = await iconFolder(context)
+    const folder = path.join(parent, 'brand/icons')
+    await mkdir(folder, { recursive: true })
+    await writeFile(path.join(folder, 'star.svg'), STAR)
+    const readStar = await pluginReads(folder)
+
+    await rename(path.join(parent, 'brand'), path.join(parent, 'brand-moved'))
+    await symlink(path.join(parent, 'brand-moved'), path.join(parent, 'brand'))
+    await assert.rejects(readStar(), REPLACED_FOLDER)
+    await assert.rejects(readStar(), REPLACED_FOLDER)
+    await rm(path.join(parent, 'brand'))
+    await rename(path.join(parent, 'brand-moved'), path.join(parent, 'brand'))
+    assert.match(await readStar(), /<path d="M0 0"\/>/u)
+  })
+
+  it('refuses a folder link pointed to another folder after the listing', async context => {
+    const folder = await iconFolder(context)
+    const copy = `${folder}-copy`
+    context.after(() => rm(copy, { recursive: true, force: true }))
+    await mkdir(copy)
+    await writeFile(path.join(copy, 'star.svg'), STAR)
+    const linked = `${folder}-link`
+    context.after(() => rm(linked, { force: true }))
+    await symlink(folder, linked)
+    const readStar = await pluginReads(linked)
+    assert.match(await readStar(), /<path d="M0 0"\/>/u)
+
+    // The link leads to another folder now, with the same files.
+    await rm(linked)
+    await symlink(copy, linked)
+    await assert.rejects(readStar(), REPLACED_FOLDER)
+    await assert.rejects(readStar(), REPLACED_FOLDER)
   })
 
   it('refuses a file replaced by a hard link after the listing', async context => {
@@ -574,17 +647,20 @@ describe('loadIconSvg of a folder that changes after the listing', () => {
 
   it('reads a file that an editor saved to a new file', async context => {
     const folder = await iconFolder(context)
-    const icons = await listed(folder)
-    const saved = STAR.replace('M0 0', 'M2 2')
-    // The editor writes a new file and renames it over the icon.
-    await writeFile(path.join(folder, '.star.svg.swp'), saved)
-    await rename(
-      path.join(folder, '.star.svg.swp'),
-      path.join(folder, 'star.svg')
-    )
+    const readStar = await pluginReads(folder)
+    for (const shape of ['M2 2', 'M3 3']) {
+      const saved = STAR.replace('M0 0', shape)
+      const drawn = new RegExp(`<path d="${shape}"/>`, 'u')
+      // The editor writes a new file and renames it over the icon.
+      await writeFile(path.join(folder, '.star.svg.swp'), saved)
+      await rename(
+        path.join(folder, '.star.svg.swp'),
+        path.join(folder, 'star.svg')
+      )
 
-    const { svg } = await loadStar(icons)
-    assert.match(svg, /<path d="M2 2"\/>/u)
-    assert.equal(await readFile(path.join(folder, 'star.svg'), 'utf8'), saved)
+      assert.match(await readStar(), drawn)
+      assert.match(await readStar(), drawn)
+      assert.equal(await readFile(path.join(folder, 'star.svg'), 'utf8'), saved)
+    }
   })
 })

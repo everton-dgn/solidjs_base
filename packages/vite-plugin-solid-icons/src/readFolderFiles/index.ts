@@ -46,8 +46,8 @@ export type FolderFiles = {
   links: Set<string>
   // The .svg files whose names an import cannot spell.
   skipped: string[]
-  // The folder that the listing read, where the files are read from.
-  realPath: string
+  // The folder that the plugin read first, where the files are read from.
+  identity: FolderIdentity
 }
 
 export function unreadableFolder({
@@ -73,35 +73,48 @@ export async function folderIdentity(folder: string): Promise<FolderIdentity> {
   return { realPath, dev, ino }
 }
 
-// WHY: the folder of the application is the only place an icon of a folder
-// collection comes from; a link could read any file of the machine, and the
-// watcher would not see its target change. The listing reads the folder that
-// the plugin read first, before and after it lists, so a folder replaced in
-// the meantime, or a folder above it, is refused.
-export async function readFolderFiles({
+// The folder is still the one that the plugin read first: the same real
+// path, so a folder replaced by a link to itself is refused, and the same
+// device and inode, so another folder of the same name is refused.
+export async function checkFolder({
   collection,
   folder,
   root,
   identity
-}: FolderRead): Promise<FolderFiles> {
-  const relative = path.relative(root, folder) || '.'
-  const isFirstFolder = async () => {
-    const current = await folderIdentity(folder)
-    return (
-      current.realPath === identity.realPath &&
-      isSameFile({ first: current, second: identity })
+}: FolderRead): Promise<void> {
+  let current: FolderIdentity
+  try {
+    current = await folderIdentity(folder)
+  } catch (error) {
+    throw unreadableFolder({ collection, folder, root, error })
+  }
+  const isFirst =
+    current.realPath === identity.realPath &&
+    isSameFile({ first: current, second: identity })
+  if (!isFirst) {
+    const relative = path.relative(root, folder) || '.'
+    throw new Error(
+      `The folder "${relative}" of the icon collection "${collection}" was replaced, or a folder above it was, after the plugin read it first: stop and start the dev server or the build to read the new folder.`
     )
   }
-  let listed: ListedFile[]
-  let isFirst: boolean
+}
+
+// WHY: the folder of the application is the only place an icon of a folder
+// collection comes from; a link could read any file of the machine, and the
+// watcher would not see its target change. The listing reads the folder that
+// the plugin read first, and checks it before and after it lists, so a
+// folder replaced in the meantime, or a folder above it, is refused.
+export async function readFolderFiles(input: FolderRead): Promise<FolderFiles> {
+  const { collection, folder, root, identity } = input
   const files: FolderFiles = {
     icons: new Map(),
     links: new Set(),
     skipped: [],
-    realPath: identity.realPath
+    identity
   }
+  await checkFolder(input)
+  let listed: ListedFile[]
   try {
-    isFirst = await isFirstFolder()
     const entries = await readdir(identity.realPath, { withFileTypes: true })
     const svgs = entries.filter(
       entry => path.extname(entry.name) === SVG_EXTENSION
@@ -122,15 +135,10 @@ export async function readFolderFiles({
           })
         }))
     )
-    isFirst &&= await isFirstFolder()
   } catch (error) {
     throw unreadableFolder({ collection, folder, root, error })
   }
-  if (!isFirst) {
-    throw new Error(
-      `The folder "${relative}" of the icon collection "${collection}" was replaced, or a folder above it was, after the plugin read it first: stop and start the dev server or the build to read the new folder.`
-    )
-  }
+  await checkFolder(input)
   for (const { name, identity: file } of listed) {
     if (file !== undefined && isIconName(name)) files.icons.set(name, file)
   }

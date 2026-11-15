@@ -10,7 +10,11 @@ import {
 
 import { messageOf } from '../errorText/index.ts'
 import { type IconSet, loadIconSet } from '../loadIconSet/index.ts'
-import { type FolderFiles, isSameFile } from '../readFolderFiles/index.ts'
+import {
+  checkFolder,
+  type FolderFiles,
+  isSameFile
+} from '../readFolderFiles/index.ts'
 import type { IconCustomizer } from '../types.ts'
 
 type IconFolder = {
@@ -175,7 +179,7 @@ async function openFolderFile(source: FolderSource): Promise<FileHandle> {
   const { name, folder } = source
   try {
     return await open(
-      path.join(folder.files.realPath, `${name}${SVG_EXTENSION}`),
+      path.join(folder.files.identity.realPath, `${name}${SVG_EXTENSION}`),
       OPEN_FLAGS
     )
   } catch (error) {
@@ -185,16 +189,22 @@ async function openFolderFile(source: FolderSource): Promise<FileHandle> {
   }
 }
 
-// The opened file is the one of the listing. An editor that saves to a new
-// file and renames it over the icon gives it another identity: the folder is
-// listed again, which checks the folder too, and the new file is read when
-// that listing has it and it is no hard link, which a file outside the
-// folder could be.
+// The opened file comes from the folder that the plugin read first, checked
+// on every read, and is the one of the listing. An editor that saves to a
+// new file and renames it over the icon gives it another identity: the
+// folder is listed again, and the new file is read when that listing has
+// it and it is no hard link, which a file outside the folder could be.
 async function checkListedFile({
   stats,
   ...source
 }: OpenedFile): Promise<void> {
-  const { name, folder } = source
+  const { collection, name, root, folder } = source
+  await checkFolder({
+    collection,
+    folder: folder.path,
+    root,
+    identity: folder.files.identity
+  })
   const listed = folder.files.icons.get(name)
   if (listed && isSameFile({ first: listed, second: stats })) return
   const files = await folder.refresh()

@@ -60,6 +60,12 @@ hydrate(() => <App />, document.querySelector('#app')!)
 document.documentElement.dataset.hydrated = ''
 `
 const APP_ELEMENT = '<div id="app"></div>'
+const HTML_START = '<html>'
+// WHY: the Chrome of the CI asks for /favicon.ico, which the preview answers
+// with a 404 that the console reports as an error. An icon given as a data:
+// URL at the start of the page, which the parser puts in the head, asks for
+// nothing; in the body the browser ignores it.
+const NO_FAVICON = '<link rel="icon" href="data:,">'
 // Runs while the page parses, before the module that hydrates: it keeps the
 // nodes that the server wrote and records every change to them.
 const WATCH_SCRIPT = `<script>
@@ -140,12 +146,15 @@ test('an icon hydrates as the server rendered it', async context => {
   const index = path.join(root, 'dist/client/index.html')
   const page = await readFile(index, 'utf8')
   assert.ok(page.includes(APP_ELEMENT))
+  assert.ok(page.includes(HTML_START))
   await writeFile(
     index,
-    page.replace(
-      APP_ELEMENT,
-      `${entry.script()}<div id="app">${html}</div>${WATCH_SCRIPT}`
-    )
+    page
+      .replace(HTML_START, `${HTML_START}${NO_FAVICON}`)
+      .replace(
+        APP_ELEMENT,
+        `${entry.script()}<div id="app">${html}</div>${WATCH_SCRIPT}`
+      )
   )
   const server = await preview({
     ...config,
@@ -158,6 +167,10 @@ test('an icon hydrates as the server rendered it', async context => {
   const tab = await browser.newPage()
   const problems: string[] = []
   tab.on('pageerror', error => problems.push(error.message))
+  // The console names no resource for a failed load; the response does.
+  tab.on('response', response => {
+    if (!response.ok()) problems.push(`${response.status()}: ${response.url()}`)
+  })
   tab.on('console', message => {
     if (['error', 'warning'].includes(message.type())) {
       problems.push(`${message.type()}: ${message.text()}`)

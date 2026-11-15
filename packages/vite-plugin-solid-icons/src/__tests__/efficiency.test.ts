@@ -103,12 +103,18 @@ describe('the plugin', () => {
         `export const value${index} = ${index}\n`
       )
     }
+    // Escapes that spell no letter of an import, as a module of text has.
+    await writeFile(
+      path.join(root, 'src/escapes.ts'),
+      `${String.raw`export const text = ['\n', "\t", '\\', '\x1b[0m', '\u2014'].join('')`}\n`
+    )
     await writeFile(
       path.join(root, 'entry.js'),
       `${plain.map(index => `import { value${index} } from './src/plain-${index}.ts'`).join('\n')}
+import { text } from './src/escapes.ts'
 import { Star } from 'icon:own'
 import Moon from 'icon:own/moon'
-console.log(Star, Moon, ${plain.map(index => `value${index}`).join(', ')})
+console.log(Star, Moon, text, ${plain.map(index => `value${index}`).join(', ')})
 `
     )
     const config = fixtureConfig({ root, isSsr: false, typesFile: false })
@@ -127,7 +133,7 @@ console.log(Star, Moon, ${plain.map(index => `value${index}`).join(', ')})
     })
 
     // The transform parses entry.js only: the filter on the code keeps the
-    // other 40 modules and the icons away from the parser.
+    // other 41 modules and the icons away from the parser.
     assert.deepEqual(calls, { resolveId: 2, load: 2, transform: 1 })
   })
 

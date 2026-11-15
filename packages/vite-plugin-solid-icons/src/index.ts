@@ -47,12 +47,21 @@ const NODE_MODULES = /[/\\]node_modules[/\\]/u
 // the filter keeps the others away from the plugin. The handlers check
 // the exact form.
 const ICON_SPECIFIER = /icon:/u
+// A character of the name of a collection or of "icon:", written as an
+// escape of a string: \x6f, \u006f, \u{6f}, or a letter that is no escape
+// of its own, as in \a.
+const NAME_CHARACTER_CODE = String.raw`(?:2[Dd]|3[\dAa]|6[1-9A-Fa-f]|7[\dAa])`
+const NAME_CHARACTER_ESCAPE = String.raw`\\(?:x${NAME_CHARACTER_CODE}|u00${NAME_CHARACTER_CODE}|u\{0*${NAME_CHARACTER_CODE}\}|[:acdeg-mo-qswyz-])`
 // The quoted name of a collection alone, as an import of the collection
 // writes it; a module with only imports of one icon skips the parser. A
-// string that reaches an escape before any character outside that name may
-// spell one, as in 'icon:\u006fwn', so the parser reads its value.
-const COLLECTION_IMPORT =
-  /(?<quote>["'])(?:icon:[a-z0-9]+(?:-[a-z0-9]+)*\k<quote>|[\da-z:-]*\\)/u
+// string that starts as the import of a collection and goes on with an
+// escape of a character of that import may spell one, as in
+// 'icon:\u006fwn', so the parser reads its value. Escapes such as \n do
+// not.
+const COLLECTION_IMPORT = new RegExp(
+  String.raw`(?<quote>["'])(?:icon:[a-z0-9]+(?:-[a-z0-9]+)*\k<quote>|(?:i(?:c(?:o(?:n(?::[\da-z-]*)?)?)?)?)?${NAME_CHARACTER_ESCAPE})`,
+  'u'
+)
 
 function track({ ids, key, id }: TrackedId): void {
   const tracked = ids.get(key) ?? new Set<string>()

@@ -293,7 +293,7 @@ describe('the modules of the icons', () => {
     context.after(() => rm(root, { recursive: true, force: true }))
     await writeFile(
       path.join(root, 'entry.js'),
-      "import { Moon } from 'icon:\\u006fwn'\nimport { Star } from 'ic\\x6fn:own'\nconsole.log(Moon, Star)\n"
+      "import { Moon } from 'icon:\\u006fwn'\nimport { Star } from 'ic\\x6fn:own'\nimport { LogoV2 } from 'icon:\\own'\nconsole.log(Moon, Star, LogoV2)\n"
     )
     const output = await build({
       ...fixtureConfig({ root, isSsr: false, typesFile: false }),
@@ -307,5 +307,6 @@ describe('the modules of the icons', () => {
 
     assert.match(code, /M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z/u)
     assert.match(code, /M12 2l3 7h7l-6 4 2 7-6-4-6 4 2-7-6-4h7z/u)
+    assert.match(code, /<circle/u)
   })
 })

@@ -26,7 +26,7 @@ is made once, in the packages, and reaches each app with `vp update`.
 > [runtime's peer dependency](packages/solid-runtime/package.json). Keep tested
 > versions aligned and read the release notes before you update.
 
-This is the boilerplate app of this repository, built on both packages and
+Here is the boilerplate app of this repository, running on both packages,
 captured from its production build at 750 px wide:
 
 <picture>
@@ -35,10 +35,10 @@ captured from its production build at 750 px wide:
   <img src="docs/assets/readme/app-home-light.webp" alt="Screenshot of the boilerplate home page at /en from the production build: a top bar with Home, About, Contact, Privacy and 404 links, a GitHub link, the EN language button and the theme button, then the SolidJS Boilerplate badge, the title SolidJS Boilerplate for web applications, two paragraphs about SSR, themes, three languages and tests, the SolidJS logo and the line SolidJS 2, Vite+, TypeScript 7." width="800" />
 </picture>
 
-Translations follow your configured locale list. Theme behavior comes from one
-factory. Both are optional: an app without translations or a theme switcher
-writes no configuration for them. A client-only or desktop renderer can start
-with `ssr: false`, without a server or site URL.
+Translations follow your configured locale list, and theme behavior comes from
+one factory. Skip either one and you write no configuration for it. A
+client-only or desktop renderer can start with `ssr: false`, without a server or
+site URL.
 
 Built for the
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs)
@@ -180,7 +180,7 @@ through it, then read the code you would otherwise write yourself.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/ui-kit-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/ui-kit-light.webp" />
-  <img src="docs/assets/readme/ui-kit-light.webp" alt="Four screenshots of the /ui-kit E2E fixture route at 368 pixels wide. The language DropdownMenu open with PT Português, EN English and ES Español. A form with a Name Input, a Subscribe checkbox, a Message Textarea and Submit and Reset buttons. A modal Dialog titled Fixture dialog with a field and two buttons. Two toasts, Success with Fixture saved and Error showing the literal text strong Plain text, because messages render as text." width="800" />
+  <img src="docs/assets/readme/ui-kit-light.webp" alt="Five clips of the /ui-kit E2E fixture route, each 368 pixels wide. The language DropdownMenu open under the top bar with PT Português, EN English and ES Español. A Name Input with the value Ada. A Message Textarea with two lines above the Submit form and Reset form buttons. A modal Dialog titled Fixture dialog with a field and two buttons, over its backdrop. Two toasts, Success with Fixture saved and Error showing the literal text strong Plain text, because messages render as text." width="800" />
 </picture>
 
 The components live in the app, so you change their markup and CSS freely:
@@ -196,8 +196,8 @@ The components live in the app, so you change their markup and CSS freely:
 - `DropdownMenu` on the APG menu pattern, used by the language and theme
   switchers.
 
-The capture comes from the `/ui-kit` route of the E2E build, which the UI kit
-tests use, at 368 px wide. See the [UI guide](apps/boilerplate/docs/ui.md).
+The clips come from the `/ui-kit` route of the E2E build, the route the UI kit
+tests use, at 1:1 scale. See the [UI guide](apps/boilerplate/docs/ui.md).
 
 ### Outdated pages recover after a deploy
 
@@ -287,8 +287,8 @@ a dark page. The primitive persists choices in a cookie and synchronizes tabs
 and system changes. This example keeps the cookie for 31,536,000 seconds, as the
 [copy does](apps/boilerplate/src/constants/theme.ts).
 
-You own the palette, `.light`/`.dark` CSS, Provider and switcher. An app without
-theme switching needs none of these imports or settings. See the
+You own the palette, `.light`/`.dark` CSS, Provider and switcher. A fixed-theme
+app leaves all of it out. See the
 [theme API](packages/solid-runtime/README.md#optional-theme) and the
 [Document integration](apps/boilerplate/src/Document.tsx).
 
@@ -382,9 +382,12 @@ properties are not forwarded. The default response is
 `The request could not be completed.`. Logs retain a fixed `[server-error]`
 source line with filtered diagnostics. Development keeps original diagnostics.
 
-The SSR entries call `createRenderOptions()`, which forwards the request nonce
-and the abort signal with render integrity, and the client entry calls
-`prepareClientLocale()`.
+One call in `entry-server.tsx` keeps a failed render from being published.
+`createRenderOptions()` forwards the request nonce and the abort signal and
+records whether the render completed without errors; the Markdown publisher
+refuses a page whose render did not. In the client entry,
+`prepareClientLocale()` reloads before hydration when the loaded locale does not
+match the URL.
 
 Wrap database or SDK adapters with `protectServerOperation({ run })`. Lint
 restricts privileged imports, and used `server-only` imports in client code fail
@@ -430,8 +433,8 @@ receive a read limit and cancellation signal. With i18n, XML includes the
 configured locales and `x-default`. Without it, URLs remain unprefixed. Routes,
 robots announcements and `seo.sitemap` header rules are explicit choices.
 
-A meta-only app can provide its URL directly. An app without SEO needs no site
-URL or SEO imports. See [SEO](packages/solid-runtime/README.md#optional-seo),
+A meta-only app can pass its URL directly. Leave SEO out and there is no site
+URL to set. See [SEO](packages/solid-runtime/README.md#optional-seo),
 [sitemap APIs and bounds](packages/solid-runtime/README.md#sitemap-and-publication)
 and the copy's [SEO guide](apps/boilerplate/docs/seo.md).
 
@@ -541,8 +544,8 @@ loads; raw env reads are unchanged. Public client values use
 carry the inferred types. The build rejects server env imports in client code.
 
 The runtime supplies Valibot for its fragment. Declare a validator library
-yourself only when your code imports it. An app without env requirements can
-omit `env.ts`. See
+yourself only when your code imports it. With nothing to validate, skip
+`env.ts`: the preset requires none of its variables. See
 [environment validation](docs/tooling/app-config.md#optional-environment-validation).
 
 ## Icons from collections or your own SVGs
@@ -595,9 +598,9 @@ export function FontHead() {
 }
 ```
 
-Client-only apps receive the links in `index.html` automatically. Without
-`fonts`, nothing is generated and no runtime font import is needed. You keep
-files, licenses and typography tokens. See the
+Client-only apps receive the links in `index.html` automatically. No `fonts`
+option means no generated files and no runtime import. You keep files, licenses
+and typography tokens. See the
 [complete font configuration](docs/tooling/fonts.md) and the
 [copy's descriptors](apps/boilerplate/fonts.ts).
 
@@ -645,7 +648,7 @@ the declaration. See
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/layers-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/layers-light.webp" />
-  <img src="docs/assets/readme/layers-light.webp" alt="The architecture/layer-imports rule, from top to bottom: routes and entries (App, Document, entry-server, entry-client, router, middleware), organisms, molecules that do not import organisms, atoms that do not import molecules or organisms, primitives in src/primitives that import no components, routes or entries, and the base layer of types, constants, helpers, data, infra, theme, i18n and paraglide. The lint message reads: Layer from must not depend on to, target. See the layer rules in docs/architecture.md." width="800" />
+  <img src="docs/assets/readme/layers-light.webp" alt="The architecture/layer-imports rule, from top to bottom: routes and entries (App, Document, entry-server, entry-client, router, middleware), organisms, molecules that do not import organisms, atoms that do not import molecules or organisms, primitives in src/primitives that import no components, routes or entries, and the base layer of types, constants, helpers, data, infra, theme, i18n and paraglide. Below, vp lint on a copy of the boilerplate where the PageBadge atom imports a molecule: src/components/atoms/PageBadge/index.tsx:3:1: error architecture(layer-imports): Layer atoms must not depend on molecules (src/components/molecules/PageHero/index.tsx). See the layer rules in docs/architecture.md." width="800" />
 </picture>
 
 `architecture/layer-imports` stops an atom from importing a molecule, a helper
@@ -654,9 +657,10 @@ from importing a component and production code from importing tests or
 [component layers](apps/boilerplate/docs/architecture.md#component-layers)
 explain where a new component goes.
 
-The package's own rules import CSS Modules as `S`, name CSS and test files after
-their module, keep exports on the declaration and keep route `seo.ts` modules
-free of page content.
+Five more rules of the package keep files predictable: a CSS Module is named
+`styles.module.css` and imported as `S`, a test sits in `__tests__` named after
+its module and environment, exports sit on the declaration, and a route's
+`seo.ts` holds only metadata.
 
 The preset also restricts what application code can reach. `console` is not
 allowed in `src/`, `fetch` is allowed only in `requestJson`, the Node transports
@@ -681,8 +685,21 @@ at most two levels deep. An exception needs a `stylelint-disable` comment with
 its reason. See the [CSS lint](docs/tooling/knip-and-css.md#css-lint). The
 preset also turns on Lightning CSS, which transpiles nesting and `light-dark()`
 for the default browser targets and names CSS Module classes by content hash.
-Knip, also packaged, finds unused files, exports and dependencies in the default
-and `--strict` modes.
+
+### Dead code caught before the push
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/dead-code-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/dead-code-light.webp" />
+  <img src="docs/assets/readme/dead-code-light.webp" alt="Knip output on a copy of the boilerplate with an unused file, dependency and export added. Unused files (1): src/helpers/formatPrice/index.ts. Unused dependencies (1): date-fns at package.json:45:6. Unused exports (1): THEME_COOKIE_NAME at src/constants/theme.ts:6:14. The first pass fails, so vp run dead-code-project stops before the --strict pass." width="800" />
+</picture>
+
+A helper nobody calls, an export nobody imports or a dependency nobody uses
+fails the push instead of piling up. Knip comes packaged and already knows the
+entries of a Solid app: the server and client entries, the middleware, `env.ts`
+and every route that file-system routing finds. `vp run dead-code-project` runs
+it, then again with `--strict` for production code, and the `pre-push` hook runs
+that task. See [Knip](docs/tooling/knip-and-css.md#knip).
 
 ### Git hooks that run the right checks
 
@@ -710,9 +727,9 @@ dependency is needed. See
 
 Name a test after its environment and it runs in the right one: Node for server
 code, happy-dom for components, a real Chromium for behavior that needs layout
-and CSS. In the boilerplate, the `node`, `dom` and `browser` projects passed 68,
-87 and 30 tests at this revision, in 12, 13 and 7 files. Coverage thresholds
-come with the preset: 80% for lines, functions and statements, 75% for branches.
+and CSS. In the boilerplate, `vp run test` passed 68 `node`, 87 `dom` and 30
+`browser` tests, in 12, 13 and 7 files. Coverage thresholds come with the
+preset: 80% for lines, functions and statements, 75% for branches.
 `definePlaywrightConfig` builds the app, starts the preview and, when the suite
 ends, checks the server log for private markers, so a private detail that
 reaches the log fails the run. See [testing](docs/tooling/testing.md).
@@ -723,14 +740,11 @@ reaches the log fails the run. See [testing](docs/tooling/testing.md).
   <img src="docs/assets/readme/e2e-coverage-light.webp" alt="Horizontal bars of the 319 Playwright cases of apps/boilerplate across 15 areas, split between the E2E build with 164 cases and the production build with 155: AgentReadiness 77, I18n 40, Home 36, SeoIndexes 29, Markdown 27, BackendError 25, BuildOutput 22, OutsideError 18, Hydration 18, UiKit 8, OutdatedPage 7, StructuredData 6, FragmentCss 2, LateRedirect 2 and NotFound 2. Enumerated with playwright test --list, without running them." width="800" />
 </picture>
 
-The 319 cases sit in 26 files for the E2E build and 12 for the production build.
-AgentReadiness has 77 cases, I18n 40, Home 36, SeoIndexes 29, Markdown 27,
-BackendError 25, BuildOutput 22, OutsideError and Hydration 18 each, UiKit 8,
-OutdatedPage 7, StructuredData 6, and FragmentCss, LateRedirect and NotFound 2
-each. The boilerplate's E2E suite is a ready set of examples: CSP and nonce
-checks, hydration under a held stream, translated routes, Markdown negotiation,
-SEO indexes and the outdated-page recovery. See the copy's
-[testing guide](apps/boilerplate/docs/testing.md).
+The suite doubles as a set of worked examples: CSP and nonce checks, hydration
+under a held stream, translated routes, Markdown negotiation, SEO indexes and
+outdated-page recovery. Its 319 cases sit in 26 files for the E2E build and 12
+for the production build, and the largest area, AgentReadiness, has 77. See the
+copy's [testing guide](apps/boilerplate/docs/testing.md).
 
 ## Fewer libraries to maintain
 
@@ -822,14 +836,12 @@ public assets and static paths, without forking the preset. See the
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/verified-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/verified-light.webp" />
-  <img src="docs/assets/readme/verified-light.webp" alt="At this revision: 1001 runtime and 185 application Vitest tests passed, 1186 combined; 164 E2E build cases and 155 production cases, 319 enumerated. Installed tarballs check exports and builds with both Bun linkers. Release workflows use npm trusted publishing." width="800" />
+  <img src="docs/assets/readme/verified-light.webp" alt="Current revision: 1001 runtime and 185 application Vitest tests passed, 1186 combined; 164 E2E build cases and 155 production cases, 319 enumerated. Installed tarballs check exports and builds with both Bun linkers. Release workflows use npm trusted publishing." width="800" />
 </picture>
 
-At this revision, the runtime and application passed 1,001 and 185 Vitest tests,
-respectively, 1,186 combined. The current Playwright inventory contains 164
-cases against the E2E build and 155 against the production build, 319 total.
-Enumeration records the inventory; those E2E cases were not run for this
-documentation update.
+At this revision, 1,186 Vitest tests passed: 1,001 in the runtime and 185 in the
+boilerplate app. `playwright test --list` counts 319 end-to-end cases on top,
+164 against the E2E build and 155 against the production build.
 
 Release gates also build installed tarballs outside the workspace with Bun's
 `hoisted` and `isolated` linkers, check exports and lint rules, and audit

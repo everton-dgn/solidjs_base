@@ -65,7 +65,7 @@ duplicate ID or a parameter that differs between locales.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/ui-kit-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/ui-kit-light.webp" />
-  <img src="../../docs/assets/readme/ui-kit-light.webp" alt="Four screenshots of the /ui-kit E2E fixture route at 368 pixels wide. The language DropdownMenu open with PT Português, EN English and ES Español. A form with a Name Input, a Subscribe checkbox, a Message Textarea and Submit and Reset buttons. A modal Dialog titled Fixture dialog with a field and two buttons. Two toasts, Success with Fixture saved and Error showing the literal text strong Plain text, because messages render as text." width="800" />
+  <img src="../../docs/assets/readme/ui-kit-light.webp" alt="Five clips of the /ui-kit E2E fixture route, each 368 pixels wide. The language DropdownMenu open under the top bar with PT Português, EN English and ES Español. A Name Input with the value Ada. A Message Textarea with two lines above the Submit form and Reset form buttons. A modal Dialog titled Fixture dialog with a field and two buttons, over its backdrop. Two toasts, Success with Fixture saved and Error showing the literal text strong Plain text, because messages render as text." width="800" />
 </picture>
 
 - `Button` with variants, sizes and a `label` shortcut for text-only buttons.
@@ -79,9 +79,9 @@ duplicate ID or a parameter that differs between locales.
 - `DropdownMenu` on the APG menu pattern, behind the language and theme
   switchers of the top bar.
 
-The capture comes from the `/ui-kit` route at 368 px wide, an E2E fixture that
-only exists in the `e2e` build (`src/tests/fixtures/e2e/routes/(base)/ui-kit/`).
-In your app, the components come from `src/components/`.
+The clips come from the `/ui-kit` route at 1:1 scale, an E2E fixture that only
+exists in the `e2e` build (`src/tests/fixtures/e2e/routes/(base)/ui-kit/`). In
+your app, the components come from `src/components/`.
 
 ### Outdated pages after a deploy
 
@@ -128,6 +128,12 @@ vp run build
 HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
 ```
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/security-headers-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/security-headers-light.webp" />
+  <img src="../../docs/assets/readme/security-headers-light.webp" alt="Output of curl -sI on the boilerplate production preview at /en: strict-transport-security max-age=63072000 with includeSubDomains, x-frame-options DENY, x-content-type-options nosniff, referrer-policy strict-origin-when-cross-origin, a permissions-policy that blocks camera, microphone and geolocation, same-origin opener and resource policies, require-corp embedder policy, and a content-security-policy whose script-src carries a request nonce and strict-dynamic. The next requests carried different nonces." width="800" />
+</picture>
+
 `curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
 nonce that changes on every request. `/en/about.md`, or `/en/about` with
 `Accept: text/markdown`, returns the page as Markdown, and `/llms.txt` lists the
@@ -143,6 +149,12 @@ not appear unstyled while its JavaScript loads
 ([styles on the first load](docs/development.md#styles-on-the-first-load-in-development)).
 
 ## How it uses the packages
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/before-after-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/before-after-light.webp" />
+  <img src="../../docs/assets/readme/before-after-light.webp" alt="About 87 percent fewer lines across five configuration areas, from 945 to 125: Vite 427 to 48, Playwright 173 to 17, Knip 129 to 40, TypeScript 45 to 9, and Stylelint 171 to an 11-line script. Each bar shows the fraction retained in the app." width="800" />
+</picture>
 
 It takes its lint preset, lint rules, formatter settings, TypeScript configs,
 Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and

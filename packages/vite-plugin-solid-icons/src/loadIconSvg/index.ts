@@ -7,7 +7,6 @@ import {
   type IconifyLoaderOptions,
   searchForIcon
 } from '@iconify/utils'
-import { getPossibleIconNames } from '@iconify/utils/lib/loader/utils'
 
 import { loadIconSet } from '../loadIconSet/index.ts'
 import type { FolderFiles } from '../readFolderFiles/index.ts'
@@ -215,12 +214,19 @@ async function loadInstalledIcon({
 }: IconSource): Promise<IconSvg> {
   const packageName = `${COLLECTION_SCOPE}/${collection}`
   const iconSet = await loadIconSet({ collection, root })
-  const svg = await searchForIcon(
-    iconSet,
-    collection,
-    getPossibleIconNames(name),
-    loaderOptions(customizeIcon)
-  )
+  // WHY: the exact name only, as in a folder, so one icon has one module;
+  // and an own property only, so a name such as constructor finds nothing.
+  const hasIcon =
+    Object.hasOwn(iconSet.icons, name) ||
+    Object.hasOwn(iconSet.aliases ?? {}, name)
+  const svg = hasIcon
+    ? await searchForIcon(
+        iconSet,
+        collection,
+        [name],
+        loaderOptions(customizeIcon)
+      )
+    : undefined
   if (svg === undefined) {
     throw new Error(`Icon "${collection}/${name}" not found in ${packageName}.`)
   }

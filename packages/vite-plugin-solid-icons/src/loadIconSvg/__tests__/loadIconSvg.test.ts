@@ -43,6 +43,16 @@ async function listed(folder: string): Promise<IconFolder> {
   return { path: folder, files }
 }
 
+function loadInstalled(name: string) {
+  return loadIconSvg({
+    collection: 'hugeicons',
+    name,
+    root: PACKAGE_ROOT,
+    folder: undefined,
+    customizeIcon: undefined
+  })
+}
+
 async function loadFolderIcon({ context, ...icon }: FolderIcon) {
   const folder = await iconFolder(context)
   const loaded = await loadIconSvg({
@@ -155,6 +165,38 @@ describe('loadIconSvg', () => {
           'Icon "hugeicons/no-such-icon" not found in @iconify-json/hugeicons.'
       }
     )
+  })
+
+  it('finds no icon in the members of an object', async () => {
+    for (const name of [
+      'constructor',
+      '__proto__',
+      'toString',
+      'hasOwnProperty',
+      'valueOf'
+    ]) {
+      await assert.rejects(
+        loadIconSvg({
+          collection: 'hugeicons',
+          name,
+          root: PACKAGE_ROOT,
+          folder: undefined,
+          customizeIcon: undefined
+        }),
+        {
+          message: `Icon "hugeicons/${name}" not found in @iconify-json/hugeicons.`
+        }
+      )
+    }
+  })
+
+  it('loads an installed icon by its exact name only', async () => {
+    await loadInstalled('first-bracket')
+    for (const name of ['firstBracket', 'FirstBracket', 'first_bracket']) {
+      await assert.rejects(loadInstalled(name), {
+        message: `Icon "hugeicons/${name}" not found in @iconify-json/hugeicons.`
+      })
+    }
   })
 
   it('names the collection that is neither installed nor declared', async () => {

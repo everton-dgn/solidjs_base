@@ -142,9 +142,11 @@ export function Header() {
 ```
 
 `icon:<collection>/<name>` is the icon under its own file or Iconify name, with
-the default import named as you like. Every icon is reachable this way,
-including the few that have no export name. `import('icon:hugeicons/github')`
-loads one icon when the page needs it.
+the default import named as you like. The name is written exactly as the file or
+the collection writes it: `icon:hugeicons/first-bracket` loads the icon, and
+`icon:hugeicons/firstBracket` stops the build, so one icon is one module. Every
+icon is reachable this way, including the few that have no export name.
+`import('icon:hugeicons/github')` loads one icon when the page needs it.
 
 Each icon is a component that takes the props of an `<svg>` element. The props
 are spread after the attributes of the icon, so `width`, `class` or `aria-label`

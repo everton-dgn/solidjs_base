@@ -437,61 +437,6 @@ describe('the markup of an icon', () => {
     )
   })
 
-  it('writes a raw text that parses again, also where "]]>" forms across the pieces of a text', () => {
-    // Each piece is valid XML; the raw text writes the pieces side by side.
-    const texts = [
-      '<text><![CDATA[]]]]>></text>',
-      '<text>]<![CDATA[]]]>&gt;</text>',
-      '<text>]]<![CDATA[>]]></text>',
-      '<text>]]<!-- c -->&gt;</text>',
-      '<text>]]<?pi ?>></text>',
-      '<style>a[b=c]<![CDATA[]>d{}]]></style>',
-      '<text>]]<metadata><x/></metadata>&gt;</text>'
-    ]
-    for (const text of texts) {
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg">${text}</svg>`
-      const written = svgText(parseSvg({ svg, isComponent: false }).root)
-      const again = svgText(parseSvg({ svg: written, isComponent: false }).root)
-
-      assert.match(written, /\]\]&gt;/u, text)
-      assert.equal(again, written, text)
-    }
-  })
-
-  it('keeps the spaces of a text that draws, and leaves out the ones between elements', () => {
-    const svg = [
-      '<svg>',
-      '  <g>',
-      '    <text>a',
-      '      <tspan>b</tspan>',
-      '      c <a href="#x">d  e</a></text>',
-      '    <text xml:space="preserve">  x   y  </text>',
-      '    <text><tspan>f</tspan>',
-      '      <tspan>g</tspan></text>',
-      '    <title>',
-      '      A title',
-      '    </title>',
-      '    <text>one space, kept as written</text>',
-      '    <text>h <tspan>i</tspan> j</text>',
-      '  </g>',
-      '</svg>'
-    ].join('\n')
-
-    assert.equal(
-      component(svg),
-      `export default (props = {}) => <svg {...props}>
-  <g>
-    <text>{"a\\n      "}<tspan>b</tspan>{"\\n      c "}<a href="#x">{"d  e"}</a></text>
-    <text xml:space="preserve">{"  x   y  "}</text>
-    <text><tspan>f</tspan>{"\\n      "}<tspan>g</tspan></text>
-    <title>{"\\n      A title\\n    "}</title>
-    <text>one space, kept as written</text>
-    <text>{"h "}<tspan>i</tspan>{" j"}</text>
-  </g>
-</svg>\n`
-    )
-  })
-
   it('keeps the first of a repeated attribute of the root', () => {
     const svg =
       '<svg aria-hidden="true" viewBox="0 0 1 1" aria-hidden="false"><path/></svg>'
@@ -523,5 +468,84 @@ describe('the markup of an icon', () => {
 
     assert.ok(component(svg).endsWith('<path/></svg>\n'))
     assert.ok(raw(svg).endsWith('<path/></svg>"\n'))
+  })
+})
+
+describe('the text of an icon', () => {
+  it('joins the pieces of a text: the raw text parses again where "]]>" forms across them, and the component writes the whole text', () => {
+    // Each piece is valid XML; the raw text writes the pieces side by side.
+    const texts = [
+      '<text><![CDATA[]]]]>></text>',
+      '<text>]<![CDATA[]]]>&gt;</text>',
+      '<text>]]<![CDATA[>]]></text>',
+      '<text>]]<!-- c -->&gt;</text>',
+      '<text>]]<?pi ?>></text>',
+      '<style>a[b=c]<![CDATA[]>d{}]]></style>',
+      '<text>]]<metadata><x/></metadata>&gt;</text>'
+    ]
+    for (const text of texts) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg">${text}</svg>`
+      const written = svgText(parseSvg({ svg, isComponent: false }).root)
+      const again = svgText(parseSvg({ svg: written, isComponent: false }).root)
+
+      assert.match(written, /\]\]&gt;/u, text)
+      assert.equal(again, written, text)
+    }
+    // A piece alone is plain text, which JSX would write as it is.
+    assert.equal(
+      component(
+        '<svg><text>a<!-- c -->&lt;b</text><title>t<!-- c -->&lt;/title&gt;&lt;img src=x onerror=alert(1)&gt;</title></svg>'
+      ),
+      'export default (props = {}) => <svg {...props}><text>{"a<b"}</text><title>{"t</title><img src=x onerror=alert(1)>"}</title></svg>\n'
+    )
+  })
+
+  it('keeps the spaces of a text that draws, and leaves out the ones between elements', () => {
+    const svg = [
+      '<svg>',
+      '  <g>',
+      '    <text>a',
+      '      <tspan>b</tspan>',
+      '      c <a href="#x">d  e</a></text>',
+      '    <text xml:space="preserve">  x   y  </text>',
+      '    <text><tspan>f</tspan>',
+      '      <tspan>g</tspan></text>',
+      '    <title>',
+      '      A title',
+      '    </title>',
+      '    <text>one space, kept as written</text>',
+      '    <text>h <tspan>i</tspan> j</text>',
+      '    <desc>',
+      '      line one',
+      '      line two',
+      '    </desc>',
+      '    <style>',
+      '      @import url(a.css);',
+      '      @import url(b.css);',
+      '    </style>',
+      '    <text xml:space="preserve">a\tb</text>',
+      '    <title>line one',
+      'line two</title>',
+      '  </g>',
+      '</svg>'
+    ].join('\n')
+
+    assert.equal(
+      component(svg),
+      `export default (props = {}) => <svg {...props}>
+  <g>
+    <text>{"a\\n      "}<tspan>b</tspan>{"\\n      c "}<a href="#x">{"d  e"}</a></text>
+    <text xml:space="preserve">{"  x   y  "}</text>
+    <text><tspan>f</tspan>{"\\n      "}<tspan>g</tspan></text>
+    <title>{"\\n      A title\\n    "}</title>
+    <text>one space, kept as written</text>
+    <text>{"h "}<tspan>i</tspan>{" j"}</text>
+    <desc>{"\\n      line one\\n      line two\\n    "}</desc>
+    <style>{"\\n      @import url(a.css);\\n      @import url(b.css);\\n    "}</style>
+    <text xml:space="preserve">{"a\\tb"}</text>
+    <title>{"line one\\nline two"}</title>
+  </g>
+</svg>\n`
+    )
   })
 })

@@ -134,10 +134,17 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     }
   }
 
+  // The files that have no import are reported also without declarations.
   async function writeTypes(): Promise<void> {
-    if (typesFile === undefined) return
-    const content = await renderIconTypes({ root, folders, tables })
-    await writeTypesFile({ file: typesFile, content })
+    if (typesFile !== undefined) {
+      const { content, warnings } = await renderIconTypes({
+        root,
+        folders,
+        tables
+      })
+      await writeTypesFile({ file: typesFile, content })
+      for (const warning of warnings) warn(warning)
+    }
     await warnSkippedFiles()
   }
 

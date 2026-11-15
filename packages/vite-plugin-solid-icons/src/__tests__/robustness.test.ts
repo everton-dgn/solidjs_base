@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import {
+  access,
   chmod,
   mkdir,
   mkdtemp,
@@ -28,6 +29,7 @@ import {
   createFixtureApp,
   defer,
   fixtureConfig,
+  STAR_FILE,
   TYPES_FILE
 } from './fixture-app.ts'
 
@@ -40,6 +42,7 @@ type EntryBuild = {
   code: string
   logger?: Logger
   collections?: Record<string, string>
+  typesFile?: false
 }
 
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, '../..')
@@ -49,13 +52,15 @@ const IS_ROOT_USER = getuid?.() === 0
 const READ_ONLY = 0o555
 const WRITABLE = 0o755
 const NO_ACCESS = 0o000
-const READER_START = 300
+const SKIPPED_WARNING =
+  '[plugin vite-plugin-solid-icons] The file "my icon.svg" of the icon collection "own" has no import: an icon name has letters, digits, "_" and "-", with dots only between them.'
 const WRITES = 60
 // A reader in another process that reports every read that is neither of
-// the two contents the test writes.
+// the two contents the test writes. It creates the ready file after its
+// first read.
 const READER = `
-import { existsSync, readFileSync } from 'node:fs'
-const [file, stop, size] = process.argv.slice(1)
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+const [file, stop, size, ready] = process.argv.slice(1)
 const first = 'A'.repeat(Number(size)) + '\\n'
 const second = 'B'.repeat(Number(size)) + '\\n'
 let reads = 0, partial = 0, missing = 0
@@ -64,6 +69,7 @@ while (!existsSync(stop)) {
     const text = readFileSync(file, 'utf8')
     reads += 1
     if (text !== first && text !== second) partial += 1
+    if (reads === 1) writeFileSync(ready, '')
   } catch {
     missing += 1
   }
@@ -94,6 +100,15 @@ async function runChild({
   }
 }
 
+async function exists(file: string): Promise<boolean> {
+  try {
+    await access(file)
+    return true
+  } catch {
+    return false
+  }
+}
+
 function hasText({ list, text }: TextSearch): boolean {
   return list.some(message => message.includes(text))
 }
@@ -120,10 +135,16 @@ async function app(context: TestContext): Promise<string> {
   return root
 }
 
-async function buildEntry({ root, code, logger, collections }: EntryBuild) {
+async function buildEntry({
+  root,
+  code,
+  logger,
+  collections,
+  typesFile
+}: EntryBuild) {
   const entry = path.join(root, 'entry.js')
   await writeFile(entry, code)
-  const config = fixtureConfig({ root, isSsr: false })
+  const config = fixtureConfig({ root, isSsr: false, typesFile })
   const [icons, ...plugins] = config.plugins ?? []
   const { solidIcons } = await import('../index.ts')
   await build({
@@ -136,9 +157,9 @@ async function buildEntry({ root, code, logger, collections }: EntryBuild) {
   })
 }
 
-async function waitFor(check: () => boolean): Promise<void> {
+async function waitFor(check: () => boolean | Promise<boolean>): Promise<void> {
   const deadline = Date.now() + WAIT_TIMEOUT
-  while (!check()) {
+  while (!(await check())) {
     if (Date.now() > deadline) throw new Error('The condition did not hold.')
     await delay(POLL_INTERVAL)
   }
@@ -149,16 +170,17 @@ describe('the declarations file', () => {
     const folder = await tempFolder({ context, name: 'solid-icons-atomic-' })
     const file = path.join(folder, 'icon-collections.d.ts')
     const stop = path.join(folder, 'stop')
+    const ready = path.join(folder, 'ready')
     const size = 1_000_000
     const contents = ['A', 'B'].map(letter => `${letter.repeat(size)}\n`)
     await writeTypesFile({ file, content: contents[0] ?? '' })
     const reader = runChild({
       code: READER,
-      args: [file, stop, String(size)],
+      args: [file, stop, String(size), ready],
       timeout: 60_000
     })
-    // The reader starts reading before the writes.
-    await delay(READER_START)
+    // The writes start once the reader has read the file.
+    await waitFor(() => exists(ready))
     for (let write = 0; write < WRITES; write += 1) {
       const content = contents[write % contents.length] ?? ''
       await writeTypesFile({ file, content })
@@ -177,7 +199,11 @@ describe('the declarations file', () => {
       { partial: 0, missing: 0 }
     )
     const left = await readdir(folder)
-    assert.deepEqual(left.toSorted(), ['icon-collections.d.ts', 'stop'])
+    assert.deepEqual(left.toSorted(), [
+      'icon-collections.d.ts',
+      'ready',
+      'stop'
+    ])
   })
 
   it('stays whole when two builds and a dev server write it', async context => {
@@ -293,16 +319,15 @@ describe('a folder of icons', () => {
       ...fixtureConfig({ root, isSsr: false }),
       customLogger: warnings(list),
       optimizeDeps: { noDiscovery: true },
-      server: {
-        middlewareMode: true,
-        watch: { usePolling: true, interval: POLL_INTERVAL }
-      }
+      server: { middlewareMode: true, watch: null }
     })
     defer({ context, task: () => server.close() })
     const { client } = server.environments
     await client.transformRequest('icon:own/star')
 
     await rm(path.join(root, 'icons'), { recursive: true })
+    // The test reports the change, as the file watcher would.
+    server.watcher.emit('unlink', path.join(root, STAR_FILE))
     await waitFor(() => hasText({ list, text: '(ENOENT)' }))
     await assert.rejects(
       client.transformRequest('icon:own/moon'),
@@ -333,9 +358,9 @@ describe('a folder of icons', () => {
     const code = "import Star from 'icon:own/star'\nconsole.log(Star)\n"
 
     await buildEntry({ root, code, logger })
-    assert.deepEqual(list, [
-      '[plugin vite-plugin-solid-icons] The file "my icon.svg" of the icon collection "own" has no import: an icon name has letters, digits, "_" and "-", with dots only between them.'
-    ])
+    await buildEntry({ root, code, logger, typesFile: false })
+    // One warning per build, also when no declarations are written.
+    assert.deepEqual(list, [SKIPPED_WARNING, SKIPPED_WARNING])
   })
 
   it('lives in a path with spaces and accents', async context => {
@@ -371,6 +396,40 @@ describe('the package.json of the application', () => {
     await assert.rejects(
       checkIconTypes({ root, collections: { own: './icons' } }),
       message
+    )
+  })
+
+  it('that declares a collection not installed keeps the others', async context => {
+    const root = await app(context)
+    await writeFile(
+      path.join(root, 'package.json'),
+      JSON.stringify({
+        devDependencies: {
+          '@iconify-json/hugeicons': '*',
+          '@iconify-json/not-installed': '*'
+        }
+      })
+    )
+    const left =
+      'The icon declarations leave out the collection "not-installed": Icon collection "not-installed" not found: install @iconify-json/not-installed'
+    const list: string[] = []
+    const code = "import { Star } from 'icon:own'\nconsole.log(Star)\n"
+
+    await buildEntry({ root, code, logger: warnings(list) })
+    const types = await readFile(path.join(root, TYPES_FILE), 'utf8')
+    assert.match(types, /declare module 'icon:hugeicons'/u)
+    assert.match(types, /declare module 'icon:own'/u)
+    assert.doesNotMatch(types, /not-installed/u)
+    assert.ok(hasText({ list, text: left }), list.join('\n'))
+    const written = await writeIconTypes({
+      root,
+      collections: { own: './icons' }
+    })
+    assert.equal(written.isChanged, false)
+    assert.ok(hasText({ list: written.warnings, text: left }))
+    await assert.rejects(
+      checkIconTypes({ root, collections: { own: './icons' } }),
+      new RegExp(left.replaceAll(/[.*+?^${}()|[\]\\/]/gu, String.raw`\$&`), 'u')
     )
   })
 

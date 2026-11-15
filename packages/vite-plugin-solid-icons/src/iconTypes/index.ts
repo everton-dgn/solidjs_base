@@ -3,7 +3,7 @@ import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pid } from 'node:process'
 
-import { errorCode } from '../errorText/index.ts'
+import { errorCode, messageOf } from '../errorText/index.ts'
 import {
   declaredCollections,
   type Folders,
@@ -45,28 +45,46 @@ export type TypesSource = { root: string; folders: Folders; tables: NameTables }
 
 export type TypesFileContent = { file: string; content: string }
 
+export type RenderedTypes = {
+  content: string
+  // The collections left out, with the reason.
+  warnings: string[]
+}
+
 // WHY: a tsconfig that includes src, as most applications have, reads the
 // file without another entry.
 export const DEFAULT_TYPES_FILE = 'src/icon-collections.d.ts'
 
 // One module per collection that the package.json of the application
 // installs and per folder collection, in a fixed order, so the file only
-// changes with the icons.
+// changes with the icons. A collection that cannot be read is left out with
+// a warning, so the others keep their names.
 export async function renderIconTypes({
   root,
   folders,
   tables
-}: TypesSource): Promise<string> {
+}: TypesSource): Promise<RenderedTypes> {
   const installed = await declaredCollections(root)
   const collections = [...new Set([...installed, ...folders.keys()])]
     .filter(collection => isCollectionName(collection))
     .toSorted(compare)
-  const modules = await Promise.all(
+  const results = await Promise.allSettled(
     collections.map(async collection =>
       moduleDeclaration({ collection, table: await tables.get(collection) })
     )
   )
-  return [HEADER, ...modules].join('\n')
+  const modules: string[] = []
+  const warnings: string[] = []
+  for (const [index, result] of results.entries()) {
+    if (result.status === 'fulfilled') {
+      modules.push(result.value)
+      continue
+    }
+    warnings.push(
+      `The icon declarations leave out the collection "${collections[index]}": ${messageOf(result.reason)}`
+    )
+  }
+  return { content: [HEADER, ...modules].join('\n'), warnings }
 }
 
 export async function readTypesFile(file: string): Promise<string | undefined> {

@@ -40,7 +40,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0033](0033-runtime-sitemap-publication.md)                            | Sitemap and publication admission belong to the runtime                | Accepted                              |
 | [0034](0034-runtime-markdown-publication.md)                           | Runtime Markdown and compiled publication                              | Accepted                              |
 | [0035](0035-release-pull-request-app.md)                               | A GitHub App opens the release pull request                            | Accepted                              |
-| [0036](0036-icons-vite-plugin-package.md)                              | Icons come from a Vite plugin package of this monorepo                 | Accepted                              |
+| [0037](0037-icons-vite-plugin-package.md)                              | Icons come from a Vite plugin package of this monorepo                 | Accepted                              |
 
 ## Adding a record
 

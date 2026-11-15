@@ -1,4 +1,4 @@
-# 0036. Icons come from a Vite plugin package of this monorepo
+# 0037. Icons come from a Vite plugin package of this monorepo
 
 - Status: Accepted
 - Date: 2026-11-15
@@ -79,3 +79,40 @@ The options were:
   `hugeicons`. An application renames them on import.
 - Until the second step, the repository holds two ways to load icons, and the
   docs of the tooling and the app describe the one they still use.
+- The SVG files of a folder collection are code of the application: the package
+  does not sanitize them. It guarantees that their markup stays markup. The
+  component is written again from the elements, attributes and text that the
+  file parses to, and the build stops on markup that runs code (`<script>`,
+  event handlers, `javascript:` URLs, `<foreignObject>`) and on markup that JSX
+  reads as code. Writing the markup into JSX as it was let an element such as
+  `<globalThis.fn/>` call a function at render and let `innerHTML` reach the
+  server output as HTML; both were reproduced before the change. An SVG that a
+  user uploads still needs a sanitizer at runtime.
+- A folder icon is read only when the listing of the folder has its exact file
+  name, so a link, a name in another case and a path outside the folder are
+  refused on every file system.
+- A folder that cannot be read, a collection that is declared and not installed,
+  and a declaration file that cannot be written log a warning and stop only the
+  imports that need them, so the dev server keeps running.
+- Measured on the development machine, one run at a time, as the median of three
+  runs of the same round:
+  - A reader in another process saw 25 to 46 partial files in about 2,000 reads
+    while the declaration file was written in place, and none once it is written
+    to a temporary file and renamed.
+  - A new SVG file rendered the declarations twice, once per environment of the
+    dev server, and a burst of ten files twenty times; they render once and four
+    times now.
+  - Twenty loads of a collection started at once read and parsed `icons.json`
+    twenty times through `@iconify/utils`; a cache of the promise reads it once.
+  - With 500 icons, the filters of the resolve and load hooks cut their calls
+    into the plugin from 1,241 and 551 to 501 each. The bundle is the same, byte
+    for byte, by name, by path and with the plugin the tooling uses today. The
+    build took 6 to 15 ms more than with that plugin, before and after the
+    change.
+  - The name table and the declarations of `hugeicons`, 6,106 names, take about
+    25 ms and write 485 KB; a synthetic collection of 20,200 names takes about
+    60 ms and writes 1.6 MB. They are computed once per dev session and again
+    only for a folder collection whose files change.
+  - The first page of the dev server and a hot update of an edited SVG take the
+    same time as with the current plugin, which does not update an edited SVG of
+    a folder.

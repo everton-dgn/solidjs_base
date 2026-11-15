@@ -100,6 +100,20 @@ const MALFORMED: Refusal[] = [
   { svg: '<svgx/>', message: /the file has no <svg> root element/u },
   { svg: '<svg><g><path/></svg>', message: /<\/svg> closes <g>/u },
   { svg: '<svg><path/>', message: /<svg> is not closed/u },
+  { svg: '<svg><path', message: /<path> is not closed/u },
+  {
+    svg: '<svg><path ="1"/></svg>',
+    message: /<path> has an attribute without a name/u
+  },
+  {
+    svg: '<svg><path d="M0/></svg>',
+    message: /the value of the attribute d of <path> is not closed/u
+  },
+  {
+    svg: '<svg><g></g</svg>',
+    message: /the closing tag of <g> is not closed/u
+  },
+  { svg: '<svg>< </svg>', message: /a "<" starts no tag: write &lt;/u },
   { svg: '<svg><path d=M0/></svg>', message: /has no quoted value/u },
   { svg: '<svg><path d="a<b"/></svg>', message: /has a "<"/u },
   {

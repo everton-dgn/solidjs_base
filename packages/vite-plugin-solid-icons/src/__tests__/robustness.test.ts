@@ -310,6 +310,32 @@ describe('a folder of icons', () => {
     assert.match(github?.code ?? '', /svg/u)
   })
 
+  it('that is a link loads its icons', async context => {
+    const root = await app(context)
+    await rename(path.join(root, 'icons'), path.join(root, 'shared-icons'))
+    await symlink(path.join(root, 'shared-icons'), path.join(root, 'icons'))
+
+    await buildEntry({
+      root,
+      code: "import { Star } from 'icon:own'\nimport Moon from 'icon:own/moon'\nconsole.log(Star, Moon)\n"
+    })
+    const types = await readFile(path.join(root, TYPES_FILE), 'utf8')
+    assert.match(types, /export const Moon: IconComponent/u)
+  })
+
+  it('warns once about a file that an import cannot spell', async context => {
+    const root = await app(context)
+    await writeFile(path.join(root, 'icons/my icon.svg'), '<svg><path/></svg>')
+    const list: string[] = []
+    const logger = warnings(list)
+    const code = "import Star from 'icon:own/star'\nconsole.log(Star)\n"
+
+    await buildEntry({ root, code, logger })
+    assert.deepEqual(list, [
+      '[plugin vite-plugin-solid-icons] The file "my icon.svg" of the icon collection "own" has no import: an icon name has letters, digits, "_" and "-", with dots only between them.'
+    ])
+  })
+
   it('lives in a path with spaces and accents', async context => {
     const parent = await tempFolder({ context, name: 'solid-icons-path-' })
     const root = path.join(parent, 'pasta com espaço', 'ícones')

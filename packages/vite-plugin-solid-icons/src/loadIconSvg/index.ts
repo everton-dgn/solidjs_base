@@ -157,7 +157,7 @@ function missingFolderIcon({
     missing: `the folder "${relative}" of the collection "${collection}" has no ${file}`,
     link: `${file} ${place} is a symbolic link, and the plugin reads regular files only`,
     irregular: `${file} ${place} is not a regular file, and the plugin reads regular files only`,
-    replaced: `${file} ${place} is not the file that the plugin listed there, but a hard link or a file from another folder, and the plugin reads only the files of the listing`
+    replaced: `${file} ${place} was replaced while the plugin read it, and the plugin reads only the file that the listing of the folder has`
   }
   const hint =
     sameLetters === undefined || problem !== 'missing'
@@ -193,7 +193,7 @@ async function openFolderFile(source: FolderSource): Promise<FileHandle> {
 // on every read, and is the one of the listing. An editor that saves to a
 // new file and renames it over the icon gives it another identity: the
 // folder is listed again, and the new file is read when that listing has
-// it and it is no hard link, which a file outside the folder could be.
+// it.
 async function checkListedFile({
   stats,
   ...source
@@ -209,11 +209,7 @@ async function checkListedFile({
   if (listed && isSameFile({ first: listed, second: stats })) return
   const files = await folder.refresh()
   const relisted = files.icons.get(name)
-  const isNewFile =
-    relisted !== undefined &&
-    isSameFile({ first: relisted, second: stats }) &&
-    stats.nlink === 1n
-  if (isNewFile) return
+  if (relisted && isSameFile({ first: relisted, second: stats })) return
   throw missingFolderIcon({ ...source, problem: 'replaced' })
 }
 

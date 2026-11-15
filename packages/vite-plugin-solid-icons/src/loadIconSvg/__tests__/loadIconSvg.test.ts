@@ -630,19 +630,18 @@ describe('loadIconSvg of a folder that changes after the listing', () => {
     await assert.rejects(readStar(), REPLACED_FOLDER)
   })
 
-  it('refuses a file replaced by a hard link after the listing', async context => {
+  it('reads a file replaced by a hard link as the file it is', async context => {
     const folder = await iconFolder(context)
-    const outside = `${folder}-secret.svg`
+    const outside = `${folder}-other.svg`
     await writeFile(outside, SECRET_SVG)
     context.after(() => rm(outside, { force: true }))
-    const icons = await listed(folder)
+    const readStar = await pluginReads(folder)
     await rm(path.join(folder, 'star.svg'))
     await link(outside, path.join(folder, 'star.svg'))
 
-    await assert.rejects(
-      loadStar(icons),
-      /star\.svg in the folder "[^"]+" of the collection "own" is not the file that the plugin listed there, but a hard link or a file from another folder, and the plugin reads only the files of the listing\./u
-    )
+    // A hard link needs a write in the folder, as a new SVG does.
+    assert.match(await readStar(), /<text>secret<\/text>/u)
+    assert.match(await readStar(), /<text>secret<\/text>/u)
   })
 
   it('reads a file that an editor saved to a new file', async context => {
@@ -662,5 +661,38 @@ describe('loadIconSvg of a folder that changes after the listing', () => {
       assert.match(await readStar(), drawn)
       assert.equal(await readFile(path.join(folder, 'star.svg'), 'utf8'), saved)
     }
+  })
+
+  it('refuses a file replaced again while the folder is listed again', async context => {
+    const folder = await iconFolder(context)
+    const tables = createNameTables({
+      root: path.dirname(folder),
+      folders: new Map([['own', folder]])
+    })
+    const files = await tables.files('own')
+    const save = async (shape: string) => {
+      await writeFile(
+        path.join(folder, '.star.svg.swp'),
+        STAR.replace('M0 0', shape)
+      )
+      await rename(
+        path.join(folder, '.star.svg.swp'),
+        path.join(folder, 'star.svg')
+      )
+    }
+    await save('M2 2')
+
+    // The file that the read opened is gone when the folder is listed again.
+    await assert.rejects(
+      loadStar({
+        path: folder,
+        files,
+        refresh: async () => {
+          await save('M3 3')
+          return tables.refresh('own')
+        }
+      }),
+      /star\.svg in the folder "[^"]+" of the collection "own" was replaced while the plugin read it, and the plugin reads only the file that the listing of the folder has\./u
+    )
   })
 })

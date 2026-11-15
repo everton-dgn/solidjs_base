@@ -695,4 +695,14 @@ describe('loadIconSvg of a folder that changes after the listing', () => {
       /star\.svg in the folder "[^"]+" of the collection "own" was replaced while the plugin read it, and the plugin reads only the file that the listing of the folder has\./u
     )
   })
+
+  it('names a file removed after the listing without a hint of its own name', async context => {
+    const folder = await iconFolder(context)
+    const readStar = await pluginReads(folder)
+    await rm(path.join(folder, 'star.svg'))
+
+    await assert.rejects(readStar(), {
+      message: `Icon "own/star" not found: the folder "${path.basename(folder)}" of the collection "own" has no star.svg.`
+    })
+  })
 })

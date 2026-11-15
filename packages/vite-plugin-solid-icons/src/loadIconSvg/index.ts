@@ -150,8 +150,10 @@ function missingFolderIcon({
   const file = `${name}${SVG_EXTENSION}`
   const place = `in the folder "${relative}" of the collection "${collection}"`
   const lowerName = name.toLowerCase()
+  // Another name of the listing with the same letters, not the name itself,
+  // which an old listing still has after its file is gone.
   const sameLetters = [...folder.files.icons.keys()].find(
-    icon => icon.toLowerCase() === lowerName
+    icon => icon !== name && icon.toLowerCase() === lowerName
   )
   const reasons: Record<FileProblem, string> = {
     missing: `the folder "${relative}" of the collection "${collection}" has no ${file}`,

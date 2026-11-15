@@ -22,28 +22,30 @@ versions from Conventional Commits. It runs only in CI, from
    it.
 
 The release pull request is opened with the workflow's `GITHUB_TOKEN`, so GitHub
-holds its `pull_request` runs until someone with write access selects **Approve
-workflows to run**
+holds its CI runs until someone with write access selects **Approve workflows to
+run** in the pull request
 ([GitHub docs](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)).
-The release workflow does not wait for that: after it opens or rewrites the pull
-request, it starts the CI on the release branch with `workflow_dispatch`, which
-GitHub does not hold. That run checks everything and reports `CI required` on
-the head of the pull request, as in any other pull request. The held run stays
-in the list and needs no approval.
+`CI required` has to pass before the merge, as in any other pull request. A
+commit pushed to the release branch from a person's account starts the CI at
+once, without the approval.
 
-When `CI required` does not appear on the head of the release pull request,
-start the run by hand or approve the held one of that head:
+A run started with `workflow_dispatch` on the release branch does not replace
+the approval: the `main` ruleset only counts checks of runs started by events
+such as `pull_request` and `push`
+([GitHub docs](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks)).
+
+release-please rewrites the release pull request after every merge that changes
+the next version, and each rewrite holds a new run. Approve only the run of the
+head you are about to merge: an approved run starts every job.
+
+From a terminal, list the held runs and approve the one of that head:
 
 ```bash
-gh pr view <number> --json headRefName --jq .headRefName
-gh workflow run ci.yml --ref <release-branch>
+gh pr view <number> --json headRefName,headRefOid
 gh run list --branch <release-branch> \
   --status action_required --json databaseId,workflowName,headSha
 gh api -X POST repos/everton-dgn/solidjs_base/actions/runs/<run-id>/approve
 ```
-
-A commit pushed to the release branch from a person's account also starts the CI
-at once.
 
 The publish step uses no token. npm authenticates the workflow through OIDC
 ([trusted publishing](https://docs.npmjs.com/trusted-publishers)) and attaches
@@ -107,8 +109,8 @@ into the branch, never rebase it, and wait for `CI required` again.
 3. For the first automated release of a package, create the trusted publisher
    now
    ([First automated release of a package](#first-automated-release-of-a-package)).
-4. Wait for `CI required` on the head you are about to merge. The release
-   workflow starts that run, and a push from your account starts another.
+4. Approve only the held run of the head you are about to merge and wait for
+   `CI required`. A push from your account starts the CI without the approval.
 5. Merge with the command in [Merging a pull request](#merging-a-pull-request).
 6. After the publish job, check the registry. The version can take a few minutes
    to appear, and the output has the version and the provenance statement:
@@ -219,9 +221,9 @@ git push origin HEAD:<release-branch>
 
 The `git diff` must list only `.release-please-manifest.json` and, for each
 package, its `CHANGELOG.md` and `package.json`. The push comes from your
-account, so the CI of the release pull request starts at once. Merge the release
-pull request after `CI required` passes, with the command in
-[Merging a pull request](#merging-a-pull-request).
+account, so the CI of the release pull request starts without **Approve
+workflows to run**. Merge the release pull request after `CI required` passes,
+with the command in [Merging a pull request](#merging-a-pull-request).
 
 ## When the publish job fails
 

@@ -1,4 +1,4 @@
-import { constants } from 'node:fs'
+import { type BigIntStats, constants } from 'node:fs'
 import { type FileHandle, open } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -10,10 +10,17 @@ import {
 
 import { messageOf } from '../errorText/index.ts'
 import { type IconSet, loadIconSet } from '../loadIconSet/index.ts'
-import type { FolderFiles } from '../readFolderFiles/index.ts'
+import { type FolderFiles, isSameFile } from '../readFolderFiles/index.ts'
 import type { IconCustomizer } from '../types.ts'
 
-type IconFolder = { path: string; files: FolderFiles }
+type IconFolder = {
+  // The folder as the application declares it, for the messages and the
+  // watcher.
+  path: string
+  files: FolderFiles
+  // Lists the folder again, and checks that it is the one listed first.
+  refresh: () => Promise<FolderFiles>
+}
 
 type IconSource = {
   collection: string
@@ -25,7 +32,8 @@ type IconSource = {
 }
 type FolderSource = IconSource & { folder: IconFolder }
 type IconSvg = { svg: string; file: string | undefined }
-type FileProblem = 'missing' | 'link' | 'irregular'
+type FileProblem = 'missing' | 'link' | 'irregular' | 'replaced'
+type OpenedFile = FolderSource & { stats: BigIntStats }
 type MissingInput = FolderSource & { problem: FileProblem }
 type Customization = {
   collection: string
@@ -50,8 +58,8 @@ const SVG_START = '<svg'
 const BARE_SVG_START = /^<svg(?=[/>])/u
 // WHY: the listing of the folder is cached, so a file that became a link
 // after it is refused when it opens. Without O_NONBLOCK a FIFO in its place
-// would block the open. Windows has no O_NOFOLLOW, and keeps only the check
-// of the listing.
+// would block the open. Windows has no O_NOFOLLOW, and keeps the checks of
+// the listing and of the identity of the file.
 const OPTIONAL_FLAGS: (number | undefined)[] = [
   constants.O_NOFOLLOW,
   constants.O_NONBLOCK
@@ -138,13 +146,14 @@ function missingFolderIcon({
   const file = `${name}${SVG_EXTENSION}`
   const place = `in the folder "${relative}" of the collection "${collection}"`
   const lowerName = name.toLowerCase()
-  const sameLetters = [...folder.files.icons].find(
+  const sameLetters = [...folder.files.icons.keys()].find(
     icon => icon.toLowerCase() === lowerName
   )
   const reasons: Record<FileProblem, string> = {
     missing: `the folder "${relative}" of the collection "${collection}" has no ${file}`,
     link: `${file} ${place} is a symbolic link, and the plugin reads regular files only`,
-    irregular: `${file} ${place} is not a regular file, and the plugin reads regular files only`
+    irregular: `${file} ${place} is not a regular file, and the plugin reads regular files only`,
+    replaced: `${file} ${place} is not the file that the plugin listed there, but a hard link or a file from another folder, and the plugin reads only the files of the listing`
   }
   const hint =
     sameLetters === undefined || problem !== 'missing'
@@ -166,7 +175,7 @@ async function openFolderFile(source: FolderSource): Promise<FileHandle> {
   const { name, folder } = source
   try {
     return await open(
-      path.join(folder.path, `${name}${SVG_EXTENSION}`),
+      path.join(folder.files.realPath, `${name}${SVG_EXTENSION}`),
       OPEN_FLAGS
     )
   } catch (error) {
@@ -174,6 +183,24 @@ async function openFolderFile(source: FolderSource): Promise<FileHandle> {
     if (problem) throw missingFolderIcon({ ...source, problem })
     throw error
   }
+}
+
+// The opened file is the one of the listing. An editor that saves to a new
+// file and renames it over the icon gives it another identity: the folder is
+// listed again, which checks the folder too, and the new file is read when
+// that listing has it and it is no hard link, which a file outside the
+// folder could be.
+async function checkListedFile({
+  stats,
+  ...source
+}: OpenedFile): Promise<void> {
+  const { name, folder } = source
+  const listed = folder.files.icons.get(name)
+  if (listed && isSameFile(listed, stats)) return
+  const files = await folder.refresh()
+  const relisted = files.icons.get(name)
+  if (relisted && isSameFile(relisted, stats) && stats.nlink === 1n) return
+  throw missingFolderIcon({ ...source, problem: 'replaced' })
 }
 
 // The file is read only when the listing of the folder has its exact name,
@@ -188,10 +215,11 @@ async function readFolderSvg(source: FolderSource): Promise<string> {
   const handle = await openFolderFile(source)
   let text: string
   try {
-    const stats = await handle.stat()
+    const stats = await handle.stat({ bigint: true })
     if (!stats.isFile()) {
       throw missingFolderIcon({ ...source, problem: 'irregular' })
     }
+    await checkListedFile({ ...source, stats })
     text = await handle.readFile('utf8')
   } finally {
     await handle.close()

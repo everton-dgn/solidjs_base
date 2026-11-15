@@ -113,6 +113,16 @@ The options were:
   refused on every file system. The file is opened without following a link and
   read only if it is a regular file, so a file replaced by a link after the
   listing is refused too, except on Windows, which has no such flag.
+- The plugin keeps the real path, the device and the inode of each folder when
+  the configuration resolves, and every listing checks them before and after it
+  reads the folder, so a folder replaced by a link or by another folder, or a
+  folder above it, is refused until the dev server starts again. The listing
+  keeps the device and the inode of each file, and the read checks them on the
+  opened file. A file with another identity, as an editor writes when it saves
+  to a new file and renames it, is listed again and read when it has one link; a
+  hard link that replaced the file is refused. A hard link that is already in
+  the folder at the listing is read, and Node reads a folder by its path, so a
+  swap undone between two checks is not seen.
 - A folder that cannot be read, a collection that is declared and not installed,
   and a declaration file that cannot be written log a warning and stop only the
   imports that need them, so the dev server keeps running.

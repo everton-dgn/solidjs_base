@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
 
+import { createNameTables } from '../../iconCollections/index.ts'
 import { loadIconSvg } from '../../loadIconSvg/index.ts'
-import { readFolderFiles } from '../../readFolderFiles/index.ts'
 import { compileIcon } from '../index.ts'
 import {
   FIGMA,
@@ -26,12 +26,16 @@ async function compileExport({ context, name, file }: ExportInput) {
   context.after(() => rm(folder, { recursive: true, force: true }))
   await writeFile(path.join(folder, `${name}.svg`), file)
   const root = path.dirname(folder)
-  const files = await readFolderFiles({ collection: 'own', folder, root })
+  const tables = createNameTables({ root, folders: new Map([['own', folder]]) })
   const { svg } = await loadIconSvg({
     collection: 'own',
     name,
     root,
-    folder: { path: folder, files },
+    folder: {
+      path: folder,
+      files: await tables.files('own'),
+      refresh: () => tables.refresh('own')
+    },
     customizeIcon: undefined
   })
   const icon = `own/${name}`

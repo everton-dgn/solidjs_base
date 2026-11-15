@@ -207,6 +207,20 @@ solidIcons({
 - A symbolic link to an SVG file is not read, so an icon cannot reach a file
   outside the folder. The error says that the file is a link. The folder itself
   may be a link.
+- The plugin reads the folder that it found when the dev server or the build
+  started, where a folder declared as a link led then. A folder replaced after
+  that, or a folder above it, by a link or by another folder, stops the imports
+  of its icons with the folder in the error, until you stop and start the dev
+  server. A checkout that removes the folder and creates it again does the same.
+- An icon is read from the file that the listing of the folder found. A file
+  that an editor saves by writing a new file and renaming it over the icon is
+  listed again and read; a file replaced by a hard link is refused.
+- These checks leave a hard link that is in the folder when the plugin lists it,
+  which reads as a file of the folder. Node reads a folder by its path, so a
+  folder swapped and put back between two checks of one listing is not seen.
+  Windows has no flag to open a file without following a link, and the identity
+  of a file comes from its file system there: the checks are tested on macOS and
+  Linux.
 - A file whose name an import cannot spell, as in `my icon.svg` or `ícone.svg`,
   has no import and no export name. The dev server and the build warn once with
   its name.

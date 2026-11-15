@@ -9,9 +9,16 @@ import {
   type NameTable
 } from '../iconNames/index.ts'
 import { type IconSet, loadIconSet } from '../loadIconSet/index.ts'
-import { type FolderFiles, readFolderFiles } from '../readFolderFiles/index.ts'
+import {
+  type FolderFiles,
+  type FolderIdentity,
+  folderIdentity,
+  readFolderFiles,
+  unreadableFolder
+} from '../readFolderFiles/index.ts'
 
 type CollectionPlace = { root: string; folders: Folders }
+type TablesInput = CollectionPlace & { identities?: FolderIdentities }
 type CollectionSource = CollectionPlace & {
   collection: string
   files: (collection: string) => Promise<FolderFiles>
@@ -80,7 +87,7 @@ async function readIconList({
 }: CollectionSource): Promise<IconList> {
   if (folders.has(collection)) {
     const listing = await files(collection)
-    return { icons: [...listing.icons], aliases: {} }
+    return { icons: [...listing.icons.keys()], aliases: {} }
   }
   return iconSetList(await loadIconSet({ collection, root }))
 }
@@ -135,10 +142,15 @@ function cached<Value>(cache: Map<string, Promise<Value>>): CachedRead<Value> {
 
 export type Folders = Map<string, string>
 
+// The folder of each folder collection as the plugin read it first.
+export type FolderIdentities = Map<string, FolderIdentity>
+
 export type NameTables = {
   get: (collection: string) => Promise<NameTable>
   // The listing of the folder of a folder collection.
   files: (collection: string) => Promise<FolderFiles>
+  // Lists the folder again, for a file that changed since the listing.
+  refresh: (collection: string) => Promise<FolderFiles>
   invalidate: (collection: string) => void
 }
 
@@ -162,27 +174,52 @@ export function resolveFolders({ root, collections }: FolderInput): Folders {
   )
 }
 
+// The folders that can be read now; the others are read first when they
+// are listed, so a folder created later still works.
+export async function readFolderIdentities(
+  folders: Folders
+): Promise<FolderIdentities> {
+  const identities: FolderIdentities = new Map()
+  for (const [collection, folder] of folders) {
+    try {
+      identities.set(collection, await folderIdentity(folder))
+    } catch {
+      // The listing reports the folder that cannot be read.
+    }
+  }
+  return identities
+}
+
 // The tables and the listings are read once per collection; a folder
-// collection reads its folder again after invalidate.
+// collection reads its folder again after invalidate. Every listing reads
+// the folder of the identity, the one that the plugin read first.
 export function createNameTables({
   root,
-  folders
-}: CollectionPlace): NameTables {
+  folders,
+  identities = new Map()
+}: TablesInput): NameTables {
   const tables = new Map<string, Promise<NameTable>>()
   const listings = new Map<string, Promise<FolderFiles>>()
   const table = cached(tables)
   const listing = cached(listings)
-  function files(collection: string): Promise<FolderFiles> {
-    return listing({
-      key: collection,
-      read: async () => {
-        const folder = folders.get(collection)
-        if (folder === undefined) {
-          throw new Error(`The icon collection "${collection}" has no folder.`)
-        }
-        return readFolderFiles({ collection, folder, root })
+  async function readListing(collection: string): Promise<FolderFiles> {
+    const folder = folders.get(collection)
+    if (folder === undefined) {
+      throw new Error(`The icon collection "${collection}" has no folder.`)
+    }
+    let identity = identities.get(collection)
+    if (identity === undefined) {
+      try {
+        identity = await folderIdentity(folder)
+      } catch (error) {
+        throw unreadableFolder({ collection, folder, root, error })
       }
-    })
+      identities.set(collection, identity)
+    }
+    return readFolderFiles({ collection, folder, root, identity })
+  }
+  function files(collection: string): Promise<FolderFiles> {
+    return listing({ key: collection, read: () => readListing(collection) })
   }
   return {
     get: collection =>
@@ -194,6 +231,10 @@ export function createNameTables({
           )
       }),
     files,
+    refresh: collection => {
+      listings.delete(collection)
+      return files(collection)
+    },
     invalidate: collection => {
       tables.delete(collection)
       listings.delete(collection)

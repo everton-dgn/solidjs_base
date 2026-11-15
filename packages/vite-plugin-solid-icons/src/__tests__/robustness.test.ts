@@ -339,6 +339,33 @@ describe('a folder of icons', () => {
     assert.match(github?.code ?? '', /svg/u)
   })
 
+  it('reads an SVG that an editor saved by a rename, in the dev server', async context => {
+    const root = await app(context)
+    const server = await createServer({
+      ...fixtureConfig({ root, isSsr: false, typesFile: false }),
+      optimizeDeps: { noDiscovery: true },
+      server: { middlewareMode: true, watch: null }
+    })
+    defer({ context, task: () => server.close() })
+    const { client } = server.environments
+    const first = await client.transformRequest('icon:own/star')
+    assert.match(first?.code ?? '', /red/u)
+
+    // The editor writes a new file and renames it over the icon, which
+    // gives the icon another inode than the listing found.
+    const star = path.join(root, STAR_FILE)
+    const original = await readFile(star, 'utf8')
+    const saved = original.replace('"red"', '"green"')
+    await writeFile(`${star}.tmp`, saved)
+    await rename(`${star}.tmp`, star)
+    const module = client.moduleGraph.getModuleById('solid-icon:own/star.tsx')
+    assert.ok(module)
+    client.moduleGraph.invalidateModule(module)
+
+    const second = await client.transformRequest('icon:own/star')
+    assert.match(second?.code ?? '', /green/u)
+  })
+
   it('that is a link loads its icons', async context => {
     const root = await app(context)
     await rename(path.join(root, 'icons'), path.join(root, 'shared-icons'))

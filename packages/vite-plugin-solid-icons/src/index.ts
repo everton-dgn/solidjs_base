@@ -9,6 +9,7 @@ import {
   createNameTables,
   type Folders,
   type NameTables,
+  readFolderIdentities,
   readFolders,
   resolveFolders
 } from './iconCollections/index.ts'
@@ -39,6 +40,11 @@ import type { SolidIconsOptions } from './types.ts'
 type ModuleIds = Map<string, Set<string>>
 type TrackedId = { ids: ModuleIds; key: string; id: string }
 type ModuleFile = { root: string; id: string | undefined }
+type FolderLookup = {
+  tables: NameTables
+  collection: string
+  folder: string | undefined
+}
 
 const PLUGIN_NAME = 'vite-plugin-solid-icons'
 const SCRIPT_ID = /\.[cm]?[jt]sx?(?:\?.*)?$/u
@@ -82,6 +88,18 @@ function relativeFile({ root, id }: ModuleFile): string | undefined {
   if (id === undefined) return undefined
   const [file = id] = id.split('?', 1)
   return path.relative(root, file)
+}
+
+// The folder of a folder collection as loadIconSvg reads it, or undefined
+// for an installed collection.
+async function listedFolder({ tables, collection, folder }: FolderLookup) {
+  return folder === undefined
+    ? undefined
+    : {
+        path: folder,
+        files: await tables.files(collection),
+        refresh: () => tables.refresh(collection)
+      }
 }
 
 // WHY: the dependency scan of the dev server resolves the imports of the
@@ -190,7 +208,9 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     async configResolved(config) {
       ;({ root, logger } = config)
       folders = resolveFolders({ root, collections })
-      tables = createNameTables({ root, folders })
+      // The folders that the build reads from now on.
+      const identities = await readFolderIdentities(folders)
+      tables = createNameTables({ root, folders, identities })
       typesFile =
         options.typesFile === false
           ? undefined
@@ -265,14 +285,14 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
         const request = readIconId(id)
         if (!request) return null
         const { collection, name, isRaw } = request
-        const folder = folders.get(collection)
         const { svg, file } = await loadIconSvg({
           ...request,
           root,
-          folder:
-            folder === undefined
-              ? undefined
-              : { path: folder, files: await tables.files(collection) },
+          folder: await listedFolder({
+            tables,
+            collection,
+            folder: folders.get(collection)
+          }),
           customizeIcon: options.customizeIcon
         })
         if (file !== undefined) {

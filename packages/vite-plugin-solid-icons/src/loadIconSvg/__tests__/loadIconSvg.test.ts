@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import {
+  link,
   mkdir,
   mkdtemp,
+  readFile,
   realpath,
+  rename,
   rm,
   symlink,
   writeFile
@@ -14,7 +17,7 @@ import { describe, it, type TestContext } from 'node:test'
 import { promisify } from 'node:util'
 
 import { compileIcon } from '../../compileIcon/index.ts'
-import { readFolderFiles } from '../../readFolderFiles/index.ts'
+import { createNameTables } from '../../iconCollections/index.ts'
 import type { IconCustomizer } from '../../types.ts'
 import { loadIconSvg } from '../index.ts'
 
@@ -36,6 +39,26 @@ type FolderIcon = {
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, '../../..')
 const STAR =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0"/></svg>'
+const SECRET_SVG = '<svg><text>secret</text></svg>'
+const REPLACED_FOLDER =
+  /The folder "[^"]+" of the icon collection "own" was replaced, or a folder above it was, after the plugin read it first: stop and start the dev server or the build to read the new folder\./u
+
+// A folder with a star.svg that is not the icon, in place of the folder of
+// the collection.
+async function secretFolder(folder: string): Promise<void> {
+  await mkdir(folder, { recursive: true })
+  await writeFile(path.join(folder, 'star.svg'), SECRET_SVG)
+}
+
+function loadStar(folder: IconFolder) {
+  return loadIconSvg({
+    collection: 'own',
+    name: 'star',
+    root: path.dirname(folder.path),
+    folder,
+    customizeIcon: undefined
+  })
+}
 
 async function iconFolder(context: TestContext): Promise<string> {
   const prefix = path.join(tmpdir(), 'solid-icons-folder-')
@@ -46,10 +69,16 @@ async function iconFolder(context: TestContext): Promise<string> {
   return folder
 }
 
+// The folder as the plugin passes it: listed once, and listed again by
+// refresh.
 async function listed(folder: string): Promise<IconFolder> {
   const root = path.dirname(folder)
-  const files = await readFolderFiles({ collection: 'own', folder, root })
-  return { path: folder, files }
+  const tables = createNameTables({ root, folders: new Map([['own', folder]]) })
+  return {
+    path: folder,
+    files: await tables.files('own'),
+    refresh: () => tables.refresh('own')
+  }
 }
 
 function loadInstalled(name: string) {
@@ -339,20 +368,16 @@ describe('loadIconSvg of a folder', () => {
     await writeFile(outside, '<svg><text>secret</text></svg>')
     context.after(() => rm(outside, { force: true }))
     await symlink(outside, path.join(folder, 'link.svg'))
-    const files = await readFolderFiles({
-      collection: 'own',
-      folder,
-      root: path.dirname(folder)
-    })
+    const icons = await listed(folder)
 
-    assert.deepEqual([...files.links], ['link'])
-    assert.equal(files.icons.has('link'), false)
+    assert.deepEqual([...icons.files.links], ['link'])
+    assert.equal(icons.files.icons.has('link'), false)
     await assert.rejects(
       loadIconSvg({
         collection: 'own',
         name: 'link',
         root: path.dirname(folder),
-        folder: { path: folder, files },
+        folder: icons,
         customizeIcon: undefined
       }),
       /link\.svg in the folder "[^"]+" of the collection "own" is a symbolic link, and the plugin reads regular files only\./u
@@ -402,22 +427,16 @@ describe('loadIconSvg of a folder', () => {
       /star\.svg in the folder "[^"]+" of the collection "own" is not a regular file, and the plugin reads regular files only\./u
     )
   })
-
   it('reads the files of a folder that is a link', async context => {
     const folder = await iconFolder(context)
     const linked = `${folder}-link`
     await symlink(folder, linked)
     context.after(() => rm(linked, { force: true }))
-    const files = await readFolderFiles({
-      collection: 'own',
-      folder: linked,
-      root: path.dirname(folder)
-    })
     const { svg } = await loadIconSvg({
       collection: 'own',
       name: 'star',
       root: path.dirname(folder),
-      folder: { path: linked, files },
+      folder: await listed(linked),
       customizeIcon: undefined
     })
 
@@ -503,5 +522,69 @@ describe('loadIconSvg of a folder', () => {
       () => compileIcon({ svg, isRaw: true, icon: 'own/star' }),
       /the attribute onload of <svg> is an event handler, which runs code/u
     )
+  })
+})
+
+describe('loadIconSvg of a folder that changes after the listing', () => {
+  it('refuses a folder replaced after the listing', async context => {
+    const folder = await iconFolder(context)
+    const icons = await listed(folder)
+    const other = `${folder}-other`
+    context.after(() => rm(other, { recursive: true, force: true }))
+    await secretFolder(other)
+
+    // By a link to another folder.
+    await rename(folder, `${folder}-old`)
+    context.after(() => rm(`${folder}-old`, { recursive: true, force: true }))
+    await symlink(other, folder)
+    await assert.rejects(loadStar(icons), REPLACED_FOLDER)
+    // By another folder of the same name.
+    await rm(folder)
+    await secretFolder(folder)
+    await assert.rejects(loadStar(icons), REPLACED_FOLDER)
+  })
+
+  it('refuses a folder whose parent was replaced after the listing', async context => {
+    const parent = await iconFolder(context)
+    const folder = path.join(parent, 'brand/icons')
+    await mkdir(folder, { recursive: true })
+    await writeFile(path.join(folder, 'star.svg'), STAR)
+    const icons = await listed(folder)
+
+    await rename(path.join(parent, 'brand'), path.join(parent, 'brand-old'))
+    await secretFolder(path.join(parent, 'other/icons'))
+    await symlink(path.join(parent, 'other'), path.join(parent, 'brand'))
+    await assert.rejects(loadStar(icons), REPLACED_FOLDER)
+  })
+
+  it('refuses a file replaced by a hard link after the listing', async context => {
+    const folder = await iconFolder(context)
+    const outside = `${folder}-secret.svg`
+    await writeFile(outside, SECRET_SVG)
+    context.after(() => rm(outside, { force: true }))
+    const icons = await listed(folder)
+    await rm(path.join(folder, 'star.svg'))
+    await link(outside, path.join(folder, 'star.svg'))
+
+    await assert.rejects(
+      loadStar(icons),
+      /star\.svg in the folder "[^"]+" of the collection "own" is not the file that the plugin listed there, but a hard link or a file from another folder, and the plugin reads only the files of the listing\./u
+    )
+  })
+
+  it('reads a file that an editor saved to a new file', async context => {
+    const folder = await iconFolder(context)
+    const icons = await listed(folder)
+    const saved = STAR.replace('M0 0', 'M2 2')
+    // The editor writes a new file and renames it over the icon.
+    await writeFile(path.join(folder, '.star.svg.swp'), saved)
+    await rename(
+      path.join(folder, '.star.svg.swp'),
+      path.join(folder, 'star.svg')
+    )
+
+    const { svg } = await loadStar(icons)
+    assert.match(svg, /<path d="M2 2"\/>/u)
+    assert.equal(await readFile(path.join(folder, 'star.svg'), 'utf8'), saved)
   })
 })

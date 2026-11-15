@@ -408,6 +408,11 @@ the repository does not reach it. What to do depends on where the cause is:
   then open the failed run on GitHub and choose "Re-run failed jobs". The
   publish job runs again with the output of the `Tags and GitHub Releases` job
   from the first attempt. GitHub allows this for 30 days.
+- In a test that fails or hangs only at times, when the same commit passed the
+  validation in the other publish job or in the CI of the release pull request:
+  choose "Re-run failed jobs" too, and fix the test in a pull request before the
+  next release. A hung job stops at its `timeout-minutes`; to re-run it sooner,
+  cancel the run first.
 - Outside the package folder, such as a workflow step or the workspace
   configuration that validation uses: open the fix as a pull request, keep it
   unmerged, and

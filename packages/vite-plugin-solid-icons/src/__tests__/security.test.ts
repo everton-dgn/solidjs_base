@@ -4,6 +4,7 @@ import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
 import { pathToFileURL } from 'node:url'
 
+import type { Page } from 'playwright'
 import { build, createServer, preview } from 'vite-plus'
 
 import { launchBrowser } from './browser.ts'
@@ -15,6 +16,7 @@ type RefusalBuild = { root: string; code: string; isSsr: boolean }
 type Files = Record<string, string>
 type RefusedSvg = [name: string, svg: string, message: RegExp]
 type FilesInput = { root: string; files: Files }
+type TextScope = { page: Page; scope: string }
 
 // Text and a value that would run code if the markup reached the module or
 // the page as it is written. The metadata is editor data, which the plugin
@@ -23,7 +25,11 @@ const TRAP_TEXT = '{globalThis.__iconPwned = 1}'
 const TRAP_VALUE = '"><img src="x" onerror="globalThis.__iconPwned = 2">'
 const TRAP_TSPAN =
   '</tspan></text></svg><img src="x" onerror="globalThis.__iconPwned = 6">'
-const TRAP_BODY = `<text data-trap="&quot;&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 2&quot;&gt;">${TRAP_TEXT}</text><text><tspan>&lt;/tspan&gt;&lt;/text&gt;&lt;/svg&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 6&quot;&gt;</tspan></text><style><![CDATA[text > tspan { fill: red }]]></style><metadata><p><iframe srcdoc="&lt;script&gt;globalThis.__iconPwned = 7&lt;/script&gt;"></iframe></p></metadata>`
+// A browser reads the content of <title> and <desc> as HTML: the text has to
+// stay text in the component, on the server and in the raw text.
+const TRAP_TITLE = '</title><img src="x" onerror="globalThis.__iconPwned = 8">'
+const TRAP_DESC = '</desc><img src="x" onerror="globalThis.__iconPwned = 9">'
+const TRAP_BODY = `<title>&lt;/title&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 8&quot;&gt;</title><desc><![CDATA[${TRAP_DESC}]]></desc><text data-trap="&quot;&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 2&quot;&gt;">${TRAP_TEXT}</text><text><tspan>&lt;/tspan&gt;&lt;/text&gt;&lt;/svg&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 6&quot;&gt;</tspan></text><style><![CDATA[text > tspan { fill: red }]]></style><metadata><p><iframe srcdoc="&lt;script&gt;globalThis.__iconPwned = 7&lt;/script&gt;"></iframe></p></metadata>`
 const TRAP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">${TRAP_BODY}</svg>\n`
 const TRAP_APP = `import Trap from 'icon:own/trap'
 import trapSvg from 'icon:own/trap?raw'
@@ -81,6 +87,13 @@ const TRAP_SET = {
 }
 // The global that the markup of TRAP_SVG would set if it ran.
 const PROBE = '__iconPwned'
+// The two components and the two raw texts of the trap.
+const SCOPES = [
+  '[data-icon="trap"]',
+  '[data-icon="installed-trap"]',
+  '#raw-html > svg',
+  '#installed-raw-html > svg'
+]
 const TRAP_SVGS = 4
 const LARGE_SEGMENTS = 500_000
 const LARGE_SIZE = 2_000_000
@@ -173,6 +186,11 @@ function importOf(specifier: string): string {
   return `import icon from ${JSON.stringify(specifier)}\nconsole.log(icon)\n`
 }
 
+async function assertTextOnly({ page, scope }: TextScope): Promise<void> {
+  assert.equal(await page.locator(`${scope} title`).textContent(), TRAP_TITLE)
+  assert.equal(await page.locator(`${scope} desc`).textContent(), TRAP_DESC)
+}
+
 describe('the markup of an SVG file', () => {
   it('renders on the server as text, without running', async context => {
     const root = await trapApp(context)
@@ -194,6 +212,14 @@ describe('the markup of an SVG file', () => {
     assert.doesNotMatch(html, /<img|<iframe|<metadata|<p>/u)
     // Two components and two raw texts, each an <svg> of its own.
     assert.equal(html.match(/<svg/gu)?.length, TRAP_SVGS)
+
+    const browser = await launchBrowser()
+    defer({ context, task: () => browser.close() })
+    const page = await browser.newPage()
+    await page.setContent(`<!doctype html><html><body>${html}</body></html>`)
+    for (const scope of SCOPES) await assertTextOnly({ page, scope })
+    assert.equal(await page.locator('img, iframe, metadata, p').count(), 0)
+    assert.equal(await page.evaluate(probe, PROBE), undefined)
   })
 
   it('renders in the browser as text, without running', async context => {
@@ -231,11 +257,12 @@ describe('the markup of an SVG file', () => {
     for (const raw of ['#raw-html', '#installed-raw-html']) {
       assert.equal(await page.locator(`${raw} > svg tspan`).count(), 1, raw)
     }
+    for (const scope of SCOPES) await assertTextOnly({ page, scope })
     assert.equal(await page.locator('img, iframe, metadata, p').count(), 0)
     assert.equal(await page.evaluate(probe, PROBE), undefined)
     assert.match(
       (await page.locator('#raw').textContent()) ?? '',
-      /^<svg aria-hidden="true" width="1\.2em" .*data-trap="&quot;&gt;&lt;img/u
+      /^<svg aria-hidden="true" width="1\.2em" .*<title>&lt;\/title>&lt;img .*data-trap="&quot;>&lt;img/u
     )
   })
 

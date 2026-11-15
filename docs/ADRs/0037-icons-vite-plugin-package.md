@@ -89,17 +89,23 @@ The options were:
   docs of the tooling and the app describe the one they still use.
 - The SVG files of a folder collection are code of the application: the package
   does not sanitize them. It guarantees that their markup stays markup. The
-  component is written again from the elements, attributes and text that the
-  file parses to, and the build stops on markup that runs code (`<script>`,
-  event handlers, `javascript:` URLs, an animation of `href`), on markup that a
-  page reads as HTML (an element outside SVG 2, `<foreignObject>`, an element or
-  a `<` in `<title>`, `<desc>` and `<style>`) and on markup that JSX reads as
-  code. The data that drawing applications write for themselves, such as
-  `<metadata>` and the `inkscape:` namespace, is left out with a warning.
-  Writing the markup into JSX as it was let an element such as
-  `<globalThis.fn/>` call a function at render and let `innerHTML` reach the
-  server output as HTML; both were reproduced before the change. An SVG that a
-  user uploads still needs a sanitizer at runtime.
+  component and the SVG text of `?raw` are written again from the elements,
+  attributes and text that the file parses to, and the build stops on markup
+  that runs code (`<script>`, event handlers, `javascript:` URLs, an animation
+  of `href`), on markup that a page reads as HTML (an element outside SVG 2,
+  `<foreignObject>`, an element in `<title>`, `<desc>` and `<style>`, a `<` in
+  the text of `<style>`) and on markup that JSX reads as code. `?raw` escapes
+  `&`, `<` and `"` in the values and `&` and `<` in the text, and leaves out
+  comments, processing instructions and the DOCTYPE. A copy of the file kept the
+  comments and the processing instructions, which the parser of the package
+  skips and the HTML parser of a page ends at another `>`: an `<img>` with an
+  event handler hidden in one ran when the text was set with `innerHTML`. The
+  data that drawing applications write for themselves, such as `<metadata>` and
+  the `inkscape:` namespace, is left out with a warning. Writing the markup into
+  JSX as it was let an element such as `<globalThis.fn/>` call a function at
+  render and let `innerHTML` reach the server output as HTML; both were
+  reproduced before the change. An SVG that a user uploads still needs a
+  sanitizer at runtime.
 - A folder icon is read only when the listing of the folder has its exact file
   name, so a link, a name in another case and a path outside the folder are
   refused on every file system. The file is opened without following a link and
@@ -123,6 +129,11 @@ The options were:
     for byte, by name, by path and with the plugin the tooling uses today. The
     build took 6 to 15 ms more than with that plugin, before and after the
     change.
+  - Writing `?raw` again from the parsed markup costs what the copy of the file
+    cost, measured against the compile of the component in the same round on a
+    loaded machine: the 6,117 icons and aliases of `hugeicons` took 1.08 times
+    the components before and after, and an SVG of 3.1 MB with 150,000 elements
+    took 0.74 and 0.77 times its component.
   - The name table and the declarations of `hugeicons`, 6,106 names, take about
     25 ms and write 485 KB; a synthetic collection of 20,200 names takes about
     60 ms and writes 1.6 MB. They are computed once per dev session and again

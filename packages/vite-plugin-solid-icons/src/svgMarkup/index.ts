@@ -1,10 +1,7 @@
-type Range = { start: number; end: number }
-
-type Attribute = Range & {
+type Attribute = {
   name: string
   // The value as the file writes it, between its quotes.
   rawValue: string
-  quote: string
   // The value with its character references read.
   value: string
 }
@@ -16,8 +13,6 @@ type ElementNode = {
   name: string
   attributes: Attribute[]
   children: SvgNode[]
-  // Where the element starts in the SVG, for a raw import that drops it.
-  start: number
   drop: DropKind
 }
 
@@ -37,15 +32,12 @@ type StartTag = {
 type Scanner = { svg: string; at: number }
 type PatternRead = { scanner: Scanner; pattern: RegExp }
 type ElementRead = { scanner: Scanner; element: string }
-type AttributeRead = ElementRead & { start: number }
 type MarkupSkip = { scanner: Scanner; open: string; close: string }
 type TextInput = { parent: ElementNode; raw: string }
 type TextCheck = { parent: ElementNode; value: string }
-type Drops = {
-  // The parts of the SVG that the icon leaves out, in the order of the file.
-  ranges: Range[]
-  names: string[]
-}
+// The editor data that the icon leaves out, by name, in the order of the
+// file.
+type Drops = string[]
 type ContentInput = {
   scanner: Scanner
   root: ElementNode
@@ -61,11 +53,8 @@ type CheckInput = {
 }
 type TagInput = { node: ElementNode; isRoot: boolean }
 type ParseInput = { svg: string; isComponent: boolean }
-type RawTextInput = { svg: string; parsed: ParsedSvg }
 type KeptInput = { attributes: Attribute[]; drops: Drops }
-type DropInput = { drops: Drops; range: Range; name: string }
 type DropKindInput = { parent: ElementNode; name: string }
-type CloseInput = { node: ElementNode; end: number; drops: Drops }
 type NodeInput = {
   scanner: Scanner
   parent: ElementNode
@@ -73,11 +62,13 @@ type NodeInput = {
   isComponent: boolean
   drops: Drops
 }
-type JsxInput = {
+type WalkInput = {
   node: SvgNode | string
   root: ElementNode
   pending: (SvgNode | string)[]
 }
+type NodeWriter = (input: WalkInput) => string
+type EscapeInput = { text: string; pattern: RegExp }
 
 const NAME = /[A-Za-z_][\w.:-]*/uy
 const SPACE = /[\t\n\r ]*/uy
@@ -178,9 +169,11 @@ const EDITOR_NAMESPACES = new Set([
 ])
 const METADATA = 'metadata'
 const XMLNS_PREFIX = 'xmlns:'
-// A browser reads the content of <title> and <desc> in an SVG as HTML, and
-// the text of <style> is written as it is in the HTML of the server.
+// A browser reads the content of <title> and <desc> in an SVG as HTML, so an
+// element there is HTML; the text of <style> is written as it is in the HTML
+// of the server, where a "<" could end the element.
 const TEXT_ONLY = new Set(['desc', 'style', 'title'])
+const UNESCAPED_TEXT = 'style'
 const ANIMATED_ATTRIBUTE = 'attributename'
 const LINK_ATTRIBUTE = 'href'
 const VALUE_LIST = 'values'
@@ -206,10 +199,20 @@ const SOLID_PROPS = new Set([
 ])
 const PLAIN_TEXT = /^[^&<>{}]*$/u
 const CDATA_START = '<![CDATA['
+// The characters that end a value or start markup, and the end of a CDATA
+// section, which XML does not accept in text.
+const ESCAPED_TEXT = /[&<]|\]\]>/gu
+const ESCAPED_VALUE = /[&<"]/gu
+const MARKUP_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '"': '&quot;',
+  ']]>': ']]&gt;'
+}
 const CDATA_END = ']]>'
 const CLOSING_TAG_START = '</'
 const EMPTY_TAG_END = '/>'
-// Comments and processing instructions, which the component leaves out.
+// Comments and processing instructions, which the icon leaves out.
 const SKIPPED_MARKUP = [
   ['<!--', '-->'],
   ['<?', '?>']
@@ -266,11 +269,7 @@ function decode(text: string): string {
   return text.replaceAll(REFERENCES, reference => character(reference))
 }
 
-function readAttribute({
-  scanner,
-  element,
-  start: attributeStart
-}: AttributeRead): Attribute {
+function readAttribute({ scanner, element }: ElementRead): Attribute {
   const name = read({ scanner, pattern: NAME })
   if (name === '') {
     throw malformed(`<${element}> has an attribute without a name`)
@@ -297,14 +296,7 @@ function readAttribute({
     )
   }
   scanner.at = end + 1
-  return {
-    name,
-    rawValue,
-    quote,
-    value: decode(rawValue),
-    start: attributeStart,
-    end: scanner.at
-  }
+  return { name, rawValue, value: decode(rawValue) }
 }
 
 function readStartTag(scanner: Scanner): StartTag {
@@ -328,7 +320,7 @@ function readStartTag(scanner: Scanner): StartTag {
     if (scanner.at === before) {
       throw malformed(`the attributes of <${name}> are not separated by spaces`)
     }
-    attributes.push(readAttribute({ scanner, element: name, start: before }))
+    attributes.push(readAttribute({ scanner, element: name }))
   }
 }
 
@@ -454,32 +446,24 @@ function dropKind({ parent, name }: DropKindInput): DropKind {
   return isEditorElement(name) ? 'whole' : 'none'
 }
 
-function addDrop({ drops, range, name }: DropInput): void {
-  drops.ranges.push(range)
-  drops.names.push(name)
-}
-
 // The attributes of the file without the ones of an editor, which the icon
 // leaves out.
 function keptAttributes({ attributes, drops }: KeptInput): Attribute[] {
   return attributes.filter(attribute => {
     if (!isEditorAttribute(attribute)) return true
-    addDrop({ drops, range: attribute, name: attribute.name })
+    drops.push(attribute.name)
     return false
   })
 }
 
 // The first value of a repeated attribute of the root wins: the customizer
 // writes its attributes before the ones of the file.
-function uniqueAttributes({ attributes, drops }: KeptInput): Attribute[] {
+function uniqueAttributes(attributes: Attribute[]): Attribute[] {
   const seen = new Set<string>()
   return attributes.filter(attribute => {
-    if (!seen.has(attribute.name)) {
-      seen.add(attribute.name)
-      return true
-    }
-    drops.ranges.push(attribute)
-    return false
+    if (seen.has(attribute.name)) return false
+    seen.add(attribute.name)
+    return true
   })
 }
 
@@ -496,7 +480,7 @@ function readTail(scanner: Scanner): void {
 }
 
 function checkText({ parent, value }: TextCheck): void {
-  const isChecked = parent.drop === 'none' && TEXT_ONLY.has(parent.name)
+  const isChecked = parent.drop === 'none' && parent.name === UNESCAPED_TEXT
   if (!isChecked || !value.includes('<')) {
     return
   }
@@ -515,19 +499,12 @@ function pushText({ parent, raw }: TextInput): void {
   parent.children.push({ kind: 'text', raw, value, isCdata: false })
 }
 
-// Editor data leaves the raw text from its start to its end.
-function closeElement({ node, end, drops }: CloseInput): void {
-  if (node.drop !== 'whole') return
-  addDrop({ drops, range: { start: node.start, end }, name: `<${node.name}>` })
-}
-
 function readElement({
   scanner,
   parent,
   isComponent,
   drops
 }: NodeInput): ElementNode | undefined {
-  const start = scanner.at
   const tag = readStartTag(scanner)
   scanner.at = tag.end
   checkDuplicates({ attributes: tag.attributes, element: tag.name })
@@ -540,12 +517,11 @@ function readElement({
         ? keptAttributes({ attributes: tag.attributes, drops })
         : tag.attributes,
     children: [],
-    start,
     drop
   }
   // The content of editor data is left out with it, so it is not checked.
   if (drop !== 'none') {
-    if (tag.isSelfClosing) closeElement({ node, end: tag.end, drops })
+    if (drop === 'whole') drops.push(`<${tag.name}>`)
     return tag.isSelfClosing ? undefined : node
   }
   checkElement({ node, parent, isComponent })
@@ -559,7 +535,6 @@ function readNode(input: NodeInput): ElementNode | undefined {
   if (svg.startsWith(CLOSING_TAG_START, at)) {
     readClosingTag({ scanner, element: parent.name })
     input.open.pop()
-    closeElement({ node: parent, end: scanner.at, drops: input.drops })
     return undefined
   }
   if (svg.startsWith(CDATA_START, at)) {
@@ -618,23 +593,55 @@ function startTagJsx({ node, isRoot }: TagInput): string {
   return `<${node.name}${attributes.join('')}${props}`
 }
 
-function nodeJsx({ node, root, pending }: JsxInput): string {
+// The children go on the stack one at a time: an element can have more
+// children than a call takes arguments.
+function pushChildren({ node, pending }: WalkInput): void {
+  if (typeof node === 'string' || node.kind === 'text') return
+  pending.push(`</${node.name}>`)
+  for (const child of node.children.toReversed()) pending.push(child)
+}
+
+function nodeJsx({ node, root, pending }: WalkInput): string {
   if (typeof node === 'string') return node
   if (node.kind === 'text') return textJsx(node)
   const start = startTagJsx({ node, isRoot: node === root })
   if (node.children.length === 0) return `${start}/>`
-  // One child at a time: an element can have more children than a call
-  // takes arguments.
-  pending.push(`</${node.name}>`)
-  for (const child of node.children.toReversed()) pending.push(child)
+  pushChildren({ node, root, pending })
   return `${start}>`
+}
+
+function escapeMarkup({ text, pattern }: EscapeInput): string {
+  return text.replaceAll(pattern, match => MARKUP_ESCAPES[match] ?? match)
+}
+
+function nodeText({ node, root, pending }: WalkInput): string {
+  if (typeof node === 'string') return node
+  if (node.kind === 'text') {
+    return escapeMarkup({ text: node.value, pattern: ESCAPED_TEXT })
+  }
+  const attributes = node.attributes.map(
+    ({ name, value }) =>
+      ` ${name}="${escapeMarkup({ text: value, pattern: ESCAPED_VALUE })}"`
+  )
+  const start = `<${node.name}${attributes.join('')}`
+  if (node.children.length === 0) return `${start}/>`
+  pushChildren({ node, root, pending })
+  return `${start}>`
+}
+
+// Walks the markup without recursion, so its depth cannot overflow the
+// stack.
+function writeMarkup(root: ElementNode, write: NodeWriter): string {
+  const output: string[] = []
+  const pending: (SvgNode | string)[] = [root]
+  for (let node = pending.pop(); node !== undefined; node = pending.pop()) {
+    output.push(write({ node, root, pending }))
+  }
+  return output.join('')
 }
 
 export type ParsedSvg = {
   root: ElementNode
-  // The parts of the file that a raw import leaves out: editor data and a
-  // repeated attribute of the root.
-  removed: Range[]
   // The editor data that the icon leaves out, by name, for the warning.
   dropped: string[]
 }
@@ -655,14 +662,15 @@ export function parseSvg({ svg, isComponent }: ParseInput): ParsedSvg {
     throw new SvgError('the file has no <svg> root element')
   }
   scanner.at = rootStart.end
-  const drops: Drops = { ranges: [], names: [] }
-  const unique = uniqueAttributes({ attributes: rootStart.attributes, drops })
+  const drops: Drops = []
   const root: ElementNode = {
     kind: 'element',
     name: 'svg',
-    attributes: keptAttributes({ attributes: unique, drops }),
+    attributes: keptAttributes({
+      attributes: uniqueAttributes(rootStart.attributes),
+      drops
+    }),
     children: [],
-    start: 0,
     drop: 'none'
   }
   checkElement({ node: root, parent: undefined, isComponent })
@@ -670,34 +678,20 @@ export function parseSvg({ svg, isComponent }: ParseInput): ParsedSvg {
     readContent({ scanner, root, isComponent, drops })
   }
   readTail(scanner)
-  return {
-    root,
-    removed: drops.ranges.toSorted(
-      (first, second) => first.start - second.start
-    ),
-    dropped: [...new Set(drops.names)]
-  }
+  return { root, dropped: [...new Set(drops)] }
 }
 
 // The JSX of the root element, with the props spread last so they win over
-// the attributes of the file. It walks the markup without recursion.
+// the attributes of the file.
 export function svgJsx(root: ElementNode): string {
-  const output: string[] = []
-  const pending: (SvgNode | string)[] = [root]
-  for (let node = pending.pop(); node !== undefined; node = pending.pop()) {
-    output.push(nodeJsx({ node, root, pending }))
-  }
-  return output.join('')
+  return writeMarkup(root, nodeJsx)
 }
 
-// The SVG text of a raw import: the file as written, without the editor
-// data and with a repeated attribute of the root written once.
-export function svgText({ svg, parsed }: RawTextInput): string {
-  let text = ''
-  let at = 0
-  for (const { start, end } of parsed.removed) {
-    text += svg.slice(at, start)
-    at = end
-  }
-  return text + svg.slice(at)
+// WHY: the SVG text of a raw import is written again from what the file
+// parses to, as the component is, so no part of the file that the parser
+// skips, such as a comment, reaches a page that parses it in another way.
+// Comments, processing instructions and what comes before the root are left
+// out, and a CDATA section becomes escaped text.
+export function svgText(root: ElementNode): string {
+  return writeMarkup(root, nodeText)
 }

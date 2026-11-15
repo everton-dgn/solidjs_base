@@ -139,14 +139,25 @@ const NOT_SVG: Refusal[] = [
     svg: '<svg><style>&lt;/style&gt;&lt;img src=x onerror=alert(1)&gt;</style></svg>',
     message: /the text of <style> has a "<"/u
   },
+  // A comment closed at once ends where the HTML parser ends it.
   {
-    svg: '<svg><title><![CDATA[x><img src=x onerror=alert(1)>]]></title></svg>',
-    message: /the text of <title> has a "<"/u
+    svg: '<svg><!--><img src="x" onerror="alert(1)">--></svg>',
+    message: /the SVG has a <img> element, which is not an SVG element/u
   },
   {
-    svg: '<svg><desc>&#60;img src=x onerror=alert(1)></desc></svg>',
-    message: /the text of <desc> has a "<"/u
+    svg: '<svg><!---><img src="x" onerror="alert(1)">--></svg>',
+    message: /the SVG has a <img> element, which is not an SVG element/u
   }
+]
+
+// Markup that the parser of the plugin skips and that the HTML parser of a
+// page ends in another place, so a copy of the file would show the image.
+const SKIPPED = [
+  '<svg><?pi ><img src="x" onerror="alert(1)">?></svg>',
+  '<svg><!-- --!><img src="x" onerror="alert(1)"><!-- --></svg>',
+  '<svg></svg><?x ><img src="x" onerror="alert(1)">?>',
+  '<svg><title><?x ></title><img src="x" onerror="alert(1)">?></title></svg>',
+  '<svg><style><?x </style><img src="x" onerror="alert(1)"> ?></style></svg>'
 ]
 
 const JSX_CODE: Refusal[] = [
@@ -252,7 +263,24 @@ describe('the markup of an icon', () => {
       '<svg><defs><linearGradient id="g"><stop offset="0"/></linearGradient><filter id="f"><feGaussianBlur stdDeviation="1"/></filter></defs><style>.a > .b { fill: url(#g) }</style><title>a &gt; b</title><g filter="url(#f)"><path class="a" d="M0 0"/><animate attributeName="opacity" values="0;1"/></g></svg>'
 
     assert.doesNotThrow(() => component(svg))
-    assert.equal(raw(svg), `export default ${JSON.stringify(svg)}\n`)
+    assert.equal(
+      raw(svg),
+      `export default ${JSON.stringify(svg.replace('&gt;', '>'))}\n`
+    )
+  })
+
+  it('accepts a "<" in the text of <title> and <desc>, written as text', () => {
+    const svg =
+      '<svg><title>a &lt; b</title><desc><![CDATA[</desc><img src="x">]]></desc></svg>'
+
+    assert.equal(
+      component(svg),
+      'export default (props = {}) => <svg {...props}><title>{"a < b"}</title><desc>{"</desc><img src=\\"x\\">"}</desc></svg>\n'
+    )
+    assert.equal(
+      raw(svg),
+      `export default ${JSON.stringify('<svg><title>a &lt; b</title><desc>&lt;/desc>&lt;img src="x"></desc></svg>')}\n`
+    )
   })
 
   it('refuses the markup that JSX reads as code', () => {
@@ -281,14 +309,39 @@ describe('the markup of an icon', () => {
     )
   })
 
-  it('leaves out comments and instructions, and keeps them as raw text', () => {
+  it('leaves out comments and instructions, also from the raw text', () => {
     const svg = '<svg><!-- a <b> --><?pi x?><path d="M0"/></svg><!-- end -->'
 
     assert.equal(
       component(svg),
       'export default (props = {}) => <svg {...props}><path d="M0"/></svg>\n'
     )
-    assert.equal(raw(svg), `export default ${JSON.stringify(svg)}\n`)
+    assert.equal(
+      raw(svg),
+      `export default ${JSON.stringify('<svg><path d="M0"/></svg>')}\n`
+    )
+  })
+
+  it('writes no skipped markup in the raw text', () => {
+    for (const svg of SKIPPED) {
+      assert.doesNotMatch(raw(svg), /img|onerror|<\?|<!/u, svg)
+      assert.doesNotMatch(component(svg), /img|onerror/u, svg)
+    }
+  })
+
+  it('writes the raw text again from the parsed markup, escaped', () => {
+    const svg = `<svg data-a='a "b" &amp; &lt;c&gt;'>
+  <text x="1"   y="2">a &amp; b &lt; c > d ]]&gt; &#65;</text>
+  <style><![CDATA[a > b { content: "&" }]]></style>
+</svg>`
+
+    assert.equal(
+      raw(svg),
+      `export default ${JSON.stringify(`<svg data-a="a &quot;b&quot; &amp; &lt;c>">
+  <text x="1" y="2">a &amp; b &lt; c > d ]]&gt; A</text>
+  <style>a > b { content: "&amp;" }</style>
+</svg>`)}\n`
+    )
   })
 
   it('keeps the first of a repeated attribute of the root', () => {
@@ -313,6 +366,7 @@ describe('the markup of an icon', () => {
       component(svg),
       /^export default \(props = \{\}\) => <svg \{\.\.\.props\}><g>/u
     )
+    assert.match(raw(svg), /^export default "<svg><g><g>/u)
   })
 
   it('writes an element with more children than a call takes arguments', () => {
@@ -320,5 +374,6 @@ describe('the markup of an icon', () => {
     const svg = `<svg>${'<path/>'.repeat(children)}</svg>`
 
     assert.ok(component(svg).endsWith('<path/></svg>\n'))
+    assert.ok(raw(svg).endsWith('<path/></svg>"\n'))
   })
 })

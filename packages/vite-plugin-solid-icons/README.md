@@ -168,6 +168,17 @@ attributes as the component, `customizeIcon` included. Use it where a component
 does not fit: a data URL, a canvas or an email template. Any other query is
 refused.
 
+The string is written again from the markup that the file parses to, as the
+component is, so a browser reads the same elements as the plugin did:
+
+- It has the elements, attributes and text of the file, with one space between
+  the attributes. A value escapes `&`, `<` and `"`, and a text escapes `&` and
+  `<`.
+- Comments, processing instructions, the XML declaration and a DOCTYPE are left
+  out.
+- A CDATA section becomes escaped text. An `&` in the CSS of a `<style>` is
+  written `&amp;`, which a page and an XML parser read back as `&`.
+
 ## Installed collections and your own folders
 
 An Iconify collection is any `@iconify-json/<collection>` package the
@@ -209,10 +220,11 @@ The SVG files of a folder collection are part of your application, as its source
 files are: the plugin does not sanitize them, and you review them as you review
 code. What the plugin guarantees is that the markup of a file stays markup:
 
-- The component writes again the elements, attributes and text that the file
-  parses to, as literals. No text of the file becomes JavaScript, a JSX
-  expression, a component or a DOM property, and Solid escapes the text and the
-  values when it renders them.
+- The component and `?raw` write again the elements, attributes and text that
+  the file parses to. No text of the file becomes JavaScript, a JSX expression,
+  a component or a DOM property, and Solid escapes the text and the values when
+  it renders them. No part of the file that the plugin skips, such as a comment,
+  reaches the page, where the HTML parser could end it in another place.
 - The build stops, with the icon and the reason, on markup that runs code in a
   page: a `<script>` element, an event handler attribute such as `onload`, a
   `javascript:` or `vbscript:` URL in any attribute or in an entry of the
@@ -223,9 +235,10 @@ code. What the plugin guarantees is that the markup of a file stays markup:
   - `<foreignObject>`, which embeds HTML;
   - an element inside `<title>`, `<desc>` or `<style>`, which hold text only: a
     browser reads the content of `<title>` and `<desc>` as HTML;
-  - a `<` in the text of `<title>`, `<desc>` or `<style>`, written in a CDATA
-    section or as `&lt;`: the server writes the text of `<style>` as it is, and
-    a `<` there could end the element.
+  - a `<` in the text of `<style>`, written in a CDATA section or as `&lt;`: the
+    server writes the text of `<style>` as it is, and a `<` there could end the
+    element. A `<` in the text of `<title>` and `<desc>` stays text: the
+    component, the server and `?raw` write it escaped.
 
   These checks apply to the component and to `?raw`, for a folder and for an
   installed collection.
@@ -248,7 +261,7 @@ code. What the plugin guarantees is that the markup of a file stays markup:
   entities, as in `xmlns="&ns_svg;"`, and stops with
   `&ns_svg; is not an XML entity`: export the file with Export As, choosing SVG,
   which writes the namespaces as text.
-- Comments and processing instructions are left out of the component and kept in
+- Comments and processing instructions are left out of the component and of
   `?raw`.
 
 The checks do not make an untrusted SVG safe: they leave external references,

@@ -8,13 +8,13 @@ type CompileInput = {
 }
 
 // The module goes through the Solid plugin as TSX, so the compiler of the
-// installed Solid version writes the DOM and the SSR output. The markup is
-// written again from what the SVG parses to, so no text of the file becomes
-// code of the module.
+// installed Solid version writes the DOM and the SSR output. The markup of
+// the component and of the raw text is written again from what the SVG
+// parses to, so no text of the file becomes code of the module.
 function moduleCode({ svg, isRaw }: CompileInput): CompiledIcon {
   const parsed = parseSvg({ svg, isComponent: !isRaw })
   const code = isRaw
-    ? `export default ${JSON.stringify(svgText({ svg, parsed }))}\n`
+    ? `export default ${JSON.stringify(svgText(parsed.root))}\n`
     : `export default (props = {}) => ${svgJsx(parsed.root)}\n`
   return { code, dropped: parsed.dropped }
 }

@@ -7,7 +7,11 @@ import { describe, it, type TestContext } from 'node:test'
 import type { IconCustomizer } from '../../types.ts'
 import { loadIconSvg } from '../index.ts'
 
-type FolderIcon = { name: string; customizeIcon?: IconCustomizer }
+type FolderIcon = {
+  context: TestContext
+  name: string
+  customizeIcon?: IconCustomizer
+}
 
 // The package installs @iconify-json/hugeicons for its tests.
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, '../../..')
@@ -23,7 +27,7 @@ async function iconFolder(context: TestContext): Promise<string> {
   return folder
 }
 
-async function loadFolderIcon(context: TestContext, icon: FolderIcon) {
+async function loadFolderIcon({ context, ...icon }: FolderIcon) {
   const folder = await iconFolder(context)
   const loaded = await loadIconSvg({
     collection: 'own',
@@ -54,7 +58,8 @@ describe('loadIconSvg', () => {
   })
 
   it('loads an icon of a folder and reports its file', async context => {
-    const { svg, file, folder } = await loadFolderIcon(context, {
+    const { svg, file, folder } = await loadFolderIcon({
+      context,
       name: 'star'
     })
 
@@ -64,7 +69,10 @@ describe('loadIconSvg', () => {
   })
 
   it('loads a name with a dot from its file', async context => {
-    const { file, folder } = await loadFolderIcon(context, { name: 'logo.v2' })
+    const { file, folder } = await loadFolderIcon({
+      context,
+      name: 'logo.v2'
+    })
 
     assert.equal(file, path.join(folder, 'logo.v2.svg'))
   })
@@ -79,7 +87,8 @@ describe('loadIconSvg', () => {
       seen.push(`${collection}/${name}`)
       attributes['aria-hidden'] = 'true'
     }
-    const folderIcon = await loadFolderIcon(context, {
+    const folderIcon = await loadFolderIcon({
+      context,
       name: 'star',
       customizeIcon
     })

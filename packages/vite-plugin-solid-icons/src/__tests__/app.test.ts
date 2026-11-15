@@ -9,6 +9,7 @@ import { build, createServer } from 'vite-plus'
 import { createFixtureApp, fixtureConfig } from './fixture-app.ts'
 
 type ServerEntry = { html: () => string }
+type CountInput = { text: string; pattern: RegExp }
 
 // The application renders a hugeicons icon and two icons of its own folder.
 const RENDERED_ICONS = 3
@@ -22,7 +23,7 @@ function isServerEntry(value: unknown): value is ServerEntry {
   )
 }
 
-function count(text: string, pattern: RegExp): number {
+function count({ text, pattern }: CountInput): number {
   return text.match(pattern)?.length ?? 0
 }
 
@@ -51,8 +52,14 @@ test('an application renders the icons', async context => {
 
       // The Solid compiler moves the attributes of the root element into a
       // spread with the props; the raw import keeps the markup as a string.
-      assert.equal(count(bundle, /"aria-hidden": "true"/gu), RENDERED_ICONS)
-      assert.equal(count(bundle, /width: "1\.2em"/gu), RENDERED_ICONS)
+      assert.equal(
+        count({ text: bundle, pattern: /"aria-hidden": "true"/gu }),
+        RENDERED_ICONS
+      )
+      assert.equal(
+        count({ text: bundle, pattern: /width: "1\.2em"/gu }),
+        RENDERED_ICONS
+      )
       assert.ok(has('<path fill=red d="M12 2l3 7'), 'the star from the folder')
       assert.ok(
         has('<svg><circle cx=8 cy=8 r=6>'),
@@ -82,8 +89,11 @@ test('an application renders the icons', async context => {
       assert.ok(isServerEntry(entry))
       const html = entry.html()
 
-      assert.equal(count(html, /<svg/gu), RENDERED_ICONS)
-      assert.equal(count(html, /<svg[^>]*aria-hidden="true"/gu), RENDERED_ICONS)
+      assert.equal(count({ text: html, pattern: /<svg/gu }), RENDERED_ICONS)
+      assert.equal(
+        count({ text: html, pattern: /<svg[^>]*aria-hidden="true"/gu }),
+        RENDERED_ICONS
+      )
       assert.match(html, /data-icon="logo"/u)
       assert.match(html, /<output id="raw">&lt;svg viewBox="0 0 24 24"/u)
     }
@@ -106,7 +116,7 @@ test('an application renders the icons', async context => {
       const html = entry.html()
 
       assert.match(client?.code ?? '', /<svg/u)
-      assert.equal(count(html, /<svg/gu), RENDERED_ICONS)
+      assert.equal(count({ text: html, pattern: /<svg/gu }), RENDERED_ICONS)
       assert.match(html, /data-icon="star"/u)
     }
   )

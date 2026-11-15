@@ -860,7 +860,7 @@ publishing with signed provenance; a new package follows the
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/runtime-entries-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/runtime-entries-light.webp" />
-  <img src="docs/assets/readme/runtime-entries-light.webp" alt="The 63 entries of solid-runtime by group: seo 15, middleware 12, server 12, i18n 10, theme 10, routing 2, env 1 and fonts 1, with examples such as create-seo, create-middleware, configure-server-errors, locale-tag, define-theme, walk-static-routes and font-links. An entry you do not import stays out of your build." width="800" />
+  <img src="docs/assets/readme/runtime-entries-light.webp" alt="The 64 entries of solid-runtime by group: seo 15, middleware 12, server 12, theme 11, i18n 10, routing 2, env 1 and fonts 1, with examples such as create-seo, create-middleware, configure-server-errors, locale-tag, define-theme, walk-static-routes and font-links. An entry you do not import stays out of your build." width="800" />
 </picture>
 
 | Available package                                               | What it provides                                                                                          |
@@ -868,9 +868,9 @@ publishing with signed provenance; a new package follows the
 | [`@evertondgn/solid-tooling`](packages/solid-tooling/README.md) | Config, build tools, catalog generation, icons, fonts, lint, tests and hooks                              |
 | [`@evertondgn/solid-runtime`](packages/solid-runtime/README.md) | Locale and theme behavior, middleware, server errors, env validators, SEO, sitemap, Markdown and llms.txt |
 
-The runtime is published as TypeScript source, split into 63 entries, so your
+The runtime is published as TypeScript source, split into 64 entries, so your
 app imports only the features it uses: `seo` has 15, `middleware` and `server`
-12 each, `i18n` and `theme` 10 each, `routing` 2, and `env` and `fonts` 1 each.
+12 each, `theme` 11, `i18n` 10, `routing` 2, and `env` and `fonts` 1 each.
 
 ### Roadmap
 

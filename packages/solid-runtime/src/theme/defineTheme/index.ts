@@ -3,13 +3,23 @@ import { DARK_MEDIA_QUERY, THEMES } from '../constants.ts'
 import { createTheme } from '../createTheme/index.ts'
 import { isTheme } from '../isTheme/index.ts'
 import { readTheme } from '../themeStorage/index.ts'
-import type { Theme, ThemeOptions, ThemeDefinition } from '../types.ts'
+import type { Theme, ThemeConfig, ThemeDefinition } from '../types.ts'
 
 function serialize(value: string): string {
   return JSON.stringify(value).replaceAll('<', String.raw`\u003c`)
 }
 
-export function defineTheme(input: ThemeOptions): ThemeDefinition {
+function validateStorage(input: ThemeConfig): void {
+  if (input.storage === 'local-storage') {
+    if (typeof input.storageKey !== 'string' || !input.storageKey) {
+      throw new Error('storageKey must be a nonempty string')
+    }
+    return
+  }
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- Validate untyped callers at the public boundary.
+  if (input.storage !== undefined && input.storage !== 'cookie') {
+    throw new Error('storage must be cookie or local-storage')
+  }
   if (
     !input.cookieName ||
     !/^[!#$%&'*+.^_`|~a-zA-Z0-9-]+$/u.test(input.cookieName)
@@ -19,6 +29,10 @@ export function defineTheme(input: ThemeOptions): ThemeDefinition {
   if (!Number.isSafeInteger(input.cookieMaxAge) || input.cookieMaxAge <= 0) {
     throw new Error('cookieMaxAge must be a positive safe integer')
   }
+}
+
+export function defineTheme(input: ThemeConfig): ThemeDefinition {
+  validateStorage(input)
   if (!isTheme(input.defaultTheme)) {
     throw new Error('defaultTheme must be light, dark or system')
   }

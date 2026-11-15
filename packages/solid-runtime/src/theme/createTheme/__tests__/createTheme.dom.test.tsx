@@ -10,6 +10,10 @@ import {
   readTheme,
   saveTheme
 } from '../../../tests/theme/config.ts'
+import {
+  THEME_STORAGE_KEY,
+  localTheme
+} from '../../../tests/theme/local-config.ts'
 import { stubBroadcastChannel } from '../../../tests/theme/stub-broadcast-channel.ts'
 import type { ResolvedTheme, Theme } from '../../types.ts'
 import type { ThemeState } from '../types.ts'
@@ -154,5 +158,36 @@ describe('theme primitive', () => {
     await expect.poll(() => state.theme()).toBe('dark')
     expect(document.documentElement).toHaveClass('dark')
     expect(document.documentElement.style.colorScheme).toBe('dark')
+  })
+})
+
+describe('theme primitive with localStorage', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    clearThemeCookie()
+    document.documentElement.classList.remove('light', 'dark')
+    vi.stubGlobal('matchMedia', () =>
+      Object.assign(new EventTarget(), { matches: false })
+    )
+    vi.stubGlobal('BroadcastChannel', null)
+  })
+
+  it('restores and saves the choice without a cookie', async () => {
+    localStorage.setItem(THEME_STORAGE_KEY, 'dark')
+    let state: ThemeState | undefined
+    const host = document.createElement('div')
+    document.body.append(host)
+    onTestFinished(() => host.remove())
+    const dispose = render(() => {
+      state = localTheme.createTheme()
+      return <span>{state.theme()}</span>
+    }, host)
+    onTestFinished(dispose)
+    await expect.poll(() => state?.isReady()).toBe(true)
+    expect(state?.theme()).toBe('dark')
+    expect(document.documentElement).toHaveClass('dark')
+    state?.setTheme('light')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
+    expect(document.cookie).toBe('')
   })
 })

@@ -103,6 +103,7 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
   let typesFile: string | undefined
   let pendingTypes = Promise.resolve()
   const idsByFile: ModuleIds = new Map()
+  const importersByCollection: ModuleIds = new Map()
 
   function idsOfFile(file: string): Set<string> {
     const ids = new Set(idsByFile.get(file))
@@ -126,19 +127,6 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     const update = writeTypesAfter(pendingTypes)
     pendingTypes = settled(update)
     return update
-  }
-
-  async function resolveIcon({
-    collection,
-    exportName,
-    position
-  }: ExportRequest): Promise<string> {
-    try {
-      const table = await tables.get(collection)
-      return exportedIcon({ table, collection, exportName })
-    } catch (error) {
-      throw importError({ message: messageOf(error), position })
-    }
   }
 
   return {
@@ -182,6 +170,21 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
         code: COLLECTION_IMPORT
       },
       async handler(code, id) {
+        const resolveIcon = async ({
+          collection,
+          exportName,
+          position
+        }: ExportRequest) => {
+          // Tracked before the lookup, so a new SVG file answers an import
+          // that failed.
+          track({ ids: importersByCollection, key: collection, id })
+          try {
+            const table = await tables.get(collection)
+            return exportedIcon({ table, collection, exportName })
+          } catch (error) {
+            throw importError({ message: messageOf(error), position })
+          }
+        }
         try {
           return (await rewriteImports({ code, id, resolveIcon })) ?? null
         } catch (error) {
@@ -205,9 +208,23 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
       }
       return { code: compileIcon({ svg, isRaw: request.isRaw }), map: null }
     },
-    hotUpdate(context) {
+    async hotUpdate(context) {
       const graph = this.environment.moduleGraph
-      const ids = idsOfFile(path.normalize(context.file))
+      const file = path.normalize(context.file)
+      const ids = idsOfFile(file)
+      const icon = iconOfFile({ folders, file })
+      // A new, removed or renamed SVG changes the names of its collection.
+      if (icon && context.type !== 'update') {
+        tables.invalidate(icon.collection)
+        for (const id of importersByCollection.get(icon.collection) ?? []) {
+          ids.add(id)
+        }
+        try {
+          await updateTypes()
+        } catch (error) {
+          this.warn(messageOf(error))
+        }
+      }
       const modules = [...ids].flatMap(id => graph.getModuleById(id) ?? [])
       if (context.type === 'update' || modules.length === 0) {
         return [...context.modules, ...modules]

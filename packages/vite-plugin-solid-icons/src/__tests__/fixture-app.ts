@@ -103,6 +103,7 @@ import Moon from 'icon:own/moon'
 export { default as ArrowLeft01 } from 'icon:hugeicons/arrow-left-01'
 ${NAMED_ICONS_BODY}`
 export const STAR_FILE = 'icons/star.svg'
+export const MOON_FILE = 'icons/moon.svg'
 export const NAMED_ICONS_FILE = 'src/NamedIcons.tsx'
 export const TYPES_FILE = 'src/icon-collections.d.ts'
 

@@ -21,31 +21,21 @@ versions from Conventional Commits. It runs only in CI, from
    The workflow then validates the workspace, packs each package and publishes
    it.
 
-The release pull request is opened with the workflow's `GITHUB_TOKEN`, so GitHub
-holds its CI runs until someone with write access selects **Approve workflows to
-run** in the pull request
+The workflow runs release-please in two jobs. `Tags and GitHub Releases` uses
+the workflow's `GITHUB_TOKEN` and only creates the tags and GitHub Releases of a
+merged release pull request. `Release pull request` runs after it, so the new
+tags exist when it computes the next release, and only opens or updates the
+release pull request, with a token of a GitHub App
+([One-time setup](#one-time-setup)). The publish job does not wait for it.
+
+GitHub holds the CI runs of a pull request that a workflow opens or updates with
+the `GITHUB_TOKEN` until someone approves them, and starts them at once when the
+token comes from a GitHub App
 ([GitHub docs](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)).
-`CI required` has to pass before the merge, as in any other pull request. A
-commit pushed to the release branch from a person's account starts the CI at
-once, without the approval.
-
-A run started with `workflow_dispatch` on the release branch does not replace
-the approval: the `main` ruleset only counts checks of runs started by events
-such as `pull_request` and `push`
-([GitHub docs](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks)).
-
-release-please rewrites the release pull request after every merge that changes
-the next version, and each rewrite holds a new run. Approve only the run of the
-head you are about to merge: an approved run starts every job.
-
-From a terminal, list the held runs and approve the one of that head:
-
-```bash
-gh pr view <number> --json headRefName,headRefOid
-gh run list --branch <release-branch> \
-  --status action_required --json databaseId,workflowName,headSha
-gh api -X POST repos/everton-dgn/solidjs_base/actions/runs/<run-id>/approve
-```
+So the CI of the release pull request starts on its own, and `CI required` has
+to pass before the merge, as in any other pull request. release-please rewrites
+the release pull request after every merge that changes the next version, and
+each rewrite starts a new run.
 
 The publish step uses no token. npm authenticates the workflow through OIDC
 ([trusted publishing](https://docs.npmjs.com/trusted-publishers)) and attaches
@@ -109,8 +99,9 @@ into the branch, never rebase it, and wait for `CI required` again.
 3. For the first automated release of a package, create the trusted publisher
    now
    ([First automated release of a package](#first-automated-release-of-a-package)).
-4. Approve only the held run of the head you are about to merge and wait for
-   `CI required`. A push from your account starts the CI without the approval.
+4. Wait for `CI required` on the head you are about to merge. If the run of that
+   head waits for an approval, follow
+   [When the release pull request job fails](#when-the-release-pull-request-job-fails).
 5. Merge with the command in [Merging a pull request](#merging-a-pull-request).
 6. After the publish job, check the registry. The version can take a few minutes
    to appear, and the output has the version and the provenance statement:
@@ -143,9 +134,27 @@ so the published package does not change.
 
 ## One-time setup
 
-On GitHub, turn on "Allow GitHub Actions to create and approve pull requests" in
-Settings > Actions > General. Without it release-please cannot open the release
-pull request.
+On GitHub, the `Release pull request` job needs a GitHub App that opens the
+release pull request. Create it in Settings > Developer settings > GitHub Apps >
+New GitHub App, on the account that owns the repository:
+
+- Any name and homepage URL. Turn off the webhook (uncheck **Active**), and keep
+  the App installable only on this account.
+- Repository permissions: Contents, Issues and Pull requests, each with read and
+  write access. The job asks for exactly these, and the token request fails when
+  the App lacks one of them.
+- After saving, generate a private key on the App page, then install the App on
+  this repository only (Install App > Only select repositories).
+
+In the repository, under Settings > Secrets and variables > Actions, save:
+
+| Kind     | Name                      | Value                                            |
+| -------- | ------------------------- | ------------------------------------------------ |
+| Variable | `RELEASE_APP_CLIENT_ID`   | The Client ID shown on the App page              |
+| Secret   | `RELEASE_APP_PRIVATE_KEY` | The whole content of the private key `.pem` file |
+
+To use the same App in another repository, install the App on that repository
+too and save the variable and the secret there.
 
 On npmjs.com, each package needs a trusted publisher. Create it at the moment
 described in
@@ -206,8 +215,8 @@ A pull request merged after release-please opened the release pull request can
 touch the lines it changes. In the package `package.json`, the `description`
 sits next to the `version`, so a new description is enough. release-please
 rewrites the release pull request only when the release it computes changes, so
-the conflict stays: the release job logs that the pull request "remained the
-same".
+the conflict stays: the `Release pull request` job logs that the pull request
+"remained the same".
 
 Merge `main` into the release branch, keeping the version and changelog of the
 release and the changes from `main`. Do not rebase the branch.
@@ -222,17 +231,49 @@ git push origin HEAD:<release-branch>
 ```
 
 The `git diff` must list only `.release-please-manifest.json` and, for each
-package, its `CHANGELOG.md` and `package.json`. The push comes from your
-account, so the CI of the release pull request starts without **Approve
-workflows to run**. Merge the release pull request after `CI required` passes,
-with the command in [Merging a pull request](#merging-a-pull-request).
+package, its `CHANGELOG.md` and `package.json`. The push starts the CI of the
+release pull request. Merge it after `CI required` passes, with the command in
+[Merging a pull request](#merging-a-pull-request).
+
+## When the release pull request job fails
+
+The tags, the GitHub Releases and the publication do not depend on the
+`Release pull request` job: when it fails, only the release pull request is not
+opened or updated. The cause is usually the App, its installation on the
+repository, or the `RELEASE_APP_CLIENT_ID` variable or the
+`RELEASE_APP_PRIVATE_KEY` secret ([One-time setup](#one-time-setup)). Fix it,
+then run only that job again. No job depends on it, so nothing else runs:
+
+```bash
+gh run view <run-id> --json jobs --jq '.jobs[] | {name, databaseId}'
+gh run rerun --job <database-id>
+```
+
+A release pull request opened or updated before by the `GITHUB_TOKEN`, as
+`github-actions[bot]`, keeps its held runs. release-please updates it only when
+the release it computes changes, so approve the held run of the head you are
+about to merge. An approved run starts every job:
+
+```bash
+gh pr view <number> --json headRefName,headRefOid
+gh run list --branch <release-branch> \
+  --status action_required --json databaseId,workflowName,headSha
+gh api -X POST repos/everton-dgn/solidjs_base/actions/runs/<run-id>/approve
+```
+
+A run started with `workflow_dispatch` on the release branch does not replace
+the approval: the `main` ruleset only counts checks of runs started by events
+such as `pull_request` and `push`
+([GitHub docs](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks)).
+A commit pushed to the release branch from your account also starts the CI
+without the approval.
 
 ## When the publish job fails
 
-The release job runs before the publish job. If publishing fails, the tag and
-the GitHub Release already exist. Pushing a new commit does not publish the
-version: release-please finds the tag and creates no release, so the publish job
-is skipped.
+The `Tags and GitHub Releases` job runs before the publish job. If publishing
+fails, the tag and the GitHub Release already exist. Pushing a new commit does
+not publish the version: release-please finds the tag and creates no release, so
+the publish job is skipped.
 
 npm can accept the upload even when the job reports a failure, so first check
 whether the version is on the registry:
@@ -248,8 +289,8 @@ the repository does not reach it. What to do depends on where the cause is:
 - On npmjs.com, such as a missing or expired trusted publisher, or a field that
   does not match the table in [One-time setup](#one-time-setup): fix it there,
   then open the failed run on GitHub and choose "Re-run failed jobs". The
-  publish job runs again with the output of the release job from the first
-  attempt. GitHub allows this for 30 days.
+  publish job runs again with the output of the `Tags and GitHub Releases` job
+  from the first attempt. GitHub allows this for 30 days.
 - Outside the package folder, such as a workflow step or the workspace
   configuration that validation uses: open the fix as a pull request, keep it
   unmerged, and

@@ -45,7 +45,7 @@ const BUILD_TOOLS = [
 // These protocols only resolve inside the workspace.
 const WORKSPACE_PROTOCOLS = ['catalog:', 'workspace:']
 // The installed package resolves these from the application.
-const LINKED_PACKAGES = ['@iconify', '@solidjs']
+const LINKED_PACKAGES = ['@iconify', '@solidjs', 'magic-string', 'vite-plus']
 const TYPE_USAGE = `import type { JSX } from '@solidjs/web'
 import Github from 'icon:hugeicons/github'
 import githubSvg from 'icon:hugeicons/github?raw'

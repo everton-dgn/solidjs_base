@@ -1,5 +1,3 @@
-export type IconRequest = { collection: string; name: string; isRaw: boolean }
-
 export type IconCustomization = {
   collection: string
   name: string

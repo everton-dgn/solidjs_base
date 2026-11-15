@@ -1,5 +1,3 @@
-import type { IconRequest } from '../types.ts'
-
 type RequestPart = { specifier: string; part: string }
 
 const ICON_PREFIX = 'icon:'
@@ -31,11 +29,7 @@ function isRawQuery({ specifier, part: query }: RequestPart): boolean {
 
 function splitPath({ specifier, part: path }: RequestPart): IconRequest {
   const slash = path.indexOf('/')
-  if (slash === -1) {
-    throw new Error(
-      `Named imports from "${specifier}" are not available yet. Import each icon by name: import Icon from '${specifier}/<name>'.`
-    )
-  }
+  if (slash === -1) throw invalidRequest(specifier)
   const collection = path.slice(0, slash)
   const name = path.slice(slash + 1)
   if (!COLLECTION_PATTERN.test(collection) || !NAME_PATTERN.test(name)) {
@@ -44,8 +38,27 @@ function splitPath({ specifier, part: path }: RequestPart): IconRequest {
   return { collection, name, isRaw: false }
 }
 
+export type IconPath = { collection: string; name: string }
+
+export type IconRequest = IconPath & { isRaw: boolean }
+
 export function isCollectionName(name: string): boolean {
   return COLLECTION_PATTERN.test(name)
+}
+
+export function isIconName(name: string): boolean {
+  return NAME_PATTERN.test(name)
+}
+
+// The collection of an import by export name, as in 'icon:hugeicons'.
+export function collectionOfImport(specifier: string): string | undefined {
+  if (!specifier.startsWith(ICON_PREFIX)) return undefined
+  const collection = specifier.slice(ICON_PREFIX.length)
+  return COLLECTION_PATTERN.test(collection) ? collection : undefined
+}
+
+export function iconImport({ collection, name }: IconPath): string {
+  return `${ICON_PREFIX}${collection}/${name}`
 }
 
 // The ids that load receives. The component id ends in .tsx and has no null

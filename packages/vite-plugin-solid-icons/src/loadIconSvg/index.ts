@@ -5,10 +5,10 @@ import {
   type IconifyLoaderOptions,
   searchForIcon
 } from '@iconify/utils'
-import { loadCollectionFromFS } from '@iconify/utils/lib/loader/fs'
 import { FileSystemHMRIconLoader } from '@iconify/utils/lib/loader/node-loaders'
 import { getPossibleIconNames } from '@iconify/utils/lib/loader/utils'
 
+import { loadIconSet } from '../loadIconSet/index.ts'
 import type { IconCustomizer } from '../types.ts'
 
 type IconSource = {
@@ -74,17 +74,7 @@ async function loadInstalledIcon({
   customizeIcon
 }: IconSource): Promise<IconSvg> {
   const packageName = `${COLLECTION_SCOPE}/${collection}`
-  const iconSet = await loadCollectionFromFS(
-    collection,
-    false,
-    COLLECTION_SCOPE,
-    root
-  )
-  if (!iconSet) {
-    throw new Error(
-      `Icon collection "${collection}" not found: install ${packageName} or declare "${collection}" in the collections option of solidIcons.`
-    )
-  }
+  const iconSet = await loadIconSet({ collection, root })
   const svg = await searchForIcon(
     iconSet,
     collection,

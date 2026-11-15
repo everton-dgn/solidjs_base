@@ -9,16 +9,12 @@ import { solidIcons } from '../index.ts'
 import { createFixtureApp, fixtureConfig } from './fixture-app.ts'
 
 type BuildInput = { context: TestContext; source: string }
+type EntryInput = { context: TestContext; code: string }
 
-// Builds an entry that only imports the module, so the error comes from this
-// plugin and not from the Solid compiler.
-async function buildImport({ context, source }: BuildInput): Promise<void> {
+async function buildEntry({ context, code }: EntryInput): Promise<void> {
   const root = await createFixtureApp()
   context.after(() => rm(root, { recursive: true, force: true }))
-  await writeFile(
-    path.join(root, 'entry.js'),
-    `import ${JSON.stringify(source)}\n`
-  )
+  await writeFile(path.join(root, 'entry.js'), code)
   await build({
     ...fixtureConfig({ root, isSsr: false }),
     logLevel: 'silent',
@@ -27,6 +23,12 @@ async function buildImport({ context, source }: BuildInput): Promise<void> {
       rolldownOptions: { input: path.join(root, 'entry.js') }
     }
   })
+}
+
+// Builds an entry that only imports the module, so the error comes from this
+// plugin and not from the Solid compiler.
+async function buildImport({ context, source }: BuildInput): Promise<void> {
+  await buildEntry({ context, code: `import ${JSON.stringify(source)}\n` })
 }
 
 describe('solidIcons', () => {
@@ -57,10 +59,59 @@ describe('solidIcons', () => {
     )
   })
 
-  it('refuses the import of a whole collection for now', async context => {
+  it('names a missing export and suggests the closest one', async context => {
     await assert.rejects(
-      buildImport({ context, source: 'icon:hugeicons' }),
-      /Named imports from "icon:hugeicons" are not available yet/u
+      buildEntry({
+        context,
+        code: "import { Githb } from 'icon:hugeicons'\nconsole.log(Githb)\n"
+      }),
+      /"Githb" is not an icon of 'icon:hugeicons'\. Did you mean Github\?/u
     )
+  })
+
+  it('lists the ways to import an ambiguous name', async context => {
+    await assert.rejects(
+      buildEntry({
+        context,
+        code: "import { ArrowDown01 } from 'icon:hugeicons'\nconsole.log(ArrowDown01)\n"
+      }),
+      /"ArrowDown01" names more than one icon of 'icon:hugeicons': import ArrowDown_01 for arrow-down-01, or 'icon:hugeicons\/arrow-down01' for arrow-down01\./u
+    )
+  })
+
+  it('names a missing export of a folder collection', async context => {
+    await assert.rejects(
+      buildEntry({
+        context,
+        code: "import { Sun } from 'icon:own'\nconsole.log(Sun)\n"
+      }),
+      /"Sun" is not an icon of 'icon:own'\./u
+    )
+  })
+
+  it('refuses the imports of a whole collection', async context => {
+    const cases = [
+      [
+        'import * as Icons from "icon:hugeicons"\nconsole.log(Icons)',
+        /A namespace import of 'icon:hugeicons' is not supported/u
+      ],
+      [
+        'import Icons from "icon:hugeicons"\nconsole.log(Icons)',
+        /A default import of 'icon:hugeicons' is not supported/u
+      ],
+      ['import "icon:hugeicons"', /import 'icon:hugeicons' is not supported/u],
+      [
+        'export const load = () => import("icon:hugeicons")',
+        /import\('icon:hugeicons'\) is not supported/u
+      ],
+      // The transform reads string literals; the resolver catches the rest.
+      [
+        'export const load = () => import(`icon:hugeicons`)',
+        /import\('icon:hugeicons'\) is not supported/u
+      ]
+    ] as const
+    for (const [code, message] of cases) {
+      await assert.rejects(buildEntry({ context, code }), message)
+    }
   })
 })

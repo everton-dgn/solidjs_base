@@ -1,18 +1,29 @@
 import assert from 'node:assert/strict'
-import { readdir, readFile, rm } from 'node:fs/promises'
+import { readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { test } from 'node:test'
 import { pathToFileURL } from 'node:url'
 
 import { build, createServer } from 'vite-plus'
 
-import { createFixtureApp, fixtureConfig } from './fixture-app.ts'
+import {
+  createFixtureApp,
+  fixtureConfig,
+  NAMED_ICONS_BY_PATH,
+  NAMED_ICONS_FILE
+} from './fixture-app.ts'
 
 type ServerEntry = { html: () => string }
 type CountInput = { text: string; pattern: RegExp }
+type OutputFiles = Record<string, string>
+type ClientBuild = { root: string; outDir: string }
 
-// The application renders a hugeicons icon and two icons of its own folder.
-const RENDERED_ICONS = 3
+// The application imports github, star and logo by path, and arrow-left-01,
+// 3d-move and moon by export name; it renders arrow-left-01 twice.
+const ICON_MODULES = 6
+const RENDERED_ICONS = 7
+// The path of arrow-left-01 in @iconify-json/hugeicons.
+const ARROW_LEFT_PATH = 'M15 6s-6 4.419-6 6s6 6 6 6'
 
 function isServerEntry(value: unknown): value is ServerEntry {
   return (
@@ -25,6 +36,29 @@ function isServerEntry(value: unknown): value is ServerEntry {
 
 function count({ text, pattern }: CountInput): number {
   return text.match(pattern)?.length ?? 0
+}
+
+async function readOutput(folder: string): Promise<OutputFiles> {
+  const files = await readdir(folder, { recursive: true, withFileTypes: true })
+  const entries = await Promise.all(
+    files
+      .filter(file => file.isFile())
+      .map(async (file): Promise<[string, string]> => {
+        const absolute = path.join(file.parentPath, file.name)
+        return [
+          path.relative(folder, absolute),
+          await readFile(absolute, 'utf8')
+        ]
+      })
+  )
+  return Object.fromEntries(entries)
+}
+
+async function buildClient({ root, outDir }: ClientBuild): Promise<void> {
+  await build({
+    ...fixtureConfig({ root, isSsr: false }),
+    build: { outDir, minify: false }
+  })
 }
 
 async function readBundle(folder: string): Promise<string> {
@@ -43,10 +77,7 @@ test('an application renders the icons', async context => {
   await context.test(
     'the client build has the component and raw icons',
     async () => {
-      await build({
-        ...fixtureConfig({ root, isSsr: false }),
-        build: { outDir: 'dist/client', minify: false }
-      })
+      await buildClient({ root, outDir: 'dist/client' })
       const bundle = await readBundle(path.join(root, 'dist/client'))
       const has = (text: string) => bundle.includes(text)
 
@@ -54,11 +85,16 @@ test('an application renders the icons', async context => {
       // spread with the props; the raw import keeps the markup as a string.
       assert.equal(
         count({ text: bundle, pattern: /"aria-hidden": "true"/gu }),
-        RENDERED_ICONS
+        ICON_MODULES
       )
       assert.equal(
         count({ text: bundle, pattern: /width: "1\.2em"/gu }),
-        RENDERED_ICONS
+        ICON_MODULES
+      )
+      assert.equal(
+        count({ text: bundle, pattern: new RegExp(ARROW_LEFT_PATH, 'gu') }),
+        1,
+        'the icon imported twice by export name is one module'
       )
       assert.ok(has('<path fill=red d="M12 2l3 7'), 'the star from the folder')
       assert.ok(
@@ -95,7 +131,30 @@ test('an application renders the icons', async context => {
         RENDERED_ICONS
       )
       assert.match(html, /data-icon="logo"/u)
+      assert.match(html, /data-icon="move"/u)
+      assert.match(html, /data-icon="moon"/u)
       assert.match(html, /<output id="raw">&lt;svg viewBox="0 0 24 24"/u)
+    }
+  )
+
+  await context.test(
+    'the imports by export name build the bundle of the imports by path',
+    async () => {
+      await buildClient({ root, outDir: 'dist/named' })
+      const file = path.join(root, NAMED_ICONS_FILE)
+      const namedImports = await readFile(file, 'utf8')
+      await writeFile(file, NAMED_ICONS_BY_PATH)
+      try {
+        await buildClient({ root, outDir: 'dist/by-path' })
+      } finally {
+        await writeFile(file, namedImports)
+      }
+
+      const named = await readOutput(path.join(root, 'dist/named'))
+      const byPath = await readOutput(path.join(root, 'dist/by-path'))
+
+      assert.ok(Object.keys(named).some(name => name.endsWith('.js')))
+      assert.deepEqual(named, byPath)
     }
   )
 

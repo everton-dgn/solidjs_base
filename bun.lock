@@ -112,6 +112,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@iconify/utils": "3.1.7",
+        "magic-string": "0.30.21",
       },
       "devDependencies": {
         "@iconify-json/hugeicons": "1.2.35",

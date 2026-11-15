@@ -16,11 +16,15 @@ const STAR_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="red" d="M12 2l3 7h7l-6 4 2 7-6-4-6 4 2-7-6-4h7z"/></svg>\n'
 const LOGO_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg>\n'
+const MOON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>\n'
 
 const APP = `import Github from 'icon:hugeicons/github'
 import githubSvg from 'icon:hugeicons/github?raw'
 import Logo from 'icon:own/logo.v2'
 import Star from 'icon:own/star'
+
+import NamedIcons, { ArrowLeft01 } from './NamedIcons.tsx'
 
 export default function App() {
   return (
@@ -29,15 +33,52 @@ export default function App() {
       <Star data-icon="star" />
       <Logo data-icon="logo" />
       <output id="raw">{githubSvg}</output>
+      <NamedIcons />
+      <ArrowLeft01 data-icon="arrow" />
     </main>
   )
 }
 `
 
+const NAMED_ICONS_BODY = `
+export default function NamedIcons() {
+  return (
+    <p>
+      <Back data-icon="back" />
+      <Icon3dMove data-icon="move" />
+      <Moon data-icon="moon" />
+    </p>
+  )
+}
+`
+
+const NAMED_ICONS = `import {
+  // the arrow of the back button
+  ArrowLeft01 as Back,
+  type Github as GithubIcon,
+  Icon3dMove
+} from 'icon:hugeicons'
+import { Moon } from 'icon:own'
+
+export type { GithubIcon }
+export { ArrowLeft01 } from 'icon:hugeicons'
+${NAMED_ICONS_BODY}`
+
 const FILES: FixtureFiles = {
   'index.html':
     '<!doctype html><html><body><div id="app"></div><script type="module" src="/src/entry-client.tsx"></script></body></html>\n',
+  'package.json': `${JSON.stringify({
+    name: 'icons-app',
+    private: true,
+    devDependencies: { '@iconify-json/hugeicons': '*' }
+  })}\n`,
+  // WHY: with verbatimModuleSyntax a type specifier keeps its import, the
+  // case the import type of the named imports covers.
+  'tsconfig.json': `${JSON.stringify({
+    compilerOptions: { verbatimModuleSyntax: true }
+  })}\n`,
   'src/App.tsx': APP,
+  'src/NamedIcons.tsx': NAMED_ICONS,
   'src/entry-client.tsx': `import { render } from '@solidjs/web'
 import App from './App.tsx'
 
@@ -49,10 +90,20 @@ import App from './App.tsx'
 export const html = () => renderToString(() => <App />)
 `,
   'icons/star.svg': STAR_SVG,
-  'icons/logo.v2.svg': LOGO_SVG
+  'icons/logo.v2.svg': LOGO_SVG,
+  'icons/moon.svg': MOON_SVG
 }
 
+// The module of named imports with the imports by path that the plugin
+// writes for them.
+export const NAMED_ICONS_BY_PATH = `import Back from 'icon:hugeicons/arrow-left-01'
+import Icon3dMove from 'icon:hugeicons/3d-move'
+import Moon from 'icon:own/moon'
+
+export { default as ArrowLeft01 } from 'icon:hugeicons/arrow-left-01'
+${NAMED_ICONS_BODY}`
 export const STAR_FILE = 'icons/star.svg'
+export const NAMED_ICONS_FILE = 'src/NamedIcons.tsx'
 
 // A Solid 2 application in a temporary folder. Its node_modules points at the
 // one of this package, so Vite resolves Solid and the collections from there.

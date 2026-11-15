@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import {
+  collectionOfImport,
   iconId,
+  iconImport,
   isCollectionName,
   parseIconRequest,
   readIconId
@@ -44,10 +46,10 @@ describe('parseIconRequest', () => {
     })
   })
 
-  it('refuses the collection import until named imports exist', () => {
+  it('leaves the import of a collection to the named imports', () => {
     assert.throws(
       () => parseIconRequest('icon:hugeicons'),
-      /Named imports from "icon:hugeicons" are not available yet/u
+      /Invalid icon import "icon:hugeicons"/u
     )
   })
 
@@ -113,5 +115,36 @@ describe('isCollectionName', () => {
     for (const name of ['Own', 'my_icons', 'a--b', '-own', 'own/x', '']) {
       assert.equal(isCollectionName(name), false, name)
     }
+  })
+})
+
+describe('collectionOfImport', () => {
+  it('reads the collection of an import by export name', () => {
+    assert.equal(collectionOfImport('icon:hugeicons'), 'hugeicons')
+    assert.equal(
+      collectionOfImport('icon:material-symbols'),
+      'material-symbols'
+    )
+  })
+
+  it('ignores the imports of one icon and of other modules', () => {
+    for (const specifier of [
+      'icon:hugeicons/github',
+      'icon:hugeicons?raw',
+      'icon:Own',
+      'icon:',
+      'hugeicons'
+    ]) {
+      assert.equal(collectionOfImport(specifier), undefined, specifier)
+    }
+  })
+})
+
+describe('iconImport', () => {
+  it('writes the import of one icon', () => {
+    assert.equal(
+      iconImport({ collection: 'hugeicons', name: 'arrow-left-01' }),
+      'icon:hugeicons/arrow-left-01'
+    )
   })
 })

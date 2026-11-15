@@ -9,6 +9,8 @@
   "bump-minor-pre-major": true,
   "packages": {
     "packages/solid-tooling": {},
-    "packages/solid-runtime": {}
+    "packages/solid-runtime": {
+      "release-as": "0.6.0"
+    }
   }
 }

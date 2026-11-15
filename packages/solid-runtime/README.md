@@ -455,6 +455,11 @@ for extension examples, boot validation and type generation.
   `@solidjs/vite-plugin`, so the plugin, and Vite with it, stays out of the
   production install. Applications retain a direct routing dependency only when
   their own source imports it.
+- The published source reads the `nonce` and `renderMode` fields that the Solid
+  plugin adds to `RequestEvent`. The TypeScript program of the application gets
+  them from `@evertondgn/solid-tooling/app-env`, which the `tsconfig.app.json`
+  of the tooling package loads. An application with its own TypeScript config
+  keeps `@evertondgn/solid-tooling/app-env` in `types`.
 
 ## Limits
 

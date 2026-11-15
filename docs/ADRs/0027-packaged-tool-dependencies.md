@@ -114,8 +114,9 @@ application and must fail the build audit.
 Updating the tooling updates unused tools too. Their installed size is the
 accepted cost; application build output must continue to exclude them.
 Applications with direct imports keep those declarations and coordinate their
-versions to preserve single instances. Re-exporting the middleware type removes
-one dependency without introducing a runtime import of the tooling package.
+versions to preserve single instances. Copying the middleware type removes one
+dependency without introducing a runtime import of the tooling package or the
+Solid plugin.
 
 Migration removes preset-only dependencies, changes scripts to the packaged
 tasks, and removes named inherited type entries such as node from application

@@ -61,7 +61,10 @@ the ones that cost a fix after a release when they were missed.
   commit described in
   [Merging a pull request](docs/releasing.md#merging-a-pull-request). Pass the
   head you reviewed, which `--dry-run` prints; the command stops on another
-  head. Never squash or rebase.
+  head. `--sha` is required for a release pull request, whose merge publishes
+  on npm. After updating a branch that is behind, the command goes on only with
+  a new head whose files it checked, and otherwise prints the command that
+  merges that head once you review it. Never squash or rebase.
 - Before merging a release pull request, follow
   [the checklist](docs/releasing.md#before-merging-a-release-pull-request).
 - The first automated release of a package needs a trusted publisher, which only

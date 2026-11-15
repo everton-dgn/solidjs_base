@@ -7,6 +7,11 @@ const THEMES = ['light', 'dark', 'system']
 const DARK_MEDIA_QUERY = '(prefers-color-scheme: dark)'
 /** @type {readonly ('light' | 'dark')[]} */
 const RESOLVED_THEMES = ['light', 'dark']
+// WHY: at the start of <head> the script runs before the parser reaches the
+// theme-color meta, so it applies the same theme again once the meta exists.
+// The first readystatechange ends the parsing, before the modules run, so the
+// observer never overrides the application.
+const THEME_COLOR_SELECTOR = 'meta[name="theme-color"]'
 
 /**
  * @typedef {{
@@ -45,7 +50,18 @@ export function storedThemeScript({ storageKey, colors, defaultTheme }) {
     if (${serialize(THEMES)}.includes(stored)) theme = stored;
   } catch {}
   const dark = theme === 'dark' || (theme === 'system' && matchMedia(${serialize(DARK_MEDIA_QUERY)}).matches);
-  (${applyTheme.toString()})({ theme: dark ? 'dark' : 'light', color: dark ? ${serialize(colors.dark)} : ${serialize(colors.light)} });
+  const apply = ${applyTheme.toString()};
+  const applied = { theme: dark ? 'dark' : 'light', color: dark ? ${serialize(colors.dark)} : ${serialize(colors.light)} };
+  apply(applied);
+  const selector = ${serialize(THEME_COLOR_SELECTOR)};
+  if (document.querySelector(selector)) return;
+  const observer = new MutationObserver(() => {
+    if (!document.querySelector(selector)) return;
+    observer.disconnect();
+    apply(applied);
+  });
+  observer.observe(document.head, { childList: true });
+  document.addEventListener('readystatechange', () => observer.disconnect(), { once: true });
 })();
 `
 }

@@ -7,7 +7,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 and Vite+. Shared tooling and runtime beneath the SolidJS mark: languages, theme, server protection, SEO, assets and development tools. Install solid-tooling for development and solid-runtime for application features." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 RC and Vite+. Build your Solid app. Stop rebuilding its foundation. Shared tooling and runtime beneath the SolidJS mark: languages, theme, server protection, SEO, assets and development tools. Install solid-tooling for development and solid-runtime for application features." width="800" />
 </picture>
 
 **The server and browser behavior of a SolidJS 2 app, ready to import one
@@ -86,14 +86,13 @@ values through `securityHeaders`. Everything else in this page is opt-in.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/runtime-entries-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/runtime-entries-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/runtime-entries-light.webp" alt="solid-runtime 0.6.0 has 63 entry points in 8 groups: seo 15, middleware 12, server 12, i18n 10, theme 10, routing 2, env 1 and fonts 1, with examples such as create-seo, create-middleware, configure-server-errors, locale-tag and define-theme. Counted from the exports of the package manifest; a group you never import never enters your build." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/runtime-entries-light.webp" alt="solid-runtime has 63 entry points in 8 groups: seo 15, middleware 12, server 12, i18n 10, theme 10, routing 2, env 1 and fonts 1, with examples such as create-seo, create-middleware, configure-server-errors, locale-tag and define-theme. Counted from the exports of the package manifest; a group you never import never enters your build." width="800" />
 </picture>
 
-At version 0.6.0, the package has 63 entry points in 8 groups and no barrel:
-`seo` 15, `middleware` 12, `server` 12, `i18n` 10, `theme` 10, `routing` 2,
-`env` 1 and `fonts` 1. An app without translations needs no translation project.
-An app without a theme switcher imports no theme module, and an app without SEO
-imports no SEO module.
+The package has 63 entry points in 8 groups and no barrel: `seo` 15,
+`middleware` 12, `server` 12, `i18n` 10, `theme` 10, `routing` 2, `env` 1 and
+`fonts` 1. A single-language app needs no translation project, and a theme or
+SEO module enters the bundle only when your code imports it.
 
 That is checked on real builds. The installed scenarios pack this package,
 install it in the fixture applications and fail when a disabled theme or
@@ -387,7 +386,8 @@ export { index as GET } from '@/infra/server/sitemap/index.ts'
 | `llms.txt`, `llms-full.txt`       | 1 MiB and 10 MiB                                            |
 | Overload                          | `503` with `no-store` and `Retry-After: 1`                  |
 
-An application with more than one handler should share one controller, as the
+The fixture publishes only sitemaps, so it creates its controller inline. Once
+sitemaps and Markdown both publish, share one controller between them, as the
 boilerplate does, so the quotas stay where you set them. See
 [Sitemap and publication](#sitemap-and-publication).
 
@@ -446,6 +446,12 @@ licenses and typography tokens stay in your app. See
 
 ## How it is tested
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" alt="Current revision: 1,186 Vitest tests passed, 1,001 in the runtime and 185 in the boilerplate app; 319 E2E cases listed, 164 for the E2E build and 155 for the production build. Before each release the tarball is installed in a separate application and its exports and lint rules are checked. Release workflows publish with trusted publishing and signed npm provenance, with no stored npm token." width="800" />
+</picture>
+
 At this revision, `vp run test` in this folder passed **1,001 Vitest tests in
 100 files**: 84 files in the `node` project, 15 in `dom` with happy-dom and 1 in
 `browser` with Chromium. Coverage was 97.42% of statements, 94.75% of branches,
@@ -461,8 +467,7 @@ Two more layers check the package as an application installs it:
   with Bun's `hoisted` and `isolated` linkers, build them and audit the bundles
   and server boundaries. The matrix enumerates 14 application cases: 3 for
   client-only, 9 for SSR, including the language, meta-only, no-sitemap and four
-  publication profiles, and 2 for translated SSR. They were enumerated, not run,
-  for this README.
+  publication profiles, and 2 for translated SSR.
 
 The package is also linted as an application with the lint preset of the tooling
 package, and Knip checks its `exports` for unused code. At the root,
@@ -489,10 +494,11 @@ point listed in `package.json` appears in one of them.
   production install. Applications retain a direct routing dependency only when
   their own source imports it.
 - The published source reads the `nonce` and `renderMode` fields that the Solid
-  plugin adds to `RequestEvent`. The TypeScript program of the application gets
-  them from `@evertondgn/solid-tooling/app-env`, which the `tsconfig.app.json`
-  of the tooling package loads. An application with its own TypeScript config
-  keeps `@evertondgn/solid-tooling/app-env` in `types`.
+  plugin adds to `RequestEvent`. Your application type-checks them with no
+  declaration of its own: they come from `@evertondgn/solid-tooling/app-env`,
+  which the `tsconfig.app.json` of the tooling package loads. An application
+  with its own TypeScript config keeps `@evertondgn/solid-tooling/app-env` in
+  `types`.
 
 Each module has its own entry point, so an application bundles only the modules
 it imports. TypeScript entries use the `solid` condition. The env fragment, the
@@ -721,6 +727,10 @@ linkers, German messages, callback fallback and the client build barrier. See
 
 #### Authored render entries
 
+Two calls keep your own entries safe to publish and to hydrate. A render that
+failed halfway never becomes Markdown, and a tab that loaded a locale other than
+the one in its URL reloads before it hydrates.
+
 `server/create-render-options` exports `createRenderOptions()`. Call it before
 rendering and spread the returned options into `renderToStream` alongside the
 application manifest. It installs the render-integrity state, forwards the event
@@ -794,9 +804,8 @@ throw the native `RangeError`. Without translations, the default is the preset's
 
 The application keeps its link component, regional overrides and locale
 switcher. Navigation modules read only the locale seam, with no direct
-translation imports. Their moved DOM and real-browser tests use the generated
-de/fr/ja test project. `@solidjs/router`, like `solid-js`, is supplied by the
-application; this extraction preserves peer dependencies and ownership.
+translation imports. Their DOM and real-browser tests use the generated de/fr/ja
+test project. `@solidjs/router` and `solid-js` come from your application.
 
 #### Locale request middleware
 
@@ -818,20 +827,10 @@ not load the request provider.
 
 ### Optional theme
 
-Import `@evertondgn/solid-runtime/theme/define-theme` explicitly. Applications
-without theme imports bundle no theme modules; there is no preset option.
-
-```ts
-import { defineTheme } from '@evertondgn/solid-runtime/theme/define-theme'
-
-export const { createTheme, readTheme, themeColor, themeScript, defaultTheme, themes } =
-  defineTheme({
-    cookieName: 'app-theme',
-    cookieMaxAge: 31536000,
-    colors: { light: '#ffffff', dark: '#09090b' },
-    defaultTheme: 'system'
-  })
-```
+Import `@evertondgn/solid-runtime/theme/define-theme` explicitly and call
+`defineTheme` once, as in
+[The right theme before hydration](#the-right-theme-before-hydration). There is
+no preset option: theme modules enter the bundle only through that import.
 
 Read the request cookie with `readTheme(cookieHeader) ?? defaultTheme`. Use an
 explicit light/dark preference as the HTML class and `themeColor(theme)` as the
@@ -855,11 +854,10 @@ and `theme/create-theme/types`. Storage, theme channel and primitive take
 ThemeOptions as their first argument. The factory binds those options for normal
 application use.
 
-The application continues to supply `solid-js`; this extraction does not change
-peerDependencies or move dependency ownership. Knip's strict production pass has
-a scoped `solid-js!` exception for that existing consumer dependency. Installed
-builds exercise resolution with both Bun linkers. Test support under
-`src/tests/` is excluded from the published tarball and coverage.
+`solid-js` comes from your application. Knip's strict production pass has a
+scoped `solid-js!` exception for it. Installed builds exercise resolution with
+both Bun linkers. Test support under `src/tests/` is excluded from the published
+tarball and coverage.
 
 ### Optional SEO
 
@@ -1034,31 +1032,15 @@ export const publication = createPublicationController()
 export const runPublication = publication.runPublication
 ```
 
-Bind explicit application sources to the factory. The example is complete and
-uses a finite in-memory catalog; replace the read inside the server-only source
-with an adapter that honors the requested limit and signal.
+Bind explicit application sources to the factory. Take the sources of
+[Sitemaps with bounded work](#sitemaps-with-bounded-work) and pass this shared
+controller instead of a new one. Their in-memory catalog is only an example:
+replace the read inside the server-only source with an adapter that honors the
+requested limit and signal.
 
 ```ts
-// src/infra/server/sitemap/index.ts
-import 'server-only'
-import { createSitemapRoutes } from '@evertondgn/solid-runtime/seo/sitemap-routes'
-import { origin } from '@evertondgn/solid-runtime/seo/origin'
-import type { SitemapPartitionSource } from '@evertondgn/solid-runtime/seo/sitemap-types'
+// src/infra/server/sitemap/index.ts, with the sources of the example above
 import { publication } from '../publication/index.ts'
-
-const sources: readonly SitemapPartitionSource[] = [{
-  id: 'articles',
-  routePath: '/articles/:id',
-  listPartitions: ({ limit, signal }) => {
-    signal.throwIfAborted()
-    return Promise.resolve(['first'].slice(0, limit))
-  },
-  readPartition: ({ id, limit, signal }) => {
-    signal.throwIfAborted()
-    const entries = id === 'first' ? [{ path: '/articles/42' }] : []
-    return Promise.resolve(entries.slice(0, limit))
-  }
-}]
 
 export const { index, pages, source, array } = createSitemapRoutes({
   sources, publication, siteUrl: origin
@@ -1145,9 +1127,18 @@ missing, oversized or mismatched artifacts without rebuilding on a request.
 `inventory` is a fifth handler restricted to prerender, used by that build
 integration. The compiled tooling owns publication artifacts and Markdown
 prerender. It shares the plain-JavaScript `server/publication-protocol` entry
-with the server reader; handwritten literal declarations are tied to values by a
-regression test. `server/publication-phase` and `routing/walk-static-routes`
-support the remaining application publishers.
+with the server reader, so the build and the server agree on every path, file
+name and byte budget; a regression test ties the handwritten literal
+declarations to the values.
+
+Two more entries help an application write its own publisher.
+`readPublicationPhase()` from `server/publication-phase` tells server code
+whether it runs in development (`direct`), in the build's prerender worker
+(`prerender`) or in the production server, next to the built artifacts
+(`artifact`). The build sets that phase in the worker environment, so a request
+header cannot fake it. `walkStaticRoutes` from `routing/walk-static-routes` is
+the route walk behind the sitemap, `llms.txt` and the static Markdown list, so a
+publisher built on it sees the same pages they do.
 
 ### Optional environment validation
 
@@ -1155,21 +1146,13 @@ support the remaining application publishers.
 | ------- | ------------------------------------------------------------------------------------------------- |
 | `./env` | `serverEnv`: optional `HOST`, `PORT` and `BASE_URL_TEST` schemas, as JavaScript with declarations |
 
-An SSR application can add `env.ts`:
-
-```ts
-import { serverEnv } from '@evertondgn/solid-runtime/env'
-
-const env = { server: { ...serverEnv } }
-
-export default env
-```
-
+An SSR application can add the `env.ts` shown in
+[Environment values checked at startup](#environment-values-checked-at-startup).
 All three keys are optional; `PORT` converts decimal digits to an integer from 0
 through 65535. Spread the fragment into the plugin's `server` map and add
-application keys to `server` or `client`. Applications without env requirements
-can omit the file. The separate SEO option validates `VITE_SITE_URL` only when
-enabled or when the origin entry is imported.
+application keys to `server` or `client`. With nothing to validate, leave the
+file out. The separate SEO option validates `VITE_SITE_URL` only when enabled or
+when the origin entry is imported.
 
 The entry is plain JavaScript with a handwritten declaration, without the
 `solid` condition. It loads in Node and Vite's module runner and enters the

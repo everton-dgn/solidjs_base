@@ -113,8 +113,9 @@ pathname such as `/app/` and a relative `build.assetsDir` are supported. With
 by its file name, relative to the stylesheet, and `index.html` links
 `./assets/...`, so both resolve to the same file. See
 [applications with no server](no-server.md). A relative base with SSR, external
-asset origins and an `assetsDir` that leaves the client output, through `..` or
-an encoded segment such as `%2e%2e`, are rejected. Generated asset names are
+asset origins and an `assetsDir` that leaves the client output, through `..`, an
+encoded segment such as `%2e%2e`, or a path that a host decodes once into one,
+such as `%2e%2e%2f` or `%252e%252e`, are rejected. Generated asset names are
 owned by the font plugin; `assetFileNames` does not rename them.
 
 Keep `--font-family`, fallback stacks, weights, sizes and other typography

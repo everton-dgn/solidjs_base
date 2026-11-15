@@ -22,6 +22,10 @@ const RELATIVE_BASE = './'
 // as '..'. Resolving the URL catches the forms this pattern misses.
 const PARENT_SEGMENT = /^(?:\.|%2e){2}$/iu
 const URL_IGNORED = /[\t\n\r]/gu
+// WHY: a static host decodes the path once before it reads the file, so
+// %2e%2e%2f or %252e%252e also names a parent there.
+const PERCENT_ESCAPE = /%[\da-f]{2}/giu
+const HEX_RADIX = 16
 const OUTPUT_URL = 'file:///output/'
 const HASH_LENGTH = 16
 const MAX_WEIGHT = 1000
@@ -119,6 +123,18 @@ function fontUrls({ base, ssr }: BaseOptions): FontUrls {
   return { css: url, html: url }
 }
 
+function decodeOnce(value: string): string {
+  return value.replaceAll(PERCENT_ESCAPE, escape =>
+    String.fromCodePoint(Number.parseInt(escape.slice(1), HEX_RADIX))
+  )
+}
+
+function hasParentSegment(value: string): boolean {
+  return value
+    .split(/[\\/]/u)
+    .some(segment => PARENT_SEGMENT.test(segment.replaceAll(URL_IGNORED, '')))
+}
+
 export async function readFontAssets({
   root,
   fonts,
@@ -129,11 +145,8 @@ export async function readFontAssets({
   const urls = fontUrls({ base, ssr })
   if (
     path.isAbsolute(assetsDir) ||
-    assetsDir
-      .split(/[\\/]/u)
-      .some(segment =>
-        PARENT_SEGMENT.test(segment.replaceAll(URL_IGNORED, ''))
-      ) ||
+    hasParentSegment(assetsDir) ||
+    hasParentSegment(decodeOnce(assetsDir)) ||
     !new URL(`${OUTPUT_URL}${assetsDir}/file`).href.startsWith(OUTPUT_URL)
   ) {
     throw new Error(

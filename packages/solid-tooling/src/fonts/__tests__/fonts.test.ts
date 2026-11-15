@@ -273,18 +273,8 @@ const LEGITIMATE_ASSETS_DIRS = [
   'my.assets',
   '...'
 ]
-// WHY: a URL keeps %2f, %5c, a double encoding and U+FF0E inside one path
-// segment, so the browser reads each as a folder name, not a parent.
-const LITERAL_ASSETS_DIRS = [
-  '%252e%252e',
-  'a/%252E%252e/b',
-  '..%2fx',
-  '%2e%2e%2Fx',
-  '..%5cx',
-  '%2E%2E%5Cx',
-  '\uFF0E\uFF0E',
-  'a/\uFF0E\uFF0E/b'
-]
+// WHY: a URL keeps U+FF0E as %EF%BC%8E, which no host decodes into a dot.
+const LITERAL_ASSETS_DIRS = ['\uFF0E\uFF0E', 'a/\uFF0E\uFF0E/b']
 
 function assertInside(url: URL, label: string): void {
   assert.ok(
@@ -354,7 +344,14 @@ it('keeps relative font URLs inside the output for unusual names', async context
     '%2E.',
     '.\t.',
     '.\n.',
-    'a/.\r./..'
+    'a/.\r./..',
+    // A host decodes these once into a parent.
+    '..%2fx',
+    '%2e%2e%2Fx',
+    '..%5cx',
+    '%2E%2E%5Cx',
+    '%252e%252e',
+    'a/%252E%252e/b'
   ]) {
     for (const base of ['./', '/app/']) {
       await assert.rejects(

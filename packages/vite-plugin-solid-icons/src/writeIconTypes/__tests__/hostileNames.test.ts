@@ -111,6 +111,35 @@ describe('the names of hostile files and icons', () => {
     assert.match(installed, /export const Class: IconComponent/u)
   })
 
+  it('leaves out an installed collection whose name an import cannot spell', async context => {
+    const root = await workspace(context)
+    const odd = path.join(root, 'node_modules/@iconify-json/Odd_Icons')
+    await mkdir(odd)
+    await writeFile(
+      path.join(odd, 'icons.json'),
+      JSON.stringify({ prefix: 'Odd_Icons', icons: { star: BODY } })
+    )
+    await writeFile(
+      path.join(odd, 'package.json'),
+      JSON.stringify({ name: '@iconify-json/Odd_Icons', version: '0.0.0' })
+    )
+    await writeFile(
+      path.join(root, 'package.json'),
+      JSON.stringify({
+        devDependencies: {
+          '@iconify-json/hostile': '*',
+          '@iconify-json/Odd_Icons': '*'
+        }
+      })
+    )
+    const { file, warnings } = await writeIconTypes({ root })
+    const types = await readFile(file, 'utf8')
+
+    assert.match(types, /declare module 'icon:hostile'/u)
+    assert.doesNotMatch(types, /Odd_Icons/u)
+    assert.deepEqual(warnings, [])
+  })
+
   it('exports neither of two names that differ only in case', async context => {
     const root = await workspace(context)
     const table = buildNameTable({ icons: ['Star', 'star'], aliases: {} })

@@ -300,6 +300,39 @@ async function assertTypo({ app }: Installation): Promise<void> {
   )
 }
 
+// The license as the package writes it: the copyright of the package above
+// the copyright of the code it carries, and the MIT permission for both.
+async function assertLicense({ entries, packageFolder }: Installation) {
+  assert.deepEqual(
+    entries.filter(entry => entry.endsWith('LICENSE')),
+    ['package/LICENSE']
+  )
+  const license = await readFile(path.join(packageFolder, 'LICENSE'), 'utf8')
+  assert.equal(
+    license,
+    await readFile(path.join(PACKAGE_ROOT, 'LICENSE'), 'utf8')
+  )
+  const copyrights = license
+    .split('\n')
+    .filter(line => line.startsWith('Copyright (c)'))
+  const [own = '', carried = '', ...others] = copyrights
+  assert.deepEqual(others, [])
+  assert.equal(own, 'Copyright (c) 2026 Éverton Toffanetto')
+  assert.match(
+    carried,
+    /^Copyright \(c\) 2020-PRESENT \S.*<https:\/\/github\.com\/\S+>$/u
+  )
+  assert.match(license, /^MIT License\n/u)
+  assert.match(
+    license,
+    /Permission is hereby granted, free of charge, to any person obtaining a copy/u
+  )
+  assert.match(
+    license,
+    /The above copyright notice and this permission notice shall be included in all\s+copies or substantial portions of the Software\./u
+  )
+}
+
 test('the packed package installs as a dependency', async context => {
   const destination = await temporaryFolder('solid-icons-pack-')
   context.after(() => rm(destination, { recursive: true, force: true }))
@@ -307,12 +340,9 @@ test('the packed package installs as a dependency', async context => {
   context.after(() => rm(app, { recursive: true, force: true }))
   const installation = await install({ tarball: await pack(destination), app })
 
-  await context.test('the tarball carries the license', () => {
-    assert.deepEqual(
-      installation.entries.filter(entry => entry.endsWith('LICENSE')),
-      ['package/LICENSE']
-    )
-  })
+  await context.test('the tarball carries the license', () =>
+    assertLicense(installation)
+  )
   await context.test('no test is published', () => {
     assert.deepEqual(
       installation.entries.filter(

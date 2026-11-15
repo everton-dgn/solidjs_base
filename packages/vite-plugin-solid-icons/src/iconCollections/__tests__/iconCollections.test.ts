@@ -107,7 +107,8 @@ describe('createNameTables', () => {
     })
 
     await assert.rejects(tables.get('own'), {
-      message: 'The folder "icons" of the icon collection "own" cannot be read.'
+      message:
+        'The folder "icons" of the icon collection "own" cannot be read (ENOENT).'
     })
     await assert.rejects(
       tables.get('not-installed'),

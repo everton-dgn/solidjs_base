@@ -3,6 +3,7 @@ import path from 'node:path'
 import type { Plugin } from 'vite-plus'
 
 import { compileIcon } from './compileIcon/index.ts'
+import { messageOf } from './errorText/index.ts'
 import {
   createNameTables,
   type Folders,
@@ -74,10 +75,6 @@ async function settled(task: Promise<void>): Promise<void> {
   }
 }
 
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-
 // WHY: the dependency scan of the dev server resolves the imports of the
 // sources before the transform rewrites the imports by export name.
 function isDependencyScan(options: object): boolean {
@@ -101,7 +98,7 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
   let folders: Folders = new Map()
   let tables: NameTables = createNameTables({ root, folders })
   let typesFile: string | undefined
-  let pendingTypes = Promise.resolve()
+  let runningTypes = Promise.resolve()
   const idsByFile: ModuleIds = new Map()
   const importersByCollection: ModuleIds = new Map()
 
@@ -115,8 +112,7 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     return ids
   }
 
-  async function writeTypesAfter(previous: Promise<void>): Promise<void> {
-    await previous
+  async function writeTypes(): Promise<void> {
     if (typesFile === undefined) return
     const content = await renderIconTypes({ root, folders, tables })
     await writeTypesFile({ file: typesFile, content })
@@ -124,8 +120,12 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
 
   // One write at a time, so the last list of icons is the one on disk.
   function updateTypes(): Promise<void> {
-    const update = writeTypesAfter(pendingTypes)
-    pendingTypes = settled(update)
+    const previous = runningTypes
+    const update = (async () => {
+      await previous
+      await writeTypes()
+    })()
+    runningTypes = settled(update)
     return update
   }
 
@@ -196,17 +196,23 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     async load(id) {
       const request = readIconId(id)
       if (!request) return null
+      const { collection, name, isRaw } = request
+      const folder = folders.get(collection)
       const { svg, file } = await loadIconSvg({
         ...request,
         root,
-        folder: folders.get(request.collection),
+        folder:
+          folder === undefined
+            ? undefined
+            : { path: folder, files: await tables.files(collection) },
         customizeIcon: options.customizeIcon
       })
       if (file !== undefined) {
         this.addWatchFile(file)
         track({ ids: idsByFile, key: path.normalize(file), id })
       }
-      return { code: compileIcon({ svg, isRaw: request.isRaw }), map: null }
+      const icon = `${collection}/${name}`
+      return { code: compileIcon({ svg, isRaw, icon }), map: null }
     },
     async hotUpdate(context) {
       const graph = this.environment.moduleGraph
@@ -215,10 +221,10 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
       const icon = iconOfFile({ folders, file })
       // A new, removed or renamed SVG changes the names of its collection.
       if (icon && context.type !== 'update') {
-        tables.invalidate(icon.collection)
         for (const id of importersByCollection.get(icon.collection) ?? []) {
           ids.add(id)
         }
+        tables.invalidate(icon.collection)
         try {
           await updateTypes()
         } catch (error) {

@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
 
+import { compileIcon } from '../../compileIcon/index.ts'
+import { readFolderFiles } from '../../folderFiles/index.ts'
 import type { IconCustomizer } from '../../types.ts'
-import { loadIconSvg } from '../index.ts'
+import { type IconFolder, loadIconSvg } from '../index.ts'
 
 type FolderIcon = {
   context: TestContext
@@ -27,12 +29,18 @@ async function iconFolder(context: TestContext): Promise<string> {
   return folder
 }
 
+async function listed(folder: string): Promise<IconFolder> {
+  const root = path.dirname(folder)
+  const files = await readFolderFiles({ collection: 'own', folder, root })
+  return { path: folder, files }
+}
+
 async function loadFolderIcon({ context, ...icon }: FolderIcon) {
   const folder = await iconFolder(context)
   const loaded = await loadIconSvg({
     collection: 'own',
     root: path.dirname(folder),
-    folder,
+    folder: await listed(folder),
     customizeIcon: undefined,
     ...icon
   })
@@ -116,7 +124,7 @@ describe('loadIconSvg', () => {
         collection: 'own',
         name: 'moon',
         root: path.dirname(folder),
-        folder,
+        folder: await listed(folder),
         customizeIcon: undefined
       }),
       {
@@ -154,6 +162,128 @@ describe('loadIconSvg', () => {
         message:
           'Icon collection "not-installed" not found: install @iconify-json/not-installed or declare "not-installed" in the collections option of solidIcons.'
       }
+    )
+  })
+})
+
+describe('loadIconSvg of a folder', () => {
+  it('reads only the file with the exact name of the import', async context => {
+    const load = async (name: string) => {
+      const { file } = await loadFolderIcon({ context, name })
+      return file
+    }
+
+    // The same error on every file system, so an import that works on
+    // macOS also works on Linux.
+    await assert.rejects(
+      load('STAR'),
+      /Icon "own\/STAR" not found: the folder "[^"]+" of the collection "own" has no STAR\.svg; names are case-sensitive, and the folder has star\.svg\./u
+    )
+  })
+
+  it('does not follow a link to a file outside the folder', async context => {
+    const folder = await iconFolder(context)
+    const outside = path.join(
+      path.dirname(folder),
+      `${path.basename(folder)}-secret.svg`
+    )
+    await writeFile(outside, '<svg><text>secret</text></svg>')
+    context.after(() => rm(outside, { force: true }))
+    await symlink(outside, path.join(folder, 'link.svg'))
+    const files = await readFolderFiles({
+      collection: 'own',
+      folder,
+      root: path.dirname(folder)
+    })
+
+    assert.deepEqual([...files.links], ['link'])
+    assert.equal(files.icons.has('link'), false)
+    await assert.rejects(
+      loadIconSvg({
+        collection: 'own',
+        name: 'link',
+        root: path.dirname(folder),
+        folder: { path: folder, files },
+        customizeIcon: undefined
+      }),
+      /link\.svg in the folder "[^"]+" of the collection "own" is a symbolic link, and the plugin reads regular files only\./u
+    )
+  })
+
+  it('adds the attributes to an <svg> without attributes', async context => {
+    const folder = await iconFolder(context)
+    await writeFile(
+      path.join(folder, 'bare.svg'),
+      '<svg><path d="M0 0"/></svg>'
+    )
+    const { svg } = await loadIconSvg({
+      collection: 'own',
+      name: 'bare',
+      root: path.dirname(folder),
+      folder: await listed(folder),
+      customizeIcon: ({ attributes }) => {
+        attributes['aria-hidden'] = 'true'
+      }
+    })
+
+    assert.equal(
+      svg,
+      '<svg aria-hidden="true" width="1.2em" height="1.2em" ><path d="M0 0"/></svg>'
+    )
+  })
+
+  it('escapes the values that the customizer sets', async context => {
+    const title = 'a "b" <c> & d'
+    const { svg } = await loadFolderIcon({
+      context,
+      name: 'star',
+      customizeIcon: ({ attributes }) => {
+        attributes['aria-label'] = title
+      }
+    })
+    const component = compileIcon({ svg, isRaw: false, icon: 'own/star' })
+
+    assert.match(svg, /aria-label="a &quot;b&quot; &lt;c&gt; &amp; d"/u)
+    assert.match(component, /aria-label=\{"a \\"b\\" <c> & d"\}/u)
+  })
+
+  it('names an attribute that the customizer cannot set', async context => {
+    const cases: [Record<string, unknown>, RegExp][] = [
+      [
+        { 'a b': 'x' },
+        /customizeIcon set the attribute "a b" on the icon "own\/star": an attribute name starts with a letter or "_"/u
+      ],
+      [
+        { 'x"': 'x' },
+        /customizeIcon set the attribute "x"" on the icon "own\/star"/u
+      ],
+      [
+        { width: 2 },
+        /customizeIcon set the attribute width of the icon "own\/star" to a number: an attribute value is a string\./u
+      ]
+    ]
+    for (const [set, message] of cases) {
+      await assert.rejects(
+        loadFolderIcon({
+          context,
+          name: 'star',
+          customizeIcon: ({ attributes }) => {
+            Object.assign(attributes, set)
+          }
+        }),
+        message
+      )
+    }
+    const { svg } = await loadFolderIcon({
+      context,
+      name: 'star',
+      customizeIcon: ({ attributes }) => {
+        Object.assign(attributes, { onload: 'alert(1)' })
+      }
+    })
+    assert.throws(
+      () => compileIcon({ svg, isRaw: true, icon: 'own/star' }),
+      /the attribute onload of <svg> is an event handler, which runs code/u
     )
   })
 })

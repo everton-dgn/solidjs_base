@@ -1,6 +1,7 @@
-import { readdir, readFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
+import { type FolderFiles, readFolderFiles } from '../folderFiles/index.ts'
 import { isCollectionName, isIconName } from '../iconIds/index.ts'
 import {
   buildNameTable,
@@ -10,14 +11,15 @@ import {
 import { type IconSet, loadIconSet } from '../loadIconSet/index.ts'
 
 type CollectionPlace = { root: string; folders: Folders }
-type CollectionSource = CollectionPlace & { collection: string }
-type FolderSource = { collection: string; folder: string; root: string }
+type CollectionSource = CollectionPlace & {
+  collection: string
+  files: (collection: string) => Promise<FolderFiles>
+}
 type AliasInput = { aliases: NonNullable<IconSet['aliases']>; name: string }
 type FolderInput = { root: string; collections: Record<string, string> }
 type Manifest = Partial<Record<DependencyField, Record<string, string>>>
 type DependencyField = (typeof DEPENDENCY_FIELDS)[number]
 
-const SVG_EXTENSION = '.svg'
 const COLLECTION_SCOPE = '@iconify-json/'
 const DEPENDENCY_FIELDS = [
   'dependencies',
@@ -45,47 +47,34 @@ function aliasIcon({ aliases, name }: AliasInput): string {
   return current
 }
 
+// A name the import of one icon cannot spell has no export name either,
+// and stays out of the declarations, where it would be written in a comment.
 function iconSetList(iconSet: IconSet): IconList {
   const aliases = iconSet.aliases ?? {}
-  const icons = Object.keys(iconSet.icons)
-  const plainAliases: Record<string, string> = {}
+  const icons = Object.keys(iconSet.icons).filter(name => isIconName(name))
+  const plainAliases: [string, string][] = []
   for (const [name, alias] of Object.entries(aliases)) {
-    if (isPlainAlias(alias)) plainAliases[name] = aliasIcon({ aliases, name })
-    else icons.push(name)
+    if (!isIconName(name)) continue
+    if (isPlainAlias(alias)) {
+      plainAliases.push([name, aliasIcon({ aliases, name })])
+    } else {
+      icons.push(name)
+    }
   }
-  return { icons, aliases: plainAliases }
-}
-
-async function readFolderList({
-  collection,
-  folder,
-  root
-}: FolderSource): Promise<IconList> {
-  let files: string[]
-  try {
-    files = await readdir(folder)
-  } catch (error) {
-    const relative = path.relative(root, folder) || '.'
-    throw new Error(
-      `The folder "${relative}" of the icon collection "${collection}" cannot be read.`,
-      { cause: error }
-    )
-  }
-  const icons = files
-    .filter(file => path.extname(file) === SVG_EXTENSION)
-    .map(file => path.basename(file, SVG_EXTENSION))
-    // A file the import of one icon cannot spell has no export name either.
-    .filter(name => isIconName(name))
-  return { icons, aliases: {} }
+  // WHY: fromEntries defines each name, so an alias named __proto__ stays.
+  return { icons, aliases: Object.fromEntries(plainAliases) }
 }
 
 async function readIconList({
   collection,
   root,
-  folders
+  folders,
+  files
 }: CollectionSource): Promise<IconList> {
-  const folder = folders.get(collection)
-  if (folder !== undefined) return readFolderList({ collection, folder, root })
+  if (folders.has(collection)) {
+    const listing = await files(collection)
+    return { icons: [...listing.icons], aliases: {} }
+  }
   return iconSetList(await loadIconSet({ collection, root }))
 }
 
@@ -110,10 +99,33 @@ async function findManifest(folder: string): Promise<Manifest | undefined> {
   return isManifest(manifest) ? manifest : undefined
 }
 
+function cached<Value>(
+  cache: Map<string, Promise<Value>>
+): (key: string, read: () => Promise<Value>) => Promise<Value> {
+  return (key, read) => {
+    const known = cache.get(key)
+    if (known) return known
+    const value = (async () => {
+      try {
+        return await read()
+      } catch (error) {
+        // A failed read is not kept, so installing the collection or
+        // creating the folder fixes it.
+        cache.delete(key)
+        throw error
+      }
+    })()
+    cache.set(key, value)
+    return value
+  }
+}
+
 export type Folders = Map<string, string>
 
 export type NameTables = {
   get: (collection: string) => Promise<NameTable>
+  // The listing of the folder of a folder collection.
+  files: (collection: string) => Promise<FolderFiles>
   invalidate: (collection: string) => void
 }
 
@@ -137,31 +149,34 @@ export function resolveFolders({ root, collections }: FolderInput): Folders {
   )
 }
 
-// The tables are read once per collection; a folder collection reads its
-// files again after invalidate.
+// The tables and the listings are read once per collection; a folder
+// collection reads its folder again after invalidate.
 export function createNameTables({
   root,
   folders
 }: CollectionPlace): NameTables {
   const tables = new Map<string, Promise<NameTable>>()
-  async function readTable(collection: string): Promise<NameTable> {
-    try {
-      return buildNameTable(await readIconList({ collection, root, folders }))
-    } catch (error) {
-      // A failed read is not kept, so installing the collection fixes it.
-      tables.delete(collection)
-      throw error
-    }
-  }
-  function get(collection: string): Promise<NameTable> {
-    const table = tables.get(collection) ?? readTable(collection)
-    tables.set(collection, table)
-    return table
+  const listings = new Map<string, Promise<FolderFiles>>()
+  const table = cached(tables)
+  const listing = cached(listings)
+  function files(collection: string): Promise<FolderFiles> {
+    return listing(collection, async () => {
+      const folder = folders.get(collection)
+      if (folder === undefined) {
+        throw new Error(`The icon collection "${collection}" has no folder.`)
+      }
+      return readFolderFiles({ collection, folder, root })
+    })
   }
   return {
-    get,
+    get: collection =>
+      table(collection, async () =>
+        buildNameTable(await readIconList({ collection, root, folders, files }))
+      ),
+    files,
     invalidate: collection => {
       tables.delete(collection)
+      listings.delete(collection)
     }
   }
 }

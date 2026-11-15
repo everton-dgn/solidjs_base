@@ -623,7 +623,10 @@ function nodeJsx({ node, root, pending }: JsxInput): string {
   if (node.kind === 'text') return textJsx(node)
   const start = startTagJsx({ node, isRoot: node === root })
   if (node.children.length === 0) return `${start}/>`
-  pending.push(`</${node.name}>`, ...node.children.toReversed())
+  // One child at a time: an element can have more children than a call
+  // takes arguments.
+  pending.push(`</${node.name}>`)
+  for (const child of node.children.toReversed()) pending.push(child)
   return `${start}>`
 }
 

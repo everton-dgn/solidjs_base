@@ -314,4 +314,11 @@ describe('the markup of an icon', () => {
       /^export default \(props = \{\}\) => <svg \{\.\.\.props\}><g>/u
     )
   })
+
+  it('writes an element with more children than a call takes arguments', () => {
+    const children = 200_000
+    const svg = `<svg>${'<path/>'.repeat(children)}</svg>`
+
+    assert.ok(component(svg).endsWith('<path/></svg>\n'))
+  })
 })

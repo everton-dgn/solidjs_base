@@ -490,6 +490,9 @@ describe('a dev server', () => {
     const [, ...plugins] = config.plugins ?? []
     const { solidIcons } = await import('../index.ts')
     // The file watcher of the dev server, which the other tests replace.
+    // WHY: it polls, as the watched build does, so the latency of the native
+    // watcher of a loaded machine does not decide the test; a folder that
+    // is not watched is not polled either.
     const server = await createServer({
       ...config,
       plugins: [
@@ -497,7 +500,10 @@ describe('a dev server', () => {
         ...plugins
       ],
       optimizeDeps: { noDiscovery: true },
-      server: { middlewareMode: true }
+      server: {
+        middlewareMode: true,
+        watch: { usePolling: true, interval: 50 }
+      }
     })
     defer({ context, task: () => server.close() })
     const signal = AbortSignal.timeout(WAIT_TIMEOUT)

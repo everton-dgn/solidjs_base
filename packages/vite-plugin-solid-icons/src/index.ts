@@ -45,6 +45,13 @@ type FolderLookup = {
   collection: string
   folder: string | undefined
 }
+type TypesState = {
+  root: string
+  folders: Folders
+  tables: NameTables
+  typesFile: string | undefined
+}
+type TypesWriter = { state: () => TypesState; warn: (message: string) => void }
 
 const PLUGIN_NAME = 'vite-plugin-solid-icons'
 const SCRIPT_ID = /\.[cm]?[jt]sx?(?:\?.*)?$/u
@@ -90,6 +97,65 @@ function relativeFile({ root, id }: ModuleFile): string | undefined {
   return path.relative(root, file)
 }
 
+// Writes the declarations and warns about the files that have no import,
+// also without declarations. One write at a time, so the last list of icons
+// is the one on disk; the updates asked while one waits share it, so a
+// burst of new files does not render the file once per file.
+function createTypesWriter({ state, warn }: TypesWriter): () => Promise<void> {
+  let runningTypes = Promise.resolve()
+  let queuedTypes: Promise<void> | undefined
+  const warnedFiles = new Set<string>()
+
+  async function warnSkippedFiles(): Promise<void> {
+    const { folders, tables } = state()
+    for (const collection of folders.keys()) {
+      const { skipped } = await tables.files(collection)
+      for (const file of skipped) {
+        const key = `${collection}/${file}`
+        if (warnedFiles.has(key)) continue
+        warnedFiles.add(key)
+        warn(
+          `The file "${file}" of the icon collection "${collection}" has no import: an icon name has letters, digits, "_" and "-", with dots only between them.`
+        )
+      }
+    }
+  }
+
+  async function writeTypes(): Promise<void> {
+    const { typesFile, ...source } = state()
+    if (typesFile !== undefined) {
+      const { content, warnings } = await renderIconTypes(source)
+      await writeTypesFile({ file: typesFile, content })
+      for (const warning of warnings) warn(warning)
+    }
+    await warnSkippedFiles()
+  }
+
+  function updateTypes(): Promise<void> {
+    if (queuedTypes) return queuedTypes
+    const previous = runningTypes
+    const update = (async () => {
+      await previous
+      queuedTypes = undefined
+      await writeTypes()
+    })()
+    queuedTypes = update
+    runningTypes = settled(update)
+    return update
+  }
+
+  // WHY: the declarations help the editor; a folder or a collection that
+  // cannot be read stops only the imports that need it, and the dev server
+  // keeps running.
+  return async () => {
+    try {
+      await updateTypes()
+    } catch (error) {
+      warn(messageOf(error))
+    }
+  }
+}
+
 // The folder of a folder collection as loadIconSvg reads it, or undefined
 // for an installed collection.
 async function listedFolder({ tables, collection, folder }: FolderLookup) {
@@ -126,10 +192,7 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
   let tables: NameTables = createNameTables({ root, folders })
   let typesFile: string | undefined
   let logger: Logger | undefined
-  let runningTypes = Promise.resolve()
-  let queuedTypes: Promise<void> | undefined
   let lastTypesEvent = ''
-  const warnedFiles = new Set<string>()
   const warnedIcons = new Set<string>()
   const idsByFile: ModuleIds = new Map()
   const importersByCollection: ModuleIds = new Map()
@@ -147,60 +210,10 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     return ids
   }
 
-  async function warnSkippedFiles(): Promise<void> {
-    for (const collection of folders.keys()) {
-      const { skipped } = await tables.files(collection)
-      for (const file of skipped) {
-        const key = `${collection}/${file}`
-        if (warnedFiles.has(key)) continue
-        warnedFiles.add(key)
-        warn(
-          `The file "${file}" of the icon collection "${collection}" has no import: an icon name has letters, digits, "_" and "-", with dots only between them.`
-        )
-      }
-    }
-  }
-
-  // The files that have no import are reported also without declarations.
-  async function writeTypes(): Promise<void> {
-    if (typesFile !== undefined) {
-      const { content, warnings } = await renderIconTypes({
-        root,
-        folders,
-        tables
-      })
-      await writeTypesFile({ file: typesFile, content })
-      for (const warning of warnings) warn(warning)
-    }
-    await warnSkippedFiles()
-  }
-
-  // One write at a time, so the last list of icons is the one on disk. The
-  // updates asked while one waits share it, so a burst of new files does not
-  // render the file once per file.
-  function updateTypes(): Promise<void> {
-    if (queuedTypes) return queuedTypes
-    const previous = runningTypes
-    const update = (async () => {
-      await previous
-      queuedTypes = undefined
-      await writeTypes()
-    })()
-    queuedTypes = update
-    runningTypes = settled(update)
-    return update
-  }
-
-  // WHY: the declarations help the editor; a folder or a collection that
-  // cannot be read stops only the imports that need it, and the dev server
-  // keeps running.
-  async function reportTypes(): Promise<void> {
-    try {
-      await updateTypes()
-    } catch (error) {
-      warn(messageOf(error))
-    }
-  }
+  const reportTypes = createTypesWriter({
+    state: () => ({ root, folders, tables, typesFile }),
+    warn
+  })
 
   return {
     name: PLUGIN_NAME,

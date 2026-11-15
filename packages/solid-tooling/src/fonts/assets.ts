@@ -18,8 +18,11 @@ type FontUrls = {
   html: (fileName: string) => string
 }
 const RELATIVE_BASE = './'
-// A browser resolves an encoded segment such as %2e%2e as the parent folder.
+// WHY: a browser also reads %2e%2e, or dots split by a tab or a line break,
+// as '..'. Resolving the URL catches the forms this pattern misses.
 const PARENT_SEGMENT = /^(?:\.|%2e){2}$/iu
+const URL_IGNORED = /[\t\n\r]/gu
+const OUTPUT_URL = 'file:///output/'
 const HASH_LENGTH = 16
 const MAX_WEIGHT = 1000
 const FORMATS: Record<string, string | undefined> = {
@@ -126,7 +129,12 @@ export async function readFontAssets({
   const urls = fontUrls({ base, ssr })
   if (
     path.isAbsolute(assetsDir) ||
-    assetsDir.split(/[\\/]/u).some(segment => PARENT_SEGMENT.test(segment))
+    assetsDir
+      .split(/[\\/]/u)
+      .some(segment =>
+        PARENT_SEGMENT.test(segment.replaceAll(URL_IGNORED, ''))
+      ) ||
+    !new URL(`${OUTPUT_URL}${assetsDir}/file`).href.startsWith(OUTPUT_URL)
   ) {
     throw new Error(
       'defineSolidApp fonts: assetsDir must stay inside the client output.'

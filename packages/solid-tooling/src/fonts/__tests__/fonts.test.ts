@@ -323,7 +323,10 @@ it('keeps relative font URLs inside the output for unusual names', async context
     '%2e%2e',
     'a/%2E%2e/b',
     '.%2e',
-    '%2e.'
+    '%2e.',
+    '.\t.',
+    '.\n.',
+    'a/.\r./..'
   ]) {
     for (const base of ['./', '/app/']) {
       await assert.rejects(

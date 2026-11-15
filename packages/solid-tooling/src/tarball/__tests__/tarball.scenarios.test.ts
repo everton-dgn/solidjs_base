@@ -27,6 +27,7 @@ import {
   prepareFontsScenario
 } from '../font-scenarios.ts'
 import { smokeMiddleware } from '../middleware-smoke.ts'
+import { checkNoServer } from '../no-server-scenarios.ts'
 import { mutatePublication } from '../publication-mutations.ts'
 import { PUBLICATION_PROFILES } from '../publication-scenarios.ts'
 import { smokePublication } from '../publication-smoke.ts'
@@ -492,7 +493,14 @@ async function buildScenario({
   assertBuild({ app, scenario })
   assertFontBuild({ app, scenario })
   assertSeoBuild({ app, scenario })
-  if (scenario === 'client-only') return
+  if (scenario === 'client-only') {
+    // Runs after the audits of the default build, which must stay without a
+    // theme; a mutation probe must fail on its own target.
+    if (profile === 'isolated' && MUTATION === undefined) {
+      await checkNoServer({ app, deadline, run, buildTools: BUILD_TOOLS })
+    }
+    return
+  }
   await smoke({ app, scenario })
   if (scenario === 'ssr-plain' && profile === 'isolated') {
     await smoke({ app, scenario, hasInvalidPort: true })

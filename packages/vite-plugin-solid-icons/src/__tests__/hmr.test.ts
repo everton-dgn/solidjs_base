@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { env } from 'node:process'
 import { test } from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 
@@ -73,7 +74,9 @@ test('a folder icon follows its SVG file in the dev server', async context => {
   context.after(() => server.close())
   await server.listen()
   await settle(server.watcher)
-  const browser = await chromium.launch()
+  // The CI runner has the Chrome of the system, as in the browser tests of
+  // the runtime package.
+  const browser = await chromium.launch(env.CI ? { channel: 'chrome' } : {})
   context.after(() => browser.close())
   const page = await browser.newPage()
   const log = watchPage(page)
@@ -109,8 +112,8 @@ test('a folder icon follows its SVG file in the dev server', async context => {
   })
 
   await context.test('an added SVG answers the import again', async () => {
-    // The client of a page that has just loaded drops a reload it gets
-    // before its requests are over.
+    // A reload sent right after the error page loaded had no effect in the
+    // page; the file changes once the page is idle.
     await page.waitForLoadState('networkidle')
     await writeFile(star, original.replace('fill="red"', 'fill="blue"'))
     await starFill('blue')

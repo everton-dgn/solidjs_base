@@ -101,7 +101,7 @@ into the branch, never rebase it, and wait for `CI required` again.
    ([First automated release of a package](#first-automated-release-of-a-package)).
 4. Wait for `CI required` on the head you are about to merge. If the run of that
    head waits for an approval, follow
-   [When the release pull request job fails](#when-the-release-pull-request-job-fails).
+   [When a CI run of the release pull request waits for an approval](#when-a-ci-run-of-the-release-pull-request-waits-for-an-approval).
 5. Merge with the command in [Merging a pull request](#merging-a-pull-request).
 6. After the publish job, check the registry. The version can take a few minutes
    to appear, and the output has the version and the provenance statement:
@@ -153,7 +153,14 @@ In the repository, under Settings > Secrets and variables > Actions, save:
 | Secret   | `RELEASE_APP_PRIVATE_KEY` | The whole content of the private key `.pem` file |
 
 To use the same App in another repository, install the App on that repository
-too and save the variable and the secret there.
+too and save the variable and the secret there. The private key belongs to the
+App, not to one installation: a workflow that reads the secret can ask for a
+token for every repository the App is installed on. Share the App only between
+repositories with the same maintainers, and create another App otherwise.
+
+No job opens a pull request with the `GITHUB_TOKEN`, so the release does not
+need "Allow GitHub Actions to create and approve pull requests" in Settings >
+Actions > General.
 
 On npmjs.com, each package needs a trusted publisher. Create it at the moment
 described in
@@ -238,20 +245,42 @@ release pull request. Merge it after `CI required` passes, with the command in
 
 The tags, the GitHub Releases and the publication do not depend on the
 `Release pull request` job: when it fails, only the release pull request is not
-opened or updated. The cause is usually the App, its installation on the
-repository, or the `RELEASE_APP_CLIENT_ID` variable or the
-`RELEASE_APP_PRIVATE_KEY` secret ([One-time setup](#one-time-setup)). Fix it,
-then run only that job again. No job depends on it, so nothing else runs:
+opened or updated. The job fails in the `Create the App token` step, and the log
+tells the cause:
+
+| Log                                                        | Cause                                           | Fix                                                                            |
+| ---------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| `The 'client-id' ... input must be set`                    | The `RELEASE_APP_CLIENT_ID` variable is missing | Save the variable again                                                        |
+| `The 'private-key' input must be set`                      | The `RELEASE_APP_PRIVATE_KEY` secret is missing | Generate a private key on the App page and save the secret                     |
+| A `404` when the action looks for the App installation     | The App is not installed on the repository      | Install it again (Install App > Only select repositories)                      |
+| An authentication error when the action asks for the token | The key was deleted or belongs to another App   | Generate a private key on the App page, save the secret and delete the old key |
+
+The values come from [One-time setup](#one-time-setup). After the fix, run the
+job again; a later push to `main` runs it too:
 
 ```bash
 gh run view <run-id> --json jobs --jq '.jobs[] | {name, databaseId}'
 gh run rerun --job <database-id>
 ```
 
-A release pull request opened or updated before by the `GITHUB_TOKEN`, as
-`github-actions[bot]`, keeps its held runs. release-please updates it only when
-the release it computes changes, so approve the held run of the head you are
-about to merge. An approved run starts every job:
+The rerun also runs `Tags and GitHub Releases` again, the job it depends on.
+That job finds no release to create, and the publish job does not run again.
+
+The job can also pass without opening or updating the release pull request. When
+its log says `There are untagged, merged release PRs outstanding - aborting`, a
+merged release pull request still has the `autorelease: pending` label, so
+release-please waits for its tags. If the tags and GitHub Releases of that pull
+request exist, swap the label for `autorelease: tagged` and run the job again.
+The message "remained the same" is another case: the release did not change, so
+the pull request was left as it was.
+
+## When a CI run of the release pull request waits for an approval
+
+GitHub holds the run only when a workflow opened or updated the pull request
+with the `GITHUB_TOKEN`, as `github-actions[bot]`. The `Release pull request`
+job never does that, so this is left for a release pull request from before the
+App. Approve the held run of the head you are about to merge. An approved run
+starts every job:
 
 ```bash
 gh pr view <number> --json headRefName,headRefOid

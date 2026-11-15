@@ -181,13 +181,19 @@ describe('the declarations file', () => {
       args: [file, stop, String(size), ready],
       timeout: 60_000
     })
-    // The writes start once the reader has read the file.
-    await waitFor(() => exists(ready))
-    for (let write = 0; write < WRITES; write += 1) {
-      const content = contents[write % contents.length] ?? ''
-      await writeTypesFile({ file, content })
+    try {
+      // The writes start once the reader has read the file.
+      await waitFor(() => exists(ready))
+      for (let write = 0; write < WRITES; write += 1) {
+        const content = contents[write % contents.length] ?? ''
+        await writeTypesFile({ file, content })
+      }
+    } finally {
+      // WHY: the reader runs until the stop file exists, also when a write
+      // fails, and the folder it reads goes after the test.
+      await writeFile(stop, '')
+      await Promise.allSettled([reader])
     }
-    await writeFile(stop, '')
     const { stdout } = await reader
     const report: unknown = JSON.parse(stdout)
 

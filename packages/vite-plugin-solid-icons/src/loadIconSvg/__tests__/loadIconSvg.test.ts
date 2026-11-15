@@ -482,7 +482,9 @@ describe('loadIconSvg of a folder', () => {
       '<svg aria-hidden="true" width="1.2em" height="1.2em" ><path d="M0 0"/></svg>'
     )
   })
+})
 
+describe('loadIconSvg with customizeIcon', () => {
   it('escapes the values that the customizer sets', async context => {
     const title = 'a "b" <c> & d'
     const { svg } = await loadFolderIcon({
@@ -500,6 +502,47 @@ describe('loadIconSvg of a folder', () => {
 
     assert.match(svg, /aria-label="a &quot;b&quot; &lt;c&gt; &amp; d"/u)
     assert.match(component, /aria-label=\{"a \\"b\\" <c> & d"\}/u)
+  })
+
+  it('keeps a "$" in the values that the customizer sets', async context => {
+    // A replacement pattern of String.replace each, and a "$" alone.
+    const labels = [
+      'Cost $&',
+      'a $$ b',
+      "x $' y",
+      'x $` y',
+      'x $1 y',
+      '$<a>',
+      '$'
+    ]
+    for (const label of labels) {
+      const { svg } = await loadFolderIcon({
+        context,
+        name: 'star',
+        customizeIcon: ({ attributes }) => {
+          attributes['aria-label'] = label
+        }
+      })
+      const raw = compileIcon({ svg, isRaw: true, icon: 'own/star' }).code
+      const component = compileIcon({ svg, isRaw: false, icon: 'own/star' })
+
+      assert.ok(svg.startsWith('<svg aria-label="'), svg)
+      const written = label.replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+      assert.ok(
+        raw.includes(JSON.stringify(`aria-label="${written}"`).slice(1, -1)),
+        raw
+      )
+      assert.ok(component.code.includes(JSON.stringify(label)), component.code)
+    }
+    // A height that @iconify/utils derives from a customized width.
+    const { svg } = await loadFolderIcon({
+      context,
+      name: 'star',
+      customizeIcon: ({ attributes }) => {
+        attributes.width = '$2em'
+      }
+    })
+    assert.match(svg, /^<svg width="\$2em" height="\$2em" /u)
   })
 
   it('names an attribute that the customizer cannot set', async context => {

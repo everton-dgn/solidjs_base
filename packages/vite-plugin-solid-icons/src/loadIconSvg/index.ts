@@ -73,8 +73,12 @@ const OPEN_FLAGS = OPTIONAL_FLAGS.reduce<number>(
   constants.O_RDONLY
 )
 const ATTRIBUTE_NAME = /^[A-Za-z_][\w.:-]*$/u
-const MARKUP_CHARACTERS = /[&"<>]/gu
+const MARKUP_CHARACTERS = /[$&"<>]/gu
+// WHY: @iconify/utils writes the attributes into the replacement string of
+// a String.replace, where "$&" or "$'" insert other text and "$$" inserts a
+// "$". A size it derives from a customized one keeps the "$$".
 const ESCAPES: Record<string, string> = {
+  $: '$$',
   '&': '&amp;',
   '"': '&quot;',
   '<': '&lt;',

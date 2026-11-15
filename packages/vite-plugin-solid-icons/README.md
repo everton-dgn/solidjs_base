@@ -479,14 +479,22 @@ solidIcons({
   that the `package.json` lists but that is not installed, and a declaration
   file that cannot be written do not stop the dev server or the build. The
   plugin logs a warning with the folder, the collection or the file and the
-  error code, the declaration file keeps its last content, and only an import
-  that needs the missing icons fails. `writeIconTypes` and `checkIconTypes` fail
-  on the same problems.
+  error code, and only an import that needs the missing icons fails. The
+  declaration file leaves out the collection that cannot be read and keeps the
+  others; a file that cannot be written keeps its last content. `writeIconTypes`
+  writes the same file and returns the warnings, and `checkIconTypes` fails on
+  them.
 - The declaration file is written to a temporary file next to it and renamed, so
   a type check that reads it while the dev server or a build writes it reads a
   whole file.
-- An installed collection is read once per process. After you update an
-  `@iconify-json/<collection>` package, restart the dev server.
+- An installed collection is read once per process, and the declaration file
+  lists the collections of the `package.json` when the dev server starts. After
+  you add or update an `@iconify-json/<collection>` package, stop and start the
+  dev server process: the restart of Vite in the same process, as with the `r`
+  key, keeps the collection it read.
+- An export name or a path names the icon that the installed version of the
+  collection has. If a new version of the collection draws another icon under
+  the same name, the import draws the new one, without an error.
 - The declaration of the imports by path accepts any name, so a typo in a path
   passes the type check and stops the build. The imports by name are checked by
   the type check too.

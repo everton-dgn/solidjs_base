@@ -16,6 +16,10 @@ type HydrationState = {
   changes: number
   text: string | null
   style: string | null
+  // The elements that the refs of the icons received, and how many of them
+  // the server wrote.
+  refs: number
+  serverRefs: number
 }
 
 // A text of several lines, whose spaces draw, and a <style> of several lines
@@ -27,14 +31,18 @@ const STYLE_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40">\n  <style>\n    text { fill: red; &amp;:hover { fill: blue } }\n    .a > .b::after { content: "x &amp; y" }\n  </style>\n  <text class="a" x="4" y="26">s</text>\n</svg>\n'
 const STYLE_TEXT =
   '\n    text { fill: red; &:hover { fill: blue } }\n    .a > .b::after { content: "x & y" }\n  '
+// A ref runs only in the client, so it shows that the hydration ran and
+// which element it took.
 const APP = `import Lines from 'icon:own/lines'
 import Styled from 'icon:own/styled'
+
+const keep = element => globalThis.__hydration.refs.push(element)
 
 export default function App() {
   return (
     <main>
-      <Lines data-icon="lines" />
-      <Styled data-icon="styled" />
+      <Lines data-icon="lines" ref={keep} />
+      <Styled data-icon="styled" ref={keep} />
     </main>
   )
 }
@@ -62,12 +70,12 @@ const WATCH_SCRIPT = `<script>
   const changes = []
   const observer = new MutationObserver(records => changes.push(...records))
   observer.observe(app, { subtree: true, childList: true, attributes: true, characterData: true })
-  globalThis.__hydration = { nodes, changes, observer }
+  globalThis.__hydration = { nodes, changes, observer, refs: [] }
 </script>`
 // Reads the page after the tasks that the hydration queued.
 const READ_STATE = `(async () => {
   await new Promise(resolve => setTimeout(resolve))
-  const { nodes, changes, observer } = globalThis.__hydration
+  const { nodes, changes, observer, refs } = globalThis.__hydration
   changes.push(...observer.takeRecords())
   const walker = document.createTreeWalker(document.querySelector('#app'))
   let count = 0
@@ -81,7 +89,9 @@ const READ_STATE = `(async () => {
     newNodes,
     changes: changes.length,
     text: document.querySelector('[data-icon="lines"] text').textContent,
-    style: document.querySelector('[data-icon="styled"] style').textContent
+    style: document.querySelector('[data-icon="styled"] style').textContent,
+    refs: refs.length,
+    serverRefs: refs.filter(element => nodes.has(element) && element.localName === 'svg').length
   }
 })()`
 const RENDERED_ICONS = 2
@@ -159,6 +169,8 @@ test('an icon hydrates as the server rendered it', async context => {
   const state = await tab.evaluate<HydrationState>(READ_STATE)
 
   assert.ok(state.nodes > 0)
+  assert.equal(state.refs, RENDERED_ICONS, 'the hydration did not run')
+  assert.equal(state.serverRefs, RENDERED_ICONS)
   assert.equal(state.newNodes, 0, 'the hydration added or replaced a node')
   assert.equal(state.changes, 0, 'the hydration changed a node')
   assert.equal(state.text, LINES_TEXT)

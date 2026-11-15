@@ -699,7 +699,7 @@ fails the push instead of piling up. Knip comes packaged and already knows the
 entries of a Solid app: the server and client entries, the middleware, `env.ts`
 and every route that file-system routing finds. `vp run dead-code-project` runs
 it, then again with `--strict` for production code, and the `pre-push` hook runs
-that task. See [Knip](docs/tooling/knip-and-css.md#knip).
+it through `vp run dead-code`. See [Knip](docs/tooling/knip-and-css.md#knip).
 
 ### Git hooks that run the right checks
 

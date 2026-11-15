@@ -92,7 +92,10 @@ overrides `files` must also include
   navigation of `createLocalizedNavigate` and `createLocaleNavigationGuard`
   leaves a folder base and fails under `file://`. The installed scenario opens
   the build in Chromium with `--allow-file-access-from-files`, which approaches
-  a shell such as Electron and does not replace a test in one. See
+  a shell such as Electron and does not replace a test in one.
+  `storage: 'local-storage'` is accepted with SSR, but the server cannot read
+  the choice, so the page shows the default theme until `createTheme` applies
+  it; the cookie is the storage for SSR. See
   [applications with no server](no-server.md#limits).
 - `@evertondgn/solid-runtime/env` exports optional preset validators, with
   Valibot supplied by the runtime package. Valibot requires no application

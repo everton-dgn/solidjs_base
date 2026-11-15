@@ -36,8 +36,10 @@ const app = defineSolidApp({ root: import.meta.dirname, ssr: false })
 export default defineConfig(env => mergeConfig(app(env), { base: './' }))
 ```
 
-Vite keeps `./` only in a client build and turns any other relative value, such
-as `../` or `app/`, into an absolute path.
+In a client build, Vite keeps `./` and turns `''` into `./`. Any other base that
+starts with a dot, such as `../` or `./app/`, gets a warning and becomes `/`; a
+base such as `app/` gets a warning and becomes `/app/`. Only `./` and `''` give
+a relative build.
 
 ## Routing
 
@@ -54,14 +56,11 @@ const Router = createRouter({ routes, history: hashHistory() })
 Under `file://`, the default path history cannot work: changing the path of a
 `file://` page throws a `SecurityError`. With a folder base over HTTP, path
 history needs the base and a host that answers every route with `index.html`,
-such as a `404.html` copy on GitHub Pages. The router keeps a trailing slash in
-its base, so pass the base without it:
+such as a `404.html` copy on GitHub Pages. The router removes a trailing slash
+from its base, so `BASE_URL` works as Vite gives it:
 
 ```tsx
-const Router = createRouter({
-  routes,
-  base: import.meta.env.BASE_URL.replace(/\/$/u, '')
-})
+const Router = createRouter({ routes, base: import.meta.env.BASE_URL })
 ```
 
 The installed scenario checks the hash history only; test path history in a
@@ -105,8 +104,9 @@ export const { createTheme, defaultTheme, themes } = defineTheme(themeOptions)
 `createTheme` restores, saves and shares the choice between tabs as with the
 cookie, but it applies the class after the first render. To paint the first
 frame in the stored theme, add a classic script at the start of `<head>`.
-`storedThemeScript` returns its code. The entry is plain JavaScript, so the
-config imports it from Node:
+`storedThemeScript` returns its code, which sets the class and `color-scheme` at
+once and the `theme-color` meta as soon as the parser adds it. The entry is
+plain JavaScript, so the config imports it from Node:
 
 ```ts
 // vite.config.ts
@@ -159,11 +159,11 @@ export default defineSolidApp({
 })
 ```
 
-The build emits the script as `assets/theme-<hash>.js` and loads it from the
-base. A same-origin external script needs no nonce, passes a `script-src 'self'`
-policy and runs from `file://` even in a plain browser. `vp dev` inlines it
-instead. Without this plugin the app still works, but shows the system theme for
-a moment when the stored choice differs from it.
+The build emits the script as `theme-<hash>.js` in `build.assetsDir` and loads
+it from the base. A same-origin external script needs no nonce, passes a
+`script-src 'self'` policy and runs from `file://` even in a plain browser.
+`vp dev` inlines it instead. Without this plugin the app still works, but shows
+the system theme for a moment when the stored choice differs from it.
 
 ## Limits
 
@@ -172,8 +172,11 @@ a moment when the stored choice differs from it.
   it, so the app does not start.
 - Translations by URL prefix need a server: the Paraglide URL patterns start at
   the root of the host, and under `file://` the pathname is the path of the
-  file. Use one language, or the Paraglide `localStorage` strategy without the
-  `url` and `cookie` strategies.
+  file. Use one language. The Paraglide `localStorage` strategy is not tested
+  here: the i18n helpers of the runtime still localize every href with the URL
+  patterns, which prefix each locale other than the base one, so with hash
+  history `/about` would become `#/de/about`. That needs URL patterns without a
+  locale prefix and a test of locale changes in your application.
 - `createLocalizedNavigate` loads a new document with `location.assign` when
   `shouldLocalize` is `false`, when the locale changes or when the href is
   absolute. That leaves a folder base and fails under `file://`.
@@ -183,7 +186,12 @@ a moment when the stored choice differs from it.
   history, or write the href with the base.
 - Cookies and `localStorage` belong to the origin, not to the folder:
   applications under `user.github.io/a/` and `user.github.io/b/` share both.
-  Give each application its own `storageKey` or `cookieName`.
+  Give each application its own `storageKey` or `cookieName`. Chromium gives
+  every `file://` page the origin `file://`, so pages opened from different
+  folders share `localStorage`, and a key of its own matters even more there.
+- `storage: 'local-storage'` is accepted with SSR, but a server cannot read
+  `localStorage`: it renders the default theme, and the page shows it until
+  `createTheme` applies the stored choice. Keep the cookie for SSR.
 - Under `file://`, Chromium reads the font file a second time instead of reusing
   the preload. The file is local, so only the preload hint is lost.
 - SEO, `middleware`, `serverSetup` and server functions need SSR and are refused
@@ -196,12 +204,24 @@ shown above, with hash history, the theme in `localStorage` and the plugin of
 this guide. It lints and type-checks the config, then builds it twice:
 
 - with the base `/meu-repo/`, served over HTTP from that folder: the app mounts,
-  loads its font once through the preload, keeps the hash route across a reload,
-  saves the dark choice and applies it with the entry module blocked, so only
-  the classic script could have set it;
-- with the base `./`, opened from `file://` in Chromium, or Chrome on CI, with
-  `--allow-file-access-from-files`: the same checks, and the choice survives a
-  relaunch of the browser profile.
+  loads its font from the folder once, through the preload, keeps the hash route
+  across a reload and saves the dark choice. A second page blocks the entry
+  module, so only the classic script can act, and finds the dark class, the dark
+  `color-scheme` and the dark color in a `theme-color` meta that follows the
+  script and starts with another color;
+- with the base `./` and the assets folder `static`, opened from `file://` in
+  Chromium, or Chrome on CI, with `--allow-file-access-from-files`: the app
+  mounts, loads its font from beside the stylesheet, keeps the hash route across
+  a reload and saves the dark choice. After a relaunch of the browser profile, a
+  page with the entry module blocked finds the same class, `color-scheme` and
+  meta color, and the app then mounts in the dark theme. The font is not checked
+  for a single read, which Chromium does not do there.
+
+Both builds must bundle the runtime theme and no development tool, and must load
+the theme script from the assets folder before the application module and the
+meta. Fast tests keep the plugin of this guide equal to the one the scenario
+builds, check that the test server serves no file outside the build, and that it
+closes when the browser does not launch.
 
 That flag lets a plain browser load modules from `file://`, as a shell does. It
 approaches a shell and does not replace a test in one. It does not cover a

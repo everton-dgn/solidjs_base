@@ -34,15 +34,18 @@ optional `storage: 'cookie'`; `LocalStorageThemeOptions` takes
 `defineTheme` and the storage, channel and primitive modules accept
 `ThemeConfig`. In the local form, `readTheme` and `saveTheme` use `localStorage`
 with the same null, undefined and `isPersisted` contract, and the tab channel
-takes the storage key as its name. The cookie stays the default and the only
-storage for SSR.
+takes the storage key as its name. The cookie stays the default and is the only
+storage a server reads: an SSR application may pass the local storage, but it
+then renders the default theme until `createTheme` applies the choice, which the
+guide lists as a limit.
 
 A new `theme/stored-theme-script` entry, plain JavaScript with a declaration
 file, exports `storedThemeScript`. It returns the code of a classic script that
-applies the stored choice before the first paint. A Node config can import it,
-which the TypeScript entries cannot. `applyTheme` moves to a JavaScript file, so
-that script and the SSR script serialize the same function. The application
-emits the script with a small plugin in `extend`, shown in the
+applies the stored choice before the first paint, and sets a `theme-color` meta
+that follows it once the parser adds it. A Node config can import it, which the
+TypeScript entries cannot. `applyTheme` moves to a JavaScript file, so that
+script and the SSR script serialize the same function. The application emits the
+script with a small plugin in `extend`, shown in the
 [no-server guide](../tooling/no-server.md); there is still no preset option, as
 0024 decided. An external same-origin script needs no nonce and runs from
 `file://`.
@@ -63,15 +66,24 @@ The isolated client-only installed scenario now opens its build in a browser,
 which [0021](0021-installed-application-scenarios.md) and 0032 had left to the
 copy's end-to-end tests. After the default build and its audits, it rewrites the
 installed copy with hash history, the local theme and the guide's plugin, lints
-and type-checks it, and builds it with the base `/meu-repo/` and with `./`. Over
-HTTP from `/meu-repo/`, the app mounts, reads its font through the preload once,
-keeps the hash route across a reload, saves the theme and applies it with the
-entry module blocked. From `file://`, Chromium runs with
-`--allow-file-access-from-files`, the flag that lets a plain browser load
-modules from disk as a shell does, and the choice survives a relaunch of the
-profile. There Chromium reads the font file twice, which the test allows and the
-guide lists as a limit. The first passing run added about 3 seconds to a
-14-second case, within its 150-second budget.
+and type-checks it, adds a `theme-color` meta after the place of the theme
+script, and builds it with the base `/meu-repo/` and with `./` and the assets
+folder `static`. Over HTTP from `/meu-repo/`, the app mounts, reads its font
+through the preload once, keeps the hash route across a reload and saves the
+theme; a page with the entry module blocked then finds the class, `color-scheme`
+and meta color that only the classic script can set. From `file://`, Chromium
+runs with `--allow-file-access-from-files`, the flag that lets a plain browser
+load modules from disk as a shell does. The app mounts, reads its font beside
+the stylesheet, keeps the hash route and saves the theme; after a relaunch of
+the profile, the same page with the entry module blocked finds the same three
+values. There Chromium reads the font file twice, which the test allows and the
+guide lists as a limit. The
+[no-server guide](../tooling/no-server.md#what-the-tests-prove) lists each
+check. Fast tests keep the guide's plugin equal to the scenario's, and check
+that the test server serves nothing outside the build and closes when the
+browser does not launch. The no-server part, from the rewrite to the last
+browser check, took about 4 seconds of an 18-second case, within its 150-second
+budget.
 
 That flag approaches a shell and does not replace one. The test does not cover
 custom protocols, context isolation, session partitions, a CSP set by the shell,

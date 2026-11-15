@@ -112,9 +112,10 @@ pathname such as `/app/` and a relative `build.assetsDir` are supported. With
 `ssr: false`, the relative base `./` is supported too: the CSS names each font
 by its file name, relative to the stylesheet, and `index.html` links
 `./assets/...`, so both resolve to the same file. See
-[applications with no server](no-server.md). A relative base with SSR and
-external asset origins are rejected. Generated asset names are owned by the font
-plugin; `assetFileNames` does not rename them.
+[applications with no server](no-server.md). A relative base with SSR, external
+asset origins and an `assetsDir` that leaves the client output, through `..` or
+an encoded segment such as `%2e%2e`, are rejected. Generated asset names are
+owned by the font plugin; `assetFileNames` does not rename them.
 
 Keep `--font-family`, fallback stacks, weights, sizes and other typography
 tokens in application CSS. Add a file descriptor for another subset and copy its

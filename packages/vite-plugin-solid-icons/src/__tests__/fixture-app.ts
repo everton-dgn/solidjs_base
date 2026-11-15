@@ -8,7 +8,11 @@ import type { InlineConfig } from 'vite-plus'
 import { solidIcons } from '../index.ts'
 
 type FixtureFiles = Record<string, string>
-type ConfigInput = { root: string; isSsr: boolean }
+type ConfigInput = {
+  root: string
+  isSsr: boolean
+  typesFile?: string | false
+}
 
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, '../..')
 
@@ -23,8 +27,9 @@ const APP = `import Github from 'icon:hugeicons/github'
 import githubSvg from 'icon:hugeicons/github?raw'
 import Logo from 'icon:own/logo.v2'
 import Star from 'icon:own/star'
+import { ArrowLeft01 } from 'icon:hugeicons'
 
-import NamedIcons, { ArrowLeft01 } from './NamedIcons.tsx'
+import NamedIcons from './NamedIcons.tsx'
 
 export default function App() {
   return (
@@ -124,7 +129,11 @@ export async function createFixtureApp(): Promise<string> {
   return root
 }
 
-export function fixtureConfig({ root, isSsr }: ConfigInput): InlineConfig {
+export function fixtureConfig({
+  root,
+  isSsr,
+  typesFile
+}: ConfigInput): InlineConfig {
   return {
     root,
     configFile: false,
@@ -135,6 +144,7 @@ export function fixtureConfig({ root, isSsr }: ConfigInput): InlineConfig {
     plugins: [
       solidIcons({
         collections: { own: './icons' },
+        ...(typesFile === undefined ? {} : { typesFile }),
         customizeIcon: ({ attributes }) => {
           attributes['aria-hidden'] = 'true'
         }

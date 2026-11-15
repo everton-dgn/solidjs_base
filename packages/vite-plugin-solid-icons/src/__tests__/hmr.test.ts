@@ -6,7 +6,12 @@ import { test } from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 
 import { chromium, type Page } from 'playwright'
-import { createServer, type FSWatcher } from 'vite-plus'
+import {
+  createLogger,
+  createServer,
+  type FSWatcher,
+  type Logger
+} from 'vite-plus'
 
 import {
   createFixtureApp,
@@ -67,6 +72,17 @@ async function settle(watcher: FSWatcher): Promise<void> {
   watcher.off('all', onEvent)
 }
 
+// A logger that keeps the errors of the dev server, where the dependency scan
+// reports an import it cannot resolve.
+function errorLog(errors: string[]): Logger {
+  return {
+    ...createLogger('error'),
+    error: message => {
+      errors.push(message)
+    }
+  }
+}
+
 // The declarations of the folder collection, once the plugin wrote them
 // after the watcher reported the file.
 async function waitForOwnTypes({ file, pattern }: TypesWait): Promise<string> {
@@ -84,8 +100,10 @@ async function waitForOwnTypes({ file, pattern }: TypesWait): Promise<string> {
 test('a folder icon follows its SVG file in the dev server', async context => {
   const root = await createFixtureApp()
   context.after(() => rm(root, { recursive: true, force: true }))
+  const errors: string[] = []
   const server = await createServer({
     ...fixtureConfig({ root, isSsr: false }),
+    customLogger: errorLog(errors),
     // Polling, because a loaded machine delays the file events of the system
     // for tens of seconds.
     server: {
@@ -113,6 +131,13 @@ test('a folder icon follows its SVG file in the dev server', async context => {
 
   await page.goto(url)
   await starFill('red')
+
+  await context.test(
+    'the dependency scan passes over the named imports',
+    () => {
+      assert.deepEqual(errors, [])
+    }
+  )
 
   await context.test('an edited SVG updates without a reload', async () => {
     log.types.length = 0

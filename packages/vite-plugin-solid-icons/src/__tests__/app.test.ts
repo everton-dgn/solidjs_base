@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url'
 
 import { build, createServer } from 'vite-plus'
 
+import { checkIconTypes } from '../index.ts'
 import {
   createFixtureApp,
   fixtureConfig,
@@ -20,7 +21,7 @@ type OutputFiles = Record<string, string>
 type ClientBuild = { root: string; outDir: string }
 
 // The application imports github, star and logo by path, and arrow-left-01,
-// 3d-move and moon by export name; it renders arrow-left-01 twice.
+// 3d-move and moon by export name; two modules import arrow-left-01.
 const ICON_MODULES = 6
 const RENDERED_ICONS = 7
 // The path of arrow-left-01 in @iconify-json/hugeicons.
@@ -95,7 +96,7 @@ test('an application renders the icons', async context => {
       assert.equal(
         count({ text: bundle, pattern: new RegExp(ARROW_LEFT_PATH, 'gu') }),
         1,
-        'the icon imported twice by export name is one module'
+        'the icon that two modules import by export name is one module'
       )
       assert.ok(has('<path fill=red d="M12 2l3 7'), 'the star from the folder')
       assert.ok(
@@ -119,6 +120,7 @@ test('an application renders the icons', async context => {
       assert.match(types, /export const ArrowLeft01: IconComponent/u)
       assert.match(own, /export const Moon: IconComponent/u)
       assert.match(own, /export const LogoV2: IconComponent/u)
+      await checkIconTypes({ root, collections: { own: './icons' } })
     }
   )
 

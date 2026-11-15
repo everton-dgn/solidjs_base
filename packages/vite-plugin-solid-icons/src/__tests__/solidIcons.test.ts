@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
-import { rm, writeFile } from 'node:fs/promises'
+import { access, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
 
 import { build } from 'vite-plus'
 
 import { solidIcons } from '../index.ts'
-import { createFixtureApp, fixtureConfig } from './fixture-app.ts'
+import { createFixtureApp, fixtureConfig, TYPES_FILE } from './fixture-app.ts'
 
 type BuildInput = { context: TestContext; source: string }
 type EntryInput = { context: TestContext; code: string }
@@ -43,6 +43,34 @@ describe('solidIcons', () => {
           'solidIcons: the collection names "Brand", "my_icons" must use lowercase letters, digits and single hyphens.'
       }
     )
+  })
+
+  it('writes the declarations where typesFile says, or none', async context => {
+    const root = await createFixtureApp()
+    context.after(() => rm(root, { recursive: true, force: true }))
+    const entry = path.join(root, 'entry.js')
+    await writeFile(
+      entry,
+      "import { Star } from 'icon:own'\nconsole.log(Star)\n"
+    )
+    const custom = path.join(root, 'types/icons.d.ts')
+    const buildWith = (typesFile: string | false) =>
+      build({
+        ...fixtureConfig({ root, isSsr: false, typesFile }),
+        logLevel: 'silent',
+        build: { write: false, rolldownOptions: { input: entry } }
+      })
+
+    await buildWith('types/icons.d.ts')
+    assert.match(
+      await readFile(custom, 'utf8'),
+      /export const Star: IconComponent/u
+    )
+    await assert.rejects(access(path.join(root, TYPES_FILE)))
+    await rm(custom)
+    await buildWith(false)
+    await assert.rejects(access(custom))
+    await assert.rejects(access(path.join(root, TYPES_FILE)))
   })
 
   it('names the missing icon in the build error', async context => {

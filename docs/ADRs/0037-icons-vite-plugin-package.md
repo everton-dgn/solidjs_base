@@ -113,6 +113,8 @@ The options were:
     25 ms and write 485 KB; a synthetic collection of 20,200 names takes about
     60 ms and writes 1.6 MB. They are computed once per dev session and again
     only for a folder collection whose files change.
-  - The first page of the dev server and a hot update of an edited SVG take the
-    same time as with the current plugin, which does not update an edited SVG of
-    a folder.
+  - The first page of the dev server takes the same time as with the plugin the
+    tooling uses today, within the noise, for 2, 50 and 500 icons. A hot update
+    of an edited SVG of a folder took 40 to 120 ms, with a watcher that polls
+    every 50 ms. With the current plugin, in the configuration the tooling uses,
+    the edited SVG did not update in nine runs.

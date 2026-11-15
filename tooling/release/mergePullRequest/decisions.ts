@@ -24,6 +24,12 @@ type CountedCheck = { check: CheckRun; workflowRuns: readonly WorkflowRun[] }
 
 type OpenThreads = { number: number; threads: readonly ReviewThread[] }
 
+type HeadCheck = {
+  pullRequest: PullRequest
+  expectedSha: string | undefined
+  isDryRun: boolean
+}
+
 type RunLookup = { runs: readonly WorkflowRun[]; path: string; sha: string }
 
 type ManifestChange = { current: Manifest; previous: Manifest }
@@ -110,6 +116,25 @@ export function isReleasePullRequest(pullRequest: PullRequest): boolean {
     !pullRequest.isCrossRepository &&
     pullRequest.headBranch.startsWith(RELEASE_BRANCH_PREFIX)
   )
+}
+
+// WHY: release-please rewrites the release pull request after a merge to main,
+// and the command approves its held CI run, so a real run of a release pull
+// request needs the head that was reviewed.
+export function refuseHead({
+  pullRequest,
+  expectedSha,
+  isDryRun
+}: HeadCheck): string | undefined {
+  const { number, headSha } = pullRequest
+  if (expectedSha === undefined) {
+    return isDryRun || !isReleasePullRequest(pullRequest)
+      ? undefined
+      : `#${number} is a release pull request. Pass the head you reviewed with --sha; vp run release:merge ${number} --dry-run prints it.`
+  }
+  return expectedSha === headSha
+    ? undefined
+    : `The head of #${number} is ${headSha}, not ${expectedSha} as passed with --sha. Review the new commits and run vp run release:merge ${number} --dry-run again.`
 }
 
 export function mergeCommitTitle(pullRequest: PullRequest): string {

@@ -19,7 +19,11 @@ type Harness = {
   lines: string[]
 }
 
-type HarnessOptions = { github: FakeGitHub; isDryRun?: boolean }
+type HarnessOptions = {
+  github: FakeGitHub
+  isDryRun?: boolean
+  expectedSha?: string
+}
 
 type ContentsRequest = { github: FakeGitHub; file: string; ref: string }
 
@@ -481,7 +485,8 @@ export function jsonResult(value: unknown): CommandResult {
 
 export function createHarness({
   github,
-  isDryRun = false
+  isDryRun = false,
+  expectedSha = github.pullRequest.headSha
 }: HarnessOptions): Harness {
   const calls: Command[] = []
   const lines: string[] = []
@@ -514,6 +519,7 @@ export function createHarness({
     lines,
     request: {
       number: github.pullRequest.number,
+      expectedSha,
       isDryRun,
       timing: TIMING,
       environment

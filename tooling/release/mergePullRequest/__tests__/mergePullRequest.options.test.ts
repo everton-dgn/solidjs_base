@@ -8,6 +8,7 @@ describe('mergePullRequest options', () => {
     assert.deepEqual(readOptions(['41', '--dry-run']), {
       isHelp: false,
       number: 41,
+      expectedSha: undefined,
       isDryRun: true,
       timing: {
         interval: 30_000,
@@ -37,6 +38,28 @@ describe('mergePullRequest options', () => {
       checkTimeout: 120_000,
       registryTimeout: 60_000
     })
+  })
+
+  it('reads the full head passed with --sha', () => {
+    const head = 'A1B2C3D4E5F60718293A4B5C6D7E8F9012345678'
+    const options = readOptions(['41', '--sha', head])
+    assert.equal(
+      options.isHelp ? undefined : options.expectedSha,
+      head.toLowerCase()
+    )
+  })
+
+  it('refuses a short or invalid head', () => {
+    for (const head of [
+      'a1b2c3d',
+      'main',
+      'g1b2c3d4e5f60718293a4b5c6d7e8f9012345678'
+    ]) {
+      assert.throws(
+        () => readOptions(['41', '--sha', head]),
+        /--sha takes the full head of the pull request/u
+      )
+    }
   })
 
   it('refuses an unknown option instead of ignoring it', () => {

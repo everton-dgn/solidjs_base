@@ -10,6 +10,7 @@ type Duration = { option: string; value: string; unit: number }
 
 const MILLISECONDS_PER_SECOND = 1000
 const MILLISECONDS_PER_MINUTE = 60_000
+const FULL_SHA = /^[\da-f]{40}$/iu
 
 function readDuration({ option, value, unit }: Duration): number {
   const amount = Number(value)
@@ -17,6 +18,16 @@ function readDuration({ option, value, unit }: Duration): number {
     throw new Error(`--${option} takes a positive number, not "${value}".`)
   }
   return amount * unit
+}
+
+function readSha(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined
+  if (!FULL_SHA.test(value)) {
+    throw new Error(
+      `--sha takes the full head of the pull request, 40 characters, not "${value}".`
+    )
+  }
+  return value.toLowerCase()
 }
 
 function readNumber(positionals: readonly string[]): number {
@@ -29,12 +40,15 @@ function readNumber(positionals: readonly string[]): number {
   return Number(value)
 }
 
-export const USAGE = `Usage: vp run release:merge <number> [--dry-run] [--interval <seconds>]
-         [--timeout <minutes>] [--registry-timeout <minutes>]
+export const USAGE = `Usage: vp run release:merge <number> [--sha <head>] [--dry-run]
+         [--interval <seconds>] [--timeout <minutes>] [--registry-timeout <minutes>]
 
 Merges a pull request with a merge commit, as docs/releasing.md describes, and
 checks the publication of a release pull request.
 
+  --sha <head>                  The full head you reviewed. The command stops when
+                                the pull request has another head. Required for a
+                                release pull request; --dry-run prints it
   --dry-run                     Read the state and print what would happen, without
                                 updating the branch, approving a run or merging
   --interval <seconds>          Time between two reads of a check, a workflow run
@@ -50,6 +64,7 @@ export function readOptions(args: readonly string[]): Options {
     allowPositionals: true,
     strict: true,
     options: {
+      sha: { type: 'string' },
       'dry-run': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
       interval: { type: 'string', default: '30' },
@@ -61,6 +76,7 @@ export function readOptions(args: readonly string[]): Options {
   return {
     isHelp: false,
     number: readNumber(positionals),
+    expectedSha: readSha(values.sha),
     isDryRun: values['dry-run'],
     timing: {
       interval: readDuration({

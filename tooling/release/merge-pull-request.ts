@@ -62,8 +62,14 @@ try {
   if (options.isHelp) {
     writeLine(USAGE)
   } else {
-    const { number, isDryRun, timing } = options
-    await mergePullRequest({ number, isDryRun, timing, environment })
+    const { number, expectedSha, isDryRun, timing } = options
+    await mergePullRequest({
+      number,
+      expectedSha,
+      isDryRun,
+      timing,
+      environment
+    })
   }
 } catch (error) {
   const message = error instanceof Error ? error.message : JSON.stringify(error)

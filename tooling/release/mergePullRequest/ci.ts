@@ -1,19 +1,8 @@
-import {
-  decideCheck,
-  ignoredChecks,
-  isReleasePullRequest,
-  shortSha
-} from './decisions.ts'
-import type {
-  CheckDecision,
-  CheckRun,
-  PullRequest,
-  Session,
-  WorkflowRun
-} from './types.ts'
+import { decideCheck, ignoredChecks, shortSha } from './decisions.ts'
+import type { CheckDecision, CheckRun, Session, WorkflowRun } from './types.ts'
 import { describeDuration, waitFor } from './wait.ts'
 
-type CiStep = { session: Session; pullRequest: PullRequest; head: string }
+type CiStep = { session: Session; head: string; canApprove: boolean }
 
 type CiReading = CiStep & {
   approvedRuns: ReadonlySet<number>
@@ -21,7 +10,7 @@ type CiReading = CiStep & {
 }
 
 async function readCi(reading: CiReading): Promise<CheckDecision> {
-  const { session, pullRequest, head, approvedRuns, reportedChecks } = reading
+  const { session, head, canApprove, approvedRuns, reportedChecks } = reading
   const [checkRuns, workflowRuns] = await Promise.all([
     session.github.listCheckRuns(head),
     session.github.listWorkflowRuns(head)
@@ -39,7 +28,7 @@ async function readCi(reading: CiReading): Promise<CheckDecision> {
     checkRuns,
     workflowRuns,
     approvedRuns,
-    canApprove: isReleasePullRequest(pullRequest)
+    canApprove
   })
 }
 

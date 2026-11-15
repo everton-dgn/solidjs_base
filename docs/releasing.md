@@ -69,15 +69,20 @@ account that can merge:
 
 ```bash
 vp run release:merge <number> --dry-run
-vp run release:merge <number>
+vp run release:merge <number> --sha <head>
 ```
 
 `--dry-run` reads the state and prints what the command would do, without
-updating the branch, approving a run or merging. Without it, the command:
+updating the branch, approving a run or merging. It ends with the command to
+merge, with the full head it read. Review that head and pass it with `--sha`:
+the command stops when the pull request has another head, such as a commit
+pushed or a release pull request written again after the review. `--sha` is
+required for a release pull request, because the command approves its held CI
+run, and optional for the others. Without `--dry-run`, the command:
 
-1. Refuses a pull request that is closed, a draft or in conflict, and one with
-   an unresolved review conversation, which it lists with the path, the line and
-   the author.
+1. Refuses a pull request that is closed, a draft or in conflict, one whose head
+   is not the one passed with `--sha`, and one with an unresolved review
+   conversation, which it lists with the path, the line and the author.
 2. Merges `main` into a branch that is behind, through the GitHub API and never
    with a rebase, and goes on with the new head.
 3. Waits for `CI required` on the head. It counts only the checks of runs
@@ -147,10 +152,13 @@ into the branch, never rebase it, and wait for `CI required` again.
 3. For the first automated release of a package, create the trusted publisher
    now
    ([First automated release of a package](#first-automated-release-of-a-package)).
-4. Merge with `vp run release:merge <number>`
-   ([Merging a pull request](#merging-a-pull-request)). It approves the held CI
-   run of the head it merges, waits for `CI required`, merges, waits for the
-   `Release` workflow and checks each released version on npm.
+4. Merge with `vp run release:merge <number> --sha <head>`
+   ([Merging a pull request](#merging-a-pull-request)), with the head whose
+   version and `CHANGELOG.md` you read; `--dry-run` prints it. It approves the
+   held CI run of that head, waits for `CI required`, merges, waits for the
+   `Release` workflow and checks each released version on npm. When
+   release-please writes the pull request again after your review, the head
+   changes and the command stops: read the new diff and start from step 1.
 5. Without the command, approve only the held run of the head you merge, wait
    for `CI required`, merge with the API call of the same section and, after the
    publish job, check the registry. The version can take a few minutes to

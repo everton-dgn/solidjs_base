@@ -56,10 +56,11 @@ the ones that cost a fix after a release when they were missed.
 
 ## Pull requests and releases
 
-- Merge with `vp run release:merge <number>`, which makes the merge commit
-  described in
-  [Merging a pull request](docs/releasing.md#merging-a-pull-request). Never
-  squash or rebase.
+- Merge with `vp run release:merge <number> --sha <head>`, which makes the merge
+  commit described in
+  [Merging a pull request](docs/releasing.md#merging-a-pull-request). Pass the
+  head you reviewed, which `--dry-run` prints; the command stops on another
+  head. Never squash or rebase.
 - Before merging a release pull request, follow
   [the checklist](docs/releasing.md#before-merging-a-release-pull-request).
 - The first automated release of a package needs a trusted publisher, which only

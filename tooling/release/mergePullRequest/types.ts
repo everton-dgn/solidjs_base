@@ -20,6 +20,7 @@ export type Timing = {
 
 export type MergeRequest = {
   number: number
+  expectedSha: string | undefined
   isDryRun: boolean
   timing: Timing
   environment: Environment

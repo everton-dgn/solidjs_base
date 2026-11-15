@@ -3,6 +3,7 @@ import {
   describeOpenThreads,
   isReleasePullRequest,
   mergeCommitTitle,
+  refuseHead,
   refusePullRequest,
   shortSha
 } from './decisions.ts'
@@ -79,20 +80,29 @@ async function dryRun({
       `Dry run: would merge ${baseBranch} into the branch, wait for CI required on the new head and merge #${number} at that head with the title "${title}" and an empty body.`
     )
   } else {
-    await inspectCi({ session, pullRequest, head: headSha })
+    await inspectCi({
+      session,
+      head: headSha,
+      canApprove: isReleasePullRequest(pullRequest)
+    })
     log(
       `Dry run: would merge #${number} at ${shortSha(headSha)} with the title "${title}" and an empty body.`
     )
   }
-  if (!isReleasePullRequest(pullRequest)) {
+  if (isReleasePullRequest(pullRequest)) {
+    await describePublication({
+      session,
+      ref: headSha,
+      previousRef: baseBranch
+    })
+  } else {
     log('Not a release pull request: there is no publication to check.')
-    return
   }
-  await describePublication({ session, ref: headSha, previousRef: baseBranch })
+  log(`To merge this head: vp run release:merge ${number} --sha ${headSha}`)
 }
 
 export async function mergePullRequest(request: MergeRequest): Promise<void> {
-  const { number, isDryRun, timing, environment } = request
+  const { number, expectedSha, isDryRun, timing, environment } = request
   const { log } = environment
   const run = isDryRun ? refuseWrites(environment.run) : environment.run
   const session: Session = {
@@ -102,11 +112,13 @@ export async function mergePullRequest(request: MergeRequest): Promise<void> {
     registry: createRegistry(run)
   }
   const pullRequest = await session.github.readPullRequest(number)
-  const refusal = refusePullRequest(pullRequest)
+  const refusal =
+    refusePullRequest(pullRequest) ??
+    refuseHead({ pullRequest, expectedSha, isDryRun })
   if (refusal) throw new Error(refusal)
   const { title, headOwner, headBranch, headSha, baseBranch } = pullRequest
   log(`#${number} ${title}`)
-  log(`Head: ${headOwner}:${headBranch} at ${shortSha(headSha)}.`)
+  log(`Head: ${headOwner}:${headBranch} at ${headSha}.`)
   const threads = await session.github.listOpenThreads(number)
   if (threads.length > 0) {
     throw new Error(describeOpenThreads({ number, threads }))
@@ -127,7 +139,11 @@ export async function mergePullRequest(request: MergeRequest): Promise<void> {
   }
   const head =
     behindBy > 0 ? await updateBranch({ session, pullRequest }) : headSha
-  await waitForCi({ session, pullRequest, head })
+  // WHY: a held run is approved only on the head passed with --sha, or on the
+  // update of that head.
+  const canApprove =
+    isReleasePullRequest(pullRequest) && expectedSha === headSha
+  await waitForCi({ session, head, canApprove })
   const outcome = await session.github.merge({
     number,
     sha: head,

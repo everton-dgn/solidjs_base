@@ -46,6 +46,38 @@ describe('mergePullRequest refusals', () => {
     assert.deepEqual(endpoints(calls), ['gh pr view'])
   })
 
+  it('refuses a head that is not the one passed with --sha, in a dry run too', async () => {
+    for (const isDryRun of [false, true]) {
+      const github = releaseGitHub()
+      const { request, calls } = createHarness({
+        github,
+        isDryRun,
+        expectedSha: OTHER_SHA
+      })
+
+      await assert.rejects(
+        mergePullRequest(request),
+        new RegExp(
+          `The head of #42 is ${HEAD}, not ${OTHER_SHA} as passed with --sha`,
+          'u'
+        )
+      )
+      assert.deepEqual(endpoints(calls), ['gh pr view'])
+    }
+  })
+
+  it('requires --sha to merge a release pull request', async () => {
+    const github = releaseGitHub()
+    const harness = createHarness({ github })
+    const request = { ...harness.request, expectedSha: undefined }
+
+    await assert.rejects(
+      mergePullRequest(request),
+      /#42 is a release pull request\. Pass the head you reviewed with --sha/u
+    )
+    assert.deepEqual(endpoints(harness.calls), ['gh pr view'])
+  })
+
   it('lists the unresolved conversations of every page and stops', async () => {
     const github = featureGitHub()
     github.threadPages = [
@@ -247,9 +279,11 @@ describe('mergePullRequest merge and publication', () => {
     }
   })
 
-  it('merges a pull request that is not a release without a publication step', async () => {
+  it('merges a pull request that is not a release without --sha or a publication step', async () => {
     const github = featureGitHub()
-    const { request, calls, lines } = createHarness({ github })
+    const harness = createHarness({ github })
+    const { calls, lines } = harness
+    const request = { ...harness.request, expectedSha: undefined }
 
     await mergePullRequest(request)
 
@@ -349,11 +383,13 @@ describe('mergePullRequest merge and publication', () => {
 })
 
 describe('mergePullRequest dry run', () => {
-  it('reads the state and writes nothing in a dry run', async () => {
+  it('reads the state, writes nothing and prints the head to pass with --sha in a dry run', async () => {
     const github = releaseGitHub()
     github.checkRuns = { [HEAD]: [[]] }
     github.workflowRuns = { [HEAD]: [[HELD_RUN]] }
-    const { request, calls, lines } = createHarness({ github, isDryRun: true })
+    const harness = createHarness({ github, isDryRun: true })
+    const { calls, lines } = harness
+    const request = { ...harness.request, expectedSha: undefined }
 
     await mergePullRequest(request)
 
@@ -372,6 +408,10 @@ describe('mergePullRequest dry run', () => {
       lines.includes(
         'Dry run: would wait for the Release workflow of the merge commit and check @evertondgn/solid-tooling@0.7.0, @evertondgn/solid-runtime@0.7.0 on npm.'
       )
+    )
+    assert.equal(
+      lines.at(-1),
+      `To merge this head: vp run release:merge 42 --sha ${HEAD}`
     )
   })
 

@@ -26,6 +26,7 @@
   ],
   "exports": {
     ".": "./dist/index.mjs",
+    "./types": "./dist/types.mjs",
     "./package.json": "./package.json",
     "./icon-modules": {
       "types": "./icon-modules.d.ts"

@@ -1,7 +1,7 @@
 import type { KnipConfig } from 'knip'
 
 export default {
-  entry: ['src/index.ts!', 'src/**/__tests__/*.test.ts'],
+  entry: ['src/index.ts!', 'src/types.ts!', 'src/**/__tests__/*.test.ts'],
   project: ['src/**/*.ts!', '!src/**/__tests__/**!'],
   // The tests load hugeicons by its collection name, through @iconify/utils.
   ignoreDependencies: ['@iconify-json/hugeicons'],

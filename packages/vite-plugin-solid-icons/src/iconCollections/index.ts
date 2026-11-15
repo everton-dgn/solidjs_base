@@ -1,4 +1,4 @@
-import { readdir } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { isCollectionName, isIconName } from '../iconIds/index.ts'
@@ -14,8 +14,17 @@ type CollectionSource = CollectionPlace & { collection: string }
 type FolderSource = { collection: string; folder: string; root: string }
 type AliasInput = { aliases: NonNullable<IconSet['aliases']>; name: string }
 type FolderInput = { root: string; collections: Record<string, string> }
+type Manifest = Partial<Record<DependencyField, Record<string, string>>>
+type DependencyField = (typeof DEPENDENCY_FIELDS)[number]
 
 const SVG_EXTENSION = '.svg'
+const COLLECTION_SCOPE = '@iconify-json/'
+const DEPENDENCY_FIELDS = [
+  'dependencies',
+  'devDependencies',
+  'optionalDependencies',
+  'peerDependencies'
+] as const
 
 function isPlainAlias(alias: object): boolean {
   return Object.keys(alias).every(key => key === 'parent')
@@ -80,6 +89,27 @@ async function readIconList({
   return iconSetList(await loadIconSet({ collection, root }))
 }
 
+function isManifest(value: unknown): value is Manifest {
+  return typeof value === 'object' && value !== null
+}
+
+function isMissingFile(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === 'ENOENT'
+}
+
+async function findManifest(folder: string): Promise<Manifest | undefined> {
+  let text: string
+  try {
+    text = await readFile(path.join(folder, 'package.json'), 'utf8')
+  } catch (error) {
+    if (!isMissingFile(error)) throw error
+    const parent = path.dirname(folder)
+    return parent === folder ? undefined : findManifest(parent)
+  }
+  const manifest: unknown = JSON.parse(text)
+  return isManifest(manifest) ? manifest : undefined
+}
+
 export type Folders = Map<string, string>
 
 export type NameTables = {
@@ -134,4 +164,19 @@ export function createNameTables({
       tables.delete(collection)
     }
   }
+}
+
+// The @iconify-json collections in the package.json closest to the root.
+export async function declaredCollections(root: string): Promise<string[]> {
+  const manifest = await findManifest(root)
+  const names = DEPENDENCY_FIELDS.flatMap(field =>
+    Object.keys(manifest?.[field] ?? {})
+  )
+  return [
+    ...new Set(
+      names
+        .filter(name => name.startsWith(COLLECTION_SCOPE))
+        .map(name => name.slice(COLLECTION_SCOPE.length))
+    )
+  ]
 }

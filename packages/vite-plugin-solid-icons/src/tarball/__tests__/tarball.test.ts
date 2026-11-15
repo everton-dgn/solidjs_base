@@ -17,6 +17,7 @@ import { test } from 'node:test'
 import { promisify } from 'node:util'
 
 type Command = { file: string; args: string[]; cwd: string }
+type CommandFailure = Error & { stdout: string }
 type Installation = { entries: string[]; packageFolder: string; app: string }
 type InstallOptions = { tarball: string; app: string }
 type DependencyMap = Record<string, string>
@@ -45,11 +46,19 @@ const BUILD_TOOLS = [
 // These protocols only resolve inside the workspace.
 const WORKSPACE_PROTOCOLS = ['catalog:', 'workspace:']
 // The installed package resolves these from the application.
-const LINKED_PACKAGES = ['@iconify', '@solidjs', 'magic-string', 'vite-plus']
+const LINKED_PACKAGES = [
+  '@iconify',
+  '@iconify-json',
+  '@solidjs',
+  'magic-string',
+  'vite-plus'
+]
 const TYPE_USAGE = `import type { JSX } from '@solidjs/web'
+import { ArrowLeft01, Github as GithubIcon } from 'icon:hugeicons'
 import Github from 'icon:hugeicons/github'
 import githubSvg from 'icon:hugeicons/github?raw'
 import Logo from 'icon:own/logo.v2'
+import { LogoV2 } from 'icon:own'
 
 export const svg: string = githubSvg
 export const element: JSX.Element = Github({ class: 'icon', 'aria-label': 'GitHub' })
@@ -60,7 +69,30 @@ export const notComponent = githubSvg({})
 export const wrongProps = Github(42)
 // @ts-expect-error The component is not a string.
 export const notString: string = Github
+export const back: JSX.Element = ArrowLeft01({ class: 'icon' })
+export const ownLogo: JSX.Element = LogoV2({})
+export const sameComponent: typeof Github = GithubIcon
+// @ts-expect-error A named icon takes the props of an svg element.
+export const wrongNamedProps = GithubIcon(42)
 `
+const TYPO_USAGE = `import { Githb } from 'icon:hugeicons'
+
+export const icon = Githb
+`
+const TYPES_FILE = 'src/icon-collections.d.ts'
+// The application writes the declarations of the named imports before its
+// first type check.
+const WRITE_TYPES = [
+  `const { writeIconTypes } = await import(${JSON.stringify(PACKAGE_NAME)})`,
+  'await writeIconTypes({ collections: { own: "./icons" } })'
+].join('\n')
+const APP_MANIFEST = {
+  name: 'icons-app',
+  private: true,
+  devDependencies: { '@iconify-json/hugeicons': '*' }
+}
+const LOGO_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg>'
 const TYPE_CONFIG = {
   compilerOptions: {
     strict: true,
@@ -73,8 +105,9 @@ const TYPE_CONFIG = {
     jsxImportSource: '@solidjs/web',
     types: [`${PACKAGE_NAME}/icon-modules`]
   },
-  files: ['icons.ts']
+  files: ['icons.ts', TYPES_FILE]
 }
+const TYPO_CONFIG = { ...TYPE_CONFIG, files: ['typo.ts', TYPES_FILE] }
 
 const execFileAsync = promisify(execFile)
 
@@ -205,11 +238,66 @@ async function assertPluginLoads({ app }: Installation): Promise<void> {
   })
 }
 
-async function assertTypes({ app }: Installation): Promise<void> {
+function isCommandFailure(error: unknown): error is CommandFailure {
+  return (
+    error instanceof Error &&
+    'stdout' in error &&
+    typeof error.stdout === 'string'
+  )
+}
+
+// The output of a command that has to fail.
+async function runFailing(command: Command): Promise<string> {
+  let failure: unknown
+  try {
+    await run(command)
+  } catch (error) {
+    failure = error
+  }
+  assert.ok(
+    isCommandFailure(failure),
+    `${command.file} ${command.args.join(' ')} did not fail.`
+  )
+  return failure.stdout
+}
+
+async function writeAppTypes({ app }: Installation): Promise<void> {
+  await writeFile(path.join(app, 'package.json'), JSON.stringify(APP_MANIFEST))
+  await mkdir(path.join(app, 'icons'), { recursive: true })
+  await writeFile(path.join(app, 'icons/logo.v2.svg'), LOGO_SVG)
+  await run({
+    file: execPath,
+    args: ['--input-type=module', '--eval', WRITE_TYPES],
+    cwd: app
+  })
+}
+
+async function assertTypes(installation: Installation): Promise<void> {
+  const { app } = installation
+  await writeAppTypes(installation)
   await writeFile(path.join(app, 'icons.ts'), TYPE_USAGE)
   await writeFile(path.join(app, 'tsconfig.json'), JSON.stringify(TYPE_CONFIG))
 
   await run({ file: TSC, args: ['-p', 'tsconfig.json'], cwd: app })
+}
+
+async function assertTypo({ app }: Installation): Promise<void> {
+  await writeFile(path.join(app, 'typo.ts'), TYPO_USAGE)
+  await writeFile(
+    path.join(app, 'tsconfig.typo.json'),
+    JSON.stringify(TYPO_CONFIG)
+  )
+
+  const output = await runFailing({
+    file: TSC,
+    args: ['-p', 'tsconfig.typo.json'],
+    cwd: app
+  })
+
+  assert.match(
+    output,
+    /typo\.ts\(1,10\): error TS2724: '"icon:hugeicons"' has no exported member named 'Githb'\. Did you mean 'Github'\?/u
+  )
 }
 
 test('the packed package installs as a dependency', async context => {
@@ -244,5 +332,8 @@ test('the packed package installs as a dependency', async context => {
   )
   await context.test('an application types the icon imports', () =>
     assertTypes(installation)
+  )
+  await context.test('a typo in a named import is a type error', () =>
+    assertTypo(installation)
   )
 })

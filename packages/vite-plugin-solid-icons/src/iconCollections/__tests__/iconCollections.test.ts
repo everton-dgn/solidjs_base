@@ -4,7 +4,11 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
 
-import { createNameTables, resolveFolders } from '../index.ts'
+import {
+  createNameTables,
+  declaredCollections,
+  resolveFolders
+} from '../index.ts'
 
 type Files = Record<string, string>
 type FolderInput = { context: TestContext; files: Files }
@@ -118,5 +122,28 @@ describe('resolveFolders', () => {
       resolveFolders({ root: '/app', collections: { own: './icons' } }),
       new Map([['own', path.resolve('/app/icons')]])
     )
+  })
+})
+
+describe('declaredCollections', () => {
+  it('reads the collections of the closest package.json', async context => {
+    const root = await folderWith({
+      context,
+      files: {
+        'package.json': JSON.stringify({
+          dependencies: { '@iconify-json/mdi': '*', 'solid-js': '*' },
+          devDependencies: { '@iconify-json/hugeicons': '*' },
+          optionalDependencies: { '@iconify-json/lucide': '*' },
+          peerDependencies: { '@iconify-json/mdi': '*' }
+        }),
+        'src/index.ts': ''
+      }
+    })
+
+    assert.deepEqual(await declaredCollections(path.join(root, 'src')), [
+      'mdi',
+      'hugeicons',
+      'lucide'
+    ])
   })
 })

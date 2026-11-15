@@ -10,7 +10,8 @@ import {
   createFixtureApp,
   fixtureConfig,
   NAMED_ICONS_BY_PATH,
-  NAMED_ICONS_FILE
+  NAMED_ICONS_FILE,
+  TYPES_FILE
 } from './fixture-app.ts'
 
 type ServerEntry = { html: () => string }
@@ -105,6 +106,19 @@ test('an application renders the icons', async context => {
         has(String.raw`"<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"`),
         'the raw SVG'
       )
+    }
+  )
+
+  await context.test(
+    'the build writes the declarations of the named imports',
+    async () => {
+      const types = await readFile(path.join(root, TYPES_FILE), 'utf8')
+      const own = types.slice(types.indexOf("declare module 'icon:own' {"))
+
+      assert.match(types, /declare module 'icon:hugeicons' \{/u)
+      assert.match(types, /export const ArrowLeft01: IconComponent/u)
+      assert.match(own, /export const Moon: IconComponent/u)
+      assert.match(own, /export const LogoV2: IconComponent/u)
     }
   )
 

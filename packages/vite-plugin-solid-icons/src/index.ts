@@ -19,6 +19,11 @@ import {
 } from './iconIds/index.ts'
 import { exportedIcon } from './iconNames/index.ts'
 import {
+  DEFAULT_TYPES_FILE,
+  renderIconTypes,
+  writeTypesFile
+} from './iconTypes/index.ts'
+import {
   importError,
   isImportError,
   unsupportedImport
@@ -61,6 +66,14 @@ function iconOfFile({ folders, file }: FileLookup): FileIcon | undefined {
   return undefined
 }
 
+async function settled(task: Promise<void>): Promise<void> {
+  try {
+    await task
+  } catch {
+    // The caller of the task reports its error.
+  }
+}
+
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
@@ -72,10 +85,13 @@ function isDependencyScan(options: object): boolean {
 }
 
 export type {
+  IconComponent,
   IconCustomization,
   IconCustomizer,
   SolidIconsOptions
 } from './types.ts'
+export type { IconTypesFile, IconTypesOptions } from './writeIconTypes/index.ts'
+export { checkIconTypes, writeIconTypes } from './writeIconTypes/index.ts'
 
 export function solidIcons(options: SolidIconsOptions = {}): Plugin {
   const collections = options.collections ?? {}
@@ -84,6 +100,8 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
   let root = ''
   let folders: Folders = new Map()
   let tables: NameTables = createNameTables({ root, folders })
+  let typesFile: string | undefined
+  let pendingTypes = Promise.resolve()
   const idsByFile: ModuleIds = new Map()
 
   function idsOfFile(file: string): Set<string> {
@@ -94,6 +112,20 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
       ids.add(iconId({ ...icon, isRaw: true }))
     }
     return ids
+  }
+
+  async function writeTypesAfter(previous: Promise<void>): Promise<void> {
+    await previous
+    if (typesFile === undefined) return
+    const content = await renderIconTypes({ root, folders, tables })
+    await writeTypesFile({ file: typesFile, content })
+  }
+
+  // One write at a time, so the last list of icons is the one on disk.
+  function updateTypes(): Promise<void> {
+    const update = writeTypesAfter(pendingTypes)
+    pendingTypes = settled(update)
+    return update
   }
 
   async function resolveIcon({
@@ -112,10 +144,15 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
   return {
     name: PLUGIN_NAME,
     enforce: 'pre',
-    configResolved({ root: viteRoot }) {
+    async configResolved({ root: viteRoot }) {
       root = viteRoot
       folders = resolveFolders({ root, collections })
       tables = createNameTables({ root, folders })
+      typesFile =
+        options.typesFile === false
+          ? undefined
+          : path.resolve(root, options.typesFile ?? DEFAULT_TYPES_FILE)
+      await updateTypes()
     },
     configureServer(server) {
       server.watcher.add([...folders.values()])

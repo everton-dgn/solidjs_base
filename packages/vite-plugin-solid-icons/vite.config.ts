@@ -19,7 +19,9 @@ export default defineConfig({
     }
   },
   pack: {
-    entry: { index: 'src/index.ts' },
+    // The types entry lets the declarations of an application import the
+    // component type without the types of Vite.
+    entry: { index: 'src/index.ts', types: 'src/types.ts' },
     format: ['esm'],
     dts: { generator: 'tsgo' },
     exports: {

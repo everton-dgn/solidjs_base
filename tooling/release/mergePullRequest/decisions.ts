@@ -46,6 +46,7 @@ const RULESET_EVENTS = new Set([
   'deployment_status'
 ])
 const PASSING_CONCLUSIONS = new Set(['success', 'neutral', 'skipped'])
+const HELD = 'action_required'
 
 function latest<Item extends { id: number }>(
   items: readonly Item[]
@@ -59,6 +60,12 @@ function eventOf({ check, workflowRuns }: CountedCheck): string {
 
 function isCounted(counted: CountedCheck): boolean {
   return RULESET_EVENTS.has(eventOf(counted))
+}
+
+// GitHub lists a held run as completed, with action_required as its
+// conclusion; the status is accepted too in case that changes.
+function isHeld(run: WorkflowRun): boolean {
+  return run.status === HELD || run.conclusion === HELD
 }
 
 export const CI_WORKFLOW = '.github/workflows/ci.yml'
@@ -137,7 +144,7 @@ export function decideCheck(state: CheckState): CheckDecision {
     run =>
       run.path === CI_WORKFLOW &&
       run.headSha === head &&
-      run.status === 'action_required' &&
+      isHeld(run) &&
       !approvedRuns.has(run.id)
   )
   if (held.length === 0) return { kind: 'missing' }

@@ -22,7 +22,7 @@ import {
 
 const HELD_RUN = workflowRun({
   id: 501,
-  status: 'action_required',
+  status: 'completed',
   conclusion: 'action_required',
   suiteId: 9001
 })

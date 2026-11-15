@@ -94,15 +94,15 @@ describe('mergePullRequest decisions', () => {
   })
 
   it('approves only a held CI run of the same head that was not approved yet', () => {
-    const held = run({ id: 1, status: 'action_required' })
-    const approved = run({ id: 4, status: 'action_required' })
+    const held = run({ id: 1, conclusion: 'action_required' })
+    const approved = run({ id: 4, conclusion: 'action_required' })
     const decision = decideCheck({
       head: HEAD,
       checkRuns: [],
       workflowRuns: [
         held,
-        run({ id: 2, status: 'action_required', headSha: 'other' }),
-        run({ id: 3, status: 'action_required', path: RELEASE_WORKFLOW }),
+        run({ id: 2, conclusion: 'action_required', headSha: 'other' }),
+        run({ id: 3, conclusion: 'action_required', path: RELEASE_WORKFLOW }),
         approved
       ],
       approvedRuns: new Set([approved.id]),
@@ -111,11 +111,27 @@ describe('mergePullRequest decisions', () => {
     assert.deepEqual(decision, { kind: 'approve', runs: [held] })
   })
 
+  it('finds a held run by its conclusion or by its status', () => {
+    for (const held of [
+      run({ status: 'completed', conclusion: 'action_required' }),
+      run({ status: 'action_required', conclusion: undefined })
+    ]) {
+      const decision = decideCheck({
+        head: HEAD,
+        checkRuns: [],
+        workflowRuns: [held],
+        approvedRuns: NOTHING_APPROVED,
+        canApprove: true
+      })
+      assert.deepEqual(decision, { kind: 'approve', runs: [held] })
+    }
+  })
+
   it('keeps a held run of a pull request that cannot be approved here', () => {
     const decision = decideCheck({
       head: HEAD,
       checkRuns: [],
-      workflowRuns: [run({ status: 'action_required' })],
+      workflowRuns: [run({ conclusion: 'action_required' })],
       approvedRuns: NOTHING_APPROVED,
       canApprove: false
     })

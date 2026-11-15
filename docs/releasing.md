@@ -83,18 +83,23 @@ into the branch, never rebase it, and wait for `CI required` again.
    last published version. A branch that changed the same option more than once
    publishes every footer, and a pull request merged with the merge button adds
    its title as an entry.
-2. Do not merge notes that give wrong or contradictory migration steps. Fix the
-   entry in the `CHANGELOG.md` of the release branch and write the same text in
-   the pull request body, which becomes the GitHub Release notes. Push from your
-   account with the commands of
+2. Do not merge notes that give wrong or contradictory migration steps, or an
+   entry that should not exist and raises the version, such as the title of a
+   pull request merged with the merge button. Fix the entry in the
+   `CHANGELOG.md` of the release branch and write the same text in the pull
+   request body, which becomes the GitHub Release notes. Push from your account
+   with the commands of
    [When the release pull request has a conflict](#when-the-release-pull-request-has-a-conflict),
    right before merging: release-please writes the pull request again, and
    discards the edit, when a new merge changes the release it computes.
-3. Approve only the held run of the head you are about to merge and wait for
+3. For the first automated release of a package, create the trusted publisher
+   now
+   ([First automated release of a package](#first-automated-release-of-a-package)).
+4. Approve only the held run of the head you are about to merge and wait for
    `CI required`. A push from your account starts the CI without the approval.
-4. Merge with the command in [Merging a pull request](#merging-a-pull-request).
-5. After the publish job, check the registry. The version can take a few minutes
-   to appear:
+5. Merge with the command in [Merging a pull request](#merging-a-pull-request).
+6. After the publish job, check the registry. The version can take a few minutes
+   to appear, and the output has the version and the provenance statement:
 
    ```bash
    npm view @evertondgn/<package>@<version> version dist.attestations.provenance --json

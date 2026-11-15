@@ -19,8 +19,8 @@ anything in the application.
 
 The root `package.json` lists two workspace folders:
 
-- `packages/*`: the packages published to npm. `@evertondgn/solid-runtime` stays
-  private until its first publish.
+- `packages/*`: the packages published to npm, `@evertondgn/solid-tooling` and
+  `@evertondgn/solid-runtime`.
 - `apps/*`: applications that use the packages through the workspace. They are
   never published.
 

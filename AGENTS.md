@@ -20,7 +20,9 @@ the ones that cost a fix after a release when they were missed.
   package tests, tarball tests and installed application scenarios, as the
   publish job does.
 - A change in `apps/boilerplate` also runs the commands of
-  [the boilerplate app section](docs/development.md#the-boilerplate-app).
+  [the boilerplate app section](docs/development.md#the-boilerplate-app). The CI
+  runs them for a package change too, so run them when the change reaches a
+  preset or the runtime code the application uses.
 
 ## Commits
 
@@ -46,7 +48,9 @@ the ones that cost a fix after a release when they were missed.
   such as `vite`, `vite-plus`, `vitest`, `rolldown` and `@solidjs/vite-plugin`,
   out of its `dependencies`, `peerDependencies` and `optionalDependencies`. Copy
   a type instead of importing it from one of them. `vp run test:tarball` fails
-  when one of them reaches a production section.
+  when one of these names reaches a production section. It does not follow the
+  dependencies of a dependency, so check the `dependencies` and required
+  `peerDependencies` of every production dependency you add.
 
 ## Pull requests and releases
 

@@ -8,8 +8,9 @@
   [0029](0029-runtime-middleware-chain.md),
   [0030](0030-packaged-environment-schemas.md),
   [0031](0031-runtime-seo-core.md), [0032](0032-packaged-fonts.md),
-  [0033](0033-runtime-sitemap-publication.md) and
-  [0034](0034-runtime-markdown-publication.md)
+  [0033](0033-runtime-sitemap-publication.md),
+  [0034](0034-runtime-markdown-publication.md) and
+  [0036](0036-no-server-mode.md)
 - Date: 2026-11-13
 
 ## Context
@@ -213,3 +214,17 @@ checks the server environment import and both invalid origins once; both SSR
 fixtures check a used server-only client import. The meta-only profile keeps its
 distinct assertions that unused origin values are accepted. Every added
 publication profile retains its positive build, module audit and HTTP smoke.
+
+## Client-only build in a browser
+
+ADR 0036 opens the client-only build in Chromium, or Chrome on CI, in the
+isolated profile only and without a mutation. After the default build and its
+audits, which still reject theme modules, the case rewrites the installed copy
+with hash history, the theme in `localStorage` and the stored theme script
+plugin, lints and type-checks it, and audits two more builds: base `/meu-repo/`
+served over HTTP from that folder, and base `./` opened from `file://` with
+`--allow-file-access-from-files`. Those audits require runtime theme modules and
+the theme script, and still reject development tools. Rendering in a real app
+shell stays with the application. Helpers live in
+`src/tarball/no-server-scenarios.ts`; the case grew by about 3 seconds, within
+its budget.

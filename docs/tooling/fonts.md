@@ -108,9 +108,13 @@ data. Development serves external CSS and font responses, and a font edit
 reloads the page.
 
 The default `/` base works without customization. A same-origin absolute
-pathname such as `/app/` and a relative `build.assetsDir` are supported.
-Relative URL bases and external asset origins are rejected. Generated asset
-names are owned by the font plugin; `assetFileNames` does not rename them.
+pathname such as `/app/` and a relative `build.assetsDir` are supported. With
+`ssr: false`, the relative base `./` is supported too: the CSS names each font
+by its file name, relative to the stylesheet, and `index.html` links
+`./assets/...`, so both resolve to the same file. See
+[applications with no server](no-server.md). A relative base with SSR and
+external asset origins are rejected. Generated asset names are owned by the font
+plugin; `assetFileNames` does not rename them.
 
 Keep `--font-family`, fallback stacks, weights, sizes and other typography
 tokens in application CSS. Add a file descriptor for another subset and copy its

@@ -4,7 +4,7 @@ import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
 import { pathToFileURL } from 'node:url'
 
-import { build } from 'vite-plus'
+import { build, createLogger, createServer } from 'vite-plus'
 
 import { solidIcons } from '../index.ts'
 import { createFixtureApp, fixtureConfig, TYPES_FILE } from './fixture-app.ts'
@@ -30,6 +30,10 @@ export const logos = () => ({
   dottedRaw
 })
 `
+
+function titledSvg(title: string): string {
+  return `<svg viewBox="0 0 16 16"><title>${title}</title></svg>`
+}
 
 function isLogos(value: unknown): value is { logos: () => RenderedLogos } {
   return (
@@ -105,10 +109,11 @@ describe('solidIcons', () => {
   it('loads the icon a name ending in .tsx names', async context => {
     const root = await createFixtureApp()
     context.after(() => rm(root, { recursive: true, force: true }))
-    const svg = (file: string) =>
-      `<svg viewBox="0 0 16 16"><title>${file}</title></svg>`
-    await writeFile(path.join(root, 'icons/logo.svg'), svg('logo.svg'))
-    await writeFile(path.join(root, 'icons/logo.tsx.svg'), svg('logo.tsx.svg'))
+    await writeFile(path.join(root, 'icons/logo.svg'), titledSvg('logo.svg'))
+    await writeFile(
+      path.join(root, 'icons/logo.tsx.svg'),
+      titledSvg('logo.tsx.svg')
+    )
     await writeFile(path.join(root, 'src/logos.tsx'), LOGOS)
     await build({
       ...fixtureConfig({ root, isSsr: true, typesFile: false }),
@@ -127,6 +132,47 @@ describe('solidIcons', () => {
     for (const key of ['dotted', 'namedDotted', 'dottedRaw']) {
       assert.match(rendered[key] ?? '', /<title>logo\.tsx\.svg<\/title>/u, key)
     }
+  })
+
+  it('warns once for the editor data of a file', async context => {
+    const root = await createFixtureApp()
+    context.after(() => rm(root, { recursive: true, force: true }))
+    await writeFile(
+      path.join(root, 'icons/drawn.svg'),
+      '<svg xmlns:sodipodi="x"><sodipodi:namedview/><metadata>by me</metadata><path d="M0 0" sodipodi:nodetypes="cc"/></svg>'
+    )
+    const warnings: string[] = []
+    const server = await createServer({
+      ...fixtureConfig({ root, isSsr: true, typesFile: false }),
+      customLogger: {
+        ...createLogger('silent'),
+        warn: message => {
+          warnings.push(message)
+        }
+      },
+      optimizeDeps: { noDiscovery: true },
+      server: { middlewareMode: true, watch: null }
+    })
+    context.after(() => server.close())
+    for (const environment of [
+      server.environments.client,
+      server.environments.ssr
+    ]) {
+      for (const url of [
+        'icon:own/drawn/component.tsx',
+        '\0icon:own/drawn.js'
+      ]) {
+        const result = await environment.transformRequest(url)
+        assert.doesNotMatch(result?.code ?? '', /sodipodi|metadata/u, url)
+      }
+    }
+
+    assert.deepEqual(
+      warnings.filter(warning => warning.includes('own/drawn')),
+      [
+        '[plugin vite-plugin-solid-icons] Icon "own/drawn": left out the editor data, which draws nothing: xmlns:sodipodi, <sodipodi:namedview>, <metadata>, sodipodi:nodetypes.'
+      ]
+    )
   })
 
   it('names the missing icon in the build error', async context => {

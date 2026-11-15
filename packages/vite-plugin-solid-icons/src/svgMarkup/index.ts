@@ -1,4 +1,6 @@
-type Attribute = {
+type Range = { start: number; end: number }
+
+type Attribute = Range & {
   name: string
   // The value as the file writes it, between its quotes.
   rawValue: string
@@ -14,7 +16,14 @@ type ElementNode = {
   name: string
   attributes: Attribute[]
   children: SvgNode[]
+  // Where the element starts in the SVG, for a raw import that drops it.
+  start: number
+  drop: DropKind
 }
+
+// Editor data is left out whole: the element that starts it, and what it
+// holds.
+type DropKind = 'none' | 'whole' | 'inside'
 
 type SvgNode = TextNode | ElementNode
 
@@ -28,24 +37,41 @@ type StartTag = {
 type Scanner = { svg: string; at: number }
 type PatternRead = { scanner: Scanner; pattern: RegExp }
 type ElementRead = { scanner: Scanner; element: string }
+type AttributeRead = ElementRead & { start: number }
 type MarkupSkip = { scanner: Scanner; open: string; close: string }
 type TextInput = { parent: ElementNode; raw: string }
+type TextCheck = { parent: ElementNode; value: string }
+type Drops = {
+  // The parts of the SVG that the icon leaves out, in the order of the file.
+  ranges: Range[]
+  names: string[]
+}
 type ContentInput = {
   scanner: Scanner
   root: ElementNode
   isComponent: boolean
+  drops: Drops
 }
 type AttributeCheck = { attribute: Attribute; element: string }
 type DuplicateCheck = { attributes: Attribute[]; element: string }
-type CheckInput = { node: ElementNode; isComponent: boolean }
+type CheckInput = {
+  node: ElementNode
+  parent: ElementNode | undefined
+  isComponent: boolean
+}
 type TagInput = { node: ElementNode; isRoot: boolean }
 type ParseInput = { svg: string; isComponent: boolean }
 type RawTextInput = { svg: string; parsed: ParsedSvg }
+type KeptInput = { attributes: Attribute[]; drops: Drops }
+type DropInput = { drops: Drops; range: Range; name: string }
+type DropKindInput = { parent: ElementNode; name: string }
+type CloseInput = { node: ElementNode; end: number; drops: Drops }
 type NodeInput = {
   scanner: Scanner
   parent: ElementNode
   open: ElementNode[]
   isComponent: boolean
+  drops: Drops
 }
 type JsxInput = {
   node: SvgNode | string
@@ -74,8 +100,90 @@ const LAST_SURROGATE = 57_343
 // oxlint-disable-next-line eslint/no-control-regex -- the control characters are the ones a browser drops.
 const URL_IGNORED = /[\u0000- ]/gu
 const SCRIPT_URL = /^(?:javascript|vbscript):/u
-// JSX reads a capital first letter, a dot or a colon in a tag as code.
-const JSX_TAG = /^[a-z][\dA-Za-z]*(?:-[\dA-Za-z]+)*$/u
+// The elements of SVG 2 and of its filters and animations, as written in
+// SVG. The HTML parser of a page reads some other names, such as <p> or
+// <img>, as HTML even inside an <svg>, where they can run code.
+const SVG_ELEMENTS = new Set([
+  'a',
+  'animate',
+  'animateMotion',
+  'animateTransform',
+  'circle',
+  'clipPath',
+  'defs',
+  'desc',
+  'ellipse',
+  'feBlend',
+  'feColorMatrix',
+  'feComponentTransfer',
+  'feComposite',
+  'feConvolveMatrix',
+  'feDiffuseLighting',
+  'feDisplacementMap',
+  'feDistantLight',
+  'feDropShadow',
+  'feFlood',
+  'feFuncA',
+  'feFuncB',
+  'feFuncG',
+  'feFuncR',
+  'feGaussianBlur',
+  'feImage',
+  'feMerge',
+  'feMergeNode',
+  'feMorphology',
+  'feOffset',
+  'fePointLight',
+  'feSpecularLighting',
+  'feSpotLight',
+  'feTile',
+  'feTurbulence',
+  'filter',
+  'g',
+  'image',
+  'line',
+  'linearGradient',
+  'marker',
+  'mask',
+  'mpath',
+  'path',
+  'pattern',
+  'polygon',
+  'polyline',
+  'radialGradient',
+  'rect',
+  'set',
+  'stop',
+  'style',
+  'svg',
+  'switch',
+  'symbol',
+  'text',
+  'textPath',
+  'title',
+  'tspan',
+  'use',
+  'view'
+])
+// The namespaces that drawing applications write for themselves, such as
+// the layers of Inkscape; nothing in them draws.
+const EDITOR_NAMESPACES = new Set([
+  'cc',
+  'dc',
+  'inkscape',
+  'rdf',
+  'serif',
+  'sketch',
+  'sodipodi'
+])
+const METADATA = 'metadata'
+const XMLNS_PREFIX = 'xmlns:'
+// A browser reads the content of <title> and <desc> in an SVG as HTML, and
+// the text of <style> is written as it is in the HTML of the server.
+const TEXT_ONLY = new Set(['desc', 'style', 'title'])
+const ANIMATED_ATTRIBUTE = 'attributename'
+const LINK_ATTRIBUTE = 'href'
+const VALUE_LIST = 'values'
 const JSX_ATTRIBUTE = /^[A-Za-z_][\w-]*(?::[A-Za-z_][\w-]*)?$/u
 // The namespaces and props that the Solid compiler reads as code or as DOM
 // properties, not as attributes.
@@ -158,7 +266,11 @@ function decode(text: string): string {
   return text.replaceAll(REFERENCES, reference => character(reference))
 }
 
-function readAttribute({ scanner, element }: ElementRead): Attribute {
+function readAttribute({
+  scanner,
+  element,
+  start: attributeStart
+}: AttributeRead): Attribute {
   const name = read({ scanner, pattern: NAME })
   if (name === '') {
     throw malformed(`<${element}> has an attribute without a name`)
@@ -185,7 +297,14 @@ function readAttribute({ scanner, element }: ElementRead): Attribute {
     )
   }
   scanner.at = end + 1
-  return { name, rawValue, quote, value: decode(rawValue) }
+  return {
+    name,
+    rawValue,
+    quote,
+    value: decode(rawValue),
+    start: attributeStart,
+    end: scanner.at
+  }
 }
 
 function readStartTag(scanner: Scanner): StartTag {
@@ -209,7 +328,7 @@ function readStartTag(scanner: Scanner): StartTag {
     if (scanner.at === before) {
       throw malformed(`the attributes of <${name}> are not separated by spaces`)
     }
-    attributes.push(readAttribute({ scanner, element: name }))
+    attributes.push(readAttribute({ scanner, element: name, start: before }))
   }
 }
 
@@ -236,15 +355,30 @@ function localName(name: string): string {
   return name.slice(name.indexOf(':') + 1).toLowerCase()
 }
 
+function isScriptUrl(value: string): boolean {
+  return SCRIPT_URL.test(value.replaceAll(URL_IGNORED, '').toLowerCase())
+}
+
 function checkScriptAttribute({ attribute, element }: AttributeCheck): void {
   const { name, value } = attribute
-  if (localName(name).startsWith('on')) {
+  const local = localName(name)
+  if (local.startsWith('on')) {
     throw new SvgError(
       `the attribute ${name} of <${element}> is an event handler, which runs code`
     )
   }
-  const url = value.replaceAll(URL_IGNORED, '').toLowerCase()
-  if (SCRIPT_URL.test(url)) {
+  // WHY: an animation of a link can set it to any URL of its values list,
+  // whose entries a semicolon separates.
+  if (
+    local === ANIMATED_ATTRIBUTE &&
+    localName(value.trim()) === LINK_ATTRIBUTE
+  ) {
+    throw new SvgError(
+      `the attribute ${name} of <${element}> animates a link, which can set it to a script URL`
+    )
+  }
+  const entries = local === VALUE_LIST ? value.split(';') : [value]
+  if (entries.some(entry => isScriptUrl(entry))) {
     throw new SvgError(
       `the attribute ${name} of <${element}> is a script URL, which runs code`
     )
@@ -272,7 +406,7 @@ function checkDuplicates({ attributes, element }: DuplicateCheck): void {
   }
 }
 
-function checkElement({ node, isComponent }: CheckInput): void {
+function checkElement({ node, parent, isComponent }: CheckInput): void {
   const local = localName(node.name)
   if (local === 'script') {
     throw new SvgError(`the SVG has a <${node.name}> element, which runs code`)
@@ -282,9 +416,14 @@ function checkElement({ node, isComponent }: CheckInput): void {
       `the SVG has a <${node.name}> element, which embeds HTML`
     )
   }
-  if (isComponent && !JSX_TAG.test(node.name)) {
+  if (!SVG_ELEMENTS.has(node.name)) {
     throw new SvgError(
-      `the element <${node.name}> is not an element in JSX, which reads a capital letter, a dot or a colon in a tag as code; import the icon with ?raw to keep it as text`
+      `the SVG has a <${node.name}> element, which is not an SVG element: a browser can read it as HTML, which can run code`
+    )
+  }
+  if (parent && TEXT_ONLY.has(parent.name)) {
+    throw new SvgError(
+      `the SVG has a <${node.name}> element inside <${parent.name}>, which holds text only: a browser can read it as HTML, which can run code`
     )
   }
   for (const attribute of node.attributes) {
@@ -293,14 +432,54 @@ function checkElement({ node, isComponent }: CheckInput): void {
   }
 }
 
+function isEditorName(name: string): boolean {
+  const colon = name.indexOf(':')
+  return colon !== -1 && EDITOR_NAMESPACES.has(name.slice(0, colon))
+}
+
+function isEditorAttribute({ name }: Attribute): boolean {
+  return (
+    isEditorName(name) ||
+    (name.startsWith(XMLNS_PREFIX) &&
+      EDITOR_NAMESPACES.has(name.slice(XMLNS_PREFIX.length)))
+  )
+}
+
+function isEditorElement(name: string): boolean {
+  return name === METADATA || isEditorName(name)
+}
+
+function dropKind({ parent, name }: DropKindInput): DropKind {
+  if (parent.drop !== 'none') return 'inside'
+  return isEditorElement(name) ? 'whole' : 'none'
+}
+
+function addDrop({ drops, range, name }: DropInput): void {
+  drops.ranges.push(range)
+  drops.names.push(name)
+}
+
+// The attributes of the file without the ones of an editor, which the icon
+// leaves out.
+function keptAttributes({ attributes, drops }: KeptInput): Attribute[] {
+  return attributes.filter(attribute => {
+    if (!isEditorAttribute(attribute)) return true
+    addDrop({ drops, range: attribute, name: attribute.name })
+    return false
+  })
+}
+
 // The first value of a repeated attribute of the root wins: the customizer
 // writes its attributes before the ones of the file.
-function uniqueAttributes(attributes: Attribute[]): Attribute[] {
+function uniqueAttributes({ attributes, drops }: KeptInput): Attribute[] {
   const seen = new Set<string>()
-  return attributes.filter(({ name }) => {
-    if (seen.has(name)) return false
-    seen.add(name)
-    return true
+  return attributes.filter(attribute => {
+    if (!seen.has(attribute.name)) {
+      seen.add(attribute.name)
+      return true
+    }
+    drops.ranges.push(attribute)
+    return false
   })
 }
 
@@ -316,34 +495,60 @@ function readTail(scanner: Scanner): void {
   }
 }
 
+function checkText({ parent, value }: TextCheck): void {
+  const isChecked = parent.drop === 'none' && TEXT_ONLY.has(parent.name)
+  if (!isChecked || !value.includes('<')) {
+    return
+  }
+  throw new SvgError(
+    `the text of <${parent.name}> has a "<", which can end the element in the HTML of a page and run code`
+  )
+}
+
 function pushText({ parent, raw }: TextInput): void {
   if (raw === '') return
   if (raw.includes(CDATA_END)) {
     throw malformed(`a "${CDATA_END}" sits outside a CDATA section`)
   }
-  parent.children.push({
-    kind: 'text',
-    raw,
-    value: decode(raw),
-    isCdata: false
-  })
+  const value = decode(raw)
+  checkText({ parent, value })
+  parent.children.push({ kind: 'text', raw, value, isCdata: false })
+}
+
+// Editor data leaves the raw text from its start to its end.
+function closeElement({ node, end, drops }: CloseInput): void {
+  if (node.drop !== 'whole') return
+  addDrop({ drops, range: { start: node.start, end }, name: `<${node.name}>` })
 }
 
 function readElement({
   scanner,
   parent,
-  isComponent
+  isComponent,
+  drops
 }: NodeInput): ElementNode | undefined {
+  const start = scanner.at
   const tag = readStartTag(scanner)
   scanner.at = tag.end
+  checkDuplicates({ attributes: tag.attributes, element: tag.name })
+  const drop = dropKind({ parent, name: tag.name })
   const node: ElementNode = {
     kind: 'element',
     name: tag.name,
-    attributes: tag.attributes,
-    children: []
+    attributes:
+      drop === 'none'
+        ? keptAttributes({ attributes: tag.attributes, drops })
+        : tag.attributes,
+    children: [],
+    start,
+    drop
   }
-  checkDuplicates({ attributes: tag.attributes, element: tag.name })
-  checkElement({ node, isComponent })
+  // The content of editor data is left out with it, so it is not checked.
+  if (drop !== 'none') {
+    if (tag.isSelfClosing) closeElement({ node, end: tag.end, drops })
+    return tag.isSelfClosing ? undefined : node
+  }
+  checkElement({ node, parent, isComponent })
   parent.children.push(node)
   return tag.isSelfClosing ? undefined : node
 }
@@ -354,11 +559,13 @@ function readNode(input: NodeInput): ElementNode | undefined {
   if (svg.startsWith(CLOSING_TAG_START, at)) {
     readClosingTag({ scanner, element: parent.name })
     input.open.pop()
+    closeElement({ node: parent, end: scanner.at, drops: input.drops })
     return undefined
   }
   if (svg.startsWith(CDATA_START, at)) {
     const section = skipMarkup({ scanner, open: CDATA_START, close: CDATA_END })
     const value = section.slice(CDATA_START.length, -CDATA_END.length)
+    checkText({ parent, value })
     parent.children.push({ kind: 'text', raw: section, value, isCdata: true })
     return undefined
   }
@@ -375,14 +582,19 @@ function readNode(input: NodeInput): ElementNode | undefined {
 
 // Reads the content of the root element without recursion, so the depth of
 // the markup cannot overflow the stack.
-function readContent({ scanner, root, isComponent }: ContentInput): void {
+function readContent({
+  scanner,
+  root,
+  isComponent,
+  drops
+}: ContentInput): void {
   const open: ElementNode[] = [root]
   for (let parent = root; open.length > 0; parent = open.at(-1) ?? root) {
     const next = scanner.svg.indexOf('<', scanner.at)
     if (next === -1) throw malformed(`<${parent.name}> is not closed`)
     pushText({ parent, raw: scanner.svg.slice(scanner.at, next) })
     scanner.at = next
-    const child = readNode({ scanner, parent, open, isComponent })
+    const child = readNode({ scanner, parent, open, isComponent, drops })
     if (child) open.push(child)
   }
 }
@@ -417,10 +629,11 @@ function nodeJsx({ node, root, pending }: JsxInput): string {
 
 export type ParsedSvg = {
   root: ElementNode
-  // The start tag of the root, which a raw import writes again when it
-  // drops a repeated attribute.
-  rootStart: StartTag
-  hasDuplicateRootAttributes: boolean
+  // The parts of the file that a raw import leaves out: editor data and a
+  // repeated attribute of the root.
+  removed: Range[]
+  // The editor data that the icon leaves out, by name, for the warning.
+  dropped: string[]
 }
 
 export function isSvgError(error: unknown): error is Error {
@@ -439,21 +652,27 @@ export function parseSvg({ svg, isComponent }: ParseInput): ParsedSvg {
     throw new SvgError('the file has no <svg> root element')
   }
   scanner.at = rootStart.end
-  const attributes = uniqueAttributes(rootStart.attributes)
+  const drops: Drops = { ranges: [], names: [] }
+  const unique = uniqueAttributes({ attributes: rootStart.attributes, drops })
   const root: ElementNode = {
     kind: 'element',
     name: 'svg',
-    attributes,
-    children: []
+    attributes: keptAttributes({ attributes: unique, drops }),
+    children: [],
+    start: 0,
+    drop: 'none'
   }
-  checkElement({ node: root, isComponent })
-  if (!rootStart.isSelfClosing) readContent({ scanner, root, isComponent })
+  checkElement({ node: root, parent: undefined, isComponent })
+  if (!rootStart.isSelfClosing) {
+    readContent({ scanner, root, isComponent, drops })
+  }
   readTail(scanner)
   return {
     root,
-    rootStart,
-    hasDuplicateRootAttributes:
-      attributes.length !== rootStart.attributes.length
+    removed: drops.ranges.toSorted(
+      (first, second) => first.start - second.start
+    ),
+    dropped: [...new Set(drops.names)]
   }
 }
 
@@ -468,13 +687,14 @@ export function svgJsx(root: ElementNode): string {
   return output.join('')
 }
 
-// The SVG text of a raw import: the file as written, with a repeated
-// attribute of the root written once.
+// The SVG text of a raw import: the file as written, without the editor
+// data and with a repeated attribute of the root written once.
 export function svgText({ svg, parsed }: RawTextInput): string {
-  if (!parsed.hasDuplicateRootAttributes) return svg
-  const attributes = parsed.root.attributes
-    .map(({ name, rawValue, quote }) => ` ${name}=${quote}${rawValue}${quote}`)
-    .join('')
-  const close = parsed.rootStart.isSelfClosing ? '/>' : '>'
-  return `<svg${attributes}${close}${svg.slice(parsed.rootStart.end)}`
+  let text = ''
+  let at = 0
+  for (const { start, end } of parsed.removed) {
+    text += svg.slice(at, start)
+    at = end
+  }
+  return text + svg.slice(at)
 }

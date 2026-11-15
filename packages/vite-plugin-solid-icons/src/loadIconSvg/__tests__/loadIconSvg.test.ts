@@ -314,7 +314,11 @@ describe('loadIconSvg of a folder', () => {
         attributes['aria-label'] = title
       }
     })
-    const component = compileIcon({ svg, isRaw: false, icon: 'own/star' })
+    const { code: component } = compileIcon({
+      svg,
+      isRaw: false,
+      icon: 'own/star'
+    })
 
     assert.match(svg, /aria-label="a &quot;b&quot; &lt;c&gt; &amp; d"/u)
     assert.match(component, /aria-label=\{"a \\"b\\" <c> & d"\}/u)

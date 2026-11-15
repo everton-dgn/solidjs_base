@@ -92,6 +92,7 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
   let queuedTypes: Promise<void> | undefined
   let lastTypesEvent = ''
   const warnedFiles = new Set<string>()
+  const warnedIcons = new Set<string>()
   const idsByFile: ModuleIds = new Map()
   const importersByCollection: ModuleIds = new Map()
 
@@ -245,7 +246,15 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
           track({ ids: idsByFile, key: fileKey(file), id })
         }
         const icon = `${collection}/${name}`
-        return { code: compileIcon({ svg, isRaw, icon }), map: null }
+        const { code, dropped } = compileIcon({ svg, isRaw, icon })
+        // The component and the raw text of an icon drop the same data.
+        if (dropped.length > 0 && !warnedIcons.has(icon)) {
+          warnedIcons.add(icon)
+          warn(
+            `Icon "${icon}": left out the editor data, which draws nothing: ${dropped.join(', ')}.`
+          )
+        }
+        return { code, map: null }
       }
     },
     async hotUpdate(context) {

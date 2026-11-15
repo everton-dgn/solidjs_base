@@ -46,8 +46,14 @@ const BARE_SVG_START = /^<svg(?=[/>])/u
 // after it is refused when it opens. Without O_NONBLOCK a FIFO in its place
 // would block the open. Windows has no O_NOFOLLOW, and keeps only the check
 // of the listing.
-const OPEN_FLAGS =
-  constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0)
+const OPTIONAL_FLAGS: (number | undefined)[] = [
+  constants.O_NOFOLLOW,
+  constants.O_NONBLOCK
+]
+const OPEN_FLAGS = OPTIONAL_FLAGS.reduce<number>(
+  (flags, flag) => flags | (flag ?? 0),
+  constants.O_RDONLY
+)
 const ATTRIBUTE_NAME = /^[A-Za-z_][\w.:-]*$/u
 const MARKUP_CHARACTERS = /[&"<>]/gu
 const ESCAPES: Record<string, string> = {
@@ -168,7 +174,8 @@ async function readFolderSvg(source: FolderSource): Promise<string> {
   const handle = await openFolderFile(source)
   let text: string
   try {
-    if (!(await handle.stat()).isFile()) {
+    const stats = await handle.stat()
+    if (!stats.isFile()) {
       throw missingFolderIcon({ ...source, problem: 'irregular' })
     }
     text = await handle.readFile('utf8')

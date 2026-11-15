@@ -11,14 +11,21 @@ type CompileInput = {
 // installed Solid version writes the DOM and the SSR output. The markup is
 // written again from what the SVG parses to, so no text of the file becomes
 // code of the module.
-function moduleCode({ svg, isRaw }: CompileInput): string {
+function moduleCode({ svg, isRaw }: CompileInput): CompiledIcon {
   const parsed = parseSvg({ svg, isComponent: !isRaw })
-  return isRaw
+  const code = isRaw
     ? `export default ${JSON.stringify(svgText({ svg, parsed }))}\n`
     : `export default (props = {}) => ${svgJsx(parsed.root)}\n`
+  return { code, dropped: parsed.dropped }
 }
 
-export function compileIcon(input: CompileInput): string {
+export type CompiledIcon = {
+  code: string
+  // The editor data that the icon left out, such as <metadata>.
+  dropped: string[]
+}
+
+export function compileIcon(input: CompileInput): CompiledIcon {
   try {
     return moduleCode(input)
   } catch (error) {

@@ -12,29 +12,77 @@ import { createFixtureApp, defer, fixtureConfig } from './fixture-app.ts'
 
 type ServerEntry = { html: () => string }
 type EntryInput = { context: TestContext; code: string; files?: Files }
+type RefusalBuild = { root: string; code: string; isSsr: boolean }
 type Files = Record<string, string>
 type RefusedSvg = [name: string, svg: string, message: RegExp]
 type FilesInput = { root: string; files: Files }
 
 // Text and a value that would run code if the markup reached the module or
-// the page as it is written.
+// the page as it is written. The metadata is editor data, which the plugin
+// leaves out of the component and of the raw text.
 const TRAP_TEXT = '{globalThis.__iconPwned = 1}'
 const TRAP_VALUE = '"><img src="x" onerror="globalThis.__iconPwned = 2">'
-const TRAP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><text data-trap="&quot;&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 2&quot;&gt;">${TRAP_TEXT}</text><style><![CDATA[text > tspan { fill: red }]]></style></svg>\n`
+const TRAP_TSPAN =
+  '</tspan></text></svg><img src="x" onerror="globalThis.__iconPwned = 6">'
+const TRAP_BODY = `<text data-trap="&quot;&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 2&quot;&gt;">${TRAP_TEXT}</text><text><tspan>&lt;/tspan&gt;&lt;/text&gt;&lt;/svg&gt;&lt;img src=&quot;x&quot; onerror=&quot;globalThis.__iconPwned = 6&quot;&gt;</tspan></text><style><![CDATA[text > tspan { fill: red }]]></style><metadata><p><iframe srcdoc="&lt;script&gt;globalThis.__iconPwned = 7&lt;/script&gt;"></iframe></p></metadata>`
+const TRAP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">${TRAP_BODY}</svg>\n`
 const TRAP_APP = `import Trap from 'icon:own/trap'
 import trapSvg from 'icon:own/trap?raw'
+import InstalledTrap from 'icon:trap/trap'
+import installedTrapSvg from 'icon:trap/trap?raw'
 
 export default function App() {
   return (
     <main>
       <Trap data-icon="trap" />
+      <InstalledTrap data-icon="installed-trap" />
       <output id="raw">{trapSvg}</output>
+      <div id="raw-html" innerHTML={trapSvg} />
+      <div id="installed-raw-html" innerHTML={installedTrapSvg} />
     </main>
   )
 }
 `
+// Markup that leaves the SVG in the HTML of a page, as a body of an icon.
+const ESCAPES: [name: string, body: string, message: RegExp][] = [
+  [
+    'style-cdata',
+    '<style><![CDATA[</style><img src="x" onerror="globalThis.__iconPwned = 3"><style>]]></style>',
+    /the text of <style> has a "<"/u
+  ],
+  [
+    'style-entities',
+    '<style>&lt;/style&gt;&lt;img src="x" onerror="globalThis.__iconPwned = 3"&gt;</style>',
+    /the text of <style> has a "<"/u
+  ],
+  [
+    'iframe',
+    '<p><iframe srcdoc="&lt;script&gt;globalThis.__iconPwned = 4&lt;/script&gt;"></iframe></p>',
+    /the SVG has a <p> element, which is not an SVG element/u
+  ],
+  [
+    'embed',
+    '<g><embed src="data:text/html,x"/></g>',
+    /the SVG has a <embed> element, which is not an SVG element/u
+  ],
+  [
+    'title-html',
+    '<title><a href="#x">x</a></title>',
+    /the SVG has a <a> element inside <title>, which holds text only/u
+  ]
+]
+const TRAP_SET = {
+  prefix: 'trap',
+  width: 24,
+  height: 24,
+  icons: {
+    trap: { body: TRAP_BODY },
+    ...Object.fromEntries(ESCAPES.map(([name, body]) => [name, { body }]))
+  }
+}
 // The global that the markup of TRAP_SVG would set if it ran.
 const PROBE = '__iconPwned'
+const TRAP_SVGS = 4
 const LARGE_SEGMENTS = 500_000
 const LARGE_SIZE = 2_000_000
 const LARGE_BUILD_TIME = 60_000
@@ -77,13 +125,19 @@ async function writeFiles({ root, files }: FilesInput): Promise<void> {
 }
 
 async function trapApp(context: TestContext): Promise<string> {
-  const root = await createFixtureApp()
+  const root = await createFixtureApp({ installed: { trap: TRAP_SET } })
   defer({ context, task: () => rm(root, { recursive: true, force: true }) })
   await writeFiles({
     root,
     files: {
       'icons/trap.svg': TRAP_SVG,
-      'src/App.tsx': TRAP_APP
+      'src/App.tsx': TRAP_APP,
+      ...Object.fromEntries(
+        ESCAPES.map(([name, body]) => [
+          `icons/${name}.svg`,
+          `<svg viewBox="0 0 24 24">${body}</svg>`
+        ])
+      )
     }
   })
   return root
@@ -102,6 +156,18 @@ async function buildEntry({ context, code, files = {} }: EntryInput) {
     }
   })
   return root
+}
+
+async function buildRefused({ root, code, isSsr }: RefusalBuild) {
+  const entry = path.join(root, 'entry.js')
+  await writeFile(entry, code)
+  await build({
+    ...fixtureConfig({ root, isSsr, typesFile: false }),
+    logLevel: 'silent',
+    build: isSsr
+      ? { ssr: entry, write: false }
+      : { write: false, rolldownOptions: { input: entry } }
+  })
 }
 
 function importOf(specifier: string): string {
@@ -125,7 +191,10 @@ describe('the markup of an SVG file', () => {
     assert.equal(probe(PROBE), undefined)
     assert.match(html, /\{globalThis\.__iconPwned = 1\}<\/text>/u)
     assert.match(html, /data-trap="&quot;>&lt;img src=&quot;x&quot;/u)
-    assert.doesNotMatch(html, /<img/u)
+    assert.match(html, /<tspan>&lt;\/tspan>&lt;\/text>&lt;\/svg>&lt;img/u)
+    assert.doesNotMatch(html, /<img|<iframe|<metadata|<p>/u)
+    // Two components and two raw texts, each an <svg> of its own.
+    assert.equal(html.match(/<svg/gu)?.length, TRAP_SVGS)
   })
 
   it('renders in the browser as text, without running', async context => {
@@ -147,12 +216,23 @@ describe('the markup of an SVG file', () => {
     const page = await browser.newPage()
     const [url = ''] = server.resolvedUrls?.local ?? []
     await page.goto(url)
-    const text = page.locator('[data-icon="trap"] text')
-    await text.waitFor()
+    const icons = ['trap', 'installed-trap']
+    for (const icon of icons) {
+      const text = page.locator(`[data-icon="${icon}"] text[data-trap]`)
+      await text.waitFor()
 
-    assert.equal(await text.textContent(), TRAP_TEXT)
-    assert.equal(await text.getAttribute('data-trap'), TRAP_VALUE)
-    assert.equal(await page.locator('img').count(), 0)
+      assert.equal(await text.textContent(), TRAP_TEXT, icon)
+      assert.equal(await text.getAttribute('data-trap'), TRAP_VALUE, icon)
+      assert.equal(
+        await page.locator(`[data-icon="${icon}"] tspan`).textContent(),
+        TRAP_TSPAN,
+        icon
+      )
+    }
+    for (const raw of ['#raw-html', '#installed-raw-html']) {
+      assert.equal(await page.locator(`${raw} > svg tspan`).count(), 1, raw)
+    }
+    assert.equal(await page.locator('img, iframe, metadata, p').count(), 0)
     assert.equal(await page.evaluate(probe, PROBE), undefined)
     assert.match(
       (await page.locator('#raw').textContent()) ?? '',
@@ -170,7 +250,7 @@ describe('the markup of an SVG file', () => {
       [
         'member',
         '<svg><window.alert/></svg>',
-        /Icon "own\/member": the element <window\.alert> is not an element in JSX/u
+        /Icon "own\/member": the SVG has a <window\.alert> element, which is not an SVG element/u
       ],
       [
         'broken',
@@ -197,6 +277,36 @@ describe('the markup of an SVG file', () => {
         }),
         message
       )
+    }
+  })
+
+  it('stops the build of markup that leaves the SVG, for the server too', async context => {
+    const root = await trapApp(context)
+    for (const [name, , message] of ESCAPES) {
+      for (const collection of ['own', 'trap']) {
+        const icon = `${collection}/${name}`
+        const failure = new RegExp(`Icon "${icon}": ${message.source}`, 'u')
+        for (const query of ['', '?raw']) {
+          await assert.rejects(
+            buildRefused({
+              root,
+              code: importOf(`icon:${icon}${query}`),
+              isSsr: false
+            }),
+            failure,
+            `${icon}${query}`
+          )
+        }
+        await assert.rejects(
+          buildRefused({
+            root,
+            code: `export { default } from 'icon:${icon}'\n`,
+            isSsr: true
+          }),
+          failure,
+          `${icon} on the server`
+        )
+      }
     }
   })
 

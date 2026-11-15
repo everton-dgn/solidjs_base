@@ -213,17 +213,39 @@ code. What the plugin guarantees is that the markup of a file stays markup:
   values when it renders them.
 - The build stops, with the icon and the reason, on markup that runs code in a
   page: a `<script>` element, an event handler attribute such as `onload`, a
-  `javascript:` or `vbscript:` URL in any attribute, and `<foreignObject>`,
-  which embeds HTML. The same check applies to `?raw`.
-- The component also refuses the markup that JSX reads as code: a tag with a
-  capital letter, a dot or a colon, the attributes `innerHTML`, `textContent`,
-  `innerText`, `children` and `ref`, and the namespaces that Solid reads, such
-  as `prop:` and `use:`. `?raw` keeps them as text.
+  `javascript:` or `vbscript:` URL in any attribute or in an entry of the
+  `values` of an animation, and an animation of `href`.
+- The build stops on markup that a page reads as HTML, where it can run code:
+  - an element outside the elements of SVG 2, its filters and its animations,
+    such as `<p>`, `<iframe>`, `<img>`, `<embed>` or `<meta>`, at any depth;
+  - `<foreignObject>`, which embeds HTML;
+  - an element inside `<title>`, `<desc>` or `<style>`, which hold text only: a
+    browser reads the content of `<title>` and `<desc>` as HTML;
+  - a `<` in the text of `<title>`, `<desc>` or `<style>`, written in a CDATA
+    section or as `&lt;`: the server writes the text of `<style>` as it is, and
+    a `<` there could end the element.
+
+  These checks apply to the component and to `?raw`, for a folder and for an
+  installed collection.
+
+- The component also refuses the markup that JSX reads as code: the attributes
+  `innerHTML`, `textContent`, `innerText`, `children` and `ref`, and the
+  namespaces that Solid reads, such as `prop:` and `use:`. `?raw` keeps them as
+  text.
+- The data that drawing applications write for themselves draws nothing and is
+  left out of the component and of `?raw`: `<metadata>`, and the elements and
+  attributes of the `sodipodi`, `inkscape`, `rdf`, `cc`, `dc`, `sketch` and
+  `serif` namespaces, with their `xmlns:` declarations. The dev server and the
+  build warn once per file with what they left out, so a file saved by Inkscape
+  compiles as it is.
 - A file that is not well-formed XML stops the build with what is wrong in it.
   What comes before the `<svg>` root, such as a DOCTYPE, is left out. The plugin
   reads the five entities of XML and the numeric references only, so an entity
   of a DOCTYPE, such as an external entity, stops the build instead of
-  expanding.
+  expanding. The Save As of Adobe Illustrator writes its namespaces as such
+  entities, as in `xmlns="&ns_svg;"`, and stops with
+  `&ns_svg; is not an XML entity`: export the file with Export As, choosing SVG,
+  which writes the namespaces as text.
 - Comments and processing instructions are left out of the component and kept in
   `?raw`.
 

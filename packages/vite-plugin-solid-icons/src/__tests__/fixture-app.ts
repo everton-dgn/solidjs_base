@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, realpath, symlink, writeFile } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  realpath,
+  symlink,
+  writeFile
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { TestContext } from 'node:test'
@@ -9,6 +16,12 @@ import type { InlineConfig } from 'vite-plus'
 import { solidIcons } from '../index.ts'
 
 type FixtureFiles = Record<string, string>
+type IconSetFile = { prefix: string; icons: Record<string, { body: string }> }
+type FixtureOptions = {
+  // Collections installed in the node_modules of the application, by name.
+  installed?: Record<string, IconSetFile>
+}
+type ModulesInput = { root: string; installed: Record<string, IconSetFile> }
 type Task = () => unknown
 type DeferInput = { context: TestContext; task: Task }
 type ConfigInput = {
@@ -18,6 +31,8 @@ type ConfigInput = {
 }
 
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, '../..')
+const MODULES = path.join(PACKAGE_ROOT, 'node_modules')
+const COLLECTION_SCOPE = '@iconify-json'
 const deferred = new WeakMap<TestContext, Task[]>()
 
 const STAR_SVG =
@@ -103,6 +118,41 @@ export const html = () => renderToString(() => <App />)
   'icons/moon.svg': MOON_SVG
 }
 
+async function linkEntries(from: string, to: string): Promise<void> {
+  await mkdir(to, { recursive: true })
+  for (const entry of await readdir(from)) {
+    if (entry === COLLECTION_SCOPE) continue
+    await symlink(path.join(from, entry), path.join(to, entry))
+  }
+}
+
+// A node_modules of its own, with links to the packages of this one, so a
+// test installs a collection without writing in the folder of the package.
+async function installCollections({
+  root,
+  installed
+}: ModulesInput): Promise<void> {
+  const modules = path.join(root, 'node_modules')
+  await linkEntries(MODULES, modules)
+  const scope = path.join(modules, COLLECTION_SCOPE)
+  await mkdir(scope)
+  for (const entry of await readdir(path.join(MODULES, COLLECTION_SCOPE))) {
+    await symlink(
+      path.join(MODULES, COLLECTION_SCOPE, entry),
+      path.join(scope, entry)
+    )
+  }
+  for (const [name, iconSet] of Object.entries(installed)) {
+    const folder = path.join(scope, name)
+    await mkdir(folder)
+    await writeFile(path.join(folder, 'icons.json'), JSON.stringify(iconSet))
+    await writeFile(
+      path.join(folder, 'package.json'),
+      JSON.stringify({ name: `${COLLECTION_SCOPE}/${name}`, version: '0.0.0' })
+    )
+  }
+}
+
 // The module of named imports with the imports by path that the plugin
 // writes for them.
 export const NAMED_ICONS_BY_PATH = `import Back from 'icon:hugeicons/arrow-left-01'
@@ -132,13 +182,15 @@ export function defer({ context, task }: DeferInput): void {
 
 // A Solid 2 application in a temporary folder. Its node_modules points at the
 // one of this package, so Vite resolves Solid and the collections from there.
-export async function createFixtureApp(): Promise<string> {
+export async function createFixtureApp(
+  options: FixtureOptions = {}
+): Promise<string> {
   const prefix = path.join(tmpdir(), 'solid-icons-app-')
   const root = await realpath(await mkdtemp(prefix))
-  await symlink(
-    path.join(PACKAGE_ROOT, 'node_modules'),
-    path.join(root, 'node_modules')
-  )
+  const { installed } = options
+  await (installed
+    ? installCollections({ root, installed })
+    : symlink(MODULES, path.join(root, 'node_modules')))
   for (const [file, content] of Object.entries(FILES)) {
     const target = path.join(root, file)
     await mkdir(path.dirname(target), { recursive: true })

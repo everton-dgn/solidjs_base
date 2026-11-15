@@ -29,11 +29,12 @@ release-please rewrites the release pull request after every merge that changes
 the next version, and each rewrite holds a new run. Approve only the run of the
 head you are about to merge: an approved run starts every job.
 
-From a terminal, list the held runs and approve the one of that head:
+From a terminal, list the held runs and approve the one of that head. The branch
+ends with the package: `solid-tooling` or `solid-runtime`.
 
 ```bash
-gh run list --branch release-please--branches--main--components--solid-tooling \
-  --status action_required --json databaseId,workflowName
+gh run list --branch release-please--branches--main--components--<package> \
+  --status action_required --json databaseId,workflowName,headSha
 gh api -X POST repos/everton-dgn/solidjs_base/actions/runs/<run-id>/approve
 ```
 
@@ -48,7 +49,77 @@ the build provenance to the version.
 | `!` in the header or `BREAKING CHANGE:` in a footer | Minor                   |
 | Other types (`chore`, `docs`, `test`, `refactor`)   | No release on their own |
 
-From 1.0.0 on, a breaking change raises the major version.
+The breaking change marker wins over the type: a `chore!` commit raises the
+version too. From 1.0.0 on, a breaking change raises the major version.
+
+## Merging a pull request
+
+Merge every pull request, release pull requests included, with a merge commit
+through the GitHub API and an empty commit body. With `sha`, GitHub refuses the
+merge when the head changed after the review and the CI run:
+
+```bash
+gh pr view <number> --json headRefOid,headRepositoryOwner,headRefName
+gh api -X PUT repos/everton-dgn/solidjs_base/pulls/<number>/merge \
+  -f merge_method=merge \
+  -f sha=<head-sha> \
+  -f commit_title='Merge pull request #<number> from <owner>/<branch>' \
+  -f commit_message='' --jq .merged
+```
+
+The last command prints `true` when the merge happened. The merge button writes
+the pull request title into the merge commit, and release-please reads a title
+such as `feat: ...` as one more changelog entry ([Known limits](#known-limits)).
+
+The `main` ruleset requires a branch that is up to date and has no open
+conversation. When GitHub reports the pull request behind `main`, merge `main`
+into the branch, never rebase it, and wait for `CI required` again.
+
+## Before merging a release pull request
+
+1. Read the version and the `CHANGELOG.md` in the diff. The entries are the
+   messages of the commits that reached `main`, and the breaking change notes
+   are their footers as written. Together they must describe the change from the
+   last published version. A branch that changed the same option more than once
+   publishes every footer, and a pull request merged with the merge button adds
+   its title as an entry.
+2. Do not merge notes that give wrong or contradictory migration steps, or an
+   entry that should not exist and raises the version, such as the title of a
+   pull request merged with the merge button. Fix the entry in the
+   `CHANGELOG.md` of the release branch and write the same text in the pull
+   request body, which becomes the GitHub Release notes. Push from your account
+   with the commands of
+   [When the release pull request has a conflict](#when-the-release-pull-request-has-a-conflict),
+   right before merging: release-please writes the pull request again, and
+   discards the edit, when a new merge changes the release it computes. Editing
+   the notes does not change the version. When the version is wrong too, do not
+   edit `package.json` or the manifest by hand: merge a pull request that sets
+   `release-as` for the package in `release-please-config.json`, let
+   release-please write the release pull request again, and remove `release-as`
+   after the release.
+3. For the first automated release of a package, create the trusted publisher
+   now
+   ([First automated release of a package](#first-automated-release-of-a-package)).
+4. Approve only the held run of the head you are about to merge and wait for
+   `CI required`. A push from your account starts the CI without the approval.
+5. Merge with the command in [Merging a pull request](#merging-a-pull-request).
+6. After the publish job, check the registry. The version can take a few minutes
+   to appear, and the output has the version and the provenance statement:
+
+   ```bash
+   npm view @evertondgn/<package>@<version> version dist.attestations.provenance --json
+   ```
+
+## Fixing the notes of a published version
+
+For an error found after the release. The packages do not ship `CHANGELOG.md`,
+so the published package does not change.
+
+1. Edit the GitHub Release of the tag with
+   `gh release edit <tag> --notes-file <file>`.
+2. Fix the same entry in the package `CHANGELOG.md` with a `docs` pull request.
+   A `docs` commit does not start a release. The file exists after the first
+   automated release of the package.
 
 ## Configuration files
 
@@ -141,7 +212,7 @@ The `git diff` must list only `.release-please-manifest.json`, the package
 `CHANGELOG.md` and the package `package.json`. The push comes from your account,
 so the CI of the release pull request starts without **Approve workflows to
 run**. Merge the release pull request after `CI required` passes, with the
-command in [Known limits](#known-limits).
+command in [Merging a pull request](#merging-a-pull-request).
 
 ## When the publish job fails
 
@@ -229,16 +300,9 @@ never to reformat them.
 GitHub always puts the pull request title in a merge commit, either in its title
 or in its body, and release-please reads it as one more commit. A merged pull
 request titled `feat` or `fix` therefore adds its title to the changelog, next
-to the entries of its own commits. No repository setting removes it. To leave it
-out, merge with an empty commit body. The GitHub API keeps the classic title and
-writes no body:
-
-```bash
-gh api -X PUT repos/everton-dgn/solidjs_base/pulls/<number>/merge \
-  -f merge_method=merge \
-  -f commit_title='Merge pull request #<number> from everton-dgn/<branch>' \
-  -f commit_message=''
-```
+to the entries of its own commits. No repository setting removes it. The command
+in [Merging a pull request](#merging-a-pull-request) leaves it out: the GitHub
+API keeps the classic title and writes no body.
 
 ## Publishing by hand
 

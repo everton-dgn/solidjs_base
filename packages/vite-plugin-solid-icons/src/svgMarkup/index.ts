@@ -34,6 +34,7 @@ type PatternRead = { scanner: Scanner; pattern: RegExp }
 type ElementRead = { scanner: Scanner; element: string }
 type MarkupSkip = { scanner: Scanner; open: string; close: string }
 type TextInput = { parent: ElementNode; raw: string }
+type AppendInput = { parent: ElementNode; text: TextNode }
 type TextCheck = { parent: ElementNode; value: string }
 // The editor data that the icon leaves out, by name, in the order of the
 // file.
@@ -526,6 +527,21 @@ function checkText({ parent, value }: TextCheck): void {
   )
 }
 
+// WHY: a comment, an instruction, a CDATA section or editor data that the
+// icon leaves out splits a text into pieces that the output writes side by
+// side. One text keeps them together, so the raw text escapes a "]]>" that
+// forms across two of them.
+function appendText({ parent, text }: AppendInput): void {
+  const last = parent.children.at(-1)
+  if (last?.kind !== 'text') {
+    parent.children.push(text)
+    return
+  }
+  last.raw += text.raw
+  last.value += text.value
+  last.isCdata ||= text.isCdata
+}
+
 function pushText({ parent, raw }: TextInput): void {
   if (raw === '') return
   if (raw.includes(CDATA_END)) {
@@ -533,7 +549,7 @@ function pushText({ parent, raw }: TextInput): void {
   }
   const value = decode(raw)
   checkText({ parent, value })
-  parent.children.push({ kind: 'text', raw, value, isCdata: false })
+  appendText({ parent, text: { kind: 'text', raw, value, isCdata: false } })
 }
 
 function readElement({
@@ -578,7 +594,10 @@ function readNode(input: NodeInput): ElementNode | undefined {
     const section = skipMarkup({ scanner, open: CDATA_START, close: CDATA_END })
     const value = section.slice(CDATA_START.length, -CDATA_END.length)
     checkText({ parent, value })
-    parent.children.push({ kind: 'text', raw: section, value, isCdata: true })
+    appendText({
+      parent,
+      text: { kind: 'text', raw: section, value, isCdata: true }
+    })
     return undefined
   }
   const skipped = SKIPPED_MARKUP.find(([open]) => svg.startsWith(open, at))

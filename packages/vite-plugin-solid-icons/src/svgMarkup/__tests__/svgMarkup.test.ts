@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { compileIcon } from '../../compileIcon/index.ts'
+import { parseSvg, svgText } from '../index.ts'
 
 type Refusal = { svg: string; message: RegExp }
 
@@ -395,6 +396,27 @@ describe('the markup of an icon', () => {
   <style>a > b { content: "&amp;" }</style>
 </svg>`)}\n`
     )
+  })
+
+  it('writes a raw text that parses again, also where "]]>" forms across the pieces of a text', () => {
+    // Each piece is valid XML; the raw text writes the pieces side by side.
+    const texts = [
+      '<text><![CDATA[]]]]>></text>',
+      '<text>]<![CDATA[]]]>&gt;</text>',
+      '<text>]]<![CDATA[>]]></text>',
+      '<text>]]<!-- c -->&gt;</text>',
+      '<text>]]<?pi ?>></text>',
+      '<style>a[b=c]<![CDATA[]>d{}]]></style>',
+      '<text>]]<metadata><x/></metadata>&gt;</text>'
+    ]
+    for (const text of texts) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg">${text}</svg>`
+      const written = svgText(parseSvg({ svg, isComponent: false }).root)
+      const again = svgText(parseSvg({ svg: written, isComponent: false }).root)
+
+      assert.match(written, /\]\]&gt;/u, text)
+      assert.equal(again, written, text)
+    }
   })
 
   it('keeps the first of a repeated attribute of the root', () => {

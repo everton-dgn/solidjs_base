@@ -3,6 +3,7 @@ import {
   THEME_STORAGE_KEY,
   localOptions
 } from '../../../tests/theme/local-config.ts'
+import { applyTheme } from '../../applyTheme/apply-theme.js'
 import type { LocalStorageThemeOptions } from '../../types.ts'
 import { storedThemeScript } from '../index.js'
 
@@ -33,6 +34,33 @@ function runAfterMeta(): HTMLMetaElement {
   const meta = appendMeta()
   execute()
   return meta
+}
+
+// The parser runs the script while the state is loading; afterwards it is
+// interactive or complete.
+function setReadyState(state: DocumentReadyState): void {
+  vi.spyOn(document, 'readyState', 'get').mockReturnValue(state)
+}
+
+// Counts the observers that the script creates and stops.
+function countObservers(): { created: number; disconnected: number } {
+  const counts = { created: 0, disconnected: 0 }
+  const Native = MutationObserver
+  vi.stubGlobal(
+    'MutationObserver',
+    class extends Native {
+      public constructor(...args: ConstructorParameters<typeof Native>) {
+        super(...args)
+        counts.created += 1
+      }
+
+      public override disconnect(): void {
+        counts.disconnected += 1
+        super.disconnect()
+      }
+    }
+  )
+  return counts
 }
 
 // Registered after the observer of the script, so it is delivered after it.
@@ -103,6 +131,7 @@ describe('stored theme script before the theme-color meta', () => {
     document.documentElement.style.colorScheme = ''
     vi.stubGlobal('matchMedia', () => ({ matches: false }))
     localStorage.setItem(THEME_STORAGE_KEY, 'dark')
+    setReadyState('loading')
   })
 
   it('sets the meta that the parser adds after it', async () => {
@@ -136,6 +165,51 @@ describe('stored theme script before the theme-color meta', () => {
     expect(execute).not.toThrow()
     expect(document.querySelector('meta[name="theme-color"]')).toBeNull()
     expect(document.documentElement).toHaveClass('dark')
+  })
+
+  it('stops watching at the end of the parsing when no meta comes', () => {
+    const observers = countObservers()
+    execute()
+    expect(observers).toStrictEqual({ created: 1, disconnected: 0 })
+    document.dispatchEvent(new Event('readystatechange'))
+    expect(observers).toStrictEqual({ created: 1, disconnected: 1 })
+  })
+})
+
+describe('stored theme script after the parsing', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    document.documentElement.classList.remove('light', 'dark')
+    document.documentElement.style.colorScheme = ''
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
+    localStorage.setItem(THEME_STORAGE_KEY, 'dark')
+  })
+
+  it.each(['interactive', 'complete'] as const)(
+    'watches nothing when the document is %s',
+    async state => {
+      setReadyState(state)
+      const observers = countObservers()
+      execute()
+      expect(observers.created).toBe(0)
+      expect(document.documentElement).toHaveClass('dark')
+      const delivered = nextHeadMutation()
+      const meta = appendMeta()
+      await delivered
+      expect(meta.content).toBe(INITIAL_COLOR)
+    }
+  )
+
+  it('keeps the theme that the application sets before a meta comes', async () => {
+    setReadyState('complete')
+    execute()
+    applyTheme({ theme: 'light', color: localOptions.colors.light })
+    const delivered = nextHeadMutation()
+    const meta = appendMeta()
+    await delivered
+    expect([...document.documentElement.classList]).toStrictEqual(['light'])
+    expect(document.documentElement.style.colorScheme).toBe('light')
+    expect(meta.content).toBe(INITIAL_COLOR)
   })
 })
 

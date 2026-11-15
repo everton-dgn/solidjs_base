@@ -10,7 +10,8 @@ const RESOLVED_THEMES = ['light', 'dark']
 // WHY: at the start of <head> the script runs before the parser reaches the
 // theme-color meta, so it applies the same theme again once the meta exists.
 // The first readystatechange ends the parsing, before the modules run, so the
-// observer never overrides the application.
+// observer never overrides the application. A script that runs after the
+// parsing would never see that event, so it watches nothing.
 const THEME_COLOR_SELECTOR = 'meta[name="theme-color"]'
 
 /**
@@ -54,7 +55,7 @@ export function storedThemeScript({ storageKey, colors, defaultTheme }) {
   const applied = { theme: dark ? 'dark' : 'light', color: dark ? ${serialize(colors.dark)} : ${serialize(colors.light)} };
   apply(applied);
   const selector = ${serialize(THEME_COLOR_SELECTOR)};
-  if (document.querySelector(selector)) return;
+  if (document.readyState !== 'loading' || document.querySelector(selector)) return;
   const observer = new MutationObserver(() => {
     if (!document.querySelector(selector)) return;
     observer.disconnect();

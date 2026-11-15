@@ -2,15 +2,24 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "bootstrap-sha": "a611dba8ed8206e819c64194100b061461fd8363",
   "release-type": "node",
-  "separate-pull-requests": true,
+  "separate-pull-requests": false,
   "include-component-in-tag": true,
   "include-v-in-tag": false,
   "tag-separator": "@",
   "bump-minor-pre-major": true,
   "packages": {
-    "packages/solid-tooling": {},
+    "packages/solid-tooling": {
+      "component": "solid-tooling"
+    },
     "packages/solid-runtime": {
-      "release-as": "0.6.0"
+      "component": "solid-runtime"
     }
-  }
+  },
+  "plugins": [
+    {
+      "type": "linked-versions",
+      "groupName": "solid packages",
+      "components": ["solid-tooling", "solid-runtime"]
+    }
+  ]
 }

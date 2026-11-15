@@ -247,11 +247,37 @@ jobs:
       - name: Run end-to-end tests
         run: vp run test:e2e
 
+  # WHY: release-please reads the body of a merge commit as one more commit, so
+  # the title of a pull request merged with the merge button becomes a changelog
+  # entry. This run cannot undo the merge; it fails so the entry is removed
+  # before the release. docs/releasing.md#merging-a-pull-request has the command.
+  merge-message:
+    name: Merge commit body
+    if: github.event_name == 'push'
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Refuse a merge commit with a body
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          parents="$(gh api "repos/$REPO/commits/$SHA" --jq '.parents | length')"
+          body="$(gh api "repos/$REPO/commits/$SHA" --jq '.commit.message | split("\n") | .[1:] | join("\n")')"
+          if [ "$parents" -gt 1 ] && [ -n "$(printf '%s' "$body" | tr -d '[:space:]')" ]; then
+            echo "The merge commit $SHA has a body, so release-please reads it as one more commit." >&2
+            echo "Remove its entry from the release pull request before merging it." >&2
+            exit 1
+          fi
+
   # The only check the main ruleset requires. A job skipped by its `if`
   # reports success, so this passes when every job passed or was skipped.
   required:
     name: CI required
-    needs: [changes, docs, packages, app, app-e2e]
+    needs: [changes, docs, packages, app, app-e2e, merge-message]
     if: always()
     runs-on: ubuntu-slim
     timeout-minutes: 5

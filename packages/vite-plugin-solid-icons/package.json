@@ -1,0 +1,65 @@
+{
+  "name": "@evertondgn/vite-plugin-solid-icons",
+  "version": "0.0.0",
+  "description": "Vite plugin that turns Iconify collections and folders of SVG files into SolidJS 2 components.",
+  "author": "Éverton Toffanetto",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/everton-dgn/solidjs_base.git",
+    "directory": "packages/vite-plugin-solid-icons"
+  },
+  "keywords": [
+    "solidjs",
+    "solid",
+    "vite",
+    "vite-plus",
+    "vite-plugin",
+    "icons",
+    "iconify",
+    "svg"
+  ],
+  "type": "module",
+  "files": [
+    "dist",
+    "icon-modules.d.ts"
+  ],
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./types": "./dist/types.mjs",
+    "./package.json": "./package.json",
+    "./icon-modules": {
+      "types": "./icon-modules.d.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp run test-plugin",
+    "test:tarball": "vp run test-tarball",
+    "dead-code": "knip-bun && knip-bun --strict"
+  },
+  "dependencies": {
+    "@iconify/utils": "3.1.7",
+    "magic-string": "0.30.21"
+  },
+  "peerDependencies": {
+    "@solidjs/web": "2.0.0-rc.21",
+    "vite-plus": "1.6.0"
+  },
+  "devDependencies": {
+    "@iconify-json/hugeicons": "1.2.35",
+    "@solidjs/vite-plugin": "3.0.0-next.57",
+    "@solidjs/web": "2.0.0-rc.21",
+    "@types/node": "24.19.2",
+    "knip": "6.45.1",
+    "playwright": "1.65.0",
+    "solid-js": "2.0.0-rc.21",
+    "typescript": "7.0.2",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

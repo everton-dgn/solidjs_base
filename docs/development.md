@@ -19,8 +19,11 @@ anything in the application.
 
 The root `package.json` lists two workspace folders:
 
-- `packages/*`: the packages published to npm, `@evertondgn/solid-tooling` and
-  `@evertondgn/solid-runtime`.
+- `packages/*`: the packages published to npm, `@evertondgn/solid-tooling`,
+  `@evertondgn/solid-runtime` and `@evertondgn/vite-plugin-solid-icons`. The
+  icons plugin enters the release automation at its first publication, as
+  [ADR 0037](ADRs/0037-icons-vite-plugin-package.md) describes; until then the
+  release pull requests carry the other two.
 - `apps/*`: applications that use the packages through the workspace. They are
   never published.
 

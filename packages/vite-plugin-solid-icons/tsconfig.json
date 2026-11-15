@@ -1,0 +1,8 @@
+{
+  "extends": "../solid-tooling/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2024"],
+    "types": ["node"]
+  },
+  "include": ["src", "vite.config.ts", "icon-modules.d.ts"]
+}

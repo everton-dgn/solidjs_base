@@ -34,11 +34,15 @@ function presetOverrides({ from, to }: PrefixMap): typeof lint.overrides {
   })
 }
 
-// The tooling sources are application tooling: they use node:test and Node
-// modules.
+// The tooling sources and the icons plugin are application tooling: they use
+// node:test and Node modules.
 const toolingOverrides = presetOverrides({
   from: 'tooling/',
   to: 'packages/solid-tooling/src/'
+})
+const iconsOverrides = presetOverrides({
+  from: 'tooling/',
+  to: 'packages/vite-plugin-solid-icons/src/'
 })
 
 export default defineConfig({
@@ -67,6 +71,7 @@ export default defineConfig({
     overrides: [
       ...(lint.overrides ?? []),
       ...(toolingOverrides ?? []),
+      ...(iconsOverrides ?? []),
       {
         // An ambient module declaration only works in a script file; an import
         // would turn it into an augmentation of a module that is missing here.
@@ -74,7 +79,8 @@ export default defineConfig({
           'packages/solid-tooling/src/vitest/setup/paraglide-runtime.d.ts',
           'packages/solid-tooling/app-env.d.ts',
           'packages/solid-tooling/node-env.d.ts',
-          'packages/solid-tooling/virtual-modules.d.ts'
+          'packages/solid-tooling/virtual-modules.d.ts',
+          'packages/vite-plugin-solid-icons/icon-modules.d.ts'
         ],
         rules: { 'import/unambiguous': 'off' }
       }

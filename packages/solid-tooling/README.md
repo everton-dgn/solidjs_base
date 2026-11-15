@@ -7,7 +7,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 and Vite+. Shared tooling and runtime beneath the SolidJS mark: languages, theme, server protection, SEO, assets and development tools. Install solid-tooling for development and solid-runtime for application features." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 RC and Vite+. Build your Solid app. Stop rebuilding its foundation. Shared tooling and runtime beneath the SolidJS mark: languages, theme, server protection, SEO, assets and development tools. Install solid-tooling for development and solid-runtime for application features." width="800" />
 </picture>
 
 **The lint rules, tests, Git hooks and whole Vite+ config of your SolidJS 2
@@ -262,7 +262,7 @@ The rules of this package catch what a generic preset cannot see:
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/layers-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/layers-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/layers-light.webp" alt="architecture/layer-imports: imports only point down, from routes and entry files through organisms, molecules, atoms and primitives to the base layer. An import that points up is a lint error with the rule's message, and production code cannot import tests or tooling/." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/layers-light.webp" alt="architecture/layer-imports: imports only point down, from routes and entry files through organisms, molecules, atoms and primitives to the base layer. Below, vp lint on a copy of the boilerplate where the PageBadge atom imports a molecule: src/components/atoms/PageBadge/index.tsx:3:1: error architecture(layer-imports): Layer atoms must not depend on molecules (src/components/molecules/PageHero/index.tsx). See the layer rules in docs/architecture.md. Production code cannot import tests or tooling/ either." width="800" />
 </picture>
 
 The layer rule keeps the dependency direction of the UI. The base layer
@@ -283,13 +283,13 @@ error configurator can only be imported in its setup file. See
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/vitest-projects-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/vitest-projects-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/vitest-projects-light.webp" alt="The three Vitest projects of solidTest with their file globs and environments. In apps/boilerplate at this revision, 185 tests passed: 68 node tests in 12 files, 87 dom tests with happy-dom in 13 files and 30 browser tests with Chromium in 7 files. Coverage thresholds: 80% for lines, functions and statements, 75% for branches." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/vitest-projects-light.webp" alt="The three Vitest projects of solidTest with their file globs and environments. In apps/boilerplate, 185 tests passed: 68 node tests in 12 files, 87 dom tests with happy-dom in 13 files and 30 browser tests with Chromium in 7 files. Coverage thresholds: 80% for lines, functions and statements, 75% for branches." width="800" />
 </picture>
 
 The file name picks the environment, so a server test, a component test and a
 real-browser test live in the same repository with no extra config. In the
-boilerplate at this revision, `vp test run` passed 185 tests in 32 files: 68
-`node` tests in 12 files, 87 `dom` in 13 and 30 `browser` in 7.
+boilerplate, `vp test run` passed 185 tests in 32 files: 68 `node` tests in 12
+files, 87 `dom` in 13 and 30 `browser` in 7.
 
 | Project   | Files                            | Environment                                      |
 | --------- | -------------------------------- | ------------------------------------------------ |
@@ -324,12 +324,9 @@ When the suite ends, `./playwright-teardown` checks the server log for private
 markers, so a test run also fails when a server error leaks its details into the
 log.
 
-At this revision, `vp run playwright test --list` enumerates 319 cases in the
-boilerplate across 15 page areas: 164 in 26 files for the E2E build and 155 in
-12 files for the production build. By area: AgentReadiness 77, I18n 40, Home 36,
-SeoIndexes 29, Markdown 27, BackendError 25, BuildOutput 22, OutsideError 18,
-Hydration 18, UiKit 8, OutdatedPage 7, StructuredData 6, FragmentCss 2,
-LateRedirect 2 and NotFound 2. They were listed, not run, for this README.
+In the boilerplate, `vp run playwright test --list` counts 319 cases in 15 page
+areas, 164 in 26 files for the E2E build and 155 in 12 files for the production
+build; the figure above breaks them down by area.
 
 ```ts
 // playwright.config.ts
@@ -340,11 +337,19 @@ export default definePlaywrightConfig({ root: import.meta.dirname })
 
 ## Unused files, exports and dependencies
 
-`defineKnipConfig` from `./knip` gives Knip the entries of a Solid app: the
-server and client entries, the middleware, `env.ts`, the Paraglide runtime, and
-every page and HTTP handler that file-system routing finds. It turns off Knip's
-own routing plugin, which takes every file of `src/routes/` as an entry, so an
-unused helper next to a route is reported. Configuration hints are errors, and
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/dead-code-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/dead-code-light.webp" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/dead-code-light.webp" alt="Knip output on a copy of the boilerplate with an unused file, dependency and export added. Unused files (1): src/helpers/formatPrice/index.ts. Unused dependencies (1): date-fns at package.json:45:6. Unused exports (1): THEME_COOKIE_NAME at src/constants/theme.ts:6:14. The first pass fails, so vp run dead-code-project stops before the --strict pass." width="800" />
+</picture>
+
+A helper nobody calls, an export nobody imports and a dependency nobody uses
+stop the push, and the report says where each one is. `defineKnipConfig` from
+`./knip` gives Knip the entries of a Solid app: the server and client entries,
+the middleware, `env.ts`, the Paraglide runtime, and every page and HTTP handler
+that file-system routing finds. It turns off Knip's own routing plugin, which
+takes every file of `src/routes/` as an entry, so an unused helper next to a
+route is reported. Configuration hints are errors, and
 `vp run dead-code-project` runs Knip twice, the second time with `--strict`. The
 `pre-push` hook below runs it before the code leaves your machine.
 
@@ -448,8 +453,8 @@ every icon. The application does not declare the plugin.
 Pass a data-only `fonts` array to `defineSolidApp` to generate external
 `@font-face` CSS and matching preloads for application-owned files. SSR uses
 `FontLinks` from `@evertondgn/solid-runtime/fonts/font-links` in the Document
-head; client-only applications receive both links in `index.html`. Without
-`fonts`, nothing is generated. Typography tokens stay in the app. See the
+head; client-only applications receive both links in `index.html`. Leave `fonts`
+out and nothing is generated. Typography tokens stay in the app. See the
 [font API and migration examples](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/fonts.md).
 
 ## SEO configured as data
@@ -502,7 +507,15 @@ for the feature options, defaults, disabled-resource behavior and scale.
 
 ## Optional environment validation
 
-An SSR application can add `env.ts` with the preset's optional validators:
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/env-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/env-light.webp" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/env-light.webp" alt="An optional env.ts spreads serverEnv: HOST string or undefined, PORT number or undefined, BASE_URL_TEST string or undefined. Server virtual imports validate at initialization and fail the build from client code. Public client values validate at build time with inferred types and no validator shipped. No env requirements? Omit env.ts." width="800" />
+</picture>
+
+A missing or malformed value fails where it enters: when the server code that
+imports it loads, or at build time for a public value. An SSR application can
+add `env.ts` with the preset's optional validators:
 
 ```ts
 import { serverEnv } from '@evertondgn/solid-runtime/env'
@@ -532,17 +545,17 @@ for extension examples, boot validation and type generation.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" alt="At this revision: 1,186 Vitest tests passed, 1,001 in the runtime and 185 in the boilerplate app; 319 E2E cases listed, 164 for the E2E build and 155 for the production build. Before each release the tarball is installed in a separate application and its exports and lint rules are checked. Release workflows publish with trusted publishing and signed npm provenance, with no stored npm token." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" alt="Current revision: 1,186 Vitest tests passed, 1,001 in the runtime and 185 in the boilerplate app; 319 E2E cases listed, 164 for the E2E build and 155 for the production build. Before each release the tarball is installed in a separate application and its exports and lint rules are checked. Release workflows publish with trusted publishing and signed npm provenance, with no stored npm token." width="800" />
 </picture>
 
 At this revision, 1,186 Vitest tests passed: 1,001 in 100 files of the runtime
 package and 185 in 32 files of the boilerplate app. `playwright test --list`
-enumerates 319 E2E cases in the app, 164 for the E2E build and 155 for the
-production build; they were listed, not run, for this README.
+counts 319 E2E cases in the app, 164 for the E2E build and 155 for the
+production build.
 
 - The package's own tests, `vp run test`, run with `node --test` against
-  fixtures in temporary folders: 268 `test` calls in 39 files, counted in
-  source.
+  fixtures in temporary folders: 268 `test` and `it` calls in 39 files, counted
+  in source.
 - The tarball test packs the package, installs it in a separate application
   outside the workspace and checks that lint applies the plugins, that the
   application extends the shared hooks and commitlint config, and that the
@@ -551,8 +564,7 @@ production build; they were listed, not run, for this README.
   [three fixture applications](https://github.com/everton-dgn/solidjs_base/tree/main/fixtures/apps)
   with Bun's `hoisted` and `isolated` linkers and build them. The matrix
   enumerates 14 application cases: 3 client-only, 9 SSR and 2 translated SSR.
-  They fail when a disabled feature leaves its modules in the bundle. They were
-  enumerated, not run, for this README.
+  They fail when a disabled feature leaves its modules in the bundle.
 - The runtime package is linted with this package's preset, loaded from its
   sources.
 
@@ -594,6 +606,12 @@ and the
 | `./publication/read-llms-index` | Compiled reader of the llms index, for artifact checks in Node                   |
 | `./package.json`                | The package manifest                                                             |
 
+Your editor and `tsc` know the test globals, the jest-dom matchers, the Solid
+plugin and routing modules and every `virtual:solid-app/*` module with no local
+`.d.ts`: `tsconfig.app.json` loads `./app-env`, which references
+`./virtual-modules`. An application with its own TypeScript config adds
+`@evertondgn/solid-tooling/app-env` to `types`.
+
 Your application keeps its pages, components, translations, theme, `App`,
 `Document`, entries and middleware. The plugin entries exist because Oxlint
 loads plugins by specifier, from the application; the setup and teardown entries
@@ -616,6 +634,8 @@ describes each one.
 The package follows semantic versioning. Below 1.0.0, a breaking change raises
 the minor version. Read the
 [changelog](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/CHANGELOG.md)
-for each release.
+for each release, and the
+[Solid Base overview](https://github.com/everton-dgn/solidjs_base/blob/main/README.md)
+for both packages together.
 
 [MIT](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)

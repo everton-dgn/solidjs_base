@@ -85,6 +85,12 @@ The CI runs the same commands and skips the jobs your files do not affect.
   `fix(tooling): ...`. release-please reads the commits on `main` to pick the
   next version: `fix` makes a patch, `feat` a minor, and a `!` after the type or
   a `BREAKING CHANGE:` footer a major (a minor while the version is `0.x`).
+- The changelog publishes a `BREAKING CHANGE:` footer as written. Describe what
+  changes for an application that updates from the last published version and
+  what it has to do, not the difference from your previous commit. When a branch
+  changes the same option more than once before a release, each footer is
+  published; check them together before the release
+  ([checklist](docs/releasing.md#before-merging-a-release-pull-request)).
 - Keep each commit to one change. Pull requests are merged with a merge commit
   and never squashed, so your commits stay in the history
   ([ADR 0008](docs/ADRs/0008-merge-commits.md)).
@@ -97,7 +103,10 @@ The CI runs the same commands and skips the jobs your files do not affect.
 - `CI required` must pass. CodeRabbit and Codex comment on pull requests on
   their own; answer or resolve each thread, because `main` requires resolved
   conversations.
-- The maintainer merges once the checks pass and the review is done.
+- The maintainer merges once the checks pass and the review is done, with the
+  command in [Merging a pull request](docs/releasing.md#merging-a-pull-request).
+  The merge button would add the title of a `feat` or `fix` pull request to the
+  changelog as one more entry.
 
 ## Releases
 

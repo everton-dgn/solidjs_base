@@ -41,6 +41,53 @@ The publish step uses no token. npm authenticates the workflow through OIDC
 ([trusted publishing](https://docs.npmjs.com/trusted-publishers)) and attaches
 the build provenance to the version.
 
+## Merging a pull request
+
+Merge every pull request, release pull requests included, with a merge commit
+through the GitHub API and an empty commit body. With `sha`, GitHub refuses the
+merge when the head changed after the review and the CI run:
+
+```bash
+gh api -X PUT repos/everton-dgn/solidjs_base/pulls/<number>/merge \
+  -f merge_method=merge \
+  -f sha=<head-sha> \
+  -f commit_title='Merge pull request #<number> from everton-dgn/<branch>' \
+  -f commit_message=''
+```
+
+The merge button writes the pull request title into the merge commit, and
+release-please reads a title such as `feat: ...` as one more changelog entry
+([Known limits](#known-limits)).
+
+## Before merging a release pull request
+
+1. Approve only the held run of the head you are about to merge, as described
+   above, and wait for `CI required`.
+2. Read the version and the `CHANGELOG.md` in the diff. The entries are the
+   messages of the commits that reached `main`, and the breaking change notes
+   are their footers as written. Together they must describe the change from the
+   last published version. A branch that changed the same option more than once
+   publishes every footer, and a pull request merged with the merge button adds
+   its title as an entry.
+3. Merge with the command in [Merging a pull request](#merging-a-pull-request).
+4. After the publish job, check the registry. The version can take a few minutes
+   to appear:
+
+   ```bash
+   npm view @evertondgn/<package>@<version> version dist.attestations.provenance --json
+   ```
+
+The packages do not ship `CHANGELOG.md`, so a wrong entry does not block the
+release. Fix it afterwards, as described in
+[Fixing the notes of a published version](#fixing-the-notes-of-a-published-version).
+
+## Fixing the notes of a published version
+
+1. Edit the GitHub Release of the tag with
+   `gh release edit <tag> --notes-file <file>`.
+2. Fix the same entry in the package `CHANGELOG.md` with a `docs` pull request.
+   A `docs` commit does not start a release.
+
 | Commit                                              | Bump below 1.0.0        |
 | --------------------------------------------------- | ----------------------- |
 | `fix`                                               | Patch                   |
@@ -141,7 +188,7 @@ The `git diff` must list only `.release-please-manifest.json`, the package
 `CHANGELOG.md` and the package `package.json`. The push comes from your account,
 so the CI of the release pull request starts without **Approve workflows to
 run**. Merge the release pull request after `CI required` passes, with the
-command in [Known limits](#known-limits).
+command in [Merging a pull request](#merging-a-pull-request).
 
 ## When the publish job fails
 
@@ -229,16 +276,9 @@ never to reformat them.
 GitHub always puts the pull request title in a merge commit, either in its title
 or in its body, and release-please reads it as one more commit. A merged pull
 request titled `feat` or `fix` therefore adds its title to the changelog, next
-to the entries of its own commits. No repository setting removes it. To leave it
-out, merge with an empty commit body. The GitHub API keeps the classic title and
-writes no body:
-
-```bash
-gh api -X PUT repos/everton-dgn/solidjs_base/pulls/<number>/merge \
-  -f merge_method=merge \
-  -f commit_title='Merge pull request #<number> from everton-dgn/<branch>' \
-  -f commit_message=''
-```
+to the entries of its own commits. No repository setting removes it. The command
+in [Merging a pull request](#merging-a-pull-request) leaves it out: the GitHub
+API keeps the classic title and writes no body.
 
 ## Publishing by hand
 

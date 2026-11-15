@@ -27,4 +27,5 @@ Pull requests are merged with a merge commit, never squashed or rebased.
   hand.
 - Merging through the GitHub API with an empty commit body leaves the title out
   of the merge commit. The command is in
-  [Releasing](../releasing.md#known-limits).
+  [Releasing](../releasing.md#merging-a-pull-request), and every pull request is
+  merged with it.

@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 
 import {
   decideCheck,
+  isBranchUpdate,
   isReleasePullRequest,
   mergeCommitTitle,
   RELEASE_WORKFLOW,
@@ -160,6 +161,20 @@ describe('mergePullRequest decisions', () => {
       /has conflicts with main/u
     )
     assert.equal(refusePullRequest(PULL_REQUEST), undefined)
+  })
+
+  it('takes as a branch update only the merge of the base into the old head', () => {
+    const update = { head: 'head', base: 'base' }
+    assert.equal(isBranchUpdate({ ...update, parents: ['head', 'base'] }), true)
+    for (const parents of [
+      ['base', 'head'],
+      ['head'],
+      ['head', 'other'],
+      ['head', 'base', 'other'],
+      []
+    ]) {
+      assert.equal(isBranchUpdate({ ...update, parents }), false)
+    }
   })
 
   it('writes the classic merge commit title', () => {

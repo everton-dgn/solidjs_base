@@ -24,6 +24,8 @@ type CountedCheck = { check: CheckRun; workflowRuns: readonly WorkflowRun[] }
 
 type OpenThreads = { number: number; threads: readonly ReviewThread[] }
 
+type Parents = { parents: readonly string[]; head: string; base: string }
+
 type HeadCheck = {
   pullRequest: PullRequest
   expectedSha: string | undefined
@@ -135,6 +137,13 @@ export function refuseHead({
   return expectedSha === headSha
     ? undefined
     : `The head of #${number} is ${headSha}, not ${expectedSha} as passed with --sha. Review the new commits and run vp run release:merge ${number} --dry-run again.`
+}
+
+// The update-branch API makes a merge commit whose first parent is the old head
+// and whose second parent is the tip of the base.
+export function isBranchUpdate({ parents, head, base }: Parents): boolean {
+  const [first, second, ...others] = parents
+  return first === head && second === base && others.length === 0
 }
 
 export function mergeCommitTitle(pullRequest: PullRequest): string {

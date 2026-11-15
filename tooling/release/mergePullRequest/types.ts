@@ -75,6 +75,8 @@ export type Job = {
 
 export type CompareRange = { base: string; head: string }
 
+export type Comparison = { behindBy: number; baseSha: string }
+
 export type BranchUpdate = { number: number; head: string }
 
 export type MergeCall = { number: number; sha: string; title: string }
@@ -88,8 +90,9 @@ export type FileAtRef = { path: string; ref: string }
 export type GitHub = {
   readPullRequest: (number: number) => Promise<PullRequest>
   listOpenThreads: (number: number) => Promise<ReviewThread[]>
-  countBehind: (range: CompareRange) => Promise<number>
+  compare: (range: CompareRange) => Promise<Comparison>
   updateBranch: (update: BranchUpdate) => Promise<void>
+  readParents: (sha: string) => Promise<string[]>
   listCheckRuns: (sha: string) => Promise<CheckRun[]>
   listWorkflowRuns: (sha: string) => Promise<WorkflowRun[]>
   approveRun: (id: number) => Promise<void>

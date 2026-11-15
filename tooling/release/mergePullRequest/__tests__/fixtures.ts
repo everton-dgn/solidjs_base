@@ -165,7 +165,16 @@ const ROUTES: readonly Route[] = [
   {
     pattern: /^compare\/[^.]+\.\.\.\w+$/u,
     method: 'GET',
-    respond: ({ github }) => json({ behind_by: github.behindBy })
+    respond: ({ github }) =>
+      json({ behind_by: github.behindBy, base_sha: github.baseSha })
+  },
+  {
+    pattern: /^commits\/(?<sha>\w+)$/u,
+    method: 'GET',
+    respond: ({ github, groups }) =>
+      json({
+        parents: (github.parents[groups.sha ?? ''] ?? []).map(sha => ({ sha }))
+      })
   },
   {
     pattern: /^pulls\/\d+\/update-branch$/u,
@@ -301,7 +310,9 @@ export type FakeGitHub = {
   pullRequest: FakePullRequest
   threadPages: FakeThread[][]
   behindBy: number
+  baseSha: string
   updatedHead: string
+  parents: Record<string, string[]>
   checkRuns: Sequences<FakeCheckRun>
   workflowRuns: Sequences<FakeWorkflowRun>
   mergeResult: CommandResult
@@ -314,6 +325,7 @@ export const HEAD = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678'
 export const UPDATED_HEAD = 'f0e1d2c3b4a5968778695a4b3c2d1e0f98765432'
 export const MERGE_SHA = '0123456789abcdef0123456789abcdef01234567'
 export const OTHER_SHA = '9999999999999999999999999999999999999999'
+export const BASE_SHA = 'b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9'
 export const PROVENANCE = 'https://slsa.dev/provenance/v1'
 
 export function checkRun(check: Partial<FakeCheckRun>): FakeCheckRun {
@@ -364,7 +376,9 @@ export function featureGitHub(): FakeGitHub {
     },
     threadPages: [[]],
     behindBy: 0,
+    baseSha: BASE_SHA,
     updatedHead: UPDATED_HEAD,
+    parents: { [UPDATED_HEAD]: [HEAD, BASE_SHA] },
     checkRuns: { [HEAD]: [[checkRun({})]] },
     workflowRuns: { [HEAD]: [[workflowRun({})]] },
     mergeResult: json({

@@ -1,6 +1,7 @@
 import { inspectCi, waitForCi } from './ci.ts'
 import {
   describeOpenThreads,
+  isBranchUpdate,
   isReleasePullRequest,
   mergeCommitTitle,
   refuseHead,
@@ -22,6 +23,8 @@ import { describeDuration, waitFor } from './wait.ts'
 type Step = { session: Session; pullRequest: PullRequest }
 
 type BehindStep = Step & { behindBy: number }
+
+type UpdateStep = Step & { baseSha: string }
 
 const READ_METHODS = new Set(['GET'])
 
@@ -48,7 +51,11 @@ function refuseWrites(run: RunCommand): RunCommand {
         )
 }
 
-async function updateBranch({ session, pullRequest }: Step): Promise<string> {
+async function updateBranch({
+  session,
+  pullRequest,
+  baseSha
+}: UpdateStep): Promise<string> {
   const { log } = session.environment
   const { number, headSha, baseBranch } = pullRequest
   log(`Merging ${baseBranch} into the branch, never rebasing it.`)
@@ -63,7 +70,15 @@ async function updateBranch({ session, pullRequest }: Step): Promise<string> {
       return current.headSha === headSha ? undefined : current.headSha
     }
   })
-  log(`New head: ${shortSha(head)}.`)
+  const parents = await session.github.readParents(head)
+  if (!isBranchUpdate({ parents, head: headSha, base: baseSha })) {
+    throw new Error(
+      `The new head ${head} of #${number} is not the merge of ${baseBranch} at ${baseSha} into ${headSha}: its parents are ${parents.join(' and ') || 'none'}. Nothing was approved or merged. Review the new head and run vp run release:merge ${number} --dry-run again.`
+    )
+  }
+  log(
+    `New head: ${head}, the merge of ${baseBranch} at ${shortSha(baseSha)} into ${shortSha(headSha)}. A second run takes it with --sha.`
+  )
   return head
 }
 
@@ -124,7 +139,7 @@ export async function mergePullRequest(request: MergeRequest): Promise<void> {
     throw new Error(describeOpenThreads({ number, threads }))
   }
   log('No unresolved review conversation.')
-  const behindBy = await session.github.countBehind({
+  const { behindBy, baseSha } = await session.github.compare({
     base: baseBranch,
     head: headSha
   })
@@ -138,9 +153,11 @@ export async function mergePullRequest(request: MergeRequest): Promise<void> {
     return
   }
   const head =
-    behindBy > 0 ? await updateBranch({ session, pullRequest }) : headSha
+    behindBy > 0
+      ? await updateBranch({ session, pullRequest, baseSha })
+      : headSha
   // WHY: a held run is approved only on the head passed with --sha, or on the
-  // update of that head.
+  // merge of the base into it that updateBranch verified.
   const canApprove =
     isReleasePullRequest(pullRequest) && expectedSha === headSha
   await waitForCi({ session, head, canApprove })

@@ -4,6 +4,7 @@ import { describe, it } from 'node:test'
 import { RELEASE_WORKFLOW } from '../decisions.ts'
 import { mergePullRequest } from '../index.ts'
 import {
+  BASE_SHA,
   checkRun,
   createHarness,
   endpoints,
@@ -134,7 +135,7 @@ describe('mergePullRequest CI and branch', () => {
     github.workflowRuns = {
       [UPDATED_HEAD]: [[workflowRun({ headSha: UPDATED_HEAD })]]
     }
-    const { request, calls } = createHarness({ github })
+    const { request, calls, lines } = createHarness({ github })
 
     await mergePullRequest(request)
 
@@ -151,6 +152,37 @@ describe('mergePullRequest CI and branch', () => {
     assert.ok(
       calls.every(call => !call.args[1]?.includes(`commits/${HEAD}/check-runs`))
     )
+    assert.ok(
+      lines.includes(
+        `New head: ${UPDATED_HEAD}, the merge of main at b0b1b2b into a1b2c3d. A second run takes it with --sha.`
+      )
+    )
+  })
+
+  it('stops when the head after the update is not the merge of the base into the reviewed head', async () => {
+    const unexpectedParents = [[OTHER_SHA], [HEAD, OTHER_SHA], [BASE_SHA, HEAD]]
+    for (const parents of unexpectedParents) {
+      const github = releaseGitHub()
+      github.behindBy = 1
+      github.parents = { [UPDATED_HEAD]: parents }
+      github.checkRuns = { [UPDATED_HEAD]: [[]] }
+      github.workflowRuns = {
+        [UPDATED_HEAD]: [[workflowRun({ ...HELD_RUN, headSha: UPDATED_HEAD })]]
+      }
+      const { request, calls } = createHarness({ github })
+
+      await assert.rejects(
+        mergePullRequest(request),
+        new RegExp(
+          `The new head ${UPDATED_HEAD} of #42 is not the merge of main at ${BASE_SHA} into ${HEAD}`,
+          'u'
+        )
+      )
+      assert.deepEqual(
+        writes(calls).map(call => call.args[1]),
+        ['repos/{owner}/{repo}/pulls/42/update-branch']
+      )
+    }
   })
 
   it('approves only the held CI run of the head of a release pull request', async () => {

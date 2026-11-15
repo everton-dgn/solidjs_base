@@ -84,7 +84,10 @@ run, and optional for the others. Without `--dry-run`, the command:
    is not the one passed with `--sha`, and one with an unresolved review
    conversation, which it lists with the path, the line and the author.
 2. Merges `main` into a branch that is behind, through the GitHub API and never
-   with a rebase, and goes on with the new head.
+   with a rebase. It goes on only when the new head is a merge commit whose
+   parents are the reviewed head and the tip of `main` it read before the
+   update, and stops otherwise, before approving or merging anything. It prints
+   the new head, which a second run takes with `--sha`.
 3. Waits for `CI required` on the head. It counts only the checks of runs
    started by an event the ruleset accepts, such as `pull_request`, and ignores
    the check of a `workflow_dispatch` run. When the check is missing and the CI

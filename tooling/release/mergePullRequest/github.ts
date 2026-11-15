@@ -181,17 +181,20 @@ export function createGitHub(run: RunCommand): GitHub {
       return threads
     },
 
-    async countBehind({ base, head }) {
+    async compare({ base, head }) {
       const comparison = await ghFields({
         action: `compare ${head} with ${base}`,
         args: [
           'api',
           `${REPOSITORY}/compare/${base}...${head}`,
           '--jq',
-          '{behind_by: .behind_by}'
+          '{behind_by: .behind_by, base_sha: .base_commit.sha}'
         ]
       })
-      return comparison.number('behind_by')
+      return {
+        behindBy: comparison.number('behind_by'),
+        baseSha: comparison.string('base_sha')
+      }
     },
 
     async updateBranch({ number, head }) {
@@ -206,6 +209,19 @@ export function createGitHub(run: RunCommand): GitHub {
           `expected_head_sha=${head}`
         ]
       })
+    },
+
+    async readParents(sha) {
+      const commit = await ghFields({
+        action: `read the commit ${sha}`,
+        args: [
+          'api',
+          `${REPOSITORY}/commits/${sha}`,
+          '--jq',
+          '{parents: [.parents[] | {sha}]}'
+        ]
+      })
+      return commit.list('parents').map(parent => parent.string('sha'))
     },
 
     async listCheckRuns(sha) {

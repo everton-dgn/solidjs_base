@@ -82,7 +82,7 @@ guide lists as a limit. The
 check. Fast tests keep the guide's plugin equal to the scenario's, and check
 that the test server serves nothing outside the build and closes when the
 browser does not launch. The no-server part, from the rewrite to the last
-browser check, took about 4 seconds of an 18-second case, within its 150-second
+browser check, took 3 to 4 seconds of a 13-second case, within its 150-second
 budget.
 
 That flag approaches a shell and does not replace one. The test does not cover

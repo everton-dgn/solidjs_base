@@ -1,9 +1,10 @@
 import path from 'node:path'
 
-import type { Plugin } from 'vite-plus'
+import type { Logger, Plugin } from 'vite-plus'
 
 import { compileIcon } from './compileIcon/index.ts'
 import { messageOf } from './errorText/index.ts'
+import { fileKey, iconOfFile } from './fileIcons/index.ts'
 import {
   createNameTables,
   type Folders,
@@ -35,11 +36,8 @@ import type { SolidIconsOptions } from './types.ts'
 
 type ModuleIds = Map<string, Set<string>>
 type TrackedId = { ids: ModuleIds; key: string; id: string }
-type FileIcon = { collection: string; name: string }
-type FileLookup = { folders: Folders; file: string }
 
 const PLUGIN_NAME = 'vite-plugin-solid-icons'
-const SVG_EXTENSION = '.svg'
 const SCRIPT_ID = /\.[cm]?[jt]sx?(?:\?.*)?$/u
 const NODE_MODULES = /[/\\]node_modules[/\\]/u
 const ICON_MODULE = /^\0?icon:/u
@@ -52,19 +50,6 @@ function track({ ids, key, id }: TrackedId): void {
   const tracked = ids.get(key) ?? new Set<string>()
   tracked.add(id)
   ids.set(key, tracked)
-}
-
-// The icon of a file in the folder of a collection, also when no module
-// loaded it yet: a new file answers an import that failed before.
-function iconOfFile({ folders, file }: FileLookup): FileIcon | undefined {
-  if (path.extname(file) !== SVG_EXTENSION) return undefined
-  const folder = path.dirname(file)
-  for (const [collection, collectionFolder] of folders) {
-    if (collectionFolder === folder) {
-      return { collection, name: path.basename(file, SVG_EXTENSION) }
-    }
-  }
-  return undefined
 }
 
 async function settled(task: Promise<void>): Promise<void> {
@@ -98,9 +83,15 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
   let folders: Folders = new Map()
   let tables: NameTables = createNameTables({ root, folders })
   let typesFile: string | undefined
+  let logger: Logger | undefined
   let runningTypes = Promise.resolve()
+  const warnedFiles = new Set<string>()
   const idsByFile: ModuleIds = new Map()
   const importersByCollection: ModuleIds = new Map()
+
+  function warn(message: string): void {
+    logger?.warn(`[plugin ${PLUGIN_NAME}] ${message}`)
+  }
 
   function idsOfFile(file: string): Set<string> {
     const ids = new Set(idsByFile.get(file))
@@ -112,10 +103,25 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     return ids
   }
 
+  async function warnSkippedFiles(): Promise<void> {
+    for (const collection of folders.keys()) {
+      const { skipped } = await tables.files(collection)
+      for (const file of skipped) {
+        const key = `${collection}/${file}`
+        if (warnedFiles.has(key)) continue
+        warnedFiles.add(key)
+        warn(
+          `The file "${file}" of the icon collection "${collection}" has no import: an icon name has letters, digits, "_" and "-", with dots only between them.`
+        )
+      }
+    }
+  }
+
   async function writeTypes(): Promise<void> {
     if (typesFile === undefined) return
     const content = await renderIconTypes({ root, folders, tables })
     await writeTypesFile({ file: typesFile, content })
+    await warnSkippedFiles()
   }
 
   // One write at a time, so the last list of icons is the one on disk.
@@ -129,18 +135,29 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
     return update
   }
 
+  // WHY: the declarations help the editor; a folder or a collection that
+  // cannot be read stops only the imports that need it, and the dev server
+  // keeps running.
+  async function reportTypes(): Promise<void> {
+    try {
+      await updateTypes()
+    } catch (error) {
+      warn(messageOf(error))
+    }
+  }
+
   return {
     name: PLUGIN_NAME,
     enforce: 'pre',
-    async configResolved({ root: viteRoot }) {
-      root = viteRoot
+    async configResolved(config) {
+      ;({ root, logger } = config)
       folders = resolveFolders({ root, collections })
       tables = createNameTables({ root, folders })
       typesFile =
         options.typesFile === false
           ? undefined
           : path.resolve(root, options.typesFile ?? DEFAULT_TYPES_FILE)
-      await updateTypes()
+      await reportTypes()
     },
     configureServer(server) {
       server.watcher.add([...folders.values()])
@@ -209,14 +226,14 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
       })
       if (file !== undefined) {
         this.addWatchFile(file)
-        track({ ids: idsByFile, key: path.normalize(file), id })
+        track({ ids: idsByFile, key: fileKey(file), id })
       }
       const icon = `${collection}/${name}`
       return { code: compileIcon({ svg, isRaw, icon }), map: null }
     },
     async hotUpdate(context) {
       const graph = this.environment.moduleGraph
-      const file = path.normalize(context.file)
+      const file = fileKey(context.file)
       const ids = idsOfFile(file)
       const icon = iconOfFile({ folders, file })
       // A new, removed or renamed SVG changes the names of its collection.
@@ -225,11 +242,7 @@ export function solidIcons(options: SolidIconsOptions = {}): Plugin {
           ids.add(id)
         }
         tables.invalidate(icon.collection)
-        try {
-          await updateTypes()
-        } catch (error) {
-          this.warn(messageOf(error))
-        }
+        await reportTypes()
       }
       const modules = [...ids].flatMap(id => graph.getModuleById(id) ?? [])
       if (context.type === 'update' || modules.length === 0) {

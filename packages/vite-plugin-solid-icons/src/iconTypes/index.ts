@@ -1,6 +1,9 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { pid } from 'node:process'
 
+import { errorCode } from '../errorText/index.ts'
 import {
   declaredCollections,
   type Folders,
@@ -75,13 +78,29 @@ export async function readTypesFile(file: string): Promise<string | undefined> {
 }
 
 // An unchanged file keeps its time, so the editor and the watchers do not
-// read it again.
+// read it again. A new content replaces the file in one rename, so a dev
+// server, a build or a type check that reads it at the same time sees the
+// old or the new file, never a part of one.
 export async function writeTypesFile({
   file,
   content
 }: TypesFileContent): Promise<boolean> {
   if ((await readTypesFile(file)) === content) return false
-  await mkdir(path.dirname(file), { recursive: true })
-  await writeFile(file, content)
+  const folder = path.dirname(file)
+  const temporary = path.join(
+    folder,
+    `.${path.basename(file)}.${pid}-${randomUUID()}.tmp`
+  )
+  try {
+    await mkdir(folder, { recursive: true })
+    await writeFile(temporary, content)
+    await rename(temporary, file)
+  } catch (error) {
+    await rm(temporary, { force: true })
+    throw new Error(
+      `The icon declarations cannot be written to ${file} (${errorCode(error)}).`,
+      { cause: error }
+    )
+  }
   return true
 }

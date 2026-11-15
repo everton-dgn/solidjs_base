@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
+import { messageOf } from '../errorText/index.ts'
 import { type FolderFiles, readFolderFiles } from '../folderFiles/index.ts'
 import { isCollectionName, isIconName } from '../iconIds/index.ts'
 import {
@@ -95,7 +96,15 @@ async function findManifest(folder: string): Promise<Manifest | undefined> {
     const parent = path.dirname(folder)
     return parent === folder ? undefined : findManifest(parent)
   }
-  const manifest: unknown = JSON.parse(text)
+  let manifest: unknown
+  try {
+    manifest = JSON.parse(text)
+  } catch (error) {
+    throw new Error(
+      `The package.json in "${folder}" is not valid JSON, so the icon collections it installs are unknown: ${messageOf(error)}`,
+      { cause: error }
+    )
+  }
   return isManifest(manifest) ? manifest : undefined
 }
 

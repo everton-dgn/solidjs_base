@@ -11,7 +11,8 @@ describe('mergePullRequest runner', () => {
   it('returns the output of a command that succeeds', async () => {
     const result = await createRunner(ENOUGH_TIME)({
       file: 'npm',
-      args: ['--version']
+      args: ['--version'],
+      isWrite: false
     })
 
     assert.equal(result.exitCode, 0)
@@ -21,7 +22,8 @@ describe('mergePullRequest runner', () => {
   it('returns the exit code of a command that fails', async () => {
     const result = await createRunner(ENOUGH_TIME)({
       file: 'npm',
-      args: ['not-a-command']
+      args: ['not-a-command'],
+      isWrite: false
     })
 
     assert.notEqual(result.exitCode, 0)
@@ -30,7 +32,8 @@ describe('mergePullRequest runner', () => {
   it('stops a command that does not finish in time and says so', async () => {
     const result = await createRunner(TOO_SHORT)({
       file: 'npm',
-      args: ['--version']
+      args: ['--version'],
+      isWrite: false
     })
 
     assert.notEqual(result.exitCode, 0)

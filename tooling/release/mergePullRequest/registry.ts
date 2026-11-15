@@ -33,7 +33,8 @@ export function createRegistry(run: RunCommand): Registry {
       const spec = `${name}@${version}`
       const result = await run({
         file: 'npm',
-        args: ['view', spec, 'version', PROVENANCE_FIELD, '--json']
+        args: ['view', spec, 'version', PROVENANCE_FIELD, '--json'],
+        isWrite: false
       })
       const missing: RegistryReading = {
         version: undefined,

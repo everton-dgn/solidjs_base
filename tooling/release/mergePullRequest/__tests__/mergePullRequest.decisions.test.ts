@@ -5,14 +5,13 @@ import {
   decideCheck,
   ignoredChecks,
   isBranchUpdate,
-  isReadCommand,
   isReleasePullRequest,
   mergeCommitTitle,
   RELEASE_WORKFLOW,
   refusePullRequest,
   releasedVersions
 } from '../decisions.ts'
-import type { CheckRun, Command, PullRequest, WorkflowRun } from '../types.ts'
+import type { CheckRun, PullRequest, WorkflowRun } from '../types.ts'
 
 const HEAD = 'a1b2c3d'
 
@@ -57,10 +56,6 @@ function run(fields: Partial<WorkflowRun>): WorkflowRun {
 }
 
 const NOTHING_APPROVED: ReadonlySet<number> = new Set()
-
-function gh(...args: string[]): Command {
-  return { file: 'gh', args }
-}
 
 describe('mergePullRequest decisions', () => {
   it('counts success, neutral and skipped as a passed check', () => {
@@ -200,26 +195,6 @@ describe('mergePullRequest decisions', () => {
     ]) {
       assert.equal(isBranchUpdate({ ...update, parents }), false)
     }
-  })
-
-  it('lets the dry run read and refuses what writes', () => {
-    const reads = [
-      gh('pr', 'view', '42', '--json', 'number'),
-      gh('api', 'repos/{owner}/{repo}/compare/main...a1b2c3d', '--jq', '.'),
-      gh('api', 'repos/{owner}/{repo}/commits/a1b2c3d', '-X', 'GET'),
-      gh('api', 'graphql', '-F', 'number=42', '-f', 'query=query($n: Int!) {}'),
-      { file: 'npm', args: ['view', '@evertondgn/solid-tooling@0.7.0'] }
-    ] satisfies Command[]
-    const writes = [
-      gh('api', 'repos/{owner}/{repo}/pulls/42/merge', '-X', 'PUT'),
-      gh('api', 'repos/{owner}/{repo}/actions/runs/1/approve', '-f', 'a=b'),
-      gh('api', 'repos/{owner}/{repo}/issues/42/labels', '--input', 'x.json'),
-      gh('api', 'graphql', '-f', 'query=mutation { closePullRequest }'),
-      gh('pr', 'merge', '42'),
-      { file: 'npm', args: ['publish'] }
-    ] satisfies Command[]
-    for (const command of reads) assert.equal(isReadCommand(command), true)
-    for (const command of writes) assert.equal(isReadCommand(command), false)
   })
 
   it('writes the classic merge commit title', () => {

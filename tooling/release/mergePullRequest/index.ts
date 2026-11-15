@@ -2,17 +2,15 @@ import { inspectCi, waitForCi } from './ci.ts'
 import {
   describeOpenThreads,
   isBranchUpdate,
-  isReadCommand,
   isReleasePullRequest,
   mergeCommitTitle,
   refuseHead,
   refusePullRequest,
   shortSha
 } from './decisions.ts'
-import { createGitHub } from './github.ts'
 import { describePublication, verifyPublication } from './publication.ts'
-import { createRegistry } from './registry.ts'
-import type { MergeRequest, PullRequest, RunCommand, Session } from './types.ts'
+import { createSession } from './session.ts'
+import type { MergeRequest, PullRequest, Session } from './types.ts'
 import { describeDuration, waitFor } from './wait.ts'
 
 type Step = { session: Session; pullRequest: PullRequest }
@@ -22,19 +20,6 @@ type BehindStep = Step & { behindBy: number }
 type UpdateStep = Step & { baseSha: string }
 
 type MergedStep = Step & { mergeSha: string; isDryRun: boolean }
-
-// The dry run builds the same commands as a real run, so a write that slips
-// through a branch of the flow fails here instead of reaching GitHub.
-function refuseWrites(run: RunCommand): RunCommand {
-  return command =>
-    isReadCommand(command)
-      ? run(command)
-      : Promise.reject(
-          new Error(
-            `The dry run refused to run "${command.file} ${command.args.join(' ')}".`
-          )
-        )
-}
 
 async function updateBranch({
   session,
@@ -128,13 +113,7 @@ async function checkMergedRelease({
 export async function mergePullRequest(request: MergeRequest): Promise<void> {
   const { number, expectedSha, isDryRun, timing, environment } = request
   const { log } = environment
-  const run = isDryRun ? refuseWrites(environment.run) : environment.run
-  const session: Session = {
-    timing,
-    environment,
-    github: createGitHub(run),
-    registry: createRegistry(run)
-  }
+  const session = createSession({ environment, timing, isDryRun })
   const pullRequest = await session.github.readPullRequest(number)
   const { state, mergeSha } = pullRequest
   if (

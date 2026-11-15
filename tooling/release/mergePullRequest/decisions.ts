@@ -1,7 +1,6 @@
 import type {
   CheckDecision,
   CheckRun,
-  Command,
   IgnoredCheck,
   Manifest,
   PullRequest,
@@ -55,9 +54,6 @@ const RULESET_EVENTS = new Set([
   'deployment_status'
 ])
 const PASSING_CONCLUSIONS = new Set(['success', 'neutral', 'skipped'])
-const METHOD_FLAGS = new Set(['-X', '--method'])
-const FIELD_FLAGS = new Set(['-f', '--raw-field', '-F', '--field', '--input'])
-const GRAPHQL_QUERY = /^query=\s*query\b/u
 const HELD = 'action_required'
 
 function latest<Item extends { id: number }>(
@@ -80,27 +76,12 @@ function isHeld(run: WorkflowRun): boolean {
   return run.status === HELD || run.conclusion === HELD
 }
 
-// gh api sends a POST when a call has fields and no method, so a call reads
-// only with GET, without fields, or as a GraphQL query.
-function isReadApiCall(args: readonly string[]): boolean {
-  const method = args.findIndex(arg => METHOD_FLAGS.has(arg))
-  if (method !== -1) return args[method + 1] === 'GET'
-  if (args[1] === 'graphql') return args.some(arg => GRAPHQL_QUERY.test(arg))
-  return !args.some(arg => FIELD_FLAGS.has(arg))
-}
-
 export const CI_WORKFLOW = '.github/workflows/ci.yml'
 
 export const RELEASE_WORKFLOW = '.github/workflows/release.yml'
 
 export function shortSha(sha: string): string {
   return sha.slice(0, SHORT_SHA_LENGTH)
-}
-
-export function isReadCommand({ file, args }: Command): boolean {
-  if (file === 'npm') return args[0] === 'view'
-  if (args[0] === 'pr') return args[1] === 'view'
-  return args[0] === 'api' && isReadApiCall(args)
 }
 
 export function refusePullRequest(

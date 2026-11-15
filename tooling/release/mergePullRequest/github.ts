@@ -1,4 +1,3 @@
-import { isReadCommand } from './decisions.ts'
 import { type Fields, parseJson, readFields } from './json.ts'
 import { TIMED_OUT_EXIT_CODE } from './runner.ts'
 import type {
@@ -13,7 +12,7 @@ import type {
 } from './types.ts'
 import { PassingReadError } from './wait.ts'
 
-type GhCall = { args: readonly string[]; action: string }
+type GhCall = { args: readonly string[]; action: string; isWrite: boolean }
 
 type ListCall = GhCall & { key: string }
 
@@ -121,12 +120,12 @@ function toJob(job: Fields): Job {
 }
 
 function createCaller(run: RunCommand): Caller {
-  async function gh({ args, action }: GhCall): Promise<string> {
-    const command: Command = { file: 'gh', args }
+  async function gh({ args, action, isWrite }: GhCall): Promise<string> {
+    const command: Command = { file: 'gh', args, isWrite }
     const result = await run(command)
     if (result.exitCode === 0) return result.stdout
     const message = `Could not ${action}: ${failureDetail(result)}`
-    throw isReadCommand(command) && isPassingFailure(result)
+    throw !isWrite && isPassingFailure(result)
       ? new PassingReadError(message)
       : new Error(message)
   }
@@ -138,9 +137,18 @@ function createCaller(run: RunCommand): Caller {
   }
 
   // --slurp prints every page in one JSON list, so a long list is read whole.
-  async function ghList({ args, action, key }: ListCall): Promise<Fields[]> {
+  async function ghList({
+    args,
+    action,
+    key,
+    isWrite
+  }: ListCall): Promise<Fields[]> {
     const label = `response to "${action}"`
-    const text = await gh({ action, args: [...args, '--paginate', '--slurp'] })
+    const text = await gh({
+      action,
+      args: [...args, '--paginate', '--slurp'],
+      isWrite
+    })
     const pages = parseJson({ text, label })
     if (!Array.isArray(pages)) {
       throw new TypeError(`Unexpected ${label}: expected a list of pages.`)
@@ -162,6 +170,7 @@ export function createGitHub(run: RunCommand): GitHub {
   }: ThreadsRequest): Promise<ThreadsPage> {
     const response = await ghFields({
       action: `list the review threads of #${number}`,
+      isWrite: false,
       args: [
         'api',
         'graphql',
@@ -197,6 +206,7 @@ export function createGitHub(run: RunCommand): GitHub {
     async readPullRequest(number) {
       const pullRequest = await ghFields({
         action: `read pull request #${number}`,
+        isWrite: false,
         args: ['pr', 'view', String(number), '--json', PULL_REQUEST_FIELDS]
       })
       return {
@@ -228,6 +238,7 @@ export function createGitHub(run: RunCommand): GitHub {
     async compare({ base, head }) {
       const comparison = await ghFields({
         action: `compare ${head} with ${base}`,
+        isWrite: false,
         args: [
           'api',
           `${REPOSITORY}/compare/${base}...${head}`,
@@ -244,6 +255,7 @@ export function createGitHub(run: RunCommand): GitHub {
     async updateBranch({ number, head }) {
       await gh({
         action: `update the branch of #${number}`,
+        isWrite: true,
         args: [
           'api',
           `${REPOSITORY}/pulls/${number}/update-branch`,
@@ -258,6 +270,7 @@ export function createGitHub(run: RunCommand): GitHub {
     async readParents(sha) {
       const commit = await ghFields({
         action: `read the commit ${sha}`,
+        isWrite: false,
         args: [
           'api',
           `${REPOSITORY}/commits/${sha}`,
@@ -271,6 +284,7 @@ export function createGitHub(run: RunCommand): GitHub {
     async listCheckRuns(sha) {
       const checks = await ghList({
         action: `list the CI required checks of ${sha}`,
+        isWrite: false,
         key: 'check_runs',
         args: [
           'api',
@@ -283,6 +297,7 @@ export function createGitHub(run: RunCommand): GitHub {
     async listWorkflowRuns(sha) {
       const workflowRuns = await ghList({
         action: `list the workflow runs of ${sha}`,
+        isWrite: false,
         key: 'workflow_runs',
         args: ['api', `${REPOSITORY}/actions/runs?head_sha=${sha}&${PAGE_SIZE}`]
       })
@@ -292,6 +307,7 @@ export function createGitHub(run: RunCommand): GitHub {
     async approveRun(id) {
       await gh({
         action: `approve the workflow run ${id}`,
+        isWrite: true,
         args: ['api', `${REPOSITORY}/actions/runs/${id}/approve`, '-X', 'POST']
       })
     },
@@ -312,7 +328,8 @@ export function createGitHub(run: RunCommand): GitHub {
           `commit_title=${title}`,
           '-f',
           'commit_message='
-        ]
+        ],
+        isWrite: true
       })
       if (result.exitCode !== 0) {
         return { isMerged: false, message: failureDetail(result) }
@@ -335,6 +352,7 @@ export function createGitHub(run: RunCommand): GitHub {
     async listJobs(runId) {
       const jobs = await ghList({
         action: `list the jobs of the workflow run ${runId}`,
+        isWrite: false,
         key: 'jobs',
         args: ['api', `${REPOSITORY}/actions/runs/${runId}/jobs?${PAGE_SIZE}`]
       })
@@ -344,6 +362,7 @@ export function createGitHub(run: RunCommand): GitHub {
     readFile({ path, ref }) {
       return gh({
         action: `read ${path} at ${ref}`,
+        isWrite: false,
         args: [
           'api',
           `${REPOSITORY}/contents/${path}?ref=${encodeURIComponent(ref)}`,

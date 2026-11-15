@@ -1,4 +1,10 @@
-export type Command = { file: 'gh' | 'npm'; args: readonly string[] }
+// isWrite is set where the command is built: the dry run refuses a write and a
+// failed write is never read again.
+export type Command = {
+  file: 'gh' | 'npm'
+  args: readonly string[]
+  isWrite: boolean
+}
 
 export type CommandResult = { exitCode: number; stdout: string; stderr: string }
 

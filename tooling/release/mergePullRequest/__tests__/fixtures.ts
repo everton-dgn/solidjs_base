@@ -553,6 +553,14 @@ export function createHarness({
   let clock = 0
   const run: RunCommand = command => {
     calls.push(command)
+    const method = flag({ command, name: '-X' })
+    if (command.isWrite !== (method !== '' && method !== 'GET')) {
+      return Promise.reject(
+        new Error(
+          `Command marked with isWrite ${String(command.isWrite)} and the method ${method || 'GET'}: ${command.args.join(' ')}`
+        )
+      )
+    }
     const result = respond({ github, command })
     if (result === undefined) {
       return Promise.reject(

@@ -52,7 +52,8 @@ export default function App() {
   )
 }
 `
-// Markup that leaves the SVG in the HTML of a page, as a body of an icon.
+// Markup that leaves the SVG in the HTML of a page, or that the HTML of the
+// server writes as another text, as a body of an icon.
 const ESCAPES: [name: string, body: string, message: RegExp][] = [
   [
     'style-cdata',
@@ -63,6 +64,11 @@ const ESCAPES: [name: string, body: string, message: RegExp][] = [
     'style-entities',
     '<style>&lt;/style&gt;&lt;img src="x" onerror="globalThis.__iconPwned = 3"&gt;</style>',
     /the text of <style> has a "<"/u
+  ],
+  [
+    'style-reference',
+    '<style>text::after { content: "&amp;quot;" }</style>',
+    /the text of <style> has a "&" before a letter or a "#"/u
   ],
   [
     'iframe',
@@ -310,7 +316,7 @@ describe('the markup of an SVG file', () => {
     }
   })
 
-  it('stops the build of markup that leaves the SVG, for the server too', async context => {
+  it('stops the build of markup that leaves the SVG or that the server writes apart, for the server too', async context => {
     const root = await trapApp(context)
     for (const [name, , message] of ESCAPES) {
       for (const collection of ['own', 'trap']) {

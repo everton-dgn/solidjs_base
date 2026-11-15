@@ -200,6 +200,9 @@ const XMLNS_PREFIX = 'xmlns:'
 // of the server, where a "<" could end the element.
 const TEXT_ONLY = new Set(['desc', 'style', 'title'])
 const UNESCAPED_TEXT = 'style'
+// WHY: inside an <svg> the HTML parser of a page reads a "&" before a letter
+// or a "#" as a character reference, also in the text of <style>.
+const HTML_REFERENCE = /&[#A-Za-z]/u
 // The elements whose texts keep their spaces: what <text> draws, with the
 // elements inside it, and the text of <title>, <desc> and <style>.
 const TEXT_CONTENT = new Set([
@@ -542,20 +545,27 @@ function readTail(scanner: Scanner): void {
 
 function checkText({ parent, value }: TextCheck): void {
   const isChecked = parent.drop === 'none' && parent.name === UNESCAPED_TEXT
-  if (!isChecked || !value.includes('<')) {
-    return
+  if (!isChecked) return
+  if (value.includes('<')) {
+    throw new SvgError(
+      `the text of <${parent.name}> has a "<", which can end the element in the HTML of a page and run code`
+    )
   }
-  throw new SvgError(
-    `the text of <${parent.name}> has a "<", which can end the element in the HTML of a page and run code`
-  )
+  if (HTML_REFERENCE.test(value)) {
+    throw new SvgError(
+      `the text of <${parent.name}> has a "&" before a letter or a "#", which a page reads as a character reference in the HTML of the server: write the "&" of a CSS string or URL as the escape \\26 followed by a space, and a nesting selector &#id as #id&`
+    )
+  }
 }
 
 // WHY: a comment, an instruction, a CDATA section or editor data that the
 // icon leaves out splits a text into pieces that the output writes side by
 // side. One text keeps them together, so the raw text escapes a "]]>" that
-// forms across two of them.
+// forms across two of them, and the check sees a reference that does.
 function appendText({ parent, text }: AppendInput): void {
   const last = parent.children.at(-1)
+  const before = last?.kind === 'text' ? last.value.slice(-1) : ''
+  checkText({ parent, value: `${before}${text.value}` })
   if (last?.kind !== 'text') {
     parent.children.push(text)
     return
@@ -571,7 +581,6 @@ function pushText({ parent, raw }: TextInput): void {
     throw malformed(`a "${CDATA_END}" sits outside a CDATA section`)
   }
   const value = decode(raw)
-  checkText({ parent, value })
   appendText({
     parent,
     text: {
@@ -626,7 +635,6 @@ function readNode(input: NodeInput): ElementNode | undefined {
   if (svg.startsWith(CDATA_START, at)) {
     const section = skipMarkup({ scanner, open: CDATA_START, close: CDATA_END })
     const value = section.slice(CDATA_START.length, -CDATA_END.length)
-    checkText({ parent, value })
     appendText({
       parent,
       text: {

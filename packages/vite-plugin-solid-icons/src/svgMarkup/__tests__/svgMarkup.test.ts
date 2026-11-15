@@ -195,6 +195,23 @@ const NOT_SVG: Refusal[] = [
   }
 ]
 
+// A "&" in the text of <style> that the HTML parser of a page reads as a
+// character reference in the HTML of the server, also where the pieces of
+// the text form it.
+const STYLE_REFERENCE =
+  /the text of <style> has a "&" before a letter or a "#"/u
+const STYLE_REFERENCES = [
+  '<style>a::after { content: "&amp;quot;" }</style>',
+  '<style><![CDATA[a::after { content: "&#60;" }]]></style>',
+  '<style>a { &amp;#id { fill: red } }</style>',
+  '<style>a::after { content: "&amp;AMP;" }</style>',
+  '<style>a::after { content: "&amp;<!-- c -->lt;" }</style>',
+  '<style>a::after { content: "<![CDATA[&]]>#60;" }</style>',
+  '<style>a::after { content: "&amp;<?pi x?><![CDATA[]]>quot;" }</style>',
+  '<style>a::after { content: "&amp;<metadata><x/></metadata>quot;" }</style>',
+  '<style>a::after { content: "&#x26;lt;" }</style>'
+]
+
 // Markup that the parser of the plugin skips and that the HTML parser of a
 // page ends in another place, so a copy of the file would show the image.
 const SKIPPED = [
@@ -335,6 +352,28 @@ describe('the markup of an icon', () => {
       raw(svg),
       `export default ${JSON.stringify('<svg><title>a &lt; b</title><desc>&lt;/desc>&lt;img src="x"></desc></svg>')}\n`
     )
+  })
+
+  it('refuses a "&" that the server would write as a reference in <style>, also as raw text', () => {
+    for (const body of STYLE_REFERENCES) {
+      const svg = `<svg>${body}</svg>`
+
+      assert.throws(() => component(svg), STYLE_REFERENCE, svg)
+      assert.throws(() => raw(svg), STYLE_REFERENCE, svg)
+      assert.throws(() => component(svg), /the escape \\26 followed/u, svg)
+    }
+  })
+
+  it('accepts a "&" of CSS nesting, before a digit and at the end of <style>', () => {
+    const css = String.raw`a { &amp;:hover { fill: red } &amp; .x { fill: red } &amp;.on { fill: red } } b::after { content: "\26 &amp;1" } &amp;`
+    const value = css.replaceAll('&amp;', '&')
+    const svg = `<svg><style>${css}</style></svg>`
+
+    assert.equal(
+      component(svg),
+      `export default (props = {}) => <svg {...props}><style>{${JSON.stringify(value)}}</style></svg>\n`
+    )
+    assert.equal(raw(svg), `export default ${JSON.stringify(svg)}\n`)
   })
 
   it('refuses the markup that JSX reads as code', () => {

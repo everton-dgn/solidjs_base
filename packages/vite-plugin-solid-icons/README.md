@@ -273,6 +273,15 @@ code. What the plugin guarantees is that the markup of a file stays markup:
   These checks apply to the component and to `?raw`, for a folder and for an
   installed collection.
 
+- The build also stops on a `&` before a letter or a `#` in the text of
+  `<style>`, written as `&amp;` or in a CDATA section, as in `&amp;quot;`: the
+  server writes that text as it is, and a page reads a character reference
+  there, so the CSS of the server and of the hydrated page would differ from the
+  one of the client and of `?raw`. In a CSS string or URL, the escape `\26 `
+  writes a `&`, and a nesting selector such as `&#id` can be written `#id&`. A
+  `&` before a space, a digit or punctuation, as in `&:hover`, `& .x` or `&.on`,
+  stays as it is. The check applies to the component, to the server and to
+  `?raw`.
 - The component also refuses the markup that JSX reads as code: the attributes
   `innerHTML`, `textContent`, `innerText`, `children` and `ref`, and the
   namespaces that Solid reads, such as `prop:` and `use:`. `?raw` keeps them as

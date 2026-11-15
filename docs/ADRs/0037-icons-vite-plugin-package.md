@@ -96,22 +96,24 @@ The options were:
   `<a>` and `<use>`, and in `<image>` and `<feImage>` unless it is an image), on
   markup that a page reads as HTML (an element outside SVG 2, `<foreignObject>`,
   an element in `<title>`, `<desc>` and `<style>`, a `<` in the text of
-  `<style>`) and on markup that JSX reads as code. `?raw` escapes `&`, `<` and
-  `"` in the values and `&`, `<` and `]]>` in the text, after it joins the
-  pieces of a text that a comment or a CDATA section split, and leaves out
-  comments, processing instructions and the DOCTYPE. The component writes the
-  text of `<text>`, of the elements inside it, of `<title>`, `<desc>` and
-  `<style>` as a string when JSX would trim or join its spaces, so it draws as
-  the file and `?raw` do and hydrates as the server rendered it. A copy of the
-  file kept the comments and the processing instructions, which the parser of
-  the package skips and the HTML parser of a page ends at another `>`: an
-  `<img>` with an event handler hidden in one ran when the text was set with
-  `innerHTML`. The data that drawing applications write for themselves, such as
-  `<metadata>` and the `inkscape:` namespace, is left out with a warning.
-  Writing the markup into JSX as it was let an element such as
-  `<globalThis.fn/>` call a function at render and let `innerHTML` reach the
-  server output as HTML; both were reproduced before the change. An SVG that a
-  user uploads still needs a sanitizer at runtime.
+  `<style>`), on a `&` before a letter or a `#` in the text of `<style>`, which
+  the server writes as it is and a page reads as a character reference, and on
+  markup that JSX reads as code. `?raw` escapes `&`, `<` and `"` in the values
+  and `&`, `<` and `]]>` in the text, after it joins the pieces of a text that a
+  comment or a CDATA section split, and leaves out comments, processing
+  instructions and the DOCTYPE. The component writes the text of `<text>`, of
+  the elements inside it, of `<title>`, `<desc>` and `<style>` as a string when
+  JSX would trim or join its spaces, so it draws as the file and `?raw` do and
+  hydrates as the server rendered it. A copy of the file kept the comments and
+  the processing instructions, which the parser of the package skips and the
+  HTML parser of a page ends at another `>`: an `<img>` with an event handler
+  hidden in one ran when the text was set with `innerHTML`. The data that
+  drawing applications write for themselves, such as `<metadata>` and the
+  `inkscape:` namespace, is left out with a warning. Writing the markup into JSX
+  as it was let an element such as `<globalThis.fn/>` call a function at render
+  and let `innerHTML` reach the server output as HTML; both were reproduced
+  before the change. An SVG that a user uploads still needs a sanitizer at
+  runtime.
 - A folder icon is read only when the listing of the folder has its exact file
   name, so a link, a name in another case and a path outside the folder are
   refused on every file system. The file is opened without following a link and

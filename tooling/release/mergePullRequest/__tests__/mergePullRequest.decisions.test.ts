@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import {
+  checkMergedFiles,
   decideCheck,
   ignoredChecks,
   isBranchUpdate,
@@ -56,6 +57,10 @@ function run(fields: Partial<WorkflowRun>): WorkflowRun {
 }
 
 const NOTHING_APPROVED: ReadonlySet<number> = new Set()
+
+function files(entries: Record<string, string>): ReadonlyMap<string, string> {
+  return new Map(Object.entries(entries))
+}
 
 describe('mergePullRequest decisions', () => {
   it('counts success, neutral and skipped as a passed check', () => {
@@ -212,5 +217,80 @@ describe('mergePullRequest decisions', () => {
       }),
       [{ path: 'packages/a', version: '0.7.0' }]
     )
+  })
+})
+
+describe('mergePullRequest files of an updated head', () => {
+  it('takes as merged the file of the side that changed it, an addition or a removal included', () => {
+    const result = checkMergedFiles({
+      mergeBase: files({
+        'a.ts': '100644 a1',
+        'b.ts': '100644 b1',
+        'gone.ts': '100644 g1',
+        'same.ts': '100644 s1',
+        'both-gone.ts': '100644 x1'
+      }),
+      branch: files({
+        'a.ts': '100644 a2',
+        'b.ts': '100644 b1',
+        'gone.ts': '100644 g1',
+        'same.ts': '100644 s2',
+        'added.ts': '100644 n1'
+      }),
+      base: files({
+        'a.ts': '100644 a1',
+        'b.ts': '100755 b1',
+        'same.ts': '100644 s2'
+      }),
+      updated: files({
+        'a.ts': '100644 a2',
+        'b.ts': '100755 b1',
+        'same.ts': '100644 s2',
+        'added.ts': '100644 n1'
+      })
+    })
+    assert.deepEqual(result, { mismatched: [], changedOnBothSides: [] })
+  })
+
+  it('reports a file whose blob or mode is not the merged one, and a file of neither side', () => {
+    const sides = {
+      mergeBase: files({ 'a.ts': '100644 a1' }),
+      branch: files({ 'a.ts': '100644 a2' }),
+      base: files({ 'a.ts': '100644 a1' })
+    }
+    const wrongFiles: Record<string, string>[] = [
+      { 'a.ts': '100644 a3' },
+      { 'a.ts': '100755 a2' },
+      { 'a.ts': '100644 a1' },
+      {}
+    ]
+    for (const updated of wrongFiles) {
+      assert.deepEqual(
+        checkMergedFiles({ ...sides, updated: files(updated) }),
+        { mismatched: ['a.ts'], changedOnBothSides: [] }
+      )
+    }
+    assert.deepEqual(
+      checkMergedFiles({
+        ...sides,
+        updated: files({ 'a.ts': '100644 a2', 'extra.ts': '100644 e1' })
+      }),
+      { mismatched: ['extra.ts'], changedOnBothSides: [] }
+    )
+  })
+
+  it('reports apart a file that both sides changed in different ways', () => {
+    const baseFiles: Record<string, string>[] = [{ 'a.ts': '100644 a3' }, {}]
+    for (const base of baseFiles) {
+      assert.deepEqual(
+        checkMergedFiles({
+          mergeBase: files({ 'a.ts': '100644 a1' }),
+          branch: files({ 'a.ts': '100644 a2' }),
+          base: files(base),
+          updated: files({ 'a.ts': '100644 a2' })
+        }),
+        { mismatched: [], changedOnBothSides: ['a.ts'] }
+      )
+    }
   })
 })

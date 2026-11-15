@@ -8,6 +8,7 @@ import type {
   Job,
   ReviewThread,
   RunCommand,
+  Tree,
   WorkflowRun
 } from './types.ts'
 import { PassingReadError } from './wait.ts'
@@ -22,7 +23,11 @@ type Caller = {
   ghList: (call: ListCall) => Promise<Fields[]>
 }
 
-type ThreadsRequest = { number: number; cursor: string | undefined }
+type Reader = { ghFields: Caller['ghFields'] }
+
+type ThreadsRequest = Reader & { number: number; cursor: string | undefined }
+
+type TreeRequest = Reader & { sha: string }
 
 type ThreadsPage = { threads: ReviewThread[]; cursor: string | undefined }
 
@@ -161,46 +166,73 @@ function createCaller(run: RunCommand): Caller {
   return { gh, ghFields, ghList }
 }
 
+async function readThreadsPage({
+  ghFields,
+  number,
+  cursor
+}: ThreadsRequest): Promise<ThreadsPage> {
+  const response = await ghFields({
+    action: `list the review threads of #${number}`,
+    isWrite: false,
+    args: [
+      'api',
+      'graphql',
+      '-F',
+      'owner={owner}',
+      '-F',
+      'name={repo}',
+      '-F',
+      `number=${number}`,
+      '-f',
+      `query=${THREADS_QUERY}`,
+      ...(cursor === undefined ? [] : ['-f', `cursor=${cursor}`])
+    ]
+  })
+  const page = response
+    .fields('data')
+    .fields('repository')
+    .fields('pullRequest')
+    .fields('reviewThreads')
+  const pageInfo = page.fields('pageInfo')
+  return {
+    threads: page
+      .list('nodes')
+      .filter(node => !node.boolean('isResolved'))
+      .map(node => toThread(node)),
+    cursor: pageInfo.boolean('hasNextPage')
+      ? pageInfo.string('endCursor')
+      : undefined
+  }
+}
+
+// A folder is left out: its files are listed with their full paths.
+async function readTree({ ghFields, sha }: TreeRequest): Promise<Tree> {
+  const tree = await ghFields({
+    action: `read the files of ${sha}`,
+    isWrite: false,
+    args: [
+      'api',
+      `${REPOSITORY}/git/trees/${sha}?recursive=1`,
+      '--jq',
+      '{truncated, tree: [.tree[] | select(.type != "tree") | {path, mode, sha}]}'
+    ]
+  })
+  return {
+    sha,
+    isTruncated: tree.boolean('truncated'),
+    files: new Map(
+      tree
+        .list('tree')
+        .map(file => [
+          file.string('path'),
+          `${file.string('mode')} ${file.string('sha')}`
+        ])
+    )
+  }
+}
+
 export function createGitHub(run: RunCommand): GitHub {
   const { gh, ghFields, ghList } = createCaller(run)
-
-  async function readThreadsPage({
-    number,
-    cursor
-  }: ThreadsRequest): Promise<ThreadsPage> {
-    const response = await ghFields({
-      action: `list the review threads of #${number}`,
-      isWrite: false,
-      args: [
-        'api',
-        'graphql',
-        '-F',
-        'owner={owner}',
-        '-F',
-        'name={repo}',
-        '-F',
-        `number=${number}`,
-        '-f',
-        `query=${THREADS_QUERY}`,
-        ...(cursor === undefined ? [] : ['-f', `cursor=${cursor}`])
-      ]
-    })
-    const page = response
-      .fields('data')
-      .fields('repository')
-      .fields('pullRequest')
-      .fields('reviewThreads')
-    const pageInfo = page.fields('pageInfo')
-    return {
-      threads: page
-        .list('nodes')
-        .filter(node => !node.boolean('isResolved'))
-        .map(node => toThread(node)),
-      cursor: pageInfo.boolean('hasNextPage')
-        ? pageInfo.string('endCursor')
-        : undefined
-    }
-  }
 
   return {
     async readPullRequest(number) {
@@ -226,10 +258,10 @@ export function createGitHub(run: RunCommand): GitHub {
     },
 
     async listOpenThreads(number) {
-      let page = await readThreadsPage({ number, cursor: undefined })
+      let page = await readThreadsPage({ ghFields, number, cursor: undefined })
       const threads = [...page.threads]
       while (page.cursor !== undefined) {
-        page = await readThreadsPage({ number, cursor: page.cursor })
+        page = await readThreadsPage({ ghFields, number, cursor: page.cursor })
         threads.push(...page.threads)
       }
       return threads
@@ -243,12 +275,13 @@ export function createGitHub(run: RunCommand): GitHub {
           'api',
           `${REPOSITORY}/compare/${base}...${head}`,
           '--jq',
-          '{behind_by: .behind_by, base_sha: .base_commit.sha}'
+          '{behind_by: .behind_by, base_sha: .base_commit.sha, merge_base_sha: .merge_base_commit.sha}'
         ]
       })
       return {
         behindBy: comparison.number('behind_by'),
-        baseSha: comparison.string('base_sha')
+        baseSha: comparison.string('base_sha'),
+        mergeBaseSha: comparison.string('merge_base_sha')
       }
     },
 
@@ -279,6 +312,10 @@ export function createGitHub(run: RunCommand): GitHub {
         ]
       })
       return commit.list('parents').map(parent => parent.string('sha'))
+    },
+
+    readTree(sha) {
+      return readTree({ ghFields, sha })
     },
 
     async listCheckRuns(sha) {

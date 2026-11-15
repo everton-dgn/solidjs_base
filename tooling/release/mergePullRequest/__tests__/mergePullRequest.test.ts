@@ -12,7 +12,9 @@ import {
   failedCommand,
   featureGitHub,
   HEAD,
+  type FakeFile,
   jsonResult,
+  MERGE_BASE_SHA,
   MERGE_SHA,
   OTHER_SHA,
   PROVENANCE,
@@ -157,8 +159,17 @@ describe('mergePullRequest branch update', () => {
     )
     assert.ok(
       lines.includes(
-        'f0e1d2c is the merge of main at b0b1b2b into a1b2c3d. A second run takes it with --sha.'
+        'f0e1d2c is the merge of main at b0b1b2b into a1b2c3d, with the files of both sides. A second run takes it with --sha.'
       )
+    )
+    const treeReads = endpoints(calls).filter(line =>
+      line.startsWith('gh api git/trees/')
+    )
+    assert.deepEqual(
+      treeReads.toSorted(),
+      [MERGE_BASE_SHA, HEAD, BASE_SHA, UPDATED_HEAD]
+        .map(sha => `gh api git/trees/${sha}?recursive=1`)
+        .toSorted()
     )
   })
 
@@ -278,6 +289,111 @@ describe('mergePullRequest branch update', () => {
     await assert.rejects(
       mergePullRequest(request),
       /The head of #7 did not change within 1 minute\(s\) after the update\./u
+    )
+    assert.equal(writes(calls).length, 1)
+  })
+})
+
+describe('mergePullRequest files of the updated head', () => {
+  it('stops, without approving or merging, on a commit with the parents of the update and other files', async () => {
+    const changes: Record<string, FakeFile>[] = [
+      { 'src/extra.ts': { mode: '100644', sha: 'extra-1' } },
+      { 'src/rule.ts': { mode: '100644', sha: 'rule-9' } },
+      { 'src/rule.ts': { mode: '100755', sha: 'rule-2' } }
+    ]
+    for (const change of changes) {
+      const github = releaseGitHub()
+      github.behindBy = 1
+      const updated = github.trees[UPDATED_HEAD]
+      assert.ok(updated)
+      Object.assign(updated.files, change)
+      github.checkRuns = { [UPDATED_HEAD]: [[]] }
+      github.workflowRuns = {
+        [UPDATED_HEAD]: [[workflowRun({ ...HELD_RUN, headSha: UPDATED_HEAD })]]
+      }
+      const { request, calls } = createHarness({ github })
+
+      await assert.rejects(mergePullRequest(request), (error: unknown) => {
+        assert.ok(error instanceof Error)
+        assert.ok(
+          error.message.includes(
+            `  Files that differ from the merge of main at b0b1b2b into a1b2c3d: ${Object.keys(change).join(', ')}.`
+          )
+        )
+        assert.ok(
+          error.message.endsWith(
+            `vp run release:merge 42 --sha ${UPDATED_HEAD}`
+          )
+        )
+        return true
+      })
+      assert.deepEqual(
+        writes(calls).map(call => call.args[1]),
+        ['repos/{owner}/{repo}/pulls/42/update-branch']
+      )
+    }
+  })
+
+  it('stops on a file that one side removed and the new head keeps', async () => {
+    for (const path of ['docs/old.md', 'docs/guide.md']) {
+      const github = featureGitHub()
+      github.behindBy = 1
+      const updated = github.trees[UPDATED_HEAD]
+      assert.ok(updated)
+      updated.files[path] = { mode: '100644', sha: 'kept-1' }
+      const { request, calls } = createHarness({ github })
+
+      await assert.rejects(
+        mergePullRequest(request),
+        new RegExp(
+          `Files that differ from the merge of main at b0b1b2b into a1b2c3d: ${path.replace('.', String.raw`\.`)}\\.`,
+          'u'
+        )
+      )
+      assert.equal(writes(calls).length, 1)
+    }
+  })
+
+  it('stops with the command to merge the new head when both sides changed a file', async () => {
+    const github = featureGitHub()
+    github.behindBy = 1
+    const base = github.trees[BASE_SHA]
+    const updated = github.trees[UPDATED_HEAD]
+    assert.ok(base && updated)
+    base.files['src/rule.ts'] = { mode: '100644', sha: 'rule-3' }
+    updated.files['src/rule.ts'] = { mode: '100644', sha: 'rule-4' }
+    const { request, calls } = createHarness({ github })
+
+    await assert.rejects(mergePullRequest(request), (error: unknown) => {
+      assert.ok(error instanceof Error)
+      assert.equal(
+        error.message,
+        [
+          `The command could not confirm what the new head ${UPDATED_HEAD} of #7 holds:`,
+          '  Files that main and the branch both changed, which the command cannot check: src/rule.ts.',
+          'Nothing was approved or merged. Review the new head and merge it with:',
+          `  vp run release:merge 7 --sha ${UPDATED_HEAD}`
+        ].join('\n')
+      )
+      return true
+    })
+    assert.equal(writes(calls).length, 1)
+  })
+
+  it('stops when GitHub truncates the file list of a commit', async () => {
+    const github = featureGitHub()
+    github.behindBy = 1
+    const base = github.trees[BASE_SHA]
+    assert.ok(base)
+    base.truncated = true
+    const { request, calls } = createHarness({ github })
+
+    await assert.rejects(
+      mergePullRequest(request),
+      new RegExp(
+        `GitHub truncated the file list of ${BASE_SHA}, so the files cannot be compared\\.`,
+        'u'
+      )
     )
     assert.equal(writes(calls).length, 1)
   })

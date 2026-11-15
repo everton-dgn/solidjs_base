@@ -1,8 +1,10 @@
 import type {
   CheckDecision,
   CheckRun,
+  FileCheck,
   IgnoredCheck,
   Manifest,
+  MergedFiles,
   PullRequest,
   RegistryReading,
   ReviewThread,
@@ -40,6 +42,17 @@ type ReleasedVersion = { path: string; version: string }
 
 type Publication = { reading: RegistryReading; version: string }
 
+// The value of a path on each side; undefined when the path does not exist.
+type PathSides = {
+  original: string | undefined
+  branch: string | undefined
+  base: string | undefined
+}
+
+type MergedPath =
+  | { isClean: true; file: string | undefined }
+  | { isClean: false }
+
 const RELEASE_BRANCH_PREFIX = 'release-please--'
 const SHORT_SHA_LENGTH = 7
 // WHY: only checks of runs started by these events count for a required check
@@ -60,6 +73,16 @@ function latest<Item extends { id: number }>(
   items: readonly Item[]
 ): Item | undefined {
   return items.toSorted((first, second) => second.id - first.id)[0]
+}
+
+// The file a merge gives to a path when no side has to be merged into the
+// other line by line: the side that changed it, or the change both made.
+function mergePath({ original, branch, base }: PathSides): MergedPath {
+  if (branch === original) return { isClean: true, file: base }
+  if (base === original || base === branch) {
+    return { isClean: true, file: branch }
+  }
+  return { isClean: false }
 }
 
 function eventOf({ check, workflowRuns }: CountedCheck): string {
@@ -144,6 +167,36 @@ export function refuseHead({
 export function isBranchUpdate({ parents, head, base }: Parents): boolean {
   const [first, second, ...others] = parents
   return first === head && second === base && others.length === 0
+}
+
+// Compares each path of the updated head with the merge of the two sides,
+// counting a missing path as a value, so an added or removed file counts too.
+export function checkMergedFiles({
+  mergeBase,
+  branch,
+  base,
+  updated
+}: MergedFiles): FileCheck {
+  const paths = new Set([
+    ...mergeBase.keys(),
+    ...branch.keys(),
+    ...base.keys(),
+    ...updated.keys()
+  ])
+  const check: FileCheck = { mismatched: [], changedOnBothSides: [] }
+  for (const path of [...paths].toSorted()) {
+    const merged = mergePath({
+      original: mergeBase.get(path),
+      branch: branch.get(path),
+      base: base.get(path)
+    })
+    if (!merged.isClean) {
+      check.changedOnBothSides.push(path)
+    } else if (updated.get(path) !== merged.file) {
+      check.mismatched.push(path)
+    }
+  }
+  return check
 }
 
 export function mergeCommitTitle(pullRequest: PullRequest): string {

@@ -177,7 +177,28 @@ const ROUTES: readonly Route[] = [
     pattern: /^compare\/[^.]+\.\.\.\w+$/u,
     method: 'GET',
     respond: ({ github }) =>
-      json({ behind_by: github.behindBy, base_sha: github.baseSha })
+      json({
+        behind_by: github.behindBy,
+        base_sha: github.baseSha,
+        merge_base_sha: github.mergeBaseSha
+      })
+  },
+  {
+    pattern: /^git\/trees\/(?<sha>\w+)\?recursive=1$/u,
+    method: 'GET',
+    respond: ({ github, groups }) => {
+      const tree = github.trees[groups.sha ?? '']
+      return tree === undefined
+        ? failure('gh: Not Found (HTTP 404)')
+        : json({
+            truncated: tree.truncated,
+            tree: Object.entries(tree.files).map(([path, file]) => ({
+              path,
+              mode: file.mode,
+              sha: file.sha
+            }))
+          })
+    }
   },
   {
     pattern: /^commits\/(?<sha>\w+)$/u,
@@ -306,6 +327,19 @@ function respond({ github, command }: FakeCommand): CommandResult | undefined {
   })
 }
 
+// Files by path, each one a regular file with the blob given.
+function fakeTree(blobs: Record<string, string>): FakeTree {
+  return {
+    truncated: false,
+    files: Object.fromEntries(
+      Object.entries(blobs).map(([path, sha]) => [
+        path,
+        { mode: '100644', sha }
+      ])
+    )
+  }
+}
+
 export type FakePullRequest = {
   number: number
   title: string
@@ -347,11 +381,17 @@ export type FakeWorkflowRun = {
 
 export type FakeJob = { name: string; status: string; conclusion: string }
 
+export type FakeFile = { mode: string; sha: string }
+
+export type FakeTree = { truncated: boolean; files: Record<string, FakeFile> }
+
 export type FakeGitHub = {
   pullRequest: FakePullRequest
   threadPages: FakeThread[][]
   behindBy: number
   baseSha: string
+  mergeBaseSha: string
+  trees: Record<string, FakeTree>
   updatedHead: string
   parents: Record<string, string[]>
   checkRuns: Sequences<FakeCheckRun>
@@ -369,6 +409,7 @@ export const UPDATED_HEAD = 'f0e1d2c3b4a5968778695a4b3c2d1e0f98765432'
 export const MERGE_SHA = '0123456789abcdef0123456789abcdef01234567'
 export const OTHER_SHA = '9999999999999999999999999999999999999999'
 export const BASE_SHA = 'b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9'
+export const MERGE_BASE_SHA = 'c0c1c2c3c4c5c6c7c8c9d0d1d2d3d4d5d6d7d8d9'
 export const PROVENANCE = 'https://slsa.dev/provenance/v1'
 
 export function checkRun(check: Partial<FakeCheckRun>): FakeCheckRun {
@@ -421,6 +462,33 @@ export function featureGitHub(): FakeGitHub {
     threadPages: [[]],
     behindBy: 0,
     baseSha: BASE_SHA,
+    mergeBaseSha: MERGE_BASE_SHA,
+    // The branch changed src/rule.ts, added src/new.ts and removed
+    // docs/guide.md; the base changed README.md and removed docs/old.md.
+    trees: {
+      [MERGE_BASE_SHA]: fakeTree({
+        'README.md': 'readme-1',
+        'docs/guide.md': 'guide-1',
+        'docs/old.md': 'old-1',
+        'src/rule.ts': 'rule-1'
+      }),
+      [HEAD]: fakeTree({
+        'README.md': 'readme-1',
+        'docs/old.md': 'old-1',
+        'src/new.ts': 'new-1',
+        'src/rule.ts': 'rule-2'
+      }),
+      [BASE_SHA]: fakeTree({
+        'README.md': 'readme-2',
+        'docs/guide.md': 'guide-1',
+        'src/rule.ts': 'rule-1'
+      }),
+      [UPDATED_HEAD]: fakeTree({
+        'README.md': 'readme-2',
+        'src/new.ts': 'new-1',
+        'src/rule.ts': 'rule-2'
+      })
+    },
     updatedHead: UPDATED_HEAD,
     parents: { [UPDATED_HEAD]: [HEAD, BASE_SHA] },
     checkRuns: { [HEAD]: [[checkRun({})]] },

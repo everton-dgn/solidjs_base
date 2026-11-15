@@ -82,7 +82,17 @@ export type Job = {
 
 export type CompareRange = { base: string; head: string }
 
-export type Comparison = { behindBy: number; baseSha: string }
+export type Comparison = {
+  behindBy: number
+  baseSha: string
+  mergeBaseSha: string
+}
+
+// Each file of a commit by its path, with its mode and blob, as in
+// "100644 <blob sha>". A symlink or a submodule is a file here too.
+export type TreeFiles = ReadonlyMap<string, string>
+
+export type Tree = { sha: string; files: TreeFiles; isTruncated: boolean }
 
 export type BranchUpdate = { number: number; head: string }
 
@@ -100,6 +110,7 @@ export type GitHub = {
   compare: (range: CompareRange) => Promise<Comparison>
   updateBranch: (update: BranchUpdate) => Promise<void>
   readParents: (sha: string) => Promise<string[]>
+  readTree: (sha: string) => Promise<Tree>
   listCheckRuns: (sha: string) => Promise<CheckRun[]>
   listWorkflowRuns: (sha: string) => Promise<WorkflowRun[]>
   approveRun: (id: number) => Promise<void>
@@ -126,6 +137,15 @@ export type Session = {
   timing: Timing
   environment: Environment
 }
+
+export type MergedFiles = {
+  mergeBase: TreeFiles
+  branch: TreeFiles
+  base: TreeFiles
+  updated: TreeFiles
+}
+
+export type FileCheck = { mismatched: string[]; changedOnBothSides: string[] }
 
 export type CheckDecision =
   | { kind: 'passed'; check: CheckRun }

@@ -125,7 +125,7 @@ describe('mergePullRequest refusals', () => {
   })
 })
 
-describe('mergePullRequest CI and branch', () => {
+describe('mergePullRequest branch update', () => {
   it('merges main into a branch that is behind and merges the new head', async () => {
     const github = featureGitHub()
     github.behindBy = 2
@@ -186,6 +186,63 @@ describe('mergePullRequest CI and branch', () => {
         ['repos/{owner}/{repo}/pulls/42/update-branch']
       )
     }
+  })
+
+  it('stops when GitHub refuses the update of the branch, without another write', async () => {
+    const github = featureGitHub()
+    github.behindBy = 1
+    github.failures = {
+      'update-branch': [
+        failedCommand(
+          'gh: expected_head_sha does not match the head of the pull request (HTTP 422)'
+        )
+      ]
+    }
+    const { request, calls } = createHarness({ github })
+
+    await assert.rejects(
+      mergePullRequest(request),
+      /Could not update the branch of #7: .+\(HTTP 422\)/u
+    )
+    assert.deepEqual(
+      writes(calls).map(call => call.args[1]),
+      ['repos/{owner}/{repo}/pulls/7/update-branch']
+    )
+  })
+
+  it('stops when the head does not change after the update', async () => {
+    const github = featureGitHub()
+    github.behindBy = 1
+    github.updatedHead = HEAD
+    const { request, calls } = createHarness({ github })
+
+    await assert.rejects(
+      mergePullRequest(request),
+      /The head of #7 did not change within 1 minute\(s\) after the update\./u
+    )
+    assert.equal(writes(calls).length, 1)
+  })
+})
+
+describe('mergePullRequest CI', () => {
+  it('never merges on a CI required check that only a workflow_dispatch run reports', async () => {
+    const github = featureGitHub()
+    github.checkRuns = { [HEAD]: [[checkRun({ suiteId: 8000 })]] }
+    github.workflowRuns = {
+      [HEAD]: [[workflowRun({ event: 'workflow_dispatch', suiteId: 8000 })]]
+    }
+    const { request, calls, lines } = createHarness({ github })
+
+    await assert.rejects(
+      mergePullRequest(request),
+      /CI required did not pass on a1b2c3d within 1 minute/u
+    )
+    assert.deepEqual(writes(calls), [])
+    assert.ok(
+      lines.some(line =>
+        line.startsWith('Ignoring CI required from a workflow_dispatch run')
+      )
+    )
   })
 
   it('approves only the held CI run of the head of a release pull request', async () => {
@@ -505,24 +562,41 @@ describe('mergePullRequest merge and publication', () => {
     assert.deepEqual(endpoints(calls), ['gh pr view'])
   })
 
-  it('fails when the Release workflow fails, with its link', async () => {
-    const github = releaseGitHub()
-    github.workflowRuns[MERGE_SHA] = [
-      [
-        workflowRun({
-          id: 700,
-          path: RELEASE_WORKFLOW,
-          event: 'push',
-          conclusion: 'failure',
-          headSha: MERGE_SHA
-        })
+  it('fails when the Release workflow fails or is cancelled, with its link', async () => {
+    for (const conclusion of ['failure', 'cancelled']) {
+      const github = releaseGitHub()
+      github.workflowRuns[MERGE_SHA] = [
+        [
+          workflowRun({
+            id: 700,
+            path: RELEASE_WORKFLOW,
+            event: 'push',
+            conclusion,
+            headSha: MERGE_SHA
+          })
+        ]
       ]
-    ]
+      const { request, calls } = createHarness({ github })
+
+      await assert.rejects(
+        mergePullRequest(request),
+        new RegExp(
+          `The Release workflow ended as ${conclusion}: https://github\\.com/.+/runs/700`,
+          'u'
+        )
+      )
+      assert.ok(calls.every(call => call.file === 'gh'))
+    }
+  })
+
+  it('fails when the Release workflow of the merge commit does not finish in time', async () => {
+    const github = releaseGitHub()
+    github.workflowRuns[MERGE_SHA] = [[]]
     const { request, calls } = createHarness({ github })
 
     await assert.rejects(
       mergePullRequest(request),
-      /The Release workflow ended as failure: https:\/\/github\.com\/.+\/runs\/700/u
+      /The Release workflow of 0123456 did not finish within 1 minute\(s\)\./u
     )
     assert.ok(calls.every(call => call.file === 'gh'))
   })

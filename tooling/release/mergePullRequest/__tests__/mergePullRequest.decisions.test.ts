@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 
 import {
   decideCheck,
+  ignoredChecks,
   isBranchUpdate,
   isReadCommand,
   isReleasePullRequest,
@@ -98,6 +99,24 @@ describe('mergePullRequest decisions', () => {
       canApprove: true
     })
     assert.deepEqual(decision, { kind: 'missing' })
+  })
+
+  it('ignores, as from an unknown event, a check whose run is not listed', () => {
+    const unlisted = check({ suiteId: 30 })
+    assert.deepEqual(
+      ignoredChecks({ checkRuns: [unlisted], workflowRuns: [run({})] }),
+      [{ check: unlisted, event: 'unknown' }]
+    )
+    assert.deepEqual(
+      decideCheck({
+        head: HEAD,
+        checkRuns: [unlisted],
+        workflowRuns: [run({})],
+        approvedRuns: NOTHING_APPROVED,
+        canApprove: true
+      }),
+      { kind: 'missing' }
+    )
   })
 
   it('approves only a held CI run of the same head that was not approved yet', () => {

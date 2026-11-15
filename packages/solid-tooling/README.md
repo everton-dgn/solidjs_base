@@ -220,7 +220,7 @@ Each feature turns on only when the application uses it:
 | Feature             | Selection                                                                                                                              |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | Client-only build   | Set `ssr: false` and omit SSR options such as `middleware` and `securityHeaders`; the build has no Nitro or server bundle              |
-| Publication headers | Set `seo.markdown`, `seo.llms`, `seo.llmsFull` and `seo.sitemap` independently; static artifacts come from compiled tooling            |
+| Publication headers | Set `seo.markdown`, `seo.llms` and `seo.sitemap` one by one; `seo.llmsFull` also needs `seo.llms` and `seo.markdown.static`            |
 | Translations        | `project.inlang/settings.json` enables the generation task and browser test setup; the lint plugin loads only where Paraglide resolves |
 
 When the standard does not fit, change it without a fork: `extend` adds plugins
@@ -461,10 +461,12 @@ head; client-only applications receive both links in `index.html`. Without
 </picture>
 
 Robots, sitemap headers, Markdown and the llms indexes are options of
-`defineSolidApp` written as plain data, validated when the config loads. Each
-one is independent, and none turns on another. A site URL is required only when
-SEO is enabled, and it must be an HTTP(S) origin with no path, query, fragment
-or credentials. An app with no SEO needs no origin at all.
+`defineSolidApp` written as plain data, validated when the config loads. None of
+them turns on another. Only `llmsFull` has prerequisites: the full file is built
+from the static Markdown, so it needs `llms` and `markdown: { static: true }`,
+and the config fails to load without them. The site URL becomes required once
+`seo` is set, as an HTTP(S) origin with no path, query, fragment or credentials;
+leave `seo` out and no origin is read.
 
 For SSR,
 `seo: { robots: { groups, sitemapPaths, cacheControl }, sitemap: true }`
@@ -487,12 +489,16 @@ for factories, the one-line route and examples with and without translations.
 
 ### Publication artifacts
 
-Publication is compiled into the preset and uses one build identity for the SSR
-and artifact manifests. It no longer needs an application `extend` callback.
-`publication/read-llms-index` exposes the compiled index reader for artifact
-checks in Node. See
+Crawlers get files, not renders. With `markdown: { static: true }` the build
+prerenders the `.md` copies, `llms.txt` and `llms-full.txt`, and with
+`sitemap: { static: true }` the sitemap XML too. Before the build ends, it
+checks every artifact: each one within its byte budget, `llms.txt` announcing
+`llms-full.txt` only when that file exists, no static page resolving to another
+route, and all of them stamped with the same build identity as the SSR bundle.
+Your config needs no `extend` callback for this. `publication/read-llms-index`
+exposes the compiled index reader for artifact checks in Node. See
 [ADR 0034](https://github.com/everton-dgn/solidjs_base/blob/main/docs/ADRs/0034-runtime-markdown-publication.md)
-for independent feature options, defaults, disabled-resource behavior and scale.
+for the feature options, defaults, disabled-resource behavior and scale.
 
 ## Optional environment validation
 

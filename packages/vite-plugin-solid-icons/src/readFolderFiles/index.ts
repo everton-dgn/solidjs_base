@@ -4,6 +4,9 @@ import path from 'node:path'
 import { errorCode } from '../errorText/index.ts'
 import { isIconName } from '../iconIds/index.ts'
 
+// A file as the listing of its folder found it: a file saved again in its
+// place keeps it, and a new file under the same name has another.
+type FileIdentity = { dev: bigint; ino: bigint }
 type FolderPlace = { collection: string; folder: string; root: string }
 type FolderRead = FolderPlace & { identity: FolderIdentity }
 type FileCheck = { folder: string; name: string }
@@ -30,10 +33,6 @@ async function fileIdentity({
     throw error
   }
 }
-
-// A file as the listing of its folder found it: a file saved again in its
-// place keeps it, and a new file under the same name has another.
-export type FileIdentity = { dev: bigint; ino: bigint }
 
 // The folder that the plugin read first, where a folder configured as a
 // link leads.

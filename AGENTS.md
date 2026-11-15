@@ -9,6 +9,7 @@ application:
 | `packages/solid-runtime` | `@evertondgn/solid-runtime`: runtime helpers, published as TypeScript source       |
 | `apps/boilerplate`       | The boilerplate application, with its own [AGENTS.md](apps/boilerplate/AGENTS.md) |
 | `fixtures/apps`          | Minimal applications for the installed application scenarios                      |
+| `tooling/release`        | The command that merges a pull request, `vp run release:merge`                    |
 
 Read [Contributing](CONTRIBUTING.md), [Development](docs/development.md) and
 [Releasing](docs/releasing.md) before changing a package. The rules below are
@@ -56,9 +57,14 @@ the ones that cost a fix after a release when they were missed.
 
 ## Pull requests and releases
 
-- Merge with a merge commit, through the command in
-  [Merging a pull request](docs/releasing.md#merging-a-pull-request). Never
-  squash or rebase.
+- Merge with `vp run release:merge <number> --sha <head>`, which makes the merge
+  commit described in
+  [Merging a pull request](docs/releasing.md#merging-a-pull-request). Pass the
+  head you reviewed, which `--dry-run` prints; the command stops on another
+  head. `--sha` is required for a release pull request, whose merge publishes
+  on npm. After updating a branch that is behind, the command goes on only with
+  a new head whose files it checked, and otherwise prints the command that
+  merges that head once you review it. Never squash or rebase.
 - Before merging a release pull request, follow
   [the checklist](docs/releasing.md#before-merging-a-release-pull-request).
 - The first automated release of a package needs a trusted publisher, which only

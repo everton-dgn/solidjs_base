@@ -59,7 +59,8 @@ full boilerplate application suites remain separate.
 | `vp run build`          | Compile the packages to `dist/`                                                                |
 | `vp run check`          | Check format, lint and types at the root, then lint the runtime package in its folder          |
 | `vp run dead-code`      | Find unused files, exports and dependencies of the runtime package with Knip                   |
-| `vp run test`           | Run the rule tests with `node:test` and the runtime tests                                      |
+| `vp run test`           | Run the rule tests with `node:test`, the runtime tests and `vp run test:release`               |
+| `vp run test:release`   | Run the tests of the merge command in `tooling/release/` with `node:test`                      |
 | `vp run test:tarball`   | Pack each package and install it in a temporary folder                                         |
 | `vp run test:scenarios` | Install and build three minimal applications with both Bun linkers                             |
 | `vp run validate`       | Build, check, dead code, package tests, tarball tests and application scenarios, in this order |

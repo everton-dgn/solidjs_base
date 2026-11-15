@@ -1,0 +1,417 @@
+import { type Fields, parseJson, readFields } from './json.ts'
+import { TIMED_OUT_EXIT_CODE } from './runner.ts'
+import type {
+  CheckRun,
+  Command,
+  CommandResult,
+  GitHub,
+  Job,
+  ReviewThread,
+  RunCommand,
+  Tree,
+  WorkflowRun
+} from './types.ts'
+import { PassingReadError } from './wait.ts'
+
+type GhCall = { args: readonly string[]; action: string; isWrite: boolean }
+
+type ListCall = GhCall & { key: string }
+
+type Caller = {
+  gh: (call: GhCall) => Promise<string>
+  ghFields: (call: GhCall) => Promise<Fields>
+  ghList: (call: ListCall) => Promise<Fields[]>
+}
+
+type Reader = { ghFields: Caller['ghFields'] }
+
+type ThreadsRequest = Reader & { number: number; cursor: string | undefined }
+
+type TreeRequest = Reader & { sha: string }
+
+type ThreadsPage = { threads: ReviewThread[]; cursor: string | undefined }
+
+const REPOSITORY = 'repos/{owner}/{repo}'
+const PASSING_FAILURE =
+  /HTTP (?:429|5\d{2})|rate limit|error connecting|i\/o timeout|connection reset/iu
+const PAGE_SIZE = 'per_page=100'
+const PULL_REQUEST_FIELDS = [
+  'number',
+  'title',
+  'state',
+  'isDraft',
+  'headRefOid',
+  'headRefName',
+  'headRepositoryOwner',
+  'baseRefName',
+  'isCrossRepository',
+  'mergeStateStatus',
+  'mergeCommit',
+  'url'
+].join(',')
+const THREADS_QUERY = `query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100, after: $cursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          isResolved
+          path
+          line
+          originalLine
+          comments(first: 1) { nodes { url author { login } } }
+        }
+      }
+    }
+  }
+}`
+
+function failureDetail(result: CommandResult): string {
+  return (
+    result.stderr.trim() ||
+    result.stdout.trim() ||
+    `exit code ${result.exitCode}`
+  )
+}
+
+function isPassingFailure(result: CommandResult): boolean {
+  return (
+    result.exitCode === TIMED_OUT_EXIT_CODE ||
+    PASSING_FAILURE.test(result.stderr)
+  )
+}
+
+function toThread(node: Fields): ReviewThread {
+  const [comment] = node.fields('comments').list('nodes')
+  return {
+    path: node.string('path'),
+    line: node.optionalNumber('line') ?? node.optionalNumber('originalLine'),
+    author:
+      comment?.optionalFields('author')?.string('login') ?? 'a deleted user',
+    url: comment?.optionalString('url')
+  }
+}
+
+function toCheckRun(check: Fields): CheckRun {
+  return {
+    id: check.number('id'),
+    status: check.string('status'),
+    conclusion: check.optionalString('conclusion'),
+    suiteId: check.fields('check_suite').number('id'),
+    url: check.string('html_url')
+  }
+}
+
+function toWorkflowRun(run: Fields): WorkflowRun {
+  return {
+    id: run.number('id'),
+    path: run.string('path'),
+    event: run.string('event'),
+    status: run.string('status'),
+    conclusion: run.optionalString('conclusion'),
+    headSha: run.string('head_sha'),
+    suiteId: run.number('check_suite_id'),
+    url: run.string('html_url')
+  }
+}
+
+function toJob(job: Fields): Job {
+  return {
+    name: job.string('name'),
+    status: job.string('status'),
+    conclusion: job.optionalString('conclusion'),
+    url: job.string('html_url')
+  }
+}
+
+function createCaller(run: RunCommand): Caller {
+  async function gh({ args, action, isWrite }: GhCall): Promise<string> {
+    const command: Command = { file: 'gh', args, isWrite }
+    const result = await run(command)
+    if (result.exitCode === 0) return result.stdout
+    const message = `Could not ${action}: ${failureDetail(result)}`
+    throw !isWrite && isPassingFailure(result)
+      ? new PassingReadError(message)
+      : new Error(message)
+  }
+
+  async function ghFields(call: GhCall): Promise<Fields> {
+    const label = `response to "${call.action}"`
+    const text = await gh(call)
+    return readFields({ value: parseJson({ text, label }), label })
+  }
+
+  // --slurp prints every page in one JSON list, so a long list is read whole.
+  async function ghList({
+    args,
+    action,
+    key,
+    isWrite
+  }: ListCall): Promise<Fields[]> {
+    const label = `response to "${action}"`
+    const text = await gh({
+      action,
+      args: [...args, '--paginate', '--slurp'],
+      isWrite
+    })
+    const pages = parseJson({ text, label })
+    if (!Array.isArray(pages)) {
+      throw new TypeError(`Unexpected ${label}: expected a list of pages.`)
+    }
+    return (pages as unknown[]).flatMap((page, index) =>
+      readFields({ value: page, label: `${label}[${index}]` }).list(key)
+    )
+  }
+
+  return { gh, ghFields, ghList }
+}
+
+async function readThreadsPage({
+  ghFields,
+  number,
+  cursor
+}: ThreadsRequest): Promise<ThreadsPage> {
+  const response = await ghFields({
+    action: `list the review threads of #${number}`,
+    isWrite: false,
+    args: [
+      'api',
+      'graphql',
+      '-F',
+      'owner={owner}',
+      '-F',
+      'name={repo}',
+      '-F',
+      `number=${number}`,
+      '-f',
+      `query=${THREADS_QUERY}`,
+      ...(cursor === undefined ? [] : ['-f', `cursor=${cursor}`])
+    ]
+  })
+  const page = response
+    .fields('data')
+    .fields('repository')
+    .fields('pullRequest')
+    .fields('reviewThreads')
+  const pageInfo = page.fields('pageInfo')
+  return {
+    threads: page
+      .list('nodes')
+      .filter(node => !node.boolean('isResolved'))
+      .map(node => toThread(node)),
+    cursor: pageInfo.boolean('hasNextPage')
+      ? pageInfo.string('endCursor')
+      : undefined
+  }
+}
+
+// A folder is left out: its files are listed with their full paths.
+async function readTree({ ghFields, sha }: TreeRequest): Promise<Tree> {
+  const tree = await ghFields({
+    action: `read the files of ${sha}`,
+    isWrite: false,
+    args: [
+      'api',
+      `${REPOSITORY}/git/trees/${sha}?recursive=1`,
+      '--jq',
+      '{truncated, tree: [.tree[] | select(.type != "tree") | {path, mode, sha}]}'
+    ]
+  })
+  return {
+    sha,
+    isTruncated: tree.boolean('truncated'),
+    files: new Map(
+      tree
+        .list('tree')
+        .map(file => [
+          file.string('path'),
+          `${file.string('mode')} ${file.string('sha')}`
+        ])
+    )
+  }
+}
+
+export function createGitHub(run: RunCommand): GitHub {
+  const { gh, ghFields, ghList } = createCaller(run)
+
+  return {
+    async readPullRequest(number) {
+      const pullRequest = await ghFields({
+        action: `read pull request #${number}`,
+        isWrite: false,
+        args: ['pr', 'view', String(number), '--json', PULL_REQUEST_FIELDS]
+      })
+      return {
+        number: pullRequest.number('number'),
+        title: pullRequest.string('title'),
+        state: pullRequest.string('state'),
+        isDraft: pullRequest.boolean('isDraft'),
+        headSha: pullRequest.string('headRefOid'),
+        headBranch: pullRequest.string('headRefName'),
+        headOwner: pullRequest.fields('headRepositoryOwner').string('login'),
+        baseBranch: pullRequest.string('baseRefName'),
+        isCrossRepository: pullRequest.boolean('isCrossRepository'),
+        mergeStateStatus: pullRequest.string('mergeStateStatus'),
+        mergeSha: pullRequest.optionalFields('mergeCommit')?.string('oid'),
+        url: pullRequest.string('url')
+      }
+    },
+
+    async listOpenThreads(number) {
+      let page = await readThreadsPage({ ghFields, number, cursor: undefined })
+      const threads = [...page.threads]
+      while (page.cursor !== undefined) {
+        page = await readThreadsPage({ ghFields, number, cursor: page.cursor })
+        threads.push(...page.threads)
+      }
+      return threads
+    },
+
+    async compare({ base, head }) {
+      const comparison = await ghFields({
+        action: `compare ${head} with ${base}`,
+        isWrite: false,
+        args: [
+          'api',
+          `${REPOSITORY}/compare/${base}...${head}`,
+          '--jq',
+          '{behind_by: .behind_by, base_sha: .base_commit.sha, merge_base_sha: .merge_base_commit.sha}'
+        ]
+      })
+      return {
+        behindBy: comparison.number('behind_by'),
+        baseSha: comparison.string('base_sha'),
+        mergeBaseSha: comparison.string('merge_base_sha')
+      }
+    },
+
+    async updateBranch({ number, head }) {
+      await gh({
+        action: `update the branch of #${number}`,
+        isWrite: true,
+        args: [
+          'api',
+          `${REPOSITORY}/pulls/${number}/update-branch`,
+          '-X',
+          'PUT',
+          '-f',
+          `expected_head_sha=${head}`
+        ]
+      })
+    },
+
+    async readParents(sha) {
+      const commit = await ghFields({
+        action: `read the commit ${sha}`,
+        isWrite: false,
+        args: [
+          'api',
+          `${REPOSITORY}/commits/${sha}`,
+          '--jq',
+          '{parents: [.parents[] | {sha}]}'
+        ]
+      })
+      return commit.list('parents').map(parent => parent.string('sha'))
+    },
+
+    readTree(sha) {
+      return readTree({ ghFields, sha })
+    },
+
+    async listCheckRuns(sha) {
+      const checks = await ghList({
+        action: `list the CI required checks of ${sha}`,
+        isWrite: false,
+        key: 'check_runs',
+        args: [
+          'api',
+          `${REPOSITORY}/commits/${sha}/check-runs?check_name=CI%20required&${PAGE_SIZE}`
+        ]
+      })
+      return checks.map(check => toCheckRun(check))
+    },
+
+    async listWorkflowRuns(sha) {
+      const workflowRuns = await ghList({
+        action: `list the workflow runs of ${sha}`,
+        isWrite: false,
+        key: 'workflow_runs',
+        args: ['api', `${REPOSITORY}/actions/runs?head_sha=${sha}&${PAGE_SIZE}`]
+      })
+      return workflowRuns.map(workflowRun => toWorkflowRun(workflowRun))
+    },
+
+    async approveRun(id) {
+      await gh({
+        action: `approve the workflow run ${id}`,
+        isWrite: true,
+        args: ['api', `${REPOSITORY}/actions/runs/${id}/approve`, '-X', 'POST']
+      })
+    },
+
+    async merge({ number, sha, title }) {
+      const result = await run({
+        file: 'gh',
+        args: [
+          'api',
+          `${REPOSITORY}/pulls/${number}/merge`,
+          '-X',
+          'PUT',
+          '-f',
+          'merge_method=merge',
+          '-f',
+          `sha=${sha}`,
+          '-f',
+          `commit_title=${title}`,
+          '-f',
+          'commit_message='
+        ],
+        isWrite: true
+      })
+      if (result.exitCode !== 0) {
+        return {
+          isMerged: false,
+          message: failureDetail(result),
+          isUncertain: isPassingFailure(result)
+        }
+      }
+      const label = `response to the merge of #${number}`
+      const response = readFields({
+        value: parseJson({ text: result.stdout, label }),
+        label
+      })
+      return response.boolean('merged')
+        ? { isMerged: true, sha: response.string('sha') }
+        : {
+            isMerged: false,
+            message:
+              response.optionalString('message') ??
+              'GitHub answered merged: false',
+            isUncertain: false
+          }
+    },
+
+    async listJobs(runId) {
+      const jobs = await ghList({
+        action: `list the jobs of the workflow run ${runId}`,
+        isWrite: false,
+        key: 'jobs',
+        args: ['api', `${REPOSITORY}/actions/runs/${runId}/jobs?${PAGE_SIZE}`]
+      })
+      return jobs.map(job => toJob(job))
+    },
+
+    readFile({ path, ref }) {
+      return gh({
+        action: `read ${path} at ${ref}`,
+        isWrite: false,
+        args: [
+          'api',
+          `${REPOSITORY}/contents/${path}?ref=${encodeURIComponent(ref)}`,
+          '-H',
+          'Accept: application/vnd.github.raw+json'
+        ]
+      })
+    }
+  }
+}

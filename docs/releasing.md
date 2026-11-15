@@ -54,8 +54,86 @@ version too. From 1.0.0 on, a breaking change raises the major version.
 ## Merging a pull request
 
 Merge every pull request, release pull requests included, with a merge commit
-through the GitHub API and an empty commit body. With `sha`, GitHub refuses the
-merge when the head changed after the review and the CI run:
+and an empty commit body. Run the command at the root, with `gh` signed in to an
+account that can merge. It needs `gh` 2.48.0 or later, the first with
+`gh api --slurp`, which it uses to read every page of a list:
+
+```bash
+vp run release:merge <number> --dry-run
+vp run release:merge <number> --sha <head>
+```
+
+`--dry-run` reads the state and prints what the command would do, without
+updating the branch, approving a run or merging. It ends with the command to
+merge, with the full head it read. Review that head and pass it with `--sha`:
+the command stops when the pull request has another head, such as a commit
+pushed or a release pull request written again after the review. `--sha` is
+required for a release pull request, because merging it publishes the packages
+on npm, and optional for the others. Without `--dry-run`, the command:
+
+1. Refuses a pull request that is closed, a draft or in conflict, one whose head
+   is not the one passed with `--sha`, and one with an unresolved review
+   conversation, which it lists with the path, the line and the author.
+2. Merges the base branch, `main` here, into a branch that is behind, through
+   the GitHub API and never with a rebase, and prints the new head. It goes on
+   only when the new head is a merge commit whose parents are the reviewed head
+   and the tip of the base it read before the update, and when each of its files
+   is the one a merge of the two sides gives: the version of the side that
+   changed the file since their merge base, or the change both sides made. It
+   compares the file lists of the four commits and stops, before approving or
+   merging anything, when a file differs, when both sides changed a file in
+   different ways, which only a review can check, or when GitHub truncates a
+   file list. The message gives the reason and the command that merges the new
+   head once you have reviewed it.
+3. Waits for `CI required` on the head. It counts only the checks of runs
+   started by an event the ruleset accepts, such as `pull_request`, and ignores
+   the check of a `workflow_dispatch` run. A CI run that waits for an approval
+   is left only on a release pull request opened before the GitHub App
+   ([When a CI run of the release pull request waits for an approval](#when-a-ci-run-of-the-release-pull-request-waits-for-an-approval)).
+   When the check is missing and the run of that head waits, the command
+   approves that run, and only that one, if the pull request is a release pull
+   request from a branch of this repository. For any other pull request it
+   stops, so you review the changes and approve the run on GitHub.
+4. Merges with `sha` set to that head, so GitHub refuses the merge when the head
+   changed in the meantime, and checks that the API answered `merged: true`.
+   GitHub may have merged a pull request when the merge call stops at the time
+   limit or gets an HTTP 5xx answer, so the command reads the pull request
+   instead of sending the merge again. It goes on when the pull request is
+   merged, and otherwise stops, saying that the merge was not confirmed; a
+   second run reads the pull request first.
+5. For a release pull request, waits for the `Release` workflow of the merge
+   commit, prints the result of each job and checks that each released version
+   is on npm with its provenance statement. It reads the versions from
+   `.release-please-manifest.json` and the names from the package `package.json`
+   at the merge commit. It follows the conclusion of the whole run, so when only
+   the `Release pull request` job fails, it stops before checking npm, although
+   the packages may be published. Fix that job
+   ([When the release pull request job fails](#when-the-release-pull-request-job-fails))
+   and run the command again.
+
+For a release pull request that is already merged, the command runs only the
+last step, with its merge commit and without `--sha`. Run it again when the
+first run stopped after the merge, at a timeout or a failed read.
+
+Every refusal or failure ends with a message and a nonzero exit code. A `gh` or
+`npm` call that does not finish within 2 minutes is stopped and counts as a
+failed call. While the command waits, a `gh` read that fails with an HTTP 5xx or
+429 answer, a rate limit message, a network error or that stop is read again at
+the next interval, until the wait times out. A read that follows a write, such
+as the commit and the files of the new head after the update or the manifest
+after the merge, is read again the same way for up to 2 minutes. A failed
+`npm view`, whatever the error, an authentication error included, counts as a
+version not on npm yet and is read again until `--registry-timeout`. Any other
+failed call ends the command, and a failed write is never repeated.
+`--interval <seconds>` sets the time between two reads (30 by default),
+`--timeout <minutes>` the longest wait for the new head after an update, for
+`CI required` and for the `Release` workflow (60), and
+`--registry-timeout <minutes>` the longest wait for each version on npm (10).
+The command lives in `tooling/release/`, and `vp run test:release` runs its
+tests.
+
+Without the command, read the head and merge through the API. With `sha`, GitHub
+refuses the merge when the head changed after the review and the CI run:
 
 ```bash
 gh pr view <number> --json headRefOid,headRepositoryOwner,headRefName
@@ -99,12 +177,20 @@ into the branch, never rebase it, and wait for `CI required` again.
 3. For the first automated release of a package, create the trusted publisher
    now
    ([First automated release of a package](#first-automated-release-of-a-package)).
-4. Wait for `CI required` on the head you are about to merge. If the run of that
-   head waits for an approval, follow
-   [When a CI run of the release pull request waits for an approval](#when-a-ci-run-of-the-release-pull-request-waits-for-an-approval).
-5. Merge with the command in [Merging a pull request](#merging-a-pull-request).
-6. After the publish job, check the registry. The version can take a few minutes
-   to appear, and the output has the version and the provenance statement:
+4. Merge with `vp run release:merge <number> --sha <head>`
+   ([Merging a pull request](#merging-a-pull-request)), with the head whose
+   version and `CHANGELOG.md` you read; `--dry-run` prints it. It waits for
+   `CI required`, merges, waits for the `Release` workflow and checks each
+   released version on npm. When release-please writes the pull request again
+   after your review, the head changes and the command stops: read the new diff
+   and start from step 1. On a release pull request opened before the GitHub
+   App, whose CI run waits for an approval, the command approves the run of that
+   head
+   ([When a CI run of the release pull request waits for an approval](#when-a-ci-run-of-the-release-pull-request-waits-for-an-approval)).
+5. Without the command, wait for `CI required`, merge with the API call of the
+   same section and, after the publish job, check the registry. The version can
+   take a few minutes to appear, and the output has the version and the
+   provenance statement:
 
    ```bash
    npm view @evertondgn/<package>@<version> version dist.attestations.provenance --json
@@ -281,8 +367,9 @@ the pull request was left as it was.
 GitHub holds the run only when a workflow opened or updated the pull request
 with the `GITHUB_TOKEN`, as `github-actions[bot]`. The `Release pull request`
 job never does that, so this is left for a release pull request from before the
-App. Approve the held run of the head you are about to merge. An approved run
-starts every job:
+App. `vp run release:merge <number> --sha <head>` approves the held run of that
+head. Without the command, approve the held run of the head you are about to
+merge. An approved run starts every job:
 
 ```bash
 gh pr view <number> --json headRefName,headRefOid

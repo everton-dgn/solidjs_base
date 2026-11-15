@@ -400,6 +400,17 @@ describe('mergePullRequest merge and publication', () => {
     assert.ok(calls.every(call => call.file === 'gh'))
   })
 
+  it('reports a released version that is on npm without provenance', async () => {
+    const github = releaseGitHub()
+    github.registry['@evertondgn/solid-tooling@0.7.0'] = [jsonResult(['0.7.0'])]
+    const { request } = createHarness({ github })
+
+    await assert.rejects(
+      mergePullRequest(request),
+      /@evertondgn\/solid-tooling@0\.7\.0 is on npm without a provenance statement\./u
+    )
+  })
+
   it('fails when a released version does not reach npm in time', async () => {
     const github = releaseGitHub()
     github.registry['@evertondgn/solid-tooling@0.7.0'] = [

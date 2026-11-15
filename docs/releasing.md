@@ -103,11 +103,12 @@ run, and optional for the others. Without `--dry-run`, the command:
    `.release-please-manifest.json` and the names from the package `package.json`
    at the merge commit.
 
-Every refusal or failure ends with a message and a nonzero exit code.
-`--interval <seconds>` sets the time between two reads (30 by default),
-`--timeout <minutes>` the longest wait for `CI required` and for the `Release`
-workflow (60), and `--registry-timeout <minutes>` the longest wait for each
-version on npm (10). The command lives in `tooling/release/`, and
+Every refusal or failure ends with a message and a nonzero exit code. A `gh` or
+`npm` call that does not finish within 2 minutes is stopped and counts as a
+failed call. `--interval <seconds>` sets the time between two reads (30 by
+default), `--timeout <minutes>` the longest wait for `CI required` and for the
+`Release` workflow (60), and `--registry-timeout <minutes>` the longest wait for
+each version on npm (10). The command lives in `tooling/release/`, and
 `vp run test:release` runs its tests.
 
 Without the command, read the head and merge through the API. With `sha`, GitHub

@@ -168,7 +168,7 @@ export async function mergePullRequest(request: MergeRequest): Promise<void> {
   })
   if (!outcome.isMerged) {
     throw new Error(
-      `GitHub refused the merge of #${number}: ${outcome.message}`
+      `GitHub did not confirm the merge of #${number}: ${outcome.message}`
     )
   }
   log(`Merged #${number} as ${shortSha(outcome.sha)}.`)

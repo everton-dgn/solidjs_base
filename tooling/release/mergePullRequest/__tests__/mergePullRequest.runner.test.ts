@@ -1,0 +1,42 @@
+import assert from 'node:assert/strict'
+import { describe, it } from 'node:test'
+
+import { createRunner } from '../runner.ts'
+
+const ENOUGH_TIME = 60_000
+// Shorter than the start of any Node process.
+const TOO_SHORT = 1
+
+describe('mergePullRequest runner', () => {
+  it('returns the output of a command that succeeds', async () => {
+    const result = await createRunner(ENOUGH_TIME)({
+      file: 'npm',
+      args: ['--version']
+    })
+
+    assert.equal(result.exitCode, 0)
+    assert.match(result.stdout, /^\d+\.\d+\.\d+/u)
+  })
+
+  it('returns the exit code of a command that fails', async () => {
+    const result = await createRunner(ENOUGH_TIME)({
+      file: 'npm',
+      args: ['not-a-command']
+    })
+
+    assert.notEqual(result.exitCode, 0)
+  })
+
+  it('stops a command that does not finish in time and says so', async () => {
+    const result = await createRunner(TOO_SHORT)({
+      file: 'npm',
+      args: ['--version']
+    })
+
+    assert.notEqual(result.exitCode, 0)
+    assert.match(
+      result.stderr,
+      /^npm --version did not finish within .+ and was stopped\.$/u
+    )
+  })
+})

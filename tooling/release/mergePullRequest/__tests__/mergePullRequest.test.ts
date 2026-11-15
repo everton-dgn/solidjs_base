@@ -330,7 +330,7 @@ describe('mergePullRequest merge and publication', () => {
 
       await assert.rejects(
         mergePullRequest(request),
-        /GitHub refused the merge of #7: (?:gh: Required status check|Head branch was modified)/u
+        /GitHub did not confirm the merge of #7: (?:gh: Required status check|Head branch was modified)/u
       )
     }
   })

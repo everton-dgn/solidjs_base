@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { once } from 'node:events'
+import { on, once } from 'node:events'
 import {
   access,
   chmod,
@@ -482,6 +482,42 @@ describe('the package.json of the application', () => {
 })
 
 describe('a dev server', () => {
+  it('watches the folder of a collection outside its root', async context => {
+    const root = await app(context)
+    const shared = await tempFolder({ context, name: 'solid-icons-shared-' })
+    await writeFile(path.join(shared, 'star.svg'), '<svg><path/></svg>')
+    const config = fixtureConfig({ root, isSsr: false, typesFile: false })
+    const [, ...plugins] = config.plugins ?? []
+    const { solidIcons } = await import('../index.ts')
+    // The file watcher of the dev server, which the other tests replace.
+    const server = await createServer({
+      ...config,
+      plugins: [
+        solidIcons({ collections: { shared }, typesFile: false }),
+        ...plugins
+      ],
+      optimizeDeps: { noDiscovery: true },
+      server: { middlewareMode: true }
+    })
+    defer({ context, task: () => server.close() })
+    const signal = AbortSignal.timeout(WAIT_TIMEOUT)
+    const missed = `The dev server did not report a new SVG of the folder of the collection "shared", outside its root, in ${WAIT_TIMEOUT} ms: the folder is not watched.`
+
+    // The watcher reports the changes of a folder once it has listed it.
+    while (!server.watcher.getWatched()[shared]?.includes('star.svg')) {
+      if (signal.aborted) throw new Error(missed)
+      await delay(POLL_INTERVAL)
+    }
+    const moon = path.join(shared, 'moon.svg')
+    const added = (async () => {
+      for await (const [file] of on(server.watcher, 'add', { signal })) {
+        if (file === moon) return
+      }
+    })()
+    await writeFile(moon, '<svg><path/></svg>')
+    await assert.doesNotReject(added, missed)
+  })
+
   it('closes without leaving the process running', async () => {
     const root = await createFixtureApp()
     try {

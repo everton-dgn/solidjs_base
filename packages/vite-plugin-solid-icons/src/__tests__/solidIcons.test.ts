@@ -1,5 +1,14 @@
 import assert from 'node:assert/strict'
-import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  writeFile
+} from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
 import { pathToFileURL } from 'node:url'
@@ -81,6 +90,43 @@ describe('solidIcons', () => {
           'solidIcons: the collection names "Brand", "my_icons" must use lowercase letters, digits and single hyphens.'
       }
     )
+  })
+
+  it('asks the dev server to watch the folders, also one outside its root', async context => {
+    const prefix = path.join(tmpdir(), 'solid-icons-folders-')
+    const parent = await realpath(await mkdtemp(prefix))
+    context.after(() => rm(parent, { recursive: true, force: true }))
+    const root = path.join(parent, 'app')
+    for (const folder of ['app/icons', 'shared-icons']) {
+      await mkdir(path.join(parent, folder), { recursive: true })
+    }
+    const { configResolved, configureServer } = solidIcons({
+      collections: { own: './icons', shared: '../shared-icons' },
+      typesFile: false
+    })
+    // The parts of the config and of the dev server that the plugin reads.
+    const config = {
+      root,
+      logger: createLogger('silent'),
+      command: 'serve',
+      build: { watch: null }
+    }
+    const watched: unknown[] = []
+    const server = {
+      watcher: {
+        add: (paths: unknown) => {
+          watched.push(paths)
+        }
+      }
+    }
+    assert.ok(typeof configResolved === 'function')
+    assert.ok(typeof configureServer === 'function')
+    await Reflect.apply(configResolved, undefined, [config])
+    await Reflect.apply(configureServer, undefined, [server])
+
+    assert.deepEqual(watched, [
+      [path.join(root, 'icons'), path.join(parent, 'shared-icons')]
+    ])
   })
 
   it('writes the declarations where typesFile says, or none', async context => {

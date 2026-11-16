@@ -372,8 +372,9 @@ update of the copy stays under that limit. Codex has no such filter: it reviews
 every file when a pull request is opened or marked ready for review, or when
 someone comments `@codex review`.
 
-`.github/workflows/release.yml` versions and publishes the packages. See
-[Releasing](releasing.md).
+`.github/workflows/release.yml` versions and publishes the packages, and
+`.github/workflows/release-lockfile.yml` writes the workspace versions in the
+`bun.lock` of the release pull request. See [Releasing](releasing.md).
 
 ## Installed application scenarios
 

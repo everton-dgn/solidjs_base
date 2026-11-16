@@ -1,0 +1,160 @@
+name: Release lockfile
+
+# WHY: release-please raises the version in the package.json files of the
+# release pull request but has no updater for bun.lock, where Bun copies the
+# same versions (docs/releasing.md#the-lockfile-of-the-release-pull-request).
+# It is a workflow of its own, not a job of release.yml: the merge command
+# follows the whole run of Release, and a failure here must not stop it before
+# the packages reach npm.
+on:
+  push:
+    branches:
+      - 'release-please--**'
+
+permissions: {}
+
+# WHY: the push of the commit job starts the next run of the same branch, which
+# waits for this one to end instead of cancelling it in its last steps.
+concurrency:
+  group: release-lockfile-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    name: Generate the lockfile
+    # WHY: deleting a branch also sends a push, with the commit of the default
+    # branch, and a branch that is gone has no lockfile to write.
+    if: ${{ !github.event.deleted }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
+        with:
+          run-install: false
+
+      # WHY: --lockfile-only writes bun.lock from the package.json files without
+      # node_modules, and --ignore-scripts keeps the scripts of the packages
+      # from running. This job holds no token that can write.
+      - name: Write the lockfile
+        run: vp install --lockfile-only --ignore-scripts
+
+      # WHY: overwrite lets "Re-run all jobs" upload the same name again.
+      - name: Upload the lockfile
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bun-lock
+          path: bun.lock
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: true
+
+  commit:
+    name: Commit the workspace versions
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # WHY: the environment admits only main and the release branches, and the
+    # App key belongs in its secrets (docs/releasing.md#one-time-setup). The job
+    # deploys nothing, so it creates no deployment.
+    environment:
+      name: release
+      deployment: false
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      # WHY: the command is TypeScript that Node runs as it is, in the version
+      # of devEngines, without installing the dependencies or running vp. The
+      # cache stays off in a job that later holds a token that can write.
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: package.json
+          package-manager-cache: false
+
+      # WHY: outside the checkout, so the artifact cannot replace a file of the
+      # tree, the command included, before the command runs.
+      - name: Download the lockfile
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bun-lock
+          path: ${{ runner.temp }}/lockfile
+
+      - name: Check the lockfile
+        id: check
+        run: |
+          node tooling/release/update-lockfile-versions.ts "$RUNNER_TEMP/lockfile/bun.lock"
+          if git diff --quiet -- bun.lock; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      # WHY: the token is created only when there is a commit to push, and it
+      # can write contents and nothing else. Creating it after the command does
+      # not keep it from the code of the branch: an earlier step can write to
+      # $GITHUB_ENV, $GITHUB_PATH or the Git config. The split into two jobs
+      # keeps Bun away from any token that can write; whoever can push to the
+      # branch controls this workflow, which is why the key belongs in the
+      # environment of the job and the release branches in a ruleset
+      # (docs/releasing.md#the-lockfile-of-the-release-pull-request).
+      - name: Create the App token
+        id: app-token
+        if: steps.check.outputs.changed == 'true'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      # WHY: a push with the App token starts the CI of the pull request and
+      # this workflow again, which finds no difference; the GITHUB_TOKEN would
+      # start neither. The lease lets the server update the branch only while
+      # it is still at the checked commit, so a branch that moved or was deleted
+      # is neither overwritten nor created again, and the run of its new head
+      # writes the lockfile. Any other failure of the push fails the step.
+      - name: Commit and push
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          gh auth setup-git
+          user_id="$(gh api "users/${APP_SLUG}[bot]" --jq .id)"
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git add -- bun.lock
+          git commit --message 'chore(release): write the workspace versions in bun.lock'
+          if output="$(git push --porcelain --force-with-lease="refs/heads/$BRANCH:$SHA" origin "HEAD:refs/heads/$BRANCH" 2>&1)"; then
+            printf '%s\n' "$output"
+            exit 0
+          fi
+          printf '%s\n' "$output"
+          # WHY: the default shell has no pipefail, so a read that fails inside
+          # a pipe would look like a deleted branch.
+          if ! refs="$(git ls-remote origin "refs/heads/$BRANCH")"; then
+            echo "Could not read $BRANCH after the push failed, so the reason of the refusal is unknown." >&2
+            exit 1
+          fi
+          remote="$(printf '%s\n' "$refs" | cut -f 1)"
+          if [ "$remote" != "$SHA" ] && printf '%s\n' "$output" | awk -F '\t' -v ref="HEAD:refs/heads/$BRANCH" '$1 == "!" && $2 == ref { found = 1 } END { exit !found }'; then
+            echo "$BRANCH is at ${remote:-no commit}, not at $SHA, so the push was refused: the run of its new head writes the lockfile."
+            exit 0
+          fi
+          echo "The push to $BRANCH failed while the branch is at ${remote:-no commit}." >&2
+          exit 1

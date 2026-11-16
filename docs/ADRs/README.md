@@ -9,7 +9,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0002](0002-compiled-tooling-package.md)                               | The tooling package ships compiled JavaScript                          | Accepted, amended by 0027                  |
 | [0003](0003-runtime-package-as-source.md)                              | The runtime package will ship TypeScript source                        | Accepted, implemented in part by 0018      |
 | [0004](0004-public-npm-scope.md)                                       | Packages go to the public npm registry under `@evertondgn`             | Accepted                                   |
-| [0005](0005-release-please.md)                                         | release-please versions each package                                   | Accepted, amended by 0035                  |
+| [0005](0005-release-please.md)                                         | release-please versions each package                                   | Accepted, amended by 0035 and 0038         |
 | [0006](0006-trusted-publishing.md)                                     | The workflow publishes through npm trusted publishing                  | Accepted                                   |
 | [0007](0007-english.md)                                                | Packages and repository documentation are written in English           | Accepted, partly superseded by 0014        |
 | [0008](0008-merge-commits.md)                                          | Pull requests are merged with merge commits                            | Accepted                                   |
@@ -39,9 +39,10 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0032](0032-packaged-fonts.md)                                         | The preset loads application-owned fonts                               | Accepted, amended by 0036                  |
 | [0033](0033-runtime-sitemap-publication.md)                            | Sitemap and publication admission belong to the runtime                | Accepted                                   |
 | [0034](0034-runtime-markdown-publication.md)                           | Runtime Markdown and compiled publication                              | Accepted                                   |
-| [0035](0035-release-pull-request-app.md)                               | A GitHub App opens the release pull request                            | Accepted                                   |
+| [0035](0035-release-pull-request-app.md)                               | A GitHub App opens the release pull request                            | Accepted, amended by 0038                  |
 | [0036](0036-no-server-mode.md)                                         | Client-only applications run with no server                            | Accepted                                   |
 | [0037](0037-icons-vite-plugin-package.md)                              | Icons come from a Vite plugin package of this monorepo                 | Accepted                                   |
+| [0038](0038-release-lockfile-workflow.md)                              | A workflow writes the workspace versions in the release lockfile       | Accepted                                   |
 
 ## Adding a record
 

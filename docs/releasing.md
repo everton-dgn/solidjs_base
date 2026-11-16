@@ -29,14 +29,22 @@ tags exist when it computes the next release, and only opens or updates the
 release pull request, with a token of a GitHub App
 ([One-time setup](#one-time-setup)). The publish job does not wait for it.
 
+release-please raises the version in each `package.json` of the release pull
+request, but not in `bun.lock`. A workflow of its own,
+`.github/workflows/release-lockfile.yml`, writes those versions in the lock of
+the release branch, outside `release.yml` so that its failure never stops the
+merge command before npm
+([The lockfile of the release pull request](#the-lockfile-of-the-release-pull-request)).
+
 GitHub holds the CI runs of a pull request that a workflow opens or updates with
 the `GITHUB_TOKEN` until someone approves them, and starts them at once when the
 token comes from a GitHub App
 ([GitHub docs](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)).
 So the CI of the release pull request starts on its own, and `CI required` has
 to pass before the merge, as in any other pull request. release-please rewrites
-the release pull request after every merge that changes the next version, and
-each rewrite starts a new run.
+the release pull request after every merge that changes the next version. Each
+rewrite starts a CI run, and the lockfile commit that follows starts another,
+which cancels the first.
 
 The publish step uses no token. npm authenticates the workflow through OIDC
 ([trusted publishing](https://docs.npmjs.com/trusted-publishers)) and attaches
@@ -81,6 +89,76 @@ read them.
   another packer left, fails at once.
 - Two packages that pin each other would wait for each other until the limit, so
   keep the dependencies between the packages one way.
+
+`vp run test:release` runs the tests of the command.
+
+## The lockfile of the release pull request
+
+Bun copies the version of each workspace from its `package.json` into
+`bun.lock`. release-please raises the versions in the `package.json` files of
+the release pull request but has no updater for `bun.lock`
+([Known limits](#known-limits)). A lock with the old versions still installs and
+packs: `vp install --frozen-lockfile` accepts it, and `vp pm pack` reads the
+version from the `package.json`. But the next ordinary `vp install` rewrites
+those lines, which would leave the tree changed after every release.
+
+`.github/workflows/release-lockfile.yml` runs on every push to a branch whose
+name starts with `release-please--`, the prefix of the release branch, in two
+jobs:
+
+1. `Generate the lockfile` checks out the pushed commit and runs
+   `vp install --lockfile-only --ignore-scripts`, which writes `bun.lock`
+   without `node_modules` and without running the scripts of the packages. The
+   job can only read the repository. It hands the lock to the next job as an
+   artifact kept for one day.
+2. `Commit the workspace versions` checks out the same commit and runs
+   `node tooling/release/update-lockfile-versions.ts` on the artifact. The
+   command writes the lock only when every line that differs is the `"version"`
+   of an entry of the `workspaces` section and equals the `version` in the
+   `package.json` of that folder, inside the repository. On any other difference
+   it fails, writes nothing and names each line with the reason. When the lock
+   changed, the job creates a token of the GitHub App with write access to
+   Contents only, commits `bun.lock` as the App and pushes the commit with
+   `--force-with-lease` on the checked commit, so GitHub updates the branch only
+   while it is still at that commit. It installs no dependency and runs only
+   Git, `gh` and that command.
+
+The push of the App starts the CI of the pull request, which cancels the run of
+the previous head, and this workflow again, which finds no difference. When the
+branch moved or was deleted before the push, GitHub refuses it and the branch
+stays as it is, neither overwritten nor created again; the step ends with a line
+that says so, and the run of the new head writes the lock. Any other failure of
+the push fails the job. Deleting a branch also sends a push, which the workflow
+skips. Each rewrite of the release pull request therefore starts two CI runs,
+the first one cancelled, and two runs of this workflow. If the push that creates
+the release branch points it at the commit of `main` and the release commit
+follows, that push starts one more run, which ends without writing: by the time
+it has a lock to push, the branch has moved and the lease refuses it.
+
+The workflow stays out of `release.yml` because `vp run release:merge` follows
+the conclusion of the whole `Release` run
+([Merging a pull request](#merging-a-pull-request), step 5): a failure here
+would stop the command before it checks npm.
+
+The two jobs keep Bun, which resolves the dependencies, away from any token that
+can write. They do not keep the App token from the code of the branch: the
+command comes from the pushed commit and runs in the job that creates the token
+afterwards, and an earlier step can write to `$GITHUB_ENV`, `$GITHUB_PATH` or
+the Git config. Whoever can push to a `release-please--` branch controls the
+workflow that runs on it. `Commit the workspace versions` declares the `release`
+environment, which admits only `main` and the release branches. With the owner
+steps of [One-time setup](#one-time-setup), the key is a secret of that
+environment alone, so a workflow of another branch cannot read it, and a ruleset
+leaves the release branches to the App and the admins. While
+`RELEASE_APP_PRIVATE_KEY` is also a repository secret, a workflow of any branch
+of this repository can read it
+([ADR 0035](ADRs/0035-release-pull-request-app.md)).
+
+The release branch changes `bun.lock`, so a pull request merged into `main`
+after it that changes `bun.lock` too, such as a dependency update, stops the
+update of a release branch that is behind
+([Merging a pull request](#merging-a-pull-request), step 2). Review the new head
+once the run of this workflow on it ends, and merge with the command it prints.
 
 `vp run test:release` runs the tests of the command.
 
@@ -187,13 +265,24 @@ into the branch, never rebase it, and wait for `CI required` again.
 
 ## Before merging a release pull request
 
-1. Read the version and the `CHANGELOG.md` in the diff. The entries are the
+1. Wait for the run of the `Release lockfile` workflow on the head
+   ([The lockfile of the release pull request](#the-lockfile-of-the-release-pull-request)).
+   When it commits the lock, the head changes and the new head starts another
+   run: wait for that one too, so the head you review is the one you pass to
+   `--sha`. The last run lists the head it checked:
+
+   ```bash
+   gh run list --workflow release-lockfile.yml --branch <release-branch> \
+     --limit 1 --json headSha,status,conclusion
+   ```
+
+2. Read the version and the `CHANGELOG.md` in the diff. The entries are the
    messages of the commits that reached `main`, and the breaking change notes
    are their footers as written. Together they must describe the change from the
    last published version. A branch that changed the same option more than once
    publishes every footer, and a pull request merged with the merge button adds
    its title as an entry.
-2. Do not merge notes that give wrong or contradictory migration steps, or an
+3. Do not merge notes that give wrong or contradictory migration steps, or an
    entry that should not exist and raises the version, such as the title of a
    pull request merged with the merge button. Fix the entry in the
    `CHANGELOG.md` of the release branch and write the same text in the pull
@@ -207,20 +296,23 @@ into the branch, never rebase it, and wait for `CI required` again.
    `release-as` for every package in `release-please-config.json`, let
    release-please write the release pull request again, and remove `release-as`
    after the release.
-3. For the first automated release of a package, create the trusted publisher
+4. For the first automated release of a package, create the trusted publisher
    now
    ([First automated release of a package](#first-automated-release-of-a-package)).
-4. Merge with `vp run release:merge <number> --sha <head>`
+5. Merge with `vp run release:merge <number> --sha <head>`
    ([Merging a pull request](#merging-a-pull-request)), with the head whose
    version and `CHANGELOG.md` you read; `--dry-run` prints it. It waits for
    `CI required`, merges, waits for the `Release` workflow and checks each
    released version on npm. When release-please writes the pull request again
    after your review, the head changes and the command stops: read the new diff
-   and start from step 1. On a release pull request opened before the GitHub
-   App, whose CI run waits for an approval, the command approves the run of that
-   head
+   and start from step 1. When the command stops with `CI required` cancelled,
+   or with a head other than the one you passed, right after a push or an update
+   of the branch, the `Release lockfile` workflow committed the lock on a new
+   head: wait for its run on that head and start from step 1. On a release pull
+   request opened before the GitHub App, whose CI run waits for an approval, the
+   command approves the run of that head
    ([When a CI run of the release pull request waits for an approval](#when-a-ci-run-of-the-release-pull-request-waits-for-an-approval)).
-5. Without the command, wait for `CI required`, merge with the API call of the
+6. Without the command, wait for `CI required`, merge with the API call of the
    same section and, after the publish job, check the registry. The version can
    take a few minutes to appear, and the output has the version and the
    provenance statement:
@@ -254,32 +346,81 @@ so the published package does not change.
 ## One-time setup
 
 On GitHub, the `Release pull request` job needs a GitHub App that opens the
-release pull request. Create it in Settings > Developer settings > GitHub Apps >
-New GitHub App, on the account that owns the repository:
+release pull request, and the `Release lockfile` workflow uses the same App to
+commit to it. Create it in Settings > Developer settings > GitHub Apps > New
+GitHub App, on the account that owns the repository:
 
 - Any name and homepage URL. Turn off the webhook (uncheck **Active**), and keep
   the App installable only on this account.
 - Repository permissions: Contents, Issues and Pull requests, each with read and
-  write access. The job asks for exactly these.
+  write access. The `Release pull request` job asks for exactly these, and the
+  `Release lockfile` workflow for Contents alone.
 - After saving, generate a private key on the App page, then install the App on
   this repository only (Install App > Only select repositories).
 
-In the repository, under Settings > Secrets and variables > Actions, save:
-
-| Kind     | Name                      | Value                                            |
-| -------- | ------------------------- | ------------------------------------------------ |
-| Variable | `RELEASE_APP_CLIENT_ID`   | The Client ID shown on the App page              |
-| Secret   | `RELEASE_APP_PRIVATE_KEY` | The whole content of the private key `.pem` file |
+In the repository, under Settings > Secrets and variables > Actions, save the
+variable `RELEASE_APP_CLIENT_ID` with the Client ID shown on the App page. Do
+not save the private key there: it goes to the `release` environment, in step 2
+below.
 
 To use the same App in another repository, install the App on that repository
-too and save the variable and the secret there. The private key belongs to the
-App, not to one installation: a workflow that reads the secret can ask for a
-token for every repository the App is installed on. Share the App only between
-repositories with the same maintainers, and create another App otherwise.
+too and repeat this setup there. The private key belongs to the App, not to one
+installation: a workflow that reads the secret can ask for a token for every
+repository the App is installed on. Share the App only between repositories with
+the same maintainers, and create another App otherwise.
 
-No job opens a pull request with the `GITHUB_TOKEN`, so the release does not
-need "Allow GitHub Actions to create and approve pull requests" in Settings >
-Actions > General.
+The key goes to the `release` environment, under Settings > Environments. Its
+deployment branches are "Selected branches and tags", with the branch rules
+`main` and `release-please--*`, because the jobs that read the key run on the
+pushes to those branches: `Release pull request` on `main`, and
+`Commit the workspace versions` of the `Release lockfile` workflow on the
+release branch. GitHub matches the rules against the ref of the run, so a job of
+another branch that declares the environment does not start, and a job that does
+not declare it gets none of its secrets
+([GitHub docs](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments#deployment-branches-and-tags)).
+Those two jobs are the only ones that declare it, with `deployment: false`,
+which keeps the branch rules and the secrets of the environment and records no
+deployment
+([GitHub docs](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments#using-environments-without-deployments)).
+The publish job does not declare it, and its trusted publisher has no
+environment name.
+
+The environment alone leaves the key open, and the owner closes it in this
+order, so the key never sits in the environment while anyone with write access
+can create a release branch:
+
+1. A ruleset on the release branches. Under Settings > Rules > Rulesets > New
+   ruleset > New branch ruleset, create an active ruleset that targets the
+   pattern `release-please--*`, the one the environment admits, with "Restrict
+   creations", "Restrict updates" and "Restrict deletions". In its bypass list,
+   add the release App and the Repository admin role, both with "Always allow".
+   Without the App, release-please cannot create or update the release pull
+   request, and the `Release lockfile` workflow cannot push the lock. Without
+   the admin role, the owner cannot push the resolution of a conflict
+   ([When the release pull request has a conflict](#when-the-release-pull-request-has-a-conflict))
+   nor have `vp run release:merge` update a release branch that is behind
+   ([Merging a pull request](#merging-a-pull-request), step 2). This step closes
+   the release branches, and so the workflow that runs on them, to everyone with
+   write access other than the App and the admins.
+2. The key in the environment, once the `release.yml` and `release-lockfile.yml`
+   of `main` declare it. Under Settings > Environments > `release` > Environment
+   secrets, add `RELEASE_APP_PRIVATE_KEY` with the whole content of the private
+   key `.pem` file. Then, if the repository has a repository secret with that
+   name, delete it under Settings > Secrets and variables > Actions. Done while
+   `main` runs a `release.yml` that does not declare the environment, the
+   `Release pull request` job loses the key and fails at `Create the App token`.
+   A repository secret reaches a workflow of any branch, so this step closes the
+   key to every job outside the environment.
+
+After both steps, only a job that declares the environment on `main` or on a
+release branch reads the key. A workflow reaches `main` only through a pull
+request that the `main` ruleset admits, so whoever can merge into `main` can
+still change the workflows that read the key, and an admin can bypass the rules
+of the environment and the ruleset.
+
+No job opens or approves a pull request with the `GITHUB_TOKEN`, so "Allow
+GitHub Actions to create and approve pull requests", in Settings > Actions >
+General, stays off.
 
 On npmjs.com, each package needs a trusted publisher. Create it at the moment
 described in
@@ -370,9 +511,14 @@ git diff --stat origin/main HEAD
 git push origin HEAD:<release-branch>
 ```
 
-The `git diff` must list only `.release-please-manifest.json` and, for each
-package, its `CHANGELOG.md` and `package.json`. The push starts the CI of the
-release pull request. Merge it after `CI required` passes, with the command in
+The `git diff` must list only `.release-please-manifest.json`, `bun.lock` and,
+for each package, its `CHANGELOG.md` and `package.json`. In a conflict on
+`bun.lock`, keep the file of `main` (`git checkout --theirs bun.lock`): the
+workflow writes the workspace versions again after the push. The push starts the
+CI of the release pull request and the `Release lockfile` workflow
+([The lockfile of the release pull request](#the-lockfile-of-the-release-pull-request)),
+which may commit the lock and change the head. Merge it after that run and
+`CI required` pass, with the command in
 [Merging a pull request](#merging-a-pull-request).
 
 ## When the release pull request job fails
@@ -409,6 +555,44 @@ release-please waits for its tags. If the tags and GitHub Releases of that pull
 request exist, swap the label for `autorelease: tagged` and run the job again.
 The message "remained the same" is another case: the release did not change, so
 the pull request was left as it was.
+
+## When the release lockfile workflow fails
+
+The release pull request keeps the lock with the old versions, and nothing else
+depends on the workflow. The lock does not stop the release: the frozen-lockfile
+install accepts it, and `vp pm pack` reads each version from the `package.json`.
+Merged that way, the lines stay one version behind until the next `vp install`.
+The log of the failed job tells the cause:
+
+| Log                                                                                                        | Cause                                                                                                                                                   | Fix                                                                                 |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| A failure in the `Generate the lockfile` job, such as in `Set up Vite+` or in `vp install --lockfile-only` | Vite+ or the npm registry could not be reached, or the dependencies of the branch do not resolve                                                        | Choose "Re-run all jobs"; when it fails again, fix the dependencies on `main`       |
+| `changes more than the workspace versions of bun.lock, so nothing was written`, then each line and why     | The lock generated from the branch changes more than the versions, such as a dependency whose lock `main` did not update                                | Write the lock by hand, below, and review every line of the diff                    |
+| `has <n> lines and bun.lock has <m>`                                                                       | The same, with lines added or removed                                                                                                                   | The same                                                                            |
+| `differ in the newline at the end of the file`                                                             | One of the two locks does not end the way Bun writes it, such as after an edit by hand                                                                  | Write the lock by hand, below                                                       |
+| An error in the `Create the App token` step                                                                | The App, its variable or its secret                                                                                                                     | [When the release pull request job fails](#when-the-release-pull-request-job-fails) |
+| `The push to <branch> failed` in the `Commit and push` step                                                | GitHub refused the push for another reason, such as a rule on the branch or a permission of the App; the output of `git push` above it gives the reason | Fix the cause and choose "Re-run all jobs"                                          |
+| `Could not read <branch> after the push failed` in the `Commit and push` step                              | GitHub refused the push, and the read of the branch that tells why failed too, such as on a network error                                               | Choose "Re-run all jobs"                                                            |
+
+A push refused because the branch moved or was deleted is not a failure: the
+step logs `so the push was refused`, and the run of the new head writes the
+lock. After a fix outside the branch, choose "Re-run all jobs": the artifact of
+the lock lasts one day. To write the lock by hand, from your account, with the
+same command as the workflow:
+
+```bash
+git fetch origin
+git switch --detach origin/<release-branch>
+vp install --lockfile-only --ignore-scripts
+git diff -- bun.lock
+git commit --message 'chore(release): write the workspace versions in bun.lock' -- bun.lock
+git push origin HEAD:<release-branch>
+```
+
+The push starts the CI and the workflow, which finds no difference. A diff with
+more than the `"version"` lines of the `workspaces` section shows what `main`
+left out of its lock: fix it on `main` with a pull request when it is not a
+change of the release.
 
 ## When a CI run of the release pull request waits for an approval
 
@@ -526,10 +710,17 @@ before step 3 if someone edited them on GitHub.
 
 ## Known limits
 
-`bun.lock` records the version of each workspace package, and release-please
-does not update it. After a release the line stays one version behind until the
-next `vp install`, which fixes it. The frozen-lockfile install in CI does not
-fail because of this.
+`bun.lock` records the version of each workspace package, and release-please has
+no updater for it
+([release-please#2689](https://github.com/googleapis/release-please/issues/2689);
+a fix is proposed in
+[release-please#2684](https://github.com/googleapis/release-please/pull/2684)).
+The `Release lockfile` workflow writes those versions in the release pull
+request instead
+([The lockfile of the release pull request](#the-lockfile-of-the-release-pull-request)).
+Once release-please updates `bun.lock`, remove the workflow, the command
+`tooling/release/update-lockfile-versions.ts` with its folder, and the sections
+of this guide about them.
 
 release-please writes `CHANGELOG.md` in its own format, so the workspace format
 check skips every `CHANGELOG.md`. Edit those files by hand only to fix an entry,

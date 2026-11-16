@@ -1,6 +1,7 @@
 # 0005. release-please versions each package
 
-- Status: Accepted, amended by [0035](0035-release-pull-request-app.md)
+- Status: Accepted, amended by [0035](0035-release-pull-request-app.md) and
+  [0038](0038-release-lockfile-workflow.md)
 - Date: 2026-11-11
 
 ## Context

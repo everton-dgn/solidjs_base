@@ -50,17 +50,17 @@
     "magic-string": "1.4.5"
   },
   "peerDependencies": {
-    "@solidjs/web": "2.0.0-rc.22",
+    "@solidjs/web": "2.0.0-rc.23",
     "vite-plus": "1.6.0"
   },
   "devDependencies": {
     "@iconify-json/hugeicons": "1.2.36",
     "@solidjs/vite-plugin": "3.0.0-next.57",
-    "@solidjs/web": "2.0.0-rc.22",
+    "@solidjs/web": "2.0.0-rc.23",
     "@types/node": "26.6.6",
     "knip": "6.45.1",
     "playwright": "1.65.1",
-    "solid-js": "2.0.0-rc.22",
+    "solid-js": "2.0.0-rc.23",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"

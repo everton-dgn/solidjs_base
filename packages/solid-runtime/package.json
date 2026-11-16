@@ -263,7 +263,7 @@
     "@testing-library/jest-dom": "7.0.1",
     "@solidjs/router": "2.0.0-next.44",
     "@vitest/browser-playwright": "catalog:",
-    "playwright": "1.65.0"
+    "playwright": "1.65.1"
   },
   "dependencies": {
     "valibot": "catalog:",

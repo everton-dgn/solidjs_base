@@ -356,22 +356,69 @@ GitHub App, on the account that owns the repository:
 - After saving, generate a private key on the App page, then install the App on
   this repository only (Install App > Only select repositories).
 
-In the repository, under Settings > Secrets and variables > Actions, save:
-
-| Kind     | Name                      | Value                                            |
-| -------- | ------------------------- | ------------------------------------------------ |
-| Variable | `RELEASE_APP_CLIENT_ID`   | The Client ID shown on the App page              |
-| Secret   | `RELEASE_APP_PRIVATE_KEY` | The whole content of the private key `.pem` file |
+In the repository, under Settings > Secrets and variables > Actions, save the
+variable `RELEASE_APP_CLIENT_ID` with the Client ID shown on the App page. Do
+not save the private key there: it goes to the `release` environment, in step 2
+below.
 
 To use the same App in another repository, install the App on that repository
-too and save the variable and the secret there. The private key belongs to the
-App, not to one installation: a workflow that reads the secret can ask for a
-token for every repository the App is installed on. Share the App only between
-repositories with the same maintainers, and create another App otherwise.
+too and repeat this setup there. The private key belongs to the App, not to one
+installation: a workflow that reads the secret can ask for a token for every
+repository the App is installed on. Share the App only between repositories with
+the same maintainers, and create another App otherwise.
 
-No job opens a pull request with the `GITHUB_TOKEN`, so the release does not
-need "Allow GitHub Actions to create and approve pull requests" in Settings >
-Actions > General.
+The key goes to the `release` environment, under Settings > Environments. Its
+deployment branches are "Selected branches and tags", with the branch rules
+`main` and `release-please--*`, because the jobs that read the key run on the
+pushes to those branches: `Release pull request` on `main`, and
+`Commit the workspace versions` of the `Release lockfile` workflow on the
+release branch. GitHub matches the rules against the ref of the run, so a job of
+another branch that declares the environment does not start, and a job that does
+not declare it gets none of its secrets
+([GitHub docs](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments#deployment-branches-and-tags)).
+Those two jobs are the only ones that declare it, with `deployment: false`,
+which keeps the branch rules and the secrets of the environment and records no
+deployment
+([GitHub docs](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments#using-environments-without-deployments)).
+The publish job does not declare it, and its trusted publisher has no
+environment name.
+
+The environment alone leaves the key open, and the owner closes it in this
+order, so the key never sits in the environment while anyone with write access
+can create a release branch:
+
+1. A ruleset on the release branches. Under Settings > Rules > Rulesets > New
+   ruleset > New branch ruleset, create an active ruleset that targets the
+   pattern `release-please--*`, the one the environment admits, with "Restrict
+   creations", "Restrict updates" and "Restrict deletions". In its bypass list,
+   add the release App and the Repository admin role, both with "Always allow".
+   Without the App, release-please cannot create or update the release pull
+   request, and the `Release lockfile` workflow cannot push the lock. Without
+   the admin role, the owner cannot push the resolution of a conflict
+   ([When the release pull request has a conflict](#when-the-release-pull-request-has-a-conflict))
+   nor have `vp run release:merge` update a release branch that is behind
+   ([Merging a pull request](#merging-a-pull-request), step 2). This step closes
+   the release branches, and so the workflow that runs on them, to everyone with
+   write access other than the App and the admins.
+2. The key in the environment, once the `release.yml` and `release-lockfile.yml`
+   of `main` declare it. Under Settings > Environments > `release` > Environment
+   secrets, add `RELEASE_APP_PRIVATE_KEY` with the whole content of the private
+   key `.pem` file. Then, if the repository has a repository secret with that
+   name, delete it under Settings > Secrets and variables > Actions. Done while
+   `main` runs a `release.yml` that does not declare the environment, the
+   `Release pull request` job loses the key and fails at `Create the App token`.
+   A repository secret reaches a workflow of any branch, so this step closes the
+   key to every job outside the environment.
+
+After both steps, only a job that declares the environment on `main` or on a
+release branch reads the key. A workflow reaches `main` only through a pull
+request that the `main` ruleset admits, so whoever can merge into `main` can
+still change the workflows that read the key, and an admin can bypass the rules
+of the environment and the ruleset.
+
+No job opens or approves a pull request with the `GITHUB_TOKEN`, so "Allow
+GitHub Actions to create and approve pull requests", in Settings > Actions >
+General, stays off.
 
 On npmjs.com, each package needs a trusted publisher. Create it at the moment
 described in

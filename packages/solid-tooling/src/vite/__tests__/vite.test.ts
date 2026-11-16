@@ -334,7 +334,7 @@ it('passes the application paths to Solid, the routes and the icons', async cont
     { types: 'src/@types/routes.d.ts', httpMethods: true }
   ])
   const icons = {
-    collections: { 'my-images': './src/assets/images' },
+    collections: { 'my-images': path.join(root, 'src/assets/images') },
     customizeIcon: { 'aria-hidden': 'true' }
   }
   assert.deepEqual(optionsOf({ summary, name: 'icons' }), [icons, icons, icons])

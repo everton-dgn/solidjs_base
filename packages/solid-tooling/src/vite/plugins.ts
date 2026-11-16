@@ -101,11 +101,17 @@ async function readLocales(root: string): Promise<string[]> {
   return locales
 }
 
-// The folders of the icons option are relative to options.root, which is the
-// root of Vite, as the plugin reads them.
+// WHY: the plugin resolves a folder against the root of Vite, the folder where
+// Vite runs. The folders of the icons option resolve from options.root, as the
+// icons-generate task reads them, also when Vite runs from another folder.
 function iconsPlugin({ modules, options }: IconsInput) {
   return modules.solidIcons({
-    collections: options.icons ?? {},
+    collections: Object.fromEntries(
+      Object.entries(options.icons ?? {}).map(([name, folder]) => [
+        name,
+        path.resolve(options.root, folder)
+      ])
+    ),
     customizeIcon: ({ attributes }) => {
       attributes['aria-hidden'] = 'true'
     }

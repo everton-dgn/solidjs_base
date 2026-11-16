@@ -164,12 +164,9 @@ the tooling remains in `devDependencies`, including with Knip's strict
 production check. See
 [environment and preview](docs/development.md#environment-and-preview).
 
-Bun applies two patches from `patches/`, registered in the root `package.json`:
-one fixes conversion differences of `@mdream/js`
-([Markdown guide](docs/seo/markdown.md)), and one exports `heldRead` from the
-types of `solid-js`, which the types of `@solidjs/web` import
-([development](../../docs/development.md#workspace)). The packages do not ship
-these patches.
+Bun applies one patch from `patches/`, registered in the root `package.json`: it
+fixes conversion differences of `@mdream/js`
+([Markdown guide](docs/seo/markdown.md)). The packages do not ship it.
 
 Middleware, security headers, server errors, the theme, locale navigation, SEO,
 sitemaps, Markdown and `llms.txt` come from runtime factories. The copy keeps

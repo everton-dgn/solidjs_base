@@ -36,6 +36,11 @@ const CURRENT = renderLock(LOCKED)
 const NEXT = renderLock(RELEASED)
 const RUNTIME_ENTRY = '    "packages/runtime": {'
 const RUNTIME_VERSION = `      "version": "${LOCKED.runtime}",`
+const WITHOUT_RUNTIME = Object.fromEntries(
+  Object.entries(MANIFESTS).filter(
+    ([workspace]) => workspace !== 'packages/runtime'
+  )
+)
 const HELP =
   'Generate it again from this tree, or see docs/releasing.md#when-the-release-lockfile-workflow-fails.'
 const PAST = new Date('2020-01-01T00:00:00Z')
@@ -255,15 +260,10 @@ describe('updateLockfileVersions workspace folders', () => {
   })
 
   it('refuses a workspace folder that is a link to a folder outside the root', async context => {
-    const manifests = Object.fromEntries(
-      Object.entries(MANIFESTS).filter(
-        ([workspace]) => workspace !== 'packages/runtime'
-      )
-    )
     const { file, folder, root, lockfile, update } = await prepare({
       context,
       generated: NEXT,
-      manifests
+      manifests: WITHOUT_RUNTIME
     })
     const outside = path.join(folder, 'outside')
     await writeManifest({ folder: outside, version: RELEASED.runtime })
@@ -278,6 +278,77 @@ describe('updateLockfileVersions workspace folders', () => {
       })
     })
     assert.equal(await readFile(lockfile, 'utf8'), CURRENT)
+  })
+
+  it('refuses a workspace without a package.json', async context => {
+    const { file, lockfile, update } = await prepare({
+      context,
+      generated: NEXT,
+      manifests: WITHOUT_RUNTIME
+    })
+
+    await assert.rejects(update(), {
+      message: refusal({
+        file,
+        problems: [
+          `line ${lineNumber({ text: CURRENT, line: RUNTIME_VERSION })}: the workspace packages/runtime has no package.json`
+        ]
+      })
+    })
+    assert.equal(await readFile(lockfile, 'utf8'), CURRENT)
+  })
+
+  it('refuses a workspace whose package.json has no version', async context => {
+    const { file, root, lockfile, update } = await prepare({
+      context,
+      generated: NEXT
+    })
+    await writeFile(
+      path.join(root, 'packages/runtime/package.json'),
+      JSON.stringify({ name: '@x/runtime' })
+    )
+
+    await assert.rejects(update(), {
+      message: refusal({
+        file,
+        problems: [
+          `line ${lineNumber({ text: CURRENT, line: RUNTIME_VERSION })}: Unexpected packages/runtime/package.json: version is missing.`
+        ]
+      })
+    })
+    assert.equal(await readFile(lockfile, 'utf8'), CURRENT)
+  })
+
+  // WHY: Bun leaves the version out of the root entry of the lock of this
+  // repository, but a lock that has one is checked against the package.json
+  // of the root, which the lock names with an empty folder.
+  it('writes a changed version of the root entry when it follows the root package.json', async context => {
+    const name = '      "name": "root",'
+    const withRootVersion = (version: string): string =>
+      `${name}\n      "version": "${version}",`
+    const lock = editLine({
+      text: CURRENT,
+      from: name,
+      to: withRootVersion('0.0.0')
+    })
+    const generated = editLine({
+      text: NEXT,
+      from: name,
+      to: withRootVersion('0.1.0')
+    })
+    const { lockfile, update } = await prepare({
+      context,
+      lock,
+      generated,
+      manifests: { ...MANIFESTS, '': '0.1.0' }
+    })
+
+    const lines = await update()
+
+    assert.equal(await readFile(lockfile, 'utf8'), generated)
+    assert.deepEqual(lines, [
+      'Wrote bun.lock with the version of each workspace from its package.json: the root 0.0.0 -> 0.1.0, packages/runtime 0.1.0 -> 0.7.0, packages/tooling 0.6.0 -> 0.7.0.'
+    ])
   })
 })
 

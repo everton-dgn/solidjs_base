@@ -5,9 +5,11 @@
 The packages are in `0.x`. Fixes go into a new release of the latest minor
 version; older versions do not get patches.
 
-| Package                     | Supported            |
-| --------------------------- | -------------------- |
-| `@evertondgn/solid-tooling` | Latest `0.x` release |
+| Package                               | Supported            |
+| ------------------------------------- | -------------------- |
+| `@evertondgn/solid-tooling`           | Latest `0.x` release |
+| `@evertondgn/solid-runtime`           | Latest `0.x` release |
+| `@evertondgn/vite-plugin-solid-icons` | Latest `0.x` release |
 
 ## Reporting a vulnerability
 
@@ -25,8 +27,9 @@ otherwise.
 - The packages published from `packages/`.
 - The release workflow, which publishes to npm with
   [trusted publishing](https://docs.npmjs.com/trusted-publishers). Each version
-  on npm carries a provenance statement that links it to the commit and the
-  workflow run that built it.
+  it publishes carries a provenance statement that links it to the commit and
+  the workflow run that built it. The first version of each package is published
+  by hand and has no provenance statement.
 
 `apps/boilerplate` is a test copy of
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs) and is

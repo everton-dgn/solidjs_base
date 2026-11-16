@@ -20,6 +20,11 @@ type NextReading = { previous: Reading; reading: RegistryReading }
 
 type Timeout = { packed: string; missing: Reading[]; timeout: number }
 
+// WHY: a timer can fire a few milliseconds late, so a pause that leaves less
+// than this before the time limit could end in no read, after a log line that
+// announced one.
+const MINIMUM_READ_TIME = 1000
+
 function describePinned({ name, version }: PinnedPackage): string {
   return `${name}@${version}`
 }
@@ -120,7 +125,9 @@ export async function waitForPinnedPackages({
     if (missing.length === 0) return
     // WHY: a pause that reaches the time limit would end in no read, after a
     // log line that announced one.
-    if (deadline - now() <= timing.interval) throw timedOut(missing)
+    if (deadline - now() <= timing.interval + MINIMUM_READ_TIME) {
+      throw timedOut(missing)
+    }
     log(
       `  ${describeMissing(missing)}. Reading again in ${describeDuration(timing.interval)}.`
     )

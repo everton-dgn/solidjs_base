@@ -74,9 +74,9 @@ read them.
   local cache. It needs no token or permission. A read that fails, such as on a
   network error, counts as a version not on npm yet. The limit fits with the
   validation in the `timeout-minutes` of the job.
-- When the next read would not come before the limit, the job fails at once,
-  before `npm publish`, and its log names the version that is missing
-  ([When the publish job fails](#when-the-publish-job-fails)).
+- When the next read would not start at least a second before the limit, the job
+  fails at once, before `npm publish`, and its log names the version that is
+  missing ([When the publish job fails](#when-the-publish-job-fails)).
 - A pin that is not an exact version, such as a range or a `workspace:` that
   another packer left, fails at once.
 - Two packages that pin each other would wait for each other until the limit, so

@@ -28,6 +28,7 @@ type Run = {
   manifest: unknown
   registry?: FakeRegistry
   readTime?: number
+  lateness?: number
   timeout?: number
   workspaces?: unknown
   packages?: Record<string, string | undefined>
@@ -35,6 +36,7 @@ type Run = {
 
 const execute = promisify(execFile)
 const INTERVAL = 15_000
+const MINIMUM_READ_TIME = 1000
 const ONE_MINUTE = 60_000
 const SHORT_TIMEOUT = 20_000
 const PACKAGES = {
@@ -57,6 +59,7 @@ async function runWait({
   manifest,
   registry = {},
   readTime,
+  lateness,
   timeout = ONE_MINUTE,
   workspaces = ['packages/*'],
   packages = PACKAGES
@@ -64,7 +67,7 @@ async function runWait({
   const folder = await makeFolder(context)
   const root = await makeWorkspace({ folder, workspaces, packages })
   const tarball = await packManifest({ folder, manifest })
-  const fake = fakeEnvironment({ registry, readTime })
+  const fake = fakeEnvironment({ registry, readTime, lateness })
   const result = waitForPinnedPackages({
     tarball,
     root,
@@ -243,19 +246,23 @@ describe('waitForPinnedPackages time limit', () => {
     assert.equal(environment.now(), INTERVAL)
   })
 
-  for (const { timeout, readTime } of [
-    { timeout: ONE_MINUTE, readTime: 0 },
-    { timeout: SHORT_TIMEOUT, readTime: 0 },
-    { timeout: INTERVAL + 1, readTime: 0 },
-    { timeout: 61_000, readTime: 7000 },
-    { timeout: ONE_MINUTE, readTime: 30_000 }
+  for (const { timeout, readTime, lateness } of [
+    { timeout: ONE_MINUTE, readTime: 0, lateness: 0 },
+    { timeout: SHORT_TIMEOUT, readTime: 0, lateness: 0 },
+    { timeout: INTERVAL + 1, readTime: 0, lateness: 0 },
+    { timeout: 61_000, readTime: 7000, lateness: 0 },
+    { timeout: ONE_MINUTE, readTime: 30_000, lateness: 0 },
+    { timeout: INTERVAL + 1, readTime: 0, lateness: 5 },
+    { timeout: INTERVAL + MINIMUM_READ_TIME + 1, readTime: 0, lateness: 5 },
+    { timeout: ONE_MINUTE, readTime: 0, lateness: 5 }
   ]) {
-    it(`announces only the reads that come, with a time limit of ${timeout} ms and reads of ${readTime} ms`, async context => {
+    it(`announces only the reads that come, with a time limit of ${timeout} ms, reads of ${readTime} ms and pauses ${lateness} ms late`, async context => {
       const { result, calls, lines, sleeps } = await runWait({
         context,
         manifest: TOOLING,
         timeout,
-        readTime
+        readTime,
+        lateness
       })
 
       await assert.rejects(result)

@@ -88,7 +88,8 @@ jobs:
       # minutes, which fits with the validation in timeout-minutes, so the job
       # fails with the message of the wait.
       - name: Wait for the pinned packages
-        run: node tooling/release/wait-for-pinned-packages.ts "$RUNNER_TEMP"/release/*.tgz
+        run: |
+          node tooling/release/wait-for-pinned-packages.ts "$RUNNER_TEMP"/release/*.tgz
 
       - name: Publish to npm
         run: npm publish "$RUNNER_TEMP"/release/*.tgz --access public

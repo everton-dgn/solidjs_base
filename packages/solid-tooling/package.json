@@ -105,7 +105,7 @@
     "@vitest/coverage-v8": "5.1.0",
     "@vitest/ui": "5.1.0",
     "@testing-library/jest-dom": "7.0.1",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.6",
     "typescript": "7.0.2"
   },
   "peerDependencies": {

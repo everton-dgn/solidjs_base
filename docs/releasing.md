@@ -17,10 +17,9 @@ versions from Conventional Commits. It runs only in CI, from
 3. The workflow keeps one release pull request open for all the packages, with
    the new version and the `CHANGELOG.md` of each.
 4. Merging that pull request creates one tag for each package, such as
-   `solid-tooling@0.7.0`, `solid-runtime@0.7.0` and
-   `vite-plugin-solid-icons@0.7.0`, and their GitHub Releases. The workflow then
-   validates the workspace, packs each package and publishes it once the
-   packages of this repository it pins are on npm
+   `solid-tooling@0.7.0` and `solid-runtime@0.7.0`, and their GitHub Releases.
+   The workflow then validates the workspace, packs each package and publishes
+   it once the packages of this repository it pins are on npm
    ([The order of the publication](#the-order-of-the-publication)).
 
 The workflow runs release-please in two jobs. `Tags and GitHub Releases` uses
@@ -313,13 +312,20 @@ it to `release-please-config.json` and `.release-please-manifest.json`, as
 1. Publish the version in the manifest by hand, from the last commit of the pull
    request.
 2. Create the tag on that commit, such as `solid-runtime@0.1.0`, and push it.
-3. Merge the pull request. release-please finds the tag and opens no release
-   pull request for the package until a later `fix` or `feat` changes it.
+3. Merge the pull request. release-please finds the tag, so the changelog of the
+   next release of the package lists only the commits after it. The tag does not
+   hold the version back: the package is in the `linked-versions` group, so the
+   next release of any package of the group raises it to the same version, even
+   without a `fix` or `feat` of its own.
 
 release-please finds the previous version of a package through its GitHub
 Release or, failing that, its tag. Merging first leaves neither, so it collects
 the commits back to `bootstrap-sha` and proposes a release with the whole
 history of the package.
+
+A version published this way has its tag and no GitHub Release, and the package
+has no `CHANGELOG.md` until its first automated release writes both, as with
+`vite-plugin-solid-icons@0.7.0`.
 
 ## First automated release of a package
 

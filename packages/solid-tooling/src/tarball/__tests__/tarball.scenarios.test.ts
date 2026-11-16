@@ -120,6 +120,11 @@ const pinnedSchema = v.looseObject({
   devEngines: v.optional(v.unknown()),
   packageManager: v.optional(v.string())
 })
+const devEnginesSchema = v.object({
+  runtime: v.object({ version: v.string() })
+})
+const nodeEngineSchema = v.object({ node: v.optional(v.string()) })
+const publishedSchema = v.object({ engines: v.optional(nodeEngineSchema, {}) })
 const MUTATION = env.SCENARIO_MUTATION
 const ICONS_PACKAGE = '@evertondgn/vite-plugin-solid-icons'
 const ICON_TYPES = 'src/icon-collections.d.ts'
@@ -562,6 +567,24 @@ test('the applications pin the versions of the workspace', () => {
     assert.deepEqual(app.engines, workspace.engines, scenario)
     assert.deepEqual(app.devEngines, workspace.devEngines, scenario)
     assert.equal(app.packageManager, workspace.packageManager, scenario)
+  }
+})
+
+// Every folder of packages/ is published, and the packages are tested only on
+// the Node version that devEngines pins, so each declares it as its minimum.
+test('the packages require the Node version of the workspace', () => {
+  const workspace = readPinned(path.join(ROOT, 'package.json'))
+  const { runtime } = v.parse(devEnginesSchema, workspace.devEngines)
+  const expected = `>=${runtime.version}`
+  const files = readdirSync(path.join(ROOT, 'packages'))
+    .map(name => path.join('packages', name, 'package.json'))
+    .filter(file => existsSync(path.join(ROOT, file)))
+  assert.ok(files.length > 0, 'no package found in packages/')
+  for (const file of files) {
+    const text = readFileSync(path.join(ROOT, file), 'utf8')
+    const manifest = v.parse(publishedSchema, JSON.parse(text))
+    const message = `${file}: set engines.node to "${expected}", the devEngines.runtime version of the root package.json`
+    assert.equal(manifest.engines.node, expected, message)
   }
 })
 

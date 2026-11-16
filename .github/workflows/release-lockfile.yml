@@ -138,7 +138,13 @@ jobs:
             exit 0
           fi
           printf '%s\n' "$output"
-          remote="$(git ls-remote origin "refs/heads/$BRANCH" | cut -f 1)"
+          # WHY: the default shell has no pipefail, so a read that fails inside
+          # a pipe would look like a deleted branch.
+          if ! refs="$(git ls-remote origin "refs/heads/$BRANCH")"; then
+            echo "Could not read $BRANCH after the push failed, so the reason of the refusal is unknown." >&2
+            exit 1
+          fi
+          remote="$(printf '%s\n' "$refs" | cut -f 1)"
           if [ "$remote" != "$SHA" ] && printf '%s\n' "$output" | awk -F '\t' -v ref="HEAD:refs/heads/$BRANCH" '$1 == "!" && $2 == ref { found = 1 } END { exit !found }'; then
             echo "$BRANCH is at ${remote:-no commit}, not at $SHA, so the push was refused: the run of its new head writes the lockfile."
             exit 0

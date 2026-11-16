@@ -14,7 +14,6 @@ type Manifest = { folder: string; version: string }
 type Workspace = {
   context: TestContext
   lock: string
-  // The version written in the package.json of each folder, by its path.
   manifests: Record<string, string>
 }
 
@@ -79,7 +78,8 @@ export function renderLock({ runtime, tooling }: LockVersions): string {
 `
 }
 
-// Replaces one line of the lock, and fails when the line is not there once.
+// Fails unless the line is there once, so a test never edits a line it did not
+// mean to.
 export function editLine({ text, from, to }: LineEdit): string {
   const lines = text.split('\n')
   const matches = lines.filter(line => line === from).length

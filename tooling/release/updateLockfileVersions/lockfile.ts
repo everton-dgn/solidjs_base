@@ -62,8 +62,6 @@ export function findWorkspacesSection(
   return end === -1 ? undefined : { start, end }
 }
 
-// The entry whose fields hold the line: the nearest entry name above it,
-// unless an entry closes first.
 export function findWorkspace({ lines, index }: LineQuery): string | undefined {
   for (let above = index - 1; above >= 0; above -= 1) {
     const line = lines[above] ?? ''

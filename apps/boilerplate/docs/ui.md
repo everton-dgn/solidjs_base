@@ -314,11 +314,12 @@ go back to the `[hash]` of Lightning CSS, as long as that test keeps passing.
 
 ## Local SVGs as components
 
-`unplugin-icons` loads the `my-images` collection from `src/assets/images/` with
-`FileSystemIconLoader`. The home page shows the import of the Solid logo:
+The icons plugin of the tooling, `@evertondgn/vite-plugin-solid-icons`, loads
+the `my-images` collection from `src/assets/images/`, mapped by the `icons`
+option in `vite.config.ts`. The home page shows the import of the Solid logo:
 
 ```tsx
-import SolidLogo from '~icons/my-images/solid'
+import SolidLogo from 'icon:my-images/solid'
 
 import S from './styles.module.css'
 
@@ -328,14 +329,20 @@ import S from './styles.module.css'
 Add `.svg` files to that folder and import them by name, without the extension.
 The original colors are kept. PNG, JPEG and WebP are still common images. The
 plugin configuration already adds `aria-hidden="true"` to the imported SVGs; do
-not repeat the attribute on each use of the component. `src/@types/icons.d.ts`
-declares the components with the types of `@solidjs/web` to keep the icons
-aligned with the API the project uses.
+not repeat the attribute on each use of the component. The tooling declares the
+imports by path with the types of `@solidjs/web`, through the `app-env` types of
+`tsconfig.app.json`, so the project has no declaration of its own.
+
+The typed names of each collection, for
+`import { Solid } from 'icon:my-images'`, live in `src/icon-collections.d.ts`.
+The dev server and the build write it, and the `icons-generate` task writes it
+before `check:ci` and `lint`. The file is generated: it stays out of Git, of the
+formatter and of the linter. The copy imports each icon by its path.
 
 The
 [Solid SVG comes from the official Vite template](https://github.com/vitejs/vite/blob/main/packages/create-vite/template-solid/src/assets/solid.svg).
 
 The ready-made icons use the `@iconify-json/hugeicons` collection through the
 same plugin. The theme switcher uses, for example,
-`import IconSun from '~icons/hugeicons/sun-01'`. Only the imported icons go into
+`import IconSun from 'icon:hugeicons/sun-01'`. Only the imported icons go into
 the build.

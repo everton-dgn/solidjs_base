@@ -1,8 +1,8 @@
 import { m } from '@paraglide/messages.js'
 import type { JSX } from '@solidjs/web'
+import IconWarning from 'icon:hugeicons/alert-02'
+import IconClose from 'icon:hugeicons/cancel-01'
 import { createSignal, createUniqueId, onSettled, Show } from 'solid-js'
-import IconWarning from '~icons/hugeicons/alert-02'
-import IconClose from '~icons/hugeicons/cancel-01'
 
 import { Button } from '@/components/atoms/Button/index.tsx'
 import {

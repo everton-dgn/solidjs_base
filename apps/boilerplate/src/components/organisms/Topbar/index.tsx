@@ -1,7 +1,7 @@
 import { m } from '@paraglide/messages.js'
 import type { JSX } from '@solidjs/web'
+import IconGithub from 'icon:hugeicons/github'
 import { For } from 'solid-js'
-import IconGithub from '~icons/hugeicons/github'
 
 import { LocalizedLink } from '@/components/atoms/LocalizedLink/index.tsx'
 import { LocaleSwitcher } from '@/components/molecules/LocaleSwitcher/index.tsx'

@@ -28,7 +28,7 @@ type Run = {
   readTime?: number
   timeout?: number
   workspaces?: unknown
-  packages?: Record<string, string>
+  packages?: Record<string, string | undefined>
 }
 
 const execute = promisify(execFile)
@@ -310,6 +310,48 @@ describe('waitForPinnedPackages refusals', () => {
       message: /^@other\/tooling is not a package of this repository/u
     })
     assert.deepEqual(calls, [])
+  })
+
+  it('leaves out a workspace without a name, which no package can pin', async context => {
+    const { result, calls } = await runWait({
+      context,
+      manifest: TOOLING,
+      registry: { [ICONS]: [found('0.8.0')] },
+      workspaces: ['packages/*', 'apps/*'],
+      packages: { ...PACKAGES, 'apps/site': undefined }
+    })
+
+    await result
+    assert.deepEqual(
+      calls.map(({ args }) => args[1]),
+      [ICONS]
+    )
+  })
+
+  it('refuses the tarball of a workspace without a name', async context => {
+    const { result, calls } = await runWait({
+      context,
+      manifest: { ...TOOLING, name: '@x/site' },
+      workspaces: ['packages/*', 'apps/*'],
+      packages: { ...PACKAGES, 'apps/site': undefined }
+    })
+
+    await assert.rejects(result, {
+      message: /^@x\/site is not a package of this repository/u
+    })
+    assert.deepEqual(calls, [])
+  })
+
+  it('refuses a workspace root whose packages have no name', async context => {
+    const { result } = await runWait({
+      context,
+      manifest: TOOLING,
+      packages: { 'packages/site': undefined }
+    })
+
+    await assert.rejects(result, {
+      message: /match no package\.json with a name/u
+    })
   })
 
   it('refuses a workspace root that lists no package', async context => {

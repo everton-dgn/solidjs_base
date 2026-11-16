@@ -22,7 +22,8 @@ type PackedManifest = { folder: string; manifest: unknown }
 type Workspace = {
   folder: string
   workspaces: unknown
-  packages: Record<string, string>
+  // A package without a name writes a package.json without the field.
+  packages: Record<string, string | undefined>
 }
 
 type FakeEnvironment = {

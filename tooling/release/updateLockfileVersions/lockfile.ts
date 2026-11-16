@@ -17,9 +17,8 @@ const ENTRY = /^ {4}(?<name>"(?:[^"\\]|\\.)*"): \{$/u
 const ENTRY_END = '    },'
 const VERSION =
   /^ {6}"version": "(?<version>\d+\.\d+\.\d+(?:-[\dA-Za-z.-]+)?(?:\+[\dA-Za-z.-]+)?)",$/u
-// WHY: with invalid bytes, two different files decode to the same text, and
-// the text is what the lines are compared by. The BOM stays in the text, so a
-// generated lock that adds one differs on its first line.
+// WHY: a decoder that replaces invalid bytes, or drops a BOM, would check and
+// write a text that is not the file the other job generated.
 const UTF8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
 
 function readEntryName(line: string): string | undefined {

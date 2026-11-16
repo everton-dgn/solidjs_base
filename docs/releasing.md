@@ -137,6 +137,18 @@ the conclusion of the whole `Release` run
 ([Merging a pull request](#merging-a-pull-request), step 5): a failure here
 would stop the command before it checks npm.
 
+The two jobs keep Bun, which resolves the dependencies, away from any token that
+can write. They do not keep the App token from the code of the branch: the
+command comes from the pushed commit and runs in the job that creates the token
+afterwards, and an earlier step can write to `$GITHUB_ENV`, `$GITHUB_PATH` or
+the Git config. Whoever can push to a `release-please--` branch controls the
+workflow that runs on it, and `RELEASE_APP_PRIVATE_KEY` is a repository secret
+that a workflow of any branch of this repository can read
+([ADR 0035](ADRs/0035-release-pull-request-app.md)). Narrowing that is a setting
+of the repository owner, such as an environment with deployment branch rules for
+the secret together with a ruleset on the branches that environment admits. This
+workflow does not set it.
+
 The release branch changes `bun.lock`, so a pull request merged into `main`
 after it that changes `bun.lock` too, such as a dependency update, stops the
 update of a release branch that is behind

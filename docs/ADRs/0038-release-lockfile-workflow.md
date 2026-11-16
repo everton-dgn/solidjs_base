@@ -53,8 +53,14 @@ The options were:
   cancelled by the lockfile commit, and two runs of the workflow, the second one
   without a difference.
 - A second workflow reads the secret of the App. Its token can write contents
-  only and exists only after the command ran, and the job that runs `vp install`
-  holds no token that can write.
+  only, and the job that runs `vp install` holds no token that can write.
+  Creating the token after the command does not isolate it from the code of the
+  branch, since an earlier step can write to `$GITHUB_ENV`, `$GITHUB_PATH` or
+  the Git config. Whoever can push to a `release-please--` branch controls this
+  workflow, and the key is a repository secret that a workflow of any branch can
+  read, as [ADR 0035](0035-release-pull-request-app.md) records. Restricting it
+  is a setting of the owner, such as an environment with deployment branch rules
+  and a ruleset on the branches it admits, which this workflow does not set.
 - The head of the release pull request changes once more after each rewrite, so
   the review waits for the run of the workflow
   ([Releasing](../releasing.md#before-merging-a-release-pull-request)).

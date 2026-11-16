@@ -170,14 +170,15 @@ and its Vite alias.
 | Application                                                                                                 | Direct declarations before | Now | Fewer |
 | ----------------------------------------------------------------------------------------------------------- | -------------------------: | --: | ----: |
 | [Boilerplate copy](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/package.json)     |                         28 |  14 |    14 |
-| [Client-only](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/client-only/package.json) |                         16 |   5 |    11 |
+| [Client-only](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/client-only/package.json) |                         16 |   6 |    10 |
 | [SSR plain](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/ssr-plain/package.json)     |                         17 |   5 |    12 |
 | [SSR i18n](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/ssr-i18n/package.json)       |                         19 |   7 |    12 |
 | [Lint consumer](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/consumer/package.json)       |                          6 |   3 |     3 |
 
 Counts combine `dependencies` and `devDependencies`, without overrides or
 transitive packages. The fixture counts leave out the two package tarballs that
-the installed test harness adds.
+the installed test harness adds. The client-only fixture now declares an Iconify
+collection, which the count before did not have.
 
 Fewer declarations do not mean a smaller install. The tooling also installs the
 tools of features you may not use: in the
@@ -231,10 +232,10 @@ and Nitro modules, `tasks` adds or replaces a `vp run` task, `routeRules`,
 over the result.
 
 The preset also defines the `vp run` tasks of the boilerplate layout:
-`i18n-generate`, `lint-css`, `dead-code-project`, `lint-project`,
-`check-project`, `typecheck-node` and `test-tooling`. The `knip`, `tsc`,
-`playwright`, `lefthook` and `commitlint` tasks run the package-owned binaries,
-including with an isolated installation. See
+`i18n-generate`, `icons-generate`, `lint-css`, `dead-code-project`,
+`lint-project`, `check-project`, `typecheck-node` and `test-tooling`. The
+`knip`, `tsc`, `playwright`, `lefthook` and `commitlint` tasks run the
+package-owned binaries, including with an isolated installation. See
 [all options and extension points](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md)
 and the
 [known limits](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits).

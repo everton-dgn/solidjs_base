@@ -171,7 +171,8 @@ The entries are `App`, `Document`, `entry-server`, `entry-client`, `router` and
 `middleware`. The classification starts from the root of `src`: primitives
 colocated inside a component stay in the layer of that component. Tests
 (`*.test.*`, `__tests__` and `src/tests`) can import the layers they check. The
-generated declaration `src/@types/routes.d.ts` stays excluded from the lint.
+generated declarations `src/@types/routes.d.ts` and `src/icon-collections.d.ts`
+stay excluded from the lint.
 
 In the diagnostics, `base` marks the folders of the first row, `entry` marks the
 entries and `source` the other modules of `src`.

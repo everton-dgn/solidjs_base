@@ -35,6 +35,7 @@ update.
 | `./tsconfig.app.json`    | The base plus packaged type references and the boilerplate `include`             |
 | `./vite`                 | `defineSolidApp(options)`, the whole `vite.config.ts` of an application          |
 | `./i18n-generate`        | Compiled catalog generator executed by the preset's `i18n-generate` task         |
+| `./icons-generate`       | Compiled writer of the icon declarations, executed by the `icons-generate` task  |
 | `./vitest`               | `solidTest(options)`, the `test` block of `vite.config.ts`                       |
 | `./playwright`           | `definePlaywrightConfig(options)`, the Playwright config                         |
 | `./vitest-setup/browser` | Setup file of the browser project, loaded by `./vitest`                          |
@@ -49,6 +50,7 @@ update.
 | `./commitlint`           | The commitlint config                                                            |
 | `./cli`                  | Command entry for packaged Knip, TypeScript, Playwright, Lefthook and commitlint |
 | `./app-env`              | Type references loaded by `tsconfig.app.json`                                    |
+| `./icon-modules`         | Declarations of the `icon:` imports, loaded by `./app-env`                       |
 | `./lefthook.yml`         | The Git hooks, extended from the application's `.lefthook.yml`                   |
 
 An application imports `./vite`, which brings `./lint`, `./fmt` and `./vitest`

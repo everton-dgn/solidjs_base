@@ -223,7 +223,9 @@ release. Add a tool name to select part of the graph. For example, run
   the lint exception restricted to the files that need that behavior.
 - Do not edit generated declarations to swap `interface` for `type`.
   `src/@types/routes.d.ts` belongs to the `filesystem-routing` generator and
-  stays excluded from the lint.
+  stays excluded from the lint. `src/icon-collections.d.ts` belongs to the icons
+  plugin and the `icons-generate` task, stays out of the lint and the formatter
+  and is not committed.
 
 ## Type location
 

@@ -30,6 +30,9 @@ otherwise.
   it publishes carries a provenance statement that links it to the commit and
   the workflow run that built it. The first version of each package is published
   by hand and has no provenance statement.
+- The release lockfile workflow, which commits the workspace versions of
+  `bun.lock` to the release pull request with a token of the release GitHub App
+  that can write contents only.
 
 `apps/boilerplate` is a test copy of
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs) and is

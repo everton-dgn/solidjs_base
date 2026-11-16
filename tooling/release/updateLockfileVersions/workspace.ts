@@ -41,8 +41,8 @@ export async function readWorkspaceVersion({
   if (manifest === undefined) {
     throw new Error(`the workspace ${name} has no ${MANIFEST}`)
   }
-  // WHY: a link inside the root can point to a package.json of another
-  // folder, whose version says nothing about this workspace.
+  // WHY: a link inside the root can lead to a package.json outside it, whose
+  // version says nothing about this workspace.
   if (!isInside({ root: await realpath(root), target: manifest })) {
     throw new Error(
       `the ${MANIFEST} of the workspace ${name} leads through a link to a file outside the root`

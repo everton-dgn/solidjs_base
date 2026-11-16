@@ -120,6 +120,68 @@ assets. See [application fonts](fonts.md) for descriptors, `FontLinks`,
 client-only HTML injection and migration. Without the option there is no font
 plugin or generated font output.
 
+### Icons
+
+The `icons` option maps each folder collection to a folder of SVG files, which
+resolves from `root`. The preset loads `@evertondgn/vite-plugin-solid-icons`
+with these folders and `aria-hidden="true"` on every icon, and the Iconify
+collections that `package.json` installs load by their name. The
+[plugin README](../../packages/vite-plugin-solid-icons/README.md) describes the
+imports, the names and what the build refuses in an SVG file. The plugin reads
+the installed collections from the `package.json` of the Vite root, the folder
+where Vite runs, and writes the declarations of the names there; it is `root`
+when Vite runs in the application folder, as `vp run` does.
+
+#### Migrating from `~icons/`
+
+Up to 0.7.0 the preset loaded `unplugin-icons`. An application that updates from
+it:
+
+- Replaces each `~icons/<collection>/<name>` import with
+  `icon:<collection>/<name>`. `icon:<collection>` also exports each icon by its
+  name, as in `import { Github } from 'icon:hugeicons'`.
+- Deletes its declaration of the `~icons/*` modules, such as
+  `src/@types/icons.d.ts`. `tsconfig.app.json` loads the declarations of the
+  `icon:` imports through `@evertondgn/solid-tooling/app-env`, so a
+  `tsconfig.json` with its own `types` keeps that entry. The types of the
+  plugin, such as `IconComponent`, come from
+  `@evertondgn/vite-plugin-solid-icons/types` without a dependency of the
+  application.
+- Adds `src/icon-collections.d.ts` to `.gitignore`. The dev server, the build
+  and the `icons-generate` task write the names of every collection there, and
+  `lint-project` and `check-project` run the task first. Run
+  `vp run icons-generate` before a `vp lint` or a `tsc` outside these tasks when
+  the application imports icons by name.
+- Keeps only `?raw` in an import, for the SVG markup as a string. The old plugin
+  turned the other keys of a query into attributes of the `<svg>`, as in
+  `?width=2em`; the build now stops on any other query, `?url` included. Pass
+  the attributes as props of the component, as in `<IconGithub width="2em" />`,
+  which go on the `<svg>` after its own. For the URL of a file of a folder
+  collection, import the file with the `?url` of Vite, as in
+  `import logoUrl from './assets/icons/logo.svg?url'`, or build a data URL from
+  `?raw`.
+- Names each collection with lowercase letters, digits and single hyphens, as in
+  `my-images`. Another name in `icons` stops the dev server, the build and
+  `icons-generate` with the list of the invalid names.
+- Spells the name of the file exactly, in its case: `icon:brand/logo-mark` loads
+  `logo-mark.svg` only. The old loader also tried `logoMark.svg`, `LogoMark.svg`
+  and `logo_mark.svg`; import such a file by its own name, as in
+  `icon:brand/LogoMark`.
+- Reviews the SVG files of its folders. The build stops on markup that runs code
+  or that a page reads as HTML, such as `<script>`, an `onload` attribute, a
+  `javascript:` URL or `<foreignObject>`, and on a file that is not well-formed
+  XML, where the old loader read the file as it was from its `<svg` on. A
+  symbolic link to an SVG file is not read. See
+  [what the plugin does with your SVG files](../../packages/vite-plugin-solid-icons/README.md#what-the-plugin-does-with-your-svg-files).
+- Keeps its folders relative to `root`, as before.
+- Installs each Iconify collection as `@iconify-json/<collection>`. An icon of
+  the whole `@iconify/json` package still loads by its path, but the
+  declarations of the names list only the `@iconify-json/*` packages, and the
+  Knip config ignores only them, where the Knip plugin of `unplugin-icons` that
+  0.7.0 turned on also ignored `@iconify/json`.
+- Declares `unplugin-icons` in its own `package.json` when it imports it, as in
+  its own `vite.config.ts`: the tooling no longer installs it.
+
 ### `extend`
 
 `extend` runs inside `lazyPlugins`: once for the application in build, dev and

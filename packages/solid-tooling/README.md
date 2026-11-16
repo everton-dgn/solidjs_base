@@ -448,7 +448,9 @@ option, become Solid components through
 with `aria-hidden` on every icon. Import an icon as `icon:<collection>/<name>`,
 or by its name from `icon:<collection>`. The `icons-generate` task writes the
 typed names to `src/icon-collections.d.ts` before the check and the lint; keep
-that generated file out of Git. The application does not declare the plugin.
+that generated file out of Git. The application does not declare the plugin. An
+application that imports `~icons/` follows
+[the migration from `~icons/`](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md#migrating-from-icons).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/fonts-dark.webp" />

@@ -193,6 +193,9 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
   node_modules path in settings.json, outside Knip's import graph.
 - `tooling/__tests__/patched-dependencies.test.ts` reads the root `package.json`
   and `bun.lock`.
+- `package.json` declares the `engines` and `devEngines` of the root, in place
+  of the Node line of the original. Nitro writes the runtime of the Vercel
+  function from `engines.node`; without it, the function runs on Bun.
 - `patches/` has no `@solidjs/web` patch: the installed `@solidjs/web` covers
   both cases of the original's patch
   ([SSR integrity](../apps/boilerplate/docs/server-errors/ssr-integrity.md#ssr-integrity-for-markdown)).

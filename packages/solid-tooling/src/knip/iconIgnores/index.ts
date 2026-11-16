@@ -3,12 +3,21 @@ import path from 'node:path'
 
 type ModuleSource = { file: string; source: string }
 
+type FoundImports = { hasIcons: boolean; hasPluginTypes: boolean }
+
 // Knip reads icon:<collection>/<name> as an import of a package named icon.
 const ICON_IMPORT = 'icon'
 // Knip reads a string with a regular expression character as a RegExp.
 const ICON_COLLECTION = '^@iconify-json/'
 const COLLECTION_SCOPE = '@iconify-json/'
+const PLUGIN = '@evertondgn/vite-plugin-solid-icons'
+const PLUGIN_TYPES = `${PLUGIN}/types`
 const SOURCES = '{src,tooling}/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'
+// WHY: the declarations that the plugin writes have the text of PLUGIN_TYPES
+// in each module they declare and grow with the installed collections, so the
+// text would send the largest file of src/ to the parser, which lists no import
+// inside a declared module. The preset ignores their unlisted import by file.
+const ICON_TYPES_FILE = path.normalize('src/icon-collections.d.ts')
 const ICON_PREFIX = 'icon:'
 // The text of an import, a re-export or a dynamic import of an icon module,
 // which a comment or a string can also have.
@@ -30,68 +39,87 @@ const DEPENDENCY_FIELDS = [
 // string has no import that uses the ignore, and the hint of the unused ignore
 // fails the run. The parser of vite-plus reads the files that the text points
 // at, and is loaded only for them.
-async function hasIconImport({ file, source }: ModuleSource): Promise<boolean> {
+async function readImports({
+  file,
+  source
+}: ModuleSource): Promise<FoundImports> {
   const { parse } = await import('vite-plus')
   const { module } = await parse(file, source)
-  return (
-    module.staticImports.some(({ moduleRequest }) =>
-      moduleRequest.value.startsWith(ICON_PREFIX)
-    ) ||
-    module.staticExports.some(({ entries }) =>
-      entries.some(({ moduleRequest }) =>
-        Boolean(moduleRequest?.value.startsWith(ICON_PREFIX))
+  const requests = [
+    ...module.staticImports.map(({ moduleRequest }) => moduleRequest.value),
+    ...module.staticExports.flatMap(({ entries }) =>
+      entries.flatMap(({ moduleRequest }) =>
+        moduleRequest ? [moduleRequest.value] : []
       )
-    ) ||
-    module.dynamicImports.some(({ moduleRequest }) =>
-      ICON_STRING.test(source.slice(moduleRequest.start, moduleRequest.end))
     )
-  )
+  ]
+  return {
+    hasIcons:
+      requests.some(request => request.startsWith(ICON_PREFIX)) ||
+      module.dynamicImports.some(({ moduleRequest }) =>
+        ICON_STRING.test(source.slice(moduleRequest.start, moduleRequest.end))
+      ),
+    hasPluginTypes: requests.includes(PLUGIN_TYPES)
+  }
 }
 
-async function importsIcons(root: string): Promise<boolean> {
+// The reads stop once both imports are found.
+async function findImports(root: string): Promise<FoundImports> {
+  const found: FoundImports = { hasIcons: false, hasPluginTypes: false }
   for await (const file of glob(SOURCES, { cwd: root })) {
+    if (file === ICON_TYPES_FILE) continue
     const source = await readFile(path.join(root, file), 'utf8')
-    if (
-      ICON_SPECIFIER.test(source) &&
-      (await hasIconImport({ file, source }))
-    ) {
-      return true
+    const isIconCandidate = !found.hasIcons && ICON_SPECIFIER.test(source)
+    const isTypesCandidate =
+      !found.hasPluginTypes && source.includes(PLUGIN_TYPES)
+    if (isIconCandidate || isTypesCandidate) {
+      const imports = await readImports({ file, source })
+      found.hasIcons ||= imports.hasIcons
+      found.hasPluginTypes ||= imports.hasPluginTypes
+      if (found.hasIcons && found.hasPluginTypes) return found
     }
   }
-  return false
+  return found
 }
 
-async function declaresCollection(root: string): Promise<boolean> {
+async function readDependencies(root: string): Promise<string[]> {
   let manifest: unknown
   try {
     manifest = JSON.parse(
       await readFile(path.join(root, 'package.json'), 'utf8')
     )
   } catch {
-    return false
+    return []
   }
-  if (manifest === null || typeof manifest !== 'object') return false
-  return DEPENDENCY_FIELDS.some(field => {
+  if (manifest === null || typeof manifest !== 'object') return []
+  return DEPENDENCY_FIELDS.flatMap(field => {
     const versions: unknown = Reflect.get(manifest, field)
-    return (
-      versions !== null &&
-      typeof versions === 'object' &&
-      Object.keys(versions).some(name => name.startsWith(COLLECTION_SCOPE))
-    )
+    return versions !== null && typeof versions === 'object'
+      ? Object.keys(versions)
+      : []
   })
 }
 
 // The icons plugin of the preset resolves the icon: imports and loads each
-// Iconify collection by its name, so Knip sees neither. WHY: an ignore that
-// matches nothing is a configuration hint, which fails the run, so each one
-// is added only when the application has what it ignores.
+// Iconify collection by its name, so Knip sees neither. The types entry of the
+// plugin comes from the icon-modules declarations of this package, so an
+// application imports it without the plugin, which Knip reports as unlisted.
+// WHY: an ignore that matches nothing is a configuration hint, which fails the
+// run, so each one is added only when the application has what it ignores; an
+// application that declares the plugin has no unlisted import to ignore.
 export async function iconIgnores(root: string): Promise<string[]> {
-  const [isImporting, hasCollection] = await Promise.all([
-    importsIcons(root),
-    declaresCollection(root)
+  const [imports, dependencies] = await Promise.all([
+    findImports(root),
+    readDependencies(root)
   ])
+  const hasCollection = dependencies.some(name =>
+    name.startsWith(COLLECTION_SCOPE)
+  )
+  const hasUnlistedTypes =
+    imports.hasPluginTypes && !dependencies.includes(PLUGIN)
   return [
-    ...(isImporting ? [ICON_IMPORT] : []),
-    ...(hasCollection ? [ICON_COLLECTION] : [])
+    ...(imports.hasIcons ? [ICON_IMPORT] : []),
+    ...(hasCollection ? [ICON_COLLECTION] : []),
+    ...(hasUnlistedTypes ? [PLUGIN] : [])
   ]
 }

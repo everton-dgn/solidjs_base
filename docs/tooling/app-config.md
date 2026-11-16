@@ -146,7 +146,7 @@ it:
   `tsconfig.json` with its own `types` keeps that entry. The types of the
   plugin, such as `IconComponent`, come from
   `@evertondgn/vite-plugin-solid-icons/types` without a dependency of the
-  application.
+  application, which the [Knip config](knip-and-css.md) accepts.
 - Adds `src/icon-collections.d.ts` to `.gitignore`. The dev server, the build
   and the `icons-generate` task write the names of every collection there, and
   `lint-project` and `check-project` run the task first. Run

@@ -40,9 +40,15 @@ template without `${}`, the two that Knip reads. Knip does not read a path that
 the code builds, as in `import('icon:brand/' + name)` or
 ``import(`icon:brand/${name}`)``, so it reports nothing for it and the config
 adds no ignore. For a name known at run time, map each name to its own import,
-as in `{ logo: () => import('icon:brand/logo') }`, which Knip reads. The config
-also ignores the unlisted import of `src/icon-collections.d.ts`, the
-declarations that the plugin writes. It lists:
+as in `{ logo: () => import('icon:brand/logo') }`, which Knip reads. When a file
+of `src/` or `tooling/` imports or re-exports
+`@evertondgn/vite-plugin-solid-icons/types` and `package.json` does not declare
+the plugin, the config ignores `@evertondgn/vite-plugin-solid-icons`: this
+package declares that entry, so the application types its icons without the
+plugin. The ignore covers the whole package, so Knip then reports no other
+import of the plugin in that application. The config also ignores the unlisted
+import of `src/icon-collections.d.ts`, the declarations that the plugin writes.
+It lists:
 
 - `src/entry-server.tsx`, `src/entry-client.tsx`, `src/middleware/index.ts`,
   `env.ts` and `paraglide/runtime.js` as production entries. The Solid plugin

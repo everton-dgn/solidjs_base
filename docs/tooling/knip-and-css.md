@@ -30,9 +30,13 @@ the package-owned `knip-bun` executable. The icons plugin of the preset resolves
 the `icon:` imports, which Knip reads as a package named `icon`, and loads each
 `@iconify-json/*` collection by its name, so the config ignores each of them
 when the application has it, without an application dependency on that plugin;
-an ignore that matched nothing would be a configuration hint. It also ignores
-the unlisted import of `src/icon-collections.d.ts`, the declarations that the
-plugin writes. It lists:
+an ignore that matched nothing would be a configuration hint. The config finds
+the `icon:` imports, re-exports and dynamic imports of `src/` and `tooling/`
+with the parser of `vite-plus`, so one in a comment or a string adds no ignore.
+An import in a file that no entry reaches still adds it: Knip reports that file
+as unused and the ignore as a configuration hint, and both go away when the file
+is used or removed. It also ignores the unlisted import of
+`src/icon-collections.d.ts`, the declarations that the plugin writes. It lists:
 
 - `src/entry-server.tsx`, `src/entry-client.tsx`, `src/middleware/index.ts`,
   `env.ts` and `paraglide/runtime.js` as production entries. The Solid plugin

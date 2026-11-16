@@ -1,14 +1,20 @@
 import { glob, readFile } from 'node:fs/promises'
 import path from 'node:path'
 
+type ModuleSource = { file: string; source: string }
+
 // Knip reads icon:<collection>/<name> as an import of a package named icon.
 const ICON_IMPORT = 'icon'
 // Knip reads a string with a regular expression character as a RegExp.
 const ICON_COLLECTION = '^@iconify-json/'
 const COLLECTION_SCOPE = '@iconify-json/'
 const SOURCES = '{src,tooling}/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'
-// An import, a re-export or a dynamic import of an icon module.
+const ICON_PREFIX = 'icon:'
+// The text of an import, a re-export or a dynamic import of an icon module,
+// which a comment or a string can also have.
 const ICON_SPECIFIER = /\b(?:from|import)\s*\(?\s*['"]icon:/u
+// The argument of a dynamic import, as the source spells it.
+const ICON_STRING = /^(?<quote>["'])icon:[^"']*\k<quote>$/u
 const DEPENDENCY_FIELDS = [
   'dependencies',
   'devDependencies',
@@ -16,9 +22,35 @@ const DEPENDENCY_FIELDS = [
   'peerDependencies'
 ]
 
+// WHY: Knip reads the imports with a parser, so an icon: in a comment or a
+// string has no import that uses the ignore, and the hint of the unused ignore
+// fails the run. The parser of vite-plus reads the files that the text points
+// at, and is loaded only for them.
+async function hasIconImport({ file, source }: ModuleSource): Promise<boolean> {
+  const { parse } = await import('vite-plus')
+  const { module } = await parse(file, source)
+  return (
+    module.staticImports.some(({ moduleRequest }) =>
+      moduleRequest.value.startsWith(ICON_PREFIX)
+    ) ||
+    module.staticExports.some(({ entries }) =>
+      entries.some(({ moduleRequest }) =>
+        Boolean(moduleRequest?.value.startsWith(ICON_PREFIX))
+      )
+    ) ||
+    module.dynamicImports.some(({ moduleRequest }) =>
+      ICON_STRING.test(source.slice(moduleRequest.start, moduleRequest.end))
+    )
+  )
+}
+
 async function importsIcons(root: string): Promise<boolean> {
   for await (const file of glob(SOURCES, { cwd: root })) {
-    if (ICON_SPECIFIER.test(await readFile(path.join(root, file), 'utf8'))) {
+    const source = await readFile(path.join(root, file), 'utf8')
+    if (
+      ICON_SPECIFIER.test(source) &&
+      (await hasIconImport({ file, source }))
+    ) {
       return true
     }
   }

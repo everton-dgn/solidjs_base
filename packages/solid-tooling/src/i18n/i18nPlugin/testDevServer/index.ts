@@ -1,9 +1,9 @@
 import { once } from 'node:events'
-import { watch } from 'node:fs'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { createServer as createHttpServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { platform } from 'node:process'
 import { mock, type TestContext } from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 
@@ -38,8 +38,14 @@ type ContainsOptions = { root: string; file: string; expected: RegExp }
 
 const RUNTIME_FILE = 'paraglide/runtime.js'
 const TIMEOUT_MS = 20_000
-// The fixture writes compiler inputs before scanning; macOS fs.watch
-// can report those writes after ready.
+// On macOS, fs.watch delivers directory events through fseventsd, which falls
+// tens of seconds behind on a loaded machine, and libuv drops pending events
+// each time it rebuilds its stream for a new directory. Polling reads stats.
+const SHOULD_POLL = platform === 'darwin'
+// Below the 100 ms catalog debounce, so both parts of a save land inside it.
+const WATCH_INTERVAL_MS = 50
+// The shutdown test emits compiler input events by hand; a watcher event on
+// these files would start the compilation that the test holds.
 const COMPILER_INPUTS = ['**/project.inlang/**', '**/.paraglide/**']
 
 function payloadType(payload: unknown): unknown {
@@ -134,13 +140,13 @@ export async function startServer({
     // the remaining directory scans and lose the first write.
     envDir: false,
     publicDir: false,
-    // fs.watch is the Chokidar backend on Linux CI. macOS defaults to FSEvents
-    // or polling, which change the event cadence.
+    // fs.watch is the Chokidar backend on Linux CI; macOS polls (SHOULD_POLL).
     server: {
       middlewareMode: true,
       watch: {
         useFsEvents: false,
-        usePolling: false,
+        usePolling: SHOULD_POLL,
+        interval: WATCH_INTERVAL_MS,
         ...(shouldIgnoreCompilerInputs ? { ignored: COMPILER_INPUTS } : {})
       }
     },
@@ -177,11 +183,6 @@ export async function startServer({
       cause: scanError
     })
   }
-  // On macOS, libuv recreates the FSEvents stream on its own thread for each
-  // watched directory, discarding earlier events. Ready does not wait for that
-  // thread. Closing a directory watch drains its queue so later directory
-  // events reach the new stream.
-  watch(root).close()
   const address = http.address()
   if (typeof address !== 'object' || address === null) {
     throw new Error('Missing test server address')

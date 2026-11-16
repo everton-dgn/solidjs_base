@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.8.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.7.0...solid-tooling@0.8.0) (2026-11-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* @evertondgn/solid-runtime and @evertondgn/vite-plugin-solid-icons require @solidjs/web 2.0.0-rc.23. Update solid-js and @solidjs/web to 2.0.0-rc.23 together, with the overrides of @solidjs/signals and @solidjs/compiler at the same version, and remove a patchedDependencies entry for @solidjs/web@2.0.0-rc.21: the new version ends a render whose default serializer fails synchronously before the first flush, and a render abandoned inside its first write no longer ends the Node process. The types of HydrationContext no longer declare serialize; write hydration values through getHydrationWriter of @solidjs/web.
+* **tooling:** @evertondgn/solid-tooling declares Node 26.13.1 or later in engines.node. Run the application, its scripts and its CI on Node 26.13.1 or a later version. A package manager that checks engines warns about, or refuses, an older Node.
+* **tooling:** @evertondgn/solid-tooling installs @types/node 26.6.6, so an application type-checks against the Node 26 API. Run the application on Node 26, or keep the types of its Node line with an `overrides` entry for `@types/node` in the root `package.json`.
+* @evertondgn/solid-runtime and @evertondgn/vite-plugin-solid-icons require @solidjs/web 2.0.0-rc.22. Update solid-js and @solidjs/web to 2.0.0-rc.22 together, with the overrides of @solidjs/signals and @solidjs/compiler at the same version, and remove a patchedDependencies entry for @solidjs/web@2.0.0-rc.21: the new version covers both of its cases. With skipLibCheck off, TypeScript reports TS2305 for heldRead in the types of @solidjs/web; the tsconfig of the tooling turns skipLibCheck on.
+* **tooling:** defineSolidApp loads @evertondgn/vite-plugin-solid-icons in place of unplugin-icons, which the tooling no longer installs. To migrate: replace each ~icons/<collection>/<name> import with icon:<collection>/<name>; the icons option, aria-hidden on every icon and the Iconify collections loaded by their name work as before, and icon:<collection> also exports each icon by name. Delete the declaration of the ~icons/* modules, such as src/@types/icons.d.ts: the app-env types of tsconfig.app.json declare the icon: imports, so an application with its own types list keeps @evertondgn/solid-tooling/app-env there. Add src/icon-collections.d.ts to .gitignore: the dev server, the build and the new icons-generate task write the typed names of every collection there, and lint-project and check-project run the task first. Run vp run icons-generate before a vp lint or tsc outside these tasks when the application imports icons by name. Do not add the plugin to the application manifest: the tooling owns it, as ADR 0027 records for the tools an application does not import, and app-env resolves the plugin types that the generated file imports, also with Bun's isolated linker.
+
+### Features
+
+* **tooling:** load the icons with @evertondgn/vite-plugin-solid-icons ([c0a36b1](https://github.com/everton-dgn/solidjs_base/commit/c0a36b1eebb8741ed63309ba747c364f0bd4f36b))
+
+
+### Bug Fixes
+
+* require Solid 2.0.0-rc.22 ([bfd1ad8](https://github.com/everton-dgn/solidjs_base/commit/bfd1ad8b92319924e9c2fdb7be3d21e3d4079a93))
+* require Solid 2.0.0-rc.23 ([4689ef0](https://github.com/everton-dgn/solidjs_base/commit/4689ef0418142078e13582956e72091b830b6001))
+* **tooling:** declare every type of the types entry of the icons plugin ([1ccaee4](https://github.com/everton-dgn/solidjs_base/commit/1ccaee4bbcc9ba6caa9e68154c173244d9666ada))
+* **tooling:** find an icon import written as a template in the Knip config ([67f0144](https://github.com/everton-dgn/solidjs_base/commit/67f0144d03296da13750d2ac83f3e88bdbc9534b))
+* **tooling:** find the icon imports of the Knip config with a parser ([be5eb84](https://github.com/everton-dgn/solidjs_base/commit/be5eb8417517dc75e526fd3fa0099f34d6812731))
+* **tooling:** ignore the icons plugin in Knip when the application imports its types entry ([2cba422](https://github.com/everton-dgn/solidjs_base/commit/2cba4229540db29ebea54c8aa37b33fd71028ce2))
+* **tooling:** install the Node 26 types ([5bbabee](https://github.com/everton-dgn/solidjs_base/commit/5bbabee85c9254af062769901fc040ad7fcd35bb))
+* **tooling:** require Node 26 ([5e23460](https://github.com/everton-dgn/solidjs_base/commit/5e2346068a16dd0ad0fb363d1eaad6cfe6c7d2cc))
+* **tooling:** resolve the icon folders from the root option ([c238e07](https://github.com/everton-dgn/solidjs_base/commit/c238e07af4235d544d1c7d3a4cd0c0353f2cdd27))
+* **tooling:** run icons-generate without a cache when a folder leaves the app ([a26570b](https://github.com/everton-dgn/solidjs_base/commit/a26570bc3332490f74ad05b2348d81263767dc98))
+* **tooling:** send every icon: string to the parser in the Knip config ([d341bd6](https://github.com/everton-dgn/solidjs_base/commit/d341bd6a51ac06aa5f8d19e0efb698b4a7e2c238))
+* **tooling:** update Playwright to 1.65.1 ([4ca55aa](https://github.com/everton-dgn/solidjs_base/commit/4ca55aaf2ae93df40787840d8cac915cbaca2f46))
+
 ## [0.7.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.6.0...solid-tooling@0.7.0) (2026-11-15)
 
 

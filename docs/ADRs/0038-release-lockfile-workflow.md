@@ -44,6 +44,14 @@ The options were:
   App that can write contents, commits as the App and pushes with a lease on the
   checked commit, so a branch that moved or was deleted is neither overwritten
   nor created again. It installs no dependency and runs neither `vp` nor `bun`.
+- `Commit the workspace versions` and the `Release pull request` job of
+  `release.yml`, the two jobs that read the key of the App, declare the
+  `release` environment with `deployment: false`. The environment admits only
+  `main` and the branches that start with `release-please--`. The owner adds a
+  ruleset that leaves creating, updating and deleting those branches to the App
+  and the admins, and then moves the key from the repository secrets to the
+  environment, once `main` declares it
+  ([One-time setup](../releasing.md#one-time-setup)).
 
 ## Consequences
 
@@ -59,10 +67,11 @@ The options were:
   Creating the token after the command does not isolate it from the code of the
   branch, since an earlier step can write to `$GITHUB_ENV`, `$GITHUB_PATH` or
   the Git config. Whoever can push to a `release-please--` branch controls this
-  workflow, and the key is a repository secret that a workflow of any branch can
-  read, as [ADR 0035](0035-release-pull-request-app.md) records. Restricting it
-  is a setting of the owner, such as an environment with deployment branch rules
-  and a ruleset on the branches it admits, which this workflow does not set.
+  workflow. After the owner steps, a workflow of another branch cannot read the
+  key, only the App and the admins can push to a release branch, and whoever can
+  merge into `main` still controls the workflows that read it. While the key is
+  also a repository secret, a workflow of any branch can read it, as
+  [ADR 0035](0035-release-pull-request-app.md) records.
 - The head of the release pull request changes once more after each rewrite, so
   the review waits for the run of the workflow
   ([Releasing](../releasing.md#before-merging-a-release-pull-request)).

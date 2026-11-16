@@ -33,6 +33,12 @@ otherwise.
 - The release lockfile workflow, which commits the workspace versions of
   `bun.lock` to the release pull request with a token of the release GitHub App
   that can write contents only.
+- The private key of the release GitHub App. The two jobs that read it declare
+  the `release` environment, which admits only `main` and the release branches.
+  With the owner steps of [One-time setup](docs/releasing.md#one-time-setup),
+  the key is a secret of that environment alone and a ruleset leaves the release
+  branches to the App and the admins, so a workflow of another branch that reads
+  the key, or a push to a release branch from anyone else, is a vulnerability.
 
 `apps/boilerplate` is a test copy of
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs) and is

@@ -1,6 +1,6 @@
 # 0035. A GitHub App opens the release pull request
 
-- Status: Accepted
+- Status: Accepted, amended by [0038](0038-release-lockfile-workflow.md)
 - Date: 2026-11-15
 
 ## Context

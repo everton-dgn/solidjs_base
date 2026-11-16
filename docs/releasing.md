@@ -145,12 +145,14 @@ can write. They do not keep the App token from the code of the branch: the
 command comes from the pushed commit and runs in the job that creates the token
 afterwards, and an earlier step can write to `$GITHUB_ENV`, `$GITHUB_PATH` or
 the Git config. Whoever can push to a `release-please--` branch controls the
-workflow that runs on it, and `RELEASE_APP_PRIVATE_KEY` is a repository secret
-that a workflow of any branch of this repository can read
-([ADR 0035](ADRs/0035-release-pull-request-app.md)). Narrowing that is a setting
-of the repository owner, such as an environment with deployment branch rules for
-the secret together with a ruleset on the branches that environment admits. This
-workflow does not set it.
+workflow that runs on it. `Commit the workspace versions` declares the `release`
+environment, which admits only `main` and the release branches. With the owner
+steps of [One-time setup](#one-time-setup), the key is a secret of that
+environment alone, so a workflow of another branch cannot read it, and a ruleset
+leaves the release branches to the App and the admins. While
+`RELEASE_APP_PRIVATE_KEY` is also a repository secret, a workflow of any branch
+of this repository can read it
+([ADR 0035](ADRs/0035-release-pull-request-app.md)).
 
 The release branch changes `bun.lock`, so a pull request merged into `main`
 after it that changes `bun.lock` too, such as a dependency update, stops the

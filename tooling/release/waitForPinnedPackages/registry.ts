@@ -1,4 +1,5 @@
 import { parseJson } from '../mergePullRequest/json.ts'
+import { TIMED_OUT_EXIT_CODE } from '../mergePullRequest/runner.ts'
 import type { RunCommand } from '../mergePullRequest/types.ts'
 import type { RegistryReading } from './types.ts'
 
@@ -49,6 +50,7 @@ export async function readRegistry({
     const isMissing = `${result.stdout}\n${result.stderr}`.includes('E404')
     return {
       isPublished: false,
+      isStopped: result.exitCode === TIMED_OUT_EXIT_CODE,
       detail: isMissing
         ? `${spec} is not on npm yet`
         : (firstLine(result.stderr) ??
@@ -64,13 +66,15 @@ export async function readRegistry({
   } catch (error) {
     return {
       isPublished: false,
+      isStopped: false,
       detail: error instanceof Error ? error.message : String(error)
     }
   }
   return versions.includes(version)
-    ? { isPublished: true, detail: undefined }
+    ? { isPublished: true, isStopped: false, detail: undefined }
     : {
         isPublished: false,
+        isStopped: false,
         detail: `${label} printed ${JSON.stringify(versions)}, not ${version}`
       }
 }

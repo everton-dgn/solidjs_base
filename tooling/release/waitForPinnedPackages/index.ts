@@ -8,7 +8,15 @@ import { readRegistry } from './registry.ts'
 import { readPackedManifest } from './tarball.ts'
 import type { PinnedPackage, RegistryReading, WaitRequest } from './types.ts'
 
-type Reading = { pinned: PinnedPackage; reading: RegistryReading }
+// detail: what the last read of the version found. answer: what npm answered
+// at the last read it finished.
+type Reading = {
+  pinned: PinnedPackage
+  detail: string
+  answer: string | undefined
+}
+
+type NextReading = { previous: Reading; reading: RegistryReading }
 
 type Timeout = { packed: string; missing: Reading[]; timeout: number }
 
@@ -16,12 +24,12 @@ function describePinned({ name, version }: PinnedPackage): string {
   return `${name}@${version}`
 }
 
+function withoutPeriod(text: string): string {
+  return text.replace(/\.$/u, '')
+}
+
 function describeMissing(missing: readonly Reading[]): string {
-  return missing
-    .map(({ pinned, reading }) =>
-      (reading.detail ?? describePinned(pinned)).replace(/\.$/u, '')
-    )
-    .join('; ')
+  return missing.map(({ detail }) => withoutPeriod(detail)).join('; ')
 }
 
 function describeTimeout({ packed, missing, timeout }: Timeout): string {
@@ -44,10 +52,22 @@ function uniqueVersions(pinned: readonly PinnedPackage[]): PinnedPackage[] {
 function notRead(pinned: PinnedPackage): Reading {
   return {
     pinned,
-    reading: {
-      isPublished: false,
-      detail: `${describePinned(pinned)} was not read before the time limit`
-    }
+    detail: `${describePinned(pinned)} was not read before the time limit`,
+    answer: undefined
+  }
+}
+
+// WHY: a read that the runner stopped, as at the time limit of the wait, has
+// no answer of npm, and its stop alone would hide what npm answered at the
+// read before it.
+function nextReading({ previous, reading }: NextReading): Reading {
+  const { pinned, answer } = previous
+  const detail = reading.detail ?? describePinned(pinned)
+  if (!reading.isStopped) return { pinned, detail, answer: detail }
+  return {
+    pinned,
+    detail: answer ? `${withoutPeriod(answer)}, then ${detail}` : detail,
+    answer
   }
 }
 
@@ -81,7 +101,8 @@ export async function waitForPinnedPackages({
     const missing: Reading[] = []
     // WHY: a read that starts at the time limit, or runs past it, would hold
     // the publish job after the wait it announced, once for each version.
-    for (const [index, { pinned: item }] of waiting.entries()) {
+    for (const [index, previous] of waiting.entries()) {
+      const item = previous.pinned
       const remaining = deadline - now()
       if (remaining <= 0) throw timedOut([...missing, ...waiting.slice(index)])
       const reading = await readRegistry({
@@ -93,7 +114,7 @@ export async function waitForPinnedPackages({
       if (reading.isPublished) {
         log(`${describePinned(item)} is on npm.`)
       } else {
-        missing.push({ pinned: item, reading })
+        missing.push(nextReading({ previous, reading }))
       }
     }
     if (missing.length === 0) return

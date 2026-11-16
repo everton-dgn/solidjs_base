@@ -31,5 +31,7 @@ export type WaitRequest = {
 
 export type RegistryReading = {
   isPublished: boolean
+  // The runner stopped npm at its time limit, so npm gave no answer.
+  isStopped: boolean
   detail: string | undefined
 }

@@ -3,6 +3,7 @@ import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
 
 export default defineSolidApp({
   root: import.meta.dirname,
+  icons: { scenario: './src/assets/icons' },
   seo: { sitemap: true },
   serverSetup: './src/infra/server/configureServerErrors/index.ts',
   securityHeaders: SECURITY_HEADERS,

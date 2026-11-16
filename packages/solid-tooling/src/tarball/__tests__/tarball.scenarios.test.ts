@@ -81,7 +81,7 @@ const PACKAGED_TOOLS = [
   'filesystem-routing',
   'knip',
   'nitro',
-  'unplugin-icons',
+  '@evertondgn/vite-plugin-solid-icons',
   '@commitlint/cli',
   'lefthook',
   'happy-dom',
@@ -95,7 +95,7 @@ const PACKAGED_TOOLS = [
 ]
 // Nitro and routing have runtime entries; their build adapters must stay out.
 const BUILD_TOOLS =
-  /\/node_modules\/(?:@evertondgn\/solid-tooling\/|@commitlint\/|@vitest\/|@testing-library\/|@playwright\/|@inlang\/sdk\/|(?:knip|typescript|happy-dom|playwright|playwright-core|lefthook|unplugin-icons|eslint-plugin-solid|stylelint|stylelint-use-nesting)\/|nitro\/dist\/(?:builder|vite|cli|presets\/[^/]+\/(?!runtime\/))|filesystem-routing\/dist\/(?:index|vite)|@solidjs\/vite-plugin\/dist\/esm\/index)/u
+  /\/node_modules\/(?:@evertondgn\/solid-tooling\/|@evertondgn\/vite-plugin-solid-icons\/|@commitlint\/|@vitest\/|@testing-library\/|@playwright\/|@inlang\/sdk\/|(?:knip|typescript|happy-dom|playwright|playwright-core|lefthook|eslint-plugin-solid|stylelint|stylelint-use-nesting)\/|nitro\/dist\/(?:builder|vite|cli|presets\/[^/]+\/(?!runtime\/))|filesystem-routing\/dist\/(?:index|vite)|@solidjs\/vite-plugin\/dist\/esm\/index)/u
 const configSchema = v.object({
   plugins: v.array(v.string()),
   tasks: v.array(v.string())
@@ -106,10 +106,11 @@ const routeSchema = v.object({
   headers: v.optional(headersSchema)
 })
 const publicationSchema = v.object({ routes: v.array(routeSchema) })
-const manifestSchema = v.looseObject({
-  dependencies: v.record(v.string(), v.string())
-})
 const versionsSchema = v.optional(v.record(v.string(), v.string()), {})
+const manifestSchema = v.looseObject({
+  dependencies: v.record(v.string(), v.string()),
+  overrides: versionsSchema
+})
 const pinnedSchema = v.looseObject({
   catalog: versionsSchema,
   overrides: versionsSchema,
@@ -120,6 +121,10 @@ const pinnedSchema = v.looseObject({
   packageManager: v.optional(v.string())
 })
 const MUTATION = env.SCENARIO_MUTATION
+const ICONS_PACKAGE = '@evertondgn/vite-plugin-solid-icons'
+const ICON_TYPES = 'src/icon-collections.d.ts'
+// The tooling depends on the icons plugin; the application does not declare it.
+const PACKED = ['solid-tooling', 'solid-runtime', 'vite-plugin-solid-icons']
 
 type Target = { app: string; scenario: string }
 type PreviewTarget = Target & { hasInvalidPort?: boolean }
@@ -146,8 +151,8 @@ async function removePackedDependency({
     manifestSchema,
     JSON.parse(readFileSync(file, 'utf8'))
   )
-  assert.ok(manifest.dependencies['unplugin-icons'])
-  delete manifest.dependencies['unplugin-icons']
+  assert.ok(manifest.dependencies['@evertondgn/vite-plugin-solid-icons'])
+  delete manifest.dependencies['@evertondgn/vite-plugin-solid-icons']
   writeFileSync(file, JSON.stringify(manifest))
   await run({
     deadline,
@@ -155,6 +160,53 @@ async function removePackedDependency({
     file: 'tar',
     args: ['-czf', archive, 'package']
   })
+}
+
+type PackedWorkspace = {
+  dependencies: Record<string, string>
+  overrides: Record<string, string>
+}
+
+// The packed tooling pins a version of the icons plugin that npm may not have
+// yet; the override installs the one of this tree.
+async function packWorkspace({
+  directory,
+  deadline
+}: {
+  directory: string
+  deadline: number
+}): Promise<PackedWorkspace> {
+  const packed: PackedWorkspace = { dependencies: {}, overrides: {} }
+  for (const name of PACKED) {
+    const destination = path.join(directory, name)
+    await run({
+      deadline,
+      cwd: path.join(ROOT, 'packages', name),
+      args: ['pm', 'pack', '--pack-destination', destination]
+    })
+    const tarball = readdirSync(destination).find(file => file.endsWith('.tgz'))
+    assert.ok(tarball)
+    const archive = path.join(destination, tarball)
+    await removePackedDependency({ archive, deadline, name })
+    const group =
+      `@evertondgn/${name}` === ICONS_PACKAGE ? 'overrides' : 'dependencies'
+    packed[group][`@evertondgn/${name}`] = archive
+  }
+  return packed
+}
+
+// The tests already write the icon declarations, so the file is removed and
+// the task has to write it again before lint and tsc.
+async function regenerateIconTypes({
+  app,
+  deadline
+}: {
+  app: string
+  deadline: number
+}): Promise<void> {
+  rmSync(path.join(app, ICON_TYPES))
+  await run({ deadline, cwd: app, args: ['run', 'icons-generate'] })
+  assert.ok(existsSync(path.join(app, ICON_TYPES)))
 }
 
 async function freePort(): Promise<number> {
@@ -345,6 +397,8 @@ function assertBuild({ app, scenario }: Target): void {
     )
   }
   assert.equal(hasServerEnv, scenario === 'ssr-plain')
+  assert.ok(config.tasks.includes('icons-generate'))
+  assert.ok(config.plugins.includes('vite-plugin-solid-icons'))
   if (scenario === 'ssr-i18n') {
     assert.ok(config.tasks.includes('i18n-generate'))
     assert.ok(config.plugins.includes('project:i18n-catalogs'))
@@ -572,25 +626,10 @@ for (const scenario of SCENARIOS) {
       const started = performance.now()
       const deadline = Date.now() + SCENARIO_TIMEOUT
       try {
-        const dependencies: Record<string, string> = {}
-        for (const name of ['solid-tooling', 'solid-runtime']) {
-          const destination = path.join(directory, name)
-          await run({
-            deadline,
-            cwd: path.join(ROOT, 'packages', name),
-            args: ['pm', 'pack', '--pack-destination', destination]
-          })
-          const tarball = readdirSync(destination).find(file =>
-            file.endsWith('.tgz')
-          )
-          assert.ok(tarball)
-          await removePackedDependency({
-            archive: path.join(destination, tarball),
-            deadline,
-            name
-          })
-          dependencies[`@evertondgn/${name}`] = path.join(destination, tarball)
-        }
+        const { dependencies, overrides } = await packWorkspace({
+          directory,
+          deadline
+        })
         const app = path.join(directory, 'app')
         prepareFontsScenario({ app, scenario, root: ROOT })
         prepareSeoScenario({
@@ -604,6 +643,7 @@ for (const scenario of SCENARIOS) {
           manifestSchema,
           JSON.parse(readFileSync(manifestPath, 'utf8'))
         )
+        manifest.overrides = { ...manifest.overrides, ...overrides }
         writeFileSync(
           manifestPath,
           JSON.stringify({
@@ -715,6 +755,14 @@ for (const scenario of SCENARIOS) {
           dependencies: manifest.dependencies,
           run
         })
+        // The tests load the plugins of the preset first, so the
+        // missing-dependency probe fails there.
+        await run({
+          deadline,
+          cwd: app,
+          args: ['test', 'run', '--project', 'node', '--project', 'dom']
+        })
+        await regenerateIconTypes({ app, deadline })
         await run({
           deadline,
           cwd: app,
@@ -724,11 +772,6 @@ for (const scenario of SCENARIOS) {
           deadline,
           cwd: app,
           args: ['run', 'tsc', '--noEmit', ...envChecks.typecheckFlags]
-        })
-        await run({
-          deadline,
-          cwd: app,
-          args: ['test', 'run', '--project', 'node', '--project', 'dom']
         })
         instrument({ app, mutation: MUTATION, root: ROOT })
         if (MUTATION === 'request-step') {

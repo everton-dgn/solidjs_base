@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import type { RunTask, SolidAppOptions } from './types.ts'
@@ -5,13 +6,19 @@ import type { RunTask, SolidAppOptions } from './types.ts'
 type Task = Exclude<RunTask, string | string[]>
 type TaskCacheConfig = Exclude<Task['cache'], boolean | undefined>
 type TaskInput = NonNullable<TaskCacheConfig['input']>[number]
-type TaskOptions = Pick<SolidAppOptions, 'workspace'> & {
+type TaskOptions = Pick<SolidAppOptions, 'workspace' | 'root' | 'icons'> & {
   isCi: boolean
   hasI18n: boolean
 }
 
 const TOOLING_CI_TEST_WORKERS = 3
 const TOOL_NAMES = ['knip', 'tsc', 'playwright', 'lefthook', 'commitlint']
+// The default typesFile of the icons plugin, which the preset keeps.
+const ICON_TYPES_FILE = 'src/icon-collections.d.ts'
+
+function quote(value: string): string {
+  return `'${value.replaceAll("'", String.raw`'\''`)}'`
+}
 
 function toolCommand(name: string): string {
   const cli = fileURLToPath(new URL('cli.mjs', import.meta.url))
@@ -20,6 +27,17 @@ function toolCommand(name: string): string {
 
 function fromWorkspace(pattern: string): TaskInput {
   return { pattern, base: 'workspace' }
+}
+
+// The SVG files of each folder collection inside the application, so a new
+// file changes the declarations. The automatic tracking covers the reads.
+function iconFolderInputs(icons: SolidAppOptions['icons']): string[] {
+  return Object.values(icons ?? {}).flatMap(folder => {
+    const relative = path.posix.normalize(folder.replaceAll('\\', '/'))
+    if (path.posix.isAbsolute(relative) || relative.startsWith('..')) return []
+    const base = relative.replace(/\/+$/u, '')
+    return [base === '.' ? '*.svg' : `${base}/*.svg`]
+  })
 }
 
 // In a monorepo, bun.lock, bunfig.toml and the build of the shared packages sit
@@ -31,6 +49,8 @@ function installInputs({ workspace }: Pick<TaskOptions, 'workspace'>) {
 
 export function createTasks({
   workspace,
+  root,
+  icons,
   isCi,
   hasI18n
 }: TaskOptions): Record<string, Task> {
@@ -78,6 +98,21 @@ export function createTasks({
         }
       }
     }),
+    // Writes the declarations of the icon names that the plugin writes in the
+    // dev server and the build, for the type check that runs before them.
+    'icons-generate': {
+      command: `node ${quote(fileURLToPath(new URL('icons-generate.mjs', import.meta.url)))} ${quote(JSON.stringify({ root, collections: icons ?? {} }))}`,
+      ...dependsOn,
+      cache: {
+        input: [
+          { auto: true },
+          ...iconFolderInputs(icons),
+          'package.json',
+          ...install
+        ],
+        output: [ICON_TYPES_FILE]
+      }
+    },
     // The explicit inputs keep the cache of the CSS lint independent of how
     // each operating system tracks the reads of the runtime.
     'lint-css': {
@@ -116,14 +151,14 @@ export function createTasks({
     },
     'lint-project': {
       command: 'vp lint',
-      dependsOn: ['lint-css'],
+      dependsOn: ['lint-css', 'icons-generate'],
       cache: { env: ['NODE_ENV'], input: projectCheckInputs }
     },
     // In a monorepo, vp check uses the lint and fmt blocks of the root; vp fmt
     // and vp lint read the config of the application folder.
     'check-project': {
       command: 'vp fmt --check && vp lint',
-      dependsOn: ['lint-css'],
+      dependsOn: ['lint-css', 'icons-generate'],
       cache: { env: ['NODE_ENV'], input: projectCheckInputs }
     },
     // The application types come from vp check, with typeCheck in lint.

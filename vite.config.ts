@@ -80,6 +80,7 @@ export default defineConfig({
           'packages/solid-tooling/app-env.d.ts',
           'packages/solid-tooling/node-env.d.ts',
           'packages/solid-tooling/virtual-modules.d.ts',
+          'packages/solid-tooling/icon-modules.d.ts',
           'packages/vite-plugin-solid-icons/icon-modules.d.ts'
         ],
         rules: { 'import/unambiguous': 'off' }

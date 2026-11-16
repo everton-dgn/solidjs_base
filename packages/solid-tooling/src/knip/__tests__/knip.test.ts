@@ -38,7 +38,6 @@ const summarySchema = v.object({
   entry: strings,
   project: strings,
   'filesystem-routing': v.literal(false),
-  'unplugin-icons': v.literal(true),
   ignoreBinaries: v.optional(strings),
   ignoreDependencies: v.optional(strings),
   ignoreIssues: v.record(v.string(), strings),
@@ -120,12 +119,38 @@ it('leaves out the defaults the application does not have', async context => {
   assert.equal(config.exclude, undefined)
 })
 
-it('ignores unlisted dependencies only in the config file', async context => {
+it('ignores unlisted dependencies only in the config file and the icon declarations', async context => {
   const root = await createAppFixture({ context, files: BARE_APP })
   const config = await readConfig({ root })
-  assert.deepEqual(config.ignoreIssues, { 'tooling/knip.ts': ['unlisted'] })
+  assert.deepEqual(config.ignoreIssues, {
+    'tooling/knip.ts': ['unlisted'],
+    'src/icon-collections.d.ts': ['unlisted']
+  })
   const moved = await readConfig({ root, options: { configFile: 'knip.ts' } })
-  assert.deepEqual(moved.ignoreIssues, { 'knip.ts': ['unlisted'] })
+  assert.deepEqual(moved.ignoreIssues, {
+    'knip.ts': ['unlisted'],
+    'src/icon-collections.d.ts': ['unlisted']
+  })
+})
+
+it('ignores the icon imports and the Iconify collections of an application', async context => {
+  const root = await createAppFixture({
+    context,
+    files: {
+      'package.json': JSON.stringify({
+        devDependencies: { '@iconify-json/hugeicons': '*' }
+      }),
+      'src/routes/index.tsx': `import IconGithub from 'icon:hugeicons/github'\n${PAGE}`
+    }
+  })
+  const config = await readConfig({ root })
+  assert.deepEqual(config.ignoreDependencies, [
+    '@vitest/coverage-v8',
+    'happy-dom',
+    '@testing-library/jest-dom',
+    'icon',
+    '^@iconify-json/'
+  ])
 })
 
 it('keeps application-owned test dependencies visible to Knip', async context => {
@@ -165,7 +190,8 @@ it('adds the application settings without repeating entries', async context => {
   ])
   assert.deepEqual(config.ignoreIssues, {
     'tooling/knip.ts': ['exports', 'unlisted'],
-    'src/a.test.ts': ['unlisted']
+    'src/a.test.ts': ['unlisted'],
+    'src/icon-collections.d.ts': ['unlisted']
   })
   assert.deepEqual(config.exclude, ['catalogReferences'])
 })

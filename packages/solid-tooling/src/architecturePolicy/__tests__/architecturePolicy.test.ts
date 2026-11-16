@@ -61,7 +61,7 @@ test('the policy tells allowed dependencies from layer inversions', () => {
       },
       {
         filename: 'src/components/atoms/Button/index.tsx',
-        code: 'import S from "./styles.module.css"; import icon from "~icons/menu"; import { createSignal } from "solid-js"; export const value = 1'
+        code: 'import S from "./styles.module.css"; import icon from "icon:hugeicons/menu"; import { createSignal } from "solid-js"; export const value = 1'
       },
       {
         filename: 'src/router.ts',

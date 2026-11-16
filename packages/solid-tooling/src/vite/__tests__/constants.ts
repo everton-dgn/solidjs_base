@@ -7,6 +7,7 @@ export const TASKS = [
   'lefthook',
   'commitlint',
   'i18n-generate',
+  'icons-generate',
   'lint-css',
   'dead-code-project',
   'lint-project',

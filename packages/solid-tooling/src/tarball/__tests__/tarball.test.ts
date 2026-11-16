@@ -20,7 +20,9 @@ import * as v from 'valibot'
 type Command = { file: string; args: string[]; cwd: string }
 type Expected = { filename: string; code: string }
 type Diagnostic = v.InferOutput<typeof diagnosticSchema>
-type Installation = { app: string; tarball: string }
+type Installation = { app: string; tarballs: Tarballs }
+type Tarballs = { tooling: string; icons: string }
+type PackRequest = { directory: string; packageRoot: string }
 type ErrorQuery = { diagnostics: Diagnostic[]; expected: Expected }
 type CommitMessage = { app: string; message: string }
 
@@ -29,6 +31,8 @@ const WORKSPACE_ROOT = path.resolve(PACKAGE_ROOT, '../..')
 const FIXTURE = path.join(WORKSPACE_ROOT, 'fixtures/consumer')
 const VP = path.join(WORKSPACE_ROOT, 'node_modules/.bin/vp')
 const PACKAGE_NAME = '@evertondgn/solid-tooling'
+const ICONS_NAME = '@evertondgn/vite-plugin-solid-icons'
+const ICONS_ROOT = path.join(WORKSPACE_ROOT, 'packages/vite-plugin-solid-icons')
 const COMMAND_TIMEOUT = 120_000
 // These protocols only resolve inside the workspace; in a published package
 // the application install would fail.
@@ -59,6 +63,7 @@ const SHARED_HOOKS = ['commit-msg', 'pre-commit', 'pre-push']
 const versionsSchema = v.optional(v.record(v.string(), v.string()), {})
 const manifestSchema = v.object({
   dependencies: versionsSchema,
+  overrides: versionsSchema,
   devDependencies: versionsSchema,
   peerDependencies: versionsSchema,
   catalog: versionsSchema,
@@ -98,16 +103,25 @@ function readManifest(source: string): v.InferOutput<typeof manifestSchema> {
   return v.parse(manifestSchema, JSON.parse(source))
 }
 
-function pack(directory: string): string {
-  const destination = path.join(directory, 'pack')
+function packOne({ directory, packageRoot }: PackRequest): string {
+  const destination = path.join(directory, path.basename(packageRoot))
   run({
     file: VP,
     args: ['pm', 'pack', '--pack-destination', destination],
-    cwd: PACKAGE_ROOT
+    cwd: packageRoot
   })
   const tarball = readdirSync(destination).find(name => name.endsWith('.tgz'))
   assert.ok(tarball, 'vp pm pack did not produce the tarball.')
   return path.join(destination, tarball)
+}
+
+// The packed tooling pins a version of the icons plugin that npm may not have
+// yet, so the application installs the one of this tree.
+function pack(directory: string): Tarballs {
+  return {
+    tooling: packOne({ directory, packageRoot: PACKAGE_ROOT }),
+    icons: packOne({ directory, packageRoot: ICONS_ROOT })
+  }
 }
 
 function assertInstallable(tarball: string): void {
@@ -131,7 +145,7 @@ function assertInstallable(tarball: string): void {
   }
 }
 
-function install({ app, tarball }: Installation): void {
+function install({ app, tarballs }: Installation): void {
   cpSync(FIXTURE, app, {
     recursive: true,
     filter: source => !source.split(path.sep).includes('node_modules')
@@ -139,12 +153,13 @@ function install({ app, tarball }: Installation): void {
   const manifestPath = path.join(app, 'package.json')
   const manifest: unknown = JSON.parse(readFileSync(manifestPath, 'utf8'))
   assert.ok(manifest !== null && typeof manifest === 'object')
-  const { devDependencies } = readManifest(JSON.stringify(manifest))
+  const { devDependencies, overrides } = readManifest(JSON.stringify(manifest))
   writeFileSync(
     manifestPath,
     JSON.stringify({
       ...manifest,
-      devDependencies: { ...devDependencies, [PACKAGE_NAME]: tarball }
+      devDependencies: { ...devDependencies, [PACKAGE_NAME]: tarballs.tooling },
+      overrides: { ...overrides, [ICONS_NAME]: tarballs.icons }
     })
   )
   run({ file: VP, args: ['install'], cwd: app })
@@ -260,10 +275,10 @@ test('the application installs the packed package and lint applies the plugins',
   const directory = mkdtempSync(path.join(tmpdir(), 'solid-tooling-consumer-'))
   // Sandbox created by this test: removing it directly is the right cleanup.
   context.after(() => rmSync(directory, { recursive: true, force: true }))
-  const tarball = pack(directory)
-  assertInstallable(tarball)
+  const tarballs = pack(directory)
+  assertInstallable(tarballs.tooling)
   const app = path.join(directory, 'app')
-  install({ app, tarball })
+  install({ app, tarballs })
 
   const diagnostics = lint(app)
 
@@ -287,7 +302,7 @@ test('the application extends the shared hooks and the commitlint config', conte
   // Sandbox created by this test: removing it directly is the right cleanup.
   context.after(() => rmSync(directory, { recursive: true, force: true }))
   const app = path.join(directory, 'app')
-  install({ app, tarball: pack(directory) })
+  install({ app, tarballs: pack(directory) })
   // Lefthook finds its config from the root of a Git repository.
   run({ file: 'git', args: ['init', '--quiet'], cwd: app })
   const installed = lefthook(app, ['install'])

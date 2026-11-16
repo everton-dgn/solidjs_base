@@ -3,6 +3,7 @@ import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
 
 export default defineSolidApp({
   root: import.meta.dirname,
+  icons: { scenario: './src/assets/icons' },
   fonts: [
     {
       family: 'Scenario Font',

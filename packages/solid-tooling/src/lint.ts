@@ -52,6 +52,7 @@ export const lint: NonNullable<UserConfig['lint']> = {
     'public/**',
     'src/assets/**',
     'src/@types/routes.d.ts',
+    'src/icon-collections.d.ts',
     '.agents/**',
     '.claude/**'
   ],
@@ -122,12 +123,6 @@ export const lint: NonNullable<UserConfig['lint']> = {
         'vite.config.ts'
       ],
       rules: { 'eslint/max-params': 'off' }
-    },
-    {
-      files: ['src/@types/icons.d.ts'],
-      rules: {
-        'import/unambiguous': 'off'
-      }
     },
     {
       files: ['src/**/*.tsx'],

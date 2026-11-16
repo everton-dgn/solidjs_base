@@ -26,9 +26,13 @@ export default defineKnipConfig({
 ```
 
 Run `vp run knip --config tooling/knip.ts`, then add `--strict`. The task uses
-the package-owned `knip-bun` executable. The config enables the `unplugin-icons`
-plugin explicitly, so virtual icon imports and icon collections remain
-recognized without an application dependency on that plugin. It lists:
+the package-owned `knip-bun` executable. The icons plugin of the preset resolves
+the `icon:` imports, which Knip reads as a package named `icon`, and loads each
+`@iconify-json/*` collection by its name, so the config ignores each of them
+when the application has it, without an application dependency on that plugin;
+an ignore that matched nothing would be a configuration hint. It also ignores
+the unlisted import of `src/icon-collections.d.ts`, the declarations that the
+plugin writes. It lists:
 
 - `src/entry-server.tsx`, `src/entry-client.tsx`, `src/middleware/index.ts`,
   `env.ts` and `paraglide/runtime.js` as production entries. The Solid plugin

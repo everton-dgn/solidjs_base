@@ -4,6 +4,10 @@
 
 ## Requirements
 
+Applications run on Node 26 or a later line. The tooling, the runtime and the
+icons plugin declare it in `engines.node`, from the lowest version they are
+tested with.
+
 The package installs the tools it uses at the versions it tests. Applications
 keep direct dependencies for imports in their own source and for Vite+:
 

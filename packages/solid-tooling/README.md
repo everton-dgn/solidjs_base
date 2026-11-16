@@ -54,6 +54,9 @@ the full application config when you are ready.
 
 ## Requirements
 
+Run the application on Node 26 or a later line, from the version that
+`engines.node` in the package's `package.json` names.
+
 Install the exact Vite+ version listed in the package's `peerDependencies`. The
 package supplies its build, test, type-check and hook tools. Applications keep
 their own direct imports and the Vite+ overrides; see the

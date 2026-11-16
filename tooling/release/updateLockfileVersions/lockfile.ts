@@ -15,6 +15,8 @@ const WORKSPACES = '  "workspaces": {'
 const SECTION_END = '  },'
 const ENTRY = /^ {4}(?<name>"(?:[^"\\]|\\.)*"): \{$/u
 const ENTRY_END = '    },'
+// WHY: the version is compared with the package.json as the lock writes it,
+// without decoding JSON escapes, which the characters of a version never need.
 const VERSION =
   /^ {6}"version": "(?<version>\d+\.\d+\.\d+(?:-[\dA-Za-z.-]+)?(?:\+[\dA-Za-z.-]+)?)",$/u
 // WHY: a decoder that replaces invalid bytes, or drops a BOM, would check and

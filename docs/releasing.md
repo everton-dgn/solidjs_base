@@ -19,7 +19,9 @@ versions from Conventional Commits. It runs only in CI, from
 4. Merging that pull request creates one tag for each package, such as
    `solid-tooling@0.7.0`, `solid-runtime@0.7.0` and
    `vite-plugin-solid-icons@0.7.0`, and their GitHub Releases. The workflow then
-   validates the workspace, packs each package and publishes it.
+   validates the workspace, packs each package and publishes it once the
+   packages of this repository it pins are on npm
+   ([The order of the publication](#the-order-of-the-publication)).
 
 The workflow runs release-please in two jobs. `Tags and GitHub Releases` uses
 the workflow's `GITHUB_TOKEN` and only creates the tags and GitHub Releases of a
@@ -50,6 +52,38 @@ the build provenance to the version.
 
 The breaking change marker wins over the type: a `chore!` commit raises the
 version too. From 1.0.0 on, a breaking change raises the major version.
+
+## The order of the publication
+
+The publish job runs once for each released package, at the same time and in no
+order. `vp pm pack` writes the version of this release in place of
+`workspace:*`, so the tooling pins the icons plugin of the same version, and an
+installation of a tooling published before that version fails until npm has it.
+
+Between `Pack` and `Publish to npm`, each job runs
+`tooling/release/wait-for-pinned-packages.ts` on its tarball. The command reads
+the `package.json` inside the tarball and, for each package of this repository
+in `dependencies`, `optionalDependencies` or `peerDependencies`, waits until npm
+has the pinned version. The packages of this repository are those the
+`workspaces` of the root `package.json` list, so a new package needs no change
+to the command. `devDependencies` are left out, because an installation does not
+read them.
+
+- A package that pins none of them, such as the runtime, goes on at once.
+- The command reads the registry every 15 seconds, for up to 10 minutes, with
+  `npm view --prefer-online`, so npm asks the registry each time instead of its
+  local cache. It needs no token or permission. A read that fails, such as on a
+  network error, counts as a version not on npm yet. The limit fits with the
+  validation in the `timeout-minutes` of the job.
+- At the limit, the job fails before `npm publish`, and its log names the
+  version that is missing
+  ([When the publish job fails](#when-the-publish-job-fails)).
+- A pin that is not an exact version, such as a range or a `workspace:` that
+  another packer left, fails at once.
+- Two packages that pin each other would wait for each other until the limit, so
+  keep the dependencies between the packages one way.
+
+`vp run test:release` runs the tests of the command.
 
 ## Merging a pull request
 
@@ -302,6 +336,13 @@ only when a release is ready:
 
 If the trusted publisher expires, delete it and create another one.
 
+The trusted publisher has to exist before the merge. Without it, the publish job
+of the package fails at `npm publish`, and each package that pins it, as the
+tooling pins the icons plugin, fails at the wait without publishing
+([The order of the publication](#the-order-of-the-publication)). The other
+packages are published, so the release stays in part off npm until
+[the failed jobs run again](#when-the-publish-job-fails).
+
 ## When the release pull request has a conflict
 
 A pull request merged after release-please opened the release pull request can
@@ -424,6 +465,18 @@ the repository does not reach it. What to do depends on where the cause is:
   publish the tag, because it holds code that did not pass. The fix ships as the
   next version, and the failed version is never published.
 
+A job that stopped at the wait
+([The order of the publication](#the-order-of-the-publication)) published
+nothing. Its log ends with `did not appear on npm within` and the version that
+is missing: the job of that package failed in the same run, or had not published
+it at the limit. The usual cause is a trusted publisher missing on npm, as at
+the first automated release of the icons plugin, whose job fails at
+`npm publish` while the tooling job fails at the wait. Create the trusted
+publisher with the values in [One-time setup](#one-time-setup), then choose
+"Re-run failed jobs": both jobs run again, and the tooling job waits again until
+npm has the icons plugin. When the other job only finished late, its version is
+on npm by now, so re-run alone the job that stopped at the wait.
+
 ## Publishing a failed version again
 
 The publish job builds the commit that started the workflow run, not the commit
@@ -500,6 +553,10 @@ Replace `0.1.0` with the version in the package `package.json`.
 - `vp pm pack` replaces `catalog:` and `workspace:` with real versions. Running
   `npm publish` in the package folder does not: the published manifest keeps the
   `catalog:` entries.
+- Publish a package after the packages of this repository that it pins, such as
+  the icons plugin before the tooling. Before `npm publish`, the command of the
+  workflow checks the tarball:
+  `node tooling/release/wait-for-pinned-packages.ts <tarball>`.
 - The npm account needs two-factor authentication. `npm publish` prints a link
   and waits for the confirmation in the browser, so run it in an interactive
   terminal. The link is valid for five minutes.

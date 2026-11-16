@@ -97,9 +97,13 @@ jobs:
             echo 'changed=true' >> "$GITHUB_OUTPUT"
           fi
 
-      # WHY: the token is created after the command, so no code of the branch
-      # runs while the job holds it, and only when there is a commit to push.
-      # It can write contents and nothing else.
+      # WHY: the token is created only when there is a commit to push, and it
+      # can write contents and nothing else. Creating it after the command does
+      # not keep it from the code of the branch: an earlier step can write to
+      # $GITHUB_ENV, $GITHUB_PATH or the Git config. The split into two jobs
+      # keeps Bun away from any token that can write; whoever can push to the
+      # branch controls this workflow, and the App key is a repository secret
+      # (docs/releasing.md#the-lockfile-of-the-release-pull-request).
       - name: Create the App token
         id: app-token
         if: steps.check.outputs.changed == 'true'

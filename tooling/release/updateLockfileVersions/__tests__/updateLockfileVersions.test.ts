@@ -179,6 +179,32 @@ describe('updateLockfileVersions lines that are not workspace versions', () => {
     })
   }
 
+  it('refuses a "version" line between two workspace entries', async context => {
+    const tooling = '    "packages/tooling": {'
+    const between = (version: string): string =>
+      `      "version": "${version}",\n${tooling}`
+    const lock = editLine({
+      text: CURRENT,
+      from: tooling,
+      to: between('0.1.0')
+    })
+    const { file, lockfile, update } = await prepare({
+      context,
+      lock,
+      generated: editLine({ text: NEXT, from: tooling, to: between('0.0.0') })
+    })
+
+    await assert.rejects(update(), {
+      message: refusal({
+        file,
+        problems: [
+          `line ${lineNumber({ text: lock, line: tooling }) - 1}: changes a "version" that belongs to no workspace entry`
+        ]
+      })
+    })
+    assert.equal(await readFile(lockfile, 'utf8'), lock)
+  })
+
   it('refuses a "version" line outside the workspaces section, even when a folder of that name has the version', async context => {
     const from = '      "version": "0.6.0",'
     const { file, lockfile, update } = await prepare({

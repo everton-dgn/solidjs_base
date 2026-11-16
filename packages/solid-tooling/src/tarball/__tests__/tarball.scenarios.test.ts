@@ -529,6 +529,9 @@ test('the applications pin the versions of the workspace', () => {
   const { catalog } = workspace
   assert.ok(!copy.dependencies['@evertondgn/solid-tooling'])
   assert.ok(copy.devDependencies['@evertondgn/solid-tooling'])
+  // Without engines.node in the copy, Nitro writes the Vercel function on Bun.
+  assert.deepEqual(copy.engines, workspace.engines, 'apps/boilerplate')
+  assert.deepEqual(copy.devEngines, workspace.devEngines, 'apps/boilerplate')
   const tooling = readPinned(
     path.join(ROOT, 'packages/solid-tooling/package.json')
   )

@@ -67,6 +67,34 @@ it('finds a dynamic import of an icon written as a template', async context => {
   assert.deepEqual(await iconIgnores(root), ['icon'])
 })
 
+it('finds a dynamic import of an icon with a comment before its path', async context => {
+  const root = await createAppFixture({
+    context,
+    files: {
+      'package.json': '{}\n',
+      'src/load.ts':
+        "export const load = () => import(/* @vite-ignore */ 'icon:brand/logo')\n"
+    }
+  })
+  assert.deepEqual(await iconIgnores(root), ['icon'])
+})
+
+it('adds no ignore for an icon: string that is not an import', async context => {
+  const root = await createAppFixture({
+    context,
+    files: {
+      'package.json': '{}\n',
+      'src/icons.ts': [
+        "export const id = 'icon:brand/logo'",
+        'export const label = `icon:brand/logo`',
+        "export const read = (load: (id: string) => unknown) => load('icon:brand/logo')",
+        ''
+      ].join('\n')
+    }
+  })
+  assert.deepEqual(await iconIgnores(root), [])
+})
+
 it('adds no ignore for an icon path that the code builds, which Knip does not read', async context => {
   const root = await createAppFixture({
     context,

@@ -97,13 +97,13 @@ export async function waitForPinnedPackages({
       }
     }
     if (missing.length === 0) return
-    const remaining = deadline - now()
-    if (remaining <= 0) throw timedOut(missing)
-    const pause = Math.min(timing.interval, remaining)
+    // WHY: a pause that reaches the time limit would end in no read, after a
+    // log line that announced one.
+    if (deadline - now() <= timing.interval) throw timedOut(missing)
     log(
-      `  ${describeMissing(missing)}. Reading again in ${describeDuration(pause)}.`
+      `  ${describeMissing(missing)}. Reading again in ${describeDuration(timing.interval)}.`
     )
-    await sleep(pause)
+    await sleep(timing.interval)
     waiting = missing
   }
 }

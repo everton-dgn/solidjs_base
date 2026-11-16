@@ -37,7 +37,7 @@ export const USAGE = `Usage: node tooling/release/wait-for-pinned-packages.ts <t
 Waits until npm has each package of this repository that the package.json of
 the tarball pins in dependencies, optionalDependencies or peerDependencies, as
 docs/releasing.md describes. Fails when one of them is still missing at the
-time limit, so the publish job stops before npm publish.
+last read before the time limit, so the publish job stops before npm publish.
 
   --timeout <minutes>   Longest wait for all the pinned packages (default 10)
   --interval <seconds>  Time between two reads of the registry (default 15)

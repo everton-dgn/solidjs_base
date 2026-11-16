@@ -212,22 +212,49 @@ describe('waitForPinnedPackages time limit', () => {
     assert.equal(calls.length, ONE_MINUTE / INTERVAL)
     assert.equal(
       sleeps.reduce((total, sleep) => total + sleep, 0),
-      ONE_MINUTE
+      ONE_MINUTE - INTERVAL
     )
   })
 
-  it('shortens the last pause to the time left', async context => {
-    const { result, sleeps } = await runWait({
+  it('fails without a pause when the time left is not longer than the interval', async context => {
+    const { result, calls, sleeps, environment } = await runWait({
       context,
       manifest: TOOLING,
       timeout: SHORT_TIMEOUT
     })
 
     await assert.rejects(result)
-    assert.deepEqual(sleeps, [INTERVAL, SHORT_TIMEOUT - INTERVAL])
+    assert.equal(calls.length, 2)
+    assert.deepEqual(sleeps, [INTERVAL])
+    assert.equal(environment.now(), INTERVAL)
   })
 
-  it('gives each read the time left and reads nothing at the time limit', async context => {
+  for (const { timeout, readTime } of [
+    { timeout: ONE_MINUTE, readTime: 0 },
+    { timeout: SHORT_TIMEOUT, readTime: 0 },
+    { timeout: INTERVAL + 1, readTime: 0 },
+    { timeout: ONE_MINUTE + 1000, readTime: 7000 },
+    { timeout: ONE_MINUTE, readTime: 30_000 }
+  ]) {
+    it(`announces only the reads that come, with a time limit of ${timeout} ms and reads of ${readTime} ms`, async context => {
+      const { result, calls, lines, sleeps } = await runWait({
+        context,
+        manifest: TOOLING,
+        timeout,
+        readTime
+      })
+
+      await assert.rejects(result)
+      const announced = lines.filter(line => line.includes('Reading again'))
+      assert.equal(announced.length, calls.length - 1)
+      assert.deepEqual(
+        sleeps,
+        announced.map(() => INTERVAL)
+      )
+    })
+  }
+
+  it('gives each read the time left and stops after the last read that fits', async context => {
     const readTime = 20_000
     const { result, calls, environment } = await runWait({
       context,
@@ -242,7 +269,7 @@ describe('waitForPinnedPackages time limit', () => {
       calls.map(({ timeout }) => timeout),
       [ONE_MINUTE, ONE_MINUTE - readTime - INTERVAL]
     )
-    assert.equal(environment.now(), ONE_MINUTE)
+    assert.equal(environment.now(), readTime + INTERVAL + readTime)
   })
 
   it('stops in the middle of the reads at the time limit and names the versions left', async context => {

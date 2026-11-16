@@ -195,10 +195,12 @@ settings, compiler options, dependencies and the workspace package build.
 the typed names of every collection that the icons plugin also writes in the dev
 server and the build, so the type check of `lint-project` and `check-project`
 reads the current icons. It fails when a collection that `package.json` lists
-cannot be read. Its cache covers the SVG files of the folders inside the
-application, `package.json`, dependencies and the workspace package build. The
-lint and format presets and Knip leave the file out; keep it out of Git too, as
-the boilerplate does.
+cannot be read. Its cache covers the SVG files of the icon folders,
+`package.json`, dependencies and the workspace package build. A pattern of the
+cache cannot follow a folder outside the application, or one whose path has a
+glob character such as `*` or `[`, so with such a folder the task runs every
+time instead of restoring older declarations. The lint and format presets and
+Knip leave the file out; keep it out of Git too, as the boilerplate does.
 
 The CSS and Knip commands run scripts of the boilerplate layout. An application
 without one of them replaces the task through `tasks`. Knip reads task commands

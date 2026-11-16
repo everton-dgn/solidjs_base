@@ -10,11 +10,14 @@ type TaskOptions = Pick<SolidAppOptions, 'workspace' | 'root' | 'icons'> & {
   isCi: boolean
   hasI18n: boolean
 }
+type IconFolders = Pick<SolidAppOptions, 'root' | 'icons'>
 
 const TOOLING_CI_TEST_WORKERS = 3
 const TOOL_NAMES = ['knip', 'tsc', 'playwright', 'lefthook', 'commitlint']
 // The default typesFile of the icons plugin, which the preset keeps.
 const ICON_TYPES_FILE = 'src/icon-collections.d.ts'
+// A folder whose path has one of them would match other files as a pattern.
+const GLOB_CHARACTERS = /[*?[\]{}()!\\]/u
 
 function quote(value: string): string {
   return `'${value.replaceAll("'", String.raw`'\''`)}'`
@@ -29,15 +32,29 @@ function fromWorkspace(pattern: string): TaskInput {
   return { pattern, base: 'workspace' }
 }
 
-// The SVG files of each folder collection inside the application, so a new
-// file changes the declarations. The automatic tracking covers the reads.
-function iconFolderInputs(icons: SolidAppOptions['icons']): string[] {
-  return Object.values(icons ?? {}).flatMap(folder => {
-    const relative = path.posix.normalize(folder.replaceAll('\\', '/'))
-    if (path.posix.isAbsolute(relative) || relative.startsWith('..')) return []
-    const base = relative.replace(/\/+$/u, '')
-    return [base === '.' ? '*.svg' : `${base}/*.svg`]
-  })
+// The SVG files of each folder collection, so a new file changes the
+// declarations; the automatic tracking covers the reads. WHY: a pattern of the
+// cache is relative to the application, so a folder outside it, or one that a
+// pattern cannot spell, returns undefined and the task runs without a cache
+// instead of restoring the declarations of an older listing.
+function iconFolderInputs({ root, icons }: IconFolders): string[] | undefined {
+  const inputs: string[] = []
+  for (const folder of Object.values(icons ?? {})) {
+    const relative = path
+      .relative(root, path.resolve(root, folder))
+      .split(path.sep)
+      .join('/')
+    if (
+      relative === '..' ||
+      relative.startsWith('../') ||
+      path.isAbsolute(relative) ||
+      GLOB_CHARACTERS.test(relative)
+    ) {
+      return undefined
+    }
+    inputs.push(relative === '' ? '*.svg' : `${relative}/*.svg`)
+  }
+  return inputs
 }
 
 // In a monorepo, bun.lock, bunfig.toml and the build of the shared packages sit
@@ -56,6 +73,7 @@ export function createTasks({
 }: TaskOptions): Record<string, Task> {
   const install = installInputs({ workspace })
   const dependsOn = workspace ? { dependsOn: workspace.dependsOn } : {}
+  const iconInputs = iconFolderInputs({ root, icons })
   // lint-project and check-project depend on lint-css, which handles the CSS.
   // The explicit inputs cover the declarations that lint and the formatter
   // ignore, the TypeScript configs and the installed dependencies.
@@ -103,15 +121,18 @@ export function createTasks({
     'icons-generate': {
       command: `node ${quote(fileURLToPath(new URL('icons-generate.mjs', import.meta.url)))} ${quote(JSON.stringify({ root, collections: icons ?? {} }))}`,
       ...dependsOn,
-      cache: {
-        input: [
-          { auto: true },
-          ...iconFolderInputs(icons),
-          'package.json',
-          ...install
-        ],
-        output: [ICON_TYPES_FILE]
-      }
+      cache:
+        iconInputs === undefined
+          ? false
+          : {
+              input: [
+                { auto: true },
+                ...iconInputs,
+                'package.json',
+                ...install
+              ],
+              output: [ICON_TYPES_FILE]
+            }
     },
     // The explicit inputs keep the cache of the CSS lint independent of how
     // each operating system tracks the reads of the runtime.

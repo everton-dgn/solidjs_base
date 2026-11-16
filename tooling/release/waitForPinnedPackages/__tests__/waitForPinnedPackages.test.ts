@@ -224,7 +224,10 @@ describe('waitForPinnedPackages time limit', () => {
     })
 
     await assert.rejects(result)
-    assert.equal(calls.length, 2)
+    assert.deepEqual(
+      calls.map(({ timeout }) => timeout),
+      [SHORT_TIMEOUT, SHORT_TIMEOUT - INTERVAL]
+    )
     assert.deepEqual(sleeps, [INTERVAL])
     assert.equal(environment.now(), INTERVAL)
   })
@@ -233,7 +236,7 @@ describe('waitForPinnedPackages time limit', () => {
     { timeout: ONE_MINUTE, readTime: 0 },
     { timeout: SHORT_TIMEOUT, readTime: 0 },
     { timeout: INTERVAL + 1, readTime: 0 },
-    { timeout: ONE_MINUTE + 1000, readTime: 7000 },
+    { timeout: 61_000, readTime: 7000 },
     { timeout: ONE_MINUTE, readTime: 30_000 }
   ]) {
     it(`announces only the reads that come, with a time limit of ${timeout} ms and reads of ${readTime} ms`, async context => {

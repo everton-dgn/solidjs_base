@@ -130,7 +130,11 @@ stays as it is, neither overwritten nor created again; the step ends with a line
 that says so, and the run of the new head writes the lock. Any other failure of
 the push fails the job. Deleting a branch also sends a push, which the workflow
 skips. Each rewrite of the release pull request therefore starts two CI runs,
-the first one cancelled, and two runs of this workflow.
+the first one cancelled, and two runs of this workflow. When release-please
+creates the release branch, it points the branch at the commit of `main` before
+it adds the release commit, so opening the pull request gives one more run, on
+that commit of `main`, which ends without writing: if it has a lock to push, the
+lease refuses it, because the branch has moved.
 
 The workflow stays out of `release.yml` because `vp run release:merge` follows
 the conclusion of the whole `Release` run
@@ -300,9 +304,12 @@ into the branch, never rebase it, and wait for `CI required` again.
    `CI required`, merges, waits for the `Release` workflow and checks each
    released version on npm. When release-please writes the pull request again
    after your review, the head changes and the command stops: read the new diff
-   and start from step 1. On a release pull request opened before the GitHub
-   App, whose CI run waits for an approval, the command approves the run of that
-   head
+   and start from step 1. When the command stops with `CI required` cancelled,
+   or with a head other than the one you passed, right after a push or an update
+   of the branch, the `Release lockfile` workflow committed the lock on a new
+   head: wait for its run on that head and start from step 1. On a release pull
+   request opened before the GitHub App, whose CI run waits for an approval, the
+   command approves the run of that head
    ([When a CI run of the release pull request waits for an approval](#when-a-ci-run-of-the-release-pull-request-waits-for-an-approval)).
 6. Without the command, wait for `CI required`, merge with the API call of the
    same section and, after the publish job, check the registry. The version can
@@ -509,12 +516,13 @@ install accepts it, and `vp pm pack` reads each version from the `package.json`.
 Merged that way, the lines stay one version behind until the next `vp install`.
 The log of the failed job tells the cause:
 
-| Log                                                                                                    | Cause                                                                                                                                                   | Fix                                                                                 |
-| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `changes more than the workspace versions of bun.lock, so nothing was written`, then each line and why | The lock generated from the branch changes more than the versions, such as a dependency whose lock `main` did not update                                | Write the lock by hand, below, and review every line of the diff                    |
-| `has <n> lines and bun.lock has <m>`                                                                   | The same, with lines added or removed                                                                                                                   | The same                                                                            |
-| An error in the `Create the App token` step                                                            | The App, its variable or its secret                                                                                                                     | [When the release pull request job fails](#when-the-release-pull-request-job-fails) |
-| `The push to <branch> failed` in the `Commit and push` step                                            | GitHub refused the push for another reason, such as a rule on the branch or a permission of the App; the output of `git push` above it gives the reason | Fix the cause and choose "Re-run all jobs"                                          |
+| Log                                                                                                        | Cause                                                                                                                                                   | Fix                                                                                 |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| A failure in the `Generate the lockfile` job, such as in `Set up Vite+` or in `vp install --lockfile-only` | Vite+ or the npm registry could not be reached, or the dependencies of the branch do not resolve                                                        | Choose "Re-run all jobs"; when it fails again, fix the dependencies on `main`       |
+| `changes more than the workspace versions of bun.lock, so nothing was written`, then each line and why     | The lock generated from the branch changes more than the versions, such as a dependency whose lock `main` did not update                                | Write the lock by hand, below, and review every line of the diff                    |
+| `has <n> lines and bun.lock has <m>`                                                                       | The same, with lines added or removed                                                                                                                   | The same                                                                            |
+| An error in the `Create the App token` step                                                                | The App, its variable or its secret                                                                                                                     | [When the release pull request job fails](#when-the-release-pull-request-job-fails) |
+| `The push to <branch> failed` in the `Commit and push` step                                                | GitHub refused the push for another reason, such as a rule on the branch or a permission of the App; the output of `git push` above it gives the reason | Fix the cause and choose "Re-run all jobs"                                          |
 
 A push refused because the branch moved or was deleted is not a failure: the
 step logs `so the push was refused`, and the run of the new head writes the

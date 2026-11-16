@@ -43,7 +43,7 @@ The options were:
   and only when the lock changed, the job creates a token of the release GitHub
   App that can write contents, commits as the App and pushes with a lease on the
   checked commit, so a branch that moved or was deleted is neither overwritten
-  nor created again. It installs nothing and runs neither `vp` nor `bun`.
+  nor created again. It installs no dependency and runs neither `vp` nor `bun`.
 
 ## Consequences
 
@@ -51,7 +51,9 @@ The options were:
   `package.json` files, and `main` has them after the merge.
 - Each rewrite of the release pull request starts two CI runs, the first one
   cancelled by the lockfile commit, and two runs of the workflow, the second one
-  without a difference.
+  without a difference. Opening the pull request gives one more run, on the
+  commit of `main` where release-please creates the branch, which ends without
+  writing.
 - A second workflow reads the secret of the App. Its token can write contents
   only, and the job that runs `vp install` holds no token that can write.
   Creating the token after the command does not isolate it from the code of the

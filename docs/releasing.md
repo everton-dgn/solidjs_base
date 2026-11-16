@@ -312,11 +312,11 @@ it to `release-please-config.json` and `.release-please-manifest.json`, as
 1. Publish the version in the manifest by hand, from the last commit of the pull
    request.
 2. Create the tag on that commit, such as `solid-runtime@0.1.0`, and push it.
-3. Merge the pull request. release-please finds the tag, so the changelog of the
-   next release of the package lists only the commits after it. The tag does not
-   hold the version back: the package is in the `linked-versions` group, so the
-   next release of any package of the group raises it to the same version, even
-   without a `fix` or `feat` of its own.
+3. Merge the pull request. release-please finds the tag and takes it as the
+   previous version of the package. The tag does not hold the version back: the
+   package is in the `linked-versions` group, so the next release of any package
+   of the group raises it to the same version, even without a `fix` or `feat` of
+   its own.
 
 release-please finds the previous version of a package through its GitHub
 Release or, failing that, its tag. Merging first leaves neither, so it collects

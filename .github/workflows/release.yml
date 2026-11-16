@@ -104,6 +104,12 @@ jobs:
     needs: release-please
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # WHY: the environment admits only main and the release branches, and the
+    # App key belongs in its secrets (docs/releasing.md#one-time-setup). The job
+    # deploys nothing, so it creates no deployment.
+    environment:
+      name: release
+      deployment: false
     permissions: {}
     steps:
       - name: Create the App token

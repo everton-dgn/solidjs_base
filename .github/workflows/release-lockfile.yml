@@ -61,6 +61,12 @@ jobs:
     needs: generate
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # WHY: the environment admits only main and the release branches, and the
+    # App key belongs in its secrets (docs/releasing.md#one-time-setup). The job
+    # deploys nothing, so it creates no deployment.
+    environment:
+      name: release
+      deployment: false
     permissions:
       contents: read
     steps:
@@ -102,7 +108,8 @@ jobs:
       # not keep it from the code of the branch: an earlier step can write to
       # $GITHUB_ENV, $GITHUB_PATH or the Git config. The split into two jobs
       # keeps Bun away from any token that can write; whoever can push to the
-      # branch controls this workflow, and the App key is a repository secret
+      # branch controls this workflow, which is why the key belongs in the
+      # environment of the job and the release branches in a ruleset
       # (docs/releasing.md#the-lockfile-of-the-release-pull-request).
       - name: Create the App token
         id: app-token

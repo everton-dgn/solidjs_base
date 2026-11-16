@@ -85,7 +85,13 @@ export async function setup(
   options: Partial<Parameters<typeof markdownPrerender>[0]> = {}
 ): Promise<Setup> {
   const dir = await mkdtemp(path.join(tmpdir(), 'markdown-routing-'))
-  after(() => rm(dir, { recursive: true, force: true }))
+  const writes: Promise<void>[] = []
+  // WHY: a test can end without prerender:done, which awaits these writes;
+  // removing the folder under a pending write fails after the test ended.
+  after(async () => {
+    await Promise.allSettled(writes)
+    await rm(dir, { recursive: true, force: true })
+  })
   const publicDir = path.join(dir, 'static')
   await mkdir(publicDir)
   const serverDir = path.join(dir, 'functions', '__server.func')
@@ -108,7 +114,6 @@ export async function setup(
   })
   const generate = handlers['prerender:generate']
   const finishPrerender = handlers['prerender:done']
-  const writes: Promise<void>[] = []
   handlers['prerender:generate'] = route => {
     generate?.(route)
     if (route.skip || route.error || !WRITTEN_ROUTES.has(route.route)) return

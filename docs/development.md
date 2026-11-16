@@ -52,11 +52,14 @@ Bun reads `catalog`, `overrides` and `patchedDependencies` only from the root
 there, and the patch files stay in `apps/boilerplate/patches/`.
 
 The `solid-js` patch adds `heldRead` to the names that its types re-export from
-`@solidjs/signals`. The types of `@solidjs/web` import `heldRead` from
-`solid-js`, and the JavaScript of `solid-js` exports it, but the published types
-of `solid-js` leave it out. A type check with `skipLibCheck` off reads those
-declaration files and fails with TS2305. The tsconfig of the tooling preset sets
-`skipLibCheck`, so an application on the preset does not reach that error.
+`@solidjs/signals`. Since
+[solidjs/solid#4880](https://github.com/solidjs/solid/pull/4880), the types of
+`@solidjs/web` import `heldRead` from `solid-js`, and the JavaScript of
+`solid-js` exports it, but `solid-js` marks that export `@internal` and its
+declaration build strips internal names, so the published types of `solid-js`
+leave it out. A type check with `skipLibCheck` off reads those declaration files
+and fails with TS2305. The tsconfig of the tooling preset sets `skipLibCheck`,
+so an application on the preset does not reach that error.
 
 Only the type check of the icons tarball test depends on the patch: its
 temporary application links the `@solidjs` folder of the workspace, and its
@@ -67,8 +70,13 @@ so while the patch exists it does not stand for an application without
 The patch key names the Solid version, and
 `apps/boilerplate/tooling/__tests__/patched-dependencies.test.ts` fails when
 `bun.lock` does not resolve that version, so every Solid upgrade either moves
-the patch or removes it. Remove the entry and the file once the types of
-`solid-js` export `heldRead`; the
+the patch or removes it.
+[solidjs/solid#4920](https://github.com/solidjs/solid/pull/4920) makes
+`@solidjs/web` import `heldRead` from `solid-js/internal`, whose types declare
+it, and keeps it out of the types of the main `solid-js` entry. Remove the entry
+and the file once the installed types of `@solidjs/web` import `heldRead` from
+`solid-js/internal`, which happens when a published version includes that pull
+request; the
 [Solid upgrade steps](../apps/boilerplate/docs/server-errors/solid-upgrades.md#upgrading-solid)
 check it.
 

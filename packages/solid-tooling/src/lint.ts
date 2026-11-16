@@ -5,6 +5,7 @@ import { cwd } from 'node:process'
 import type { UserConfig } from 'vite-plus'
 
 import backendPolicy from './backendPolicy/index.ts'
+import { ICON_TYPES_FILE } from './icons/constants.ts'
 import { environmentRules } from './lint/rules/environment.ts'
 import { importRules } from './lint/rules/imports.ts'
 import { javascriptRules } from './lint/rules/javascript.ts'
@@ -52,7 +53,7 @@ export const lint: NonNullable<UserConfig['lint']> = {
     'public/**',
     'src/assets/**',
     'src/@types/routes.d.ts',
-    'src/icon-collections.d.ts',
+    ICON_TYPES_FILE,
     '.agents/**',
     '.claude/**'
   ],

@@ -9,6 +9,7 @@ import { DEFAULT_EXTENSIONS } from 'filesystem-routing/vite'
 import type { KnipConfiguration } from 'knip'
 
 import { hasMatch } from '../has-match.ts'
+import { ICON_TYPES_FILE } from '../icons/constants.ts'
 import { iconIgnores } from './iconIgnores/index.ts'
 
 type AppSettings = Pick<
@@ -56,7 +57,6 @@ const ROUTE_DIRECTORIES: RouteDirectory[] = [
   { directory: 'src/tests/fixtures/e2e/routes', isProduction: false }
 ]
 const TOOLING_PROJECT = 'tooling/**/*.ts'
-const ICON_TYPES_FILE = 'src/icon-collections.d.ts'
 
 function isModuleRef(value: unknown): value is ModuleRef {
   return (

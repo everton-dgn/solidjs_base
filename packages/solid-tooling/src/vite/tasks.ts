@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { ICON_TYPES_FILE } from '../icons/constants.ts'
 import type { RunTask, SolidAppOptions } from './types.ts'
 
 type Task = Exclude<RunTask, string | string[]>
@@ -14,8 +15,6 @@ type IconFolders = Pick<SolidAppOptions, 'root' | 'icons'>
 
 const TOOLING_CI_TEST_WORKERS = 3
 const TOOL_NAMES = ['knip', 'tsc', 'playwright', 'lefthook', 'commitlint']
-// The default typesFile of the icons plugin, which the preset keeps.
-const ICON_TYPES_FILE = 'src/icon-collections.d.ts'
 // A folder whose path has one of them would match other files as a pattern.
 const GLOB_CHARACTERS = /[*?[\]{}()!\\]/u
 

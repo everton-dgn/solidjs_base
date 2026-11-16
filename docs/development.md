@@ -51,6 +51,14 @@ Bun reads `catalog`, `overrides` and `patchedDependencies` only from the root
 `package.json`. The versions and patches that `apps/boilerplate` needs are kept
 there, and the patch files stay in `apps/boilerplate/patches/`.
 
+The `solid-js` patch adds `heldRead` to the names that its types re-export from
+`@solidjs/signals`. The JavaScript of `solid-js` exports it and the types of
+`@solidjs/web` import it, but the published types of `solid-js` leave it out, so
+a type check that reads the declaration files of `node_modules` fails with
+TS2305, as the type check of the icons tarball test does. The tsconfig of the
+tooling sets `skipLibCheck`, so an application on the preset does not reach that
+error. Remove the patch when the icons tarball test passes without it.
+
 ## Package commands
 
 Run them from the root. Package commands select `./packages/*`. The publish job
@@ -172,6 +180,10 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
   node_modules path in settings.json, outside Knip's import graph.
 - `tooling/__tests__/patched-dependencies.test.ts` reads the root `package.json`
   and `bun.lock`.
+- `patches/` has no `@solidjs/web` patch: the installed `@solidjs/web` covers
+  both cases of the original's patch
+  ([SSR integrity](../apps/boilerplate/docs/server-errors/ssr-integrity.md#ssr-integrity-for-markdown)).
+  It holds the `solid-js` patch of the [workspace](#workspace) instead.
 - The middleware steps `securityHeaders` (with its constants),
   `restrictPageMethods`, `requestClassification`, `negotiatePageFormat` and
   `isHtmlResponse`, and the `Middleware` and `Next` types, moved to

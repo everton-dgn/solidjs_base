@@ -38,7 +38,8 @@ for the SSR and only converts the HTML when the render integrity state reports a
 completion without errors; normal HTML keeps streaming. The state covers errors
 seen by the render; it does not vouch for hydration data silently dropped by the
 serializer, and the Markdown uses the settled HTML, without that data. The full
-contract, the refusal response and the criterion to remove the patch are in
+contract, the refusal response and the regression tests to run on a Solid
+upgrade are in
 [server errors](../server-errors/ssr-integrity.md#ssr-integrity-for-markdown).
 
 The build prerender goes through the same adapter. The compiled

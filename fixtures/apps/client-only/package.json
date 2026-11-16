@@ -13,16 +13,16 @@
     }
   },
   "dependencies": {
-    "@solidjs/web": "2.0.0-rc.21",
-    "solid-js": "2.0.0-rc.21",
+    "@solidjs/web": "2.0.0-rc.22",
+    "solid-js": "2.0.0-rc.22",
     "@solidjs/router": "2.0.0-next.44",
     "@iconify-json/hugeicons": "1.2.35",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
     "vite-plus": "1.6.0"
   },
   "overrides": {
-    "@solidjs/compiler": "2.0.0-rc.21",
-    "@solidjs/signals": "2.0.0-rc.21",
+    "@solidjs/compiler": "2.0.0-rc.22",
+    "@solidjs/signals": "2.0.0-rc.22",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
     "vitest": "5.1.0"
   },

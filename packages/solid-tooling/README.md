@@ -22,7 +22,7 @@ commitlint, Git hooks and `defineSolidApp`, which returns the whole
 arrives when you update the dependency.
 
 > SolidJS 2 is still a release candidate. The package is tested with
-> `2.0.0-rc.21`, and its Solid, Nitro, router and icon plugins are pinned to the
+> `2.0.0-rc.22`, and its Solid, Nitro, router and icon plugins are pinned to the
 > versions tested together. A new version of one of them needs a package version
 > tested with it.
 

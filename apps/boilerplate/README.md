@@ -166,9 +166,9 @@ production check. See
 
 Bun applies two patches from `patches/`, registered in the root `package.json`:
 one fixes conversion differences of `@mdream/js`
-([Markdown guide](docs/seo/markdown.md)), and one makes `@solidjs/web` end the
-render when the default serializer fails synchronously
-([SSR integrity](docs/server-errors/ssr-integrity.md)). The packages do not ship
+([Markdown guide](docs/seo/markdown.md)), and one exports `heldRead` from the
+types of `solid-js`, which the types of `@solidjs/web` import
+([development](../../docs/development.md#workspace)). The packages do not ship
 these patches.
 
 Middleware, security headers, server errors, the theme, locale navigation, SEO,

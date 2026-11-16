@@ -162,6 +162,21 @@ it('does not ignore the icons plugin without an import of its types entry', asyn
   assert.deepEqual(await iconIgnores(root), [])
 })
 
+it('ignores the text of an icon import beside a dynamic import of another module', async context => {
+  const root = await createAppFixture({
+    context,
+    files: {
+      'package.json': '{}\n',
+      'src/load.ts': [
+        "// import x from 'icon:a/b'",
+        "export const load = () => import('./other')",
+        ''
+      ].join('\n')
+    }
+  })
+  assert.deepEqual(await iconIgnores(root), [])
+})
+
 it('ignores the collections of the production dependencies', async context => {
   const root = await createAppFixture({
     context,

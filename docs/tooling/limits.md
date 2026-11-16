@@ -82,12 +82,13 @@ published `@evertondgn/solid-tooling/app-env` entry through `types`. Both
 resolve references beside the package's dependencies. `app-env` loads
 `@evertondgn/solid-tooling/icon-modules`, which declares the `icon:` imports and
 the `@evertondgn/vite-plugin-solid-icons/types` entry that
-`src/icon-collections.d.ts` imports, so an application types its icons without
-declaring the plugin, also with Bun's isolated linker. This keeps application
-and browser matcher declarations in their original order. Node-only derived
-configs use `types: []` instead of reintroducing `types: ["node"]`. An
-application that overrides `files` must also include
-`node_modules/@evertondgn/solid-tooling/node-env.d.ts`.
+`src/icon-collections.d.ts` imports, with every type of the installed plugin. An
+application types its icons and imports those types without declaring the
+plugin, also when its install cannot reach a dependency of a dependency, as with
+Bun's isolated linker. This keeps application and browser matcher declarations
+in their original order. Node-only derived configs use `types: []` instead of
+reintroducing `types: ["node"]`. An application that overrides `files` must also
+include `node_modules/@evertondgn/solid-tooling/node-env.d.ts`.
 
 ## Known limits
 

@@ -9,6 +9,10 @@ type Icon = (props: ComponentProps<'svg'>) => JSX.Element
 
 describe('packaged icon types', () => {
   it('types an icon by its path, by its name and as text', () => {
+    expectTypeOf(IconMark).not.toBeAny()
+    expectTypeOf(Mark).not.toBeAny()
+    expectTypeOf(Github).not.toBeAny()
+    expectTypeOf(markSvg).not.toBeAny()
     expectTypeOf(IconMark).toEqualTypeOf<Icon>()
     expectTypeOf(Mark).toEqualTypeOf<Icon>()
     expectTypeOf(Github).toEqualTypeOf<Icon>()

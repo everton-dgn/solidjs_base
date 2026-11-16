@@ -352,9 +352,11 @@ request the local preview.
 
 Each fixture maps a folder of SVG files with the `icons` option, and the
 client-only one also installs an Iconify collection. A type probe imports an
-icon by its path, by its name and as text: an import that does not resolve fails
-TypeScript instead of turning the icon into `any`. A DOM test of the client-only
-fixture checks `aria-hidden` on both kinds of collection.
+icon by its path, by its name and as text, checks that none of them is `any` and
+then compares their types. The check comes first because a type that a
+declaration file cannot resolve turns into `any` with no error, under
+`skipLibCheck`, and the comparison alone passes on it. A DOM test of the
+client-only fixture checks `aria-hidden` on both kinds of collection.
 
 The fixtures list 8, 7 and 9 direct dependencies including the injected packages
 (client-only, SSR plain and SSR i18n). The package supplies the development

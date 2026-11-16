@@ -57,16 +57,16 @@ Run them from the root. Package commands select `./packages/*`. The publish job
 runs `vp run validate`, including the minimal installed application matrix. The
 full boilerplate application suites remain separate.
 
-| Command                 | What it does                                                                                   |
-| ----------------------- | ---------------------------------------------------------------------------------------------- |
-| `vp run build`          | Compile the packages to `dist/`                                                                |
-| `vp run check`          | Check format, lint and types at the root, then lint the runtime package in its folder          |
-| `vp run dead-code`      | Find unused files, exports and dependencies of the runtime package with Knip                   |
-| `vp run test`           | Run the rule tests with `node:test`, the runtime tests and `vp run test:release`               |
-| `vp run test:release`   | Run the tests of the merge command in `tooling/release/` with `node:test`                      |
-| `vp run test:tarball`   | Pack each package and install it in a temporary folder                                         |
-| `vp run test:scenarios` | Install and build three minimal applications with both Bun linkers                             |
-| `vp run validate`       | Build, check, dead code, package tests, tarball tests and application scenarios, in this order |
+| Command                 | What it does                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `vp run build`          | Compile the packages to `dist/`                                                                   |
+| `vp run check`          | Check format, lint and types at the root, then lint the runtime package in its folder             |
+| `vp run dead-code`      | Find unused files, exports and dependencies of the runtime and icons packages with Knip           |
+| `vp run test`           | Run the rule tests with `node:test`, the runtime and icons plugin tests and `vp run test:release` |
+| `vp run test:release`   | Run the tests of the release commands in `tooling/release/` with `node:test`                      |
+| `vp run test:tarball`   | Pack each package and install it in a temporary folder                                            |
+| `vp run test:scenarios` | Install and build three minimal applications with both Bun linkers                                |
+| `vp run validate`       | Build, check, dead code, package tests, tarball tests and application scenarios, in this order    |
 
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so
 `vp run test` builds the package first. The runtime tests run in the Vitest of

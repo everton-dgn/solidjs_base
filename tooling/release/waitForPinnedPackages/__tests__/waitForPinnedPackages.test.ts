@@ -331,6 +331,25 @@ describe('waitForPinnedPackages time limit', () => {
     )
   })
 
+  it('leaves out the period of the answer it keeps before a stop', async context => {
+    const { result } = await runWait({
+      context,
+      manifest: TOOLING,
+      registry: {
+        [ICONS]: [
+          { exitCode: 0, stdout: 'npm warn', stderr: '' },
+          stoppedWithin('15 second(s)')
+        ]
+      },
+      readTime: 30_000
+    })
+
+    await assert.rejects(result, {
+      message:
+        /\(npm view @x\/icons@0\.8\.0 is not valid JSON, then npm view @x\/icons@0\.8\.0 did not finish within 15 second\(s\) and was stopped\)\.\n/u
+    })
+  })
+
   it('keeps the stop when the time limit stops the first read', async context => {
     const { result } = await runWait({
       context,

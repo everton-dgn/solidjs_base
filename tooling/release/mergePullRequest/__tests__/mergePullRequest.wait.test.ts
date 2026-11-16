@@ -7,6 +7,7 @@ describe('mergePullRequest describeDuration', () => {
   for (const { milliseconds, text } of [
     { milliseconds: 1, text: '1 millisecond(s)' },
     { milliseconds: 499, text: '499 millisecond(s)' },
+    { milliseconds: 499.6, text: '500 millisecond(s)' },
     { milliseconds: 999, text: '999 millisecond(s)' },
     { milliseconds: 999.6, text: '1 second(s)' },
     { milliseconds: 1000, text: '1 second(s)' },

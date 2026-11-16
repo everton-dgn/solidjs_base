@@ -9,6 +9,8 @@ const MANIFEST = JSON.stringify({
 })
 const PLUGIN = '@evertondgn/vite-plugin-solid-icons'
 const TYPES_ENTRY = `${PLUGIN}/types`
+const TYPES_SOURCE = `import type { IconComponent } from '${TYPES_ENTRY}'\nexport type AppIcon = IconComponent\n`
+const ICON_SOURCE = "export { default as Logo } from 'icon:brand/logo'\n"
 
 it('ignores the icon imports and the collections an application has', async context => {
   const root = await createAppFixture({
@@ -131,6 +133,30 @@ it('finds the icon imports and the types entry in different files', async contex
   })
   assert.deepEqual(await iconIgnores(root), ['icon', PLUGIN])
 })
+
+// WHY: the two cases swap the contents of the files, so whatever order the
+// file system lists them in, one case reads the types entry first and the
+// other the icon import first.
+for (const { name, first, second } of [
+  {
+    name: 'the types entry in src/a.ts and the icon import in src/b.ts',
+    first: TYPES_SOURCE,
+    second: ICON_SOURCE
+  },
+  {
+    name: 'the icon import in src/a.ts and the types entry in src/b.ts',
+    first: ICON_SOURCE,
+    second: TYPES_SOURCE
+  }
+]) {
+  it(`finds ${name}`, async context => {
+    const root = await createAppFixture({
+      context,
+      files: { 'package.json': '{}\n', 'src/a.ts': first, 'src/b.ts': second }
+    })
+    assert.deepEqual(await iconIgnores(root), ['icon', PLUGIN])
+  })
+}
 
 it('keeps the icons plugin visible to Knip when the application declares it', async context => {
   const root = await createAppFixture({

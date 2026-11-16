@@ -9,6 +9,7 @@ import { build, createServer } from 'vite-plus'
 import { checkIconTypes } from '../index.ts'
 import {
   createFixtureApp,
+  defer,
   fixtureConfig,
   NAMED_ICONS_BY_PATH,
   NAMED_ICONS_FILE,
@@ -74,7 +75,7 @@ async function readBundle(folder: string): Promise<string> {
 
 test('an application renders the icons', async context => {
   const root = await createFixtureApp()
-  context.after(() => rm(root, { recursive: true, force: true }))
+  defer({ context, task: () => rm(root, { recursive: true, force: true }) })
 
   await context.test(
     'the client build has the component and raw icons',
@@ -183,7 +184,7 @@ test('an application renders the icons', async context => {
         server: { middlewareMode: true, ws: false },
         appType: 'custom'
       })
-      context.after(() => server.close())
+      defer({ context, task: () => server.close() })
       const client = await server.environments.client.transformRequest(
         'icon:hugeicons/github'
       )

@@ -19,8 +19,8 @@ function readDuration({ option, value, unit }: Duration): number {
   return amount * unit
 }
 
-// The workflow passes a shell glob, so no match or more than one match arrives
-// here as a wrong number of paths.
+// The workflow passes a shell glob: two matches arrive here as two paths, and
+// no match as the pattern itself, which the read of the tarball refuses.
 function readTarball(positionals: readonly string[]): string {
   const [tarball] = positionals
   if (positionals.length !== 1 || !tarball) {

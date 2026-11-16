@@ -9,6 +9,8 @@ const MANIFEST = JSON.stringify({
 })
 const PLUGIN = '@evertondgn/vite-plugin-solid-icons'
 const TYPES_ENTRY = `${PLUGIN}/types`
+const TYPES_SOURCE = `import type { IconComponent } from '${TYPES_ENTRY}'\nexport type AppIcon = IconComponent\n`
+const ICON_SOURCE = "export { default as Logo } from 'icon:brand/logo'\n"
 
 it('ignores the icon imports and the collections an application has', async context => {
   const root = await createAppFixture({
@@ -63,6 +65,34 @@ it('finds a dynamic import of an icon written as a template', async context => {
     }
   })
   assert.deepEqual(await iconIgnores(root), ['icon'])
+})
+
+it('finds a dynamic import of an icon with a comment before its path', async context => {
+  const root = await createAppFixture({
+    context,
+    files: {
+      'package.json': '{}\n',
+      'src/load.ts':
+        "export const load = () => import(/* @vite-ignore */ 'icon:brand/logo')\n"
+    }
+  })
+  assert.deepEqual(await iconIgnores(root), ['icon'])
+})
+
+it('adds no ignore for an icon: string that is not an import', async context => {
+  const root = await createAppFixture({
+    context,
+    files: {
+      'package.json': '{}\n',
+      'src/icons.ts': [
+        "export const id = 'icon:brand/logo'",
+        'export const label = `icon:brand/logo`',
+        "export const read = (load: (id: string) => unknown) => load('icon:brand/logo')",
+        ''
+      ].join('\n')
+    }
+  })
+  assert.deepEqual(await iconIgnores(root), [])
 })
 
 it('adds no ignore for an icon path that the code builds, which Knip does not read', async context => {
@@ -131,6 +161,30 @@ it('finds the icon imports and the types entry in different files', async contex
   })
   assert.deepEqual(await iconIgnores(root), ['icon', PLUGIN])
 })
+
+// WHY: the two cases swap the contents of the files, so whatever order the
+// file system lists them in, one case reads the types entry first and the
+// other the icon import first.
+for (const { name, first, second } of [
+  {
+    name: 'the types entry in src/a.ts and the icon import in src/b.ts',
+    first: TYPES_SOURCE,
+    second: ICON_SOURCE
+  },
+  {
+    name: 'the icon import in src/a.ts and the types entry in src/b.ts',
+    first: ICON_SOURCE,
+    second: TYPES_SOURCE
+  }
+]) {
+  it(`finds ${name}`, async context => {
+    const root = await createAppFixture({
+      context,
+      files: { 'package.json': '{}\n', 'src/a.ts': first, 'src/b.ts': second }
+    })
+    assert.deepEqual(await iconIgnores(root), ['icon', PLUGIN])
+  })
+}
 
 it('keeps the icons plugin visible to Knip when the application declares it', async context => {
   const root = await createAppFixture({

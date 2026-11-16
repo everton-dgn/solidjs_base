@@ -168,9 +168,9 @@ the one the render reads: the cancellation does not add the `[error-page]` line,
 and the original failure was already logged before the render. A different error
 from that render keeps the line. In development the value is rethrown, like any
 other. A primitive reason has no identity of its own and is mistaken for the
-same value thrown. The patch also keeps reasons such as `null`, `false`, zero,
-an empty string and `NaN`; the middleware uses `Object.is` to compare the reason
-without losing those values.
+same value thrown. The runtime also rejects with reasons such as `null`,
+`false`, zero, an empty string and `NaN`; the middleware uses `Object.is` to
+compare the reason without losing those values.
 
 The containment only reaches the window of the middleware chain. Creating the
 event, committing the response and body failures after the `Response` leaves are

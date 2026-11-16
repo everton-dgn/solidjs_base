@@ -51,6 +51,35 @@ Bun reads `catalog`, `overrides` and `patchedDependencies` only from the root
 `package.json`. The versions and patches that `apps/boilerplate` needs are kept
 there, and the patch files stay in `apps/boilerplate/patches/`.
 
+The `solid-js` patch adds `heldRead` to the names that its types re-export from
+`@solidjs/signals`. Since
+[solidjs/solid#4880](https://github.com/solidjs/solid/pull/4880), the types of
+`@solidjs/web` import `heldRead` from `solid-js`, and the JavaScript of
+`solid-js` exports it, but `solid-js` marks that export `@internal` and its
+declaration build strips internal names, so the published types of `solid-js`
+leave it out. A type check with `skipLibCheck` off reads those declaration files
+and fails with TS2305. The tsconfig of the tooling preset sets `skipLibCheck`,
+so an application on the preset does not reach that error.
+
+Only the type check of the icons tarball test depends on the patch: its
+temporary application links the `@solidjs` folder of the workspace, and its
+tsconfig leaves `skipLibCheck` off. That check runs against the patched types,
+so while the patch exists it does not stand for an application without
+`skipLibCheck`, which installs the published types and gets the TS2305.
+
+The patch key names the Solid version, and
+`apps/boilerplate/tooling/__tests__/patched-dependencies.test.ts` fails when
+`bun.lock` does not resolve that version, so every Solid upgrade either moves
+the patch or removes it.
+[solidjs/solid#4920](https://github.com/solidjs/solid/pull/4920) makes
+`@solidjs/web` import `heldRead` from `solid-js/internal`, whose types declare
+it, and keeps it out of the types of the main `solid-js` entry. Remove the entry
+and the file once the installed types of `@solidjs/web` import `heldRead` from
+`solid-js/internal`, which happens when a published version includes that pull
+request; the
+[Solid upgrade steps](../apps/boilerplate/docs/server-errors/solid-upgrades.md#upgrading-solid)
+check it.
+
 ## Package commands
 
 Run them from the root. Package commands select `./packages/*`. The publish job
@@ -172,6 +201,13 @@ root `vite.config.ts`. The root config ignores `apps/`, and the application runs
   node_modules path in settings.json, outside Knip's import graph.
 - `tooling/__tests__/patched-dependencies.test.ts` reads the root `package.json`
   and `bun.lock`.
+- `package.json` declares the `engines` and `devEngines` of the root, in place
+  of the Node line of the original. Nitro writes the runtime of the Vercel
+  function from `engines.node`; without it, the function runs on Bun.
+- `patches/` has no `@solidjs/web` patch: the installed `@solidjs/web` covers
+  both cases of the original's patch
+  ([SSR integrity](../apps/boilerplate/docs/server-errors/ssr-integrity.md#ssr-integrity-for-markdown)).
+  It holds the `solid-js` patch of the [workspace](#workspace) instead.
 - The middleware steps `securityHeaders` (with its constants),
   `restrictPageMethods`, `requestClassification`, `negotiatePageFormat` and
   `isHtmlResponse`, and the `Middleware` and `Next` types, moved to
@@ -361,11 +397,15 @@ client-only fixture checks `aria-hidden` on both kinds of collection.
 
 The fixtures list 8, 7 and 9 direct dependencies including the injected packages
 (client-only, SSR plain and SSR i18n). The package supplies the development
-tools. The fixtures list their own pinned dependencies, and the first test of
-the file fails when a version, an override or the engines differ from the
-workspace. No browser download or remote page request belongs to this suite;
-only dependency installation uses the network. Paraglide uses a local project
-without remote modules.
+tools. The fixtures list their own pinned dependencies, and the test
+`the applications pin the versions of the workspace` fails when a version, an
+override or the engines differ from the workspace. It also fails when the
+`engines` or `devEngines` of `apps/boilerplate` differ from the root, since
+Nitro picks the runtime of the Vercel function from `engines.node`. The test
+after it fails when a package of `packages/` does not declare `>=` and the
+`devEngines` Node version of the root in `engines.node`. No browser download or
+remote page request belongs to this suite; only dependency installation uses the
+network. Paraglide uses a local project without remote modules.
 
 To select a case, use Node's `--test-name-pattern` with
 `packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts`. For

@@ -5,6 +5,7 @@ import {
   createComponent,
   createRequestEvent,
   createSSRResponse,
+  getHydrationWriter,
   redirect,
   renderToStream,
   ssr
@@ -17,7 +18,6 @@ import {
   NotReadyError,
   onCleanup
 } from 'solid-js'
-import { sharedConfig } from 'solid-js/internal'
 
 import { Router } from '@/router.ts'
 import { throwValue } from '@/tests/helpers/failureValues/index.ts'
@@ -142,12 +142,12 @@ function makeProbe({
   function content() {
     onCleanup(cleanup)
     if (scenario) {
-      const { context } = sharedConfig
-      if (!context) throw new Error('Missing SSR context')
-      context.serialize(
+      const writer = getHydrationWriter()
+      if (!writer) throw new Error('Missing SSR hydration writer')
+      writer.write(
         'serialization-probe',
         scenario.timing === 'sync' ? token : Promise.resolve(token),
-        scenario.timing === 'defer'
+        { deferStream: scenario.timing === 'defer' }
       )
     }
     if (boundaryFailure !== undefined) {
@@ -318,9 +318,9 @@ describe('markdown with the installed SSR serializer', () => {
         isPending = false
         throw new NotReadyError(Promise.resolve())
       }
-      const { context } = sharedConfig
-      if (!context) throw new Error('Missing SSR context')
-      context.serialize('shell-probe', token)
+      const writer = getHydrationWriter()
+      if (!writer) throw new Error('Missing SSR hydration writer')
+      writer.write('shell-probe', token)
       return 'Public shell'
     }
     const controller = new AbortController()

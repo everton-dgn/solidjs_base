@@ -1,5 +1,5 @@
 import { query, useSearchParams, type RouteDefinition } from '@solidjs/router'
-import { createMemo, createSignal, Loading } from 'solid-js'
+import { createMemo, createSignal, Loading, untrack } from 'solid-js'
 
 import { readBackend } from '../../backend-error/readBackend/index.ts'
 
@@ -17,7 +17,9 @@ export const route = {
 
 export default function BackendError() {
   const [params] = useSearchParams()
-  const [isRequested, setIsRequested] = createSignal(params.phase !== 'action')
+  const [isRequested, setIsRequested] = createSignal(
+    untrack(() => params.phase !== 'action')
+  )
   const data = createMemo(() =>
     isRequested()
       ? getBackend(String(params.id))

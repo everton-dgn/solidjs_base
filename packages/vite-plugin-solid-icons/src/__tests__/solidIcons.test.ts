@@ -192,7 +192,7 @@ describe('solidIcons', () => {
         context,
         code: "import { ArrowDown01 } from 'icon:hugeicons'\nconsole.log(ArrowDown01)\n"
       }),
-      /"ArrowDown01" names more than one icon of 'icon:hugeicons': import ArrowDown_01 for arrow-down-01, or 'icon:hugeicons\/arrow-down01' for arrow-down01\./u
+      /"ArrowDown01" names more than one icon of 'icon:hugeicons': import ArrowDown_0_1 for arrow-down-0-1, ArrowDown_01 for arrow-down-01, or 'icon:hugeicons\/arrow-down01' for arrow-down01\./u
     )
   })
 

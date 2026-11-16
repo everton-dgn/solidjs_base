@@ -26,6 +26,8 @@ export class PassingReadError extends Error {
 }
 
 export function describeDuration(milliseconds: number): string {
+  const rounded = Math.round(milliseconds)
+  if (rounded < MILLISECONDS_PER_SECOND) return `${rounded} millisecond(s)`
   const seconds = Math.round(milliseconds / MILLISECONDS_PER_SECOND)
   return seconds % SECONDS_PER_MINUTE === 0
     ? `${seconds / SECONDS_PER_MINUTE} minute(s)`

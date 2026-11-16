@@ -21,9 +21,10 @@ const SOURCES = '{src,tooling}/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'
 // inside a declared module. The preset ignores their unlisted import by file.
 const ICON_TYPES_PATH = path.normalize(ICON_TYPES_FILE)
 const ICON_PREFIX = 'icon:'
-// The text of an import, a re-export or a dynamic import of an icon module,
-// which a comment or a string can also have.
-const ICON_SPECIFIER = /\b(?:from|import)\s*\(?\s*["'`]icon:/u
+// A string or a template that starts with icon:, as the path of an icon import
+// does. The parser tells the imports from the rest; a pattern that also read the
+// text before the path would miss an import with a comment there.
+const ICON_SPECIFIER = /["'`]icon:/u
 // The argument of a dynamic import that Knip reads, as the source spells it: a
 // string, or a template without an expression. Knip reads no path that the
 // code builds, such as 'icon:brand/' + name, so an ignore for it would be a

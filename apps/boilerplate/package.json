@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@evertondgn/solid-tooling": "workspace:*",
-    "@iconify-json/hugeicons": "1.2.35",
+    "@iconify-json/hugeicons": "1.2.36",
     "@inlang/plugin-message-format": "4.6.0",
     "@playwright/test": "1.65.1",
     "schema-dts": "catalog:",

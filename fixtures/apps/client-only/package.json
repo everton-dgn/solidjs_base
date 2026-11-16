@@ -16,7 +16,7 @@
     "@solidjs/web": "2.0.0-rc.22",
     "solid-js": "2.0.0-rc.22",
     "@solidjs/router": "2.0.0-next.44",
-    "@iconify-json/hugeicons": "1.2.35",
+    "@iconify-json/hugeicons": "1.2.36",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
     "vite-plus": "1.6.0"
   },

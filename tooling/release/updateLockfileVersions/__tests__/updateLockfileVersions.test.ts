@@ -30,7 +30,9 @@ type Setup = {
   manifests?: Record<string, string>
 }
 
-type Refusal = { file: string; problems: readonly string[] }
+type Refusal = { file: string; problems: readonly string[]; left?: number }
+
+type PackageLines = { text: string; version: string }
 
 const CURRENT = renderLock(LOCKED)
 const NEXT = renderLock(RELEASED)
@@ -44,6 +46,9 @@ const WITHOUT_RUNTIME = Object.fromEntries(
 const HELP =
   'Generate it again from this tree, or see docs/releasing.md#when-the-release-lockfile-workflow-fails.'
 const PAST = new Date('2020-01-01T00:00:00Z')
+const PACKAGES = '  "packages": {'
+const LISTED = 20
+const BYTE_ORDER_MARK = '\uFEFF'
 // One byte over the 16 MiB the command reads.
 const TOO_LARGE = 16_777_217
 // The byte 0xFF never appears in UTF-8 text.
@@ -74,12 +79,23 @@ async function prepare({
   return { ...workspace, file, update }
 }
 
-function refusal({ file, problems }: Refusal): string {
+function refusal({ file, problems, left = 0 }: Refusal): string {
   return [
     `${file} changes more than the workspace versions of bun.lock, so nothing was written:`,
     ...problems.map(problem => `  ${problem}`),
+    ...(left > 0 ? [`  and ${left} more line(s)`] : []),
     HELP
   ].join('\n')
+}
+
+// One package line more than the refusal lists.
+function withPackages({ text, version }: PackageLines): string {
+  const lines = Array.from(
+    { length: LISTED + 1 },
+    (_, index) =>
+      `    "p${index}": ["p${index}@${version}", "", {}, "sha512-AAAA=="],`
+  )
+  return editLine({ text, from: PACKAGES, to: [PACKAGES, ...lines].join('\n') })
 }
 
 describe('updateLockfileVersions', () => {
@@ -239,6 +255,64 @@ describe('updateLockfileVersions lines that are not workspace versions', () => {
         file,
         problems: [
           `line ${lineNumber({ text: NEXT, line: from })}: changes a line outside the workspaces section`
+        ]
+      })
+    })
+    assert.equal(await readFile(lockfile, 'utf8'), CURRENT)
+  })
+})
+
+describe('updateLockfileVersions strict reading', () => {
+  it('refuses a byte order mark that only the generated lock has, on line 1', async context => {
+    const { file, lockfile, update } = await prepare({
+      context,
+      generated: `${BYTE_ORDER_MARK}${NEXT}`
+    })
+
+    await assert.rejects(update(), {
+      message: refusal({
+        file,
+        problems: ['line 1: changes a line outside the workspaces section']
+      })
+    })
+    assert.equal(await readFile(lockfile, 'utf8'), CURRENT)
+  })
+
+  it('lists the first 20 problems and counts the lines left', async context => {
+    const lock = withPackages({ text: CURRENT, version: '1.0.0' })
+    const { file, lockfile, update } = await prepare({
+      context,
+      lock,
+      generated: withPackages({ text: NEXT, version: '1.0.1' })
+    })
+    const first = lineNumber({ text: lock, line: PACKAGES }) + 1
+
+    await assert.rejects(update(), {
+      message: refusal({
+        file,
+        problems: Array.from(
+          { length: LISTED },
+          (_, index) =>
+            `line ${first + index}: changes a line outside the workspaces section`
+        ),
+        left: 1
+      })
+    })
+    assert.equal(await readFile(lockfile, 'utf8'), lock)
+  })
+
+  it('refuses a version that is not major.minor.patch, even when the package.json has it', async context => {
+    const { file, lockfile, update } = await prepare({
+      context,
+      generated: renderLock({ ...RELEASED, runtime: '1.0' }),
+      manifests: { ...MANIFESTS, 'packages/runtime': '1.0' }
+    })
+
+    await assert.rejects(update(), {
+      message: refusal({
+        file,
+        problems: [
+          `line ${lineNumber({ text: CURRENT, line: RUNTIME_VERSION })}: changes a line that is not the "version" of a workspace`
         ]
       })
     })

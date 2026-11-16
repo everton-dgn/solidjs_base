@@ -1,6 +1,6 @@
 import { m } from '@paraglide/messages.js'
 import type { RouteDefinition } from '@solidjs/router'
-import SolidLogo from '~icons/my-images/solid'
+import SolidLogo from 'icon:my-images/solid'
 
 import { PageBadge } from '@/components/atoms/PageBadge/index.tsx'
 import {

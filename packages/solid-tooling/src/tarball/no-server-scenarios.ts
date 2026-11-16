@@ -137,6 +137,7 @@ ${STORED_THEME_PLUGIN}
 
 export default defineSolidApp({
   root: import.meta.dirname,
+  icons: { scenario: './src/assets/icons' },
   fonts: [
     {
       family: 'Scenario Font',

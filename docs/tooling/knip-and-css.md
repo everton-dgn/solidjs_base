@@ -26,9 +26,38 @@ export default defineKnipConfig({
 ```
 
 Run `vp run knip --config tooling/knip.ts`, then add `--strict`. The task uses
-the package-owned `knip-bun` executable. The config enables the `unplugin-icons`
-plugin explicitly, so virtual icon imports and icon collections remain
-recognized without an application dependency on that plugin. It lists:
+the package-owned `knip-bun` executable. The icons plugin of the preset resolves
+the `icon:` imports, which Knip reads as a package named `icon`, and loads each
+`@iconify-json/*` collection by its name, so the config ignores each of them
+when the application has it, without an application dependency on that plugin;
+an ignore that matched nothing would be a configuration hint. The config finds
+the `icon:` imports, re-exports and dynamic imports of `src/` and `tooling/`
+with the parser of `vite-plus`, so one in a comment or a string adds no ignore.
+An import in a file that no entry reaches still adds it: Knip reports that file
+as unused and the ignore as a configuration hint, and both go away when the file
+is used or removed. A dynamic import counts when its path is a string or a
+template without `${}`, the two that Knip reads and the only two that the icons
+plugin resolves. A path that the code builds, as in
+`import('icon:brand/' + name)` or ``import(`icon:brand/${name}`)``, gets no
+report from Knip and no ignore from the config, and the build ends without a
+warning, but the import fails at run time: the plugin leaves it as written, and
+the browser does not load an `icon:` specifier. For a name known at run time,
+map each name to its own import, as in
+`{ logo: () => import('icon:brand/logo') }`, which Knip reads and the plugin
+resolves. When a file of `src/` or `tooling/` imports or re-exports
+`@evertondgn/vite-plugin-solid-icons/types` and `package.json` does not declare
+the plugin, the config ignores `@evertondgn/vite-plugin-solid-icons`: this
+package declares that entry, so the application types its icons without the
+plugin. The ignore covers the whole package, so Knip then reports no other
+import of the plugin in that application. An import inside a type, as in
+`typeof import('icon:brand/logo')` or
+`import('@evertondgn/vite-plugin-solid-icons/types').IconComponent`, adds no
+ignore. Knip reports it as an unlisted dependency when it is the only icon
+import, or the only import of `/types`, in the application: an icon import, or
+an `import type` of `/types`, in another file adds the ignore, which then covers
+it. Write it as an `import type` at the top of the file. The config also ignores
+the unlisted import of `src/icon-collections.d.ts`, the declarations that the
+plugin writes. It lists:
 
 - `src/entry-server.tsx`, `src/entry-client.tsx`, `src/middleware/index.ts`,
   `env.ts` and `paraglide/runtime.js` as production entries. The Solid plugin

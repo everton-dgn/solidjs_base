@@ -1,8 +1,7 @@
 # Working in this repository
 
 This monorepo publishes three npm packages and keeps a copy of the boilerplate
-application. The icons plugin enters the release automation at its first
-publication:
+application:
 
 | Folder                             | Content                                                                           |
 | ---------------------------------- | --------------------------------------------------------------------------------- |
@@ -11,7 +10,7 @@ publication:
 | `packages/vite-plugin-solid-icons` | `@evertondgn/vite-plugin-solid-icons`: the Vite plugin of the icons               |
 | `apps/boilerplate`                 | The boilerplate application, with its own [AGENTS.md](apps/boilerplate/AGENTS.md) |
 | `fixtures/apps`                    | Minimal applications for the installed application scenarios                      |
-| `tooling/release`                  | The command that merges a pull request, `vp run release:merge`                    |
+| `tooling/release`                  | The merge command, `vp run release:merge`, and the wait in the publish job        |
 
 Read [Contributing](CONTRIBUTING.md), [Development](docs/development.md) and
 [Releasing](docs/releasing.md) before changing a package. The rules below are
@@ -33,9 +32,10 @@ the ones that cost a fix after a release when they were missed.
   per commit, with the package as the scope: `fix(tooling): ...`. The changelog
   publishes the messages as written.
 - release-please finds the package by the folder of the changed files, not by
-  the commit scope. A commit for one package must not touch the folder of the
-  other: a `fix` that edits `packages/solid-tooling/` also releases the tooling.
-- Both packages share one version number: a release of one raises the other to
+  the commit scope. A commit for one package must not touch the folder of
+  another: a `fix` that edits `packages/solid-tooling/` also releases the
+  tooling.
+- The packages share one version number: a release of one raises the others to
   the same version, in one release pull request.
 - `fix` and `feat` commits start a release. `docs`, `test` and `chore` commits
   do not, unless they carry a breaking change marker.

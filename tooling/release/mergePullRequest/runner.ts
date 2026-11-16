@@ -42,12 +42,17 @@ function isTimeout(error: unknown): boolean {
 export const TIMED_OUT_EXIT_CODE = 124
 
 export function createRunner(timeout: number): RunCommand {
-  return async ({ file, args }: Command): Promise<CommandResult> => {
+  return async ({
+    file,
+    args,
+    timeout: commandTimeout = timeout
+  }: Command): Promise<CommandResult> => {
+    const limit = Math.min(timeout, commandTimeout)
     try {
       const { stdout, stderr } = await execute(file, args, {
         encoding: 'utf8',
         maxBuffer: MAX_OUTPUT_BYTES,
-        timeout
+        timeout: limit
       })
       return { exitCode: 0, stdout, stderr }
     } catch (error) {
@@ -56,7 +61,7 @@ export function createRunner(timeout: number): RunCommand {
         return {
           exitCode: TIMED_OUT_EXIT_CODE,
           stdout: '',
-          stderr: `${command} did not finish within ${describeDuration(timeout)} and was stopped.`
+          stderr: `${command} did not finish within ${describeDuration(limit)} and was stopped.`
         }
       }
       if (!isExitFailure(error)) throw error

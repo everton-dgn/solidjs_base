@@ -1,7 +1,7 @@
 import { m } from '@paraglide/messages.js'
 import type { ComponentProps, JSX } from '@solidjs/web'
-import IconArrowLeft from '~icons/hugeicons/arrow-left-01'
-import IconRefresh from '~icons/hugeicons/refresh'
+import IconArrowLeft from 'icon:hugeicons/arrow-left-01'
+import IconRefresh from 'icon:hugeicons/refresh'
 
 import { HTTP_NOT_FOUND } from '@/constants/http.ts'
 

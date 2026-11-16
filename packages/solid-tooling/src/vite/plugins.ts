@@ -35,17 +35,15 @@ const ROUTE_TYPES = 'src/@types/routes.d.ts'
 // staged and the editor tooling read the config without paying that cost or
 // getting the Nitro start-up logs on stdout.
 async function loadPluginModules() {
-  const [solid, routing, icons, loaders] = await Promise.all([
+  const [solid, routing, icons] = await Promise.all([
     import('@solidjs/vite-plugin'),
     import('filesystem-routing/vite'),
-    import('unplugin-icons/vite'),
-    import('unplugin-icons/loaders')
+    import('@evertondgn/vite-plugin-solid-icons')
   ])
   return {
     solid: solid.default,
     fileRoutes: routing.fileRoutes,
-    Icons: icons.default,
-    FileSystemIconLoader: loaders.FileSystemIconLoader
+    solidIcons: icons.solidIcons
   }
 }
 
@@ -103,19 +101,20 @@ async function readLocales(root: string): Promise<string[]> {
   return locales
 }
 
+// WHY: the plugin resolves a folder against the root of Vite, the folder where
+// Vite runs. The folders of the icons option resolve from options.root, as the
+// icons-generate task reads them, also when Vite runs from another folder.
 function iconsPlugin({ modules, options }: IconsInput) {
-  return modules.Icons({
-    compiler: 'solid',
-    // oxlint-disable-next-line eslint/max-params -- unplugin-icons calls the customizer with three arguments.
-    iconCustomizer(_collection, _icon, props) {
-      props['aria-hidden'] = 'true'
-    },
-    customCollections: Object.fromEntries(
+  return modules.solidIcons({
+    collections: Object.fromEntries(
       Object.entries(options.icons ?? {}).map(([name, folder]) => [
         name,
-        modules.FileSystemIconLoader(path.resolve(options.root, folder))
+        path.resolve(options.root, folder)
       ])
-    )
+    ),
+    customizeIcon: ({ attributes }) => {
+      attributes['aria-hidden'] = 'true'
+    }
   })
 }
 

@@ -125,6 +125,8 @@ export function defineSolidApp(
         tasks: {
           ...createTasks({
             workspace: options.workspace,
+            root,
+            icons: options.icons,
             isCi: Boolean(env.CI),
             hasI18n: hasI18n(root)
           }),

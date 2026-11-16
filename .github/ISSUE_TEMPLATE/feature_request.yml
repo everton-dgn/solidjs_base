@@ -31,6 +31,8 @@ body:
       label: Package
       options:
         - '@evertondgn/solid-tooling'
+        - '@evertondgn/solid-runtime'
+        - '@evertondgn/vite-plugin-solid-icons'
         - A new package
         - Not sure
     validations:

@@ -4,17 +4,18 @@ export default defineConfig({
   run: {
     tasks: {
       // The tests create fixtures in temporary directories that the cache does
-      // not track; every run has to execute for real.
+      // not track; every run has to execute for real. They load the icons
+      // plugin from its build, and the tarball tests pack it with the tooling.
       'test-rules': {
         command:
           "node --test --test-timeout=60000 'src/__tests__/*.test.ts' 'src/!(tarball)/**/__tests__/*.test.ts'",
-        dependsOn: ['build'],
+        dependsOn: ['build', '@evertondgn/vite-plugin-solid-icons#build'],
         cache: false
       },
       'test-tarball': {
         command:
           'node --test --test-timeout=300000 src/tarball/__tests__/tarball.test.ts',
-        dependsOn: ['build'],
+        dependsOn: ['build', '@evertondgn/vite-plugin-solid-icons#build'],
         cache: false
       }
     }
@@ -36,6 +37,7 @@ export default defineConfig({
       'solid-plugin': 'src/solid-plugin.ts',
       vite: 'src/vite/index.ts',
       'i18n-generate': 'src/i18n/generate.ts',
+      'icons-generate': 'src/icons/generate.ts',
       vitest: 'src/vitest/index.ts',
       'vitest-setup/browser': 'src/vitest/setup/browser.ts',
       playwright: 'src/playwright/index.ts',
@@ -53,6 +55,7 @@ export default defineConfig({
         './tsconfig.app.json': './tsconfig.app.json',
         './app-env': { types: './app-env.d.ts' },
         './virtual-modules': { types: './virtual-modules.d.ts' },
+        './icon-modules': { types: './icon-modules.d.ts' },
         './lefthook.yml': './lefthook.yml'
       })
     }

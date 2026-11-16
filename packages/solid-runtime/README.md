@@ -464,7 +464,8 @@ Two more layers check the package as an application installs it:
 - The tarball test packs the package, installs it as a dependency in a temporary
   folder and checks that the header constants load in plain Node, that every
   target of `exports` is in the tarball and that no test folder is published.
-- The installed scenarios install the packed tooling and runtime in the
+- The installed scenarios install the packed tooling, runtime and icons plugin
+  in the
   [three fixture applications](https://github.com/everton-dgn/solidjs_base/tree/main/fixtures/apps)
   with Bun's `hoisted` and `isolated` linkers, build them and audit the bundles
   and server boundaries. The matrix enumerates 14 application cases: 3 for

@@ -13,13 +13,20 @@
     },
     "packages/solid-runtime": {
       "component": "solid-runtime"
+    },
+    "packages/vite-plugin-solid-icons": {
+      "component": "vite-plugin-solid-icons"
     }
   },
   "plugins": [
     {
       "type": "linked-versions",
       "groupName": "solid packages",
-      "components": ["solid-tooling", "solid-runtime"]
+      "components": [
+        "solid-tooling",
+        "solid-runtime",
+        "vite-plugin-solid-icons"
+      ]
     }
   ]
 }

@@ -53,7 +53,7 @@ export default defineSolidApp({
 | `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                                                                 |
 | `serverSetup`     | `serverFunctions: true` | `serverFunctions.serverSetup` of the Solid plugin                                                                                                                   |
 | `e2e`             | production paths        | `{ middleware, routes }` for `--mode e2e`: the middleware chain and the route folder of the fixtures, without route types                                           |
-| `icons`           | none                    | Own `unplugin-icons` collections, as name to folder                                                                                                                 |
+| `icons`           | none                    | Folder collections of the icons plugin, as name to folder                                                                                                           |
 | `publicAssets`    | none                    | `publicAssets` of Nitro. Each entry needs a `baseURL`, which also gets the static headers                                                                           |
 | `staticPaths`     | none                    | Other static paths that get the headers, such as `/favicon/**`                                                                                                      |
 | `routeRules`      | none                    | More Nitro route rules, applied after the static ones. A rule with the same path replaces the static one                                                            |
@@ -68,19 +68,21 @@ application's generated runtime. Otherwise it supplies the single `language`,
 returns hrefs unchanged, normalizes absolute URL inputs to URL objects, and
 returns undefined when extracting a locale from a URL. The module declarations
 are published at `@evertondgn/solid-tooling/virtual-modules` and loaded by
-`tsconfig.app.json`.
+`tsconfig.app.json`, like the declarations of the `icon:` imports at
+`@evertondgn/solid-tooling/icon-modules`.
 
 The preset fixes the rest:
 
 - Plugins, in this order: the locale provider, the optional font plugin, the
   `extend` plugins, the catalog preparation and Paraglide plugins when i18n is
-  present, `unplugin-icons` (Solid compiler, `aria-hidden` on every icon),
-  `@solidjs/vite-plugin` with SSR and server functions, `filesystem-routing`
-  with HTTP methods and the route types in `src/@types/routes.d.ts`, and Nitro
-  with the `vercel` preset. The `dom` and `browser` test projects get the locale
-  provider, optional fonts, `extend` and i18n plugins, the icons, Solid with
-  server functions only and the routes. The `test` mode loads no application
-  plugin and reads `.env.test` into `process.env`.
+  present, `@evertondgn/vite-plugin-solid-icons` (`aria-hidden` on every icon,
+  installed Iconify collections loaded by their name), `@solidjs/vite-plugin`
+  with SSR and server functions, `filesystem-routing` with HTTP methods and the
+  route types in `src/@types/routes.d.ts`, and Nitro with the `vercel` preset.
+  The `dom` and `browser` test projects get the locale provider, optional fonts,
+  `extend` and i18n plugins, the icons, Solid with server functions only and the
+  routes. The `test` mode loads no application plugin and reads `.env.test` into
+  `process.env`.
 - The static headers go to `/assets/**`, each `publicAssets` folder and the
   `staticPaths`. With `seo.markdown.static`, also to `/<locale>/**.md` for each
   locale, or `/**.md` without i18n, and `/_markdown/static.json`. `seo.llms`
@@ -117,6 +119,68 @@ optional plugin follows the locale provider and emits external CSS and font
 assets. See [application fonts](fonts.md) for descriptors, `FontLinks`,
 client-only HTML injection and migration. Without the option there is no font
 plugin or generated font output.
+
+### Icons
+
+The `icons` option maps each folder collection to a folder of SVG files, which
+resolves from `root`. The preset loads `@evertondgn/vite-plugin-solid-icons`
+with these folders and `aria-hidden="true"` on every icon, and the Iconify
+collections that `package.json` installs load by their name. The
+[plugin README](../../packages/vite-plugin-solid-icons/README.md) describes the
+imports, the names and what the build refuses in an SVG file. The plugin reads
+the installed collections from the `package.json` of the Vite root, the folder
+where Vite runs, and writes the declarations of the names there; it is `root`
+when Vite runs in the application folder, as `vp run` does.
+
+#### Migrating from `~icons/`
+
+Up to 0.7.0 the preset loaded `unplugin-icons`. An application that updates from
+it:
+
+- Replaces each `~icons/<collection>/<name>` import with
+  `icon:<collection>/<name>`. `icon:<collection>` also exports each icon by its
+  name, as in `import { Github } from 'icon:hugeicons'`.
+- Deletes its declaration of the `~icons/*` modules, such as
+  `src/@types/icons.d.ts`. `tsconfig.app.json` loads the declarations of the
+  `icon:` imports through `@evertondgn/solid-tooling/app-env`, so a
+  `tsconfig.json` with its own `types` keeps that entry. The types of the
+  plugin, such as `IconComponent`, come from
+  `@evertondgn/vite-plugin-solid-icons/types` without a dependency of the
+  application, which the [Knip config](knip-and-css.md) accepts.
+- Adds `src/icon-collections.d.ts` to `.gitignore`. The dev server, the build
+  and the `icons-generate` task write the names of every collection there, and
+  `lint-project` and `check-project` run the task first. Run
+  `vp run icons-generate` before a `vp lint` or a `tsc` outside these tasks when
+  the application imports icons by name.
+- Keeps only `?raw` in an import, for the SVG markup as a string, written
+  without a value: `?raw=true` stops the build too. The old plugin turned the
+  other keys of a query into attributes of the `<svg>`, as in `?width=2em`; the
+  build now stops on any other query, `?url` included. Pass the attributes as
+  props of the component, as in `<IconGithub width="2em" />`, which go on the
+  `<svg>` after its own. For the URL of a file of a folder collection, import
+  the file with the `?url` of Vite, as in
+  `import logoUrl from './assets/icons/logo.svg?url'`, or build a data URL from
+  `?raw`.
+- Names each collection with lowercase letters, digits and single hyphens, as in
+  `my-images`. Another name in `icons` stops the dev server, the build and
+  `icons-generate` with the list of the invalid names.
+- Spells the name of the file exactly, in its case: `icon:brand/logo-mark` loads
+  `logo-mark.svg` only. The old loader also tried `logoMark.svg`, `LogoMark.svg`
+  and `logo_mark.svg`; import such a file by its own name, as in
+  `icon:brand/LogoMark`.
+- Reviews the SVG files of its folders. The build stops on markup that runs code
+  or that a page reads as HTML, such as `<script>`, an `onload` attribute, a
+  `javascript:` URL or `<foreignObject>`, and on a file that is not well-formed
+  XML, where the old loader read the file as it was from its `<svg` on. See
+  [what the plugin does with your SVG files](../../packages/vite-plugin-solid-icons/README.md#what-the-plugin-does-with-your-svg-files).
+- Keeps its folders relative to `root`, as before.
+- Installs each Iconify collection as `@iconify-json/<collection>`. An icon of
+  the whole `@iconify/json` package still loads by its path, but the
+  declarations of the names list only the `@iconify-json/*` packages, and the
+  Knip config ignores only them, where the Knip plugin of `unplugin-icons` that
+  0.7.0 turned on also ignored `@iconify/json`.
+- Declares `unplugin-icons` in its own `package.json` when it imports it, as in
+  its own `vite.config.ts`: the tooling no longer installs it.
 
 ### `extend`
 
@@ -167,10 +231,11 @@ configuration requires neither of them.
 | Task                | Command                                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------------------------- |
 | `i18n-generate`     | `bun '<package>/dist/i18n-generate.mjs'`, only with `project.inlang/settings.json`                      |
+| `icons-generate`    | `node '<package>/dist/icons-generate.mjs'`, with `root` and `icons` as JSON                             |
 | `lint-css`          | `bun tooling/css/check.ts`                                                                              |
 | `dead-code-project` | Package-owned Knip with `--config tooling/knip.ts`, then again with `--strict`                          |
-| `lint-project`      | `vp lint`, after `lint-css`                                                                             |
-| `check-project`     | `vp fmt --check && vp lint`, after `lint-css`                                                           |
+| `lint-project`      | `vp lint`, after `lint-css` and `icons-generate`                                                        |
+| `check-project`     | `vp fmt --check && vp lint`, after `lint-css` and `icons-generate`                                      |
 | `typecheck-node`    | Package-owned TypeScript with `--project tsconfig.node.json`                                            |
 | `test-tooling`      | `node --test` over `tooling/**/__tests__` except `tooling/release/`, three workers on CI, with no cache |
 
@@ -188,14 +253,26 @@ to the package and runs it from the application root. It validates colocated
 catalogs before compiling to `paraglide/`. Its cache covers catalogs, project
 settings, compiler options, dependencies and the workspace package build.
 
+`@evertondgn/solid-tooling/icons-generate` writes `src/icon-collections.d.ts`,
+the typed names of every collection that the icons plugin also writes in the dev
+server and the build, so the type check of `lint-project` and `check-project`
+reads the current icons. It fails when a collection that `package.json` lists
+cannot be read. Its cache covers the SVG files of the icon folders,
+`package.json`, dependencies and the workspace package build. A pattern of the
+cache cannot follow a folder outside the application, or one whose path has a
+glob character such as `*` or `[`, so with such a folder the task runs every
+time instead of restoring older declarations. The lint and format presets and
+Knip leave the file out; keep it out of Git too, as the boilerplate does.
+
 The CSS and Knip commands run scripts of the boilerplate layout. An application
 without one of them replaces the task through `tasks`. Knip reads task commands
 only from a `run.tasks` block written in `vite.config.ts`, so it does not see
 these: list the scripts they run as Knip entries.
 
 With `workspace`, the cache inputs read `bun.lock`, `bunfig.toml` and the
-`inputs` from the workspace root, and `i18n-generate`, `lint-css`,
-`dead-code-project` and `typecheck-node` depend on the tasks in `dependsOn`:
+`inputs` from the workspace root, and `i18n-generate`, `icons-generate`,
+`lint-css`, `dead-code-project` and `typecheck-node` depend on the tasks in
+`dependsOn`:
 
 ```ts
 workspace: {

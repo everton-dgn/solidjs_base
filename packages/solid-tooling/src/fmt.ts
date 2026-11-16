@@ -1,5 +1,7 @@
 import type { UserConfig } from 'vite-plus'
 
+import { ICON_TYPES_FILE } from './icons/constants.ts'
+
 export const fmt: NonNullable<UserConfig['fmt']> = {
   printWidth: 80,
   singleQuote: true,
@@ -23,6 +25,7 @@ export const fmt: NonNullable<UserConfig['fmt']> = {
     'public/**',
     'src/assets/**',
     'src/@types/routes.d.ts',
+    ICON_TYPES_FILE,
     '**/*.svg',
     '*.lock',
     'AGENTS.md',

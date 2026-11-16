@@ -532,8 +532,10 @@ yourself only when your code imports it. With nothing to validate, skip
   <img src="docs/assets/readme/icons-light.webp" alt="The my-images collection maps to src/assets/images. solid.svg becomes a Solid component through ~icons/my-images/solid. The preset supplies unplugin-icons and aria-hidden; the application chooses SVGs or Iconify collections and labels its controls." width="800" />
 </picture>
 
-The preset configures `unplugin-icons` for Solid. Install the Iconify
-collections you use, or map your own SVG folder:
+The preset loads
+[`@evertondgn/vite-plugin-solid-icons`](packages/vite-plugin-solid-icons/README.md),
+the icons plugin of this repository. Install the Iconify collections you use, or
+map your own SVG folder:
 
 ```ts
 import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
@@ -546,10 +548,14 @@ export default defineSolidApp({
 ```
 
 The copy's [Solid SVG](apps/boilerplate/src/assets/images/solid.svg) is
-available as `~icons/my-images/solid`. Icons compile to Solid components and
-receive `aria-hidden`; give icon-only controls an accessible label. The plugin
-belongs to the tooling package. Your assets and selected collections belong to
-your app. See the [plugin configuration](docs/tooling/app-config.md).
+available as `icon:my-images/solid`, and an installed collection by its name, as
+in `icon:hugeicons/github`. Icons compile to Solid components and receive
+`aria-hidden`; give icon-only controls an accessible label. Before the check and
+the lint, a `vp run` task writes the typed names of every collection to
+`src/icon-collections.d.ts`, so `import { Github } from 'icon:hugeicons'` is
+type-checked too. The plugin belongs to the tooling package. Your assets and
+selected collections belong to your app. See the
+[plugin configuration](docs/tooling/app-config.md).
 
 ## Fonts with matching CSS and preloads
 
@@ -738,17 +744,18 @@ their own installation, including with Bun's isolated linker.
 | Application                                           | Direct declarations before | Current manifest | Fewer declarations |
 | ----------------------------------------------------- | -------------------------: | ---------------: | -----------------: |
 | [Boilerplate copy](apps/boilerplate/package.json)     |                         28 |               14 |                 14 |
-| [Client-only](fixtures/apps/client-only/package.json) |                         16 |                5 |                 11 |
+| [Client-only](fixtures/apps/client-only/package.json) |                         16 |                6 |                 10 |
 | [SSR plain](fixtures/apps/ssr-plain/package.json)     |                         17 |                5 |                 12 |
 | [SSR i18n](fixtures/apps/ssr-i18n/package.json)       |                         19 |                7 |                 12 |
 | [Lint consumer](fixtures/consumer/package.json)       |                          6 |                3 |                  3 |
 
 Counts combine `dependencies` and `devDependencies`, excluding overrides and
 transitive packages. The installed harness adds `solid-tooling` and
-`solid-runtime` to each minimal app, so their installed direct totals are 7, 7
-and 9. The original installed totals were 18, 19 and 21. Both sides of the table
-exclude those injected entries. The copy and lint consumer already declare their
-package dependencies.
+`solid-runtime` to each minimal app, so their installed direct totals are 8, 7
+and 9. The client-only fixture declares an Iconify collection, which the
+original count did not have. The original installed totals were 18, 19 and 21.
+Both sides of the table exclude those injected entries. The copy and lint
+consumer already declare their package dependencies.
 
 The [dependency decision](docs/ADRs/0027-packaged-tool-dependencies.md) records
 the original measurements. Fewer declarations do not mean a smaller install: the
@@ -839,10 +846,11 @@ publishing with signed provenance; a new package follows the
   <img src="docs/assets/readme/runtime-entries-light.webp" alt="The 64 entries of solid-runtime by group: seo 15, middleware 12, server 12, theme 11, i18n 10, routing 2, env 1 and fonts 1, with examples such as create-seo, create-middleware, configure-server-errors, locale-tag, define-theme, walk-static-routes and font-links. An entry you do not import stays out of your build." width="800" />
 </picture>
 
-| Available package                                               | What it provides                                                                                          |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| [`@evertondgn/solid-tooling`](packages/solid-tooling/README.md) | Config, build tools, catalog generation, icons, fonts, lint, tests and hooks                              |
-| [`@evertondgn/solid-runtime`](packages/solid-runtime/README.md) | Locale and theme behavior, middleware, server errors, env validators, SEO, sitemap, Markdown and llms.txt |
+| Available package                                                                   | What it provides                                                                                          |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| [`@evertondgn/solid-tooling`](packages/solid-tooling/README.md)                     | Config, build tools, catalog generation, icons, fonts, lint, tests and hooks                              |
+| [`@evertondgn/solid-runtime`](packages/solid-runtime/README.md)                     | Locale and theme behavior, middleware, server errors, env validators, SEO, sitemap, Markdown and llms.txt |
+| [`@evertondgn/vite-plugin-solid-icons`](packages/vite-plugin-solid-icons/README.md) | The icons plugin that the tooling loads, also usable on its own in a Vite+ application                    |
 
 The runtime is published as TypeScript source, split into 64 entries, so your
 app imports only the features it uses: `seo` has 15, `middleware` and `server`

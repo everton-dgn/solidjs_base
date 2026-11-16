@@ -8,7 +8,10 @@ import { parse } from 'vite-plus'
 
 type Parsed = Awaited<ReturnType<typeof parse>>
 
-const TYPES_ENTRY = '@evertondgn/vite-plugin-solid-icons/types'
+type ExportedType = { name: string; source: string | undefined }
+
+const PLUGIN = '@evertondgn/vite-plugin-solid-icons'
+const TYPES_ENTRY = `${PLUGIN}/types`
 const ICON_MODULES = path.resolve(
   import.meta.dirname,
   '../../../icon-modules.d.ts'
@@ -29,7 +32,7 @@ async function pluginTypeNames(): Promise<string[]> {
   )
 }
 
-async function toolingTypeNames(): Promise<string[]> {
+async function toolingTypes(): Promise<ExportedType[]> {
   const { program } = await parseFile(ICON_MODULES)
   return program.body.flatMap(statement => {
     if (
@@ -42,6 +45,7 @@ async function toolingTypeNames(): Promise<string[]> {
     }
     return statement.body.body.flatMap(member => {
       if (member.type !== 'ExportNamedDeclaration') return []
+      const source = member.source?.value
       const declared =
         member.declaration?.type === 'TSTypeAliasDeclaration'
           ? [member.declaration.id.name]
@@ -51,16 +55,20 @@ async function toolingTypeNames(): Promise<string[]> {
         ...member.specifiers.map(({ exported }) =>
           exported.type === 'Identifier' ? exported.name : exported.value
         )
-      ]
+      ].map(name => ({ name, source }))
     })
   })
 }
 
-it('declares every type of the types entry of the icons plugin', async () => {
+it('declares every type of the types entry of the icons plugin, from the plugin', async () => {
   const [plugin, tooling] = await Promise.all([
     pluginTypeNames(),
-    toolingTypeNames()
+    toolingTypes()
   ])
   assert.ok(plugin.length > 0)
-  assert.deepEqual(tooling.toSorted(), plugin.toSorted())
+  assert.deepEqual(
+    tooling.map(({ name }) => name).toSorted(),
+    plugin.toSorted()
+  )
+  assert.deepEqual([...new Set(tooling.map(({ source }) => source))], [PLUGIN])
 })

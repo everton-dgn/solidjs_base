@@ -70,8 +70,15 @@ The options were:
   keep the plugin they use today.
 - Update: the second step moved `defineSolidApp`, its declarations and the
   boilerplate app to this plugin, and added the package to the release
-  automation at `0.7.0`, published by hand from the last commit of that change,
-  as [New package](../releasing.md#new-package) describes.
+  automation at `0.7.0`, published by hand at the commit of its tag,
+  `vite-plugin-solid-icons@0.7.0`, as [New package](../releasing.md#new-package)
+  describes. That version has no GitHub Release, and the `CHANGELOG.md` of the
+  package starts at its first automated release. The tag does not hold that
+  release back: in the `linked-versions` group, the next release of the tooling
+  or the runtime raises the package to the same version. Since the tooling pins
+  the plugin of its own version, the publish job of each package waits until npm
+  has the packages of this repository that its tarball pins
+  ([The order of the publication](../releasing.md#the-order-of-the-publication)).
 
 ## Consequences
 
@@ -83,14 +90,16 @@ The options were:
   it, as the other two packages do.
 - The package has to be released before the tooling version that depends on it,
   and the installed application scenarios need its tarball once the tooling
-  depends on it.
+  depends on it. The publish job of the tooling waits for that version on npm
+  and fails without publishing when it does not appear.
 - The declaration file of a large collection is large: `hugeicons` alone
   declares 6,106 names. The formatter, the linter and Knip of an application
   have to leave it out, which the second step adds to the presets.
 - Some names of a collection are also global names, such as `Map` and `Math` in
   `hugeicons`. An application renames them on import.
 - Until the second step, the repository holds two ways to load icons, and the
-  docs of the tooling and the app describe the one they still use.
+  docs of the tooling and the app describe the one they still use. The second
+  step left this plugin as the only one.
 - The SVG files of a folder collection are code of the application: the package
   does not sanitize them. It guarantees that their markup stays markup. The
   component and the SVG text of `?raw` are written again from the elements,

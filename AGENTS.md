@@ -10,7 +10,7 @@ application:
 | `packages/vite-plugin-solid-icons` | `@evertondgn/vite-plugin-solid-icons`: the Vite plugin of the icons               |
 | `apps/boilerplate`                 | The boilerplate application, with its own [AGENTS.md](apps/boilerplate/AGENTS.md) |
 | `fixtures/apps`                    | Minimal applications for the installed application scenarios                      |
-| `tooling/release`                  | The command that merges a pull request, `vp run release:merge`, and the wait for the pinned packages in the publish job |
+| `tooling/release`                  | The merge command, `vp run release:merge`, and the wait in the publish job        |
 
 Read [Contributing](CONTRIBUTING.md), [Development](docs/development.md) and
 [Releasing](docs/releasing.md) before changing a package. The rules below are

@@ -297,24 +297,34 @@ describe('i18n dev directory discovery', () => {
       )
     }
     const watch = fs.watch.bind(fs)
+    const watchFile = fs.watchFile.bind(fs)
     let renames = 0
     // Chokidar scans the directory before watching it; a rename between
-    // those steps emits no file event.
-    context.mock.method(fs, 'watch', (...args: Parameters<typeof fs.watch>) => {
-      const [target] = args
+    // those steps emits no file event. The harness polls on macOS, where
+    // Chokidar watches with fs.watchFile.
+    const renameBeforeWatch = (target: unknown) => {
       if (
-        renames === 0 &&
-        String(target).endsWith(path.join('src', 'routes', 'About'))
+        renames > 0 ||
+        !String(target).endsWith(path.join('src', 'routes', 'About'))
       ) {
-        // oxlint-disable-next-line node/no-sync -- The rename must happen before the watch exists.
-        fs.renameSync(
-          path.join(consumer, 'staging'),
-          path.join(consumer, 'i18n')
-        )
-        renames += 1
+        return
       }
+      // oxlint-disable-next-line node/no-sync -- The rename must happen before the watch exists.
+      fs.renameSync(path.join(consumer, 'staging'), path.join(consumer, 'i18n'))
+      renames += 1
+    }
+    context.mock.method(fs, 'watch', (...args: Parameters<typeof fs.watch>) => {
+      renameBeforeWatch(args[0])
       return watch(...args)
     })
+    context.mock.method(
+      fs,
+      'watchFile',
+      (...args: Parameters<typeof fs.watchFile>) => {
+        renameBeforeWatch(args[0])
+        return watchFile(...args)
+      }
+    )
 
     await rename(tree, consumer)
     await waitFor(() => Promise.resolve(renames === 1))

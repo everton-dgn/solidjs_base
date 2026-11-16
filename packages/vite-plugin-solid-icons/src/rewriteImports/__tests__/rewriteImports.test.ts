@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { SourceMap } from 'node:module'
 import { describe, it } from 'node:test'
 
 import { buildNameTable, exportedIcon } from '../../iconNames/index.ts'
@@ -184,15 +185,39 @@ const b = \`import('icon:hugeicons')\`
   })
 
   it('maps the rewritten code to the source', async () => {
+    const code =
+      "import { Github, ArrowLeft01 } from 'icon:hugeicons'; export const a = Github\n"
     const result = await rewriteImports({
-      code: "import { Github } from 'icon:hugeicons'\nexport const a = Github\n",
+      code,
       id: '/src/App.ts',
       resolveIcon
     })
 
     assert.ok(result)
     assert.deepEqual(result.map.sources, ['/src/App.ts'])
-    assert.ok(result.map.mappings)
+    assert.deepEqual(result.map.sourcesContent, [code])
+    const map = new SourceMap({
+      version: result.map.version,
+      file: '',
+      sourceRoot: '',
+      sources: result.map.sources,
+      sourcesContent: [code],
+      names: result.map.names,
+      mappings: result.map.mappings
+    })
+    const originalPosition = (generatedColumn: number) => {
+      const entry = map.findEntry(0, generatedColumn)
+      assert.ok('originalColumn' in entry)
+      return [entry.originalLine, entry.originalColumn]
+    }
+    assert.deepEqual(originalPosition(result.code.indexOf('export')), [
+      0,
+      code.indexOf('export')
+    ])
+    assert.deepEqual(originalPosition(result.code.lastIndexOf('Github')), [
+      0,
+      code.lastIndexOf('Github')
+    ])
   })
 
   it('names a missing icon and suggests the closest name', async () => {

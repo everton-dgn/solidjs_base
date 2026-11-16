@@ -35,8 +35,14 @@ the `icon:` imports, re-exports and dynamic imports of `src/` and `tooling/`
 with the parser of `vite-plus`, so one in a comment or a string adds no ignore.
 An import in a file that no entry reaches still adds it: Knip reports that file
 as unused and the ignore as a configuration hint, and both go away when the file
-is used or removed. It also ignores the unlisted import of
-`src/icon-collections.d.ts`, the declarations that the plugin writes. It lists:
+is used or removed. A dynamic import counts when its path is a string or a
+template without `${}`, the two that Knip reads. Knip does not read a path that
+the code builds, as in `import('icon:brand/' + name)` or
+``import(`icon:brand/${name}`)``, so it reports nothing for it and the config
+adds no ignore. For a name known at run time, map each name to its own import,
+as in `{ logo: () => import('icon:brand/logo') }`, which Knip reads. The config
+also ignores the unlisted import of `src/icon-collections.d.ts`, the
+declarations that the plugin writes. It lists:
 
 - `src/entry-server.tsx`, `src/entry-client.tsx`, `src/middleware/index.ts`,
   `env.ts` and `paraglide/runtime.js` as production entries. The Solid plugin

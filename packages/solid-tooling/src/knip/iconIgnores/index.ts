@@ -12,9 +12,13 @@ const SOURCES = '{src,tooling}/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'
 const ICON_PREFIX = 'icon:'
 // The text of an import, a re-export or a dynamic import of an icon module,
 // which a comment or a string can also have.
-const ICON_SPECIFIER = /\b(?:from|import)\s*\(?\s*['"]icon:/u
-// The argument of a dynamic import, as the source spells it.
-const ICON_STRING = /^(?<quote>["'])icon:[^"']*\k<quote>$/u
+const ICON_SPECIFIER = /\b(?:from|import)\s*\(?\s*["'`]icon:/u
+// The argument of a dynamic import that Knip reads, as the source spells it: a
+// string, or a template without an expression. Knip reads no path that the
+// code builds, such as 'icon:brand/' + name, so an ignore for it would be a
+// configuration hint.
+const ICON_STRING =
+  /^(?:(?<quote>["'])icon:[^"']*\k<quote>|`icon:(?:[^$`]|\$(?!\{))*`)$/u
 const DEPENDENCY_FIELDS = [
   'dependencies',
   'devDependencies',

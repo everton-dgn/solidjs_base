@@ -52,6 +52,32 @@ it('finds a dynamic import of an icon', async context => {
   assert.deepEqual(await iconIgnores(root), ['icon'])
 })
 
+it('finds a dynamic import of an icon written as a template', async context => {
+  const root = await createAppFixture({
+    context,
+    files: {
+      'package.json': '{}\n',
+      'src/load.ts': 'await import(`icon:brand/logo`)\n'
+    }
+  })
+  assert.deepEqual(await iconIgnores(root), ['icon'])
+})
+
+it('adds no ignore for an icon path that the code builds, which Knip does not read', async context => {
+  const root = await createAppFixture({
+    context,
+    files: {
+      'package.json': '{}\n',
+      'src/load.ts': [
+        `export const load = (name: string) => import(\`icon:brand/\${name}\`)`,
+        "export const loadMark = (name: string) => import('icon:mark/' + name)",
+        ''
+      ].join('\n')
+    }
+  })
+  assert.deepEqual(await iconIgnores(root), [])
+})
+
 it('ignores the text of an import in a comment or a string', async context => {
   const root = await createAppFixture({
     context,

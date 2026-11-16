@@ -32,6 +32,8 @@ type LineResult =
 
 type Refusal = { generated: string; problems: readonly string[] }
 
+type LineCount = { generated: string; text: string; currentText: string }
+
 const LOCKFILE = 'bun.lock'
 // A lock that changes many lines is wrong as a whole; the first lines are
 // enough to tell why.
@@ -41,6 +43,21 @@ const HELP = 'docs/releasing.md#when-the-release-lockfile-workflow-fails'
 function countLines(text: string): number {
   const pieces = text.split('\n').length
   return text.endsWith('\n') ? pieces - 1 : pieces
+}
+
+// The same count on both sides means that only one of them ends with a
+// newline, which the count leaves out.
+function describeLineCount({
+  generated,
+  text,
+  currentText
+}: LineCount): string {
+  const lines = countLines(text)
+  const currentLines = countLines(currentText)
+  if (lines === currentLines) {
+    return `${generated} and ${LOCKFILE} differ in the newline at the end of the file, a change that is not a workspace version. Nothing was written.`
+  }
+  return `${generated} has ${lines} lines and ${LOCKFILE} has ${currentLines}, so it adds or removes lines instead of changing workspace versions. Nothing was written.`
 }
 
 async function checkLine({
@@ -108,9 +125,7 @@ export async function updateLockfileVersions({
   const next = text.split('\n')
   const current = currentText.split('\n')
   if (next.length !== current.length) {
-    throw new Error(
-      `${generated} has ${countLines(text)} lines and ${LOCKFILE} has ${countLines(currentText)}, so it adds or removes lines instead of changing workspace versions. Nothing was written.`
-    )
+    throw new Error(describeLineCount({ generated, text, currentText }))
   }
   const changed = next.flatMap((line, index) =>
     line === current[index] ? [] : [index]

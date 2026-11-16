@@ -141,6 +141,18 @@ describe('updateLockfileVersions', () => {
     })
     assert.equal(await readFile(lockfile, 'utf8'), CURRENT)
   })
+
+  it('refuses a lock that differs only in the newline at the end of the file', async context => {
+    const { file, lockfile, update } = await prepare({
+      context,
+      generated: NEXT.slice(0, -1)
+    })
+
+    await assert.rejects(update(), {
+      message: `${file} and bun.lock differ in the newline at the end of the file, a change that is not a workspace version. Nothing was written.`
+    })
+    assert.equal(await readFile(lockfile, 'utf8'), CURRENT)
+  })
 })
 
 describe('updateLockfileVersions lines that are not workspace versions', () => {

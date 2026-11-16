@@ -23,7 +23,7 @@ jobs:
   generate:
     name: Generate the lockfile
     # WHY: deleting a branch also sends a push, with the commit of the default
-    # branch, and pushing a lockfile then would create the branch again.
+    # branch, and a branch that is gone has no lockfile to write.
     if: ${{ !github.event.deleted }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -111,8 +111,10 @@ jobs:
 
       # WHY: a push with the App token starts the CI of the pull request and
       # this workflow again, which finds no difference; the GITHUB_TOKEN would
-      # start neither. The push is not forced: when the branch moved, GitHub
-      # refuses it, and the run of the new head writes the lockfile.
+      # start neither. The lease lets the server update the branch only while
+      # it is still at the checked commit, so a branch that moved or was deleted
+      # is neither overwritten nor created again, and the run of its new head
+      # writes the lockfile. Any other failure of the push fails the step.
       - name: Commit and push
         if: steps.check.outputs.changed == 'true'
         env:
@@ -122,14 +124,20 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           gh auth setup-git
-          remote="$(git ls-remote origin "refs/heads/$BRANCH" | cut -f 1)"
-          if [ "$remote" != "$SHA" ]; then
-            echo "$BRANCH is at ${remote:-no commit} now, not at $SHA: the run of its new head checks the lockfile."
-            exit 0
-          fi
           user_id="$(gh api "users/${APP_SLUG}[bot]" --jq .id)"
           git config user.name "${APP_SLUG}[bot]"
           git config user.email "${user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
           git add -- bun.lock
           git commit --message 'chore(release): write the workspace versions in bun.lock'
-          git push origin "HEAD:refs/heads/$BRANCH"
+          if output="$(git push --porcelain --force-with-lease="refs/heads/$BRANCH:$SHA" origin "HEAD:refs/heads/$BRANCH" 2>&1)"; then
+            printf '%s\n' "$output"
+            exit 0
+          fi
+          printf '%s\n' "$output"
+          remote="$(git ls-remote origin "refs/heads/$BRANCH" | cut -f 1)"
+          if [ "$remote" != "$SHA" ] && printf '%s\n' "$output" | awk -F '\t' -v ref="HEAD:refs/heads/$BRANCH" '$1 == "!" && $2 == ref { found = 1 } END { exit !found }'; then
+            echo "$BRANCH is at ${remote:-no commit}, not at $SHA, so the push was refused: the run of its new head writes the lockfile."
+            exit 0
+          fi
+          echo "The push to $BRANCH failed while the branch is at ${remote:-no commit}." >&2
+          exit 1

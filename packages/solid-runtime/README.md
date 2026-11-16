@@ -485,6 +485,8 @@ point listed in `package.json` appears in one of them.
 
 ### Requirements
 
+- The application runs on Node 26 or a later line, from the version that
+  `engines.node` in the package's `package.json` names.
 - The Solid Vite plugin adds the `solid` condition to the application build for
   the TypeScript entries.
 - The node project of `solidTest`, from `@evertondgn/solid-tooling/vitest`,

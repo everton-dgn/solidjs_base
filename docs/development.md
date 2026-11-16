@@ -400,9 +400,9 @@ tools. The fixtures list their own pinned dependencies, and the first test of
 the file fails when a version, an override or the engines differ from the
 workspace. It also fails when the `engines` or `devEngines` of
 `apps/boilerplate` differ from the root, since Nitro picks the runtime of the
-Vercel function from them. The test after it fails when a package of `packages/`
-does not declare `>=` and the `devEngines` Node version of the root in
-`engines.node`. No browser download or remote page request belongs to this
+Vercel function from `engines.node`. The test after it fails when a package of
+`packages/` does not declare `>=` and the `devEngines` Node version of the root
+in `engines.node`. No browser download or remote page request belongs to this
 suite; only dependency installation uses the network. Paraglide uses a local
 project without remote modules.
 

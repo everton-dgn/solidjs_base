@@ -130,11 +130,10 @@ stays as it is, neither overwritten nor created again; the step ends with a line
 that says so, and the run of the new head writes the lock. Any other failure of
 the push fails the job. Deleting a branch also sends a push, which the workflow
 skips. Each rewrite of the release pull request therefore starts two CI runs,
-the first one cancelled, and two runs of this workflow. When release-please
-creates the release branch, it points the branch at the commit of `main` before
-it adds the release commit, so opening the pull request gives one more run, on
-that commit of `main`, which ends without writing: if it has a lock to push, the
-lease refuses it, because the branch has moved.
+the first one cancelled, and two runs of this workflow. If the push that creates
+the release branch points it at the commit of `main` and the release commit
+follows, that push starts one more run, which ends without writing: by the time
+it has a lock to push, the branch has moved and the lease refuses it.
 
 The workflow stays out of `release.yml` because `vp run release:merge` follows
 the conclusion of the whole `Release` run

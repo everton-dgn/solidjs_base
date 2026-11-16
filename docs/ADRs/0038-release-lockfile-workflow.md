@@ -51,9 +51,9 @@ The options were:
   `package.json` files, and `main` has them after the merge.
 - Each rewrite of the release pull request starts two CI runs, the first one
   cancelled by the lockfile commit, and two runs of the workflow, the second one
-  without a difference. Opening the pull request gives one more run, on the
-  commit of `main` where release-please creates the branch, which ends without
-  writing.
+  without a difference. If release-please creates the branch at the commit of
+  `main` before the release commit, opening the pull request gives one more run,
+  which ends without writing.
 - A second workflow reads the secret of the App. Its token can write contents
   only, and the job that runs `vp install` holds no token that can write.
   Creating the token after the command does not isolate it from the code of the

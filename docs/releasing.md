@@ -12,14 +12,14 @@ versions from Conventional Commits. It runs only in CI, from
    of that package. The package is found by the folder of the changed files. The
    commit scope (`feat(tooling): ...`) is only for people reading the history.
 2. The packages share one version number. When a commit releases one of them,
-   release-please raises both to the same version (`linked-versions`), so a
-   package can get a version without changes of its own.
-3. The workflow keeps one release pull request open for both packages, with the
-   new version and the `CHANGELOG.md` of each.
+   release-please raises all of them to the same version (`linked-versions`), so
+   a package can get a version without changes of its own.
+3. The workflow keeps one release pull request open for all the packages, with
+   the new version and the `CHANGELOG.md` of each.
 4. Merging that pull request creates one tag for each package, such as
-   `solid-tooling@0.7.0` and `solid-runtime@0.7.0`, and their GitHub Releases.
-   The workflow then validates the workspace, packs each package and publishes
-   it.
+   `solid-tooling@0.7.0`, `solid-runtime@0.7.0` and
+   `vite-plugin-solid-icons@0.7.0`, and their GitHub Releases. The workflow then
+   validates the workspace, packs each package and publishes it.
 
 The workflow runs release-please in two jobs. `Tags and GitHub Releases` uses
 the workflow's `GITHUB_TOKEN` and only creates the tags and GitHub Releases of a
@@ -171,7 +171,7 @@ into the branch, never rebase it, and wait for `CI required` again.
    discards the edit, when a new merge changes the release it computes. Editing
    the notes does not change the version. When the version is wrong too, do not
    edit `package.json` or the manifest by hand: merge a pull request that sets
-   `release-as` for both packages in `release-please-config.json`, let
+   `release-as` for every package in `release-please-config.json`, let
    release-please write the release pull request again, and remove `release-as`
    after the release.
 3. For the first automated release of a package, create the trusted publisher
@@ -211,7 +211,7 @@ so the published package does not change.
 
 - `release-please-config.json` lists the packages and the rules. A new package
   goes under `packages`, keyed by its folder, and its component goes into the
-  `linked-versions` group. `release-as` under both packages sets the next
+  `linked-versions` group. `release-as` under every package sets the next
   version by hand; remove it after that release, or release-please keeps
   proposing it.
 - `.release-please-manifest.json` holds the last released version of each
@@ -273,7 +273,8 @@ to exist on the registry first. Publish the first version of each package
 
 The order matters when a new package arrives in the same pull request that adds
 it to `release-please-config.json` and `.release-please-manifest.json`, as
-`@evertondgn/solid-runtime` did at `0.1.0`:
+`@evertondgn/solid-runtime` did at `0.1.0` and
+`@evertondgn/vite-plugin-solid-icons` at `0.7.0`:
 
 1. Publish the version in the manifest by hand, from the last commit of the pull
    request.

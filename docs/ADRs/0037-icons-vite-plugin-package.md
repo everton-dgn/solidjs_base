@@ -68,6 +68,10 @@ The options were:
   the tooling and the migration of the imports of the boilerplate app are a
   second step, after the first publication. Until then, the tooling and the app
   keep the plugin they use today.
+- Update: the second step moved `defineSolidApp`, its declarations and the
+  boilerplate app to this plugin, and added the package to the release
+  automation at `0.7.0`, published by hand from the last commit of that change,
+  as [New package](../releasing.md#new-package) describes.
 
 ## Consequences
 

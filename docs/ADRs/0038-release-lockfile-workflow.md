@@ -41,8 +41,9 @@ The options were:
   `"version"` lines of workspace entries, each equal to the `package.json` of
   its folder inside the repository, and writes nothing otherwise. After that,
   and only when the lock changed, the job creates a token of the release GitHub
-  App that can write contents, commits as the App and pushes without force. It
-  installs nothing and runs neither `vp` nor `bun`.
+  App that can write contents, commits as the App and pushes with a lease on the
+  checked commit, so a branch that moved or was deleted is neither overwritten
+  nor created again. It installs nothing and runs neither `vp` nor `bun`.
 
 ## Consequences
 

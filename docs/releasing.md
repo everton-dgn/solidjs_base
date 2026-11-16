@@ -118,15 +118,19 @@ jobs:
    `package.json` of that folder, inside the repository. On any other difference
    it fails, writes nothing and names each line with the reason. When the lock
    changed, the job creates a token of the GitHub App with write access to
-   Contents only, commits `bun.lock` as the App and pushes the commit without
-   force. It installs no dependency and runs only Git, `gh` and that command.
+   Contents only, commits `bun.lock` as the App and pushes the commit with
+   `--force-with-lease` on the checked commit, so GitHub updates the branch only
+   while it is still at that commit. It installs no dependency and runs only
+   Git, `gh` and that command.
 
 The push of the App starts the CI of the pull request, which cancels the run of
 the previous head, and this workflow again, which finds no difference. When the
-branch moved before the push, the push is refused or skipped, and the run of the
-new head writes the lock. Deleting a branch also sends a push, which the
-workflow skips. Each rewrite of the release pull request therefore starts two CI
-runs, the first one cancelled, and two runs of this workflow.
+branch moved or was deleted before the push, GitHub refuses it and the branch
+stays as it is, neither overwritten nor created again; the step ends with a line
+that says so, and the run of the new head writes the lock. Any other failure of
+the push fails the job. Deleting a branch also sends a push, which the workflow
+skips. Each rewrite of the release pull request therefore starts two CI runs,
+the first one cancelled, and two runs of this workflow.
 
 The workflow stays out of `release.yml` because `vp run release:merge` follows
 the conclusion of the whole `Release` run
@@ -493,16 +497,18 @@ install accepts it, and `vp pm pack` reads each version from the `package.json`.
 Merged that way, the lines stay one version behind until the next `vp install`.
 The log of the failed job tells the cause:
 
-| Log                                                                                                    | Cause                                                                                                                    | Fix                                                                                 |
-| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| `changes more than the workspace versions of bun.lock, so nothing was written`, then each line and why | The lock generated from the branch changes more than the versions, such as a dependency whose lock `main` did not update | Write the lock by hand, below, and review every line of the diff                    |
-| `has <n> lines and bun.lock has <m>`                                                                   | The same, with lines added or removed                                                                                    | The same                                                                            |
-| An error in the `Create the App token` step                                                            | The App, its variable or its secret                                                                                      | [When the release pull request job fails](#when-the-release-pull-request-job-fails) |
-| `! [rejected]` in the `Commit and push` step                                                           | The branch moved between the check and the push                                                                          | Nothing: the run of the new head writes the lock                                    |
+| Log                                                                                                    | Cause                                                                                                                                       | Fix                                                                                 |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `changes more than the workspace versions of bun.lock, so nothing was written`, then each line and why | The lock generated from the branch changes more than the versions, such as a dependency whose lock `main` did not update                    | Write the lock by hand, below, and review every line of the diff                    |
+| `has <n> lines and bun.lock has <m>`                                                                   | The same, with lines added or removed                                                                                                       | The same                                                                            |
+| An error in the `Create the App token` step                                                            | The App, its variable or its secret                                                                                                         | [When the release pull request job fails](#when-the-release-pull-request-job-fails) |
+| `The push to <branch> failed` in the `Commit and push` step                                            | GitHub refused the push for another reason, such as a rule on the branch or a permission of the App; the `!` line above it gives the reason | Fix the cause and choose "Re-run all jobs"                                          |
 
-After a fix outside the branch, choose "Re-run all jobs": the artifact of the
-lock lasts one day. To write the lock by hand, from your account, with the same
-command as the workflow:
+A push refused because the branch moved or was deleted is not a failure: the
+step logs `so the push was refused`, and the run of the new head writes the
+lock. After a fix outside the branch, choose "Re-run all jobs": the artifact of
+the lock lasts one day. To write the lock by hand, from your account, with the
+same command as the workflow:
 
 ```bash
 git fetch origin

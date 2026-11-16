@@ -46,7 +46,11 @@ of `src/` or `tooling/` imports or re-exports
 the plugin, the config ignores `@evertondgn/vite-plugin-solid-icons`: this
 package declares that entry, so the application types its icons without the
 plugin. The ignore covers the whole package, so Knip then reports no other
-import of the plugin in that application. The config also ignores the unlisted
+import of the plugin in that application. An import inside a type, as in
+`typeof import('icon:brand/logo')` or
+`import('@evertondgn/vite-plugin-solid-icons/types').IconComponent`, adds no
+ignore, and Knip reports it as an unlisted dependency: write it as an
+`import type` at the top of the file. The config also ignores the unlisted
 import of `src/icon-collections.d.ts`, the declarations that the plugin writes.
 It lists:
 

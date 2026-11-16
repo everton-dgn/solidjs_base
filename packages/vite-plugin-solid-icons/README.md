@@ -538,6 +538,8 @@ solidIcons({
 
 ## Requirements and limits
 
+- Node 26 or a later line, from the version that `engines.node` in the package's
+  `package.json` names.
 - Vite+ (`vite-plus`) and `@solidjs/web` in the versions of the peer
   dependencies, and `@solidjs/vite-plugin` in the plugins of the application.
   The plugin reads your imports with the parser that `vite-plus` exports.

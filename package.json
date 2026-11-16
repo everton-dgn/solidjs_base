@@ -25,25 +25,25 @@
   "devDependencies": {
     "@evertondgn/solid-tooling": "workspace:*",
     "@inlang/paraglide-js": "3.2.2",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.6",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"
   },
   "overrides": {
-    "@solidjs/compiler": "2.0.0-rc.21",
-    "@solidjs/signals": "2.0.0-rc.21",
+    "@solidjs/compiler": "2.0.0-rc.22",
+    "@solidjs/signals": "2.0.0-rc.22",
     "vite": "catalog:",
     "vitest": "catalog:"
   },
   "packageManager": "bun@1.4.4",
   "engines": {
-    "node": ">=24.22.1 <25"
+    "node": ">=26.13.1 <27"
   },
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": "24.22.3",
+      "version": "26.13.1",
       "onFail": "download"
     }
   },
@@ -60,7 +60,7 @@
   },
   "patchedDependencies": {
     "@mdream/js@2.1.0": "apps/boilerplate/patches/@mdream%2Fjs@2.1.0.patch",
-    "@solidjs/web@2.0.0-rc.21": "apps/boilerplate/patches/@solidjs%2Fweb@2.0.0-rc.21.patch"
+    "solid-js@2.0.0-rc.22": "apps/boilerplate/patches/solid-js@2.0.0-rc.22.patch"
   },
   "trustedDependencies": []
 }

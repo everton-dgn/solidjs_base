@@ -68,38 +68,39 @@ hook, but do not end the render. Errors suppressed internally are not
 observable. Any adoption requires validating the relation between content,
 completion and failures.
 
-The Bun patch of `@solidjs/web` covers what the published runtime still does not
-do, in the default and development runtimes: ending the render when the default
-serializer fails synchronously, while writing a value, before the first send.
-The published runtime already ends it when the failure comes after the write, as
-in the rejection of an async value
-([solidjs/solid#4647](https://github.com/solidjs/solid/issues/4647)). On a
-synchronous failure, it only reports to the hook and completes the render
-through the normal flow, including calling `onCompleteAll`. The Markdown would
-refuse that result because of the recorded failure, but a failure while building
-the shell would send the HTML with status 200. The patch removes that exception
-from the condition that ends the render. The observation runtime does not get
-the patch because the project does not turn on `observe` in
-`@solidjs/vite-plugin`; turning that option on requires including
-`dist/server.observe.js` as well. Failures in the serialization phase reach the
-log as `SerovalSerializationError`; the message and the cause are still dropped.
-The patch key includes the package version, so every upgrade of `@solidjs/web`
-requires regenerating it with `bun patch`. The
-`tooling/__tests__/patched-dependencies.test.ts` test fails when the key of a
-patch does not match a version resolved in `bun.lock`.
+The runtime also ends the render when the default serializer fails
+synchronously, while writing a value, before the first send, as it does when the
+failure comes after the write, such as in the rejection of an async value
+([solidjs/solid#4647](https://github.com/solidjs/solid/issues/4647)). It skips
+`onCompleteAll`, and `createSSRResponse` answers 500, so a failure while
+building the shell no longer sends the HTML with status 200. Earlier versions
+only reported that failure to the hook and completed the render through the
+normal flow, and a Bun patch of `@solidjs/web` ended it until the published
+package did
+([solidjs/solid#4709](https://github.com/solidjs/solid/issues/4709)). The
+synchronous and deferred cases of `markdownContent.serialization.node.test.ts`
+and its 500 of a shell that failed to serialize are the regression tests:
+without that behavior they fail on the `onCompleteAll` call and on the 200
+status. Failures in the serialization phase reach the log as
+`SerovalSerializationError`; the message and the cause are still dropped.
 
-The patch also covers a process crash. `pipe` writes the shell and calls
-`buffer.flush()` on the next line. With a shell of 16,384 characters or more,
-that first write already reaches the destination, which may abandon the render
-right there: `createSSRResponse` does this when the page declared `Location`,
-and the same happens when the write throws or when the render signal is aborted
-inside it. `abandon` replaces the buffer with an object without `flush`, the
-next call throws a `TypeError` in a microtask that nobody awaits, and the
-unhandled rejection ends the Node process. The patch gives that buffer an empty
-`flush`, and the abandoned render ends as it already did with a smaller shell.
-The regression test is in `renderIntegrity.redirect.node.test.ts`, and the
-follow-up in [solidjs/solid#4745](https://github.com/solidjs/solid/issues/4745).
-Remove that part when a published package passes that test without it.
+A render abandoned inside its first write no longer ends the process either.
+`pipe` writes the shell and calls `buffer.flush()` on the next line. With a
+shell of 16,384 characters or more, that first write already reaches the
+destination, which may abandon the render right there: `createSSRResponse` does
+this when the page declared `Location`, and the same happens when the write
+throws or when the render signal is aborted inside it. The buffer that `abandon`
+leaves has an empty `flush`
+([solidjs/solid#4745](https://github.com/solidjs/solid/issues/4745)); before,
+the next call threw a `TypeError` in a microtask that nobody awaited, and the
+unhandled rejection ended the Node process. The regression test is in
+`renderIntegrity.redirect.node.test.ts`, in the runtime package.
+
+The Vitest Node project resolves the development build of `@solidjs/web`, so
+these tests check `dist/server.dev.js`. With `NODE_ENV=production` they load
+`dist/server.js`, the build of the deployed function; there, the two `<Errored>`
+cases of the serialization file fail by design, because they expect a diagnostic
+that only the development build prints.
 
 [solidjs/solid#4193](https://github.com/solidjs/solid/issues/4193) reported
 three gaps. [solidjs/solid#4206](https://github.com/solidjs/solid/pull/4206)
@@ -110,14 +111,12 @@ core run every cleanup even after one that throws.
 complete on a synchronous failure, and
 [solidjs/solid#4246](https://github.com/solidjs/solid/pull/4246) ends each write
 at the first value that fails. #4647 ends the render on an async failure before
-the send and rejects on the client the key that fails after it. Those parts left
-the patch. The rest is followed in
-[solidjs/solid#4709](https://github.com/solidjs/solid/issues/4709). Remove it
-when a published package also ends the render on a synchronous failure and
-passes the regression tests for an error reused across requests, a server
-function failure that escapes Loading, local recovery, serialization, a cleanup
-that throws and cancellation. A closed issue or PR does not replace checking the
-installed artifacts. The combined timeout and disconnection signal reaches
+the send and rejects on the client the key that fails after it, and the fix of
+#4709 ends it on a synchronous failure. A closed issue or PR does not replace
+checking the installed artifacts: on every Solid upgrade, run the regression
+tests for an error reused across requests, a server function failure that
+escapes Loading, local recovery, serialization, a cleanup that throws and
+cancellation. The combined timeout and disconnection signal reaches
 `renderToStream`; the Node test of the adapter checks the disposal of a pending
 SSR root on cancellation.
 
@@ -125,8 +124,8 @@ On abandonment by cancellation, the `renderToStream` thenable rejects with
 `signal.reason`, including for consumers registered after the abort, without
 calling `onCompleteAll`
 ([solidjs/solid#4646](https://github.com/solidjs/solid/issues/4646)). Before
-that fix, the runtime disposed the root and kept the wait pending, and the patch
-covered the rejection. The publication protection does not mistake that
+that fix, the runtime disposed the root and kept the wait pending, and a Bun
+patch covered the rejection. The publication protection does not mistake that
 rejection for the end of the backend: `protectServerOperation` registers the
 Promises in the async context of the publication, and the slot stays taken until
 they settle. Common operations, outside that context, keep the previous

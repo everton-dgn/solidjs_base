@@ -22,7 +22,7 @@ commitlint, Git hooks and `defineSolidApp`, which returns the whole
 arrives when you update the dependency.
 
 > SolidJS 2 is still a release candidate. The package is tested with
-> `2.0.0-rc.21`, and its Solid, Nitro, router and icon plugins are pinned to the
+> `2.0.0-rc.22`, and its Solid, Nitro, router and icon plugins are pinned to the
 > versions tested together. A new version of one of them needs a package version
 > tested with it.
 
@@ -53,6 +53,9 @@ the full application config when you are ready.
 [Entry points](#entry-points)
 
 ## Requirements
+
+Run the application on Node 26 or a later line, from the version that
+`engines.node` in the package's `package.json` names.
 
 Install the exact Vite+ version listed in the package's `peerDependencies`. The
 package supplies its build, test, type-check and hook tools. Applications keep

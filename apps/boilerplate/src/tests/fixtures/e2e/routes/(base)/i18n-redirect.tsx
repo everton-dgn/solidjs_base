@@ -9,7 +9,7 @@ import {
   useSearchParams,
   type RouteDefinition
 } from '@solidjs/router'
-import { createMemo, createSignal, Loading } from 'solid-js'
+import { createMemo, createSignal, Loading, untrack } from 'solid-js'
 
 import { redirectLocale } from '../../i18n/redirectLocale/index.ts'
 import { redirectRelative } from '../../i18n/redirectRelative/index.ts'
@@ -30,7 +30,9 @@ export default function I18nRedirect() {
   const location = useLocation()
   const navigate = useNavigate()
   const localizedNavigate = createLocalizedNavigate()
-  const [isRequested, setIsRequested] = createSignal(params.initial === '1')
+  const [isRequested, setIsRequested] = createSignal(
+    untrack(() => params.initial === '1')
+  )
   const result = createMemo(() =>
     isRequested() ? readRedirect({ locale: 'es', source: 'query' }) : ''
   )

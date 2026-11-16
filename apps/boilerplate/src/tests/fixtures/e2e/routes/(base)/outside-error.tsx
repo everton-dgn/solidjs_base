@@ -1,5 +1,5 @@
 import { useSearchParams, type RouteDefinition } from '@solidjs/router'
-import { createMemo, Errored, Loading, Match, Switch } from 'solid-js'
+import { createMemo, Errored, Loading, Match, Switch, untrack } from 'solid-js'
 
 import { fixtureError } from '../../backend/fixtureError/index.ts'
 import { waitFixtureGate } from '../../backend/waitFixtureGate/index.ts'
@@ -55,7 +55,7 @@ export const route = {
 
 export default function OutsideError() {
   const [params] = useSearchParams()
-  const id = String(params.id)
+  const id = untrack(() => String(params.id))
   return (
     <main>
       <h1>Erros fora de server functions</h1>

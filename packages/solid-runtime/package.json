@@ -30,6 +30,9 @@
     "server-errors"
   ],
   "type": "module",
+  "engines": {
+    "node": ">=26.13.1"
+  },
   "files": [
     "src",
     "!src/**/__tests__",
@@ -244,16 +247,16 @@
     "test:tarball": "node --test --test-timeout=120000 tooling/tarball/__tests__/tarball.test.ts"
   },
   "peerDependencies": {
-    "@solidjs/web": "2.0.0-rc.21"
+    "@solidjs/web": "2.0.0-rc.22"
   },
   "devDependencies": {
-    "@solidjs/web": "2.0.0-rc.21",
+    "@solidjs/web": "2.0.0-rc.22",
     "@solidjs/vite-plugin": "3.0.0-next.57",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.6",
     "@vitest/coverage-v8": "catalog:",
     "knip": "6.45.1",
     "nitro": "3.0.261103-rc",
-    "solid-js": "2.0.0-rc.21",
+    "solid-js": "2.0.0-rc.22",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
@@ -263,7 +266,7 @@
     "@testing-library/jest-dom": "7.0.1",
     "@solidjs/router": "2.0.0-next.44",
     "@vitest/browser-playwright": "catalog:",
-    "playwright": "1.65.0"
+    "playwright": "1.65.1"
   },
   "dependencies": {
     "valibot": "catalog:",

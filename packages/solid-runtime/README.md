@@ -21,7 +21,7 @@ agents. This package ships that layer as tested TypeScript source. You keep the
 UI, palette, content, messages and backend adapters.
 
 > SolidJS 2 is still a release candidate. This package is tested with
-> `2.0.0-rc.21` and pins its `@solidjs/web` peer dependency to that version, so
+> `2.0.0-rc.22` and pins its `@solidjs/web` peer dependency to that version, so
 > plan to update both together until SolidJS 2 is stable.
 
 [Security](#every-response-behind-one-security-policy) ·
@@ -485,6 +485,8 @@ point listed in `package.json` appears in one of them.
 
 ### Requirements
 
+- The application runs on Node 26 or a later line, from the version that
+  `engines.node` in the package's `package.json` names.
 - The Solid Vite plugin adds the `solid` condition to the application build for
   the TypeScript entries.
 - The node project of `solidTest`, from `@evertondgn/solid-tooling/vitest`,

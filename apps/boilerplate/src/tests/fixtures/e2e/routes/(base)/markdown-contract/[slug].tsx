@@ -5,7 +5,7 @@ import {
   type RouteDefinition
 } from '@solidjs/router'
 import { getRequestEvent, httpHeader, httpStatus } from '@solidjs/web'
-import { createMemo, createSignal, Loading } from 'solid-js'
+import { createMemo, createSignal, Loading, untrack } from 'solid-js'
 
 import { readBackend } from '../../../backend-error/readBackend/index.ts'
 import { waitFixtureGate } from '../../../backend/waitFixtureGate/index.ts'
@@ -57,7 +57,7 @@ export default function MarkdownContract() {
   const params = useParams()
   const [query] = useSearchParams()
   const [count, setCount] = createSignal(0)
-  const id = String(query.id ?? '')
+  const id = untrack(() => String(query.id ?? ''))
   return (
     <main>
       <p>Before the title</p>

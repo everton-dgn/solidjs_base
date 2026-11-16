@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { createRunner } from '../runner.ts'
+import { createRunner, TIMED_OUT_EXIT_CODE } from '../runner.ts'
+import { describeDuration } from '../wait.ts'
 
 const ENOUGH_TIME = 60_000
 // Shorter than the start of any Node process.
@@ -40,6 +41,21 @@ describe('mergePullRequest runner', () => {
     assert.match(
       result.stderr,
       /^npm --version did not finish within .+ and was stopped\.$/u
+    )
+  })
+
+  it('stops a command at its own timeout when it is shorter than the one of the runner', async () => {
+    const result = await createRunner(ENOUGH_TIME)({
+      file: 'npm',
+      args: ['--version'],
+      isWrite: false,
+      timeout: TOO_SHORT
+    })
+
+    assert.equal(result.exitCode, TIMED_OUT_EXIT_CODE)
+    assert.equal(
+      result.stderr,
+      `npm --version did not finish within ${describeDuration(TOO_SHORT)} and was stopped.`
     )
   })
 })

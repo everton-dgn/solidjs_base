@@ -32,6 +32,8 @@ type FakeEnvironment = {
   sleeps: number[]
 }
 
+type FakeOptions = { registry: FakeRegistry; readTime?: number }
+
 const BLOCK_SIZE = 512
 // Offsets of the fields of a ustar header.
 const HEADER = {
@@ -167,7 +169,12 @@ export const NOT_FOUND = failed(
   'npm error code E404\nnpm error 404 No match found for version 0.8.0'
 )
 
-export function fakeEnvironment(registry: FakeRegistry): FakeEnvironment {
+// Each read takes readTime, or stops at the timeout of its command, as the
+// runner stops it.
+export function fakeEnvironment({
+  registry,
+  readTime = 0
+}: FakeOptions): FakeEnvironment {
   const calls: Command[] = []
   const lines: string[] = []
   const sleeps: number[] = []
@@ -176,6 +183,7 @@ export function fakeEnvironment(registry: FakeRegistry): FakeEnvironment {
   const environment: Environment = {
     run: command => {
       calls.push(command)
+      time += Math.min(readTime, command.timeout ?? readTime)
       const spec = command.args[1] ?? ''
       const answers = registry[spec] ?? [NOT_FOUND]
       const count = answered.get(spec) ?? 0

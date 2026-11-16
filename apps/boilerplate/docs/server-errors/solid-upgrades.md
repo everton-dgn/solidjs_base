@@ -28,7 +28,10 @@ the published and installed package changed that behavior.
 1. Check the releases, exports and contract of the published packages. Upgrade
    `solid-js` and `@solidjs/web` together, checking the Router, the plugin and
    the lockfile. Keep the previous versions for a rollback; do not adopt
-   internal APIs early.
+   internal APIs early. Check whether the types of `solid-js` export `heldRead`:
+   if they do, remove the `solid-js` types patch; if not, move it to the new
+   version, as the
+   [workspace section](../../../../docs/development.md#workspace) describes.
 2. Check that the contract of the `configureServerErrors({ onError })` hook that
    the central registration uses is still the same: a synchronous call, the
    return sent without another sanitization, a verdict per object and the

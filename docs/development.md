@@ -52,12 +52,25 @@ Bun reads `catalog`, `overrides` and `patchedDependencies` only from the root
 there, and the patch files stay in `apps/boilerplate/patches/`.
 
 The `solid-js` patch adds `heldRead` to the names that its types re-export from
-`@solidjs/signals`. The JavaScript of `solid-js` exports it and the types of
-`@solidjs/web` import it, but the published types of `solid-js` leave it out, so
-a type check that reads the declaration files of `node_modules` fails with
-TS2305, as the type check of the icons tarball test does. The tsconfig of the
-tooling sets `skipLibCheck`, so an application on the preset does not reach that
-error. Remove the patch when the icons tarball test passes without it.
+`@solidjs/signals`. The types of `@solidjs/web` import `heldRead` from
+`solid-js`, and the JavaScript of `solid-js` exports it, but the published types
+of `solid-js` leave it out. A type check with `skipLibCheck` off reads those
+declaration files and fails with TS2305. The tsconfig of the tooling preset sets
+`skipLibCheck`, so an application on the preset does not reach that error.
+
+Only the type check of the icons tarball test depends on the patch: its
+temporary application links the `@solidjs` folder of the workspace, and its
+tsconfig leaves `skipLibCheck` off. That check runs against the patched types,
+so while the patch exists it does not stand for an application without
+`skipLibCheck`, which installs the published types and gets the TS2305.
+
+The patch key names the Solid version, and
+`apps/boilerplate/tooling/__tests__/patched-dependencies.test.ts` fails when
+`bun.lock` does not resolve that version, so every Solid upgrade either moves
+the patch or removes it. Remove the entry and the file once the types of
+`solid-js` export `heldRead`; the
+[Solid upgrade steps](../apps/boilerplate/docs/server-errors/solid-upgrades.md#upgrading-solid)
+check it.
 
 ## Package commands
 

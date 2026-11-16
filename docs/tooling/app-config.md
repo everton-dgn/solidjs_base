@@ -152,12 +152,13 @@ it:
   `lint-project` and `check-project` run the task first. Run
   `vp run icons-generate` before a `vp lint` or a `tsc` outside these tasks when
   the application imports icons by name.
-- Keeps only `?raw` in an import, for the SVG markup as a string. The old plugin
-  turned the other keys of a query into attributes of the `<svg>`, as in
-  `?width=2em`; the build now stops on any other query, `?url` included. Pass
-  the attributes as props of the component, as in `<IconGithub width="2em" />`,
-  which go on the `<svg>` after its own. For the URL of a file of a folder
-  collection, import the file with the `?url` of Vite, as in
+- Keeps only `?raw` in an import, for the SVG markup as a string, written
+  without a value: `?raw=true` stops the build too. The old plugin turned the
+  other keys of a query into attributes of the `<svg>`, as in `?width=2em`; the
+  build now stops on any other query, `?url` included. Pass the attributes as
+  props of the component, as in `<IconGithub width="2em" />`, which go on the
+  `<svg>` after its own. For the URL of a file of a folder collection, import
+  the file with the `?url` of Vite, as in
   `import logoUrl from './assets/icons/logo.svg?url'`, or build a data URL from
   `?raw`.
 - Names each collection with lowercase letters, digits and single hyphens, as in
@@ -170,8 +171,7 @@ it:
 - Reviews the SVG files of its folders. The build stops on markup that runs code
   or that a page reads as HTML, such as `<script>`, an `onload` attribute, a
   `javascript:` URL or `<foreignObject>`, and on a file that is not well-formed
-  XML, where the old loader read the file as it was from its `<svg` on. A
-  symbolic link to an SVG file is not read. See
+  XML, where the old loader read the file as it was from its `<svg` on. See
   [what the plugin does with your SVG files](../../packages/vite-plugin-solid-icons/README.md#what-the-plugin-does-with-your-svg-files).
 - Keeps its folders relative to `root`, as before.
 - Installs each Iconify collection as `@iconify-json/<collection>`. An icon of

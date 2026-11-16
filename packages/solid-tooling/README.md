@@ -566,7 +566,7 @@ counts 319 E2E cases in the app, 164 for the E2E build and 155 for the
 production build.
 
 - The package's own tests, `vp run test`, run with `node --test` against
-  fixtures in temporary folders: 268 `test` and `it` calls in 39 files, counted
+  fixtures in temporary folders: 291 `test` and `it` calls in 43 files, counted
   in source.
 - The tarball test packs the package, installs it in a separate application
   outside the workspace and checks that lint applies the plugins, that the

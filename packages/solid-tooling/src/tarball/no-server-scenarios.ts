@@ -21,6 +21,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { env, stdout } from 'node:process'
 import { mock } from 'node:test'
+import { setTimeout as delay } from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
 
 import {
@@ -57,6 +58,7 @@ const SUBFOLDER = '/meu-repo/'
 const STORAGE_KEY = 'scenario-theme'
 // The default of Playwright for every action.
 const BROWSER_TIMEOUT = 30_000
+const PROFILE_POLL_INTERVAL = 50
 const DEFAULT_ASSETS_DIR = 'assets'
 // A second folder proves that the plugin of the guide reads build.assetsDir.
 const OTHER_ASSETS_DIR = 'static'
@@ -499,6 +501,45 @@ async function withProfile<T>(
   }
 }
 
+function hasRecord(folder: string, record: Buffer): boolean {
+  return (
+    existsSync(folder) &&
+    readdirSync(folder).some(file =>
+      readFileSync(path.join(folder, file)).includes(record)
+    )
+  )
+}
+
+// WHY: Chromium writes localStorage to the profile about 5 s after a change,
+// or at once when the last page of the origin closes. A browser that quits
+// before the write loses the theme, and the next launch fails on that race
+// instead of on the classic script.
+async function saveStoredTheme({
+  page,
+  profile
+}: {
+  page: Page
+  profile: string
+}): Promise<void> {
+  await page.close()
+  // The LevelDB record of the key: the length of the value, then the value
+  // behind the marker of a Latin-1 string.
+  const value = '\u0001dark'
+  const record = Buffer.from(
+    `${STORAGE_KEY}${String.fromCodePoint(value.length)}${value}`,
+    'latin1'
+  )
+  const folder = path.join(profile, 'Default/Local Storage/leveldb')
+  const deadline = Date.now() + BROWSER_TIMEOUT
+  while (!hasRecord(folder, record)) {
+    assert.ok(
+      Date.now() < deadline,
+      `The profile did not save the theme in ${BROWSER_TIMEOUT} ms`
+    )
+    await delay(PROFILE_POLL_INTERVAL)
+  }
+}
+
 async function withProfileFolder<T>(
   use: (profile: string) => Promise<T>
 ): Promise<T> {
@@ -528,6 +569,7 @@ async function checkFileProtocol(input: NoServerInput): Promise<void> {
         `The font must load beside the stylesheet: ${opened.fonts.join(', ')}`
       )
       await exercise({ ...opened, canReusePreload: false })
+      await saveStoredTheme({ page: opened.page, profile })
     })
     // A shell keeps its profile between launches; localStorage must survive,
     // and the classic script must read it from file:// too.

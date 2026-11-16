@@ -54,7 +54,7 @@
     "@iconify-json/hugeicons": "1.2.36",
     "@solidjs/vite-plugin": "3.0.0-next.57",
     "@solidjs/web": "2.0.0-rc.22",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.6",
     "knip": "6.45.1",
     "playwright": "1.65.1",
     "solid-js": "2.0.0-rc.22",

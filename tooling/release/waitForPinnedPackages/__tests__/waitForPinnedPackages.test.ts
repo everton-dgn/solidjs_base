@@ -5,6 +5,8 @@ import path from 'node:path'
 import { describe, it, type TestContext } from 'node:test'
 import { promisify } from 'node:util'
 
+import { TIMED_OUT_EXIT_CODE } from '../../mergePullRequest/runner.ts'
+import type { CommandResult } from '../../mergePullRequest/types.ts'
 import { waitForPinnedPackages } from '../index.ts'
 import { readRegistry } from '../registry.ts'
 import { readPackedManifest } from '../tarball.ts'
@@ -26,6 +28,7 @@ type Run = {
   manifest: unknown
   registry?: FakeRegistry
   readTime?: number
+  lateness?: number
   timeout?: number
   workspaces?: unknown
   packages?: Record<string, string | undefined>
@@ -33,6 +36,7 @@ type Run = {
 
 const execute = promisify(execFile)
 const INTERVAL = 15_000
+const MINIMUM_READ_TIME = 1000
 const ONE_MINUTE = 60_000
 const SHORT_TIMEOUT = 20_000
 const PACKAGES = {
@@ -55,6 +59,7 @@ async function runWait({
   manifest,
   registry = {},
   readTime,
+  lateness,
   timeout = ONE_MINUTE,
   workspaces = ['packages/*'],
   packages = PACKAGES
@@ -62,7 +67,7 @@ async function runWait({
   const folder = await makeFolder(context)
   const root = await makeWorkspace({ folder, workspaces, packages })
   const tarball = await packManifest({ folder, manifest })
-  const fake = fakeEnvironment({ registry, readTime })
+  const fake = fakeEnvironment({ registry, readTime, lateness })
   const result = waitForPinnedPackages({
     tarball,
     root,
@@ -70,6 +75,15 @@ async function runWait({
     environment: fake.environment
   })
   return { ...fake, result }
+}
+
+// The answer of the runner when it stops npm at its time limit.
+function stoppedWithin(duration: string): CommandResult {
+  return {
+    exitCode: TIMED_OUT_EXIT_CODE,
+    stdout: '',
+    stderr: `npm view ${ICONS} did not finish within ${duration} and was stopped.`
+  }
 }
 
 describe('waitForPinnedPackages', () => {
@@ -212,22 +226,56 @@ describe('waitForPinnedPackages time limit', () => {
     assert.equal(calls.length, ONE_MINUTE / INTERVAL)
     assert.equal(
       sleeps.reduce((total, sleep) => total + sleep, 0),
-      ONE_MINUTE
+      ONE_MINUTE - INTERVAL
     )
   })
 
-  it('shortens the last pause to the time left', async context => {
-    const { result, sleeps } = await runWait({
+  it('fails without a pause when the time left is not longer than the interval', async context => {
+    const { result, calls, sleeps, environment } = await runWait({
       context,
       manifest: TOOLING,
       timeout: SHORT_TIMEOUT
     })
 
     await assert.rejects(result)
-    assert.deepEqual(sleeps, [INTERVAL, SHORT_TIMEOUT - INTERVAL])
+    assert.deepEqual(
+      calls.map(({ timeout }) => timeout),
+      [SHORT_TIMEOUT, SHORT_TIMEOUT - INTERVAL]
+    )
+    assert.deepEqual(sleeps, [INTERVAL])
+    assert.equal(environment.now(), INTERVAL)
   })
 
-  it('gives each read the time left and reads nothing at the time limit', async context => {
+  for (const { timeout, readTime, lateness } of [
+    { timeout: ONE_MINUTE, readTime: 0, lateness: 0 },
+    { timeout: SHORT_TIMEOUT, readTime: 0, lateness: 0 },
+    { timeout: INTERVAL + 1, readTime: 0, lateness: 0 },
+    { timeout: 61_000, readTime: 7000, lateness: 0 },
+    { timeout: ONE_MINUTE, readTime: 30_000, lateness: 0 },
+    { timeout: INTERVAL + 1, readTime: 0, lateness: 5 },
+    { timeout: INTERVAL + MINIMUM_READ_TIME + 1, readTime: 0, lateness: 5 },
+    { timeout: ONE_MINUTE, readTime: 0, lateness: 5 }
+  ]) {
+    it(`announces only the reads that come, with a time limit of ${timeout} ms, reads of ${readTime} ms and pauses ${lateness} ms late`, async context => {
+      const { result, calls, lines, sleeps } = await runWait({
+        context,
+        manifest: TOOLING,
+        timeout,
+        readTime,
+        lateness
+      })
+
+      await assert.rejects(result)
+      const announced = lines.filter(line => line.includes('Reading again'))
+      assert.equal(announced.length, calls.length - 1)
+      assert.deepEqual(
+        sleeps,
+        announced.map(() => INTERVAL)
+      )
+    })
+  }
+
+  it('gives each read the time left and stops after the last read that fits', async context => {
     const readTime = 20_000
     const { result, calls, environment } = await runWait({
       context,
@@ -242,7 +290,7 @@ describe('waitForPinnedPackages time limit', () => {
       calls.map(({ timeout }) => timeout),
       [ONE_MINUTE, ONE_MINUTE - readTime - INTERVAL]
     )
-    assert.equal(environment.now(), ONE_MINUTE)
+    assert.equal(environment.now(), readTime + INTERVAL + readTime)
   })
 
   it('stops in the middle of the reads at the time limit and names the versions left', async context => {
@@ -269,6 +317,82 @@ describe('waitForPinnedPackages time limit', () => {
       ]
     )
     assert.equal(environment.now(), ONE_MINUTE)
+  })
+
+  it('keeps what npm answered before the read that the time limit stopped', async context => {
+    const readTime = 30_000
+    const { result, calls } = await runWait({
+      context,
+      manifest: TOOLING,
+      registry: { [ICONS]: [NOT_FOUND, stoppedWithin('15 second(s)')] },
+      readTime
+    })
+
+    await assert.rejects(result, {
+      message:
+        /^@x\/icons@0\.8\.0 did not appear on npm within 1 minute\(s\) \(@x\/icons@0\.8\.0 is not on npm yet, then npm view @x\/icons@0\.8\.0 did not finish within 15 second\(s\) and was stopped\)\.\n/u
+    })
+    assert.deepEqual(
+      calls.map(({ timeout }) => timeout),
+      [ONE_MINUTE, ONE_MINUTE - readTime - INTERVAL]
+    )
+  })
+
+  it('leaves out the period of the answer it keeps before a stop', async context => {
+    const { result } = await runWait({
+      context,
+      manifest: TOOLING,
+      registry: {
+        [ICONS]: [
+          { exitCode: 0, stdout: 'npm warn', stderr: '' },
+          stoppedWithin('15 second(s)')
+        ]
+      },
+      readTime: 30_000
+    })
+
+    await assert.rejects(result, {
+      message:
+        /\(npm view @x\/icons@0\.8\.0 is not valid JSON, then npm view @x\/icons@0\.8\.0 did not finish within 15 second\(s\) and was stopped\)\.\n/u
+    })
+  })
+
+  it('keeps the stop when the time limit stops the first read', async context => {
+    const { result } = await runWait({
+      context,
+      manifest: TOOLING,
+      registry: { [ICONS]: [stoppedWithin('1 minute(s)')] },
+      readTime: ONE_MINUTE
+    })
+
+    await assert.rejects(result, {
+      message:
+        /^@x\/icons@0\.8\.0 did not appear on npm within 1 minute\(s\) \(npm view @x\/icons@0\.8\.0 did not finish within 1 minute\(s\) and was stopped\)\.\n/u
+    })
+  })
+
+  it('keeps the last answer of npm, not the stops before, after reads that the runner stopped', async context => {
+    const { result, lines } = await runWait({
+      context,
+      manifest: TOOLING,
+      registry: {
+        [ICONS]: [
+          NOT_FOUND,
+          stoppedWithin('1 minute(s)'),
+          stoppedWithin('2 minute(s)')
+        ]
+      }
+    })
+
+    await assert.rejects(result, {
+      message:
+        /^@x\/icons@0\.8\.0 did not appear on npm within 1 minute\(s\) \(@x\/icons@0\.8\.0 is not on npm yet, then npm view @x\/icons@0\.8\.0 did not finish within 2 minute\(s\) and was stopped\)\.\n/u
+    })
+    assert.deepEqual(lines.slice(1), [
+      '  @x/icons@0.8.0 is not on npm yet. Reading again in 15 second(s).',
+      '  @x/icons@0.8.0 is not on npm yet, then npm view @x/icons@0.8.0 did not finish within 1 minute(s) and was stopped. Reading again in 15 second(s).',
+      '  @x/icons@0.8.0 is not on npm yet, then npm view @x/icons@0.8.0 did not finish within 2 minute(s) and was stopped. Reading again in 15 second(s).'
+    ])
   })
 
   it('does not take another version for the pinned one', async context => {
@@ -389,7 +513,11 @@ describe('waitForPinnedPackages registry', () => {
         timeout: ONE_MINUTE
       })
 
-      assert.deepEqual(reading, { isPublished: true, detail: undefined })
+      assert.deepEqual(reading, {
+        isPublished: true,
+        isStopped: false,
+        detail: undefined
+      })
     })
   }
 
@@ -415,7 +543,24 @@ describe('waitForPinnedPackages registry', () => {
 
     assert.deepEqual(reading, {
       isPublished: false,
+      isStopped: false,
       detail: 'npm view @x/icons@0.8.0 is not valid JSON.'
+    })
+  })
+
+  it('marks a read that the runner stopped, which has no answer of npm', async () => {
+    const reading = await readRegistry({
+      run: () => Promise.resolve(stoppedWithin('15 second(s)')),
+      name: '@x/icons',
+      version: '0.8.0',
+      timeout: ONE_MINUTE
+    })
+
+    assert.deepEqual(reading, {
+      isPublished: false,
+      isStopped: true,
+      detail:
+        'npm view @x/icons@0.8.0 did not finish within 15 second(s) and was stopped.'
     })
   })
 })

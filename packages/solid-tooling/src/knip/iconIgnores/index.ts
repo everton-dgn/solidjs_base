@@ -1,6 +1,8 @@
 import { glob, readFile } from 'node:fs/promises'
 import path from 'node:path'
 
+import { ICON_TYPES_FILE } from '../../icons/constants.ts'
+
 type ModuleSource = { file: string; source: string }
 
 type FoundImports = { hasIcons: boolean; hasPluginTypes: boolean }
@@ -17,11 +19,12 @@ const SOURCES = '{src,tooling}/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'
 // in each module they declare and grow with the installed collections, so the
 // text would send the largest file of src/ to the parser, which lists no import
 // inside a declared module. The preset ignores their unlisted import by file.
-const ICON_TYPES_FILE = path.normalize('src/icon-collections.d.ts')
+const ICON_TYPES_PATH = path.normalize(ICON_TYPES_FILE)
 const ICON_PREFIX = 'icon:'
-// The text of an import, a re-export or a dynamic import of an icon module,
-// which a comment or a string can also have.
-const ICON_SPECIFIER = /\b(?:from|import)\s*\(?\s*["'`]icon:/u
+// A string or a template that starts with icon:, as the path of an icon import
+// does. The parser tells the imports from the rest; a pattern that also read the
+// text before the path would miss an import with a comment there.
+const ICON_SPECIFIER = /["'`]icon:/u
 // The argument of a dynamic import that Knip reads, as the source spells it: a
 // string, or a template without an expression. Knip reads no path that the
 // code builds, such as 'icon:brand/' + name, so an ignore for it would be a
@@ -67,7 +70,7 @@ async function readImports({
 async function findImports(root: string): Promise<FoundImports> {
   const found: FoundImports = { hasIcons: false, hasPluginTypes: false }
   for await (const file of glob(SOURCES, { cwd: root })) {
-    if (file === ICON_TYPES_FILE) continue
+    if (file === ICON_TYPES_PATH) continue
     const source = await readFile(path.join(root, file), 'utf8')
     const isIconCandidate = !found.hasIcons && ICON_SPECIFIER.test(source)
     const isTypesCandidate =

@@ -33,7 +33,11 @@ type FakeEnvironment = {
   sleeps: number[]
 }
 
-type FakeOptions = { registry: FakeRegistry; readTime?: number }
+type FakeOptions = {
+  registry: FakeRegistry
+  readTime?: number
+  lateness?: number
+}
 
 const BLOCK_SIZE = 512
 // Offsets of the fields of a ustar header.
@@ -171,10 +175,12 @@ export const NOT_FOUND = failed(
 )
 
 // Each read takes readTime, or stops at the timeout of its command, as the
-// runner stops it.
+// runner stops it. Each pause ends lateness after its time, as a busy timer
+// does.
 export function fakeEnvironment({
   registry,
-  readTime = 0
+  readTime = 0,
+  lateness = 0
 }: FakeOptions): FakeEnvironment {
   const calls: Command[] = []
   const lines: string[] = []
@@ -197,7 +203,7 @@ export function fakeEnvironment({
     },
     sleep: milliseconds => {
       sleeps.push(milliseconds)
-      time += milliseconds
+      time += milliseconds + lateness
       return Promise.resolve()
     },
     now: () => time

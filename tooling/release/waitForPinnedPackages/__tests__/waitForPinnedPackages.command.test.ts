@@ -87,13 +87,13 @@ describe('wait-for-pinned-packages command', () => {
     assert.equal(exitCode, 1, stderr)
     assert.ok(
       stdout.startsWith(
-        `${TOOLING}@${VERSION} pins ${ICONS}@${VERSION} in dependencies. Waiting up to 1 second(s) for npm to have them.\n`
+        `${TOOLING}@${VERSION} pins ${ICONS}@${VERSION} in dependencies. Waiting up to 600 millisecond(s) for npm to have them.\n`
       ),
       stdout
     )
     assert.match(
       stderr,
-      /^error: @evertondgn\/vite-plugin-solid-icons@9\.9\.9 did not appear on npm within 1 second\(s\) \(.+\)\.\n@evertondgn\/solid-tooling@9\.9\.9 pins it in dependencies, so it was not published/u
+      /^error: @evertondgn\/vite-plugin-solid-icons@9\.9\.9 did not appear on npm within 600 millisecond\(s\) \(.+\)\.\n@evertondgn\/solid-tooling@9\.9\.9 pins it in dependencies, so it was not published/u
     )
   })
 

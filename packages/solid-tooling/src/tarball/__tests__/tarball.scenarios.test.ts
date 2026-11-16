@@ -167,8 +167,9 @@ type PackedWorkspace = {
   overrides: Record<string, string>
 }
 
-// The packed tooling pins a version of the icons plugin that npm may not have
-// yet; the override installs the one of this tree.
+// The packed tooling pins the version of the icons plugin of this tree, which
+// npm may not have yet or may hold with other code; the override installs the
+// one of this tree.
 async function packWorkspace({
   directory,
   deadline

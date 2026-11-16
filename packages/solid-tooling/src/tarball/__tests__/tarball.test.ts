@@ -115,8 +115,9 @@ function packOne({ directory, packageRoot }: PackRequest): string {
   return path.join(destination, tarball)
 }
 
-// The packed tooling pins a version of the icons plugin that npm may not have
-// yet, so the application installs the one of this tree.
+// The packed tooling pins the version of the icons plugin of this tree, which
+// npm may not have yet or may hold with other code, so the application
+// installs the one of this tree.
 function pack(directory: string): Tarballs {
   return {
     tooling: packOne({ directory, packageRoot: PACKAGE_ROOT }),

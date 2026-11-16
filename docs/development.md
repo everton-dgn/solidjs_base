@@ -344,11 +344,11 @@ someone comments `@codex review`.
 Run `vp run build && vp run test:scenarios` from the root. The matrix is also
 the final step of `vp run validate`. It copies `fixtures/apps/` outside the
 workspace and installs freshly packed tooling and runtime packages with Bun's
-hoisted and isolated linkers. The packed tooling pins a version of the icons
-plugin that npm may not have yet, so an `overrides` entry installs the packed
-icons plugin in its place. Every case runs node and dom tests, the
-`icons-generate` task, lint, TypeScript, build and output checks. SSR cases also
-request the local preview.
+hoisted and isolated linkers. The packed tooling pins the version of the icons
+plugin of this tree, which npm may not have yet or may hold with other code, so
+an `overrides` entry installs the packed icons plugin in its place. Every case
+runs node and dom tests, the `icons-generate` task, lint, TypeScript, build and
+output checks. SSR cases also request the local preview.
 
 Each fixture maps a folder of SVG files with the `icons` option, and the
 client-only one also installs an Iconify collection. A type probe imports an

@@ -1,6 +1,6 @@
 import path from 'node:path'
 
-import MagicString, { type SourceMap } from 'magic-string'
+import { MagicString, type SourceMap } from 'magic-string'
 import { type ESTree, parse, Visitor } from 'vite-plus'
 
 import { collectionOfImport, iconImport } from '../iconIds/index.ts'

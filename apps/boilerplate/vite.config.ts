@@ -33,14 +33,18 @@ export default defineSolidApp({
     }
   ],
   staticPaths: ['/favicon/**'],
-  // No monorepo, o bun.lock, o bunfig.toml e o build do pacote de ferramentas
-  // ficam na raiz, fora da pasta da aplicação.
+  // No monorepo, o bun.lock, o bunfig.toml e o build dos pacotes de ferramentas
+  // e de ícones ficam na raiz, fora da pasta da aplicação.
   workspace: {
-    dependsOn: ['@evertondgn/solid-tooling#build'],
+    dependsOn: [
+      '@evertondgn/solid-tooling#build',
+      '@evertondgn/vite-plugin-solid-icons#build'
+    ],
     // The runtime package is source code outside the application folder, and
     // its manifest holds the exports that resolve each import.
     inputs: [
       'packages/solid-tooling/dist/**',
+      'packages/vite-plugin-solid-icons/dist/**',
       'packages/solid-runtime/package.json',
       'packages/solid-runtime/src/**'
     ]

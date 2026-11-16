@@ -9,6 +9,7 @@ import { DEFAULT_EXTENSIONS } from 'filesystem-routing/vite'
 import type { KnipConfiguration } from 'knip'
 
 import { hasMatch } from '../has-match.ts'
+import { iconIgnores } from './iconIgnores/index.ts'
 
 type AppSettings = Pick<
   KnipConfiguration,
@@ -55,6 +56,7 @@ const ROUTE_DIRECTORIES: RouteDirectory[] = [
   { directory: 'src/tests/fixtures/e2e/routes', isProduction: false }
 ]
 const TOOLING_PROJECT = 'tooling/**/*.ts'
+const ICON_TYPES_FILE = 'src/icon-collections.d.ts'
 
 function isModuleRef(value: unknown): value is ModuleRef {
   return (
@@ -121,17 +123,22 @@ export function defineKnipConfig({
       ? RUNTIME_ENTRIES
       : [...SOLID_ENTRIES, ...RUNTIME_ENTRIES]
   return async function configureKnip() {
-    const [conventions, routes, hasTooling] = await Promise.all([
+    const [conventions, routes, hasTooling, icons] = await Promise.all([
       conventionEntries({ root, patterns }),
       Promise.all(
         ROUTE_DIRECTORIES.map(route => discoverRouteModules({ root, ...route }))
       ),
-      hasMatch({ root, pattern: TOOLING_PROJECT })
+      hasMatch({ root, pattern: TOOLING_PROJECT }),
+      iconIgnores(root)
     ])
     // Knip adds the --config file to the entries in production mode too, and
     // --strict accepts only dependencies there. Ignoring the issue in that file
     // keeps an import of this package in src/ reported.
     const configIssues = ignoreIssues[configFile] ?? []
+    // The icons plugin writes this file with an import of its own package,
+    // which the application reaches through this one. An ignore pattern would
+    // be a configuration hint in an application that leaves it out of Git.
+    const iconTypesIssues = ignoreIssues[ICON_TYPES_FILE] ?? []
 
     return {
       entry: [...new Set([...conventions, ...entry, ...routes.flat()])],
@@ -145,8 +152,6 @@ export function defineKnipConfig({
       // The plugin takes every file in src/routes as an entry and would hide
       // unused helpers next to the routes; the routes come from the router.
       'filesystem-routing': false,
-      // The preset loads icons even when the application has no direct plugin dependency.
-      'unplugin-icons': true,
       ...(ignoreBinaries ? { ignoreBinaries } : {}),
       // Knip attributes the preset's resolved environment, coverage provider
       // and matcher setup to vite.config.ts, although this package owns them.
@@ -154,11 +159,15 @@ export function defineKnipConfig({
         ...(packagedTestTools
           ? ['@vitest/coverage-v8', 'happy-dom', '@testing-library/jest-dom']
           : []),
+        ...icons,
         ...(ignoreDependencies ?? [])
       ],
       ignoreIssues: {
         ...ignoreIssues,
-        [configFile]: [...new Set([...configIssues, 'unlisted' as const])]
+        [configFile]: [...new Set([...configIssues, 'unlisted' as const])],
+        [ICON_TYPES_FILE]: [
+          ...new Set([...iconTypesIssues, 'unlisted' as const])
+        ]
       },
       ...(exclude ? { exclude } : {}),
       treatConfigHintsAsErrors: true

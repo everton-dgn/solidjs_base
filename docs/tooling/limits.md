@@ -21,13 +21,14 @@ optional peer; install the versions in the tooling manifest. Bun reads
 package is transitive.
 
 The tooling package supplies `@solidjs/vite-plugin`, `nitro`,
-`filesystem-routing`, `unplugin-icons`, `knip`, `typescript`, `@types/node`,
-`happy-dom`, `playwright`, `@playwright/test`, `@vitest/browser-playwright`,
-`@vitest/coverage-v8`, `@vitest/ui`, `@testing-library/jest-dom`,
-`@commitlint/cli` and `lefthook`. It also supplies its existing lint, CSS and
-catalog dependencies. Updating the tooling package updates these tools,
-including for applications that do not use every feature. Installation cost is
-measured in [ADR 0027](../ADRs/0027-packaged-tool-dependencies.md).
+`filesystem-routing`, `@evertondgn/vite-plugin-solid-icons`, `knip`,
+`typescript`, `@types/node`, `happy-dom`, `playwright`, `@playwright/test`,
+`@vitest/browser-playwright`, `@vitest/coverage-v8`, `@vitest/ui`,
+`@testing-library/jest-dom`, `@commitlint/cli` and `lefthook`. It also supplies
+its existing lint, CSS and catalog dependencies. Updating the tooling package
+updates these tools, including for applications that do not use every feature.
+Installation cost is measured in
+[ADR 0027](../ADRs/0027-packaged-tool-dependencies.md).
 
 A library used directly still belongs in the application's manifest. The
 boilerplate copy keeps `filesystem-routing` for API helpers and tests, and
@@ -78,11 +79,16 @@ Do not assume a transitive binary appears in the application's
 `node_modules/.bin`. Knip runs in Bun; the other commands run in Node.
 `tsconfig.app.json` includes `node-env.d.ts` through `files` and loads the
 published `@evertondgn/solid-tooling/app-env` entry through `types`. Both
-resolve references beside the package's dependencies. This keeps application and
-browser matcher declarations in their original order. Node-only derived configs
-use `types: []` instead of reintroducing `types: ["node"]`. An application that
-overrides `files` must also include
-`node_modules/@evertondgn/solid-tooling/node-env.d.ts`.
+resolve references beside the package's dependencies. `app-env` loads
+`@evertondgn/solid-tooling/icon-modules`, which declares the `icon:` imports and
+the `@evertondgn/vite-plugin-solid-icons/types` entry that
+`src/icon-collections.d.ts` imports, with every type of the installed plugin. An
+application types its icons and imports those types without declaring the
+plugin, also when its install cannot reach a dependency of a dependency, as with
+Bun's isolated linker. This keeps application and browser matcher declarations
+in their original order. Node-only derived configs use `types: []` instead of
+reintroducing `types: ["node"]`. An application that overrides `files` must also
+include `node_modules/@evertondgn/solid-tooling/node-env.d.ts`.
 
 ## Known limits
 

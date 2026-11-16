@@ -51,9 +51,8 @@ bundle carries these three and nothing else of either collection.
 
 ## Install
 
-The package is not published on npm yet. Once it is, install it as a dev
-dependency, with one `@iconify-json/<collection>` package for each Iconify
-collection the application imports:
+Install it as a dev dependency, with one `@iconify-json/<collection>` package
+for each Iconify collection the application imports:
 
 ```bash
 vp add -D @evertondgn/vite-plugin-solid-icons @iconify-json/hugeicons
@@ -61,6 +60,11 @@ vp add -D @evertondgn/vite-plugin-solid-icons @iconify-json/hugeicons
 
 The application provides `vite-plus`, `@solidjs/web` and `@solidjs/vite-plugin`.
 Folders of your own SVG files need no package.
+
+Applications built on `@evertondgn/solid-tooling` do not install this package:
+`defineSolidApp` already loads it, and they add only the
+`@iconify-json/<collection>` packages. See the
+[tooling README](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/README.md).
 
 ## Set up
 

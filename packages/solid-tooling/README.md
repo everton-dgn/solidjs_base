@@ -35,10 +35,11 @@ Built for applications that follow the
 layout. Start with lint and formatting in your existing Vite+ config, and adopt
 the full application config when you are ready.
 
-| Package                                                                                                               | Role                                                                                   |
-| --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| [`@evertondgn/solid-tooling`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/README.md) | Config, lint rules, tests, Git hooks, catalog generation, icons and fonts              |
-| [`@evertondgn/solid-runtime`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/README.md) | Security headers, server errors, locale, theme, SEO, sitemaps, Markdown, env and fonts |
+| Package                                                                                                                                   | Role                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [`@evertondgn/solid-tooling`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/README.md)                     | Config, lint rules, tests, Git hooks, catalog generation, icons and fonts              |
+| [`@evertondgn/solid-runtime`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/README.md)                     | Security headers, server errors, locale, theme, SEO, sitemaps, Markdown, env and fonts |
+| [`@evertondgn/vite-plugin-solid-icons`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/README.md) | The icons plugin that this package loads                                               |
 
 [Quick start](#quick-start) ·
 [Less config](#the-configuration-you-stop-maintaining) ·
@@ -169,14 +170,15 @@ and its Vite alias.
 | Application                                                                                                 | Direct declarations before | Now | Fewer |
 | ----------------------------------------------------------------------------------------------------------- | -------------------------: | --: | ----: |
 | [Boilerplate copy](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/package.json)     |                         28 |  14 |    14 |
-| [Client-only](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/client-only/package.json) |                         16 |   5 |    11 |
+| [Client-only](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/client-only/package.json) |                         16 |   6 |    10 |
 | [SSR plain](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/ssr-plain/package.json)     |                         17 |   5 |    12 |
 | [SSR i18n](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/ssr-i18n/package.json)       |                         19 |   7 |    12 |
 | [Lint consumer](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/consumer/package.json)       |                          6 |   3 |     3 |
 
 Counts combine `dependencies` and `devDependencies`, without overrides or
 transitive packages. The fixture counts leave out the two package tarballs that
-the installed test harness adds.
+the installed test harness adds. The client-only fixture now declares an Iconify
+collection, which the count before did not have.
 
 Fewer declarations do not mean a smaller install. The tooling also installs the
 tools of features you may not use: in the
@@ -230,10 +232,10 @@ and Nitro modules, `tasks` adds or replaces a `vp run` task, `routeRules`,
 over the result.
 
 The preset also defines the `vp run` tasks of the boilerplate layout:
-`i18n-generate`, `lint-css`, `dead-code-project`, `lint-project`,
-`check-project`, `typecheck-node` and `test-tooling`. The `knip`, `tsc`,
-`playwright`, `lefthook` and `commitlint` tasks run the package-owned binaries,
-including with an isolated installation. See
+`i18n-generate`, `icons-generate`, `lint-css`, `dead-code-project`,
+`lint-project`, `check-project`, `typecheck-node` and `test-tooling`. The
+`knip`, `tsc`, `playwright`, `lefthook` and `commitlint` tasks run the
+package-owned binaries, including with an isolated installation. See
 [all options and extension points](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md)
 and the
 [known limits](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits).
@@ -441,8 +443,14 @@ enters the build.
 </picture>
 
 Icons from Iconify collections, or your own SVG folders mapped with the `icons`
-option, become Solid components through `unplugin-icons`, with `aria-hidden` on
-every icon. The application does not declare the plugin.
+option, become Solid components through
+[`@evertondgn/vite-plugin-solid-icons`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/README.md),
+with `aria-hidden` on every icon. Import an icon as `icon:<collection>/<name>`,
+or by its name from `icon:<collection>`. The `icons-generate` task writes the
+typed names to `src/icon-collections.d.ts` before the check and the lint; keep
+that generated file out of Git. The application does not declare the plugin. An
+application that imports `~icons/` follows
+[the migration from `~icons/`](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md#migrating-from-icons).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/fonts-dark.webp" />
@@ -558,13 +566,14 @@ counts 319 E2E cases in the app, 164 for the E2E build and 155 for the
 production build.
 
 - The package's own tests, `vp run test`, run with `node --test` against
-  fixtures in temporary folders: 268 `test` and `it` calls in 39 files, counted
+  fixtures in temporary folders: 291 `test` and `it` calls in 43 files, counted
   in source.
 - The tarball test packs the package, installs it in a separate application
   outside the workspace and checks that lint applies the plugins, that the
   application extends the shared hooks and commitlint config, and that the
   fixture declares the workspace versions.
-- The installed scenarios install the packed tooling and runtime in the
+- The installed scenarios install the packed tooling, runtime and icons plugin
+  in the
   [three fixture applications](https://github.com/everton-dgn/solidjs_base/tree/main/fixtures/apps)
   with Bun's `hoisted` and `isolated` linkers and build them. The matrix
   enumerates 14 application cases: 3 client-only, 9 SSR and 2 translated SSR.
@@ -592,6 +601,7 @@ and the
 | `./tsconfig.app.json`           | The base plus packaged type references and the boilerplate `include`             |
 | `./app-env`                     | Type references loaded by `tsconfig.app.json`                                    |
 | `./virtual-modules`             | Declarations of the `virtual:solid-app/*` modules, loaded by `tsconfig.app.json` |
+| `./icon-modules`                | Declarations of the `icon:` imports, loaded by `tsconfig.app.json`               |
 | `./vitest`                      | `solidTest(options)`, the `test` block of `vite.config.ts`                       |
 | `./vitest-setup/browser`        | Setup file of the browser project, loaded by `./vitest`                          |
 | `./playwright`                  | `definePlaywrightConfig(options)`, the Playwright config                         |
@@ -607,14 +617,15 @@ and the
 | `./lefthook.yml`                | The Git hooks, extended from the application's `.lefthook.yml`                   |
 | `./cli`                         | Command entry for packaged Knip, TypeScript, Playwright, Lefthook and commitlint |
 | `./i18n-generate`               | Compiled catalog generator executed by the preset's `i18n-generate` task         |
+| `./icons-generate`              | Compiled writer of the icon declarations, executed by the `icons-generate` task  |
 | `./publication/read-llms-index` | Compiled reader of the llms index, for artifact checks in Node                   |
 | `./package.json`                | The package manifest                                                             |
 
 Your editor and `tsc` know the test globals, the jest-dom matchers, the Solid
-plugin and routing modules and every `virtual:solid-app/*` module with no local
-`.d.ts`: `tsconfig.app.json` loads `./app-env`, which references
-`./virtual-modules`. An application with its own TypeScript config adds
-`@evertondgn/solid-tooling/app-env` to `types`.
+plugin and routing modules, every `virtual:solid-app/*` module and the `icon:`
+imports with no local `.d.ts`: `tsconfig.app.json` loads `./app-env`, which
+references `./virtual-modules` and `./icon-modules`. An application with its own
+TypeScript config adds `@evertondgn/solid-tooling/app-env` to `types`.
 
 Your application keeps its pages, components, translations, theme, `App`,
 `Document`, entries and middleware. The plugin entries exist because Oxlint
@@ -640,6 +651,6 @@ the minor version. Read the
 [changelog](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/CHANGELOG.md)
 for each release, and the
 [Solid Base overview](https://github.com/everton-dgn/solidjs_base/blob/main/README.md)
-for both packages together.
+for the packages together.
 
 [MIT](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)

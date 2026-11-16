@@ -23,6 +23,7 @@ export const fmt: NonNullable<UserConfig['fmt']> = {
     'public/**',
     'src/assets/**',
     'src/@types/routes.d.ts',
+    'src/icon-collections.d.ts',
     '**/*.svg',
     '*.lock',
     'AGENTS.md',

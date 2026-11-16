@@ -11,6 +11,7 @@ dist
 *.tgz
 *.local
 .tsbuild
+fixtures/apps/*/src/icon-collections.d.ts
 
 .zed/
 .vscode/

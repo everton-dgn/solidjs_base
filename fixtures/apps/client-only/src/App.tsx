@@ -1,6 +1,7 @@
 import { createLocalizedNavigate } from '@evertondgn/solid-runtime/i18n/create-localized-navigate'
 import { localeTag } from '@evertondgn/solid-runtime/i18n/locale-tag'
 import { useLocation } from '@solidjs/router'
+import IconMark from 'icon:scenario/mark'
 
 export default function App() {
   const navigate = createLocalizedNavigate()
@@ -8,6 +9,7 @@ export default function App() {
   return (
     <main lang={localeTag()}>
       Scenario application
+      <IconMark />
       <button
         type="button"
         onClick={() =>

@@ -61,10 +61,8 @@ const STUBS = {
     "record('solid'); export default options => (record('solid', options), { name: 'solid' })",
   'filesystem-routing/vite':
     "record('fileRoutes'); export const fileRoutes = options => (record('fileRoutes', options), { name: 'fileRoutes' })",
-  'unplugin-icons/vite':
-    "record('icons'); export default options => { const props = {}; options.iconCustomizer('collection', 'icon', props); record('icons', { ...options, iconCustomizer: props }); return { name: 'icons' } }",
-  'unplugin-icons/loaders':
-    "record('loaders'); export const FileSystemIconLoader = folder => ({ folder })",
+  '@evertondgn/vite-plugin-solid-icons':
+    "record('icons'); export const solidIcons = options => { const attributes = {}; options.customizeIcon({ collection: 'collection', name: 'icon', attributes }); record('icons', { ...options, customizeIcon: attributes }); return { name: 'icons' } }",
   'nitro/vite':
     "record('nitro'); export const nitro = options => (record('nitro', { ...options, modules: options.modules.map(module => module.name) }), [{ name: 'nitro' }])"
 }
@@ -336,11 +334,8 @@ it('passes the application paths to Solid, the routes and the icons', async cont
     { types: 'src/@types/routes.d.ts', httpMethods: true }
   ])
   const icons = {
-    compiler: 'solid',
-    iconCustomizer: { 'aria-hidden': 'true' },
-    customCollections: {
-      'my-images': { folder: path.join(root, 'src/assets/images') }
-    }
+    collections: { 'my-images': path.join(root, 'src/assets/images') },
+    customizeIcon: { 'aria-hidden': 'true' }
   }
   assert.deepEqual(optionsOf({ summary, name: 'icons' }), [icons, icons, icons])
 })
@@ -569,6 +564,7 @@ it('reads the lockfile and the package build from the workspace root', async con
     .map(([name]) => name)
   assert.deepEqual(dependents, [
     'i18n-generate',
+    'icons-generate',
     'lint-css',
     'dead-code-project',
     'typecheck-node'
@@ -810,7 +806,7 @@ it('loads the real plugins from the package dependencies', async context => {
     'extension:app',
     'project:i18n-catalogs',
     'unplugin-paraglide-js',
-    'unplugin-icons',
+    'vite-plugin-solid-icons',
     'solid',
     'filesystem-routing',
     'nitro:init'

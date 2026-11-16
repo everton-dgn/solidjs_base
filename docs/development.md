@@ -11,25 +11,25 @@ vp install
 vp run build
 ```
 
-`vp run build` compiles `@evertondgn/solid-tooling` to `dist/`. The application
-in `apps/boilerplate` imports the package from there, so build it before running
-anything in the application.
+`vp run build` compiles `@evertondgn/solid-tooling` and
+`@evertondgn/vite-plugin-solid-icons`, which the tooling loads, to `dist/`. The
+application in `apps/boilerplate` imports the packages from there, so build them
+before running anything in the application.
 
 ## Workspace
 
 The root `package.json` lists two workspace folders:
 
 - `packages/*`: the packages published to npm, `@evertondgn/solid-tooling`,
-  `@evertondgn/solid-runtime` and `@evertondgn/vite-plugin-solid-icons`. The
-  icons plugin enters the release automation at its first publication, as
-  [ADR 0037](ADRs/0037-icons-vite-plugin-package.md) describes; until then the
-  release pull requests carry the other two.
+  `@evertondgn/solid-runtime` and `@evertondgn/vite-plugin-solid-icons`, which
+  the tooling depends on.
 - `apps/*`: applications that use the packages through the workspace. They are
   never published.
 
 `fixtures/consumer` and `fixtures/apps/` are outside the workspace on purpose.
 The tarball test copies the consumer to a temporary folder and installs the
-packed package there, the way an application installs it from npm. The
+packed package there, the way an application installs it from npm, with the
+packed icons plugin in place of the version that the tooling pins. The
 [installed application scenarios](#installed-application-scenarios) do the same
 with the minimal applications of `fixtures/apps/`.
 
@@ -57,16 +57,16 @@ Run them from the root. Package commands select `./packages/*`. The publish job
 runs `vp run validate`, including the minimal installed application matrix. The
 full boilerplate application suites remain separate.
 
-| Command                 | What it does                                                                                   |
-| ----------------------- | ---------------------------------------------------------------------------------------------- |
-| `vp run build`          | Compile the packages to `dist/`                                                                |
-| `vp run check`          | Check format, lint and types at the root, then lint the runtime package in its folder          |
-| `vp run dead-code`      | Find unused files, exports and dependencies of the runtime package with Knip                   |
-| `vp run test`           | Run the rule tests with `node:test`, the runtime tests and `vp run test:release`               |
-| `vp run test:release`   | Run the tests of the merge command in `tooling/release/` with `node:test`                      |
-| `vp run test:tarball`   | Pack each package and install it in a temporary folder                                         |
-| `vp run test:scenarios` | Install and build three minimal applications with both Bun linkers                             |
-| `vp run validate`       | Build, check, dead code, package tests, tarball tests and application scenarios, in this order |
+| Command                 | What it does                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `vp run build`          | Compile the packages to `dist/`                                                                   |
+| `vp run check`          | Check format, lint and types at the root, then lint the runtime package in its folder             |
+| `vp run dead-code`      | Find unused files, exports and dependencies of the runtime and icons packages with Knip           |
+| `vp run test`           | Run the rule tests with `node:test`, the runtime and icons plugin tests and `vp run test:release` |
+| `vp run test:release`   | Run the tests of the release commands in `tooling/release/` with `node:test`                      |
+| `vp run test:tarball`   | Pack each package and install it in a temporary folder                                            |
+| `vp run test:scenarios` | Install and build three minimal applications with both Bun linkers                                |
+| `vp run validate`       | Build, check, dead code, package tests, tarball tests and application scenarios, in this order    |
 
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so
 `vp run test` builds the package first. The runtime tests run in the Vitest of
@@ -121,8 +121,8 @@ Run its commands from `apps/boilerplate`:
 Every command loads the application's `vite.config.ts`, which imports the
 compiled presets from `dist/` and the security header constants from
 `@evertondgn/solid-runtime`. Run `vp run build` at the root first, and again
-after changing the package. Once `dist/` exists, `check:ci`, `typecheck:node`
-and `dead-code` rebuild the package before they run.
+after changing a package. Once `dist/` exists, `check:ci`, `typecheck:node` and
+`dead-code` rebuild the tooling and the icons plugin before they run.
 
 In a Vite+ monorepo, `vp check` always uses the `lint` and `fmt` blocks of the
 root `vite.config.ts`. The root config ignores `apps/`, and the application runs
@@ -344,10 +344,21 @@ someone comments `@codex review`.
 Run `vp run build && vp run test:scenarios` from the root. The matrix is also
 the final step of `vp run validate`. It copies `fixtures/apps/` outside the
 workspace and installs freshly packed tooling and runtime packages with Bun's
-hoisted and isolated linkers. Every case runs lint, TypeScript, node and dom
-tests, build and output checks. SSR cases also request the local preview.
+hoisted and isolated linkers. The packed tooling pins the version of the icons
+plugin of this tree, which npm may not have yet or may hold with other code, so
+an `overrides` entry installs the packed icons plugin in its place. Every case
+runs node and dom tests, the `icons-generate` task, lint, TypeScript, build and
+output checks. SSR cases also request the local preview.
 
-The fixtures list 7, 7 and 9 direct dependencies including the injected packages
+Each fixture maps a folder of SVG files with the `icons` option, and the
+client-only one also installs an Iconify collection. A type probe imports an
+icon by its path, by its name and as text, checks that none of them is `any` and
+then compares their types. The check comes first because a type that a
+declaration file cannot resolve turns into `any` with no error, under
+`skipLibCheck`, and the comparison alone passes on it. A DOM test of the
+client-only fixture checks `aria-hidden` on both kinds of collection.
+
+The fixtures list 8, 7 and 9 direct dependencies including the injected packages
 (client-only, SSR plain and SSR i18n). The package supplies the development
 tools. The fixtures list their own pinned dependencies, and the first test of
 the file fails when a version, an override or the engines differ from the
@@ -368,11 +379,12 @@ inventory, while allowing the Nitro and routing entries used by the server at
 runtime. There is no exception for tooling modules. SSR plain requires
 `solid-runtime/src/env/index.js` in a server graph; the client audit rejects
 that fragment and Valibot. Select `client-only / isolated$` with
-`SCENARIO_MUTATION=missing-dependency` to remove `unplugin-icons` from the
-packed manifest before installation; the scenario must fail when loading the
-preset. `SCENARIO_MUTATION=tool-bundle` imports the real packaged formatter from
-the temporary application and must fail at the bundle audit. Both probes leave
-the workspace manifest unchanged.
+`SCENARIO_MUTATION=missing-dependency` to remove
+`@evertondgn/vite-plugin-solid-icons` from the packed tooling manifest before
+installation; the scenario must fail when the test preset loads its plugins, the
+first step after the installation. `SCENARIO_MUTATION=tool-bundle` imports the
+real packaged formatter from the temporary application and must fail at the
+bundle audit. Both probes leave the workspace manifest unchanged.
 
 The optional `SCENARIO_MUTATION` values `nitro`, `headers` and `dom` inject
 regressions only into temporary copies. Select `client-only / isolated` for

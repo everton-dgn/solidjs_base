@@ -55,12 +55,14 @@ including under the isolated linker:
 | `@solidjs/vite-plugin/boundary-modules`     | `@solidjs/vite-plugin`      |
 | `@solidjs/vite-plugin/virtual-modules`      | `@solidjs/vite-plugin`      |
 | `@evertondgn/solid-tooling/virtual-modules` | `@evertondgn/solid-tooling` |
+| `@evertondgn/solid-tooling/icon-modules`    | `@evertondgn/solid-tooling` |
 | `filesystem-routing/types`                  | `filesystem-routing`        |
 
 The routing entry declares `virtual:file-routes` even before route types have
 been generated. Minimal applications need this declaration when importing
 runtime middleware that reads the route manifest. The tooling entry declares the
-application locale virtual modules.
+application locale virtual modules, and its icon entry the `icon:` imports, by
+referencing the declarations of `@evertondgn/vite-plugin-solid-icons`.
 
 It also sets `customConditions` to `solid`, so TypeScript reads the files of a
 package that exports its source under that condition, such as

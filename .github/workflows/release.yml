@@ -81,6 +81,16 @@ jobs:
         working-directory: ${{ matrix.path }}
         run: vp pm pack --pack-destination "$RUNNER_TEMP/release"
 
+      # WHY: the pack pins each package of this repository to the version of
+      # this release, and the matrix publishes the packages in no order. A
+      # package published before a package it pins installs nothing until that
+      # version reaches npm, or never if its job fails. The wait stops after 10
+      # minutes, which fits with the validation in timeout-minutes, so the job
+      # fails with the message of the wait.
+      - name: Wait for the pinned packages
+        run: |
+          node tooling/release/wait-for-pinned-packages.ts "$RUNNER_TEMP"/release/*.tgz
+
       - name: Publish to npm
         run: npm publish "$RUNNER_TEMP"/release/*.tgz --access public
 

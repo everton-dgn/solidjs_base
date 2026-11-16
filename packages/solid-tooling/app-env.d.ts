@@ -4,4 +4,5 @@
 /// <reference types="@solidjs/vite-plugin/virtual-modules" />
 /// <reference types="filesystem-routing/types" />
 /// <reference types="@evertondgn/solid-tooling/virtual-modules" />
+/// <reference types="@evertondgn/solid-tooling/icon-modules" />
 /// <reference types="vite-plus/client" />

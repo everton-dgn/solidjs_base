@@ -9,9 +9,8 @@ import { readOptions, USAGE } from './waitForPinnedPackages/options.ts'
 
 // process.argv starts with the Node executable and the path of this script.
 const FIRST_ARGUMENT = 2
-// WHY: the wait checks its deadline between two reads, so an npm call that
-// hangs would hold the publish job past --timeout and stop it at its
-// timeout-minutes, without the message of the wait.
+// WHY: the wait gives each npm call the time it has left, and this limit stops
+// a call that hangs sooner, so the wait can read again before --timeout.
 const COMMAND_TIMEOUT = 60_000
 // The workspace root from the place of this file, so the packages of this
 // repository are found whatever folder the job runs the command from.

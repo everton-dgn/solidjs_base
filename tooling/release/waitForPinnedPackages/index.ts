@@ -39,6 +39,18 @@ function uniqueVersions(pinned: readonly PinnedPackage[]): PinnedPackage[] {
   return [...new Map(pinned.map(item => [describePinned(item), item])).values()]
 }
 
+// The reading of a version until its first read, which the time limit can
+// leave out when the reads before it took the time.
+function notRead(pinned: PinnedPackage): Reading {
+  return {
+    pinned,
+    reading: {
+      isPublished: false,
+      detail: `${describePinned(pinned)} was not read before the time limit`
+    }
+  }
+}
+
 export async function waitForPinnedPackages({
   tarball,
   root,
@@ -62,31 +74,36 @@ export async function waitForPinnedPackages({
     `${packed} pins ${pinned.map(item => `${describePinned(item)} in ${item.field}`).join(', ')}. Waiting up to ${describeDuration(timing.timeout)} for npm to have them.`
   )
   const deadline = now() + timing.timeout
-  let waiting = uniqueVersions(pinned)
+  const timedOut = (missing: Reading[]): Error =>
+    new Error(describeTimeout({ packed, missing, timeout: timing.timeout }))
+  let waiting = uniqueVersions(pinned).map(item => notRead(item))
   for (;;) {
-    const readings: Reading[] = []
-    for (const item of waiting) {
+    const missing: Reading[] = []
+    // WHY: a read that starts at the time limit, or runs past it, would hold
+    // the publish job after the wait it announced, once for each version.
+    for (const [index, { pinned: item }] of waiting.entries()) {
+      const remaining = deadline - now()
+      if (remaining <= 0) throw timedOut([...missing, ...waiting.slice(index)])
       const reading = await readRegistry({
         run,
         name: item.name,
-        version: item.version
+        version: item.version,
+        timeout: Math.ceil(remaining)
       })
-      readings.push({ pinned: item, reading })
-      if (reading.isPublished) log(`${describePinned(item)} is on npm.`)
+      if (reading.isPublished) {
+        log(`${describePinned(item)} is on npm.`)
+      } else {
+        missing.push({ pinned: item, reading })
+      }
     }
-    const missing = readings.filter(({ reading }) => !reading.isPublished)
     if (missing.length === 0) return
     const remaining = deadline - now()
-    if (remaining <= 0) {
-      throw new Error(
-        describeTimeout({ packed, missing, timeout: timing.timeout })
-      )
-    }
+    if (remaining <= 0) throw timedOut(missing)
     const pause = Math.min(timing.interval, remaining)
     log(
       `  ${describeMissing(missing)}. Reading again in ${describeDuration(pause)}.`
     )
     await sleep(pause)
-    waiting = missing.map(({ pinned: item }) => item)
+    waiting = missing
   }
 }

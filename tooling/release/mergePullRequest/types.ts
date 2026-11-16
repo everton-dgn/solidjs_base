@@ -1,9 +1,13 @@
 // isWrite is set where the command is built: the dry run refuses a write and a
-// failed write is never read again.
+// failed write is never read again. A timeout shorter than the one of the
+// runner, such as the time a wait has left, stops the command sooner; it is a
+// whole number of milliseconds above zero, because execFile reads 0 as no
+// limit.
 export type Command = {
   file: 'gh' | 'npm'
   args: readonly string[]
   isWrite: boolean
+  timeout?: number
 }
 
 export type CommandResult = { exitCode: number; stdout: string; stderr: string }

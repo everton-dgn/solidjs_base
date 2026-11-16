@@ -94,7 +94,13 @@ it('runs without a cache when a folder sits outside the application', () => {
 })
 
 it('runs without a cache when a pattern would match other files', () => {
-  for (const folder of ['src/[icons]', 'src/icons-*', String.raw`src\icons`]) {
+  for (const folder of [
+    'src/[icons]',
+    'src/icons-*',
+    'src/(icons)',
+    'src/{a,b}',
+    String.raw`src\icons`
+  ]) {
     assert.equal(iconsTask({ brand: folder })?.cache, false, folder)
   }
 })

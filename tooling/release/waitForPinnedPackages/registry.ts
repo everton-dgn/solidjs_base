@@ -2,7 +2,12 @@ import { parseJson } from '../mergePullRequest/json.ts'
 import type { RunCommand } from '../mergePullRequest/types.ts'
 import type { RegistryReading } from './types.ts'
 
-type VersionQuery = { run: RunCommand; name: string; version: string }
+type VersionQuery = {
+  run: RunCommand
+  name: string
+  version: string
+  timeout: number
+}
 
 function firstLine(text: string): string | undefined {
   return text
@@ -30,13 +35,15 @@ function readVersions(value: unknown): string[] {
 export async function readRegistry({
   run,
   name,
-  version
+  version,
+  timeout
 }: VersionQuery): Promise<RegistryReading> {
   const spec = `${name}@${version}`
   const result = await run({
     file: 'npm',
     args: ['view', spec, 'version', '--json', '--prefer-online'],
-    isWrite: false
+    isWrite: false,
+    timeout
   })
   if (result.exitCode !== 0) {
     const isMissing = `${result.stdout}\n${result.stderr}`.includes('E404')

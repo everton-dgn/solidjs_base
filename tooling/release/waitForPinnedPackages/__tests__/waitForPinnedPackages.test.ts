@@ -25,9 +25,10 @@ type Run = {
   context: TestContext
   manifest: unknown
   registry?: FakeRegistry
+  readTime?: number
   timeout?: number
   workspaces?: unknown
-  packages?: Record<string, string>
+  packages?: Record<string, string | undefined>
 }
 
 const execute = promisify(execFile)
@@ -53,6 +54,7 @@ async function runWait({
   context,
   manifest,
   registry = {},
+  readTime,
   timeout = ONE_MINUTE,
   workspaces = ['packages/*'],
   packages = PACKAGES
@@ -60,7 +62,7 @@ async function runWait({
   const folder = await makeFolder(context)
   const root = await makeWorkspace({ folder, workspaces, packages })
   const tarball = await packManifest({ folder, manifest })
-  const fake = fakeEnvironment(registry)
+  const fake = fakeEnvironment({ registry, readTime })
   const result = waitForPinnedPackages({
     tarball,
     root,
@@ -102,7 +104,11 @@ describe('waitForPinnedPackages', () => {
       args: ['view', ICONS, 'version', '--json', '--prefer-online'],
       isWrite: false
     }
-    assert.deepEqual(calls, [call, call, call])
+    assert.deepEqual(calls, [
+      { ...call, timeout: ONE_MINUTE },
+      { ...call, timeout: ONE_MINUTE - INTERVAL },
+      { ...call, timeout: ONE_MINUTE - INTERVAL - INTERVAL }
+    ])
     assert.deepEqual(sleeps, [INTERVAL, INTERVAL])
     assert.deepEqual(lines, [
       '@x/tooling@0.8.0 pins @x/icons@0.8.0 in dependencies. Waiting up to 1 minute(s) for npm to have them.',
@@ -203,7 +209,7 @@ describe('waitForPinnedPackages time limit', () => {
         'Publish @x/icons@0.8.0 first. When its publish job in this run failed, fix the cause, such as a trusted publisher missing on npm, and choose "Re-run failed jobs", which runs this wait again (docs/releasing.md#when-the-publish-job-fails).'
       ].join('\n')
     })
-    assert.equal(calls.length, ONE_MINUTE / INTERVAL + 1)
+    assert.equal(calls.length, ONE_MINUTE / INTERVAL)
     assert.equal(
       sleeps.reduce((total, sleep) => total + sleep, 0),
       ONE_MINUTE
@@ -219,6 +225,50 @@ describe('waitForPinnedPackages time limit', () => {
 
     await assert.rejects(result)
     assert.deepEqual(sleeps, [INTERVAL, SHORT_TIMEOUT - INTERVAL])
+  })
+
+  it('gives each read the time left and reads nothing at the time limit', async context => {
+    const readTime = 20_000
+    const { result, calls, environment } = await runWait({
+      context,
+      manifest: TOOLING,
+      readTime
+    })
+
+    await assert.rejects(result, {
+      message: /^@x\/icons@0\.8\.0 did not appear on npm within 1 minute\(s\)/u
+    })
+    assert.deepEqual(
+      calls.map(({ timeout }) => timeout),
+      [ONE_MINUTE, ONE_MINUTE - readTime - INTERVAL]
+    )
+    assert.equal(environment.now(), ONE_MINUTE)
+  })
+
+  it('stops in the middle of the reads at the time limit and names the versions left', async context => {
+    const readTime = 40_000
+    const { result, calls, environment } = await runWait({
+      context,
+      manifest: {
+        ...TOOLING,
+        optionalDependencies: { '@x/extra': '0.8.0' },
+        peerDependencies: { '@x/runtime': '0.8.0' }
+      },
+      readTime
+    })
+
+    await assert.rejects(result, {
+      message:
+        /^@x\/icons@0\.8\.0, @x\/extra@0\.8\.0, @x\/runtime@0\.8\.0 did not appear on npm within 1 minute\(s\) \(@x\/icons@0\.8\.0 is not on npm yet; @x\/extra@0\.8\.0 is not on npm yet; @x\/runtime@0\.8\.0 was not read before the time limit\)\./u
+    })
+    assert.deepEqual(
+      calls.map(({ args, timeout }) => [args[1], timeout]),
+      [
+        [ICONS, ONE_MINUTE],
+        ['@x/extra@0.8.0', ONE_MINUTE - readTime]
+      ]
+    )
+    assert.equal(environment.now(), ONE_MINUTE)
   })
 
   it('does not take another version for the pinned one', async context => {
@@ -262,6 +312,48 @@ describe('waitForPinnedPackages refusals', () => {
     assert.deepEqual(calls, [])
   })
 
+  it('leaves out a workspace without a name, which no package can pin', async context => {
+    const { result, calls } = await runWait({
+      context,
+      manifest: TOOLING,
+      registry: { [ICONS]: [found('0.8.0')] },
+      workspaces: ['packages/*', 'apps/*'],
+      packages: { ...PACKAGES, 'apps/site': undefined }
+    })
+
+    await result
+    assert.deepEqual(
+      calls.map(({ args }) => args[1]),
+      [ICONS]
+    )
+  })
+
+  it('refuses the tarball of a workspace without a name', async context => {
+    const { result, calls } = await runWait({
+      context,
+      manifest: { ...TOOLING, name: '@x/site' },
+      workspaces: ['packages/*', 'apps/*'],
+      packages: { ...PACKAGES, 'apps/site': undefined }
+    })
+
+    await assert.rejects(result, {
+      message: /^@x\/site is not a package of this repository/u
+    })
+    assert.deepEqual(calls, [])
+  })
+
+  it('refuses a workspace root whose packages have no name', async context => {
+    const { result } = await runWait({
+      context,
+      manifest: TOOLING,
+      packages: { 'packages/site': undefined }
+    })
+
+    await assert.rejects(result, {
+      message: /match no package\.json with a name/u
+    })
+  })
+
   it('refuses a workspace root that lists no package', async context => {
     const { result } = await runWait({
       context,
@@ -293,7 +385,8 @@ describe('waitForPinnedPackages registry', () => {
       const reading = await readRegistry({
         run: () => Promise.resolve({ exitCode: 0, stdout, stderr: '' }),
         name: '@x/icons',
-        version: '0.8.0'
+        version: '0.8.0',
+        timeout: ONE_MINUTE
       })
 
       assert.deepEqual(reading, { isPublished: true, detail: undefined })
@@ -304,7 +397,8 @@ describe('waitForPinnedPackages registry', () => {
     const reading = await readRegistry({
       run: () => Promise.resolve({ exitCode: 0, stdout: '\n', stderr: '' }),
       name: '@x/icons',
-      version: '0.8.0'
+      version: '0.8.0',
+      timeout: ONE_MINUTE
     })
 
     assert.equal(reading.isPublished, false)
@@ -315,7 +409,8 @@ describe('waitForPinnedPackages registry', () => {
       run: () =>
         Promise.resolve({ exitCode: 0, stdout: 'npm warn', stderr: '' }),
       name: '@x/icons',
-      version: '0.8.0'
+      version: '0.8.0',
+      timeout: ONE_MINUTE
     })
 
     assert.deepEqual(reading, {
@@ -373,6 +468,20 @@ describe('waitForPinnedPackages tarball', () => {
     const tarball = await writeTarball({
       folder: await makeFolder(context),
       entries: [{ name: 'other/package.json', content: '{}' }]
+    })
+
+    await assert.rejects(readPackedManifest(tarball), {
+      message: `${tarball} has no package/package.json.`
+    })
+  })
+
+  it('refuses a tarball whose package/package.json is not a regular file', async context => {
+    const tarball = await writeTarball({
+      folder: await makeFolder(context),
+      entries: [
+        { name: 'package/', type: '5' },
+        { name: 'package/package.json', type: '2' }
+      ]
     })
 
     await assert.rejects(readPackedManifest(tarball), {

@@ -75,21 +75,25 @@ export async function readWorkspaceNames(root: string): Promise<Set<string>> {
   )
   const files: string[] = []
   for await (const found of glob(patterns, { cwd: root })) files.push(found)
+  // A workspace without a name, such as a private application, cannot be
+  // pinned by another package.
   const names = await Promise.all(
     files.map(async found => {
       const label = path.join(root, found)
       const text = await readFile(label, 'utf8')
-      return readFields({ value: parseJson({ text, label }), label }).string(
-        'name'
-      )
+      return readFields({
+        value: parseJson({ text, label }),
+        label
+      }).optionalString('name')
     })
   )
-  if (names.length === 0) {
+  const named = names.filter(name => name !== undefined)
+  if (named.length === 0) {
     throw new Error(
-      `The workspaces of ${file} match no package.json, so the packages of this repository are unknown.`
+      `The workspaces of ${file} match no package.json with a name, so the packages of this repository are unknown.`
     )
   }
-  return new Set(names)
+  return new Set(named)
 }
 
 export function findPinnedPackages({

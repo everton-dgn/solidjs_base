@@ -57,3 +57,14 @@ it('refuses a command without the options', async () => {
     stderr: /icons-generate takes the root and the icon collections/u
   })
 })
+
+it('refuses options without the icon collections', async context => {
+  const root = await createAppFixture({
+    context,
+    files: { 'package.json': '{}\n' }
+  })
+
+  await assert.rejects(generate({ root }), {
+    stderr: /Invalid key: Expected "collections" but received undefined/u
+  })
+})

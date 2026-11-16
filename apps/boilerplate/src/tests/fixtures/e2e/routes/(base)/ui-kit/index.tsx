@@ -1,6 +1,6 @@
 import { createLocalizedNavigate } from '@evertondgn/solid-runtime/i18n/create-localized-navigate'
 import { useSearchParams, type RouteDefinition } from '@solidjs/router'
-import { createSignal } from 'solid-js'
+import { createSignal, untrack } from 'solid-js'
 
 import { Button } from '@/components/atoms/Button/index.tsx'
 import { Input } from '@/components/atoms/Input/index.tsx'
@@ -17,7 +17,7 @@ export const route = {
 
 export default function UiKit() {
   const [params] = useSearchParams()
-  const [isOpen, setIsOpen] = createSignal(params.open === '1')
+  const [isOpen, setIsOpen] = createSignal(untrack(() => params.open === '1'))
   const [isSubmitted, setIsSubmitted] = createSignal(false)
   const toast = useToast()
   const navigate = createLocalizedNavigate()

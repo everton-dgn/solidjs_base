@@ -396,15 +396,15 @@ client-only fixture checks `aria-hidden` on both kinds of collection.
 
 The fixtures list 8, 7 and 9 direct dependencies including the injected packages
 (client-only, SSR plain and SSR i18n). The package supplies the development
-tools. The fixtures list their own pinned dependencies, and the first test of
-the file fails when a version, an override or the engines differ from the
-workspace. It also fails when the `engines` or `devEngines` of
-`apps/boilerplate` differ from the root, since Nitro picks the runtime of the
-Vercel function from `engines.node`. The test after it fails when a package of
-`packages/` does not declare `>=` and the `devEngines` Node version of the root
-in `engines.node`. No browser download or remote page request belongs to this
-suite; only dependency installation uses the network. Paraglide uses a local
-project without remote modules.
+tools. The fixtures list their own pinned dependencies, and the test
+`the applications pin the versions of the workspace` fails when a version, an
+override or the engines differ from the workspace. It also fails when the
+`engines` or `devEngines` of `apps/boilerplate` differ from the root, since
+Nitro picks the runtime of the Vercel function from `engines.node`. The test
+after it fails when a package of `packages/` does not declare `>=` and the
+`devEngines` Node version of the root in `engines.node`. No browser download or
+remote page request belongs to this suite; only dependency installation uses the
+network. Paraglide uses a local project without remote modules.
 
 To select a case, use Node's `--test-name-pattern` with
 `packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts`. For

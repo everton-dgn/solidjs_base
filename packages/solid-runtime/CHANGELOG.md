@@ -5,13 +5,11 @@
 
 ### ⚠ BREAKING CHANGES
 
-* @evertondgn/solid-runtime and @evertondgn/vite-plugin-solid-icons require @solidjs/web 2.0.0-rc.23. Update solid-js and @solidjs/web to 2.0.0-rc.23 together, with the overrides of @solidjs/signals and @solidjs/compiler at the same version, and remove a patchedDependencies entry for @solidjs/web@2.0.0-rc.21: the new version ends a render whose default serializer fails synchronously before the first flush, and a render abandoned inside its first write no longer ends the Node process. The types of HydrationContext no longer declare serialize; write hydration values through getHydrationWriter of @solidjs/web.
+* @evertondgn/solid-runtime and @evertondgn/vite-plugin-solid-icons take @solidjs/web 2.0.0-rc.23 as their exact peer, and @evertondgn/solid-tooling installs that version of the icons plugin, so an application on Solid 2.0.0-rc.21 no longer meets them. Update solid-js and @solidjs/web to 2.0.0-rc.23 together, with the overrides of @solidjs/signals and @solidjs/compiler at the same version, and remove a patchedDependencies entry for @solidjs/web@2.0.0-rc.21: the new version ends a render whose default serializer fails synchronously before the first flush, and a render abandoned inside its first write no longer ends the Node process. The types of HydrationContext no longer declare serialize; write hydration values through getHydrationWriter of @solidjs/web.
 * **runtime:** @evertondgn/solid-runtime declares Node 26.13.1 or later in engines.node. Run the application, including its production server, on Node 26.13.1 or a later version. A package manager that checks engines warns about, or refuses, an older Node.
-* @evertondgn/solid-runtime and @evertondgn/vite-plugin-solid-icons require @solidjs/web 2.0.0-rc.22. Update solid-js and @solidjs/web to 2.0.0-rc.22 together, with the overrides of @solidjs/signals and @solidjs/compiler at the same version, and remove a patchedDependencies entry for @solidjs/web@2.0.0-rc.21: the new version covers both of its cases. With skipLibCheck off, TypeScript reports TS2305 for heldRead in the types of @solidjs/web; the tsconfig of the tooling turns skipLibCheck on.
 
 ### Bug Fixes
 
-* require Solid 2.0.0-rc.22 ([bfd1ad8](https://github.com/everton-dgn/solidjs_base/commit/bfd1ad8b92319924e9c2fdb7be3d21e3d4079a93))
 * require Solid 2.0.0-rc.23 ([4689ef0](https://github.com/everton-dgn/solidjs_base/commit/4689ef0418142078e13582956e72091b830b6001))
 * **runtime:** require Node 26 ([93bc52d](https://github.com/everton-dgn/solidjs_base/commit/93bc52dfb5e5685d914ed33c55da620588bd70c4))
 

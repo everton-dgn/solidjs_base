@@ -475,6 +475,20 @@ describe('waitForPinnedPackages tarball', () => {
     })
   })
 
+  it('refuses a tarball whose package/package.json is not a regular file', async context => {
+    const tarball = await writeTarball({
+      folder: await makeFolder(context),
+      entries: [
+        { name: 'package/', type: '5' },
+        { name: 'package/package.json', type: '2' }
+      ]
+    })
+
+    await assert.rejects(readPackedManifest(tarball), {
+      message: `${tarball} has no package/package.json.`
+    })
+  })
+
   it('refuses a file that is not gzip', async context => {
     const file = path.join(await makeFolder(context), 'plain.tgz')
     await writeFile(file, 'not gzip')

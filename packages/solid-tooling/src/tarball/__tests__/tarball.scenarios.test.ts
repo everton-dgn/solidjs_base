@@ -63,6 +63,11 @@ import {
   smokeServerErrors
 } from '../server-errors.ts'
 import { smokeTheme } from '../theme-smoke.ts'
+import {
+  checkApplicationVersions,
+  checkPackageEngines,
+  readPinned
+} from '../workspace-versions.ts'
 
 const ROOT = path.resolve(import.meta.dirname, '../../../../..')
 const SCENARIOS = ['client-only', 'ssr-plain', 'ssr-i18n']
@@ -75,24 +80,6 @@ const POLL_INTERVAL = 100
 const HTTP_OK = 200
 const HTTP_SERVER_ERROR = 500
 const HTTP_TEMPORARY_REDIRECT = 307
-const PACKAGED_TOOLS = [
-  '@playwright/test',
-  '@solidjs/vite-plugin',
-  'filesystem-routing',
-  'knip',
-  'nitro',
-  '@evertondgn/vite-plugin-solid-icons',
-  '@commitlint/cli',
-  'lefthook',
-  'happy-dom',
-  'playwright',
-  '@vitest/browser-playwright',
-  '@vitest/coverage-v8',
-  '@vitest/ui',
-  '@testing-library/jest-dom',
-  '@types/node',
-  'typescript'
-]
 // Nitro and routing have runtime entries; their build adapters must stay out.
 const BUILD_TOOLS =
   /\/node_modules\/(?:@evertondgn\/solid-tooling\/|@evertondgn\/vite-plugin-solid-icons\/|@commitlint\/|@vitest\/|@testing-library\/|@playwright\/|@inlang\/sdk\/|(?:knip|typescript|happy-dom|playwright|playwright-core|lefthook|eslint-plugin-solid|stylelint|stylelint-use-nesting)\/|nitro\/dist\/(?:builder|vite|cli|presets\/[^/]+\/(?!runtime\/))|filesystem-routing\/dist\/(?:index|vite)|@solidjs\/vite-plugin\/dist\/esm\/index)/u
@@ -111,20 +98,6 @@ const manifestSchema = v.looseObject({
   dependencies: v.record(v.string(), v.string()),
   overrides: versionsSchema
 })
-const pinnedSchema = v.looseObject({
-  catalog: versionsSchema,
-  overrides: versionsSchema,
-  dependencies: versionsSchema,
-  devDependencies: versionsSchema,
-  engines: v.optional(v.unknown()),
-  devEngines: v.optional(v.unknown()),
-  packageManager: v.optional(v.string())
-})
-const devEnginesSchema = v.object({
-  runtime: v.object({ version: v.string() })
-})
-const nodeEngineSchema = v.object({ node: v.optional(v.string()) })
-const publishedSchema = v.object({ engines: v.optional(nodeEngineSchema, {}) })
 const MUTATION = env.SCENARIO_MUTATION
 const ICONS_PACKAGE = '@evertondgn/vite-plugin-solid-icons'
 const ICON_TYPES = 'src/icon-collections.d.ts'
@@ -133,12 +106,6 @@ const PACKED = ['solid-tooling', 'solid-runtime', 'vite-plugin-solid-icons']
 
 type Target = { app: string; scenario: string }
 type PreviewTarget = Target & { hasInvalidPort?: boolean }
-type Pinned = v.InferOutput<typeof pinnedSchema>
-type CatalogInput = {
-  versions: Record<string, string>
-  catalog: Pinned['catalog']
-}
-type Versions = Record<string, string | undefined>
 
 type PackedMutation = { archive: string; deadline: number; name: string }
 
@@ -481,19 +448,6 @@ function assertBuild({ app, scenario }: Target): void {
   }
 }
 
-function readPinned(file: string): Pinned {
-  return v.parse(pinnedSchema, JSON.parse(readFileSync(file, 'utf8')))
-}
-
-function resolveCatalog({ versions, catalog }: CatalogInput): Versions {
-  return Object.fromEntries(
-    Object.entries(versions).map(([name, version]) => [
-      name,
-      version === 'catalog:' ? catalog[name] : version
-    ])
-  )
-}
-
 test('the no-server guide shows the plugin of the scenario', () => {
   const guide = path.join(ROOT, 'docs/tooling/no-server.md')
   assertGuidePlugin(readFileSync(guide, 'utf8'))
@@ -520,75 +474,11 @@ test(
   checkProfileFailure
 )
 
-// The applications sit outside the workspace, where catalog: does not
-// resolve, so they pin each version. Without this check an update of the
-// workspace would leave the matrix testing the old versions.
 test('the applications pin the versions of the workspace', () => {
-  const workspace = readPinned(path.join(ROOT, 'package.json'))
-  const copy = readPinned(path.join(ROOT, 'apps/boilerplate/package.json'))
-  const { catalog } = workspace
-  assert.ok(!copy.dependencies['@evertondgn/solid-tooling'])
-  assert.ok(copy.devDependencies['@evertondgn/solid-tooling'])
-  // Without engines.node in the copy, Nitro writes the Vercel function on Bun.
-  assert.deepEqual(copy.engines, workspace.engines, 'apps/boilerplate')
-  assert.deepEqual(copy.devEngines, workspace.devEngines, 'apps/boilerplate')
-  const tooling = readPinned(
-    path.join(ROOT, 'packages/solid-tooling/package.json')
-  )
-  const runtime = readPinned(
-    path.join(ROOT, 'packages/solid-runtime/package.json')
-  )
-  for (const name of PACKAGED_TOOLS) {
-    assert.ok(tooling.dependencies[name], `${name} must ship with the tooling`)
-  }
-  const expected = resolveCatalog({
-    versions: { ...catalog, ...copy.dependencies, ...copy.devDependencies },
-    catalog
-  })
-  for (const [name, version] of Object.entries(
-    resolveCatalog({ versions: runtime.dependencies, catalog })
-  )) {
-    assert.equal(
-      version,
-      expected[name] ?? tooling.dependencies[name],
-      `runtime dependency: ${name}`
-    )
-  }
-  const overrides = resolveCatalog({ versions: workspace.overrides, catalog })
-  for (const scenario of SCENARIOS) {
-    const app = readPinned(
-      path.join(ROOT, 'fixtures/apps', scenario, 'package.json')
-    )
-    for (const [name, version] of Object.entries(app.dependencies)) {
-      assert.equal(version, expected[name], `${scenario}: ${name}`)
-      assert.ok(
-        !PACKAGED_TOOLS.includes(name),
-        `${scenario} must use the packaged ${name}`
-      )
-    }
-    assert.deepEqual(app.overrides, overrides, scenario)
-    assert.deepEqual(app.engines, workspace.engines, scenario)
-    assert.deepEqual(app.devEngines, workspace.devEngines, scenario)
-    assert.equal(app.packageManager, workspace.packageManager, scenario)
-  }
+  checkApplicationVersions({ root: ROOT, scenarios: SCENARIOS })
 })
-
-// Every folder of packages/ is published, and the packages are tested only on
-// the Node version that devEngines pins, so each declares it as its minimum.
 test('the packages require the Node version of the workspace', () => {
-  const workspace = readPinned(path.join(ROOT, 'package.json'))
-  const { runtime } = v.parse(devEnginesSchema, workspace.devEngines)
-  const expected = `>=${runtime.version}`
-  const files = readdirSync(path.join(ROOT, 'packages'))
-    .map(name => path.join('packages', name, 'package.json'))
-    .filter(file => existsSync(path.join(ROOT, file)))
-  assert.ok(files.length > 0, 'no package found in packages/')
-  for (const file of files) {
-    const text = readFileSync(path.join(ROOT, file), 'utf8')
-    const manifest = v.parse(publishedSchema, JSON.parse(text))
-    const message = `${file}: set engines.node to "${expected}", the devEngines.runtime version of the root package.json`
-    assert.equal(manifest.engines.node, expected, message)
-  }
+  checkPackageEngines(ROOT)
 })
 
 async function buildScenario({

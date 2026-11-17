@@ -1,64 +1,41 @@
-# Tooling reference
+# Tooling guides
 
-| Guide                                                 | Read it when you want to                                                             |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [Lint](lint.md)                                       | Understand the rules, backend restrictions and expected layout, or change the preset |
-| [Application config](app-config.md)                   | Configure `defineSolidApp`, optional features, plugins and tasks                     |
-| [Applications with no server](no-server.md)           | Ship a client-only build to a static host, a folder, another backend or an app shell |
-| [Testing](testing.md)                                 | Set up the node, DOM, browser and end-to-end tests                                   |
-| [Knip and CSS](knip-and-css.md)                       | Find unused code and apply the CSS token policy                                      |
-| [Commit messages and Git hooks](commits-and-hooks.md) | Install and customize commitlint and Lefthook                                        |
-| [TypeScript and formatting](typescript-and-format.md) | Start with lint and format, or extend a TypeScript config                            |
-| [Requirements, limits and versions](limits.md)        | Install compatible dependencies and check the constraints                            |
+These are the guides for
+[`@evertondgn/solid-tooling`](../../packages/solid-tooling/README.md). Start
+with the package README, which is also its npm page: it shows the first lint
+result, the whole preset, how the package is tested, its limits and the
+reference of each option. The guides below go into the details, by task. For the
+project as a whole, see the [quick start](../../README.md#quick-start) or the
+[documentation index](../README.md).
 
-## Overview
+## Find the guide for your task
 
-Lint preset, formatter config, TypeScript configs, test configs, the Knip and
-Stylelint configs, the Vite+ application config, the commitlint config and the
-Git hooks for SolidJS 2 applications built with
-[Vite+](https://viteplus.dev/guide/).
-
-The package contains the lint, format, TypeScript, test, build, dead code, CSS
-lint, commit message and Git hook setup of
-[boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs), a
-SolidJS application template. Applications created from it install the package
-instead of copying the files, so a rule change reaches them through a version
-update.
+| I want to                                                                            | Read                                                                                                                                          |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add only lint and format to an existing Vite+ app                                    | [Start with lint and format](../../packages/solid-tooling/README.md#start-with-lint-and-format), then [Usage](typescript-and-format.md#usage) |
+| See the folder layout the preset expects                                             | [Project layout the preset expects](lint.md#project-layout-the-preset-expects)                                                                |
+| Look up a rule of the package                                                        | [Rules of this package](lint.md#rules-of-this-package)                                                                                        |
+| Know where `fetch`, `console` and the Node transports are allowed                    | [Backend restrictions](lint.md#backend-restrictions)                                                                                          |
+| Turn a rule off or change the lint preset                                            | [Changing the preset](lint.md#changing-the-preset)                                                                                            |
+| Configure `defineSolidApp` and its optional features                                 | [Application config](app-config.md)                                                                                                           |
+| Add Vite plugins to the preset                                                       | [`extend`](app-config.md#extend)                                                                                                              |
+| Replace or add a `vp run` task                                                       | [Tasks](app-config.md#tasks)                                                                                                                  |
+| Map an icon collection or a folder of SVG files                                      | [Icons](app-config.md#icons)                                                                                                                  |
+| Load fonts with matching preloads                                                    | [Application fonts](fonts.md)                                                                                                                 |
+| Turn on SEO, sitemaps, Markdown pages and `llms.txt`                                 | [Optional SEO configuration](app-config.md#optional-seo-configuration)                                                                        |
+| Validate environment values                                                          | [Optional environment validation](app-config.md#optional-environment-validation)                                                              |
+| Ship a client-only build to a static host, a folder, another backend or an app shell | [Applications with no server](no-server.md)                                                                                                   |
+| Set up the node, DOM, browser and end-to-end tests                                   | [Testing](testing.md)                                                                                                                         |
+| Find unused files, exports and dependencies                                          | [Knip](knip-and-css.md#knip)                                                                                                                  |
+| Apply the CSS token policy                                                           | [CSS lint](knip-and-css.md#css-lint)                                                                                                          |
+| Install and customize commitlint and the Git hooks                                   | [Commit messages and Git hooks](commits-and-hooks.md)                                                                                         |
+| Extend a TypeScript config                                                           | [TypeScript base](typescript-and-format.md#typescript-base)                                                                                   |
+| Check the formatter settings                                                         | [Formatter](typescript-and-format.md#formatter)                                                                                               |
+| Install compatible dependencies                                                      | [Requirements](limits.md#requirements)                                                                                                        |
+| Check what the package does not cover yet                                            | [Known limits](limits.md#known-limits)                                                                                                        |
+| Read the version policy                                                              | [Versions](limits.md#versions)                                                                                                                |
 
 ## Entry points
 
-| Entry                    | Content                                                                          |
-| ------------------------ | -------------------------------------------------------------------------------- |
-| `./lint`                 | `lint`: the lint preset, with the plugins below registered                       |
-| `./fmt`                  | `fmt`: the formatter config                                                      |
-| `./tsconfig.base.json`   | Compiler options, without application paths                                      |
-| `./tsconfig.app.json`    | The base plus packaged type references and the boilerplate `include`             |
-| `./vite`                 | `defineSolidApp(options)`, the whole `vite.config.ts` of an application          |
-| `./i18n-generate`        | Compiled catalog generator executed by the preset's `i18n-generate` task         |
-| `./icons-generate`       | Compiled writer of the icon declarations, executed by the `icons-generate` task  |
-| `./vitest`               | `solidTest(options)`, the `test` block of `vite.config.ts`                       |
-| `./playwright`           | `definePlaywrightConfig(options)`, the Playwright config                         |
-| `./vitest-setup/browser` | Setup file of the browser project, loaded by `./vitest`                          |
-| `./playwright-teardown`  | Server log check, loaded by `./playwright`                                       |
-| `./project-plugin`       | The `project` rules                                                              |
-| `./backend-plugin`       | The `backend` rules                                                              |
-| `./architecture-plugin`  | The `architecture` rule                                                          |
-| `./solid-plugin`         | Re-export of `eslint-plugin-solid`                                               |
-| `./css-filename`         | `cssFilenameError(path)`, the CSS naming check, for a script outside lint        |
-| `./knip`                 | `defineKnipConfig(options)`, the Knip config                                     |
-| `./stylelint`            | `checkCss(root)` and `defineStylelintConfig(root)`, the CSS lint                 |
-| `./commitlint`           | The commitlint config                                                            |
-| `./cli`                  | Command entry for packaged Knip, TypeScript, Playwright, Lefthook and commitlint |
-| `./app-env`              | Type references loaded by `tsconfig.app.json`                                    |
-| `./icon-modules`         | Declarations of the `icon:` imports, loaded by `./app-env`                       |
-| `./lefthook.yml`         | The Git hooks, extended from the application's `.lefthook.yml`                   |
-
-An application imports `./vite`, which brings `./lint`, `./fmt` and `./vitest`
-along, `./playwright`, `./knip`, `./stylelint` and one of the TypeScript
-configs, and extends `./commitlint` and `./lefthook.yml`. An application that
-only lints imports `./lint` and `./fmt`. The plugin entries exist because Oxlint
-loads plugins by specifier, from the application; the setup and teardown entries
-are loaded by the test presets.
-
-See the [project quick start](../../README.md#quick-start) or the
-[documentation index](../README.md).
+The [package README](../../packages/solid-tooling/README.md#entry-points) lists
+every entry of the package's `exports` and what each one holds.

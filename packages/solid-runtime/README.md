@@ -7,23 +7,30 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 RC and Vite+. Build your Solid app. Stop rebuilding its foundation. Shared tooling and runtime beneath the SolidJS mark: languages, theme, server protection, SEO, assets and development tools. Install solid-tooling for development and solid-runtime for application features." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 RC and Vite+. Build your Solid app. Stop rebuilding its foundation. Optional languages and theme. Shared server protection, SEO, assets and development tools. Two install commands: vp add -D @evertondgn/solid-tooling and vp add @evertondgn/solid-runtime. Cards: languages from your locale list, light, dark or system theme, CSP and server errors, metadata and sitemap, icons and fonts, config, tests and hooks." width="800" />
 </picture>
 
-**The server and browser behavior of a SolidJS 2 app, ready to import one
-feature at a time.**
+**Security headers with a nonce CSP, private server errors, links that keep the
+language, a theme set before hydration, and SEO and Markdown publication for a
+SolidJS 2 app, one import at a time.**
 
-A server-rendered app needs the same layer under its pages: a Content Security
-Policy that blocks injected scripts, error responses that do not leak server
-details, links that keep the language, a theme applied before hydration, head
-tags, robots.txt and sitemaps for crawlers, and a Markdown copy of each page for
-agents. This package ships that layer as tested TypeScript source. You keep the
-UI, palette, content, messages and backend adapters.
+The same code comes back in each server-rendered SolidJS app, under its pages: a
+Content Security Policy with a nonce, so an injected script without it does not
+run, and error responses that keep server details on the server. Many apps also
+need links that keep the language, a theme applied before hydration, head tags,
+robots.txt and sitemaps for crawlers, and a Markdown copy of each page for
+agents. Copied from app to app, that code drifts, and a fix has to be made again
+in each one. This package ships it as TypeScript source, in 64 entry points.
+Your app imports the ones it uses and keeps its UI, palette, content, messages
+and backend adapters.
 
 > SolidJS 2 is still a release candidate. This package is tested with
 > `2.0.0-rc.23` and pins its `@solidjs/web` peer dependency to that version, so
-> plan to update both together until SolidJS 2 is stable.
+> plan to update both together until SolidJS 2 is stable. Below 1.0.0, a
+> breaking change raises the minor version.
 
+[Setup](#the-smallest-working-setup) · [Who it fits](#who-it-fits) ·
+[Questions](#questions-before-you-adopt-it) ·
 [Security](#every-response-behind-one-security-policy) ·
 [Server errors](#server-failures-stay-on-the-server) ·
 [Languages](#links-redirects-and-navigation-that-keep-the-language) ·
@@ -32,22 +39,25 @@ UI, palette, content, messages and backend adapters.
 [Markdown and llms.txt](#each-page-as-markdown-plus-llmstxt) ·
 [Sitemaps](#sitemaps-with-bounded-work) ·
 [Environment](#environment-values-checked-at-startup) ·
-[Fonts](#fonts-with-matching-preloads) · [How it is tested](#how-it-is-tested) ·
+[Fonts](#fonts-with-matching-preloads) ·
+[Entry points](#import-only-what-you-use) ·
+[How it is tested](#how-it-is-tested) · [Known limits](#known-limits) ·
 [Reference](#reference)
 
 ## Install
 
 ```bash
-vp add @evertondgn/solid-runtime
 vp add -D @evertondgn/solid-tooling
+vp add @evertondgn/solid-runtime
 ```
 
-The runtime ships TypeScript source under the `solid` export condition, compiled
-by your application with its own Solid version, plus plain JavaScript for the
-entries loaded from Node. The `defineSolidApp` preset of
-[`@evertondgn/solid-tooling`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/README.md)
-sets that condition and serves the `virtual:solid-app/*` modules that several
-entries read. See [Requirements](#requirements).
+The runtime is built to run under the `defineSolidApp` preset of
+[`@evertondgn/solid-tooling`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/README.md).
+The preset sets the `solid` export condition that the TypeScript entries need,
+and serves the `virtual:solid-app/*` modules that 27 of the 64 entries read. The
+runtime ships TypeScript source, compiled by your application with its own Solid
+version, plus plain JavaScript for the entries loaded from Node. See
+[Requirements](#requirements).
 
 ## The smallest working setup
 
@@ -75,29 +85,133 @@ import { createSecurityHeaders } from '@evertondgn/solid-runtime/middleware/secu
 export default createMiddleware({ security: createSecurityHeaders() })
 ```
 
-In a production build, dynamic responses now carry eight security headers and a
-CSP whose `script-src` holds the nonce of the request. The development server
-sends the eight headers without the CSP, so hot module replacement can inject
-its styles. The static files that skip the middleware get three of the same
-values through `securityHeaders`. Everything else in this page is opt-in.
+This is the production preview of a copy of that fixture, built with
+`vp run build` and the 0.8.0 packages from npm on 2026-11-17. The fixture also
+turns on icons, SEO, the server error setup and one extra middleware step. Two
+lines are cut from the output: `Vary: Origin`, sent by the preview server, and
+`x-scenario-env`, written by the fixture's extra step.
 
-## Import only what you use
+```text
+$ vp preview --host 127.0.0.1 --port 4417 --strictPort
+$ curl -sI http://127.0.0.1:4417/
+HTTP/1.1 200
+content-security-policy: default-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; script-src 'nonce-2Dq3lGgPyraw4bycVilbMw==' 'strict-dynamic'
+content-type: text/html; charset=utf-8
+cross-origin-embedder-policy: require-corp
+cross-origin-opener-policy: same-origin
+cross-origin-resource-policy: same-origin
+permissions-policy: camera=(), microphone=(), geolocation=()
+referrer-policy: strict-origin-when-cross-origin
+strict-transport-security: max-age=63072000; includeSubDomains
+x-content-type-options: nosniff
+x-frame-options: DENY
+```
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/runtime-entries-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/runtime-entries-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/runtime-entries-light.webp" alt="solid-runtime has 64 entry points in 8 groups: seo 15, middleware 12, server 12, theme 11, i18n 10, routing 2, env 1 and fonts 1, with examples such as create-seo, create-middleware, configure-server-errors, locale-tag and define-theme. Counted from the exports of the package manifest; a group you never import never enters your build." width="800" />
-</picture>
+A second request got another nonce (policy shortened):
 
-The package has 64 entry points in 8 groups and no barrel: `seo` 15,
-`middleware` 12, `server` 12, `theme` 11, `i18n` 10, `routing` 2, `env` 1 and
-`fonts` 1. A single-language app needs no translation project, and a theme or
-SEO module enters the bundle only when your code imports it.
+```text
+content-security-policy: ... script-src 'nonce-+tZMQ1+pW8MBtfSu71btKA==' 'strict-dynamic'
+```
 
-That is checked on real builds. The installed scenarios pack this package,
-install it in the fixture applications and fail when a disabled theme or
-translation setup leaves its modules in the bundle, or when a client-only build
-loads Nitro.
+That is eight security headers and a CSP whose `script-src` holds the nonce of
+the request. A script in the page runs only if it carries that nonce; with
+`'strict-dynamic'`, the scripts that a nonce-bearing script loads run too. The
+development server sends the eight headers without the CSP, so hot module
+replacement can inject its styles. The static files that skip the middleware get
+three of the same values through `securityHeaders`: `strict-transport-security`,
+`x-content-type-options` and `cross-origin-resource-policy`. Everything else on
+this page is opt-in.
+
+## Who it fits
+
+- You build a SolidJS 2 app with the `defineSolidApp` preset and want its
+  responses behind a nonce CSP, starting from the two files above.
+- Your server functions and API routes call databases or SDKs whose error
+  messages must stay on the server.
+- Your app has several languages and must keep the current one in links,
+  redirects and client navigation. A single-language app uses the same calls
+  with no translation project.
+- You publish sitemaps, `llms.txt` or a Markdown copy of your pages, and want
+  each response held to a deadline and a byte budget.
+
+## Who it does not fit yet
+
+- Your app does not use the tooling preset. 27 of the 64 entries read
+  `virtual:solid-app/*` modules that only `defineSolidApp` serves, among them
+  `createMiddleware`, the public errors, the language helpers, `createSeo`, the
+  sitemaps and Markdown. The runtime is not tested without the preset;
+  [Import only what you use](#import-only-what-you-use) shows what each entry
+  reads.
+- Your server build must target a host other than Vercel's output format. The
+  server features run in the server build of the preset, whose Nitro always uses
+  the `vercel` preset
+  ([known limits of the tooling](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits)).
+  A client-only build (`ssr: false`) writes a static `dist/` with no server.
+- You cannot pin `@solidjs/web`. It is an exact peer at `2.0.0-rc.23` in the
+  [package manifest](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/package.json),
+  and SolidJS 2 is a release candidate.
+- You run Node older than 26.13.1, the `engines.node` floor of the same
+  manifest.
+- You need sitemap and Markdown quotas shared by several server processes. Each
+  process has its own quotas, and there is no global quota.
+
+## Questions before you adopt it
+
+**Can I use it without the tooling?** Not as a tested setup: the runtime is
+built and tested under the tooling preset. A static read of the import graph of
+each entry finds 34 entries that import no virtual module, among them the whole
+theme, the security headers, the env fragment, `createRobots` and `convertHtml`.
+Three more import only the virtual modules of the routing and Solid plugins, and
+27 import the `virtual:solid-app/*` modules that `defineSolidApp` serves. No
+entry was run without the preset, and the TypeScript entries still need the
+`solid` export condition. [Import only what you use](#import-only-what-you-use)
+marks each entry.
+
+**Do I need translations, a theme or SEO?** No. Each one is a separate import. A
+single-language app needs no translation project: the language helpers give one
+unprefixed language, `en` unless you set `language` in the preset. A theme or
+SEO module enters the bundle only when your code imports it, and the installed
+scenarios fail when a disabled theme or translation setup leaves its modules in
+the bundle ([How it is tested](#how-it-is-tested)).
+
+**Does it work in an app with no server?** In part. A client-only build
+(`ssr: false`) can use the theme with `storage: 'local-storage'`, the language
+helpers with one unprefixed language, and fonts, which the preset writes into
+`index.html`. The middleware and the server errors need the server build, and
+the preset refuses its `seo` option (robots, sitemaps, Markdown and editorial
+indexes) together with `ssr: false`. `createSeo` writes head tags and JSON-LD
+through `useHead`, and its DOM tests check that output in happy-dom, but no
+installed scenario runs it in a client-only build, and a crawler that does not
+run JavaScript sees only tags rendered by a server. Translations by URL prefix
+need a server too. See
+[applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md).
+
+**What does it add to the production install?** Version 0.8.0 unpacks to 280,495
+bytes in 122 files
+(`npm view @evertondgn/solid-runtime@0.8.0 dist.unpackedSize dist.fileCount`).
+It has four production dependencies, `@mdream/js`, `filesystem-routing`,
+`schema-dts` and `valibot`, and the `@solidjs/web` peer. The tarball test fails
+when a build or test tool such as `vite`, `vite-plus`, `vitest` or `rolldown`
+reaches the `dependencies`, `peerDependencies` or `optionalDependencies` of the
+published manifest. It does not follow the dependencies of a dependency.
+
+**How do I update?** Update it together with the tooling, in one command:
+
+```bash
+vp update -L @evertondgn/solid-tooling @evertondgn/solid-runtime
+```
+
+`-L` is needed while the packages are `0.x`. Then align `solid-js`,
+`@solidjs/web` and the Solid overrides with the exact `@solidjs/web` peer of the
+runtime, as
+[Update the packages](https://github.com/everton-dgn/solidjs_base/blob/main/README.md#update-the-packages)
+shows, and read the
+[changelog](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/CHANGELOG.md).
+Do not raise `solid-js` with `-L`: the newest release candidate can be newer
+than the one the packages were tested with.
+
+**How do I leave?** There is no eject command. Each feature is a separate
+import, so you can replace one at a time with your own code.
 
 ## Every response behind one security policy
 
@@ -111,7 +225,9 @@ In production, only the scripts that carry the nonce run, and `'strict-dynamic'`
 lets them load their modules. An injected `<script>` without the nonce does not
 run. JSON, text, XML and redirects get `script-src 'none'`. A policy that a
 response cannot carry, such as a duplicate directive or a header value with a
-line break, fails when the application starts, before any request.
+line break, fails when the application starts, before any request. That check
+covers the directive names and the shape of each item, not the values:
+`'unsafe-inline'` in `style-src` passes.
 
 | Header                         | Default                                                                                                                                                                                |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -136,9 +252,9 @@ then your `extra` steps, the security headers, the API routes and a `405` for a
 method that the page or API route does not accept. Security runs before the API
 handlers, which may finish the response. A failure inside the chain is
 contained, and in production the failure response keeps the configured headers.
-To change one value, spread the defaults: see
-[Security headers](#security-headers) and
-[Building the chain](#building-the-chain).
+A failure after a Response body was returned stays outside that containment. To
+change one value, spread the defaults: see [Security headers](#security-headers)
+and [Building the chain](#building-the-chain).
 
 ## Server failures stay on the server
 
@@ -152,8 +268,10 @@ When a server function, an API route or a render fails in production, the
 browser receives a fresh public error with `The request could not be completed.`
 or your own translated text. The message, cause and properties of the original
 error are not forwarded, and the production log keeps a fixed source line with
-the filtered class and frames. Register the protection once, in the setup file
-that `defineSolidApp` points to:
+the filtered class and frames. Your adapters still choose the fields they
+return, and a translated message callback must return public text: the package
+cannot detect a secret deliberately embedded in a string. Register the
+protection once, in the setup file that `defineSolidApp` points to:
 
 ```ts
 // vite.config.ts, inside defineSolidApp
@@ -223,11 +341,12 @@ through one seam and never imports a translation provider of its own. See
 Light, dark or system. On the server, `readTheme` reads the choice from the
 request cookie, and `themeColor` gives the matching `theme-color` for the HTML
 class you render. `themeScript`, inside a script with the request nonce,
-resolves the system preference before hydration. A choice made in one tab
-reaches the others through BroadcastChannel. The choice stays in a cookie, which
-the server reads; an app with no server keeps it in localStorage instead, as
-[Optional theme](#optional-theme) shows. One factory, `defineTheme`, binds it
-all:
+resolves the system preference before hydration, so it needs a server. A choice
+made in one tab reaches the others through BroadcastChannel. The choice stays in
+a cookie, which the server reads; an app with no server keeps it in localStorage
+instead, as [Optional theme](#optional-theme) shows. With localStorage and SSR,
+the server cannot read the choice, so the page shows the default theme until
+`createTheme` applies it. One factory, `defineTheme`, binds it all:
 
 ```ts
 import { defineTheme } from '@evertondgn/solid-runtime/theme/define-theme'
@@ -335,8 +454,11 @@ A sitemap index and its parts come from sources you declare, with one entry per
 configured locale and `x-default` for the base locale. Every dynamic sitemap and
 Markdown response goes through one publication controller with admission slots,
 deadlines and byte budgets. Overload answers `503` with `Retry-After: 1`, and an
-oversized source answers an empty `503`; neither sends partial XML. This source
-is complete, from the SSR fixture:
+oversized source answers an empty `503`; neither sends partial XML. These quotas
+belong to one server process: there is no global quota across processes. A
+source that ignores cancellation keeps its slot until it settles, and an array
+source returns its complete list on each request. This source is complete, from
+the SSR fixture:
 
 ```ts
 // src/infra/server/sitemap/index.ts
@@ -446,37 +568,167 @@ Client-only apps get the links in `index.html` with no import. Font files,
 licenses and typography tokens stay in your app. See
 [Optional fonts](#optional-fonts).
 
+## Import only what you use
+
+The package has 64 entry points in 8 groups and no barrel: `seo` 15,
+`middleware` 12, `server` 12, `theme` 11, `i18n` 10, `routing` 2, `env` 1 and
+`fonts` 1, the keys of `exports` in the
+[package manifest](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/package.json).
+A single-language app needs no translation project, and a theme or SEO module
+enters the bundle only when your code imports it. The installed scenarios check
+that on real builds ([How it is tested](#how-it-is-tested)).
+
+The table lists every entry by feature, with the virtual modules in its import
+graph. That column comes from a static read of the source at commit `4d2c326`,
+following relative imports and the package's `#solid-runtime/*` alias and
+skipping type-only imports. No entry was run without the preset. Of the 64
+entries, 34 import no virtual module, 3 import only the virtual modules of the
+routing and Solid plugins, and 27 import `virtual:solid-app/*` modules, which
+only `defineSolidApp` serves. The TypeScript entries also need the `solid`
+export condition, and an entry that imports no virtual module can still take an
+argument built by one that does.
+
+| Entry point                                                               | `virtual:solid-app/*` modules                                    | Plugin modules           |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------ |
+| [`./middleware/create-middleware`](#building-the-chain)                   | `locale`, `request-middleware`                                   | routes, server functions |
+| [`./middleware/security-headers`](#security-headers)                      | None                                                             | None                     |
+| [`./middleware/security-headers/constants`](#security-headers)            | None                                                             | None                     |
+| [`./middleware/contain-failures`](#building-the-chain)                    | `locale`                                                         | routes, server functions |
+| [`./middleware/api-routes`](#middleware-and-security-headers)             | None                                                             | routes                   |
+| [`./middleware/restrict-page-methods`](#middleware-and-security-headers)  | None                                                             | routes, server functions |
+| [`./middleware/request-classification`](#middleware-and-security-headers) | None                                                             | routes, server functions |
+| [`./middleware/negotiate-page-format`](#middleware-and-security-headers)  | None                                                             | None                     |
+| [`./middleware/is-html-response`](#middleware-and-security-headers)       | None                                                             | None                     |
+| [`./middleware/types`](#middleware-and-security-headers)                  | None                                                             | None                     |
+| [`./middleware/append-vary`](#locale-support)                             | None                                                             | None                     |
+| [`./middleware/localize-request`](#locale-request-middleware)             | `locale-request`                                                 | routes, server functions |
+| [`./server/configure-server-errors`](#server-error-protection)            | `locale`                                                         | None                     |
+| [`./server/public-errors`](#server-error-protection)                      | `locale`                                                         | None                     |
+| [`./server/protect-server-operation`](#server-error-protection)           | `locale`                                                         | None                     |
+| [`./server/log-server-failure`](#server-error-protection)                 | None                                                             | None                     |
+| [`./server/is-control-response`](#server-error-protection)                | None                                                             | None                     |
+| [`./server/render-integrity`](#server-error-protection)                   | None                                                             | None                     |
+| [`./server/publication-scope`](#server-error-protection)                  | `locale`                                                         | None                     |
+| [`./server/create-render-options`](#authored-render-entries)              | None                                                             | None                     |
+| [`./server/publication`](#sitemap-and-publication)                        | `locale`                                                         | None                     |
+| [`./server/publication-types`](#sitemap-and-publication)                  | None                                                             | None                     |
+| [`./server/publication-protocol`](#sitemap-and-publication)               | None                                                             | None                     |
+| [`./server/publication-phase`](#sitemap-and-publication)                  | None                                                             | None                     |
+| [`./i18n/locale`](#locale-support)                                        | `locale`                                                         | None                     |
+| [`./i18n/urls`](#locale-support)                                          | `locale`                                                         | None                     |
+| [`./i18n/build-locale-alternates`](#locale-support)                       | `locale`                                                         | None                     |
+| [`./i18n/create-localized-navigate`](#navigation-and-language-tags)       | `locale`                                                         | None                     |
+| [`./i18n/create-locale-navigation-guard`](#navigation-and-language-tags)  | `locale`                                                         | None                     |
+| [`./i18n/install-locale-history-guard`](#navigation-and-language-tags)    | `locale`                                                         | None                     |
+| [`./i18n/locale-tag`](#navigation-and-language-tags)                      | `locale`                                                         | None                     |
+| [`./i18n/prepare-client-locale`](#navigation-and-language-tags)           | `locale`                                                         | None                     |
+| [`./i18n/localized-redirect`](#locale-request-middleware)                 | `locale`                                                         | None                     |
+| [`./i18n/locale-context`](#markdown-and-editorial-indexes)                | `locale-context`                                                 | None                     |
+| [`./theme/define-theme`](#optional-theme)                                 | None                                                             | None                     |
+| [`./theme/create-theme`](#optional-theme)                                 | None                                                             | None                     |
+| [`./theme/create-theme/types`](#optional-theme)                           | None                                                             | None                     |
+| [`./theme/types`](#optional-theme)                                        | None                                                             | None                     |
+| [`./theme/is-theme`](#optional-theme)                                     | None                                                             | None                     |
+| [`./theme/apply-theme`](#optional-theme)                                  | None                                                             | None                     |
+| [`./theme/stored-theme-script`](#optional-theme)                          | None                                                             | None                     |
+| [`./theme/theme-storage`](#optional-theme)                                | None                                                             | None                     |
+| [`./theme/make-system-theme`](#optional-theme)                            | None                                                             | None                     |
+| [`./theme/make-theme-channel`](#optional-theme)                           | None                                                             | None                     |
+| [`./theme/make-broadcast-channel`](#optional-theme)                       | None                                                             | None                     |
+| [`./seo/create-seo`](#optional-seo)                                       | `locale`                                                         | None                     |
+| [`./seo/resolve-route-seo`](#optional-seo)                                | None                                                             | None                     |
+| [`./seo/types`](#optional-seo)                                            | None                                                             | None                     |
+| [`./seo/origin`](#optional-seo)                                           | `seo-origin`                                                     | None                     |
+| [`./seo/create-robots`](#optional-seo)                                    | None                                                             | None                     |
+| [`./seo/robots-route`](#optional-seo)                                     | `seo-robots`                                                     | server functions         |
+| [`./seo/markdown`](#markdown-and-editorial-indexes)                       | `locale`, `locale-context`, `request-middleware`, `seo-markdown` | routes, server functions |
+| [`./seo/markdown-types`](#markdown-and-editorial-indexes)                 | None                                                             | None                     |
+| [`./seo/markdown-route`](#markdown-and-editorial-indexes)                 | `locale`                                                         | None                     |
+| [`./seo/convert-html`](#markdown-and-editorial-indexes)                   | None                                                             | None                     |
+| [`./seo/collect-static-markdown-pages`](#markdown-and-editorial-indexes)  | `locale`                                                         | None                     |
+| [`./seo/llms`](#markdown-and-editorial-indexes)                           | `locale`, `locale-context`, `seo-llms`                           | routes                   |
+| [`./seo/llms-types`](#markdown-and-editorial-indexes)                     | None                                                             | None                     |
+| [`./seo/sitemap-routes`](#sitemap-and-publication)                        | `locale`                                                         | routes                   |
+| [`./seo/sitemap-types`](#sitemap-and-publication)                         | None                                                             | None                     |
+| [`./routing/walk-static-routes`](#sitemap-and-publication)                | None                                                             | None                     |
+| [`./routing/types`](#sitemap-and-publication)                             | None                                                             | None                     |
+| [`./env`](#optional-environment-validation)                               | None                                                             | None                     |
+| [`./fonts/font-links`](#optional-fonts)                                   | `fonts`                                                          | None                     |
+
+In the second column, `locale` stands for `virtual:solid-app/locale`, and so on.
+In the third, routes is `virtual:file-routes`, from `filesystem-routing`, and
+server functions is `virtual:solid-server-function-handler`, from
+`@solidjs/vite-plugin`.
+
 ## How it is tested
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" alt="Current revision: 1,186 Vitest tests passed, 1,001 in the runtime and 185 in the boilerplate app; 319 E2E cases listed, 164 for the E2E build and 155 for the production build. Before each release the tarball is installed in a separate application and its exports and lint rules are checked. Release workflows publish with trusted publishing and signed npm provenance, with no stored npm token." width="800" />
-</picture>
+In the CI run of the 0.8.0 release pull request
+([run 43975952604](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604)),
+the
+[Packages job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680118978)
+ran `vp run validate`, the same checks as the publish job. For this package, it
+executed:
 
-At this revision, `vp run test` in this folder passed **1,001 Vitest tests in
-100 files**: 84 files in the `node` project, 15 in `dom` with happy-dom and 1 in
-`browser` with Chromium. Coverage was 97.42% of statements, 94.75% of branches,
-98.78% of functions and 98.43% of lines.
-
-Two more layers check the package as an application installs it:
-
-- The tarball test packs the package, installs it as a dependency in a temporary
-  folder and checks that the header constants load in plain Node, that every
-  target of `exports` is in the tarball and that no test folder is published.
-- The installed scenarios install the packed tooling, runtime and icons plugin
-  in the
+- 1,047 Vitest tests in 104 files, all passed: 934 tests in 86 files of the
+  `node` project, 111 in 17 files of `dom`, with happy-dom, and 2 in 1 file of
+  `browser`, with Chromium. Coverage was 97.46% of statements, 94.87% of
+  branches, 98.79% of functions and 98.46% of lines.
+- 6 tarball tests, all passed. They pack the package, install it in a temporary
+  folder and check that the header constants and the stored theme script load in
+  plain Node, that every target of `exports` is in the tarball, that no test
+  folder is published and that no build tool is in a production section of the
+  manifest.
+- The installed scenarios, which install the packed tooling, runtime and icons
+  plugin in the
   [three fixture applications](https://github.com/everton-dgn/solidjs_base/tree/main/fixtures/apps)
   with Bun's `hoisted` and `isolated` linkers, build them and audit the bundles
-  and server boundaries. The matrix enumerates 14 application cases: 3 for
-  client-only, 9 for SSR, including the language, meta-only, no-sitemap and four
-  publication profiles, and 2 for translated SSR.
+  and server boundaries. All 14 application cases passed. They fail when a
+  disabled theme or translation setup leaves its modules in the bundle, or when
+  a client-only build loads Nitro. In the same log, an SSR case with an invalid
+  `PORT` stops at boot, as expected:
+  `Expected boot failure: server env validation failed at boot`. The
+  [tooling package](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/README.md)
+  lists the cases.
 
-The package is also linted as an application with the lint preset of the tooling
-package, and Knip checks its `exports` for unused code. At the root,
-`vp run validate` runs these checks with the build, the tarball tests and the
-installed scenarios, as the publish job does. See [Tests](#tests) and the
+The runtime tests use their own de/fr/ja Paraglide project, generated before
+each run and left out of the tarball and coverage; the installed scenarios test
+the real providers of the fixture applications. The package is also linted as an
+application with the lint preset of the tooling package, and Knip checks its
+`exports` for unused code. See the
+[development guide](https://github.com/everton-dgn/solidjs_base/blob/main/docs/development.md)
+and the
 [installed scenarios decision](https://github.com/everton-dgn/solidjs_base/blob/main/docs/ADRs/0021-installed-application-scenarios.md).
+
+Version 0.8.0 was published by the release workflow through npm trusted
+publishing, with npm provenance (an SLSA v1 provenance statement) that names the
+commit and the workflow run that built it. `npm audit signatures`, run in your
+application, checks the registry signatures and attestations of the installed
+packages. The first version of each package was published by hand and has no
+provenance statement
+([security policy](https://github.com/everton-dgn/solidjs_base/blob/main/SECURITY.md)).
+
+## Known limits
+
+- `createSecurityHeaders` checks directive names and the shape of each item, not
+  the values, and does not refuse a second instance ([Limits](#limits)).
+- The package cannot detect a secret deliberately embedded in a public string,
+  and a failure after a Response body was returned stays outside the containment
+  ([Server error protection](#server-error-protection),
+  [Building the chain](#building-the-chain)).
+- Publication quotas belong to one process, a source that ignores cancellation
+  keeps its slot until it settles, process caches are not persistent storage,
+  and an array source returns its complete list
+  ([Sitemap and publication](#sitemap-and-publication)).
+- `themeScript` needs a server and its nonce. With `storage: 'local-storage'`
+  and SSR, the page shows the default theme until `createTheme` applies the
+  choice ([Optional theme](#optional-theme)).
+- Direct imports of `middleware/localize-request` need a translation project.
+  Without one, its functions throw an error that names
+  `project.inlang/settings.json`
+  ([Locale request middleware](#locale-request-middleware)).
+- The package converts Markdown with the published `@mdream/js`. The patch that
+  the boilerplate app applies to it is not shipped
+  ([Markdown and editorial indexes](#markdown-and-editorial-indexes)).
 
 ## Reference
 
@@ -725,9 +977,9 @@ The tooling lint reserves the configurator and `observeRenderFailures` for
 anything in applications. Production imports cannot contain a `node_modules`
 path segment; consumers use the package's public exports. Backend import
 restrictions normalize dot segments and repeated separators before matching
-paths. Test helpers live in `tooling/testing`, outside the tarball and coverage.
-Installed SSR scenarios check bodies and drained preview logs with both Bun
-linkers, German messages, callback fallback and the client build barrier. See
+paths. Installed SSR scenarios check bodies and drained preview logs with both
+Bun linkers, German messages, callback fallback and the client build barrier.
+See
 [ADR 0028](https://github.com/everton-dgn/solidjs_base/blob/main/docs/ADRs/0028-runtime-server-errors.md).
 
 #### Authored render entries
@@ -776,9 +1028,6 @@ translation project it does nothing, never reloads and keeps `language`.
 Applications using the preset need no locale setup. The tooling app tsconfig
 loads the virtual module declarations.
 
-Runtime tests use an independent three-locale provider (fr, de, ja). They test
-the helper contracts; installed application scenarios test the real providers.
-
 #### Navigation and language tags
 
 Each entry is independent, with no barrel:
@@ -809,12 +1058,12 @@ throw the native `RangeError`. Without translations, the default is the preset's
 
 The application keeps its link component, regional overrides and locale
 switcher. Navigation modules read only the locale seam, with no direct
-translation imports. Their DOM and real-browser tests use the generated de/fr/ja
-test project. `@solidjs/router` and `solid-js` come from your application.
+translation imports. `@solidjs/router` and `solid-js` come from your
+application.
 
 #### Locale request middleware
 
-Applications with project.inlang/settings.json can import
+Applications with `project.inlang/settings.json` can import
 `createLocalizeRequest` from `./middleware/localize-request` and
 `localizedRedirect` from `./i18n/localized-redirect`. Construct the step with
 `createLocalizeRequest({ applySecurityHeaders })`, using the application's
@@ -840,13 +1089,14 @@ no preset option: theme modules enter the bundle only through that import.
 Read the request cookie with `readTheme(cookieHeader) ?? defaultTheme`. Use an
 explicit light/dark preference as the HTML class and `themeColor(theme)` as the
 meta color. Render `themeScript(theme)` inside your own script with the request
-nonce. Keep .light/.dark color-scheme CSS rules in the application. The factory
-validates cookieName and a positive integer cookieMaxAge, or a nonempty
-storageKey, plus nonempty colors.light/colors.dark and defaultTheme, and copies
-the configuration. Colors remain application-owned CSS values; validation does
-not parse CSS. readTheme returns null for absent/invalid preferences and
-undefined for blocked access. themeColor uses light for system during SSR; the
-script resolves the actual system preference before hydration.
+nonce. Keep the `.light` and `.dark` color-scheme CSS rules in the application.
+The factory validates `cookieName` and a positive integer `cookieMaxAge`, or a
+nonempty `storageKey`, plus nonempty `colors.light`, `colors.dark` and
+`defaultTheme`, and copies the configuration. Colors remain application-owned
+CSS values; validation does not parse CSS. `readTheme` returns `null` for absent
+or invalid preferences and `undefined` for blocked access. `themeColor` uses
+light for system during SSR; the script resolves the actual system preference
+before hydration.
 
 Call createTheme once per provider tree. It applies choices before persistence,
 names its BroadcastChannel after the cookie name, or the storage key of the
@@ -891,10 +1141,7 @@ ThemeConfig, which is ThemeOptions for the cookie or LocalStorageThemeOptions,
 as their first argument. The factory binds those options for normal application
 use.
 
-`solid-js` comes from your application. Knip's strict production pass has a
-scoped `solid-js!` exception for it. Installed builds exercise resolution with
-both Bun linkers. Test support under `src/tests/` is excluded from the published
-tarball and coverage.
+`solid-js` comes from your application.
 
 ### Optional SEO
 
@@ -1066,7 +1313,7 @@ import 'server-only'
 import { createPublicationController } from '@evertondgn/solid-runtime/server/publication'
 
 export const publication = createPublicationController()
-export const runPublication = publication.runPublication
+export const { runPublication, getMetrics: getPublicationMetrics } = publication
 ```
 
 Bind explicit application sources to the factory. Take the sources of
@@ -1216,28 +1463,6 @@ See
 for the full configuration, SSR and client-only examples, asset behavior and
 migration.
 
-### Tests
-
-The tests run in the Vitest of the package, with stand-ins for `server-only` and
-the virtual modules of the Solid and routing plugins, and with the coverage
-thresholds of an application. `vp run test` at the root runs them with the other
-packages; `vp run test` generates the test provider and runs them with coverage
-from this folder.
-
-The test command first generates an independent de/fr/ja Paraglide project into
-`tooling/testing/generated/`, ignored by Git and excluded from the tarball. The
-generator is a development dependency only.
-
-The package is checked from this folder as an application. The `check` script
-runs the test provider generator and `vp lint`, which applies the lint preset of
-`@evertondgn/solid-tooling`, loaded from its sources, and checks the types. The
-`dead-code` script runs Knip, which takes the entries from `exports`. The
-`test:tarball` script packs the package, extracts it to the `node_modules` of a
-temporary folder and checks that the header constants load in plain Node, that
-every target of `exports` is in the tarball and that no `__tests__` folder is
-published. At the root, `vp run validate` runs all of them with the other
-packages.
-
 ## Versions and license
 
 The package follows semantic versioning. Below 1.0.0, a breaking change raises
@@ -1245,6 +1470,6 @@ the minor version. Read the
 [changelog](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/CHANGELOG.md)
 for each release, and the
 [Solid Base overview](https://github.com/everton-dgn/solidjs_base/blob/main/README.md)
-for both packages together.
+for the three packages together.
 
 [MIT](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)

@@ -327,13 +327,19 @@ a passed `CI required` starts no job, because the pull request run checked the
 same tree ([ADR 0017](ADRs/0017-main-reuses-the-pull-request-run.md)). Manual
 runs start every job.
 
-| Changed files                                                            | Jobs                                           |
-| ------------------------------------------------------------------------ | ---------------------------------------------- |
-| Only Markdown, `docs/`, `LICENSE`, issue templates or `.coderabbit.yaml` | Docs                                           |
-| Only `apps/boilerplate/`                                                 | Boilerplate app, Boilerplate app E2E           |
-| Anything else: packages, fixtures, root config, lockfile, workflows      | Packages, Boilerplate app, Boilerplate app E2E |
+| Changed files                                                             | Jobs                                                 |
+| ------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `apps/boilerplate/patches/`                                               | Packages, Boilerplate app, Boilerplate app E2E       |
+| Markdown of `apps/boilerplate/`                                           | Docs, Boilerplate app, Boilerplate app E2E           |
+| Anything else in `apps/boilerplate/`                                      | Boilerplate app, Boilerplate app E2E                 |
+| Other Markdown, `docs/`, `LICENSE`, issue templates or `.coderabbit.yaml` | Docs                                                 |
+| Anything else: packages, fixtures, root config, lockfile, workflows       | Docs, Packages, Boilerplate app, Boilerplate app E2E |
 
-A pull request that touches more than one group runs the jobs of each.
+A pull request that touches more than one group runs the jobs of each. The last
+group runs the Docs job too, because a README can link any file and moving one
+breaks the link. The root `package.json` registers the patches of
+`apps/boilerplate/patches/` for the whole workspace, so a patch change also runs
+the package validation.
 
 | Job                 | What it runs                                                                                                                                                                                                |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

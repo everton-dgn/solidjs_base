@@ -83,9 +83,22 @@ jobs:
           app=false
           while IFS= read -r file; do
             case "$file" in
+              # The root package.json registers these patches for the whole
+              # workspace, the runtime dependencies included.
+              apps/boilerplate/patches/*)
+                packages=true
+                app=true
+                ;;
+              # The link check reads the README and the guides of the app.
+              apps/boilerplate/*.md)
+                docs=true
+                app=true
+                ;;
               apps/boilerplate/*) app=true ;;
               *.md | docs/* | LICENSE | .coderabbit.yaml | .github/ISSUE_TEMPLATE/*) docs=true ;;
+              # A README can link any file, so moving one needs the link check.
               *)
+                docs=true
                 packages=true
                 app=true
                 ;;

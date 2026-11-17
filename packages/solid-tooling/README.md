@@ -44,8 +44,8 @@ production, such as security headers, server errors and SEO, come from
 [Less config](#the-configuration-you-stop-maintaining) ·
 [Who it fits](#who-it-fits) · [Questions](#questions-before-you-adopt-it) ·
 [Whole preset](#use-the-whole-preset) · [Update](#update-the-package) ·
-[Tests](#how-it-is-tested) · [Limits](#limits) · [Reference](#reference) ·
-[Entry points](#entry-points)
+[Tests](#how-it-is-tested) · [Known limits](#known-limits) ·
+[Reference](#reference) · [Entry points](#entry-points)
 
 ## Start with lint and format
 
@@ -212,7 +212,8 @@ Build audits check that these tools stay out of the app bundles.
 static `dist/` with no server, and the
 [no-server guide](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)
 covers static hosts, folders and app shells. For SSR, the preset writes only
-`.vercel/output` today, through Nitro's `vercel` preset ([limits](#limits)).
+`.vercel/output` today, through Nitro's `vercel` preset
+([known limits](#known-limits)).
 
 **My project has another layout.** Start with the
 [lint and format presets](#start-with-lint-and-format) in your Vite+ config.
@@ -220,7 +221,7 @@ They need no folder layout, but a few rules follow the boilerplate's
 conventions, such as `project/test-filename`, which expects each test in
 `__tests__` next to its module. You can turn such a rule off in
 `lint.overrides`. The full `defineSolidApp` preset, the test presets, Knip and
-the CSS policy expect the boilerplate layout ([limits](#limits)).
+the CSS policy expect the boilerplate layout ([known limits](#known-limits)).
 
 **What happens when a new Solid release candidate ships?** The package pins the
 Solid, Nitro, router and icons plugins to versions tested together. Wait for a
@@ -350,7 +351,7 @@ The first version of each package was published by hand and has none
 ([security policy](https://github.com/everton-dgn/solidjs_base/blob/main/SECURITY.md)).
 To check the packages you installed, run `npm audit signatures` in your app.
 
-## Limits
+## Known limits
 
 - The test presets, Knip, the CSS policy and `./vite` expect the boilerplate
   layout: tests named by suffix, page tests in `src/tests/pages/`, pages in

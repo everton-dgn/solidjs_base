@@ -545,9 +545,9 @@ already calls `solidTest`; an app with its own Vite config imports it from
 `e2e` mode for the fixture routes, or the production build with
 `TEST_PRODUCTION_ROUTES=true`. `TEST_PREBUILT=true` reuses an existing
 production build. Serial suites run in their own projects: `markdown` with one
-worker, `publicationLoad` alone against two servers, and `serverLogs` last, as
-the teardown of the others. `root` is its only required option; the
-boilerplate's
+worker, `publicationLoad` alone against two servers, only when
+`TEST_PUBLICATION_LOAD=true` in `e2e` mode, and `serverLogs` last, as the
+teardown of the others. `root` is its only required option; the boilerplate's
 [`playwright.config.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/playwright.config.ts)
 adds a fixture server and its serial suites.
 
@@ -724,14 +724,16 @@ origin entry is imported.
 
 Pass `site` directly to the runtime `createSeo` primitive. An app with only meta
 tags and JSON-LD can omit `seo`, provide its own `site.url` and omit robots
-entirely. Client-only apps omit both the option and runtime SEO imports. There
-are no `siteModule`, `sourcesModule` or `editorialModule` path options.
-`seo.sitemap` controls only the static `/sitemap.xml` and `/sitemaps/pages/**`
-header rules. Install the runtime factory in explicit app route files, and list
-the root in `robots.sitemapPaths` to advertise it. To remove the sitemap, remove
-its routes and server binding, omit its array metadata, omit `sitemapPaths`, and
-omit or disable `seo.sitemap`. Robots can stay enabled. The preset does not
-discover executable source registries or install routes. See the
+entirely. Client-only apps cannot use the option, which the preset refuses with
+`ssr: false`; no installed scenario runs the runtime SEO imports in that
+profile. There are no `siteModule`, `sourcesModule` or `editorialModule` path
+options. `seo.sitemap` controls only the static `/sitemap.xml` and
+`/sitemaps/pages/**` header rules. Install the runtime factory in explicit app
+route files, and list the root in `robots.sitemapPaths` to advertise it. To
+remove the sitemap, remove its routes and server binding, omit its array
+metadata, omit `sitemapPaths`, and omit or disable `seo.sitemap`. Robots can
+stay enabled. The preset does not discover executable source registries or
+install routes. See the
 [runtime SEO API](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/README.md#optional-seo)
 for factories, the one-line route and examples with and without translations.
 

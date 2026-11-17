@@ -14,13 +14,15 @@
 language, a theme set before hydration, and SEO and Markdown publication for a
 SolidJS 2 app, one import at a time.**
 
-The same layer comes back under the pages of each server-rendered SolidJS app: a
-Content Security Policy that blocks injected scripts, and error responses that
-keep server details on the server. Many apps also need links that keep the
-language, a theme applied before hydration, head tags, robots.txt and sitemaps
-for crawlers, and a Markdown copy of each page for agents. This package ships
-that layer as TypeScript source, in 64 entry points. Your app imports the ones
-it uses and keeps its UI, palette, content, messages and backend adapters.
+The same code comes back in each server-rendered SolidJS app, under its pages: a
+Content Security Policy with a nonce, so an injected script without it does not
+run, and error responses that keep server details on the server. Many apps also
+need links that keep the language, a theme applied before hydration, head tags,
+robots.txt and sitemaps for crawlers, and a Markdown copy of each page for
+agents. Copied from app to app, that code drifts, and a fix has to be made again
+in each one. This package ships it as TypeScript source, in 64 entry points.
+Your app imports the ones it uses and keeps its UI, palette, content, messages
+and backend adapters.
 
 > SolidJS 2 is still a release candidate. This package is tested with
 > `2.0.0-rc.23` and pins its `@solidjs/web` peer dependency to that version, so
@@ -124,9 +126,9 @@ and `cross-origin-resource-policy`. Everything else on this page is opt-in.
   responses behind a nonce CSP, starting from the two files above.
 - Your server functions and API routes call databases or SDKs whose error
   messages must stay on the server.
-- Your app has one language or several. A single-language app needs no
-  translation project, and an app with several keeps the language in links,
-  redirects and navigation.
+- Your app has several languages and must keep the current one in links,
+  redirects and client navigation. A single-language app uses the same calls
+  with no translation project.
 - You publish sitemaps, `llms.txt` or a Markdown copy of your pages, and want
   each response held to a deadline and a byte budget.
 
@@ -1055,7 +1057,7 @@ application.
 
 #### Locale request middleware
 
-Applications with project.inlang/settings.json can import
+Applications with `project.inlang/settings.json` can import
 `createLocalizeRequest` from `./middleware/localize-request` and
 `localizedRedirect` from `./i18n/localized-redirect`. Construct the step with
 `createLocalizeRequest({ applySecurityHeaders })`, using the application's
@@ -1081,13 +1083,14 @@ no preset option: theme modules enter the bundle only through that import.
 Read the request cookie with `readTheme(cookieHeader) ?? defaultTheme`. Use an
 explicit light/dark preference as the HTML class and `themeColor(theme)` as the
 meta color. Render `themeScript(theme)` inside your own script with the request
-nonce. Keep .light/.dark color-scheme CSS rules in the application. The factory
-validates cookieName and a positive integer cookieMaxAge, or a nonempty
-storageKey, plus nonempty colors.light/colors.dark and defaultTheme, and copies
-the configuration. Colors remain application-owned CSS values; validation does
-not parse CSS. readTheme returns null for absent/invalid preferences and
-undefined for blocked access. themeColor uses light for system during SSR; the
-script resolves the actual system preference before hydration.
+nonce. Keep the `.light` and `.dark` color-scheme CSS rules in the application.
+The factory validates `cookieName` and a positive integer `cookieMaxAge`, or a
+nonempty `storageKey`, plus nonempty `colors.light`, `colors.dark` and
+`defaultTheme`, and copies the configuration. Colors remain application-owned
+CSS values; validation does not parse CSS. `readTheme` returns `null` for absent
+or invalid preferences and `undefined` for blocked access. `themeColor` uses
+light for system during SSR; the script resolves the actual system preference
+before hydration.
 
 Call createTheme once per provider tree. It applies choices before persistence,
 names its BroadcastChannel after the cookie name, or the storage key of the

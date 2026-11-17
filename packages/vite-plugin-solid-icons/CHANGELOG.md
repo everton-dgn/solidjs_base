@@ -13,3 +13,15 @@
 * **icons:** require Node 26 ([85c8f11](https://github.com/everton-dgn/solidjs_base/commit/85c8f114efd5610549caddb37cd40dbf4e0777e5))
 * **icons:** update magic-string to 1.4.5 ([e935af8](https://github.com/everton-dgn/solidjs_base/commit/e935af8d94becc3f70bea2906a9c129c2dffcd70))
 * require Solid 2.0.0-rc.23 ([4689ef0](https://github.com/everton-dgn/solidjs_base/commit/4689ef0418142078e13582956e72091b830b6001))
+
+## [0.7.0](https://github.com/everton-dgn/solidjs_base/tree/vite-plugin-solid-icons@0.7.0) (2026-11-16)
+
+First release. It was published by hand, before release-please managed the package.
+
+
+### Features
+
+* **icons:** add a Vite plugin that turns icons into Solid components ([abc0631](https://github.com/everton-dgn/solidjs_base/commit/abc06312a448b611f74b949fca60e14cc047869e))
+* **icons:** import the icons of a collection by export name ([ccd4a6f](https://github.com/everton-dgn/solidjs_base/commit/ccd4a6f5a49c8e216cfc8d9697115feaf256a5dc))
+* **icons:** write the declarations of the named imports ([b4f7ce6](https://github.com/everton-dgn/solidjs_base/commit/b4f7ce622c3d907b2a691a5aed9e881283eb2b45))
+* **icons:** follow the files of a folder in the named imports ([c4326ee](https://github.com/everton-dgn/solidjs_base/commit/c4326ee1f407abc920ec8cbba53e7bb081d6bf82))

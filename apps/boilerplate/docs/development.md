@@ -124,6 +124,10 @@ runtime, plus the complete E2E tests.
 
 ### Publication
 
+> This section describes the deploy of the original repository,
+> boilerplate_solidjs. This repository never deploys the copy: its
+> [CI](../../../docs/development.md#ci) only builds and tests it.
+
 The production deploy comes from the `deploy` job of the
 [CI workflow](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/.github/workflows/ci.yml),
 only on a push to `main`, and publishes with `vercel deploy --prebuilt --prod`
@@ -269,6 +273,11 @@ plan does not replace the invalidation check described above.
 
 ## Runtimes and CI
 
+> This section describes the CI and the release automation of the original
+> repository, boilerplate_solidjs. For this repository, see
+> [CI](../../../docs/development.md#ci) and
+> [Releasing](../../../docs/releasing.md).
+
 In the CI and in the release automation, `setup-vp` provides the Node and the
 Bun declared in the project and reuses the package cache.
 `vp install --frozen-lockfile` installs with Bun without allowing changes to the
@@ -364,6 +373,10 @@ workers and the Node runner of the tooling tests, at most three.
 
 ### Reusing the PR validation on main
 
+> This section describes the reuse proof of the original repository,
+> boilerplate_solidjs. This repository reuses the pull request run in another
+> way, described in [CI](../../../docs/development.md#ci).
+
 The push to `main` is a merge commit created by GitHub from a PR updated with
 the base, which the branch protection requires. When the run of that PR already
 tested the same tree, the `Reuse proof` job waives `Quality`, `Tooling` and
@@ -419,6 +432,10 @@ push.
 
 ### How to measure a CI optimization
 
+> This section measures the CI of the original repository, boilerplate_solidjs,
+> with its reuse proof and deploy steps. For the CI of this repository, see
+> [CI](../../../docs/development.md#ci).
+
 Separate runner usage from waiting time. The first is the sum of the job
 durations, computed between `started_at` and `completed_at`, divided by 60;
 `skipped` jobs do not enter that sum. The waiting time goes from the creation of
@@ -446,6 +463,11 @@ the savings of a faster job to the savings of waiving that same job in the same
 run.
 
 ## Git hooks
+
+> This section describes the hooks of the original repository,
+> boilerplate_solidjs. The copy installs no Git hooks. The hooks that the
+> tooling package ships are in
+> [Commit messages and Git hooks](../../../docs/tooling/commits-and-hooks.md).
 
 Installed by Lefthook in `vp install`, authorized in the `trustedDependencies`
 of `package.json`:

@@ -17,11 +17,12 @@ Solid Base started as a starter app,
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs). Each
 new SolidJS app copied its Vite config, lint rules, test setup and Git hooks.
 Then the copies drifted, and a fix to that tooling had to be made again by hand
-in every app. This package holds the tooling instead: an Oxlint preset with
-rules for the boilerplate layout, Oxfmt, TypeScript configs, three Vitest
-projects, Playwright, Knip, a Stylelint policy, commitlint, Git hooks and
-`defineSolidApp`, which returns the whole `vite.config.ts` of a
-[Vite+](https://viteplus.dev/guide/) app. A fix lands once, in a package
+in every app.
+
+This package holds the tooling instead. `defineSolidApp` returns the whole
+`vite.config.ts` of a [Vite+](https://viteplus.dev/guide/) app, and the presets
+around it cover lint, formatting, TypeScript, Vitest, Playwright, Knip,
+Stylelint, commit messages and Git hooks. A fix lands once, in a package
 version, and each app takes it when it updates. The
 [copy of the starter](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/README.md)
 in this repository keeps
@@ -79,7 +80,7 @@ boilerplate's conventions: `project/test-filename` expects each test in
 other test folders
 ([known limits](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits)).
 
-### See a rule of the package fire
+### See a package rule fire
 
 Create `src/helpers/export-list.ts`:
 
@@ -120,8 +121,8 @@ request
 ## The configuration you stop maintaining
 
 The original starter kept 945 lines of configuration in five areas. The
-boilerplate copy in this repository keeps 129 on this package, about 86% fewer.
-The shared code lives in the package, where one fix serves every app.
+boilerplate copy in this repository keeps 129 with this package, about 86%
+fewer. The shared code lives in the package, where one fix serves every app.
 
 | Configuration                                                                                                   | Original lines | With the package |
 | --------------------------------------------------------------------------------------------------------------- | -------------: | ---------------: |
@@ -132,7 +133,8 @@ The shared code lives in the package, where one fix serves every app.
 | [Stylelint caller](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/tooling/css/check.ts) |            171 |               11 |
 | Total                                                                                                           |            945 |              129 |
 
-The counts come from `wc -l`, with blank lines and comments. The baseline is the
+The counts come from `wc -l`, blank lines and comments included. The baseline is
+the
 [original starter at 6145493](https://github.com/everton-dgn/boilerplate_solidjs/tree/61454937472d0faa1b4fab985fd7c5da968aa9a6),
 whose Playwright and Stylelint configs lived in `tooling/playwright.ts` and
 `tooling/css/stylelint.config.mjs`. Compare its
@@ -159,16 +161,16 @@ and its Vite alias.
 | ----------------------------------------------------------------------------------------------------------- | -------------------------: | --: | ----: |
 | [Boilerplate copy](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/package.json)     |                         28 |  14 |    14 |
 | [Client-only](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/client-only/package.json) |                         16 |   6 |    10 |
-| [SSR plain](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/ssr-plain/package.json)     |                         17 |   5 |    12 |
-| [SSR i18n](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/ssr-i18n/package.json)       |                         19 |   7 |    12 |
+| [SSR](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/ssr-plain/package.json)           |                         17 |   5 |    12 |
+| [Translated SSR](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/ssr-i18n/package.json) |                         19 |   7 |    12 |
 | [Lint consumer](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/consumer/package.json)       |                          6 |   3 |     3 |
 
 The counts combine `dependencies` and `devDependencies` of each `package.json`,
-without overrides or transitive packages. The counts before come from the
+without overrides or transitive packages. The earlier counts come from the
 measurement of
 [ADR 0027](https://github.com/everton-dgn/solidjs_base/blob/main/docs/ADRs/0027-packaged-tool-dependencies.md).
 The fixture counts leave out the two package tarballs that the installed test
-harness adds; with them, client-only, SSR plain and SSR i18n declare 8, 7 and 9.
+harness adds; with them, client-only, SSR and translated SSR declare 8, 7 and 9.
 The client-only fixture now declares an Iconify collection, which the count
 before did not have.
 
@@ -206,50 +208,38 @@ Build audits check that these tools stay out of the app bundles.
 
 ## Questions before you adopt it
 
-### I do not deploy to Vercel
-
-The SSR build writes `.vercel/output`, because the preset always uses Nitro's
-`vercel` preset. A client-only build (`ssr: false`) writes a static `dist/` with
-no server, and the
+**I do not deploy to Vercel.** Use a client-only build: `ssr: false` writes a
+static `dist/` with no server, and the
 [no-server guide](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)
-covers static hosts, folders and app shells. Another SSR host is not supported
-by the preset today.
+covers static hosts, folders and app shells. For SSR, the preset writes only
+`.vercel/output` today, through Nitro's `vercel` preset ([limits](#limits)).
 
-### My project has another layout
+**My project has another layout.** Start with the
+[lint and format presets](#start-with-lint-and-format) in your Vite+ config.
+They need no folder layout, but a few rules follow the boilerplate's
+conventions, such as `project/test-filename`, which expects each test in
+`__tests__` next to its module. You can turn such a rule off in
+`lint.overrides`. The full `defineSolidApp` preset, the test presets, Knip and
+the CSS policy expect the boilerplate layout ([limits](#limits)).
 
-Start with the [`lint` and `fmt` presets](#start-with-lint-and-format) in your
-Vite+ config; they need no layout. The full `defineSolidApp` preset, the test
-presets, Knip and the CSS policy expect the boilerplate layout.
-
-### What happens when a new Solid release candidate ships?
-
-The package pins the Solid, Nitro, router and icons plugins to versions tested
-together. Wait for a package version tested with the new release, then
+**What happens when a new Solid release candidate ships?** The package pins the
+Solid, Nitro, router and icons plugins to versions tested together. Wait for a
+package version tested with the new release, then
 [update the packages together](#update-the-package). Do not raise Solid alone.
 
-### How heavy is the install?
+**How heavy is the install?** Heavier than the manifest suggests: 8.41% more
+`node_modules` with Bun's hoisted linker and 8.69% with the isolated one, in the
+[measurement of ADR 0027](#fewer-tool-versions-in-each-manifest). The installed
+scenarios check that none of these tools reach the bundles of the fixture apps.
 
-Heavier than the manifest suggests. In the
-[measurement of ADR 0027](#fewer-tool-versions-in-each-manifest), the
-`node_modules` of a fresh client-only app grew by 8.41% with Bun's hoisted
-linker and by 8.69% with the isolated one, because the package installs the
-tools of features you may not use. The installed scenarios check that none of
-these tools reach the bundles of the fixture apps.
-
-### How do I leave?
-
-There is no eject command. The lint and format presets are two keys of your
-config. For the rest, the starter's original
+**How do I leave?** There is no eject command. The lint and format presets are
+two keys of your config. For the rest, the starter's original
 [427-line `vite.config.ts`](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/vite.config.ts)
 is a reference for what `defineSolidApp` replaces.
 
-### Can I use only part of it?
-
-Yes for the lint and format presets. The
+**Can I use only part of it?** Yes for the lint and format presets. The
 [icons plugin](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/README.md)
-also works without this package, in a Vite+ app with SolidJS 2. The test
-presets, Knip, the CSS policy and `defineSolidApp` expect the boilerplate
-layout.
+also works without this package, in a Vite+ app with SolidJS 2.
 
 ## Use the whole preset
 
@@ -452,7 +442,7 @@ Each feature turns on only when the app uses it:
 | Publication headers | Set `seo.markdown`, `seo.llms` and `seo.sitemap` one by one; `seo.llmsFull` also needs `seo.llms` and `seo.markdown.static`                                |
 | Translations        | `project.inlang/settings.json` enables the generation task and browser test setup; the lint plugin loads only where Paraglide resolves                     |
 
-When the standard does not fit, change it without a fork: `extend` adds plugins
+When the defaults do not fit, change them without a fork: `extend` adds plugins
 and Nitro modules, `tasks` adds or replaces a `vp run` task, `routeRules`,
 `publicAssets` and `staticPaths` adjust Nitro and the static headers,
 `workspace` places the app in a monorepo, and `mergeConfig` merges anything else
@@ -843,7 +833,7 @@ presets.
 
 ## Guides
 
-- [Tooling reference](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/README.md)
+- [Tooling guides, by task](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/README.md)
 - [Lint rules and customization](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/lint.md)
 - [Application config, plugins and tasks](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md)
 - [Vitest and Playwright](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/testing.md)

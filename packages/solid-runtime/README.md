@@ -178,10 +178,10 @@ helpers with one unprefixed language, and fonts, which the preset writes into
 `index.html`. The middleware and the server errors need the server build, and
 the preset refuses its `seo` option (robots, sitemaps, Markdown and editorial
 indexes) together with `ssr: false`. `createSeo` writes head tags and JSON-LD
-through `useHead`, and its DOM tests check that output in a browser document,
-but no installed scenario runs it in a client-only build, and a crawler that
-does not run JavaScript sees only tags rendered by a server. Translations by URL
-prefix need a server too. See
+through `useHead`, and its DOM tests check that output in happy-dom, but no
+installed scenario runs it in a client-only build, and a crawler that does not
+run JavaScript sees only tags rendered by a server. Translations by URL prefix
+need a server too. See
 [applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md).
 
 **What does it add to the production install?** Version 0.8.0 unpacks to 280,495

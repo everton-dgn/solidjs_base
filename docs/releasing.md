@@ -439,6 +439,19 @@ Actions.
 npm does not check these values when you save, and they are case-sensitive. The
 `repository.url` in the package `package.json` has to point to this repository.
 
+The allowed action stays `npm publish`, without staged publishing. A staged
+version waits until a maintainer approves it with two-factor authentication, and
+the publish job of a package that pins another waits, within a time limit, for
+that version on npm
+([The order of the publication](#the-order-of-the-publication)), so each release
+would depend on an approval inside that limit.
+
+Under Settings > Publishing access of each package, choose "Require two-factor
+authentication and disallow bypass 2fa tokens". The workflow publishes through
+the trusted publisher, and [Publishing by hand](#publishing-by-hand) confirms
+two-factor authentication in the browser, so neither needs a token that bypasses
+it.
+
 ## New package
 
 A trusted publisher is created in the settings of a package, so the package has

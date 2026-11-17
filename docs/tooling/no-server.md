@@ -192,6 +192,12 @@ the system theme for a moment when the stored choice differs from it.
 - `storage: 'local-storage'` is accepted with SSR, but a server cannot read
   `localStorage`: it renders the default theme, and the page shows it until
   `createTheme` applies the stored choice. Keep the cookie for SSR.
+- Chromium writes `localStorage` to the profile a few seconds after a change, or
+  at once when the last page of the origin closes. A shell that quits in that
+  window can start the next time with the previous theme: on CI, the browser of
+  the scenario below lost the choice that way when it closed right after the
+  click. In Electron, `session.flushStorageData()` writes the pending data at
+  once.
 - Under `file://`, Chromium reads the font file a second time instead of reusing
   the preload. The file is local, so only the preload hint is lost.
 - SEO, `middleware`, `serverSetup` and server functions need SSR and are refused
@@ -212,10 +218,11 @@ this guide. It lints and type-checks the config, then builds it twice:
 - with the base `./` and the assets folder `static`, opened from `file://` in
   Chromium, or Chrome on CI, with `--allow-file-access-from-files`: the app
   mounts, loads its font from beside the stylesheet, keeps the hash route across
-  a reload and saves the dark choice. After a relaunch of the browser profile, a
-  page with the entry module blocked finds the same class, `color-scheme` and
-  meta color, and the app then mounts in the dark theme. The font is not checked
-  for a single read, which Chromium does not do there.
+  a reload and saves the dark choice, then closes the page and waits until the
+  profile holds it on disk. After a relaunch of the browser profile, a page with
+  the entry module blocked finds the same class, `color-scheme` and meta color,
+  and the app then mounts in the dark theme. The font is not checked for a
+  single read, which Chromium does not do there.
 
 Both builds must bundle the runtime theme and no development tool, and must load
 the theme script from the assets folder before the application module and the

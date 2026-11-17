@@ -198,8 +198,8 @@ figure shows its home page at `/en`, captured from the production build:
   <img src="docs/assets/readme/app-home-light.webp" alt="Screenshot of the boilerplate home page at /en from the production build: a top bar with Home, About, Contact, Privacy and 404 links, a GitHub link, the EN language button and the theme button, then the SolidJS Boilerplate badge, the title SolidJS Boilerplate for web applications, two paragraphs about SSR, themes, three languages and tests, the SolidJS logo and the line SolidJS 2, Vite+, TypeScript 7." width="800" />
 </picture>
 
-The [boilerplate app section](#a-complete-app-to-start-from) lists what else it
-shows.
+The [boilerplate app section](#what-the-boilerplate-app-shows) lists what else
+it shows.
 
 ### Start a new app from a fixture
 
@@ -336,17 +336,19 @@ tested with.
 
 ## What you get
 
-| You need            | Solid Base gives you                                                                                                | From                                             |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| An app config       | `vite.config.ts` in one call: plugins, build, SSR, lint, formatting, test projects and `vp run` tasks               | `solid-tooling`                                  |
-| Languages           | Your own locale list, validated catalogs, localized URLs, redirects, cookies and navigation                         | Both packages                                    |
-| A theme             | Light, dark or system without a flash, kept in sync across tabs                                                     | `solid-runtime`                                  |
-| Server protection   | Eight security headers by default, a nonce CSP in production builds, one middleware chain and private server errors | `solid-runtime`                                  |
-| SEO and publication | Metadata, escaped JSON-LD, robots, sitemaps, Markdown copies of your pages and `llms.txt`, within budgets           | `solid-runtime`                                  |
-| Assets and env      | Icons from Iconify or your SVGs, fonts with matching preloads, validated environment values                         | Both packages                                    |
-| Quality rules       | Layer rules, backend restrictions, CSS tokens, dead code detection, commit format and a secret scan                 | `solid-tooling`                                  |
-| Tests               | Node, DOM and browser Vitest projects, and a Playwright config that checks the server log                           | `solid-tooling`                                  |
-| A running app       | Five pages, three locales, SEO routes, outdated-page recovery and 319 E2E cases to learn from                       | [`apps/boilerplate`](apps/boilerplate/README.md) |
+| You need                                                                                         | Solid Base gives you                                                                                                                                                   | From                                                 |
+| ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| An app config                                                                                    | `vite.config.ts` in one call: plugins, build, SSR, lint, formatting, test projects and `vp run` tasks                                                                  | `solid-tooling`                                      |
+| [Security headers](#every-response-behind-one-security-policy)                                   | Eight security headers by default, a nonce CSP in production builds and one middleware chain                                                                           | `solid-runtime`                                      |
+| [Private server errors](#server-errors-stay-on-the-server)                                       | A fresh public error in production, with the original message kept on the server                                                                                       | `solid-runtime`                                      |
+| [Languages](#languages-from-your-locale-list)                                                    | Your own locale list, validated catalogs, localized URLs, redirects, cookies and navigation                                                                            | `solid-tooling` and `solid-runtime`                  |
+| [A theme](#light-dark-or-system-without-a-flash)                                                 | Light, dark or system, applied before hydration and kept in sync across tabs                                                                                           | `solid-runtime`                                      |
+| [SEO and publication](#seo-from-route-metadata-to-sitemaps)                                      | Metadata, JSON-LD, robots, sitemaps, [Markdown copies of your pages and `llms.txt`](#markdown-pages-and-llmstxt), [within budgets](#publication-stays-inside-a-budget) | `solid-runtime`, configured through `solid-tooling`  |
+| [Icons](#icons-by-name-checked-by-the-build)                                                     | Iconify collections and your own SVG folders as typed Solid components                                                                                                 | `vite-plugin-solid-icons`, loaded by `solid-tooling` |
+| [Fonts](#fonts-with-matching-css-and-preloads) and [env](#environment-values-checked-at-startup) | Font CSS with matching preloads, and validated environment values                                                                                                      | `solid-tooling` and `solid-runtime`                  |
+| [Quality rules](#quality-rules-you-inherit)                                                      | Layer rules, backend restrictions, CSS tokens, dead code detection, commit format and a secret scan                                                                    | `solid-tooling`                                      |
+| [Tests](#tests-already-wired)                                                                    | Node, DOM and browser Vitest projects, and a Playwright config that checks the server log                                                                              | `solid-tooling`                                      |
+| [A running app](#what-the-boilerplate-app-shows)                                                 | Five pages, three locales, SEO routes, outdated-page recovery and 319 Playwright cases to learn from                                                                   | [`apps/boilerplate`](apps/boilerplate/README.md)     |
 
 ## Only what you use
 
@@ -366,18 +368,329 @@ tested with.
 | SEO and publication | Import selected runtime entries, install explicit routes and set `seo`    | Omit their imports, routes and preset options                       |
 
 The [installed scenarios](docs/ADRs/0021-installed-application-scenarios.md)
-audit disabled features in actual bundles. A desktop renderer uses the
-client-only build; desktop packaging stays in your application. The tooling
-still installs its shared tools when a feature is unused. See the
-[installation tradeoff](#fewer-libraries-to-maintain).
+check this on real bundles. A case fails when a disabled theme or translation
+setup leaves its modules in the bundle, or when a client-only build loads Nitro.
+All 14 application cases passed in the CI run of the 0.8.0 release pull request
+([job 133680118978](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680118978)).
+A desktop renderer uses the client-only build; desktop packaging stays in your
+application. The tooling still installs the tools of a feature you leave out:
+they stay out of the bundle and stay in `node_modules`
+([the measured cost](#fewer-libraries-to-maintain)).
 
-## A complete app to start from
+## Questions before you adopt it
 
-[`apps/boilerplate`](apps/boilerplate/README.md) is a copy of
-boilerplate_solidjs that runs on both packages. It exists to catch a package
-change that breaks a real application before that change becomes a version, and
-it doubles as a reference for wiring the features together. Open it, click
-through it, then read the code you would otherwise write yourself.
+**I do not deploy to Vercel.** The SSR build writes `.vercel/output`, because
+the preset always uses Nitro's `vercel` preset. A client-only build
+(`ssr: false`) writes a static `dist/` with no server, and the
+[no-server guide](docs/tooling/no-server.md) covers static hosts, folders and
+app shells. Another SSR host is not supported by the preset today.
+
+**My project has another layout.** Start with the
+[lint and format presets](#add-the-packages-to-an-existing-app). They need no
+folder layout, but a few rules follow the boilerplate's conventions, such as
+`project/test-filename`, which expects each test in `__tests__` next to its
+module. You can turn such a rule off in `lint.overrides`. The full
+`defineSolidApp` preset, the test presets, Knip and the CSS policy expect the
+boilerplate layout ([known limits](docs/tooling/limits.md#known-limits)).
+
+**What happens when a new Solid release candidate ships?** The packages pin
+Solid, Nitro, the router and the icons plugin to versions tested together. Wait
+for a package version tested with the new release, then
+[update the packages](#update-the-packages). Do not raise `solid-js` alone.
+
+**How heavy is the install?** Heavier than the manifest suggests: 8.41% more
+`node_modules` with Bun's hoisted linker and 8.69% with the isolated one, in the
+measurement recorded in [ADR 0027](docs/ADRs/0027-packaged-tool-dependencies.md)
+for a fresh client-only app. The installed scenarios check that none of these
+tools reach the app bundles.
+
+**How do I leave?** There is no eject command. Each runtime feature is a
+separate import, so you can replace one at a time with your own code. For the
+config, the starter's original
+[427-line `vite.config.ts`](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/vite.config.ts)
+shows what `defineSolidApp` replaces.
+
+**Can I use only part of it?** Yes for the lint and format presets, and for the
+[icons plugin](packages/vite-plugin-solid-icons/README.md) in a Vite+ app with
+SolidJS 2. The runtime is built and tested under the tooling preset: 27 of its
+64 entries read `virtual:solid-app/*` modules that only `defineSolidApp` serves,
+among them `createMiddleware`, the public errors, the language helpers and SEO.
+The theme and the security headers read none, but no entry was run without the
+preset
+([what each entry reads](packages/solid-runtime/README.md#import-only-what-you-use)).
+
+## Every response behind one security policy
+
+`createSecurityHeaders()` puts eight security headers on every page response
+and, in production builds, a Content Security Policy whose `script-src` holds a
+nonce that changes on each request. `createMiddleware` runs request
+localization, your extra steps, the headers, the API routes and the page-method
+restrictions in one chain. A failure inside the chain is contained, and in
+production its response keeps the configured headers. The
+[demo above](#every-page-response-gets-security-headers-and-a-new-nonce) shows a
+real response. `createSecurityHeaders` checks the directive names and the shape
+of each item when the app starts. It does not check the values, so
+`'unsafe-inline'` in `style-src` passes. A failure after the Response body was
+returned stays outside the containment. The runtime explains
+[the policy and the chain](packages/solid-runtime/README.md#every-response-behind-one-security-policy).
+
+## Server errors stay on the server
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/server-errors-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/server-errors-light.webp" />
+  <img src="docs/assets/readme/server-errors-light.webp" alt="A server failure's original message, cause and properties stop at the runtime protection boundary. Production sends The request could not be completed. and logs a fixed server-error source with filtered diagnostics. configureServerErrors registers protection; protectServerOperation wraps adapters." width="800" />
+</picture>
+
+When a server function, an API route or a render fails in production, the
+browser receives a fresh public error: `The request could not be completed.`, or
+your own translated text. The original message, cause and properties stay on the
+server, and the log keeps a fixed `[server-error]` source line with filtered
+diagnostics. You register the protection once, in the setup file the preset
+points to, and wrap each database or SDK adapter in
+`protectServerOperation({ run })`. The lint allows `fetch` only in
+`requestJson`. In the boilerplate app, the BackendError and OutsideError
+Playwright areas cover this part in the E2E build, whose 164 cases passed in CI
+([job 133680119082](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119082),
+[areas by part](apps/boilerplate/README.md#what-each-page-and-feature-shows)).
+Your adapters still choose the fields they return, and a translated message
+callback must return public text: the package cannot detect a secret
+deliberately embedded in a string. See
+[server failures](packages/solid-runtime/README.md#server-failures-stay-on-the-server)
+and the app's [server error guide](apps/boilerplate/docs/server-errors.md).
+
+## Languages from your locale list
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/i18n-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/i18n-light.webp" />
+  <img src="docs/assets/readme/i18n-light.webp" alt="The SSR fixture configures fr, de, it and ja with fr as the base locale. Colocated catalogs feed packaged validation and compilation, then translated pages, locale URLs, redirects and cookies. Without a translation project, URLs stay unprefixed." width="800" />
+</picture>
+
+Your translation project sets the locales, with no fixed list. The
+[translated SSR fixture](fixtures/apps/ssr-i18n/project.inlang/settings.json)
+uses `fr`, `de`, `it` and `ja`, with `fr` as the base locale, and its 2
+installed cases passed in CI
+([job 133680118978](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680118978)).
+The tooling finds the catalogs next to each feature, fails on a missing
+translation, a duplicate ID or an invalid message, and compiles Paraglide for
+development, builds and tests. The runtime keeps the language in links,
+redirects, cookies and client navigation. Without a translation project, the
+same calls give one unprefixed language. Generation reads every catalog, their
+sum is limited to 8 MiB, and there is no incremental generation
+([known limits](docs/tooling/limits.md#known-limits)). See
+[links that keep the language](packages/solid-runtime/README.md#links-redirects-and-navigation-that-keep-the-language)
+and the tooling's
+[translation setup](packages/solid-tooling/README.md#translations-icons-and-fonts-as-data).
+
+## Light, dark or system without a flash
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/theme-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/theme-light.webp" />
+  <img src="docs/assets/readme/theme-light.webp" alt="Light, dark and system preferences share defineTheme. A cookie supplies the SSR preference, a nonce-protected head script applies the theme before hydration, and createTheme synchronizes changes. The application supplies its palette and switcher. No theme import means no theme code." width="800" />
+</picture>
+
+`defineTheme` binds the theme once. The server reads the choice from a cookie, a
+head script with the request nonce applies the explicit or system choice before
+hydration, and `createTheme` keeps open tabs in sync. Your app keeps its
+palette, the `.light` and `.dark` rules, the Provider and the switcher. An app
+with a fixed theme imports none of it, and the installed scenarios fail when a
+disabled theme leaves its modules in the bundle. The head script needs a server
+and its nonce. With `storage: 'local-storage'` and SSR, the server cannot read
+the choice, so the page shows the default theme until `createTheme` applies it.
+See
+[the right theme before hydration](packages/solid-runtime/README.md#the-right-theme-before-hydration).
+
+## SEO from route metadata to sitemaps
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/seo-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/seo-light.webp" />
+  <img src="docs/assets/readme/seo-light.webp" alt="Route metadata feeds title, description, canonical links, social tags and escaped JSON-LD. Explicit robots and sitemap routes publish crawl rules and XML. Sitemap sources support arrays or bounded partitions, locale alternates or unprefixed URLs. Content and data adapters stay in the app." width="800" />
+</picture>
+
+`createSeo` turns route metadata into the title, description, canonical link,
+language alternates, social tags and JSON-LD. The boilerplate app's `robots.txt`
+route is one line,
+`export { GET } from '@evertondgn/solid-runtime/seo/robots-route'`.
+`createSitemapRoutes` publishes a sitemap index and its parts from sources you
+declare, with locale alternates when the app has translations. Author,
+organization and social fields appear only when you pass them. Setting `seo` in
+the preset makes the site origin required: the
+[SSR fixture copy](#start-a-new-app-from-a-fixture) stopped its build with
+`Error: Missing site origin: VITE_SITE_URL` until `.env` set it. See
+[head tags and robots.txt](packages/solid-runtime/README.md#head-tags-and-robotstxt-from-route-metadata)
+and [sitemaps](packages/solid-runtime/README.md#sitemaps-with-bounded-work).
+
+## Markdown pages and llms.txt
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/markdown-llms-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/markdown-llms-light.webp" />
+  <img src="docs/assets/readme/markdown-llms-light.webp" alt="Two excerpts from the boilerplate production preview. A request for /en/about with Accept text/markdown returns content-type text/markdown, a link header pointing to /llms.txt as describedby, vary Cookie and Accept, and Markdown headings: About SolidJS Boilerplate, Purpose and features, Source code and documentation. The /llms.txt index lists sections When to use, Pages and Optional, with links to .md pages and llms-full.txt." width="800" />
+</picture>
+
+A page that opts in also answers as Markdown, at its `.md` URL or with
+`Accept: text/markdown`. The runtime converts the HTML that the same page
+rendered, so there is no second copy of the content to keep in sync, and
+`llms.txt` and `llms-full.txt` list those pages for agents. On 2026-11-17, the
+Markdown response of the app's `/en/about` carried
+`content-type: text/markdown; charset=utf-8`,
+`link: </llms.txt>; rel="describedby"` and a policy with `script-src 'none'`
+([the full run](apps/boilerplate/README.md#see-it-work)). The runtime converts
+with the published `@mdream/js`. The patch that the app applies to it is not
+shipped in the package, and the
+[Markdown guide](apps/boilerplate/docs/seo/markdown.md) lists the conversions
+that differ. See
+[each page as Markdown](packages/solid-runtime/README.md#each-page-as-markdown-plus-llmstxt).
+
+## Publication stays inside a budget
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/publication-limits-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/publication-limits-light.webp" />
+  <img src="docs/assets/readme/publication-limits-light.webp" alt="Default publication limits. Shared controller per process: 4 publications at once with 2 per kind, 4 concurrent source reads with 2 per source, 16 MiB of reserved output across 4 live outputs. Each response: sitemap deadline of 10 seconds and 4 MiB budget, 50,000 URLs per sitemap and 2,048 characters per location, Markdown with 2 MiB of HTML in, 2 MiB of Markdown out and 15 seconds. Overload answers 503 with Retry-After 1; an oversized source answers an empty 503; both are no-store, never partial XML. llms.txt and llms-full.txt fail the build above 1 MiB and 10 MiB." width="800" />
+</picture>
+
+Dynamic sitemap and Markdown responses go through a publication controller, with
+admission slots, deadlines and byte budgets. By default, it admits 4
+publications at once with 2 per kind and 4 source reads with 2 per source, and
+reserves 16 MiB of output across 4 live outputs. A sitemap response gets 10
+seconds and 4 MiB. Markdown gets 2 MiB of HTML in, 2 MiB of Markdown out and 15
+seconds. `llms.txt` and `llms-full.txt` fail the build above 1 MiB and 10 MiB
+instead of being truncated. These quotas belong to one server process, with no
+global quota across processes. A source that ignores cancellation keeps its slot
+until it settles, and a process cache is not persistent storage. The
+[runtime's table](packages/solid-runtime/README.md#sitemaps-with-bounded-work)
+lists every default.
+
+## Environment values checked at startup
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/env-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/env-light.webp" />
+  <img src="docs/assets/readme/env-light.webp" alt="Optional env.ts spreads serverEnv into the server schema. HOST, PORT and BASE_URL_TEST stay optional. Server virtual imports validate at initialization; public client values validate at build time. PORT is inferred as number or undefined. The build rejects server env imports in client code." width="800" />
+</picture>
+
+An optional `env.ts` spreads the runtime's `serverEnv` schemas and adds your own
+keys through Standard Schema. Server values are validated when the server
+starts, public values at build time, and a server value imported from client
+code fails the build. In the CI run of the 0.8.0 release pull request, an
+installed SSR case with an invalid `PORT` stopped at boot, as the case expects:
+`Expected boot failure: server env validation failed at boot`
+([job 133680118978](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680118978)).
+With nothing to validate, skip `env.ts`: the preset requires none of its
+variables. Object spread in `env.ts` can override the keys of the preset, so
+keeping their validators is the app's job. See
+[environment values](packages/solid-runtime/README.md#environment-values-checked-at-startup)
+and
+[environment validation](docs/tooling/app-config.md#optional-environment-validation).
+
+## Icons by name, checked by the build
+
+[`@evertondgn/vite-plugin-solid-icons`](packages/vite-plugin-solid-icons/README.md)
+is a package of its own. Apps on the tooling get it through `defineSolidApp`,
+and any Vite+ app with SolidJS 2 can add it alone. Each icon of an installed
+Iconify collection, or of your own SVG folder, is a Solid component imported by
+name, and a generated declaration file types every name. A typo stops the build
+and the type check with the closest name, as the
+[demo above](#a-typo-in-an-icon-name-stops-the-build) shows. An import by path,
+as in `icon:hugeicons/githb`, passes the type check and stops only at the build.
+Only the icons you import reach the bundle: the
+[client-only copy](#start-a-new-app-from-a-fixture) has the `hugeicons`
+collection installed and an icon of its own folder, and its whole client build
+was one 67.84 kB JavaScript file. The build stops on SVG markup that runs code,
+such as a `<script>` or an event handler attribute. These checks do not make an
+untrusted SVG safe, so an SVG that users upload needs a sanitizer. See
+[only the icons you import](packages/vite-plugin-solid-icons/README.md#only-the-icons-you-import-reach-the-bundle).
+
+## Fonts with matching CSS and preloads
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/fonts-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/fonts-light.webp" />
+  <img src="docs/assets/readme/fonts-light.webp" alt="Application font files and descriptors feed one asset list. Generated external font-face CSS and preloads share content-hashed URLs. SSR renders FontLinks; client-only HTML receives links automatically. Without fonts, the preset emits no font assets." width="800" />
+</picture>
+
+Pass your font files and face descriptors to `defineSolidApp` in `fonts`. The
+preset writes external `@font-face` CSS and the preload links from the same
+asset list, so their URLs match. A server-rendered app renders `FontLinks` in
+the Document head, and a client-only app gets the links in `index.html` with no
+import. The boilerplate app loads two Inter subsets this way. Without `fonts`,
+nothing is generated: the client-only copy without its `fonts` block built to
+`dist/index.html` and one JavaScript file. Font files, licenses and typography
+tokens stay in your app. See
+[fonts with matching preloads](packages/solid-runtime/README.md#fonts-with-matching-preloads)
+and the [fonts guide](docs/tooling/fonts.md).
+
+## Quality rules you inherit
+
+The lint preset, the CSS policy, Knip and the Git hooks come with the tooling,
+so every app follows the same rules without copying a config. This is one rule
+of the package on a file with an export list:
+
+```ts
+// src/helpers/export-list.ts
+const example = 1
+
+export { example }
+```
+
+```text
+$ vp lint
+src/helpers/export-list.ts:3:1: error project(no-export-list): Export on the declaration itself (export function, export const, export type) instead of using export { ... }. An export list is only allowed in a re-export with from.
+```
+
+We recorded this output on 2026-11-17 with the 0.8.0 tooling from npm, in a copy
+of the client-only fixture, and the
+[tarball test](packages/solid-tooling/src/tarball/__tests__/tarball.test.ts)
+checks the same rule before each release. The preset also:
+
+- Keeps imports pointing down the layers. An atom cannot import a molecule, and
+  production code cannot import tests or `tooling/`.
+- Allows `fetch` only in `requestJson` and refuses `console` in `src/`.
+- Requires colors, radii, shadows, font sizes and `z-index` to come from CSS
+  tokens outside `src/theme/`. The boilerplate app defines 36 color, 11 font, 7
+  shadow, 6 grid, 5 radius and 3 z-index custom properties in
+  `src/theme/tokens/`.
+- Fails the push on an unused file, export or dependency, through Knip.
+- Checks commit messages against Conventional Commits with a header of at most
+  100 characters, fixes the staged files before each commit and scans them for
+  secrets with `kingfisher` when it is installed.
+
+Knip and the CSS policy expect the boilerplate layout, a few lint rules follow
+its conventions, and some rule messages point to `docs/architecture.md` and
+`AGENTS.md` of an app created from boilerplate_solidjs
+([known limits](docs/tooling/limits.md#known-limits)). See the
+[lint rules](packages/solid-tooling/README.md#lint-rules-that-know-your-project),
+the [CSS policy](packages/solid-tooling/README.md#a-css-policy-built-on-tokens),
+[unused code](packages/solid-tooling/README.md#unused-files-exports-and-dependencies)
+and the
+[Git hooks](packages/solid-tooling/README.md#commit-messages-and-git-hooks).
+
+## Tests already wired
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/vitest-projects-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/vitest-projects-light.webp" />
+  <img src="docs/assets/readme/vitest-projects-light.webp" alt="The three Vitest projects of solidTest in apps/boilerplate. node runs src/**/*.node.test files in Node with stand-ins for build-only modules: 68 tests in 12 files. dom runs .dom.test files in happy-dom: 87 tests in 13 files. browser runs .browser.test files in Chromium through Playwright with the CSS loaded: 30 tests in 7 files. 185 passed. Coverage thresholds: 80 percent lines, functions and statements, 75 percent branches." width="800" />
+</picture>
+
+Name a test after its environment and it runs in the right one: `.node.test` in
+Node, `.dom.test` in happy-dom and `.browser.test` in Chromium. The preset sets
+coverage thresholds of 80% for lines, functions and statements and 75% for
+branches. `definePlaywrightConfig` builds the app, starts the preview and, when
+the suite ends, fails the run if a private marker reached the server log. In the
+boilerplate app, the three projects ran 68, 87 and 30 tests in 12, 13 and 7
+files, and all passed in CI
+([job 133680119099](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119099)).
+The test presets expect the boilerplate's test names and folders. See
+[tests](packages/solid-tooling/README.md#tests-in-the-environment-each-one-needs)
+and
+[end-to-end tests](packages/solid-tooling/README.md#end-to-end-tests-against-a-real-build).
+
+## What the boilerplate app shows
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/app-locales-dark.webp" />
@@ -385,14 +698,21 @@ through it, then read the code you would otherwise write yourself.
   <img src="docs/assets/readme/app-locales-light.webp" alt="Three screenshots of the boilerplate home page from the production build, at /pt with lang pt-BR, /en with lang en-US and /es with lang es-ES. The navigation, the title and the language button change with the locale: Início, Home and Inicio; para aplicações web, for web applications and para aplicaciones web; PT, EN and ES." width="800" />
 </picture>
 
-- Five pages: home, about, contact, privacy and a 404, with a top bar, a
-  language switcher, a theme switcher, `LocalizedLink` for links that keep the
-  locale, and an error page for failures that reach the root.
-- Portuguese, English and Spanish from colocated catalogs, with English as the
-  base locale and the locale in the URL.
-- Ready SEO routes: `robots.txt`, `sitemap.xml`, partitioned `sitemaps/` and
-  `llms.txt`, plus a Markdown copy of each opted-in page.
+[`apps/boilerplate`](apps/boilerplate/README.md) is a copy of
+boilerplate_solidjs at `6145493` that takes its config, lint, tests and runtime
+features from the packages. It is their test bench: CI runs its checks and its
+E2E suite on every pull request that touches a package, so a change that breaks
+a real app fails before it becomes a version. It is not a template or a UI kit.
+To start an app, [copy a fixture](#start-a-new-app-from-a-fixture). Read the app
+to see the features wired together:
+
+- Five pages in Portuguese, English and Spanish, with the locale in the URL, a
+  language switcher and a theme switcher.
+- `robots.txt`, `sitemap.xml`, partitioned `sitemaps/`, `llms.txt` and a
+  Markdown copy of each opted-in page.
 - One exit for backend HTTP calls, `requestJson`, which the lint enforces.
+- 319 Playwright cases in 15 areas, enumerated with `playwright test --list`. CI
+  runs the 164 of the E2E build; the 155 of the production build run locally.
 
 ### Outdated pages recover after a deploy
 
@@ -403,612 +723,49 @@ through it, then read the code you would otherwise write yourself.
 </picture>
 
 A tab opened before a release keeps the JavaScript of the previous build. When
-it asks for a chunk or a server function the new build no longer has, the app
-marks the page and moves to a fresh document on the next navigation. It only
-reloads by itself where nothing would be lost: a page with unsaved changes stays
-put, and a refused form shows a notice that offers the reload. A server function
-refused with 404 or 409 counts as a sign of a new build. If a reload at the root
-fails again within 30 seconds, the error page appears with a manual reload. The
+it asks for a chunk or a server function that the new build no longer has, the
+app marks the page and loads a fresh document on the next navigation. A page
+with unsaved changes stays put, and a refused form shows a notice that offers
+the reload. This recovery is code of the app, which you can copy; no package
+ships it. Its OutdatedPage area runs in the E2E build that CI runs, and the
 [recovery guide](apps/boilerplate/docs/server-errors/recovery.md#outdated-page-after-a-deploy)
 covers every case.
 
-## I18n from your locale list
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/i18n-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/i18n-light.webp" />
-  <img src="docs/assets/readme/i18n-light.webp" alt="The SSR fixture configures fr, de, it and ja with fr as the base locale. Colocated catalogs feed packaged validation and compilation, then translated pages, locale URLs, redirects and cookies. Without a translation project, URLs stay unprefixed." width="800" />
-</picture>
-
-Choose the locales your product needs, with no hard-coded locale count or
-pt/en/es list. The installed example uses `fr`, `de`, `it` and `ja`:
-
-```json
-{
-  "baseLocale": "fr",
-  "locales": ["fr", "de", "it", "ja"],
-  "modules": ["./node_modules/@inlang/plugin-message-format/dist/index.js"],
-  "plugin.inlang.messageFormat": {
-    "pathPattern": "./.paraglide/messages/{locale}.json"
-  }
-}
-```
-
-Keep messages beside their feature at `src/**/i18n/<locale>.json`. The tooling
-discovers catalogs, checks missing translations, duplicate IDs and message
-parameters, then compiles Paraglide in development, builds and tests. Your app
-keeps the
-[compiler settings](fixtures/apps/ssr-i18n/project.inlang/paraglide.config.ts)
-and translation dependencies. No copied generator or manual plugin is needed.
-
-The runtime supplies locale-aware URLs, redirects, cookie persistence,
-navigation guards and language tags. `createMiddleware` selects request
-localization when the project exists. Your switcher and link UI stay in the app.
-Without the project, the same locale helpers use `language` (default `en`) and
-preserve unprefixed URLs.
-
-There is no fixed locale set, but generation reads all catalogs and has an 8 MiB
-aggregate byte limit. More locales increase generation work and output. See
-[catalog limits](docs/tooling/limits.md#known-limits), the
-[installed example](fixtures/apps/ssr-i18n) and the
-[navigation API](packages/solid-runtime/README.md#navigation-and-language-tags).
-
-## Light, dark or system without a flash
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/theme-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/theme-light.webp" />
-  <img src="docs/assets/readme/theme-light.webp" alt="Light, dark and system preferences share defineTheme. A cookie supplies the SSR preference, a nonce-protected head script applies the theme before hydration, and createTheme synchronizes changes. The application supplies its palette and switcher. No theme import means no theme code." width="800" />
-</picture>
-
-Configure behavior once, then use the returned helpers in your Document and
-Provider:
-
-```ts
-import { defineTheme } from '@evertondgn/solid-runtime/theme/define-theme'
-
-export const theme = defineTheme({
-  cookieName: 'app-theme',
-  cookieMaxAge: 31_536_000,
-  colors: { light: '#ffffff', dark: '#09090b' },
-  defaultTheme: 'system'
-})
-```
-
-Read the cookie for SSR, render `themeScript` in the head with the request
-nonce, and call `createTheme` in your Provider. The early script applies the
-explicit or system preference before hydration, avoiding a light-theme flash on
-a dark page. The primitive persists choices in a cookie and synchronizes tabs
-and system changes. This example keeps the cookie for 31,536,000 seconds, as the
-[copy does](apps/boilerplate/src/constants/theme.ts).
-
-You own the palette, `.light`/`.dark` CSS, Provider and switcher. A fixed-theme
-app leaves all of it out. See the
-[theme API](packages/solid-runtime/README.md#optional-theme) and the
-[Document integration](apps/boilerplate/src/Document.tsx).
-
-## Middleware and security policies
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/security-headers-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/security-headers-light.webp" />
-  <img src="docs/assets/readme/security-headers-light.webp" alt="Output of curl -sI on the boilerplate production preview at /en: strict-transport-security max-age=63072000 with includeSubDomains, x-frame-options DENY, x-content-type-options nosniff, referrer-policy strict-origin-when-cross-origin, a permissions-policy that blocks camera, microphone and geolocation, same-origin opener and resource policies, require-corp embedder policy, and a content-security-policy whose script-src carries a request nonce and strict-dynamic. The next requests carried different nonces." width="800" />
-</picture>
-
-In a production build, `createSecurityHeaders()` with no options puts eight
-security headers and a Content Security Policy on every page response. The
-development server sends the eight headers without the CSP, because hot module
-replacement injects inline styles. `script-src` is built from a nonce that
-changes on each request, so only the scripts that carry it, and the modules they
-load, can run. The six other directives keep resources, styles, base URLs and
-form targets on the same origin, and block plugins and framing. Change a value
-by spreading `SECURITY_HEADERS` or `CSP_DIRECTIVES` and passing the result to
-`createSecurityHeaders`, as the
-[copy does](apps/boilerplate/src/middleware/securityHeaders/constants.ts).
-
-| Header                         | Default value                                                                                                                                 |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `strict-transport-security`    | `max-age=63072000; includeSubDomains`, two years                                                                                              |
-| `x-frame-options`              | `DENY`                                                                                                                                        |
-| `x-content-type-options`       | `nosniff`                                                                                                                                     |
-| `referrer-policy`              | `strict-origin-when-cross-origin`                                                                                                             |
-| `permissions-policy`           | `camera=(), microphone=(), geolocation=()`                                                                                                    |
-| `cross-origin-opener-policy`   | `same-origin`                                                                                                                                 |
-| `cross-origin-embedder-policy` | `require-corp`                                                                                                                                |
-| `cross-origin-resource-policy` | `same-origin`                                                                                                                                 |
-| `content-security-policy`      | `default-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`, plus the `script-src` |
-
-The values above come from `curl -sI` on the production preview of the copy,
-which keeps the package defaults.
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/middleware-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/middleware-light.webp" />
-  <img src="docs/assets/readme/middleware-light.webp" alt="createMiddleware receives one security instance. Localization wraps extra steps, security headers, API routes and page-method restrictions. Containment preserves public failures and headers. CSP script directives use the request nonce; static files receive preset header rules." width="800" />
-</picture>
-
-Use a shared chain with a shared security policy:
-
-```ts
-import { createMiddleware } from '@evertondgn/solid-runtime/middleware/create-middleware'
-import { createSecurityHeaders } from '@evertondgn/solid-runtime/middleware/security-headers'
-
-const security = createSecurityHeaders()
-export default createMiddleware({ security })
-```
-
-The chain composes request localization, extra application steps, security
-headers, API routes and page-method restrictions. Security runs before API
-handlers can finish the response. Production containment returns public failures
-with the configured headers, including when middleware throws.
-
-The package builds CSP script directives from a request nonce. You choose other
-directives and header values; invalid header shapes and conflicting script
-directives fail during setup. Pass the same static header values to
-`defineSolidApp` for files served outside middleware. An optional `document`
-callback wraps the chain for application-specific response handling.
-
-See [chain composition](packages/solid-runtime/README.md#building-the-chain),
-[security options](packages/solid-runtime/README.md#security-headers) and the
-copy's [security guide](apps/boilerplate/docs/security.md). Containment covers
-the middleware call; errors while sending a body after the Response returns
-remain outside that window.
-
-## Keep server errors private
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/server-errors-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/server-errors-light.webp" />
-  <img src="docs/assets/readme/server-errors-light.webp" alt="A server failure's original message, cause and properties stop at the runtime protection boundary. Production sends The request could not be completed. and logs a fixed server-error source with filtered diagnostics. configureServerErrors registers protection; protectServerOperation wraps adapters." width="800" />
-</picture>
-
-Register protection in `src/infra/server/configureServerErrors/index.ts`, and
-point the preset's `serverSetup` option at that file:
-
-```ts
-import { configureServerErrors } from '@evertondgn/solid-runtime/server/configure-server-errors'
-
-configureServerErrors()
-```
-
-The runtime wraps server-function invocations and observes render errors.
-Production failures become fresh public errors: the original message, cause and
-properties are not forwarded. The default response is
-`The request could not be completed.`. Logs retain a fixed `[server-error]`
-source line with filtered diagnostics. Development keeps original diagnostics.
-
-One call in `entry-server.tsx` keeps a failed render from being published.
-`createRenderOptions()` forwards the request nonce and the abort signal and
-records whether the render completed without errors; the Markdown publisher
-refuses a page whose render did not. In the client entry,
-`prepareClientLocale()` reloads before hydration when the loaded locale does not
-match the URL.
-
-Wrap database or SDK adapters with `protectServerOperation({ run })`. Lint
-restricts privileged imports, and used `server-only` imports in client code fail
-the build. Public messages can be translated through a synchronous callback that
-never receives the original error.
-
-Your adapters still choose public fields, and your callback must return public
-text. The package cannot detect a secret deliberately embedded in a string. See
-the
-[protection contract](packages/solid-runtime/README.md#server-error-protection)
-and the copy's [server error guide](apps/boilerplate/docs/server-errors.md).
-
-## SEO from pages to sitemaps
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/seo-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/seo-light.webp" />
-  <img src="docs/assets/readme/seo-light.webp" alt="Route metadata feeds title, description, canonical links, social tags and escaped JSON-LD. Explicit robots and sitemap routes publish crawl rules and XML. Sitemap sources support arrays or bounded partitions, locale alternates or unprefixed URLs. Content and data adapters stay in the app." width="800" />
-</picture>
-
-`createSeo` merges route metadata and publishes head tags, canonical links,
-social metadata and escaped JSON-LD. Supply your site and page content; author,
-organization and social profiles are optional. For custom structured data, call
-this inside a Solid owner:
-
-```ts
-import { createSeo } from '@evertondgn/solid-runtime/seo/create-seo'
-
-export function registerStructuredData() {
-  createSeo({ structuredData: () => ({ '@type': 'Thing', name: 'Example' }) })
-}
-```
-
-Robots uses serializable preset data and an explicit route:
-
-```ts
-export { GET } from '@evertondgn/solid-runtime/seo/robots-route'
-```
-
-`createSitemapRoutes` takes your site URL, source registry and shared
-publication controller. Small sources can return arrays; partitioned sources
-receive a read limit and cancellation signal. With i18n, XML includes the
-configured locales and `x-default`. Without it, URLs remain unprefixed. Routes,
-robots announcements and `seo.sitemap` header rules are explicit choices.
-
-A meta-only app can pass its URL directly. Leave SEO out and there is no site
-URL to set. See [SEO](packages/solid-runtime/README.md#optional-seo),
-[sitemap APIs and bounds](packages/solid-runtime/README.md#sitemap-and-publication)
-and the copy's [SEO guide](apps/boilerplate/docs/seo.md).
-
-### Markdown pages and llms.txt
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/markdown-llms-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/markdown-llms-light.webp" />
-  <img src="docs/assets/readme/markdown-llms-light.webp" alt="Two excerpts from the boilerplate production preview. A request for /en/about with Accept text/markdown returns content-type text/markdown, a link header pointing to /llms.txt as describedby, vary Cookie and Accept, and Markdown headings: About SolidJS Boilerplate, Purpose and features, Source code and documentation. The /llms.txt index lists sections When to use, Pages and Optional, with links to .md pages and llms-full.txt." width="800" />
-</picture>
-
-Give crawlers and agents a clean text version of your pages without writing it
-twice. Turn on a Markdown copy of your pages and an `llms.txt` index with preset
-data, next to the SSR options from the [quick start](#quick-start):
-
-```ts
-import { SECURITY_HEADERS } from '@evertondgn/solid-runtime/middleware/security-headers/constants'
-import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
-
-export default defineSolidApp({
-  root: import.meta.dirname,
-  securityHeaders: SECURITY_HEADERS,
-  middleware: './src/middleware.ts',
-  seo: {
-    markdown: { static: true },
-    llms: {},
-    llmsFull: {}
-  }
-})
-```
-
-With `seo` set, the preset reads your site origin from `VITE_SITE_URL` and stops
-with `Missing site origin` when the variable is empty.
-
-A page opts in with `route.info.markdown`. A request for the `.md` URL, or for
-the page with `Accept: text/markdown`, gets the Markdown, and the response links
-`llms.txt` as `rel="describedby"`. The runtime derives the Markdown from the
-settled HTML of the same page, so there is no second copy of the content.
-`createMarkdownContent` goes into the `document` slot of `createMiddleware` and
-shares the publication controller with the sitemap. The build writes static
-`.md` files when `markdown.static` is on; `markdown: {}` converts per request
-only. `createLlms` returns the `GET` handler of `llms.txt`, and your app chooses
-the notes and pages it lists. Pick the parts you want: a feature you leave out
-keeps its routes, modules, header rules and `Link` announcements out of the
-build. `llmsFull` is the one with prerequisites, since the full file is built
-from the static Markdown: it needs `llms` and `markdown: { static: true }`, and
-the config fails to load without them. Without i18n, the files are served
-without a locale prefix.
-
-Conversion has input and output byte budgets and a deadline, and the indexes
-fail the build instead of being truncated when they pass their budget. The
-runtime uses the published `@mdream/js`; the
-[Markdown guide](apps/boilerplate/docs/seo/markdown.md) lists the conversion
-differences that the complete application fixes with a patch, and how to apply
-it. See the [publication guide](apps/boilerplate/docs/seo/publication.md).
-
-### Publication stays inside a budget
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/publication-limits-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/publication-limits-light.webp" />
-  <img src="docs/assets/readme/publication-limits-light.webp" alt="Default publication limits. Shared controller per process: 4 publications at once with 2 per kind, 4 concurrent source reads with 2 per source, 16 MiB of reserved output across 4 live outputs. Each response: sitemap deadline of 10 seconds and 4 MiB budget, 50,000 URLs per sitemap and 2,048 characters per location, Markdown with 2 MiB of HTML in, 2 MiB of Markdown out and 15 seconds. Overload answers 503 with Retry-After 1; an oversized source answers an empty 503; both are no-store, never partial XML. llms.txt and llms-full.txt fail the build above 1 MiB and 10 MiB." width="800" />
-</picture>
-
-Sitemap and Markdown publication run under quotas, deadlines and byte budgets in
-each server process. The controller quotas and the sitemap deadline and byte
-budget are options; the 50,000-URL and 2,048-character protocol bounds are
-fixed. Overload answers `503` with `Retry-After: 1` instead of a partial
-sitemap. Quotas and caches are local to a process; database adapters must honor
-limits and cancellation.
-[Sitemap and publication](packages/solid-runtime/README.md#sitemap-and-publication)
-lists every bound.
-
-| Limit                       | Default                                             |
-| --------------------------- | --------------------------------------------------- |
-| Publications at once        | 4, with 2 per kind: sitemap and Markdown            |
-| Source reads                | 4 at once, 2 per source                             |
-| Reserved output             | 16,777,216 bytes (16 MiB) across 4 live outputs     |
-| Sitemap deadline            | 10,000 ms                                           |
-| Sitemap response budget     | 4,194,304 bytes (4 MiB)                             |
-| Sitemap protocol bounds     | 50,000 URLs, 2,048 characters per location          |
-| Markdown                    | 2 MiB of HTML in, 2 MiB of Markdown out, 15 seconds |
-| `llms.txt`, `llms-full.txt` | 1 MiB and 10 MiB; the build fails above them        |
-
-## Validated environment values
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/env-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/env-light.webp" />
-  <img src="docs/assets/readme/env-light.webp" alt="Optional env.ts spreads serverEnv into the server schema. HOST, PORT and BASE_URL_TEST stay optional. Server virtual imports validate at initialization; public client values validate at build time. PORT is inferred as number or undefined. The build rejects server env imports in client code." width="800" />
-</picture>
-
-Reuse preset validators and add application keys through Standard Schema:
-
-```ts
-import { serverEnv } from '@evertondgn/solid-runtime/env'
-
-const env = { server: { ...serverEnv } }
-
-export default env
-```
-
-`HOST`, `PORT` and `BASE_URL_TEST` stay optional. `PORT` produces a number.
-Import `virtual:solid-env/server` from server code to validate when the module
-loads; raw env reads are unchanged. Public client values use
-`virtual:solid-env/client` and validate at build time. Generated declarations
-carry the inferred types. The build rejects server env imports in client code.
-
-The runtime supplies Valibot for its fragment. Declare a validator library
-yourself only when your code imports it. With nothing to validate, skip
-`env.ts`: the preset requires none of its variables. See
-[environment validation](docs/tooling/app-config.md#optional-environment-validation).
-
-## Icons from collections or your own SVGs
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/icons-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/icons-light.webp" />
-  <img src="docs/assets/readme/icons-light.webp" alt="The my-images collection maps to src/assets/images. solid.svg becomes a Solid component through ~icons/my-images/solid. The preset supplies unplugin-icons and aria-hidden; the application chooses SVGs or Iconify collections and labels its controls." width="800" />
-</picture>
-
-The preset loads
-[`@evertondgn/vite-plugin-solid-icons`](packages/vite-plugin-solid-icons/README.md),
-the icons plugin of this repository. Install the Iconify collections you use, or
-map your own SVG folder:
-
-```ts
-import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
-
-export default defineSolidApp({
-  root: import.meta.dirname,
-  ssr: false,
-  icons: { 'my-images': './src/assets/images' }
-})
-```
-
-The copy's [Solid SVG](apps/boilerplate/src/assets/images/solid.svg) is
-available as `icon:my-images/solid`, and an installed collection by its name, as
-in `icon:hugeicons/github`. Icons compile to Solid components and receive
-`aria-hidden`; give icon-only controls an accessible label. Before the check and
-the lint, a `vp run` task writes the typed names of every collection to
-`src/icon-collections.d.ts`, so `import { Github } from 'icon:hugeicons'` is
-type-checked too. The plugin belongs to the tooling package. Your assets and
-selected collections belong to your app. See the
-[plugin configuration](docs/tooling/app-config.md).
-
-## Fonts with matching CSS and preloads
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/fonts-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/fonts-light.webp" />
-  <img src="docs/assets/readme/fonts-light.webp" alt="Application font files and descriptors feed one asset list. Generated external font-face CSS and preloads share content-hashed URLs. SSR renders FontLinks; client-only HTML receives links automatically. Without fonts, the preset emits no font assets." width="800" />
-</picture>
-
-Pass a `fonts` array with your files and face descriptors to `defineSolidApp`.
-The preset emits external `@font-face` CSS and derives preload URLs from the
-same asset list. Identical files are deduplicated, and font bytes stay external,
-compatible with the default stylesheet CSP.
-
-SSR renders `FontLinks` in the Document head:
-
-```tsx
-import { FontLinks } from '@evertondgn/solid-runtime/fonts/font-links'
-
-export function FontHead() {
-  return <FontLinks />
-}
-```
-
-Client-only apps receive the links in `index.html` automatically. No `fonts`
-option means no generated files and no runtime import. You keep files, licenses
-and typography tokens. See the
-[complete font configuration](docs/tooling/fonts.md) and the
-[copy's descriptors](apps/boilerplate/fonts.ts).
-
-## Quality rules you inherit
-
-The lint preset, the CSS policy and the Git hooks come with the tooling package,
-so every app follows the same rules without copying a config. When a rule
-changes, it changes in one place.
-
-### Start with lint and formatting
-
-You can adopt only the presets in an existing Vite+ config, preserving its
-plugins and other settings:
-
-```ts
-import { fmt } from '@evertondgn/solid-tooling/fmt'
-import { lint } from '@evertondgn/solid-tooling/lint'
-import { defineConfig } from 'vite-plus'
-
-export default defineConfig({ fmt, lint })
-```
-
-The rule below reports `export { example }` on line 3 of
-`src/helpers/export-list.ts`. Replace it with `export const example = 1`:
-
-```ts
-const example = 1
-
-export { example }
-```
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/first-result-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/first-result-light.webp" />
-  <img src="docs/assets/readme/first-result-light.webp" alt="The example ends with export { example } at line 3. vp lint reports project(no-export-list) at line 3, column 1 and asks for an export on the declaration. The corrected export const example = 1 passes that rule." width="800" />
-</picture>
-
-The figure shows three steps: write the example, run `vp lint`, then export on
-the declaration. See
-[all package rules](docs/tooling/lint.md#rules-of-this-package) and
-[TypeScript setup](docs/tooling/typescript-and-format.md).
-
-### Layers that keep imports pointing down
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/layers-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/layers-light.webp" />
-  <img src="docs/assets/readme/layers-light.webp" alt="The architecture/layer-imports rule, from top to bottom: routes and entries (App, Document, entry-server, entry-client, router, middleware), organisms, molecules that do not import organisms, atoms that do not import molecules or organisms, primitives in src/primitives that import no components, routes or entries, and the base layer of types, constants, helpers, data, infra, theme, i18n and paraglide. Below, vp lint on a copy of the boilerplate where the PageBadge atom imports a molecule: src/components/atoms/PageBadge/index.tsx:3:1: error architecture(layer-imports): Layer atoms must not depend on molecules (src/components/molecules/PageHero/index.tsx). See the layer rules in docs/architecture.md." width="800" />
-</picture>
-
-`architecture/layer-imports` stops an atom from importing a molecule, a helper
-from importing a component and production code from importing tests or
-`tooling/`. The structure you start with stays readable as the app grows. The
-[component layers](apps/boilerplate/docs/architecture.md#component-layers)
-explain where a new component goes.
-
-Five more rules of the package keep files predictable: a CSS Module is named
-`styles.module.css` and imported as `S`, a test sits in `__tests__` named after
-its module and environment, exports sit on the declaration, and a route's
-`seo.ts` holds only metadata.
-
-The preset also restricts what application code can reach. `console` is not
-allowed in `src/`, `fetch` is allowed only in `requestJson`, the Node transports
-and `node_modules` paths cannot be imported, and a relative import goes up at
-most three levels. See the
-[backend restrictions](docs/tooling/lint.md#backend-restrictions).
-
-### CSS from tokens
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/css-tokens-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/css-tokens-light.webp" />
-  <img src="docs/assets/readme/css-tokens-light.webp" alt="Two CSS Module files. color: #0b1525 is refused; color: var(--color-foreground) passes. The Stylelint message reads: Use only var() tokens in this property; an exception needs a stylelint-disable comment with the reason. The boilerplate token files define colors 36, fonts 11, shadows 7, grids 6, radius 5 and zIndex 3 custom properties. Outside src/theme/, literal colors are errors, and classes use snake_case." width="800" />
-</picture>
-
-`checkCss` runs Stylelint with the boilerplate CSS policy. The boilerplate
-defines 36 color, 11 font, 7 shadow, 6 grid, 5 radius and 3 z-index custom
-properties in `src/theme/tokens/`. Outside `src/theme/`, colors, gradients,
-radii, shadows, font sizes, weights and `z-index` must come from tokens, so a
-palette change happens in one folder. Classes use snake_case and nesting stays
-at most two levels deep. An exception needs a `stylelint-disable` comment with
-its reason. See the [CSS lint](docs/tooling/knip-and-css.md#css-lint). The
-preset also turns on Lightning CSS, which transpiles nesting and `light-dark()`
-for the default browser targets and names CSS Module classes by content hash.
-
-### Dead code caught before the push
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/dead-code-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/dead-code-light.webp" />
-  <img src="docs/assets/readme/dead-code-light.webp" alt="Knip output on a copy of the boilerplate with an unused file, dependency and export added. Unused files (1): src/helpers/formatPrice/index.ts. Unused dependencies (1): date-fns at package.json:45:6. Unused exports (1): THEME_COOKIE_NAME at src/constants/theme.ts:6:14. The first pass fails, so vp run dead-code-project stops before the --strict pass." width="800" />
-</picture>
-
-A helper nobody calls, an export nobody imports or a dependency nobody uses
-fails the push instead of piling up. Knip comes packaged and already knows the
-entries of a Solid app: the server and client entries, the middleware, `env.ts`
-and every route that file-system routing finds. `vp run dead-code-project` runs
-it, then again with `--strict` for production code, and the `pre-push` hook runs
-it through `vp run dead-code`. See [Knip](docs/tooling/knip-and-css.md#knip).
-
-### Git hooks that run the right checks
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/git-hooks-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/git-hooks-light.webp" />
-  <img src="docs/assets/readme/git-hooks-light.webp" alt="The shared lefthook.yml. commit-msg runs commitlint for Conventional Commits with a 100-character header. pre-commit runs check:fix on staged files and stages the fixes, then scan:secrets with kingfisher when installed. pre-push runs check:ci, typecheck:node and test:ci in order, then test:tooling and dead-code in parallel, and stops at the first failure. pre-commit skips merge and rebase." width="800" />
-</picture>
-
-Commit messages follow Conventional Commits with a header of at most 100
-characters, staged files are formatted and fixed before each commit, staged
-changes are scanned for secrets with `kingfisher` when it is installed, and a
-push runs the full checks first. Extend the shared config from `.lefthook.yml`
-and run `vp run lefthook install`; no direct `lefthook` or `commitlint`
-dependency is needed. See
-[commits and hooks](docs/tooling/commits-and-hooks.md).
-
-## Tests already wired
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/vitest-projects-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/vitest-projects-light.webp" />
-  <img src="docs/assets/readme/vitest-projects-light.webp" alt="The three Vitest projects of solidTest in apps/boilerplate. node runs src/**/*.node.test files in Node with stand-ins for build-only modules: 68 tests in 12 files. dom runs .dom.test files in happy-dom: 87 tests in 13 files. browser runs .browser.test files in Chromium through Playwright with the CSS loaded: 30 tests in 7 files. 185 passed. Coverage thresholds: 80 percent lines, functions and statements, 75 percent branches." width="800" />
-</picture>
-
-Name a test after its environment and it runs in the right one: Node for server
-code, happy-dom for components, a real Chromium for behavior that needs layout
-and CSS. In the boilerplate, `vp run test` passed 68 `node`, 87 `dom` and 30
-`browser` tests, in 12, 13 and 7 files. Coverage thresholds come with the
-preset: 80% for lines, functions and statements, 75% for branches.
-`definePlaywrightConfig` builds the app, starts the preview and, when the suite
-ends, checks the server log for private markers, so a private detail that
-reaches the log fails the run. See [testing](docs/tooling/testing.md).
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/e2e-coverage-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/e2e-coverage-light.webp" />
-  <img src="docs/assets/readme/e2e-coverage-light.webp" alt="Horizontal bars of the 319 Playwright cases of apps/boilerplate across 15 areas, split between the E2E build with 164 cases and the production build with 155: AgentReadiness 77, I18n 40, Home 36, SeoIndexes 29, Markdown 27, BackendError 25, BuildOutput 22, OutsideError 18, Hydration 18, UiKit 8, OutdatedPage 7, StructuredData 6, FragmentCss 2, LateRedirect 2 and NotFound 2. Enumerated with playwright test --list, without running them." width="800" />
-</picture>
-
-The suite doubles as a set of worked examples: CSP and nonce checks, hydration
-under a held stream, translated routes, Markdown negotiation, SEO indexes and
-outdated-page recovery. Its 319 cases sit in 26 files for the E2E build and 12
-for the production build, and the largest area, AgentReadiness, has 77. See the
-copy's [testing guide](apps/boilerplate/docs/testing.md).
-
 ## Fewer libraries to maintain
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/libraries-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/libraries-light.webp" />
-  <img src="docs/assets/readme/libraries-light.webp" alt="Direct manifest declarations before and after: boilerplate 28 to 14, client-only 16 to 5, SSR plain 17 to 5, SSR i18n 19 to 7, consumer 6 to 3. Reductions are 14, 11, 12, 12 and 3. Minimal installed fixtures additionally receive solid-tooling and solid-runtime from the harness." width="800" />
-</picture>
+The tooling installs the build, test, type-check and hook tools it calls, at the
+versions it tests, and runs them from its own installation, including with Bun's
+isolated linker. Your manifest keeps the libraries your code imports, plus Vite+
+and its Vite alias. The client-only fixture went from 16 direct declarations to
+6, ten fewer, and the boilerplate copy from 28 to 14. With the two tarballs that
+the installed harness adds, the client-only, SSR and translated SSR fixtures
+declare 8, 7 and 9, where they declared 18, 19 and 21 before. The
+[tooling README](packages/solid-tooling/README.md#fewer-tool-versions-in-each-manifest)
+has the table for each app, and
+[ADR 0027](docs/ADRs/0027-packaged-tool-dependencies.md) the measurement before.
 
-Update build, test, type-check and hook tools through the tooling package.
-Applications retain libraries their own source imports, plus Vite+ and its Vite
-alias. The packages supply the tools they call and resolve their binaries from
-their own installation, including with Bun's isolated linker.
-
-| Application                                           | Direct declarations before | Current manifest | Fewer declarations |
-| ----------------------------------------------------- | -------------------------: | ---------------: | -----------------: |
-| [Boilerplate copy](apps/boilerplate/package.json)     |                         28 |               14 |                 14 |
-| [Client-only](fixtures/apps/client-only/package.json) |                         16 |                6 |                 10 |
-| [SSR plain](fixtures/apps/ssr-plain/package.json)     |                         17 |                5 |                 12 |
-| [SSR i18n](fixtures/apps/ssr-i18n/package.json)       |                         19 |                7 |                 12 |
-| [Lint consumer](fixtures/consumer/package.json)       |                          6 |                3 |                  3 |
-
-Counts combine `dependencies` and `devDependencies`, excluding overrides and
-transitive packages. The installed harness adds `solid-tooling` and
-`solid-runtime` to each minimal app, so their installed direct totals are 8, 7
-and 9. The client-only fixture declares an Iconify collection, which the
-original count did not have. The original installed totals were 18, 19 and 21.
-Both sides of the table exclude those injected entries. The copy and lint
-consumer already declare their package dependencies.
-
-The [dependency decision](docs/ADRs/0027-packaged-tool-dependencies.md) records
-the original measurements. Fewer declarations do not mean a smaller install: the
-tooling installs tools for optional features too. Build audits check that
-development tools stay out of application bundles. A library your app imports
-directly still needs its own declaration.
+Fewer declarations do not mean a smaller install: the tooling installs the tools
+of optional features too, 8.41% more `node_modules` with Bun's hoisted linker in
+the ADR 0027 measurement. Build audits check that these tools stay out of the
+app bundles. A library your app imports directly still needs its own
+declaration.
 
 ## Before and after
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/before-after-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/before-after-light.webp" />
-  <img src="docs/assets/readme/before-after-light.webp" alt="About 87 percent fewer lines across five configuration areas, from 945 to 125: Vite 427 to 48, Playwright 173 to 17, Knip 129 to 40, TypeScript 45 to 9, and Stylelint 171 to an 11-line script. Each bar shows the fraction retained in the app." width="800" />
-</picture>
+The copy's [`vite.config.ts`](apps/boilerplate/vite.config.ts) has 52 lines,
+where the
+[starter's](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/vite.config.ts)
+had 427. Across the five configuration areas (Vite, Playwright, Knip, TypeScript
+and Stylelint), the copy keeps 129 lines where the starter had 945, about 86%
+fewer, counted with `wc -l`, blank lines and comments included. The shared code
+lives in the tooling package, and its README has
+[the table by area](packages/solid-tooling/README.md#the-configuration-you-stop-maintaining).
 
-Across these five configuration areas, the copy keeps 125 lines instead of 945,
-about 87% fewer. Counts include blank lines and comments. The Stylelint
-replacement is an application script calling the packaged policy.
-
-| Configuration                                             | Original lines | Current copy |
-| --------------------------------------------------------- | -------------: | -----------: |
-| [Vite](apps/boilerplate/vite.config.ts)                   |            427 |           48 |
-| [Playwright](apps/boilerplate/playwright.config.ts)       |            173 |           17 |
-| [Knip](apps/boilerplate/tooling/knip.ts)                  |            129 |           40 |
-| [TypeScript](apps/boilerplate/tsconfig.json)              |             45 |            9 |
-| [Stylelint caller](apps/boilerplate/tooling/css/check.ts) |            171 |           11 |
-
-The baseline is the
-[original starter at 6145493](https://github.com/everton-dgn/boilerplate_solidjs/tree/61454937472d0faa1b4fab985fd7c5da968aa9a6).
-The shared implementation remains in the package. Current fixture configs have
-19 lines for [client-only with fonts](fixtures/apps/client-only/vite.config.ts),
-29 for [SSR with fonts and SEO](fixtures/apps/ssr-plain/vite.config.ts), and 10
-for [translated SSR](fixtures/apps/ssr-i18n/vite.config.ts). These fixtures
-exercise different features, so their lengths are not a size comparison.
+The fixture apps show the config of a smaller app. The `vite.config.ts` of
+[client-only](fixtures/apps/client-only/vite.config.ts) has 20 lines,
+[SSR](fixtures/apps/ssr-plain/vite.config.ts) 30 and
+[translated SSR](fixtures/apps/ssr-i18n/vite.config.ts) 11. They turn on
+different features, so their lengths are not a size comparison.
 
 ## Fix the base once
 
@@ -1018,15 +775,17 @@ exercise different features, so their lengths are not a size comparison.
   <img src="docs/assets/readme/fix-once-light.webp" alt="Copied tooling and runtime drift between applications A, B and C. With Solid Base, the apps keep thin configs and consume solid-tooling and solid-runtime. Shared fixes arrive through vp update; application-specific code stays with each app." width="800" />
 </picture>
 
-Both packages carry shared fixes across applications with `vp update`. Keep
-tested versions aligned and review release notes when updating.
+The three packages hold the code that every app on them shares. A fix lands
+once, in a package version, and each app takes it when it
+[updates the packages](#update-the-packages) and aligns the versions they were
+tested with.
 
 | The packages maintain                                                           | Your application owns                                      |
 | ------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | Lint, formatting, TypeScript, Vitest, Playwright, Knip, Stylelint and Git hooks | Code, tests, paths and overrides                           |
 | Locale mechanics, catalog generation and theme behavior                         | Messages, locale selection, UI and palette                 |
 | Middleware, error protection and publication admission                          | Header policy, public text, backend adapters and data      |
-| SEO factories, icon integration and font loading                                | Editorial metadata, source registries, assets and licenses |
+| SEO factories, the icons plugin and font loading                                | Editorial metadata, source registries, assets and licenses |
 
 When the defaults do not fit, `defineSolidApp` takes extra plugins through
 `extend`, replaces tasks by name through `tasks`, and accepts route rules,
@@ -1035,47 +794,72 @@ public assets and static paths, without forking the preset. See the
 
 ## How it is verified
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/verified-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/verified-light.webp" />
-  <img src="docs/assets/readme/verified-light.webp" alt="Current revision: 1001 runtime and 185 application Vitest tests passed, 1186 combined; 164 E2E build cases and 155 production cases, 319 enumerated. Installed tarballs check exports and builds with both Bun linkers. Release workflows use npm trusted publishing." width="800" />
-</picture>
+The counts below come from the CI run of the 0.8.0 release pull request
+([run 43975952604](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604)).
+Its Packages job ran `vp run validate`, the same checks as the publish job
+([job 133680118978](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680118978)).
 
-At this revision, 1,186 Vitest tests passed: 1,001 in the runtime and 185 in the
-boilerplate app. `playwright test --list` counts 319 end-to-end cases on top,
-164 against the E2E build and 155 against the production build.
+| Suite                             | Result                                                                                                                                                         | Details                                                                     |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Tooling package                   | 368 `node --test` tests passed in CI, from 43 test files counted in the source tree                                                                            | [Tooling](packages/solid-tooling/README.md#how-it-is-tested)                |
+| Runtime package                   | 1,047 Vitest tests in 104 files passed in CI, with 97.46% of statements covered                                                                                | [Runtime](packages/solid-runtime/README.md#how-it-is-tested)                |
+| Icons plugin                      | 194 tests in 39 suites passed in CI                                                                                                                            | [Icons plugin](packages/vite-plugin-solid-icons/README.md#how-it-is-tested) |
+| Packed tarballs                   | 3 tooling, 6 runtime and 8 icons plugin tests passed in CI                                                                                                     | The same three READMEs                                                      |
+| Installed application scenarios   | 14 application cases passed in CI: 3 client-only, 9 SSR and 2 translated SSR, with Bun's `hoisted` and `isolated` linkers; their test file ran 22 tests in all | [Tooling](packages/solid-tooling/README.md#how-it-is-tested)                |
+| Release automation                | 164 tests passed in CI                                                                                                                                         | [Releasing](docs/releasing.md)                                              |
+| Boilerplate app, Vitest           | 185 tests in 32 files passed in CI ([job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119099))                              | [App](apps/boilerplate/README.md#how-it-is-tested)                          |
+| Boilerplate app, E2E build        | 164 Playwright cases passed in CI ([job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119082))                               | [App](apps/boilerplate/README.md#how-it-is-tested)                          |
+| Boilerplate app, production build | 155 Playwright cases, enumerated with `playwright test --list` and run only locally                                                                            | [App](apps/boilerplate/README.md#how-it-is-tested)                          |
 
-Release gates also build installed tarballs outside the workspace with Bun's
-`hoisted` and `isolated` linkers, check exports and lint rules, and audit
-disabled features and server boundaries. The installed matrix has fifteen cases,
-including the version alignment check. CI selects jobs by changed paths;
-documentation-only changes do not imply every suite runs.
+The installed scenarios pack the three packages and install them in the
+[fixture apps](fixtures/apps), outside the workspace. A case fails when a
+disabled feature leaves its modules in the bundle, when a client-only build
+loads Nitro, or when a packaged development tool reaches an emitted module.
+Negative probes, run by hand with `SCENARIO_MUTATION`, inject a regression into
+a temporary copy and must make their case fail
+([ADR 0021](docs/ADRs/0021-installed-application-scenarios.md)). CI picks jobs
+by changed paths, so a documentation-only change does not run every suite
+([CI coverage](docs/development.md#ci)).
 
-See [CI coverage](docs/development.md#ci),
-[installed scenarios](docs/ADRs/0021-installed-application-scenarios.md) and the
-[release process](docs/releasing.md). Release workflows use npm trusted
-publishing with signed provenance; a new package follows the
-[new-package procedure](docs/releasing.md#new-package).
+The release workflow publishes through npm trusted publishing, with no stored
+npm token. Each version it publishes carries npm provenance (an SLSA v1
+provenance statement) that names the commit and the workflow run that built it.
+The statement shows where a tarball came from and says nothing about bugs in the
+code. The first version of each package was published by hand and has none
+([security policy](SECURITY.md)). On 2026-11-17, in a copy of the client-only
+fixture with the 0.8.0 packages, `npm audit signatures` checked every installed
+package, these three among them:
+
+```text
+$ npm audit signatures
+314 packages have verified registry signatures
+
+133 packages have verified attestations
+(use --json --include-attestations to view attestation details)
+```
+
+The attestations of the three 0.8.0 packages name
+`.github/workflows/release.yml` on `refs/heads/main` and commit `11626d7`. A new
+package follows the [new-package procedure](docs/releasing.md#new-package).
 
 ## Packages and roadmap
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/runtime-entries-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/runtime-entries-light.webp" />
-  <img src="docs/assets/readme/runtime-entries-light.webp" alt="The 64 entries of solid-runtime by group: seo 15, middleware 12, server 12, theme 11, i18n 10, routing 2, env 1 and fonts 1, with examples such as create-seo, create-middleware, configure-server-errors, locale-tag, define-theme, walk-static-routes and font-links. An entry you do not import stays out of your build." width="800" />
-</picture>
-
-| Available package                                                                   | What it provides                                                                                          |
+| Package                                                                             | What it provides                                                                                          |
 | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| [`@evertondgn/solid-tooling`](packages/solid-tooling/README.md)                     | Config, build tools, catalog generation, icons, fonts, lint, tests and hooks                              |
+| [`@evertondgn/solid-tooling`](packages/solid-tooling/README.md)                     | Config, build tools, catalog generation, fonts, lint, tests and hooks, and it loads the icons plugin      |
 | [`@evertondgn/solid-runtime`](packages/solid-runtime/README.md)                     | Locale and theme behavior, middleware, server errors, env validators, SEO, sitemap, Markdown and llms.txt |
 | [`@evertondgn/vite-plugin-solid-icons`](packages/vite-plugin-solid-icons/README.md) | The icons plugin that the tooling loads, also usable on its own in a Vite+ application                    |
 
-The runtime is published as TypeScript source, split into 64 entries, so your
-app imports only the features it uses: `seo` has 15, `middleware` and `server`
-12 each, `theme` 11, `i18n` 10, `routing` 2, and `env` and `fonts` 1 each.
+The three packages share one version number: a release of one raises the others
+to the same version. The runtime is published as TypeScript source, split into
+64 entry points, so your app imports only the features it uses: `seo` has 15,
+`middleware` and `server` 12 each, `theme` 11, `i18n` 10, `routing` 2, and `env`
+and `fonts` 1 each
+([the list](packages/solid-runtime/README.md#import-only-what-you-use)).
 
 ### Roadmap
+
+The work below is planned, with no version or date set yet.
 
 | Planned work                      | Scope                               |
 | --------------------------------- | ----------------------------------- |
@@ -1084,19 +868,21 @@ app imports only the features it uses: `seo` has 15, `middleware` and `server`
 
 ## Documentation
 
-| Guide                                                 | What you will find                           |
-| ----------------------------------------------------- | -------------------------------------------- |
-| [Tooling reference](docs/tooling/README.md)           | Presets, configuration and limits            |
-| [Runtime reference](packages/solid-runtime/README.md) | Independent feature APIs and integration     |
-| [Boilerplate app](apps/boilerplate/README.md)         | The running app and its guides               |
-| [Development](docs/development.md)                    | Workspace setup, tests and CI                |
-| [Architecture](docs/architecture.md)                  | Package boundaries and application ownership |
-| [Releasing](docs/releasing.md)                        | Versions, publishing and recovery            |
-| [ADRs](docs/ADRs/README.md)                           | Decisions and measured tradeoffs             |
+| Guide                                                      | What you will find                                                      |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [Tooling package](packages/solid-tooling/README.md)        | The preset, its rules, tests and tasks, and the reference of each entry |
+| [Runtime package](packages/solid-runtime/README.md)        | Each production feature and the reference of each entry                 |
+| [Icons plugin](packages/vite-plugin-solid-icons/README.md) | Collections, typed names, what happens to your SVG files, and limits    |
+| [Boilerplate app](apps/boilerplate/README.md)              | The test bench, what each page shows, and its guides                    |
+| [Tooling guides](docs/tooling/README.md)                   | Config, lint, tests, Knip, CSS, hooks, fonts and limits, by task        |
+| [Development](docs/development.md)                         | Workspace setup, tests and CI                                           |
+| [Architecture](docs/architecture.md)                       | Package boundaries and application ownership                            |
+| [Releasing](docs/releasing.md)                             | Versions, publishing and recovery                                       |
+| [ADRs](docs/ADRs/README.md)                                | Decisions and measured tradeoffs                                        |
 
-Read the [contributing guide](CONTRIBUTING.md) before opening an issue or pull
-request. Report security problems privately as [SECURITY.md](SECURITY.md)
-explains. The [documentation index](docs/README.md) links to all guides.
+The [documentation index](docs/README.md) maps each task to its page. Read the
+[contributing guide](CONTRIBUTING.md) before opening an issue or pull request,
+and report security problems privately as [SECURITY.md](SECURITY.md) explains.
 
 ## License
 

@@ -167,42 +167,39 @@ shows up in the HTML of the next request.
 
 ## Scripts
 
-| Command                       | Description                                                                       |
-| ----------------------------- | --------------------------------------------------------------------------------- |
-| `vp run dev`                  | Development server with HMR                                                       |
-| `vp run dev:phone`            | Expose the development server on the local network                                |
-| `vp run build`                | Nitro build for Vercel in `.vercel/output/`                                       |
-| `vp run start`                | Preview the build through Vite                                                    |
-| `vp run i18n:generate`        | Validate the catalogs and generate messages and types                             |
-| `vp run typecheck:node`       | Types of the tooling in the Node environment                                      |
-| `vp run lint`                 | CSS, lint and types with the Vite+ cache                                          |
-| `vp run lint:css`             | Check the CSS rules                                                               |
-| `vp run format`               | Format code with Oxfmt                                                            |
-| `vp run check:ci`             | CSS, formatting, lint and types of the application                                |
-| `vp run check:fix`            | Formatting + lint, fixing what it can                                             |
-| `vp run test`                 | Every test project of the application                                             |
-| `vp run test:tooling`         | Tooling tests in Node, except release                                             |
-| `vp run test:release`         | Test the release automation with Bun                                              |
-| `vp run test:ui`              | Vitest UI with coverage; use the printed URL (it carries the token)               |
-| `vp run test:ci`              | Run Vitest with coverage and stop at the first failure                            |
-| `vp run test:coverage`        | Run Vitest with coverage                                                          |
-| `vp run test:unit`            | Only the `node` and `dom` (happy-dom) projects                                    |
-| `vp run test:watch`           | Tests in watch mode                                                               |
-| `vp run test:shuffle`         | Tests in random order, to find order dependencies                                 |
-| `vp run test:browser`         | Only the `browser` project (headless Chromium)                                    |
-| `vp run test:browser:install` | Download the Playwright Chromium                                                  |
-| `vp run test:e2e`             | Test the application with the E2E fixtures                                        |
-| `vp run test:e2e:production`  | Test the real production routes                                                   |
-| `vp run test:e2e:ui`          | Open the interactive E2E interface                                                |
-| `vp run test:e2e:codegen`     | Open the Playwright test generator                                                |
-| `vp run deps:update`          | Select dependency updates                                                         |
-| `vp run bun:update`           | Update the pinned Bun and reinstall dependencies                                  |
-| `vp run detect:duplicates`    | Look for duplicated code in `src`                                                 |
-| `vp run dead-code`            | Check unused code with Knip                                                       |
-| `vp run dead-code:fix`        | Apply the Knip fixes and format with `vp fmt`                                     |
-| `vp run scan:secrets`         | Look for secrets with Kingfisher (requires installation)                          |
-| `vp run validate`             | check:ci + typecheck:node + dead-code + test:coverage + tooling + release + build |
-| `vp run commitlint`           | Validate a commit message                                                         |
+| Command                       | Description                                                             |
+| ----------------------------- | ----------------------------------------------------------------------- |
+| `vp run dev`                  | Development server with HMR                                             |
+| `vp run dev:phone`            | Expose the development server on the local network                      |
+| `vp run build`                | Nitro build for Vercel in `.vercel/output/`                             |
+| `vp run start`                | Preview the build through Vite                                          |
+| `vp run i18n:generate`        | Validate the catalogs and generate messages and types                   |
+| `vp run typecheck:node`       | Types of the tooling in the Node environment                            |
+| `vp run lint`                 | CSS, lint and types with the Vite+ cache                                |
+| `vp run lint:css`             | Check the CSS rules                                                     |
+| `vp run format`               | Format code with Oxfmt                                                  |
+| `vp run check:ci`             | CSS, formatting, lint and types of the application                      |
+| `vp run check:fix`            | Formatting + lint, fixing what it can                                   |
+| `vp run test`                 | Every test project of the application                                   |
+| `vp run test:tooling`         | Tooling tests in Node                                                   |
+| `vp run test:ui`              | Vitest UI with coverage; use the printed URL (it carries the token)     |
+| `vp run test:ci`              | Run Vitest with coverage and stop at the first failure                  |
+| `vp run test:coverage`        | Run Vitest with coverage                                                |
+| `vp run test:unit`            | Only the `node` and `dom` (happy-dom) projects                          |
+| `vp run test:watch`           | Tests in watch mode                                                     |
+| `vp run test:shuffle`         | Tests in random order, to find order dependencies                       |
+| `vp run test:browser`         | Only the `browser` project (headless Chromium)                          |
+| `vp run test:browser:install` | Download the Playwright Chromium                                        |
+| `vp run test:e2e`             | Test the application with the E2E fixtures                              |
+| `vp run test:e2e:production`  | Test the real production routes                                         |
+| `vp run test:e2e:ui`          | Open the interactive E2E interface                                      |
+| `vp run test:e2e:codegen`     | Open the Playwright test generator                                      |
+| `vp run deps:update`          | Select dependency updates                                               |
+| `vp run detect:duplicates`    | Look for duplicated code in `src`                                       |
+| `vp run dead-code`            | Check unused code with Knip                                             |
+| `vp run dead-code:fix`        | Apply the Knip fixes and format with `vp fmt`                           |
+| `vp run scan:secrets`         | Look for secrets with Kingfisher (requires installation)                |
+| `vp run validate`             | check:ci + typecheck:node + dead-code + test:coverage + tooling + build |
 
 ## Execution and cache
 

@@ -52,12 +52,15 @@ Use `vp run tsc`, `vp run knip` and `vp run playwright` in applications using
 ## Where things live
 
 ```text
-packages/solid-tooling/             published package: lint preset, rules, formatter, TypeScript base
+packages/solid-tooling/             published package: defineSolidApp, lint and format presets, rules,
+                                    TypeScript base, test presets, Knip, Stylelint, commitlint, Git hooks
+                                    and the i18n and icons generators
 packages/solid-runtime/             published package: runtime helpers, shipped as TypeScript source
 packages/vite-plugin-solid-icons/   published package: the icons plugin that the tooling loads
 apps/boilerplate/                   copy of boilerplate_solidjs that runs on the workspace package
 fixtures/consumer/                  small application that installs the packed tarball
 fixtures/apps/                      minimal applications that install, test and build from the tarballs
+tooling/release/                    the merge command, the wait in the publish job and the release lockfile check
 docs/                               guides and architecture decision records (ADRs)
 .github/workflows/                  CI and the release workflows
 ```

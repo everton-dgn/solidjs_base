@@ -331,14 +331,14 @@ runs start every job.
 
 A pull request that touches more than one group runs the jobs of each.
 
-| Job                 | What it runs                                                                                               |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Docs                | `vp fmt --check`, and an offline link check (lychee) over the Markdown of the repository, anchors included |
-| Packages            | `vp run validate`, the same command as the publish job                                                     |
-| Boilerplate app     | `vp run build` at the root, then check, Node type check, dead code, tests with coverage and tooling tests  |
-| Boilerplate app E2E | `vp run build` at the root, then the application build and the end-to-end tests                            |
-| Merge commit body   | On a push to `main`, fails when the merge commit has a body, which release-please reads as one more commit |
-| CI required         | Fails when any job above failed or was cancelled                                                           |
+| Job                 | What it runs                                                                                                                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Docs                | `vp fmt --check`, and an offline link check (lychee) over the Markdown of the repository, anchors included; the absolute links to the `main` branch that the npm pages use are checked against the checkout |
+| Packages            | `vp run validate`, the same command as the publish job                                                                                                                                                      |
+| Boilerplate app     | `vp run build` at the root, then check, Node type check, dead code, tests with coverage and tooling tests                                                                                                   |
+| Boilerplate app E2E | `vp run build` at the root, then the application build and the end-to-end tests                                                                                                                             |
+| Merge commit body   | On a push to `main`, fails when the merge commit has a body, which release-please reads as one more commit                                                                                                  |
+| CI required         | Fails when any job above failed or was cancelled                                                                                                                                                            |
 
 `CI required` is the only check the `main` ruleset requires. A job skipped by
 its `if`

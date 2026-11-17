@@ -1,6 +1,6 @@
 {
   "name": "@evertondgn/solid-tooling",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Lint, formatter, TypeScript, test and Vite app presets for SolidJS applications built with Vite+.",
   "author": "Éverton Toffanetto",
   "license": "MIT",
@@ -109,16 +109,17 @@
     "@vitest/ui": "catalog:",
     "@testing-library/jest-dom": "7.0.1",
     "@types/node": "26.6.6",
-    "typescript": "7.0.2"
+    "tsrs": "catalog:"
   },
   "peerDependencies": {
     "@inlang/paraglide-js": "3.2.2",
-    "vite-plus": "1.6.0"
+    "vite-plus": "1.7.0"
   },
   "devDependencies": {
     "@inlang/paraglide-js": "3.2.2",
     "vite-plus": "catalog:",
-    "@inlang/plugin-message-format": "4.6.0"
+    "@inlang/plugin-message-format": "4.6.0",
+    "typescript": "7.0.2"
   },
   "peerDependenciesMeta": {
     "@inlang/paraglide-js": {

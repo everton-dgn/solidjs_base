@@ -150,8 +150,8 @@ it:
 - Adds `src/icon-collections.d.ts` to `.gitignore`. The dev server, the build
   and the `icons-generate` task write the names of every collection there, and
   `lint-project` and `check-project` run the task first. Run
-  `vp run icons-generate` before a `vp lint` or a `tsc` outside these tasks when
-  the application imports icons by name.
+  `vp run icons-generate` before a `vp lint` or a `tsrs` outside these tasks
+  when the application imports icons by name.
 - Keeps only `?raw` in an import, for the SVG markup as a string, written
   without a value: `?raw=true` stops the build too. The old plugin turned the
   other keys of a query into attributes of the `<svg>`, as in `?width=2em`; the
@@ -236,12 +236,12 @@ configuration requires neither of them.
 | `dead-code-project` | Package-owned Knip with `--config tooling/knip.ts`, then again with `--strict`                          |
 | `lint-project`      | `vp lint`, after `lint-css` and `icons-generate`                                                        |
 | `check-project`     | `vp fmt --check && vp lint`, after `lint-css` and `icons-generate`                                      |
-| `typecheck-node`    | Package-owned TypeScript with `--project tsconfig.node.json`                                            |
+| `typecheck-node`    | Package-owned `tsrs` with `--project tsconfig.node.json`                                                |
 | `test-tooling`      | `node --test` over `tooling/**/__tests__` except `tooling/release/`, three workers on CI, with no cache |
 
-The uncached `knip`, `tsc`, `playwright`, `lefthook` and `commitlint` tasks
+The uncached `knip`, `tsrs`, `playwright`, `lefthook` and `commitlint` tasks
 forward their arguments to binaries resolved from the package. For example, use
-`vp run playwright test` or `vp run tsc --noEmit`. Knip uses Bun; the other
+`vp run playwright test` or `vp run tsrs --noEmit`. Knip uses Bun; the other
 tools use Node. Without `defineSolidApp`, run
 `vp exec node node_modules/@evertondgn/solid-tooling/dist/cli.mjs <tool> <args>`.
 The [installation guide](limits.md#packaged-commands-and-types) covers

@@ -161,7 +161,7 @@ each header and how the nonce reaches the scripts of the page.
   ([known limits](docs/tooling/limits.md#known-limits)). A client-only build
   (`ssr: false`) writes a static `dist/` with no server
   ([applications with no server](docs/tooling/no-server.md)).
-- You cannot pin exact versions. `vite-plus` 1.6.0 and `@solidjs/web`
+- You cannot pin exact versions. `vite-plus` 1.7.0 and `@solidjs/web`
   2.0.0-rc.23 are exact peers in the
   [tooling](packages/solid-tooling/package.json) and
   [runtime](packages/solid-runtime/package.json) manifests, and SolidJS 2 is a
@@ -337,7 +337,10 @@ npm view @evertondgn/solid-tooling peerDependencies
 
 - Set `solid-js`, `@solidjs/web` and the `@solidjs/signals` and
   `@solidjs/compiler` overrides to the runtime's `@solidjs/web` version.
-- Set `vite-plus` to the tooling's version.
+- Set `vite-plus` to the tooling's version, and the `vite` alias and override to
+  the Vite+ core of that version, which has a version of its own: `vp migrate`
+  sets both, and `npm view vite-plus@<version> dependencies.vite` prints the
+  alias.
 - Set `@inlang/paraglide-js` too if your app has translations; that peer is
   optional.
 

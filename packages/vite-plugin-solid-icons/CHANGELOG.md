@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.0](https://github.com/everton-dgn/solidjs_base/compare/vite-plugin-solid-icons@0.8.0...vite-plugin-solid-icons@0.9.0) (2026-11-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **icons:** @evertondgn/vite-plugin-solid-icons requires vite-plus 1.7.0. Update vite-plus and the vite alias together, with vp migrate or by setting the alias to the output of npm view vite-plus@1.7.0 dependencies.vite.
+
+### Bug Fixes
+
+* **icons:** require Vite+ 1.7.0 ([7b1833f](https://github.com/everton-dgn/solidjs_base/commit/7b1833fe52bb84a08e359c73adf20fc0e1c45154))
+
 ## [0.8.0](https://github.com/everton-dgn/solidjs_base/compare/vite-plugin-solid-icons@0.7.0...vite-plugin-solid-icons@0.8.0) (2026-11-16)
 
 

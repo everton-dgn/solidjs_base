@@ -14,7 +14,7 @@ type TaskOptions = Pick<SolidAppOptions, 'workspace' | 'root' | 'icons'> & {
 type IconFolders = Pick<SolidAppOptions, 'root' | 'icons'>
 
 const TOOLING_CI_TEST_WORKERS = 3
-const TOOL_NAMES = ['knip', 'tsc', 'playwright', 'lefthook', 'commitlint']
+const TOOL_NAMES = ['knip', 'tsrs', 'playwright', 'lefthook', 'commitlint']
 // A folder whose path has one of them would match other files as a pattern.
 const GLOB_CHARACTERS = /[*?[\]{}()!\\]/u
 
@@ -182,14 +182,14 @@ export function createTasks({
       cache: { env: ['NODE_ENV'], input: projectCheckInputs }
     },
     // The application types come from vp check, with typeCheck in lint.
-    // Automatic tracking does not see the reads of the native tsc, so the inputs
-    // are explicit: from src, only the extensions tsc reads, because CSS, images
-    // and fonts arrive through module declarations. bun.lock stands for the
-    // installed types but only keeps the path of the patches, so their content
-    // is an input of its own. With noEmit, tsc only writes its .tsbuildinfo to
-    // .tsbuild/, its own cache, so nothing has to be restored.
+    // The inputs are explicit because the automatic tracking of the tsrs reads
+    // was only checked on macOS: from src, only the extensions tsrs reads,
+    // because CSS, images and fonts arrive through module declarations. bun.lock
+    // stands for the installed types but only keeps the path of the patches, so
+    // their content is an input of its own. With noEmit, tsrs only writes its
+    // .tsbuildinfo to .tsbuild/, its own cache, so nothing has to be restored.
     'typecheck-node': {
-      command: `${toolCommand('tsc')} --project tsconfig.node.json`,
+      command: `${toolCommand('tsrs')} --project tsconfig.node.json`,
       ...dependsOn,
       cache: {
         input: [

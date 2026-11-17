@@ -2,7 +2,7 @@ export const LOCALES = ['en', 'pt']
 export const SOURCE_PACKAGE = '@scope/source'
 export const TASKS = [
   'knip',
-  'tsc',
+  'tsrs',
   'playwright',
   'lefthook',
   'commitlint',

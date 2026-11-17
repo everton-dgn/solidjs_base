@@ -783,7 +783,7 @@ export async function checkNoServer(input: NoServerInput): Promise<void> {
   await input.run({
     deadline: input.deadline,
     cwd: input.app,
-    args: ['run', 'tsc', '--noEmit']
+    args: ['run', 'tsrs', '--noEmit']
   })
   writeFileSync(
     path.join(input.app, 'vite.config.ts'),

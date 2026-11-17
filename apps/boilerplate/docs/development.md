@@ -33,7 +33,7 @@ updates those tools; align the retained Nitro, routing and Playwright Test
 versions when upgrading. Keep Paraglide, message-format and the Solid libraries
 in the application, plus the root Vite/Vitest overrides.
 
-Use `vp run tsc`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
+Use `vp run tsrs`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
 `vp run commitlint` for the package's executables. Scripts such as `test:e2e`,
 `test:browser:install` and `dead-code:fix` use these tasks. The standalone
 command pattern is documented in the
@@ -239,12 +239,12 @@ Vite also records the variables it loads. The server configuration limits
 environment.
 
 The automatic tracking records the files the type-aware lint reads, the types in
-`node_modules` included, but does not see the reads of the native `tsc`. That is
-why `typecheck-node` declares the inputs explicitly, including sources,
-declarations, TypeScript configs, `package.json`, `bun.lock` and `patches/**`.
-From `src/` only the `.ts`, `.tsx` and `.json` files enter, which `tsc` reads;
-CSS, images and fonts come in through module declarations and do not invalidate
-the check. The lockfile represents the dependencies that
+`node_modules` included. `typecheck-node` declares its inputs explicitly,
+including sources, declarations, TypeScript configs, `package.json`, `bun.lock`
+and `patches/**`, because the tracking of the `tsrs` reads was only checked on
+macOS. From `src/` only the `.ts`, `.tsx` and `.json` files enter, which `tsrs`
+reads; CSS, images and fonts come in through module declarations and do not
+invalidate the check. The lockfile represents the dependencies that
 `vp install --frozen-lockfile` installs, but keeps only the path of each patch;
 that is why the content of `patches/` enters separately, also in the inputs of
 `lint-project` and `check-project`. When creating a task that reads installed
@@ -498,14 +498,19 @@ with the next jobs after a failure.
 - `vite-plus`, `vite`, `vitest` and the `@vitest/*` packages come from the
   `catalog` of the root `package.json` of the monorepo; `vite` resolves to the
   Vite+ core. Update the versions in that catalog and keep the `@vitest/*`
-  packages at the exact version of the Vitest bundled in Vite+. The CI reads the
-  Vite+ version from that catalog.
+  packages at the exact version of the Vitest bundled in Vite+. The same catalog
+  pins the `tsrs` that the tooling package ships, at the version `vite-plus`
+  depends on. The CI reads the Vite+ version from that catalog.
 - Commits must follow Conventional Commits.
-- The lint is type-aware and runs with `typeCheck: true`: the types of the
-  application, the `test-d.ts` tests included, are checked by `vp run lint` and
-  `vp run check:ci`, without a separate `tsc`.
+- The lint is type-aware and runs with `typeCheck: true` through `tsrs-lint`,
+  the backend that Vite+ installs with `tsrs`: the types of the application, the
+  `test-d.ts` tests included, are checked by `vp run lint` and
+  `vp run check:ci`, without a separate type check. That check only reports the
+  files the lint reads: ignored files and diagnostics without a file stay out.
+  `vp run tsrs --noEmit` checks the whole program.
 - The CI, the pre-push and `vp run validate` combine `check:ci` with
-  `typecheck:node`, which checks the tooling without the DOM types.
+  `typecheck:node`, which runs `tsrs` with `tsconfig.node.json` and checks the
+  tooling without the DOM types.
 - Use the Node and Bun versions defined in `package.json`. `bun.lock` is the
   only lockfile of the project.
 

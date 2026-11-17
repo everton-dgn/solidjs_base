@@ -62,12 +62,12 @@ first, then run `vp run lefthook install` when using `defineSolidApp`. See
 
 ## Packaged commands and types
 
-`defineSolidApp` registers uncached `knip`, `tsc`, `playwright`, `lefthook` and
+`defineSolidApp` registers uncached `knip`, `tsrs`, `playwright`, `lefthook` and
 `commitlint` tasks. They resolve the binary from the tooling package and forward
 arguments from the application root:
 
 ```bash
-vp run tsc --noEmit
+vp run tsrs --noEmit
 vp run knip --config tooling/knip.ts --strict
 vp run playwright test
 vp run commitlint --edit COMMIT_EDITMSG
@@ -162,6 +162,12 @@ include `node_modules/@evertondgn/solid-tooling/node-env.d.ts`.
   always uses the `vercel` preset. The plugin packages are pinned, so a new
   version of Solid, Nitro, the router or the icons plugin needs a package
   version tested with it.
+- `tsrs` ports the TypeScript 7.1 beta and is the only compiler the package
+  ships: it has no `--init` and no `--showConfig`, and its `--watch` does not
+  run on Windows. pnpm with `trustPolicy: no-downgrade` rejects it until
+  `trustPolicyExclude` lists it, which `vp migrate` writes. The type check of
+  the lint reports only the files the lint reads; `vp run tsrs --noEmit` also
+  checks ignored and generated files and the diagnostics without a file.
 
 ## Versions
 

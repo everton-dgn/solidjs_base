@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.9.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.8.0...solid-tooling@0.9.0) (2026-11-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **tooling:** @evertondgn/solid-tooling registers a tsrs task in place of tsc and no longer installs typescript. Replace vp run tsc with vp run tsrs, and the packaged command node_modules/@evertondgn/solid-tooling/dist/cli.mjs tsc with its tsrs form. tsrs has no --init and no --showConfig, and its --watch does not run on Windows.
+* **tooling:** @evertondgn/solid-tooling requires vite-plus 1.7.0. Update vite-plus and the vite alias together, with vp migrate or by setting the alias to the output of npm view vite-plus@1.7.0 dependencies.vite.
+
+### Features
+
+* **tooling:** check the types with tsrs instead of tsc ([29b1f44](https://github.com/everton-dgn/solidjs_base/commit/29b1f4461e4c6a349977ae5c155c06dd7eafe63c))
+
+
+### Bug Fixes
+
+* **tooling:** require Vite+ 1.7.0 ([b6e8bb2](https://github.com/everton-dgn/solidjs_base/commit/b6e8bb2ae0c3f7638c60caa7d88384f49598b122))
+
 ## [0.8.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.7.0...solid-tooling@0.8.0) (2026-11-16)
 
 

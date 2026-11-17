@@ -169,7 +169,7 @@ function install({ app, tarballs }: Installation): void {
     false,
     'Dependency installation must not generate a hook config'
   )
-  for (const name of ['lefthook', 'commitlint', 'tsc']) {
+  for (const name of ['lefthook', 'commitlint', 'tsrs']) {
     assert.equal(
       existsSync(path.join(app, 'node_modules/.bin', name)),
       false,

@@ -1,6 +1,7 @@
 import { createRequestEvent } from '@solidjs/web'
 
-import { createPublicationController } from '../../../infra/server/publication/index.ts'
+import { createPublicationController } from '#solid-runtime/infra/server/publication/index.ts'
+
 import { createMarkdownContent } from '../index.ts'
 
 const HTTP_UNAVAILABLE = 503

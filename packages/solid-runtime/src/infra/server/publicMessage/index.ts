@@ -1,5 +1,5 @@
 import 'server-only'
-import { getLocale } from '../../../i18n/locale/index.ts'
+import { getLocale } from '#solid-runtime/i18n/locale/index.ts'
 
 const DEFAULT_MESSAGE = 'The request could not be completed.'
 let message: PublicMessage | undefined

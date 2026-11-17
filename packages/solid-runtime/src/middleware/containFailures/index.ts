@@ -1,11 +1,12 @@
 import { composeMiddleware, getRequestEvent } from '@solidjs/web'
 
-import { isControlResponse } from '../../infra/server/isControlResponse/index.ts'
-import { logServerFailure } from '../../infra/server/logServerFailure/index.ts'
+import { isControlResponse } from '#solid-runtime/infra/server/isControlResponse/index.ts'
+import { logServerFailure } from '#solid-runtime/infra/server/logServerFailure/index.ts'
 import {
   createPublicError,
   publicErrorMessage
-} from '../../infra/server/publicErrors/index.ts'
+} from '#solid-runtime/infra/server/publicErrors/index.ts'
+
 import { isHtmlResponse } from '../helpers/isHtmlResponse/index.ts'
 import { isPageRequest } from '../requestClassification/index.ts'
 import { requestNonce } from '../securityHeaders/index.ts'

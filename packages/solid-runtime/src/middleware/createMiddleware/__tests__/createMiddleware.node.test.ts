@@ -3,8 +3,9 @@ import { createRequestEvent, type RequestEvent } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
 import { readLog } from '@testing/readLog/index.ts'
 
-import { configureServerErrors } from '../../../infra/server/configureServerErrors/index.ts'
-import { isPublicError } from '../../../infra/server/publicErrors/index.ts'
+import { configureServerErrors } from '#solid-runtime/infra/server/configureServerErrors/index.ts'
+import { isPublicError } from '#solid-runtime/infra/server/publicErrors/index.ts'
+
 import { createSecurityHeaders } from '../../securityHeaders/index.ts'
 import type { Middleware, StartMiddleware } from '../../types.ts'
 import { createMiddleware } from '../index.ts'

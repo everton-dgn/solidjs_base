@@ -3,8 +3,9 @@ import { createRequestEvent, type RequestEvent } from '@solidjs/web'
 import { Router } from '@testing/markdown/router.ts'
 import { SITE } from '@testing/seo/site.ts'
 
-import { createPublicationController } from '../../../infra/server/publication/index.ts'
-import { createSecurityHeaders } from '../../../middleware/securityHeaders/index.ts'
+import { createPublicationController } from '#solid-runtime/infra/server/publication/index.ts'
+import { createSecurityHeaders } from '#solid-runtime/middleware/securityHeaders/index.ts'
+
 import { createMarkdownContent } from '../index.ts'
 
 type Options = {

@@ -2,8 +2,9 @@ import { createRequestEvent } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
 import { endpoint } from 'virtual:solid-server-function-handler'
 
-import { createLocalizeRequest } from '../../../middleware/createLocalizeRequest/index.ts'
-import { createSecurityHeaders } from '../../../middleware/securityHeaders/index.ts'
+import { createLocalizeRequest } from '#solid-runtime/middleware/createLocalizeRequest/index.ts'
+import { createSecurityHeaders } from '#solid-runtime/middleware/securityHeaders/index.ts'
+
 import { localizedRedirect } from '../index.ts'
 
 const localizeRequest = createLocalizeRequest(createSecurityHeaders())

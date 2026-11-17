@@ -1,3 +1,7 @@
+[![Latest vite-plugin-solid-icons version on npm](https://img.shields.io/npm/v/@evertondgn/vite-plugin-solid-icons)](https://www.npmjs.com/package/@evertondgn/vite-plugin-solid-icons)
+[![CI workflow status](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml/badge.svg)](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml)
+[![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)
+
 # @evertondgn/vite-plugin-solid-icons
 
 **Every icon of an Iconify collection or of your own SVG folder, imported by
@@ -11,11 +15,56 @@ the page. This Vite plugin turns both sources into components at build time. You
 import an icon by name, TypeScript knows every name of the collection, and the
 build stops with the name you asked for when an icon does not exist.
 
-> SolidJS 2 is still a release candidate. The package pins its `@solidjs/web`
-> and `vite-plus` peer dependencies to the versions it is tested with, listed in
-> its
+> SolidJS 2 is still a release candidate, and this package is `0.x`
+> ([versions](#versions-and-license)). The package pins its `@solidjs/web` and
+> `vite-plus` peer dependencies to the versions it is tested with, listed in its
 > [`package.json`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/package.json),
 > so plan to update them together until SolidJS 2 is stable.
+
+[See it work](#a-typo-in-an-icon-name-stops-the-build) ·
+[Who it fits](#who-it-fits) · [Questions](#questions-before-you-adopt-it) ·
+[Install](#install) · [Set up](#set-up) · [Update](#update-the-plugin) ·
+[Tests](#how-it-is-tested) · [Limits](#requirements-and-limits) ·
+[Reference](#reference)
+
+## A typo in an icon name stops the build
+
+An import by name is checked twice, by the build and by the type check:
+
+```ts
+// src/typo.ts
+import { Githb } from 'icon:hugeicons'
+
+export const icon = Githb
+```
+
+```text
+$ vp build
+[plugin vite-plugin-solid-icons] src/typo.ts:1:9
+RolldownError: "Githb" is not an icon of 'icon:hugeicons'. Did you mean Github?
+1: import { Githb } from 'icon:hugeicons'
+            ^
+
+$ vp check
+  x typescript(TS2724): '"icon:hugeicons"' has no exported member named 'Githb'. Did you mean 'Github'?
+```
+
+This ran on 2026-11-17 with the 0.8.0 packages from npm, in a copy of a fixture
+app of this repository. That app is built on `@evertondgn/solid-tooling`, whose
+`defineSolidApp` loads this plugin and whose lint preset turns on the type check
+of `vp check`. The file path is shortened. The build error comes from this
+plugin, and the type error from the declaration file it writes for the names of
+each collection.
+
+The same day, an app with only this plugin and the config of [Set up](#set-up)
+gave the same build error. Its `vp check` passed with the typo until
+`lint.options` had `typeAware: true` and `typeCheck: true`, and then it gave the
+same TS2724. The CI also runs `tsc` on the same file in a new app that installs
+the packed plugin ([How it is tested](#how-it-is-tested)). An import by path, as
+in `icon:hugeicons/githb`, has no such check: it passes the type check and stops
+only at the build ([limits](#requirements-and-limits)).
+
+## Only the icons you import reach the bundle
 
 ```tsx
 import { ArrowLeft01, Github } from 'icon:hugeicons'
@@ -33,21 +82,80 @@ export function Footer() {
 ```
 
 `hugeicons` is an installed Iconify collection and `brand` is a folder of SVG
-files in the application. Each name becomes the import of one icon, so the
-bundle carries these three and nothing else of either collection.
+files in the application. The plugin rewrites each name into the import of one
+icon module, marked without side effects, so the bundle carries these three
+icons and nothing else of either collection. The test
+[`app.test.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/src/__tests__/app.test.ts)
+builds an app that imports six icons, one of them from two modules, with
+`hugeicons` installed. It finds the attributes of six icon components in the
+client bundle, and the path of the shared icon once.
 
-[Install](#install) · [Set up](#set-up) ·
-[Import by name](#import-icons-by-name) ·
-[Import by path](#import-one-icon-by-its-path) · [SVG text](#the-svg-as-text) ·
-[Collections](#installed-collections-and-your-own-folders) ·
-[SVG files](#what-the-plugin-does-with-your-svg-files) ·
-[Names](#names-you-can-predict) ·
-[Types](#typed-names-and-a-suggestion-on-a-typo) ·
-[Errors](#build-errors-that-name-the-icon) ·
-[Dev server](#svg-edits-without-a-restart) ·
-[Server rendering](#server-rendering) ·
-[Not supported](#what-is-not-supported-and-why) · [Options](#options) ·
-[Requirements and limits](#requirements-and-limits)
+## Who it fits
+
+- You build a SolidJS 2 app on Vite+ and want the icons of an Iconify collection
+  or of your own SVG folder as components, without pasting markup.
+- Your app is on `@evertondgn/solid-tooling`. `defineSolidApp` already loads
+  this plugin, so you install only the `@iconify-json/<collection>` packages
+  ([icons in the application config](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md#icons)).
+- You want a typo in an icon name to fail the type check and the build, with the
+  closest name in the message.
+
+## Who it does not fit yet
+
+- Your app uses another bundler or another UI framework. The plugin supports
+  only Vite+ and SolidJS 2.
+- Your app shows SVG files that users upload. The checks of the plugin do not
+  make an untrusted SVG safe, and such a file needs a sanitizer at runtime
+  ([what the plugin does with your SVG files](#what-the-plugin-does-with-your-svg-files)).
+- You cannot pin exact versions. `vite-plus` 1.6.0 and `@solidjs/web`
+  2.0.0-rc.23 are exact peers in the
+  [`package.json`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/package.json),
+  and SolidJS 2 is a release candidate.
+- You run Node older than 26.13.1, the `engines.node` floor of the package.
+- You build folder collections on Windows and rely on the checks that keep an
+  icon inside its folder. Those checks are tested on macOS and Linux
+  ([installed collections and your own folders](#installed-collections-and-your-own-folders)).
+
+## Questions before you adopt it
+
+**Do I need `@evertondgn/solid-tooling`?** No. Any Vite+ app with SolidJS 2 can
+add the plugin next to its Solid plugin, as [Set up](#set-up) shows. An app on
+the tooling does not install it at all ([Install](#install)).
+
+**Is an SVG file safe once it builds?** The build stops on markup that runs code
+in a page, such as a `<script>`, an event handler attribute, a `javascript:`
+URL, an HTML element or a `<foreignObject>`. The checks do not make an untrusted
+SVG safe: they leave external references, such as an `<image>` that points to a
+URL, or a CSS `url()`. Review the SVG files of a folder as you review code
+([the full list](#what-the-plugin-does-with-your-svg-files)).
+
+**Does it render on the server and hydrate?** Yes. The icon module goes through
+the Solid plugin of the app, so a server build and the dev server render it with
+`renderToString`. The test
+[`hydration.test.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/src/__tests__/hydration.test.ts)
+renders two icons in a server build and hydrates them in a browser without
+adding, replacing or changing a node.
+
+**What happens when a collection updates?** An import draws what the new version
+draws under that name, without an error, and the dev server process reads the
+new version only after a stop and a start ([limits](#requirements-and-limits)).
+
+**What does it add to the install?** The 0.8.0 tarball has 8 files and 96,451
+bytes unpacked, as
+`npm view @evertondgn/vite-plugin-solid-icons@0.8.0 dist.fileCount dist.unpackedSize`
+reports, and two production dependencies, `@iconify/utils` and `magic-string`.
+Each Iconify collection you use is a package of its own. The plugin runs in the
+build, so it is a dev dependency.
+
+**Where did this version come from?** Version 0.8.0 carries npm provenance (an
+SLSA v1 provenance statement) published by the release workflow through trusted
+publishing. The statement names `.github/workflows/release.yml` on
+`refs/heads/main` and commit `11626d7`. It shows which commit and workflow built
+the tarball, and it says nothing about bugs in the code. Version 0.7.0 was
+published by hand and has no statement
+([security policy](https://github.com/everton-dgn/solidjs_base/blob/main/SECURITY.md)).
+In an app that installed the package, `npm audit signatures` verifies the
+registry signatures and attestations of the installed packages.
 
 ## Install
 
@@ -106,9 +214,127 @@ Load the module declarations in the `tsconfig.json` of the application:
 The declarations of the names of each collection live in a file that the dev
 server and the build write, `src/icon-collections.d.ts` by default. A
 `tsconfig.json` that includes `src` already reads it. See
-[Typed names](#typed-names-and-a-suggestion-on-a-typo).
+[Typed names](#typed-names-and-a-suggestion-on-a-typo). `vp check` type-checks
+these imports only when `lint.options` in `vite.config.ts` sets `typeAware` and
+`typeCheck` to `true`; the lint preset of `@evertondgn/solid-tooling` sets both.
 
-## Import icons by name
+## Update the plugin
+
+In an app on the tooling, the plugin comes with `@evertondgn/solid-tooling`, at
+the same version. Raise the tooling and the runtime in one command:
+
+```bash
+vp update -L @evertondgn/solid-tooling @evertondgn/solid-runtime
+```
+
+Then align the versions the packages were tested with: `solid-js`,
+`@solidjs/web` and the Solid overrides, `vite-plus`, and Paraglide in an app
+with translations. The root README explains each step in
+[Update the packages](https://github.com/everton-dgn/solidjs_base/blob/main/README.md#update-the-packages).
+
+An app that installs the plugin alone raises it by its name:
+
+```bash
+vp update -L @evertondgn/vite-plugin-solid-icons
+```
+
+`-L` is needed while the package is `0.x`: a range such as `^0.8.0` stops below
+0.9.0. Then set `vite-plus` and `@solidjs/web` to the exact versions in the
+`peerDependencies` of the new version, which
+`npm view @evertondgn/vite-plugin-solid-icons peerDependencies` prints, and
+align `solid-js` and the Solid overrides with `@solidjs/web` as the root README
+describes. Do not raise `solid-js` with `-L`: the newest release candidate can
+be newer than the one the plugin was tested with. The
+[release notes](https://github.com/everton-dgn/solidjs_base/releases) list the
+breaking changes.
+
+## How it is tested
+
+In the CI run of the 0.8.0 release pull request, the
+[Packages job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680118978)
+ran 194 tests of the plugin in 39 suites and the 8 tests of its packed tarball,
+and all of them passed (`ℹ tests 194` and `ℹ tests 8` in the job log). The
+package has 25 test files, the tarball's included, counted in the source tree.
+The files in `src/__tests__/` build apps or start a dev server with Vite+ and
+the Solid plugin in temporary folders, and the browser tests run in the Chrome
+of the CI runner. Three files cover security, hostile names and hydration:
+
+- [`security.test.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/src/__tests__/security.test.ts):
+  SVG markup that would run code renders as text on the server and in the
+  browser, without running. Markup that runs code stops the build with the icon
+  and the problem. An import reads no file outside the folder of its collection,
+  the dev server refuses a path traversal, and a symbolic link out of the folder
+  is not followed. These checks leave external references and a CSS `url()` in
+  place, so they do not make an untrusted SVG safe.
+- [`hostileNames.test.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/src/writeIconTypes/__tests__/hostileNames.test.ts):
+  file and icon names that would close a comment, open a string or a template,
+  break a line or reach the prototype keep the declaration file valid
+  TypeScript. An installed collection whose name an import cannot spell is left
+  out, two names that differ only in case export neither, and the imports of
+  names that are keywords are rewritten.
+- [`hydration.test.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/src/__tests__/hydration.test.ts):
+  a server build renders two icons, one with a text of several lines and one
+  with a `<style>`, and the client hydrates them in the browser without adding,
+  replacing or changing a node.
+
+The tarball tests install the packed package in a new app. They check that it
+carries the license, publishes no test, ships every target of its `exports`,
+keeps build tools out of its dependencies and loads in plain Node, and that the
+app types the icon imports and gets a type error for a typo in a named import.
+
+The installed application scenarios of `@evertondgn/solid-tooling` install this
+tarball too and build fixture apps that declare an icon folder: 14 application
+cases passed in the same job, as the
+[tooling README](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/README.md)
+describes.
+
+## Requirements and limits
+
+- Node 26.13.1 or later, the `>=26.13.1` that `engines.node` in the package's
+  `package.json` names.
+- Vite+ (`vite-plus`) and `@solidjs/web` in the versions of the peer
+  dependencies, and `@solidjs/vite-plugin` in the plugins of the application.
+  The plugin reads your imports with the parser that `vite-plus` exports.
+- A folder in `collections` that cannot be read, an `@iconify-json/<collection>`
+  that the `package.json` lists but that is not installed, and a declaration
+  file that cannot be written do not stop the dev server or the build. The
+  plugin logs a warning with the folder, the collection or the file and the
+  error code, and only an import that needs the missing icons fails. The
+  declaration file leaves out the collection that cannot be read and keeps the
+  others; a file that cannot be written keeps its last content. `writeIconTypes`
+  writes the same file and returns the warnings, and `checkIconTypes` fails on
+  them.
+- The declaration file is written to a temporary file next to it and renamed, so
+  a type check that reads it while the dev server or a build writes it reads a
+  whole file.
+- An installed collection is read once per process, and the declaration file
+  lists the collections of the `package.json` when the dev server starts. After
+  you add or update an `@iconify-json/<collection>` package, stop and start the
+  dev server process: the restart of Vite in the same process, as with the `r`
+  key, keeps the collection it read.
+- An export name or a path names the icon that the installed version of the
+  collection has. If a new version of the collection draws another icon under
+  the same name, the import draws the new one, without an error.
+- The declaration of the imports by path accepts any name, so a typo in a path
+  passes the type check and stops the build. The imports by name are checked by
+  the type check too.
+- The ids inside an SVG, which gradients and clip paths use, are the same in
+  every instance of the icon on a page.
+
+## Reference
+
+[Import by name](#import-icons-by-name) ·
+[Import by path](#import-one-icon-by-its-path) · [SVG text](#the-svg-as-text) ·
+[Collections](#installed-collections-and-your-own-folders) ·
+[SVG files](#what-the-plugin-does-with-your-svg-files) ·
+[Names](#names-you-can-predict) ·
+[Types](#typed-names-and-a-suggestion-on-a-typo) ·
+[Errors](#build-errors-that-name-the-icon) ·
+[Dev server](#svg-edits-without-a-restart) ·
+[Server rendering](#server-rendering) ·
+[Not supported](#what-is-not-supported-and-why) · [Options](#options)
+
+### Import icons by name
 
 ```tsx
 import { ArrowLeft01 as Back, Github } from 'icon:hugeicons'
@@ -129,7 +355,7 @@ in `import { type Github, Moon } from 'icon:hugeicons'`, moves to an
 `import type` of its own, so it brings no module into the bundle, also with
 `verbatimModuleSyntax`.
 
-## Import one icon by its path
+### Import one icon by its path
 
 ```tsx
 import IconGithub from 'icon:hugeicons/github'
@@ -159,7 +385,7 @@ replace them. Icons render at 1.2 times the font size of their text, with
 and `height`. Each icon is its own module, marked without side effects, so the
 build keeps only the icons you import.
 
-## The SVG as text
+### The SVG as text
 
 ```ts
 import githubSvg from 'icon:hugeicons/github?raw'
@@ -184,7 +410,7 @@ component is, so a browser reads the same elements as the plugin did:
 - A CDATA section becomes escaped text. An `&` in the CSS of a `<style>` is
   written `&amp;`, which a page and an XML parser read back as `&`.
 
-## Installed collections and your own folders
+### Installed collections and your own folders
 
 An Iconify collection is any `@iconify-json/<collection>` package the
 application installs. Its icons and its aliases are available under the name of
@@ -239,7 +465,7 @@ solidIcons({
   name stops the configuration with the list of the invalid names.
 - A folder declared with the name of an installed collection takes its place.
 
-## What the plugin does with your SVG files
+### What the plugin does with your SVG files
 
 The SVG files of a folder collection are part of your application, as its source
 files are: the plugin does not sanitize them, and you review them as you review
@@ -312,7 +538,7 @@ such as an `<image>`, a `<use>` or an `<a>` that points to a URL, or a CSS
 `url()`. An SVG that a user uploads needs a sanitizer at runtime, not a folder
 collection. The icons of an installed collection go through the same checks.
 
-## Names you can predict
+### Names you can predict
 
 The name of an icon is its file or Iconify name in PascalCase. You read it from
 the icon you see in the Iconify catalog or in your folder, without a lookup
@@ -355,10 +581,13 @@ The result does not depend on the order of the icons in the collection. A strict
 name always has an underscore, which no plain name has, so it never takes the
 name of another icon.
 
-At this revision, the installed `hugeicons` collection has 6,091 icons and 26
-aliases, which give 6,106 export names. Eight icons have no export name and keep
-their import by path: `arrow-down01`, `arrow-up01`, `book-up2`, `circle-slash2`,
-`folder-git2`, `rows2`, `rows3` and `rows4`.
+Version 1.2.36 of `@iconify-json/hugeicons`, the one the tests of the package
+install, has 6,140 icons and 26 aliases, which give 6,149 export names in the
+declaration file that the plugin wrote on 2026-11-17. Fourteen icons have no
+export name and keep their import by path: `arrow-down01`, `arrow-down10`,
+`arrow-up01`, `arrow-up10`, `axis3d`, `book-up2`, `circle-slash2`,
+`file-axis3d`, `folder-git2`, `rotate3d`, `rows2`, `rows3`, `rows4` and
+`scale3d`.
 
 Ten of those names are also globals of the browser or of JavaScript:
 `Clipboard`, `Function`, `Gamepad`, `History`, `Lock`, `Map`, `Math`,
@@ -370,7 +599,7 @@ Rename it on import:
 import { Map as MapIcon } from 'icon:hugeicons'
 ```
 
-## Typed names and a suggestion on a typo
+### Typed names and a suggestion on a typo
 
 The dev server and the build write a declaration file with one
 `declare module 'icon:<collection>'` for each `@iconify-json/<collection>` in
@@ -394,14 +623,15 @@ typo.ts(1,10): error TS2724: '"icon:hugeicons"' has no exported member named 'Gi
 ```
 
 The file is rewritten only when the icons change, so the editor and the file
-watchers do not read it again for nothing. For `hugeicons` alone it declares
-6,106 names. It is generated: keep it out of your formatter and linter, as you
-would any generated declaration.
+watchers do not read it again for nothing. For `hugeicons` 1.2.36 alone it
+declares 6,149 names, counted in
+[Names you can predict](#names-you-can-predict). It is generated: keep it out of
+your formatter and linter, as you would any generated declaration.
 
 Set `typesFile` to write it somewhere else, relative to the Vite root, or to
 `false` to write none.
 
-### Write or check the file in the CI
+#### Write or check the file in the CI
 
 The editor needs the file before the first dev server runs, and a type check in
 the CI runs without one. Two functions write and check the same file, with the
@@ -432,27 +662,27 @@ server and the build write the file again, so a check that runs after them
 always passes. If you do not commit it, call `writeIconTypes` before the type
 check.
 
-## Build errors that name the icon
+### Build errors that name the icon
 
 A missing icon stops the build and the dev server with the name you wrote and,
 for an import by name, the line and column of that name in your file. These are
 the real messages:
 
-| Import                                         | Message                                                                                                                                                 |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `import { Githb } from 'icon:hugeicons'`       | `"Githb" is not an icon of 'icon:hugeicons'. Did you mean Github?`                                                                                      |
-| `import { ArrowDown01 } from 'icon:hugeicons'` | `"ArrowDown01" names more than one icon of 'icon:hugeicons': import ArrowDown_01 for arrow-down-01, or 'icon:hugeicons/arrow-down01' for arrow-down01.` |
-| `import X from 'icon:hugeicons/no-such-icon'`  | `Icon "hugeicons/no-such-icon" not found in @iconify-json/hugeicons.`                                                                                   |
-| `import X from 'icon:brand/moon'`              | `Icon "brand/moon" not found: the folder "src/assets/icons" of the collection "brand" has no moon.svg.`                                                 |
-| `import X from 'icon:mdi/home'`                | `Icon collection "mdi" not found: install @iconify-json/mdi or declare "mdi" in the collections option of solidIcons.`                                  |
-| `import X from 'icon:hugeicons/github?url'`    | `Unsupported query in the icon import "icon:hugeicons/github?url": only ?raw is accepted.`                                                              |
-| `import X from 'icon:brand/../secret'`         | `Invalid icon import "icon:brand/../secret". Import an icon as 'icon:<collection>/<name>', or 'icon:<collection>/<name>?raw' for the SVG text.`         |
+| Import                                         | Message                                                                                                                                                                                   |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `import { Githb } from 'icon:hugeicons'`       | `"Githb" is not an icon of 'icon:hugeicons'. Did you mean Github?`                                                                                                                        |
+| `import { ArrowDown01 } from 'icon:hugeicons'` | `"ArrowDown01" names more than one icon of 'icon:hugeicons': import ArrowDown_0_1 for arrow-down-0-1, ArrowDown_01 for arrow-down-01, or 'icon:hugeicons/arrow-down01' for arrow-down01.` |
+| `import X from 'icon:hugeicons/no-such-icon'`  | `Icon "hugeicons/no-such-icon" not found in @iconify-json/hugeicons.`                                                                                                                     |
+| `import X from 'icon:brand/moon'`              | `Icon "brand/moon" not found: the folder "src/assets/icons" of the collection "brand" has no moon.svg.`                                                                                   |
+| `import X from 'icon:mdi/home'`                | `Icon collection "mdi" not found: install @iconify-json/mdi or declare "mdi" in the collections option of solidIcons.`                                                                    |
+| `import X from 'icon:hugeicons/github?url'`    | `Unsupported query in the icon import "icon:hugeicons/github?url": only ?raw is accepted.`                                                                                                |
+| `import X from 'icon:brand/../secret'`         | `Invalid icon import "icon:brand/../secret". Import an icon as 'icon:<collection>/<name>', or 'icon:<collection>/<name>?raw' for the SVG text.`                                           |
 
 The suggestion is the closest name within three edits, ignoring case. A name can
 only use letters, digits, `_`, `-` and dots between them, so an import cannot
 read a file outside the folder of its collection.
 
-## SVG edits without a restart
+### SVG edits without a restart
 
 The dev server follows the files of every folder collection:
 
@@ -472,14 +702,14 @@ A build with `--watch` follows the same folders: a file added, removed or
 renamed changes the names of its collection and the declaration file, and the
 next build reads them.
 
-## Server rendering
+### Server rendering
 
 The icon module goes through the Solid plugin of the application as a TSX file,
 so the Solid compiler you install writes both the DOM output and the server
 output. The icons render to a string with `renderToString` in a server build and
 in the dev server.
 
-## What is not supported, and why
+### What is not supported, and why
 
 The plugin reads the names you import while it builds, and turns each one into
 the import of one icon. The forms below have no names to read, so they would
@@ -505,7 +735,7 @@ the import by path works there.
 The plugin supports only Vite+ and SolidJS 2. Other bundlers and other UI
 frameworks are out of its scope.
 
-## Options
+### Options
 
 | Option          | Type                                         | Default                       | Description                                                                                                     |
 | --------------- | -------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -536,40 +766,11 @@ solidIcons({
 | `@evertondgn/vite-plugin-solid-icons/types`        | `IconComponent`, the type of an icon, without the types of Vite                       |
 | `@evertondgn/vite-plugin-solid-icons/icon-modules` | The declarations of the imports by path and of `?raw`, for `types` in `tsconfig.json` |
 
-## Requirements and limits
+## Versions and license
 
-- Node 26 or a later line, from the version that `engines.node` in the package's
-  `package.json` names.
-- Vite+ (`vite-plus`) and `@solidjs/web` in the versions of the peer
-  dependencies, and `@solidjs/vite-plugin` in the plugins of the application.
-  The plugin reads your imports with the parser that `vite-plus` exports.
-- A folder in `collections` that cannot be read, an `@iconify-json/<collection>`
-  that the `package.json` lists but that is not installed, and a declaration
-  file that cannot be written do not stop the dev server or the build. The
-  plugin logs a warning with the folder, the collection or the file and the
-  error code, and only an import that needs the missing icons fails. The
-  declaration file leaves out the collection that cannot be read and keeps the
-  others; a file that cannot be written keeps its last content. `writeIconTypes`
-  writes the same file and returns the warnings, and `checkIconTypes` fails on
-  them.
-- The declaration file is written to a temporary file next to it and renamed, so
-  a type check that reads it while the dev server or a build writes it reads a
-  whole file.
-- An installed collection is read once per process, and the declaration file
-  lists the collections of the `package.json` when the dev server starts. After
-  you add or update an `@iconify-json/<collection>` package, stop and start the
-  dev server process: the restart of Vite in the same process, as with the `r`
-  key, keeps the collection it read.
-- An export name or a path names the icon that the installed version of the
-  collection has. If a new version of the collection draws another icon under
-  the same name, the import draws the new one, without an error.
-- The declaration of the imports by path accepts any name, so a typo in a path
-  passes the type check and stops the build. The imports by name are checked by
-  the type check too.
-- The ids inside an SVG, which gradients and clip paths use, are the same in
-  every instance of the icon on a page.
-
-## License
+The package follows semantic versioning. Below 1.0.0, a breaking change raises
+the minor version. Each release is listed in the
+[changelog](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/CHANGELOG.md).
 
 [MIT](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/LICENSE).
 This package is part of

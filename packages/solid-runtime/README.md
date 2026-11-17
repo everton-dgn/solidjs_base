@@ -7,7 +7,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 RC and Vite+. Build your Solid app. Stop rebuilding its foundation. Optional languages and theme. Shared server protection, SEO, assets and development tools. Two install commands: vp add -D @evertondgn/solid-tooling and vp add @evertondgn/solid-runtime. Cards: languages from your locale list, light, dark or system theme, CSP and server errors, metadata and sitemap, icons and fonts, config, tests and hooks." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 and Vite+. Build your Solid app. Stop rebuilding its foundation. Optional languages and theme. Shared server protection, SEO, assets and development tools. Two install commands: vp add -D @evertondgn/solid-tooling and vp add @evertondgn/solid-runtime. Cards: languages from your locale list, light, dark or system theme, CSP and server errors, metadata and sitemap, icons and fonts, config, tests and hooks." width="800" />
 </picture>
 
 **Security headers with a nonce CSP, private server errors, links that keep the
@@ -24,10 +24,9 @@ in each one. This package ships it as TypeScript source, in 64 entry points.
 Your app imports the ones it uses and keeps its UI, palette, content, messages
 and backend adapters.
 
-> SolidJS 2 is still a release candidate. This package is tested with
-> `2.0.0-rc.23` and pins its `@solidjs/web` peer dependency to that version, so
-> plan to update both together until SolidJS 2 is stable. Below 1.0.0, a
-> breaking change raises the minor version.
+> This package is tested with SolidJS `2.0.0` and pins its `@solidjs/web` peer
+> dependency to that version, so update both together. Below 1.0.0, a breaking
+> change raises the minor version.
 
 [Setup](#the-smallest-working-setup) · [Who it fits](#who-it-fits) ·
 [Questions](#questions-before-you-adopt-it) ·
@@ -147,9 +146,8 @@ this page is opt-in.
   the `vercel` preset
   ([known limits of the tooling](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits)).
   A client-only build (`ssr: false`) writes a static `dist/` with no server.
-- You cannot pin `@solidjs/web`. It is an exact peer at `2.0.0-rc.23` in the
-  [package manifest](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/package.json),
-  and SolidJS 2 is a release candidate.
+- You cannot pin `@solidjs/web`. It is an exact peer at `2.0.0` in the
+  [package manifest](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/package.json).
 - You run Node older than 26.13.1, the `engines.node` floor of the same
   manifest.
 - You need sitemap and Markdown quotas shared by several server processes. Each
@@ -207,8 +205,8 @@ runtime, as
 [Update the packages](https://github.com/everton-dgn/solidjs_base/blob/main/README.md#update-the-packages)
 shows, and read the
 [changelog](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/CHANGELOG.md).
-Do not raise `solid-js` with `-L`: the newest release candidate can be newer
-than the one the packages were tested with.
+Do not raise `solid-js` with `-L`: the newest Solid release can be newer than
+the one the packages were tested with.
 
 **How do I leave?** There is no eject command. Each feature is a separate
 import, so you can replace one at a time with your own code.

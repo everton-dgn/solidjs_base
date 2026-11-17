@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { execPath } from 'node:process'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
 type Command = { file: string; args: string[]; cwd: string }
@@ -32,7 +33,9 @@ type Manifest = {
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, '../../..')
 const PACKAGE_NAME = '@evertondgn/vite-plugin-solid-icons'
 const VP = path.join(PACKAGE_ROOT, 'node_modules/.bin/vp')
-const TSC = path.join(PACKAGE_ROOT, 'node_modules/.bin/tsc')
+const TSRS = fileURLToPath(
+  new URL('bin/tsrs', import.meta.resolve('tsrs/package.json'))
+)
 const COMMAND_TIMEOUT = 60_000
 // WHY: an application installs the plugin with its own Vite and Solid plugin;
 // in dependencies they would install a second copy.
@@ -278,7 +281,7 @@ async function assertTypes(installation: Installation): Promise<void> {
   await writeFile(path.join(app, 'icons.ts'), TYPE_USAGE)
   await writeFile(path.join(app, 'tsconfig.json'), JSON.stringify(TYPE_CONFIG))
 
-  await run({ file: TSC, args: ['-p', 'tsconfig.json'], cwd: app })
+  await run({ file: TSRS, args: ['-p', 'tsconfig.json'], cwd: app })
 }
 
 async function assertTypo({ app }: Installation): Promise<void> {
@@ -289,7 +292,7 @@ async function assertTypo({ app }: Installation): Promise<void> {
   )
 
   const output = await runFailing({
-    file: TSC,
+    file: TSRS,
     args: ['-p', 'tsconfig.typo.json'],
     cwd: app
   })

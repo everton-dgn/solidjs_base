@@ -59,7 +59,7 @@ the names of each collection.
 The same day, an app with only this plugin and the config of [Set up](#set-up)
 failed the build with the same error. Its `vp check` let the typo through until
 `lint.options` set `typeAware: true` and `typeCheck: true`; then it reported the
-same TS2724. CI also runs `tsc` on the same file in a new app that installs the
+same TS2724. CI also runs `tsrs` on the same file in a new app that installs the
 packed plugin ([How it is tested](#how-it-is-tested)). An import by path, as in
 `icon:hugeicons/githb`, has no such check: it passes the type check and stops
 only at the build ([limits](#requirements-and-limits)).

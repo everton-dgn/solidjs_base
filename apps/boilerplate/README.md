@@ -337,9 +337,9 @@ Knip 129 to 40, TypeScript 45 to 9, and Stylelint 171 to an 11-line caller
 [tooling README](../../packages/solid-tooling/README.md) keeps that comparison.
 
 The package supplies tools that this copy does not import itself. Its
-`playwright`, `knip` and `tsc` tasks resolve executables from the tooling
+`playwright`, `knip` and `tsrs` tasks resolve executables from the tooling
 package. The inherited tsconfig reads package-owned type references, so no
-application declaration of `@types/node` or TypeScript is needed.
+application declaration of `@types/node` or of a TypeScript compiler is needed.
 `defineSolidApp` loads the icons plugin, so the app does not declare it; it
 declares only the `hugeicons` collection it imports.
 

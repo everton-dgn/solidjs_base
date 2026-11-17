@@ -10,10 +10,10 @@ const TOOLS: Record<string, Tool> = {
     runtime: 'bun',
     entry: () => new URL('../bin/knip-bun.js', import.meta.resolve('knip')).href
   },
-  tsc: {
+  tsrs: {
     runtime: execPath,
     entry: () =>
-      new URL('bin/tsc', import.meta.resolve('typescript/package.json')).href
+      new URL('bin/tsrs', import.meta.resolve('tsrs/package.json')).href
   },
   playwright: {
     runtime: execPath,

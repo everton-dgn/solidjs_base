@@ -109,7 +109,7 @@
     "@vitest/ui": "catalog:",
     "@testing-library/jest-dom": "7.0.1",
     "@types/node": "26.6.6",
-    "typescript": "7.0.2"
+    "tsrs": "catalog:"
   },
   "peerDependencies": {
     "@inlang/paraglide-js": "3.2.2",
@@ -118,7 +118,8 @@
   "devDependencies": {
     "@inlang/paraglide-js": "3.2.2",
     "vite-plus": "catalog:",
-    "@inlang/plugin-message-format": "4.6.0"
+    "@inlang/plugin-message-format": "4.6.0",
+    "typescript": "7.0.2"
   },
   "peerDependenciesMeta": {
     "@inlang/paraglide-js": {

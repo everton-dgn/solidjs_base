@@ -31,7 +31,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0024](0024-runtime-theme.md)                                          | Theme logic is an explicit runtime feature                             | Accepted, amended by 0036                  |
 | [0025](0025-packaged-i18n-generator.md)                                | Colocated catalog generation belongs to the tooling package            | Accepted                                   |
 | [0026](0026-runtime-locale-navigation.md)                              | Locale navigation and tags belong to the runtime                       | Accepted                                   |
-| [0027](0027-packaged-tool-dependencies.md)                             | Packages supply the tools the application does not import              | Accepted                                   |
+| [0027](0027-packaged-tool-dependencies.md)                             | Packages supply the tools the application does not import              | Accepted, amended by 0039                  |
 | [0028](0028-runtime-server-errors.md)                                  | Server error protection belongs to the runtime                         | Accepted                                   |
 | [0029](0029-runtime-middleware-chain.md)                               | Middleware composition and entry helpers belong to the runtime         | Accepted                                   |
 | [0030](0030-packaged-environment-schemas.md)                           | The runtime package supplies optional environment validators           | Accepted                                   |
@@ -43,6 +43,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0036](0036-no-server-mode.md)                                         | Client-only applications run with no server                            | Accepted                                   |
 | [0037](0037-icons-vite-plugin-package.md)                              | Icons come from a Vite plugin package of this monorepo                 | Accepted                                   |
 | [0038](0038-release-lockfile-workflow.md)                              | A workflow writes the workspace versions in the release lockfile       | Accepted                                   |
+| [0039](0039-tsrs-type-checker.md)                                      | tsrs checks the types instead of tsc                                   | Accepted                                   |
 
 ## Adding a record
 

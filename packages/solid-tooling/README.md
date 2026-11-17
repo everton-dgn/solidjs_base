@@ -451,7 +451,7 @@ over the result.
 The preset also defines the `vp run` tasks of the boilerplate layout:
 `i18n-generate`, `icons-generate`, `lint-css`, `dead-code-project`,
 `lint-project`, `check-project`, `typecheck-node` and `test-tooling`. The
-`knip`, `tsc`, `playwright`, `lefthook` and `commitlint` tasks run the binaries
+`knip`, `tsrs`, `playwright`, `lefthook` and `commitlint` tasks run the binaries
 of the package, including with an isolated installation. See
 [all options and extension points](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md).
 
@@ -822,7 +822,7 @@ The package exports 26 entries, counted from `exports` in its `package.json`:
 | `./publication/read-llms-index` | Compiled reader of the llms index, for artifact checks in Node                   |
 | `./package.json`                | The package manifest                                                             |
 
-Your editor and `tsc` know the test globals, the jest-dom matchers, the Solid
+Your editor and `tsrs` know the test globals, the jest-dom matchers, the Solid
 plugin and routing modules, every `virtual:solid-app/*` module and the `icon:`
 imports with no local `.d.ts`: `tsconfig.app.json` loads `./app-env`, which
 references `./virtual-modules` and `./icon-modules`. An app with its own

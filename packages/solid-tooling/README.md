@@ -51,7 +51,7 @@ production, such as security headers, server errors and SEO, come from
 
 The lint and format presets are the cheapest way in: two keys in the Vite+
 config you already have, and no other Solid Base package. The package declares
-`vite-plus` 1.6.0 as an exact peer and Node `>=26.13.1` in `engines.node`.
+`vite-plus` 1.7.0 as an exact peer and Node `>=26.13.1` in `engines.node`.
 
 ```bash
 vp add -D @evertondgn/solid-tooling
@@ -198,7 +198,7 @@ Build audits check that these tools stay out of the app bundles.
   always uses the `vercel` preset. A client-only build (`ssr: false`) writes a
   static `dist/` with no server
   ([applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)).
-- You cannot pin exact versions. `vite-plus` 1.6.0 is an exact peer of this
+- You cannot pin exact versions. `vite-plus` 1.7.0 is an exact peer of this
   package, its plugins are pinned, and SolidJS 2 is a release candidate.
 - You run Node older than 26.13.1, the `engines.node` floor of the package.
 - Install size matters more than fewer declarations. The tooling installs the

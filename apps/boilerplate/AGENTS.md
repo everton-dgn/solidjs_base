@@ -59,12 +59,12 @@ release. Add a tool name to select part of the graph. For example, run
   them, including the real-browser history cases. Keep `LocalizedLink`,
   messages and `src/i18n/localeTagOverrides/` in this copy.
 
-## Sizing the derived applications
+## Sizing for the applications that use the packages
 
-- This repository is a boilerplate for applications of any size. The demo
-  pages, data and traffic do not represent the size of the applications that
-  will be built with it. Never use the current size of the demo as a reason to
-  discard scale requirements.
+- This app is the test bench of the packages, not a template. The packages
+  serve applications of any size, and the demo pages, data and traffic of this
+  app do not represent them. Never use the current size of the demo as a reason
+  to discard scale requirements.
 - When choosing a solution, examine the growth of the data volume, of the
   concurrency and of the number of locales. Identify the cost per request and
   per build, memory, storage and the limits of the runtime environment. State
@@ -77,8 +77,8 @@ release. Add a tool name to select part of the graph. For example, run
 - Prefer paths that work with the default configuration and allow growing
   without rewriting the public contract. If a given scale requires pagination,
   processing outside the request or shared persistence, implement the contract
-  the scope needs and document the responsibility of the derived application.
-  Do not treat a per-process cache as shared persistence.
+  the scope needs and document the responsibility of the application that
+  uses the packages. Do not treat a per-process cache as shared persistence.
 - Size the validation by the risks and the real boundaries, failures and
   concurrency included. Use deterministic scenarios for correctness and
   isolated measurements for cost; measure a pilot before raising the load. The

@@ -11,9 +11,10 @@ opening the tag around the text. Use `children` when the content has an icon or
 other markup. With both, `label` wins. The prop becomes the visible text and the
 accessible name of the button; for a button with an icon only, use `aria-label`.
 
-The `label` prop is a decision of the project and is part of the kit offered to
-the derived applications. Do not remove it for duplicating `children` or for
-having no production consumer in the demo.
+The `label` prop is a decision of the project. This app is the test bench of the
+packages, not a UI kit, and no package publishes its components; still, do not
+remove the prop for duplicating `children` or for having no production consumer
+in the demo.
 
 ## Fields, dialogs and notifications
 

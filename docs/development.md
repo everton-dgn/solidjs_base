@@ -55,6 +55,30 @@ names the version it applies to, and
 `bun.lock` does not resolve that version, so upgrading a patched package either
 moves its patch or removes it.
 
+Update Vite+ with `vp migrate` at the root. It aligns `vite-plus`, the `vite`
+alias and `vitest` in the catalog. The rest goes by hand:
+
+- the `tsrs` entry of the catalog, set to the `dependencies.tsrs` of the new
+  `vite-plus`: `vp migrate` does not touch it, and the tarball scenarios fail
+  when it diverges ([ADR 0039](ADRs/0039-tsrs-type-checker.md));
+- the exact `vite-plus` peers of the tooling and of the icons plugin;
+- `vite-plus` and the `vite` alias of the four fixtures, outside the workspace.
+
+Then review the rest of its diff. In the update to Vite+ 1.7.0, `vp migrate`
+also proposed three changes that the workspace did not take, because the build,
+the tests, the tarball scenarios and the validation of the copy passed without
+them:
+
+- `deps.resolveDepSubpath: true` in the `pack` blocks of the tooling and of the
+  icons plugin, which keeps the subpath resolution of the tsdown versions before
+  0.23, while the packages are built and tested with the current default;
+- a `.gitignore` with `.vitest/` in the tooling and in the runtime; no run of
+  that update wrote the folder;
+- `vite` and `vitest` in the `devDependencies` of the tooling, and `vitest` in
+  those of the copy, which already declares `vite`.
+
+A later version can need one of them: take it when a check fails without it.
+
 The type check of the icons tarball test is the only one in the workspace that
 reads the declaration files of Solid with `skipLibCheck` off. Its temporary
 application links the `@solidjs` folder of the workspace, so it reads the

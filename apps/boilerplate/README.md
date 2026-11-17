@@ -275,10 +275,10 @@ executed these suites:
 Two suites stay out of CI: the production suite and `PublicationLoad`.
 `playwright test --list` counts 155 cases in 12 files for the production build,
 next to the 164 in 26 files of the `e2e` build that CI runs: 319 cases in 15
-areas. Those counts were enumerated on 2026-11-17 over `4d2c326`,
-without running the cases. The production suite covers the CSP of the production
-entry, the static Markdown files, the build output and the indexes of the real
-route tree. Run it locally with `vp run test:e2e:production`.
+areas. Those counts were enumerated on 2026-11-17 over `4d2c326`, without
+running the cases. The production suite covers the CSP of the production entry,
+the static Markdown files, the build output and the indexes of the real route
+tree. Run it locally with `vp run test:e2e:production`.
 
 `PublicationLoad`, 6 cases in 1 file, stays outside the 319 and outside CI.
 `TEST_PUBLICATION_LOAD=true vp run test:e2e` runs it alone against two servers

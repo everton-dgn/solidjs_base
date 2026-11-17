@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/everton-dgn/solidjs_base/compare/solid-runtime@0.8.0...solid-runtime@0.9.0) (2026-11-17)
+
+
+### Miscellaneous Chores
+
+* **solid-runtime:** Synchronize solid packages versions
+
 ## [0.8.0](https://github.com/everton-dgn/solidjs_base/compare/solid-runtime@0.7.0...solid-runtime@0.8.0) (2026-11-16)
 
 

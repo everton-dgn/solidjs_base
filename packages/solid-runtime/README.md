@@ -40,7 +40,7 @@ and backend adapters.
 [Sitemaps](#sitemaps-with-bounded-work) ·
 [Environment](#environment-values-checked-at-startup) ·
 [Fonts](#fonts-with-matching-preloads) ·
-[Entry points](#import-only-what-you-use) ·
+[Entry points](#import-only-what-you-use) · [Update](#update-the-package) ·
 [How it is tested](#how-it-is-tested) · [Known limits](#known-limits) ·
 [Reference](#reference)
 
@@ -195,20 +195,8 @@ when a build or test tool such as `vite`, `vite-plus`, `vitest` or `rolldown`
 reaches the `dependencies`, `peerDependencies` or `optionalDependencies` of the
 published manifest. It does not follow the dependencies of a dependency.
 
-**How do I update?** Update it together with the tooling, in one command:
-
-```bash
-vp update -L @evertondgn/solid-tooling @evertondgn/solid-runtime
-```
-
-`-L` is needed while the packages are `0.x`. Then align `solid-js`,
-`@solidjs/web` and the Solid overrides with the exact `@solidjs/web` peer of the
-runtime, as
-[Update the packages](https://github.com/everton-dgn/solidjs_base/blob/main/README.md#update-the-packages)
-shows, and read the
-[changelog](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/CHANGELOG.md).
-Do not raise `solid-js` with `-L`: the newest release candidate can be newer
-than the one the packages were tested with.
+**How do I update?** Together with the tooling, in one command, as
+[Update the package](#update-the-package) shows.
 
 **How do I leave?** There is no eject command. Each feature is a separate
 import, so you can replace one at a time with your own code.
@@ -659,6 +647,23 @@ In the second column, `locale` stands for `virtual:solid-app/locale`, and so on.
 In the third, routes is `virtual:file-routes`, from `filesystem-routing`, and
 server functions is `virtual:solid-server-function-handler`, from
 `@solidjs/vite-plugin`.
+
+## Update the package
+
+Update the runtime together with the tooling, in one command:
+
+```bash
+vp update -L @evertondgn/solid-tooling @evertondgn/solid-runtime
+```
+
+`-L` is needed while the packages are `0.x`. Then align `solid-js`,
+`@solidjs/web` and the Solid overrides with the exact `@solidjs/web` peer of the
+runtime, as
+[Update the packages](https://github.com/everton-dgn/solidjs_base/blob/main/README.md#update-the-packages)
+shows, and read the
+[changelog](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/CHANGELOG.md).
+Do not raise `solid-js` with `-L`: the newest release candidate can be newer
+than the one the packages were tested with.
 
 ## How it is tested
 

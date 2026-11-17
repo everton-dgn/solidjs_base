@@ -49,19 +49,19 @@ $ vp check
   x typescript(TS2724): '"icon:hugeicons"' has no exported member named 'Githb'. Did you mean 'Github'?
 ```
 
-This ran on 2026-11-17 with the 0.8.0 packages from npm, in a copy of a fixture
-app of this repository. That app is built on `@evertondgn/solid-tooling`, whose
-`defineSolidApp` loads this plugin and whose lint preset turns on the type check
-of `vp check`. The file path is shortened. The build error comes from this
-plugin, and the type error from the declaration file it writes for the names of
-each collection.
+We ran this on 2026-11-17 with the 0.8.0 packages from npm, in a copy of a
+fixture app of this repository (file path shortened). That app is built on
+`@evertondgn/solid-tooling`: `defineSolidApp` loads this plugin, and the lint
+preset turns on the type check in `vp check`. The build error comes from this
+plugin. The type error comes from the declaration file the plugin writes with
+the names of each collection.
 
 The same day, an app with only this plugin and the config of [Set up](#set-up)
-gave the same build error. Its `vp check` passed with the typo until
-`lint.options` had `typeAware: true` and `typeCheck: true`, and then it gave the
-same TS2724. The CI also runs `tsc` on the same file in a new app that installs
-the packed plugin ([How it is tested](#how-it-is-tested)). An import by path, as
-in `icon:hugeicons/githb`, has no such check: it passes the type check and stops
+failed the build with the same error. Its `vp check` let the typo through until
+`lint.options` set `typeAware: true` and `typeCheck: true`; then it reported the
+same TS2724. CI also runs `tsc` on the same file in a new app that installs the
+packed plugin ([How it is tested](#how-it-is-tested)). An import by path, as in
+`icon:hugeicons/githb`, has no such check: it passes the type check and stops
 only at the build ([limits](#requirements-and-limits)).
 
 ## Only the icons you import reach the bundle
@@ -136,9 +136,10 @@ the Solid plugin of the app, so a server build and the dev server render it with
 renders two icons in a server build and hydrates them in a browser without
 adding, replacing or changing a node.
 
-**What happens when a collection updates?** An import draws what the new version
-draws under that name, without an error, and the dev server process reads the
-new version only after a stop and a start ([limits](#requirements-and-limits)).
+**What happens when a collection updates?** An import renders whatever the new
+version ships under that name, with no error when the drawing changed. A running
+dev server keeps the old version until you stop and start it
+([limits](#requirements-and-limits)).
 
 **What does it add to the install?** The 0.8.0 tarball has 8 files and 96,451
 bytes unpacked, as
@@ -254,23 +255,27 @@ In the CI run of the 0.8.0 release pull request, the
 [Packages job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680118978)
 ran 194 tests of the plugin in 39 suites and the 8 tests of its packed tarball,
 and all of them passed (`ℹ tests 194` and `ℹ tests 8` in the job log). The
-package has 25 test files, the tarball's included, counted in the source tree.
-The files in `src/__tests__/` build apps or start a dev server with Vite+ and
-the Solid plugin in temporary folders, and the browser tests run in the Chrome
-of the CI runner. Three files cover security, hostile names and hydration:
+package has 25 test files, counted in the source tree, including the tarball
+test. The files in `src/__tests__/` build apps or start a dev server with Vite+
+and the Solid plugin in temporary folders, and the browser tests run in the CI
+runner's Chrome. Three files cover security, hostile names and hydration:
 
 - [`security.test.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/src/__tests__/security.test.ts):
-  SVG markup that would run code renders as text on the server and in the
-  browser, without running. Markup that runs code stops the build with the icon
-  and the problem. An import reads no file outside the folder of its collection,
-  the dev server refuses a path traversal, and a symbolic link out of the folder
-  is not followed. These checks leave external references and a CSS `url()` in
-  place, so they do not make an untrusted SVG safe.
+  text and attribute values that would run code if they reached the page as
+  written, such as a `{...}` expression in a text or `"><img onerror="...">` in
+  an attribute value, render as text on the server and in the browser, without
+  running. A `<script>` element, an element that is not SVG, markup that would
+  leave the SVG, a file that is not well-formed and a DOCTYPE entity stop the
+  build with the icon and the problem. An import reads no file outside the
+  folder of its collection, the dev server refuses a path traversal, and a
+  symbolic link out of the folder is not followed. These checks leave external
+  references and a CSS `url()` in place, so they do not make an untrusted SVG
+  safe.
 - [`hostileNames.test.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/src/writeIconTypes/__tests__/hostileNames.test.ts):
   file and icon names that would close a comment, open a string or a template,
   break a line or reach the prototype keep the declaration file valid
   TypeScript. An installed collection whose name an import cannot spell is left
-  out, two names that differ only in case export neither, and the imports of
+  out, neither of two names that differ only in case is exported, and imports of
   names that are keywords are rewritten.
 - [`hydration.test.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/src/__tests__/hydration.test.ts):
   a server build renders two icons, one with a text of several lines and one
@@ -290,8 +295,8 @@ describes.
 
 ## Requirements and limits
 
-- Node 26.13.1 or later, the `>=26.13.1` that `engines.node` in the package's
-  `package.json` names.
+- Node 26.13.1 or later: `engines.node` in the package's `package.json` is
+  `>=26.13.1`.
 - Vite+ (`vite-plus`) and `@solidjs/web` in the versions of the peer
   dependencies, and `@solidjs/vite-plugin` in the plugins of the application.
   The plugin reads your imports with the parser that `vite-plus` exports.
@@ -631,7 +636,7 @@ your formatter and linter, as you would any generated declaration.
 Set `typesFile` to write it somewhere else, relative to the Vite root, or to
 `false` to write none.
 
-#### Write or check the file in the CI
+#### Write or check the file in CI
 
 The editor needs the file before the first dev server runs, and a type check in
 the CI runs without one. Two functions write and check the same file, with the

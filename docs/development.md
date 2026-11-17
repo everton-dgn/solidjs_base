@@ -141,6 +141,10 @@ after changing a package. Once `dist/` exists, `check:ci`, `typecheck:node` and
 In a Vite+ monorepo, `vp check` always uses the `lint` and `fmt` blocks of the
 root `vite.config.ts`. The root config ignores `apps/`, and the application runs
 `vp fmt --check` and `vp lint`, which read the config of the folder they run in.
+To format a file of the application, its Markdown included, run `vp fmt <file>`
+from `apps/boilerplate`. From the root, that command exits with "Expected at
+least one target file", and `vp fmt --check` with no file leaves the application
+out, so a format problem there shows up only in the Boilerplate app job of CI.
 
 ### What changed from the original
 

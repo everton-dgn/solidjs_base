@@ -128,14 +128,14 @@ jobs:
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           args: >-
-            --remap '^https://github\.com/everton-dgn/solidjs_base/(blob|tree)/main/
-            file://${{ github.workspace }}/'
-            --remap '^https://raw\.githubusercontent\.com/everton-dgn/solidjs_base/main/
-            file://${{ github.workspace }}/'
-            --offline --include-fragments --no-progress README.md AGENTS.md
-            CONTRIBUTING.md SECURITY.md 'docs/**/*.md' 'packages/*/README.md'
-            '.github/**/*.md' 'apps/boilerplate/README.md'
-            'apps/boilerplate/docs/**/*.md'
+            --remap
+            '^https://github\.com/everton-dgn/solidjs_base/(blob|tree)/main/
+            file://${{ github.workspace }}/' --remap
+            '^https://raw\.githubusercontent\.com/everton-dgn/solidjs_base/main/
+            file://${{ github.workspace }}/' --offline --include-fragments
+            --no-progress README.md AGENTS.md CONTRIBUTING.md SECURITY.md
+            'docs/**/*.md' 'packages/*/README.md' '.github/**/*.md'
+            'apps/boilerplate/README.md' 'apps/boilerplate/docs/**/*.md'
           fail: true
 
   packages:

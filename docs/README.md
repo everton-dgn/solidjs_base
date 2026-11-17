@@ -44,7 +44,7 @@ The [tooling guides](tooling/README.md) have a map of their own.
 | I want to                                                        | Read                                                                                                                        |
 | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Contribute a change                                              | [Contributing guide](../CONTRIBUTING.md)                                                                                    |
-| Set up the workspace, run the tests and understand the CI        | [Development](development.md)                                                                                               |
+| Set up the workspace, run the tests and understand CI            | [Development](development.md)                                                                                               |
 | Change the boilerplate app                                       | [The boilerplate app](development.md#the-boilerplate-app)                                                                   |
 | Know what goes in each package and what stays in the application | [Architecture](architecture.md)                                                                                             |
 | Merge a pull request                                             | [Merging a pull request](releasing.md#merging-a-pull-request)                                                               |

@@ -27,7 +27,7 @@ Solid Base turns that base into three npm packages. A
 config, lint, tests and runtime features from them, so a change that breaks a
 real app fails CI before it ships. That copy keeps 129 lines of configuration
 where the starter had 945. A fix now lands once, in a package version, and each
-app takes it by [updating both packages together](#update-the-packages).
+app takes it by [updating the packages together](#update-the-packages).
 
 <details>
 <summary>How the lines were counted</summary>
@@ -105,7 +105,7 @@ $ vp check
 ```
 
 The
-[icons plugin](packages/vite-plugin-solid-icons/README.md#build-errors-that-name-the-icon)
+[icons plugin README](packages/vite-plugin-solid-icons/README.md#build-errors-that-name-the-icon)
 lists the other errors that name the icon.
 
 ### Every page response gets security headers and a new nonce
@@ -137,8 +137,8 @@ A second request got another nonce (policy shortened):
 content-security-policy: ... script-src 'nonce-+tZMQ1+pW8MBtfSu71btKA==' 'strict-dynamic'
 ```
 
-The [runtime](packages/solid-runtime/README.md#security-headers) explains each
-header and how the nonce reaches the scripts of the page.
+The [runtime README](packages/solid-runtime/README.md#security-headers) explains
+each header and how the nonce reaches the scripts of the page.
 
 ## Who it fits
 
@@ -176,7 +176,8 @@ header and how the nonce reaches the scripts of the page.
 ## Quick start
 
 Install the global [Vite+](https://viteplus.dev/guide/) CLI (`vp`) first, then
-pick one of three paths.
+pick one of the three paths below. [Update the packages](#update-the-packages)
+is for an app that already uses them.
 
 ### See the complete app
 
@@ -208,8 +209,8 @@ The three fixtures are minimal apps that CI installs from the packed tarballs:
 [translated SSR](fixtures/apps/ssr-i18n). Copy the folder of the closest one to
 a new project outside this repository. They are test harnesses, so a copy takes
 three to five changes. These are the changes we made on 2026-11-17 to copies of
-client-only and SSR with the 0.8.0 packages. The translated SSR fixture was not
-tried this way yet.
+client-only and SSR with the 0.8.0 packages. The translated SSR fixture has not
+been tried this way yet.
 
 1. Add a `build` script: `"scripts": { "build": "vp build" }`. The SSR copy also
    takes `"start": "vp preview"`.
@@ -317,8 +318,9 @@ vp update -L @evertondgn/solid-tooling @evertondgn/solid-runtime
 ```
 
 `-L` is needed while the packages are `0.x`: a range such as `^0.7.0` stops
-below 0.8.0. In a copy of the client-only fixture pinned to 0.7.0, the command
-rewrote both ranges to `^0.8.0` and installed the icons plugin 0.8.0 with them:
+below 0.8.0. On 2026-11-17, with vp 1.6.0 and Bun 1.4.4 on macOS, in a copy of
+the client-only fixture pinned to 0.7.0, the command rewrote both ranges to
+`^0.8.0` and installed the icons plugin 0.8.0 with them:
 
 ```text
 ^ @evertondgn/solid-tooling 0.7.0 -> 0.8.0
@@ -363,7 +365,6 @@ were tested with.
 | [Fonts](#fonts-with-matching-css-and-preloads) and [env](#environment-values-checked-at-startup) | Font CSS with matching preloads, and validated environment values                                                                                                      | `solid-tooling` and `solid-runtime`                  |
 | [Quality rules](#quality-rules-you-inherit)                                                      | Layer rules, backend restrictions, CSS tokens, dead code detection, commit format and a secret scan                                                                    | `solid-tooling`                                      |
 | [Tests](#tests-already-wired)                                                                    | Node, DOM and browser Vitest projects, and a Playwright config that checks the server log                                                                              | `solid-tooling`                                      |
-| [A running app](#what-the-boilerplate-app-shows)                                                 | Five pages, three locales, SEO routes, outdated-page recovery and 319 Playwright cases to learn from                                                                   | [`apps/boilerplate`](apps/boilerplate/README.md)     |
 
 ## Only what you use
 
@@ -446,7 +447,7 @@ production its response keeps the configured headers. The
 real response. `createSecurityHeaders` checks the directive names and the shape
 of each item when the app starts. It does not check the values, so
 `'unsafe-inline'` in `style-src` passes. A failure after the Response body was
-returned stays outside the containment. The runtime explains
+returned stays outside the containment. The runtime README explains
 [the policy and the chain](packages/solid-runtime/README.md#every-response-behind-one-security-policy).
 
 ## Server errors stay on the server
@@ -570,15 +571,13 @@ that differ. See
 
 Dynamic sitemap and Markdown responses go through a publication controller, with
 admission slots, deadlines and byte budgets. By default, it admits 4
-publications at once with 2 per kind and 4 source reads with 2 per source, and
-reserves 16 MiB of output across 4 live outputs. A sitemap response gets 10
-seconds and 4 MiB. Markdown gets 2 MiB of HTML in, 2 MiB of Markdown out and 15
-seconds. `llms.txt` and `llms-full.txt` fail the build above 1 MiB and 10 MiB
-instead of being truncated. These quotas belong to one server process, with no
-global quota across processes. A source that ignores cancellation keeps its slot
-until it settles, and a process cache is not persistent storage. The
+publications at once, and a sitemap response gets 10 seconds and 4 MiB; the
 [runtime's table](packages/solid-runtime/README.md#sitemaps-with-bounded-work)
-lists every default.
+lists every default. `llms.txt` and `llms-full.txt` fail the build above 1 MiB
+and 10 MiB instead of being truncated. These quotas belong to one server
+process, with no global quota across processes. A source that ignores
+cancellation keeps its slot until it settles, and a process cache is not
+persistent storage.
 
 ## Environment values checked at startup
 
@@ -767,13 +766,11 @@ declaration.
 
 ## Before and after
 
-The copy's [`vite.config.ts`](apps/boilerplate/vite.config.ts) has 52 lines,
-where the
+The boilerplate app's [`vite.config.ts`](apps/boilerplate/vite.config.ts) has 52
+lines, where the
 [starter's](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/vite.config.ts)
-had 427. Across the five configuration areas (Vite, Playwright, Knip, TypeScript
-and Stylelint), the copy keeps 129 lines where the starter had 945, about 86%
-fewer, counted with `wc -l`, blank lines and comments included. The shared code
-lives in the tooling package, and its README has
+had 427. Across the five configuration areas, the app keeps 129 lines where the
+starter had 945, about 86% fewer. The tooling README has
 [the table by area](packages/solid-tooling/README.md#the-configuration-you-stop-maintaining).
 
 The fixture apps show the config of a smaller app. The `vite.config.ts` of
@@ -790,10 +787,9 @@ different features, so their lengths are not a size comparison.
   <img src="docs/assets/readme/fix-once-light.webp" alt="Copied tooling and runtime drift between applications A, B and C. With Solid Base, the apps keep thin configs and consume solid-tooling and solid-runtime. Shared fixes arrive through vp update; application-specific code stays with each app." width="800" />
 </picture>
 
-The three packages hold the code that every app on them shares. A fix lands
-once, in a package version, and each app takes it when it
-[updates the packages](#update-the-packages) and aligns the versions they were
-tested with.
+An app takes a fix when it [updates the packages](#update-the-packages) and
+aligns the versions they were tested with. The table shows what a package
+version can fix and what stays in your app.
 
 | The packages maintain                                                           | Your application owns                                      |
 | ------------------------------------------------------------------------------- | ---------------------------------------------------------- |
@@ -859,17 +855,11 @@ package follows the [new-package procedure](docs/releasing.md#new-package).
 
 ## Packages and roadmap
 
-| Package                                                                             | What it provides                                                                                          |
-| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| [`@evertondgn/solid-tooling`](packages/solid-tooling/README.md)                     | Config, build tools, catalog generation, fonts, lint, tests and hooks, and it loads the icons plugin      |
-| [`@evertondgn/solid-runtime`](packages/solid-runtime/README.md)                     | Locale and theme behavior, middleware, server errors, env validators, SEO, sitemap, Markdown and llms.txt |
-| [`@evertondgn/vite-plugin-solid-icons`](packages/vite-plugin-solid-icons/README.md) | The icons plugin that the tooling loads, also usable on its own in a Vite+ application                    |
-
-The three packages share one version number: a release of one raises the others
-to the same version. The runtime is published as TypeScript source, split into
-64 entry points, so your app imports only the features it uses: `seo` has 15,
-`middleware` and `server` 12 each, `theme` 11, `i18n` 10, `routing` 2, and `env`
-and `fonts` 1 each
+The [three packages](#three-packages-and-the-app-that-tests-them) share one
+version number: a release of one raises the others to the same version. The
+runtime is published as TypeScript source, split into 64 entry points, so your
+app imports only the features it uses: `seo` has 15, `middleware` and `server`
+12 each, `theme` 11, `i18n` 10, `routing` 2, and `env` and `fonts` 1 each
 ([the list](packages/solid-runtime/README.md#import-only-what-you-use)).
 
 ### Roadmap

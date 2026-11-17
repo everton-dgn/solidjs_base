@@ -17,14 +17,13 @@ An application built on the packages takes code from four places.
 | `@evertondgn/vite-plugin-solid-icons` | A Vite+ plugin that turns Iconify collections and folders of SVG files into Solid components imported by name, with generated types                                                                                                                                                                                                                                                                                   | Compiled ES modules with type declarations                                |
 | The application                       | Pages, UI components, message catalogs, the theme palette, `App`, `Document`, the `entry-*` pair, the middleware file, header values, public error messages, page metadata, content sources, version pins and patches                                                                                                                                                                                                 | Its own repository                                                        |
 
-The packages ship in different forms because each one runs in a different place.
-The tooling runs in Node when `vp` loads `vite.config.ts`, and Node refuses
-TypeScript inside `node_modules`
-([ADR 0002](ADRs/0002-compiled-tooling-package.md)). The runtime runs inside the
-application build and is compiled with the application's Solid version
-([ADR 0003](ADRs/0003-runtime-package-as-source.md)). The icons plugin is loaded
-by `vite.config.ts` in Node, as the tooling is, and ships compiled the same way
-([ADR 0037](ADRs/0037-icons-vite-plugin-package.md)).
+The packages ship in two forms because they run in two places. The tooling runs
+in Node when `vp` loads `vite.config.ts`, and Node refuses TypeScript inside
+`node_modules` ([ADR 0002](ADRs/0002-compiled-tooling-package.md)). The runtime
+runs inside the application build and is compiled with the application's Solid
+version ([ADR 0003](ADRs/0003-runtime-package-as-source.md)). The icons plugin
+is loaded by `vite.config.ts` in Node, as the tooling is, and ships compiled the
+same way ([ADR 0037](ADRs/0037-icons-vite-plugin-package.md)).
 
 The three packages share one version number. `release-please-config.json` puts
 them in one `linked-versions` group, so a release of one raises the others to
@@ -163,8 +162,8 @@ lists them by feature.
   writes a response uses that instance
   ([ADR 0019](ADRs/0019-runtime-security-headers-options.md)).
 - `sideEffects` is an empty list. A module with an intended effect, such as a
-  client entry, has to enter it; `false` would let the build drop that module
-  without an error.
+  client entry, has to be listed there; `false` would let the build drop that
+  module without an error.
 
 The package is built to run under the `defineSolidApp` preset, which serves its
 virtual modules and sets up the `solid` condition, as

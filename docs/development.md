@@ -9,12 +9,21 @@ Install the global [Vite+](https://viteplus.dev/guide/) CLI (`vp`). The root
 ```bash
 vp install
 vp run build
+vp exec -F @evertondgn/vite-plugin-solid-icons playwright install chromium
 ```
 
 `vp run build` compiles `@evertondgn/solid-tooling` and
 `@evertondgn/vite-plugin-solid-icons`, which the tooling loads, to `dist/`. The
 application in `apps/boilerplate` imports the packages from there, so build them
 before running anything in the application.
+
+The last command downloads the Chromium of the Playwright version the packages
+pin. `vp run validate` needs it: the browser tests of the runtime and of the
+icons plugin and the [client-only scenario](#client-only-build-in-a-browser)
+open it, while the CI uses the Chrome of the runner. The filter runs the
+Playwright of the icons plugin, because the root has no `playwright` binary:
+there, `vp exec playwright` fails, or runs a global installation that can
+download another Chromium build.
 
 ## Workspace
 

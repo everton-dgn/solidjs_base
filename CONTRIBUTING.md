@@ -27,11 +27,19 @@ git clone https://github.com/everton-dgn/solidjs_base.git
 cd solidjs_base
 vp install
 vp run build
+vp exec -F @evertondgn/vite-plugin-solid-icons playwright install chromium
 ```
 
 `vp run build` compiles the packages to `dist/`. The application in
 `apps/boilerplate` loads the presets from there, so run it again after you
 change a package.
+
+The last command downloads the Chromium of the Playwright version the packages
+pin. `vp run validate` needs it: the browser tests of the runtime and of the
+icons plugin and the client-only scenario open it, while the CI uses the Chrome
+of the runner. The filter runs the Playwright of the icons plugin, because the
+root has no `playwright` binary: there, `vp exec playwright` fails, or runs a
+global installation that can download another Chromium build.
 
 When changing tooling dependencies, update the package manifest and lockfile. Do
 not add a dependency back to an application just to make the workspace pass: the

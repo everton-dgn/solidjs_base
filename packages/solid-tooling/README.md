@@ -7,67 +7,59 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 RC and Vite+. Build your Solid app. Stop rebuilding its foundation. Shared tooling and runtime beneath the SolidJS mark: languages, theme, server protection, SEO, assets and development tools. Install solid-tooling for development and solid-runtime for application features." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 RC and Vite+. Build your Solid app. Stop rebuilding its foundation. Optional languages and theme. Shared server protection, SEO, assets and development tools. Two install commands: vp add -D @evertondgn/solid-tooling and vp add @evertondgn/solid-runtime. Cards: languages from your locale list, light, dark or system theme, CSP and server errors, metadata and sitemap, icons and fonts, config, tests and hooks." width="800" />
 </picture>
 
-**The lint rules, tests, Git hooks and whole Vite+ config of your SolidJS 2
-apps, as one dev dependency.**
+**The whole `vite.config.ts`, lint rules, test projects and Git hooks of a
+SolidJS 2 app, as one dev dependency.**
 
-Applications copied from a starter carry its tooling with them, and every fix to
-the base has to be repeated by hand in each copy. This package holds that
-tooling: an Oxlint preset with rules for your project layout, Oxfmt, TypeScript
-configs, three Vitest projects, Playwright, Knip, a Stylelint policy,
-commitlint, Git hooks and `defineSolidApp`, which returns the whole
-`vite.config.ts` of a [Vite+](https://viteplus.dev/guide/) application. The fix
-arrives when you update the dependency.
+Solid Base started as a starter app,
+[boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs). Each
+new SolidJS app copied its Vite config, lint rules, test setup and Git hooks.
+Then the copies drifted, and a fix to that tooling had to be made again by hand
+in every app. This package holds the tooling instead: an Oxlint preset with
+rules for the boilerplate layout, Oxfmt, TypeScript configs, three Vitest
+projects, Playwright, Knip, a Stylelint policy, commitlint, Git hooks and
+`defineSolidApp`, which returns the whole `vite.config.ts` of a
+[Vite+](https://viteplus.dev/guide/) app. A fix lands once, in a package
+version, and each app takes it when it updates. The
+[copy of the starter](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/README.md)
+in this repository keeps
+[129 lines of configuration where the starter had 945](#the-configuration-you-stop-maintaining).
 
-> SolidJS 2 is still a release candidate. The package is tested with
-> `2.0.0-rc.23`, and its Solid, Nitro, router and icon plugins are pinned to the
-> versions tested together. A new version of one of them needs a package version
-> tested with it.
+> SolidJS 2 is still a release candidate, and this package is `0.x`: below
+> 1.0.0, a breaking change raises the minor version. The package is tested with
+> `2.0.0-rc.23`, and its Solid, Nitro, router and icons plugins are pinned to
+> the versions tested together. A new version of one of them needs a package
+> version tested with it.
+
+The package loads
+[`@evertondgn/vite-plugin-solid-icons`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/README.md)
+for icons, so your app does not declare it. The features an app runs in
+production, such as security headers, server errors and SEO, come from
+[`@evertondgn/solid-runtime`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/README.md).
+
+[Start](#start-with-lint-and-format) ·
+[Less config](#the-configuration-you-stop-maintaining) ·
+[Who it fits](#who-it-fits) · [Questions](#questions-before-you-adopt-it) ·
+[Whole preset](#use-the-whole-preset) · [Update](#update-the-package) ·
+[Tests](#how-it-is-tested) · [Limits](#limits) · [Reference](#reference) ·
+[Entry points](#entry-points)
+
+## Start with lint and format
+
+The lint and format presets are the cheapest way in: two keys in the Vite+
+config you already have, and no other Solid Base package. The package declares
+`vite-plus` 1.6.0 as an exact peer and Node `>=26.13.1` in `engines.node`.
 
 ```bash
 vp add -D @evertondgn/solid-tooling
 ```
 
-Built for applications that follow the
-[boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs)
-layout. Start with lint and formatting in your existing Vite+ config, and adopt
-the full application config when you are ready.
-
-| Package                                                                                                                                   | Role                                                                                   |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| [`@evertondgn/solid-tooling`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/README.md)                     | Config, lint rules, tests, Git hooks, catalog generation, icons and fonts              |
-| [`@evertondgn/solid-runtime`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/README.md)                     | Security headers, server errors, locale, theme, SEO, sitemaps, Markdown, env and fonts |
-| [`@evertondgn/vite-plugin-solid-icons`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/README.md) | The icons plugin that this package loads                                               |
-
-[Quick start](#quick-start) ·
-[Less config](#the-configuration-you-stop-maintaining) ·
-[Fewer dependencies](#fewer-tool-versions-in-each-manifest) ·
-[App config](#your-application-config-in-one-call) ·
-[Lint](#lint-rules-that-know-your-project) ·
-[Tests](#tests-in-the-environment-each-one-needs) ·
-[E2E](#end-to-end-tests-against-a-real-build) ·
-[Knip](#unused-files-exports-and-dependencies) ·
-[CSS](#a-css-policy-built-on-tokens) · [Hooks](#commit-messages-and-git-hooks) ·
-[Entry points](#entry-points)
-
-## Requirements
-
-Run the application on Node 26 or a later line, from the version that
-`engines.node` in the package's `package.json` names.
-
-Install the exact Vite+ version listed in the package's `peerDependencies`. The
-package supplies its build, test, type-check and hook tools. Applications keep
-their own direct imports and the Vite+ overrides; see the
-[dependency requirements](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#requirements).
-An application with translations also installs the required version of
-`@inlang/paraglide-js` and its message-format plugin.
-
-## Quick start
-
-Add `fmt` and `lint` to your existing Vite+ config. The example shows only those
-settings; keep your plugins and other options:
+Add the two keys. This is the whole `vite.config.ts` of the
+[lint consumer fixture](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/consumer/vite.config.ts),
+which declares only this package, Vite+ and its Vite alias. In your app, keep
+your plugins and other options next to them:
 
 ```ts
 import { fmt } from '@evertondgn/solid-tooling/fmt'
@@ -77,26 +69,19 @@ import { defineConfig } from 'vite-plus'
 export default defineConfig({ fmt, lint })
 ```
 
-In `tsconfig.json`:
+Type-aware rules read your `tsconfig.json`. Extend
+`@evertondgn/solid-tooling/tsconfig.base.json` for the compiler options of the
+preset, as the fixture's
+[`tsconfig.json`](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/consumer/tsconfig.json)
+does. These presets need no folder layout, but a few rules follow the
+boilerplate's conventions: `project/test-filename` expects each test in
+`__tests__` next to its module, and you turn it off in `lint.overrides` for
+other test folders
+([known limits](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits)).
 
-```json
-{
-  "extends": "@evertondgn/solid-tooling/tsconfig.base.json",
-  "compilerOptions": {
-    "paths": { "@/*": ["./src/*"] }
-  },
-  "include": ["src", "vite.config.ts"]
-}
-```
+### See a rule of the package fire
 
-Check your code and format your files:
-
-```bash
-vp check
-vp fmt
-```
-
-To see a rule of the package fire, create `src/helpers/export-list.ts`:
+Create `src/helpers/export-list.ts`:
 
 ```ts
 const example = 1
@@ -104,11 +89,17 @@ const example = 1
 export { example }
 ```
 
-Run `vp lint`. The preset reports the export list:
+Run `vp lint`:
 
 ```text
+$ vp lint
 src/helpers/export-list.ts:3:1: error project(no-export-list): Export on the declaration itself (export function, export const, export type) instead of using export { ... }. An export list is only allowed in a re-export with from.
 ```
+
+We recorded this output on 2026-11-17 with the 0.8.0 package from npm, in a copy
+of the client-only fixture. Replace the list with `export const example = 1` and
+the rule passes. `vp check` runs the format check, lint and type check together,
+and `vp fmt` writes the formatting.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/first-result-dark.webp" />
@@ -116,40 +107,40 @@ src/helpers/export-list.ts:3:1: error project(no-export-list): Export on the dec
   <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/first-result-light.webp" alt="The example ends with export { example } at line 3. vp lint reports project(no-export-list) at line 3, column 1 and asks for an export on the declaration. The corrected export const example = 1 passes that rule." width="800" />
 </picture>
 
-Replace the list with `export const example = 1` and the rule passes. `fmt` sets
-80 columns, single quotes, no semicolons, no trailing commas, wrapped Markdown
-prose and sorted imports. See the
-[formatter](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/typescript-and-format.md#formatter)
-and the
-[TypeScript configs](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/typescript-and-format.md#typescript-base).
+The same rule is checked before each release. The
+[tarball test](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/src/tarball/__tests__/tarball.test.ts)
+packs this package, installs it in a copy of the consumer fixture outside the
+workspace and runs lint. It fails unless lint reports `project(no-export-list)`
+in `src/helpers/export-list.ts`, an error from each of the other two plugins of
+the package, one from the Solid plugin and one type error, with nothing in the
+control files. Its 3 tests passed in the CI run of the 0.8.0 release pull
+request
+([job 133680118978](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680118978)).
 
 ## The configuration you stop maintaining
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/before-after-light.webp" alt="About 87 percent fewer lines across five configuration areas, from 945 to 125: Vite 427 to 48, Playwright 173 to 17, Knip 129 to 40, TypeScript 45 to 9, and Stylelint 171 to an 11-line script. Each bar shows the fraction retained in the app." width="800" />
-</picture>
-
-The original starter kept 945 lines of configuration in five areas. The same
-application on this package keeps 125, about 87% fewer. The shared
-implementation lives in the package, where one fix serves every application.
+The original starter kept 945 lines of configuration in five areas. The
+boilerplate copy in this repository keeps 129 on this package, about 86% fewer.
+The shared code lives in the package, where one fix serves every app.
 
 | Configuration                                                                                                   | Original lines | With the package |
 | --------------------------------------------------------------------------------------------------------------- | -------------: | ---------------: |
-| [Vite](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/vite.config.ts)                   |            427 |               48 |
+| [Vite](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/vite.config.ts)                   |            427 |               52 |
 | [Playwright](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/playwright.config.ts)       |            173 |               17 |
 | [Knip](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/tooling/knip.ts)                  |            129 |               40 |
 | [TypeScript](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/tsconfig.json)              |             45 |                9 |
 | [Stylelint caller](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/tooling/css/check.ts) |            171 |               11 |
+| Total                                                                                                           |            945 |              129 |
 
-Counts include blank lines and comments. The baseline is the
+The counts come from `wc -l`, with blank lines and comments. The baseline is the
 [original starter at 6145493](https://github.com/everton-dgn/boilerplate_solidjs/tree/61454937472d0faa1b4fab985fd7c5da968aa9a6),
 whose Playwright and Stylelint configs lived in `tooling/playwright.ts` and
 `tooling/css/stylelint.config.mjs`. Compare its
 [`vite.config.ts`](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/vite.config.ts)
-with the application's. The Stylelint replacement is an application script that
-calls the packaged policy.
+with the copy's. The Stylelint replacement is an app script that calls the
+packaged policy. The `vite.config.ts` of the
+[fixture apps](https://github.com/everton-dgn/solidjs_base/tree/main/fixtures/apps)
+has 20 lines in client-only, 30 in SSR and 11 in translated SSR.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/fix-once-dark.webp" />
@@ -157,13 +148,7 @@ calls the packaged policy.
   <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/fix-once-light.webp" alt="Copied tooling and runtime drift between applications A, B and C. With Solid Base, the apps keep thin configs and consume solid-tooling and solid-runtime. Shared fixes arrive through vp update; application-specific code stays with each app." width="800" />
 </picture>
 
-## Fewer tool versions in each manifest
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/libraries-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/libraries-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/libraries-light.webp" alt="Direct manifest declarations before and after: boilerplate 28 to 14, client-only 16 to 5, SSR plain 17 to 5, SSR i18n 19 to 7, lint consumer 6 to 3." width="800" />
-</picture>
+### Fewer tool versions in each manifest
 
 The package installs the build, test, type-check and hook tools it calls, at the
 versions it tests, and runs them from its own installation, including with Bun's
@@ -178,32 +163,271 @@ and its Vite alias.
 | [SSR i18n](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/ssr-i18n/package.json)       |                         19 |   7 |    12 |
 | [Lint consumer](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/consumer/package.json)       |                          6 |   3 |     3 |
 
-Counts combine `dependencies` and `devDependencies`, without overrides or
-transitive packages. The fixture counts leave out the two package tarballs that
-the installed test harness adds. The client-only fixture now declares an Iconify
-collection, which the count before did not have.
+The counts combine `dependencies` and `devDependencies` of each `package.json`,
+without overrides or transitive packages. The counts before come from the
+measurement of
+[ADR 0027](https://github.com/everton-dgn/solidjs_base/blob/main/docs/ADRs/0027-packaged-tool-dependencies.md).
+The fixture counts leave out the two package tarballs that the installed test
+harness adds; with them, client-only, SSR plain and SSR i18n declare 8, 7 and 9.
+The client-only fixture now declares an Iconify collection, which the count
+before did not have.
 
 Fewer declarations do not mean a smaller install. The tooling also installs the
-tools of features you may not use: in the
-[measurement of that decision](https://github.com/everton-dgn/solidjs_base/blob/main/docs/ADRs/0027-packaged-tool-dependencies.md),
-the `node_modules` of a fresh client-only application grew by 8.41% with the
-hoisted linker and 8.69% with the isolated one. Build audits check that these
-tools stay out of the application bundles.
+tools of features you may not use. In the measurement of ADR 0027, made on
+2026-11-14 against the base at commit `8b5fd2f` with one paired install per
+linker, the `node_modules` of a fresh client-only app grew from 426.55 MiB to
+462.41 MiB with Bun's hoisted linker (8.41%) and by 8.69% with the isolated one.
+Build audits check that these tools stay out of the app bundles.
 
-## Your application config in one call
+## Who it fits
 
-With the application dependencies installed, `defineSolidApp()` supplies the
-plugins, build settings, tasks, lint, format and three Vitest projects:
+- You start SolidJS 2 apps on Vite+ and want the config, lint, tests and hooks
+  of the boilerplate_solidjs layout without copying them.
+- You maintain several Solid apps and want to fix their tooling once.
+- You want only the [lint and format presets](#start-with-lint-and-format) in an
+  existing Vite+ config.
+
+## Who it does not fit yet
+
+- Your app needs the full preset with another folder layout. The test presets,
+  Knip and the CSS policy expect the boilerplate layout
+  ([known limits](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits)).
+- Your server build must target a host other than Vercel's output format. Nitro
+  always uses the `vercel` preset. A client-only build (`ssr: false`) writes a
+  static `dist/` with no server
+  ([applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)).
+- You cannot pin exact versions. `vite-plus` 1.6.0 is an exact peer of this
+  package, its plugins are pinned, and SolidJS 2 is a release candidate.
+- You run Node older than 26.13.1, the `engines.node` floor of the package.
+- Install size matters more than fewer declarations. The tooling installs the
+  tools of features you do not use: 8.41% more `node_modules` with Bun's hoisted
+  linker, in the
+  [measurement of ADR 0027](#fewer-tool-versions-in-each-manifest).
+
+## Questions before you adopt it
+
+### I do not deploy to Vercel
+
+The SSR build writes `.vercel/output`, because the preset always uses Nitro's
+`vercel` preset. A client-only build (`ssr: false`) writes a static `dist/` with
+no server, and the
+[no-server guide](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)
+covers static hosts, folders and app shells. Another SSR host is not supported
+by the preset today.
+
+### My project has another layout
+
+Start with the [`lint` and `fmt` presets](#start-with-lint-and-format) in your
+Vite+ config; they need no layout. The full `defineSolidApp` preset, the test
+presets, Knip and the CSS policy expect the boilerplate layout.
+
+### What happens when a new Solid release candidate ships?
+
+The package pins the Solid, Nitro, router and icons plugins to versions tested
+together. Wait for a package version tested with the new release, then
+[update the packages together](#update-the-package). Do not raise Solid alone.
+
+### How heavy is the install?
+
+Heavier than the manifest suggests. In the
+[measurement of ADR 0027](#fewer-tool-versions-in-each-manifest), the
+`node_modules` of a fresh client-only app grew by 8.41% with Bun's hoisted
+linker and by 8.69% with the isolated one, because the package installs the
+tools of features you may not use. The installed scenarios check that none of
+these tools reach the bundles of the fixture apps.
+
+### How do I leave?
+
+There is no eject command. The lint and format presets are two keys of your
+config. For the rest, the starter's original
+[427-line `vite.config.ts`](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/vite.config.ts)
+is a reference for what `defineSolidApp` replaces.
+
+### Can I use only part of it?
+
+Yes for the lint and format presets. The
+[icons plugin](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/README.md)
+also works without this package, in a Vite+ app with SolidJS 2. The test
+presets, Knip, the CSS policy and `defineSolidApp` expect the boilerplate
+layout.
+
+## Use the whole preset
+
+`defineSolidApp` returns the whole `vite.config.ts` of an app with the
+boilerplate layout. The app keeps its own direct imports, such as `solid-js`,
+`@solidjs/web` and `@solidjs/router`, plus Vite+ and its overrides. An app with
+translations also installs `@inlang/paraglide-js` at the version in this
+package's manifest, and its message-format plugin. See the
+[dependency requirements](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#requirements).
+
+The shortest working setup is a copy of the closest
+[fixture app](https://github.com/everton-dgn/solidjs_base/tree/main/fixtures/apps).
+This is the
+[client-only fixture's `vite.config.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/client-only/vite.config.ts)
+without its `fonts` block:
 
 ```ts
 import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
 
-import { SECURITY_HEADERS } from './src/middleware/securityHeaders/constants.ts'
+export default defineSolidApp({
+  root: import.meta.dirname,
+  icons: { scenario: './src/assets/icons' },
+  ssr: false
+})
+```
+
+On 2026-11-17, with the 0.8.0 packages from npm, a copy with this config built
+to `dist/index.html` and one JavaScript file, with no Nitro or server bundle. A
+copy of a fixture takes three to five changes, including the removal of `fonts`.
+[Start a new app from a fixture](https://github.com/everton-dgn/solidjs_base/blob/main/README.md#start-a-new-app-from-a-fixture)
+lists them with the build output. For SSR, the
+[SSR fixture's `vite.config.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/ssr-plain/vite.config.ts)
+adds the header policy, the server error setup, the middleware and SEO, as
+[the reference](#your-application-config-in-one-call) shows.
+
+## Update the package
+
+The packages share one version number, and the icons plugin comes with the
+tooling at the same version. Raise the tooling and the runtime in one command:
+
+```bash
+vp update -L @evertondgn/solid-tooling @evertondgn/solid-runtime
+```
+
+`-L` is needed while the packages are `0.x`: a range such as `^0.8.0` stops
+below 0.9.0. Then align the versions the packages were tested with: `vite-plus`
+to the exact peer of this package, `@inlang/paraglide-js` to its optional exact
+peer if your app has translations, and `solid-js`, `@solidjs/web` and the Solid
+overrides to the peer of the runtime.
+[Update the packages](https://github.com/everton-dgn/solidjs_base/blob/main/README.md#update-the-packages)
+lists each step. Do not raise `solid-js` with `-L`: the newest release candidate
+can be newer than the one the packages were tested with. Read the
+[changelog](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/CHANGELOG.md)
+before you update.
+
+## How it is tested
+
+The counts below come from the CI run of the 0.8.0 release pull request
+([run 43975952604](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604)).
+Its Packages job ran `vp run validate`, as the publish job does
+([job 133680118978](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680118978)).
+
+- Package tests: 368 `node --test` tests ran and passed in CI. They come from 43
+  test files under `src/`, a count taken from the source tree, and run the
+  presets against fixtures in temporary folders.
+- Tarball test: 3 tests passed in CI. They pack the package and install it in a
+  copy of the
+  [lint consumer fixture](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/consumer/package.json)
+  outside the workspace. They check that lint applies the plugins, that the
+  shared hooks and commitlint config accept a valid message and refuse an
+  invalid one, and that the fixture declares the workspace versions.
+- Installed scenarios: the packed tooling, runtime and icons plugin are
+  installed in the
+  [three fixture apps](https://github.com/everton-dgn/solidjs_base/tree/main/fixtures/apps)
+  with Bun's `hoisted` and `isolated` linkers, then built and tested. All 14
+  application cases passed in CI: 3 client-only, 9 SSR and 2 translated SSR.
+  Their test file ran 22 tests: the 14 cases, the version alignment check, the
+  Node version check of the packages and 6 checks of the no-server guide and its
+  local server. A case fails when a disabled feature leaves its modules in the
+  bundle, or when a packaged development tool reaches an emitted module.
+  Negative probes, run by hand with `SCENARIO_MUTATION`, inject a regression
+  into a temporary copy and must make their case fail
+  ([ADR 0021](https://github.com/everton-dgn/solidjs_base/blob/main/docs/ADRs/0021-installed-application-scenarios.md)).
+- The boilerplate app runs on this preset. In the same CI run, its 185 Vitest
+  tests passed
+  ([job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119099))
+  and 164 end-to-end cases passed against its E2E build
+  ([job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119082));
+  the
+  [app README](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/README.md)
+  breaks them down.
+- The runtime has its own suite: 1,047 Vitest tests in 104 files passed in the
+  same Packages job; the
+  [runtime README](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/README.md)
+  describes them.
+- The runtime package is linted with this preset, loaded from the tooling
+  sources by its
+  [`vite.config.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/vite.config.ts).
+
+CI picks jobs by changed paths, and a package change runs the packages and the
+complete boilerplate app
+([CI coverage](https://github.com/everton-dgn/solidjs_base/blob/main/docs/development.md#ci)).
+
+The release workflow publishes to npm through trusted publishing, with no stored
+npm token. Each version it publishes carries npm provenance (an SLSA v1
+provenance statement) that names the commit and the workflow run that built it.
+The first version of each package was published by hand and has none
+([security policy](https://github.com/everton-dgn/solidjs_base/blob/main/SECURITY.md)).
+To check the packages you installed, run `npm audit signatures` in your app.
+
+## Limits
+
+- The test presets, Knip, the CSS policy and `./vite` expect the boilerplate
+  layout: tests named by suffix, page tests in `src/tests/pages/`, pages in
+  `src/routes/`, the theme in `src/theme/`, and the CSS and Knip scripts in
+  `tooling/`.
+- Nitro always uses the `vercel` preset. The plugin packages are pinned, so a
+  new version of Solid, Nitro, the router or the icons plugin needs a package
+  version tested with it.
+- The package installs the tools of every feature, including the ones your app
+  does not use ([measured cost](#fewer-tool-versions-in-each-manifest)).
+- The translation catalogs are limited to 8 MiB in total, by
+  `CATALOGS_MAX_BYTES` in the package, and there is no incremental generation.
+- An app with no server needs the hash history of the router under `file://`,
+  and translations by URL prefix need a server
+  ([applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)).
+- Object spread in `env.ts` can override the keys of the preset; keeping their
+  validators is the app's job.
+- Some rule messages point to `docs/architecture.md` and `AGENTS.md`, files of
+  an app created from boilerplate_solidjs.
+
+The
+[known limits](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits)
+list the rest.
+
+## Reference
+
+Each section below covers one part of the preset and links to its guide.
+
+### Your application config in one call
+
+With the app dependencies installed, `defineSolidApp()` supplies the plugins,
+build settings, tasks, lint, format and three Vitest projects. This is the whole
+`vite.config.ts` of the
+[SSR fixture](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/ssr-plain/vite.config.ts).
+Its font file is created by the test harness; in your app, point `fonts` at a
+real file:
+
+```ts
+import { SECURITY_HEADERS } from '@evertondgn/solid-runtime/middleware/security-headers/constants'
+import { defineSolidApp } from '@evertondgn/solid-tooling/vite'
 
 export default defineSolidApp({
   root: import.meta.dirname,
-  middleware: './src/middleware/index.ts',
-  securityHeaders: SECURITY_HEADERS
+  icons: { scenario: './src/assets/icons' },
+  fonts: [
+    {
+      family: 'Scenario Font',
+      files: [
+        {
+          path: 'src/assets/scenario.woff2',
+          weight: 400,
+          unicodeRange: 'U+0041',
+          preload: true
+        }
+      ]
+    }
+  ],
+  seo: {
+    sitemap: true,
+    robots: {
+      sitemapPaths: ['/sitemap.xml'],
+      groups: [{ userAgents: ['ExampleBot'], disallow: ['/archive'] }]
+    }
+  },
+  serverSetup: './src/infra/server/configureServerErrors/index.ts',
+  securityHeaders: SECURITY_HEADERS,
+  middleware: './src/middleware.ts'
 })
 ```
 
@@ -220,7 +444,7 @@ tested versions.
   <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/only-what-you-use-light.webp" alt="A client-only vite.config.ts with defineSolidApp, root and ssr: false. No translation project, theme imports, env.ts, fonts option or SEO are needed, and the build has client output only, with no Nitro or server bundle." width="800" />
 </picture>
 
-Each feature turns on only when the application uses it:
+Each feature turns on only when the app uses it:
 
 | Feature             | Selection                                                                                                                                                  |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -237,13 +461,11 @@ over the result.
 The preset also defines the `vp run` tasks of the boilerplate layout:
 `i18n-generate`, `icons-generate`, `lint-css`, `dead-code-project`,
 `lint-project`, `check-project`, `typecheck-node` and `test-tooling`. The
-`knip`, `tsc`, `playwright`, `lefthook` and `commitlint` tasks run the
-package-owned binaries, including with an isolated installation. See
-[all options and extension points](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md)
-and the
-[known limits](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md#known-limits).
+`knip`, `tsc`, `playwright`, `lefthook` and `commitlint` tasks run the binaries
+of the package, including with an isolated installation. See
+[all options and extension points](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md).
 
-## Lint rules that know your project
+### Lint rules that know your project
 
 The preset turns on the Oxlint plugins `import`, `jsx-a11y`, `node`, `oxc`,
 `promise`, `typescript`, `unicorn` and `vitest`, the `solid` and `vite-plus`
@@ -251,6 +473,12 @@ plugins and three plugins of this package, plus `paraglide` when it resolves.
 Type-aware rules and type checking are on. Warnings fail the run, and an unused
 disable directive is an error. Every rule is listed by name, so an Oxlint update
 does not add rules on its own.
+
+`fmt` sets 80 columns, single quotes, no semicolons, no trailing commas, wrapped
+Markdown prose and sorted imports. See the
+[formatter](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/typescript-and-format.md#formatter)
+and the
+[TypeScript configs](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/typescript-and-format.md#typescript-base).
 
 The rules of this package catch what a generic preset cannot see:
 
@@ -283,7 +511,7 @@ The backend rules keep outgoing requests in one module. Inside `src/`, `fetch`,
 error configurator can only be imported in its setup file. See
 [all rules and customization](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/lint.md).
 
-## Tests in the environment each one needs
+### Tests in the environment each one needs
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/vitest-projects-dark.webp" />
@@ -292,9 +520,13 @@ error configurator can only be imported in its setup file. See
 </picture>
 
 The file name picks the environment, so a server test, a component test and a
-real-browser test live in the same repository with no extra config. In the
-boilerplate, `vp test run` passed 185 tests in 32 files: 68 `node` tests in 12
-files, 87 `dom` in 13 and 30 `browser` in 7.
+real-browser test live in the same repository with no extra config. The
+boilerplate app runs all three projects; its 185 tests passed in the CI run of
+the 0.8.0 release pull request
+([job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119099)),
+and
+[its README](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/README.md)
+counts them by project.
 
 | Project   | Files                            | Environment                                      |
 | --------- | -------------------------------- | ------------------------------------------------ |
@@ -306,11 +538,11 @@ The preset sets coverage thresholds of 80% for lines, functions and statements
 and 75% for branches, the reporters and the CI workers. It resets the Paraglide
 locale before each browser test and resolves packages that ship TypeScript
 source, such as the runtime, under the `solid` condition. `defineSolidApp`
-already calls `solidTest`; an application with its own Vite config imports it
-from `./vitest`. See
+already calls `solidTest`; an app with its own Vite config imports it from
+`./vitest`. See
 [Vitest and Playwright](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/testing.md).
 
-## End-to-end tests against a real build
+### End-to-end tests against a real build
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/e2e-coverage-dark.webp" />
@@ -318,29 +550,30 @@ from `./vitest`. See
   <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/e2e-coverage-light.webp" alt="The Playwright inventory of apps/boilerplate: 319 E2E cases across 15 areas, 164 in the E2E build and 155 in the production build. AgentReadiness 77, I18n 40, Home 36, SeoIndexes 29, Markdown 27, BackendError 25, BuildOutput 22, OutsideError 18, Hydration 18, UiKit 8, OutdatedPage 7, StructuredData 6, FragmentCss 2, LateRedirect 2 and NotFound 2. Enumerated with playwright test --list, without running them." width="800" />
 </picture>
 
-`definePlaywrightConfig` reads `BASE_URL_TEST` from `.env.test`, builds the
-application, starts the preview and runs the suite against it: `e2e` mode for
-the fixture routes, or the production build with `TEST_PRODUCTION_ROUTES=true`.
-`TEST_PREBUILT=true` reuses an existing production build. Serial suites run in
-their own projects: `markdown` with one worker, `publicationLoad` alone against
-two servers, and `serverLogs` last, as the teardown of the others.
+`definePlaywrightConfig` from `./playwright` reads `BASE_URL_TEST` from
+`.env.test`, builds the app, starts the preview and runs the suite against it:
+`e2e` mode for the fixture routes, or the production build with
+`TEST_PRODUCTION_ROUTES=true`. `TEST_PREBUILT=true` reuses an existing
+production build. Serial suites run in their own projects: `markdown` with one
+worker, `publicationLoad` alone against two servers, and `serverLogs` last, as
+the teardown of the others. `root` is its only required option; the
+boilerplate's
+[`playwright.config.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/playwright.config.ts)
+adds a fixture server and its serial suites.
 
 When the suite ends, `./playwright-teardown` checks the server log for private
 markers, so a test run also fails when a server error leaks its details into the
 log.
 
-In the boilerplate, `vp run playwright test --list` counts 319 cases in 15 page
-areas, 164 in 26 files for the E2E build and 155 in 12 files for the production
-build; the figure above breaks them down by area.
+The figure counts the cases of the boilerplate app with `playwright test --list`
+and does not run them. In the CI run of the 0.8.0 release pull request, the 164
+cases of the E2E build ran and passed
+([job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119082)).
+The 155 production cases run only locally, as the
+[app README](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/README.md)
+explains.
 
-```ts
-// playwright.config.ts
-import { definePlaywrightConfig } from '@evertondgn/solid-tooling/playwright'
-
-export default definePlaywrightConfig({ root: import.meta.dirname })
-```
-
-## Unused files, exports and dependencies
+### Unused files, exports and dependencies
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/dead-code-dark.webp" />
@@ -356,21 +589,12 @@ that file-system routing finds. It turns off Knip's own routing plugin, which
 takes every file of `src/routes/` as an entry, so an unused helper next to a
 route is reported. Configuration hints are errors, and
 `vp run dead-code-project` runs Knip twice, the second time with `--strict`. The
-`pre-push` hook below runs it before the code leaves your machine.
+`pre-push` hook below runs it before the code leaves your machine. The
+boilerplate's
+[`tooling/knip.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/tooling/knip.ts)
+passes its `root` and the entries the routing does not find.
 
-```ts
-// tooling/knip.ts
-import path from 'node:path'
-
-import { defineKnipConfig } from '@evertondgn/solid-tooling/knip'
-
-export default defineKnipConfig({
-  root: path.resolve(import.meta.dirname, '..'),
-  ignoreDependencies: ['server-only']
-})
-```
-
-## A CSS policy built on tokens
+### A CSS policy built on tokens
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/css-tokens-dark.webp" />
@@ -388,12 +612,29 @@ The policy also requires snake_case classes and at most two levels of nesting,
 refuses unknown properties, values, units and selectors, checks that each
 `var()` resolves to a token file, and accepts an exception only with a
 `stylelint-disable` comment that gives the reason. `checkCss(root)` from
-`./stylelint` runs it and checks CSS file names; the boilerplate's caller has 11
-lines. The boilerplate's token files define 36 color, 11 font, 7 shadow, 6 grid,
-5 radius and 3 z-index custom properties. See
+`./stylelint` runs it and checks CSS file names. This is the whole caller of the
+boilerplate,
+[`tooling/css/check.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/tooling/css/check.ts):
+
+```ts
+import path from 'node:path'
+import process from 'node:process'
+
+import { checkCss } from '@evertondgn/solid-tooling/stylelint'
+
+const { report, hasErrors } = await checkCss(
+  path.resolve(import.meta.dirname, '../..')
+)
+
+process.stdout.write(report)
+if (hasErrors) process.exitCode = 1
+```
+
+The boilerplate's token files define 36 color, 11 font, 7 shadow, 6 grid, 5
+radius and 3 z-index custom properties. See
 [Knip and CSS](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/knip-and-css.md).
 
-## Commit messages and Git hooks
+### Commit messages and Git hooks
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/git-hooks-dark.webp" />
@@ -411,20 +652,26 @@ The shared hooks check a change before it reaches the remote:
 
 `./commitlint` applies the Conventional Commits rules with the header limited to
 100 characters and a blank line before the footer. Lefthook and the commitlint
-CLI come with the package, so the application declares neither. Extend the
-shared file from `.lefthook.yml`, and override a shared job by name in
-`lefthook-local.yml`, committed for everyone or kept on one machine:
+CLI come with the package, so the app declares neither. The
+[lint consumer fixture](https://github.com/everton-dgn/solidjs_base/tree/main/fixtures/consumer)
+extends the shared file from its `.lefthook.yml`:
 
 ```yaml
-# .lefthook.yml
 extends:
   - node_modules/@evertondgn/solid-tooling/lefthook.yml
 ```
 
-See
+Its `.commitlintrc` points to the packaged config:
+
+```json
+{ "extends": ["@evertondgn/solid-tooling/commitlint"] }
+```
+
+Override a shared job by name in `lefthook-local.yml`, committed for everyone or
+kept on one machine. See
 [Commit messages and Git hooks](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/commits-and-hooks.md).
 
-## Translations, icons and fonts as data
+### Translations, icons and fonts as data
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/i18n-dark.webp" />
@@ -439,20 +686,14 @@ invalid message fails with the file and the key. The locales come from your
 settings, with no fixed set. Without the file, no generator or i18n plugin
 enters the build.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/icons-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/icons-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/icons-light.webp" alt="solid.svg in src/assets/images becomes a Solid component. The icons option maps the my-images collection to that folder, the component imports ~icons/my-images/solid, and the preset adds aria-hidden=true; the icon-only control supplies its accessible label." width="800" />
-</picture>
-
 Icons from Iconify collections, or your own SVG folders mapped with the `icons`
 option, become Solid components through
 [`@evertondgn/vite-plugin-solid-icons`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/README.md),
 with `aria-hidden` on every icon. Import an icon as `icon:<collection>/<name>`,
 or by its name from `icon:<collection>`. The `icons-generate` task writes the
 typed names to `src/icon-collections.d.ts` before the check and the lint; keep
-that generated file out of Git. The application does not declare the plugin. An
-application that imports `~icons/` follows
+that generated file out of Git. The app does not declare the plugin. An app that
+imports `~icons/` follows
 [the migration from `~icons/`](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md#migrating-from-icons).
 
 <picture>
@@ -462,14 +703,14 @@ application that imports `~icons/` follows
 </picture>
 
 Pass a data-only `fonts` array to `defineSolidApp` to generate external
-`@font-face` CSS and matching preloads for application-owned files. SSR uses
+`@font-face` CSS and matching preloads for files the app owns. SSR uses
 `FontLinks` from `@evertondgn/solid-runtime/fonts/font-links` in the Document
-head; client-only applications receive both links in `index.html`, also with a
-relative `./` base for `file://` and app shells. Leave `fonts` out and nothing
-is generated. Typography tokens stay in the app. See the
+head; client-only apps receive both links in `index.html`, also with a relative
+`./` base for `file://` and app shells. Leave `fonts` out and nothing is
+generated. Typography tokens stay in the app. See the
 [font API and migration examples](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/fonts.md).
 
-## SEO configured as data
+### SEO configured as data
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/seo-dark.webp" />
@@ -487,29 +728,29 @@ leave `seo` out and no origin is read.
 
 For SSR,
 `seo: { robots: { groups, sitemapPaths, cacheControl }, sitemap: true }`
-configures the runtime robots route using serializable data. `originEnv`
-defaults to `VITE_SITE_URL`. The preset validates it when SEO is enabled or the
-runtime origin entry is imported.
+configures the runtime robots route with serializable data. `originEnv` defaults
+to `VITE_SITE_URL`. The preset validates it when SEO is enabled or the runtime
+origin entry is imported.
 
-Pass `site` directly to the runtime `createSeo` primitive. A meta/JSON-LD-only
-application can omit `seo`, provide its own `site.url` and omit robots entirely.
-Client-only applications omit both the option and runtime SEO imports. There are
-no `siteModule`, `sourcesModule` or `editorialModule` path options.
+Pass `site` directly to the runtime `createSeo` primitive. An app with only meta
+tags and JSON-LD can omit `seo`, provide its own `site.url` and omit robots
+entirely. Client-only apps omit both the option and runtime SEO imports. There
+are no `siteModule`, `sourcesModule` or `editorialModule` path options.
 `seo.sitemap` controls only the static `/sitemap.xml` and `/sitemaps/pages/**`
-header rules. Install the runtime factory in explicit application route files,
-and list the root in `robots.sitemapPaths` to advertise it. To remove sitemap,
-remove its routes and server binding, omit its array metadata, omit
-`sitemapPaths`, and omit or disable `seo.sitemap`. Robots can stay enabled. The
-preset does not discover executable source registries or install routes. See the
+header rules. Install the runtime factory in explicit app route files, and list
+the root in `robots.sitemapPaths` to advertise it. To remove the sitemap, remove
+its routes and server binding, omit its array metadata, omit `sitemapPaths`, and
+omit or disable `seo.sitemap`. Robots can stay enabled. The preset does not
+discover executable source registries or install routes. See the
 [runtime SEO API](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/README.md#optional-seo)
 for factories, the one-line route and examples with and without translations.
 
-### Publication artifacts
+#### Publication artifacts
 
-Crawlers get files, not renders. The build writes what you turn on: a `.md` copy
-of each opted-in page with `markdown: { static: true }`, `llms.txt` with `llms`,
+The build writes files for crawlers, for what you turn on: a `.md` copy of each
+opted-in page with `markdown: { static: true }`, `llms.txt` with `llms`,
 `llms-full.txt` with `llmsFull`, and the sitemap XML with
-`sitemap: { static: true }`. A bad artifact fails the build instead of reaching
+`sitemap: { static: true }`. A bad artifact fails the build before it reaches
 production: a `.md` file that is empty, not UTF-8 or still an HTML document, an
 index or sitemap file over its byte budget, an `llms.txt` whose link to
 `llms-full.txt` disagrees with the files built, a static page that resolves to
@@ -520,7 +761,7 @@ checks in Node. See
 [ADR 0034](https://github.com/everton-dgn/solidjs_base/blob/main/docs/ADRs/0034-runtime-markdown-publication.md)
 for the feature options, defaults, disabled-resource behavior and scale.
 
-## Optional environment validation
+### Optional environment validation
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/env-dark.webp" />
@@ -529,8 +770,9 @@ for the feature options, defaults, disabled-resource behavior and scale.
 </picture>
 
 A missing or malformed value fails where it enters: when the server code that
-imports it loads, or at build time for a public value. An SSR application can
-add `env.ts` with the preset's optional validators:
+imports it loads, or at build time for a public value. An SSR app can add
+`env.ts` with the preset's optional validators. This is the boilerplate's
+[`env.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/env.ts):
 
 ```ts
 import { serverEnv } from '@evertondgn/solid-runtime/env'
@@ -543,11 +785,11 @@ export default env
 `HOST`, `PORT` and `BASE_URL_TEST` are optional; `PORT` produces a number.
 Declare the runtime package in `dependencies` and keep the tooling in
 `devDependencies`: Knip treats `env.ts` as production code. Extend `server` and
-`client` with the application's own Standard Schema validators. The runtime
-supplies Valibot for its fragment; declare a validator library in the
-application only when its own code imports it. The optional SEO configuration
-validates `VITE_SITE_URL` separately. An application without `env.ts` keeps
-working, including client-only applications with no site URL.
+`client` with the app's own Standard Schema validators. The runtime supplies
+Valibot for its fragment; declare a validator library in the app only when its
+own code imports it. The optional SEO configuration validates `VITE_SITE_URL`
+separately. An app without `env.ts` keeps working, including client-only apps
+with no site URL.
 
 The Solid plugin generates inferred types and rejects server env imports in the
 client graph. The server virtual module bundles the fragment and validator; env
@@ -555,52 +797,16 @@ validation adds neither to the client. See the
 [environment guide](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md#optional-environment-validation)
 for extension examples, boot validation and type generation.
 
-## How it is verified
+### Entry points
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/verified-light.webp" alt="Current revision: 1,186 Vitest tests passed, 1,001 in the runtime and 185 in the boilerplate app; 319 E2E cases listed, 164 for the E2E build and 155 for the production build. Before each release the tarball is installed in a separate application and its exports and lint rules are checked. Release workflows publish with trusted publishing and signed npm provenance, with no stored npm token." width="800" />
-</picture>
-
-At this revision, 1,186 Vitest tests passed: 1,001 in 100 files of the runtime
-package and 185 in 32 files of the boilerplate app. `playwright test --list`
-counts 319 E2E cases in the app, 164 for the E2E build and 155 for the
-production build.
-
-- The package's own tests, `vp run test`, run with `node --test` against
-  fixtures in temporary folders: 302 `test` and `it` calls in 43 files, counted
-  in source.
-- The tarball test packs the package, installs it in a separate application
-  outside the workspace and checks that lint applies the plugins, that the
-  application extends the shared hooks and commitlint config, and that the
-  fixture declares the workspace versions.
-- The installed scenarios install the packed tooling, runtime and icons plugin
-  in the
-  [three fixture applications](https://github.com/everton-dgn/solidjs_base/tree/main/fixtures/apps)
-  with Bun's `hoisted` and `isolated` linkers and build them. The matrix
-  enumerates 14 application cases: 3 client-only, 9 SSR and 2 translated SSR.
-  They fail when a disabled feature leaves its modules in the bundle.
-- The runtime package is linted with this package's preset, loaded from its
-  sources.
-
-`vp run validate` at the root runs the build, checks, dead code, package tests,
-tarball tests and installed scenarios, as the publish job does. CI selects jobs
-by changed paths, and a package change runs the packages and the complete
-boilerplate app. The workflow publishes to npm through trusted publishing, with
-signed provenance and no stored npm token. See the
-[CI coverage](https://github.com/everton-dgn/solidjs_base/blob/main/docs/development.md#ci)
-and the
-[release process](https://github.com/everton-dgn/solidjs_base/blob/main/docs/releasing.md).
-
-## Entry points
+The package exports 26 entries, counted from `exports` in its `package.json`:
 
 | Entry                           | Content                                                                          |
 | ------------------------------- | -------------------------------------------------------------------------------- |
-| `./vite`                        | `defineSolidApp(options)`, the whole `vite.config.ts` of an application          |
+| `./vite`                        | `defineSolidApp(options)`, the whole `vite.config.ts` of an app                  |
 | `./lint`                        | `lint`: the lint preset, with the plugins below registered                       |
 | `./fmt`                         | `fmt`: the formatter config                                                      |
-| `./tsconfig.base.json`          | Compiler options, without application paths                                      |
+| `./tsconfig.base.json`          | Compiler options, without app paths                                              |
 | `./tsconfig.app.json`           | The base plus packaged type references and the boilerplate `include`             |
 | `./app-env`                     | Type references loaded by `tsconfig.app.json`                                    |
 | `./virtual-modules`             | Declarations of the `virtual:solid-app/*` modules, loaded by `tsconfig.app.json` |
@@ -617,34 +823,35 @@ and the
 | `./knip`                        | `defineKnipConfig(options)`, the Knip config                                     |
 | `./stylelint`                   | `checkCss(root)` and `defineStylelintConfig(root)`, the CSS lint                 |
 | `./commitlint`                  | The commitlint config                                                            |
-| `./lefthook.yml`                | The Git hooks, extended from the application's `.lefthook.yml`                   |
+| `./lefthook.yml`                | The Git hooks, extended from the app's `.lefthook.yml`                           |
 | `./cli`                         | Command entry for packaged Knip, TypeScript, Playwright, Lefthook and commitlint |
-| `./i18n-generate`               | Compiled catalog generator executed by the preset's `i18n-generate` task         |
-| `./icons-generate`              | Compiled writer of the icon declarations, executed by the `icons-generate` task  |
+| `./i18n-generate`               | Compiled catalog generator run by the preset's `i18n-generate` task              |
+| `./icons-generate`              | Compiled writer of the icon declarations, run by the `icons-generate` task       |
 | `./publication/read-llms-index` | Compiled reader of the llms index, for artifact checks in Node                   |
 | `./package.json`                | The package manifest                                                             |
 
 Your editor and `tsc` know the test globals, the jest-dom matchers, the Solid
 plugin and routing modules, every `virtual:solid-app/*` module and the `icon:`
 imports with no local `.d.ts`: `tsconfig.app.json` loads `./app-env`, which
-references `./virtual-modules` and `./icon-modules`. An application with its own
+references `./virtual-modules` and `./icon-modules`. An app with its own
 TypeScript config adds `@evertondgn/solid-tooling/app-env` to `types`.
 
-Your application keeps its pages, components, translations, theme, `App`,
-`Document`, entries and middleware. The plugin entries exist because Oxlint
-loads plugins by specifier, from the application; the setup and teardown entries
-are loaded by the test presets. The
-[entry-point reference](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/README.md#entry-points)
-describes each one.
+Your app keeps its pages, components, translations, theme, `App`, `Document`,
+entries and middleware. The plugin entries exist because Oxlint loads plugins by
+specifier, from the app; the setup and teardown entries are loaded by the test
+presets.
 
 ## Guides
 
+- [Tooling reference](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/README.md)
 - [Lint rules and customization](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/lint.md)
 - [Application config, plugins and tasks](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/app-config.md)
 - [Vitest and Playwright](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/testing.md)
 - [Knip and CSS](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/knip-and-css.md)
 - [Commit messages and Git hooks](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/commits-and-hooks.md)
 - [TypeScript and formatting](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/typescript-and-format.md)
+- [Application fonts](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/fonts.md)
+- [Applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)
 - [Requirements, limits and versions](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/limits.md)
 
 ## Versions and license

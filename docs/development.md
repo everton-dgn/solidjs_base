@@ -120,6 +120,10 @@ runs Knip in the default and `--strict` modes; Knip reads the entries from the
 in Node, that every target of `exports` is in the tarball and that no
 `__tests__` folder is published.
 
+In `packages/solid-runtime/src`, an import from one top folder into another uses
+the `#solid-runtime/*` alias, and the imports from or into `@types/` and
+`tests/` keep a relative path.
+
 ## The boilerplate app
 
 `apps/boilerplate` is a copy of boilerplate_solidjs, taken at commit `6145493`.

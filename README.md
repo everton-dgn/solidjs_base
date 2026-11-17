@@ -316,23 +316,38 @@ the same version:
 vp update -L @evertondgn/solid-tooling @evertondgn/solid-runtime
 ```
 
-`-L` is needed while the packages are `0.x`: a range such as `^0.8.0` stops
-below 0.9.0. Then align the versions the packages were tested with. Each
-manifest declares them as exact peers:
+`-L` is needed while the packages are `0.x`: a range such as `^0.7.0` stops
+below 0.8.0. In a copy of the client-only fixture pinned to 0.7.0, the command
+rewrote both ranges to `^0.8.0` and installed the icons plugin 0.8.0 with them:
+
+```text
+^ @evertondgn/solid-tooling 0.7.0 -> 0.8.0
+^ @evertondgn/solid-runtime 0.7.0 -> 0.8.0
+```
+
+Then align the versions the packages were tested with. The runtime and the
+tooling declare them as exact peers:
 
 ```bash
 npm view @evertondgn/solid-runtime peerDependencies
 npm view @evertondgn/solid-tooling peerDependencies
 ```
 
-Set `solid-js`, `@solidjs/web` and the `@solidjs/signals` and
-`@solidjs/compiler` overrides to the runtime's `@solidjs/web` version, and
-`vite-plus` to the tooling's. Set `@inlang/paraglide-js` too if your app has
-translations; that peer is optional. The
-[release notes](https://github.com/everton-dgn/solidjs_base/releases) list the
-other breaking changes, such as a new Node version. Do not raise `solid-js` with
-`-L`: the newest release candidate can be newer than the one the packages were
-tested with.
+- Set `solid-js`, `@solidjs/web` and the `@solidjs/signals` and
+  `@solidjs/compiler` overrides to the runtime's `@solidjs/web` version.
+- Set `vite-plus` to the tooling's version.
+- Set `@inlang/paraglide-js` too if your app has translations; that peer is
+  optional.
+
+`@solidjs/router` and the `vite` and `vitest` overrides have no peer to read.
+The fixtures hold the whole set that CI installs with each version: compare your
+manifest with the closest fixture's `package.json` at the tag of the new
+version, such as
+[client-only at `solid-tooling@0.8.0`](https://github.com/everton-dgn/solidjs_base/blob/solid-tooling@0.8.0/fixtures/apps/client-only/package.json).
+The [release notes](https://github.com/everton-dgn/solidjs_base/releases) list
+the other breaking changes, such as a new Node version. Do not raise `solid-js`
+with `-L`: the newest release candidate can be newer than the one the packages
+were tested with.
 
 ## What you get
 

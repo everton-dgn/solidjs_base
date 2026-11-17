@@ -759,8 +759,8 @@ point listed in `package.json` appears in one of them.
 
 Each module has its own entry point, so an application bundles only the modules
 it imports. TypeScript entries use the `solid` condition. The env fragment, the
-header constants and the publication protocol use `types` and `default` for
-plain Node compatibility.
+header constants, the stored theme script and the publication protocol use
+`types` and `default` for plain Node compatibility.
 
 ### Middleware and security headers
 

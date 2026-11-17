@@ -107,7 +107,7 @@ client bundle, and the path of the shared icon once.
 - Your app shows SVG files that users upload. The checks of the plugin do not
   make an untrusted SVG safe, and such a file needs a sanitizer at runtime
   ([what the plugin does with your SVG files](#what-the-plugin-does-with-your-svg-files)).
-- You cannot pin exact versions. `vite-plus` 1.6.0 and `@solidjs/web`
+- You cannot pin exact versions. `vite-plus` 1.7.0 and `@solidjs/web`
   2.0.0-rc.23 are exact peers in the
   [`package.json`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/package.json),
   and SolidJS 2 is a release candidate.
@@ -242,10 +242,11 @@ vp update -L @evertondgn/vite-plugin-solid-icons
 `-L` is needed while the package is `0.x`: a range such as `^0.8.0` stops below
 0.9.0. Then set `vite-plus` and `@solidjs/web` to the exact versions in the
 `peerDependencies` of the new version, which
-`npm view @evertondgn/vite-plugin-solid-icons peerDependencies` prints, and
-align `solid-js` and the Solid overrides with `@solidjs/web` as the root README
-describes. Do not raise `solid-js` with `-L`: the newest release candidate can
-be newer than the one the plugin was tested with. The
+`npm view @evertondgn/vite-plugin-solid-icons peerDependencies` prints, with the
+`vite` alias that `vp migrate` writes for that `vite-plus`, and align `solid-js`
+and the Solid overrides with `@solidjs/web` as the root README describes. Do not
+raise `solid-js` with `-L`: the newest release candidate can be newer than the
+one the plugin was tested with. The
 [release notes](https://github.com/everton-dgn/solidjs_base/releases) list the
 breaking changes.
 

@@ -114,11 +114,13 @@ content-security-policy: ... script-src 'nonce-+tZMQ1+pW8MBtfSu71btKA==' 'strict
 ```
 
 That is eight security headers and a CSP whose `script-src` holds the nonce of
-the request, so only the scripts that carry it run. The development server sends
-the eight headers without the CSP, so hot module replacement can inject its
-styles. The static files that skip the middleware get three of the same values
-through `securityHeaders`: `strict-transport-security`, `x-content-type-options`
-and `cross-origin-resource-policy`. Everything else on this page is opt-in.
+the request. A script in the page runs only if it carries that nonce; with
+`'strict-dynamic'`, the scripts that a nonce-bearing script loads run too. The
+development server sends the eight headers without the CSP, so hot module
+replacement can inject its styles. The static files that skip the middleware get
+three of the same values through `securityHeaders`: `strict-transport-security`,
+`x-content-type-options` and `cross-origin-resource-policy`. Everything else on
+this page is opt-in.
 
 ## Who it fits
 

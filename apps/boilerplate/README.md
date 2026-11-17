@@ -1,10 +1,16 @@
 # Boilerplate app
 
-A complete SolidJS 2 application running on `@evertondgn/solid-tooling` and
-`@evertondgn/solid-runtime`. Open it to see every package feature working
-together in a real app: pages in three languages, a theme without a flash,
-security headers, private server errors, SEO routes, Markdown pages and an E2E
-suite you can learn from.
+A complete SolidJS 2 app built on the packages of this repository, so a package
+change that breaks a real app fails CI before it becomes a version. It takes its
+config, lint, tests and runtime features from `@evertondgn/solid-tooling` and
+`@evertondgn/solid-runtime`. Its icons come from
+`@evertondgn/vite-plugin-solid-icons`, which the tooling loads.
+
+The app is the test bench of the packages. This repository never publishes or
+deploys it, and it is neither a template nor a UI kit. To start a new app, copy
+the closest [fixture](../../README.md#start-a-new-app-from-a-fixture). This
+README says what each page and feature of the app shows and which tests prove
+it.
 
 > [!IMPORTANT]
 > SolidJS 2 is still a release candidate. This app uses the release candidate
@@ -19,31 +25,193 @@ The home page, captured from the production build at 750 px wide:
   <img src="../../docs/assets/readme/app-home-light.webp" alt="Screenshot of the boilerplate home page at /en from the production build: a top bar with Home, About, Contact, Privacy and 404 links, a GitHub link, the EN language button and the theme button, then the SolidJS Boilerplate badge, the title SolidJS Boilerplate for web applications, two paragraphs about SSR, themes, three languages and tests, the SolidJS logo and the line SolidJS 2, Vite+, TypeScript 7." width="800" />
 </picture>
 
-It is a copy of
+It started as a copy of
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs) at
-commit `6145493`, used to test the packages of this repository in a complete
-application. It is never published or deployed. A package change that breaks
-this app fails the CI before it becomes a version.
+commit `6145493`.
 [ADR 0009](../../docs/ADRs/0009-boilerplate-app-in-the-monorepo.md) explains why
 the copy exists.
 
-[What comes ready](#what-comes-ready) · [Running it](#running-it) ·
-[How it uses the packages](#how-it-uses-the-packages) · [Guides](#guides) ·
-[Proof](#proof)
+[See it work](#see-it-work) · [Running it](#running-it) ·
+[What each page and feature shows](#what-each-page-and-feature-shows) ·
+[How it is tested](#how-it-is-tested) · [Limits](#limits) ·
+[Reference](#reference)
 
-## What comes ready
+## See it work
 
-| Feature           | What you get in this app                                                                                            | Guide                                                                   |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Pages             | Home, about, contact, privacy and a 404, a top bar, language and theme switchers, `LocalizedLink` and an error page | [Architecture](docs/architecture.md)                                    |
-| Three languages   | Portuguese, English and Spanish from colocated catalogs, English as the base locale, the locale in the URL          | [I18n](docs/i18n.md)                                                    |
-| Theme             | Light, dark or system, applied before hydration and kept in sync across tabs, with tokens from `light-dark()`       | [UI](docs/ui.md)                                                        |
-| Security headers  | Eight headers from the runtime defaults, three of them also on static files, and a nonce CSP in production          | [Security](docs/security.md)                                            |
-| Server errors     | Fresh public errors in production, one HTTP exit (`requestJson`) and wrapped SDK adapters                           | [Server errors](docs/server-errors.md)                                  |
-| SEO routes        | `robots.txt`, `sitemap.xml`, partitioned `sitemaps/`, `llms.txt` and a Markdown copy of each opted-in page          | [SEO](docs/seo.md)                                                      |
-| Outdated pages    | A tab from the previous build moves to the new one and reloads only where nothing is lost                           | [Recovery](docs/server-errors/recovery.md#outdated-page-after-a-deploy) |
-| Env, icons, fonts | Validated `env.ts`, icons as Solid components and two Inter subsets with matching preloads                          | [UI](docs/ui.md#fonts)                                                  |
-| Tests             | Node, DOM and browser Vitest projects and 319 Playwright cases across 15 areas                                      | [Testing](docs/testing.md)                                              |
+### The same page as Markdown and llms.txt
+
+The about page answers as HTML to a browser and as Markdown to a client that
+sends `Accept: text/markdown`. The Markdown response points to `/llms.txt`, the
+index of the pages that opt in. This run used a `git archive` copy of this
+repository at `4d2c326` on 2026-11-17: `vp install` and `vp run build` at the
+root, `vp run build` in this folder, then `NODE_ENV=production vp preview` on
+port 4419.
+
+```text
+$ curl -s -D - -H 'Accept: text/markdown' http://127.0.0.1:4419/en/about
+HTTP/1.1 200
+cache-control: private, no-store
+content-language: en
+content-security-policy: default-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; script-src 'none'
+content-type: text/markdown; charset=utf-8
+link: </llms.txt>; rel="describedby"
+vary: Cookie, Accept
+
+# About SolidJS Boilerplate
+
+SolidJS Boilerplate is an open source project maintained by Éverton Toffanetto. ...
+
+## Purpose and features
+...
+## Source code and documentation
+...
+```
+
+The response also carried the other eight security headers and a `set-cookie`
+line, cut here, and `...` marks shortened text. The Markdown response gets
+`script-src 'none'` in its policy, and `vary` lists `Accept`, so a cache keeps
+the HTML and the Markdown of the same URL apart.
+
+```text
+$ curl -s http://127.0.0.1:4419/llms.txt
+# SolidJS Boilerplate
+
+> A foundation for web applications with SolidJS, TypeScript and Vite+, with server-side rendering and light and dark themes.
+...
+## When to use
+## Pages
+- [About SolidJS Boilerplate](https://boilerplate-solidjs.devinsights.dev/en/about.md): ...
+## Optional
+- [Full Markdown of the static pages](https://boilerplate-solidjs.devinsights.dev/llms-full.txt): ...
+```
+
+This excerpt keeps the title, the summary, the section headings and one link
+from two sections. The absolute URLs come from `VITE_SITE_URL` in the versioned
+[`.env`](.env), which the SEO preset requires; this repository does not deploy
+the app. To repeat the run, start the production preview as in
+[Running it](#running-it) and send the same requests to its port.
+
+Three Playwright areas check this behavior. In CI,
+[SeoIndexes](src/tests/pages/SeoIndexes) reads `llms.txt` from the `e2e` build
+and expects the summary, the language note and a Markdown link for the home,
+about, contact and privacy pages, and [Markdown](src/tests/pages/Markdown)
+checks the negotiation on a fixture page.
+[AgentReadiness](src/tests/pages/AgentReadiness) negotiates HTML and Markdown on
+the four real pages in each locale and checks the static `.md` files, `llms.txt`
+and `llms-full.txt` of the production build. CI does not run it
+([limits](#limits)).
+
+## Who it fits
+
+- You change a package of this repository. The app's checks and its `e2e` suite
+  run in CI on every pull request that touches a package, and
+  [AGENTS.md](../../AGENTS.md) asks for
+  [the app commands](../../docs/development.md#the-boilerplate-app) when a
+  change reaches a preset or runtime code the app uses.
+- You are adding the packages to your own app and want one feature wired
+  together with the others. The [table below](#what-each-page-and-feature-shows)
+  links each part to its guide and its tests.
+- You want Playwright examples for SSR, hydration, the CSP, server errors and
+  Markdown negotiation: 319 cases in 15 areas, enumerated with
+  `playwright test --list`.
+
+## Who it does not fit
+
+- You want a template for a new app. Copy the closest
+  [fixture](../../README.md#start-a-new-app-from-a-fixture); a `vp create`
+  template is on the [roadmap](../../README.md#roadmap).
+- You want UI components. `Button`, `Input`, `Dialog` and the other components
+  of this app exist for the tests, and no package publishes them.
+- You want a hosted demo. This repository never publishes or deploys the app.
+
+## Common questions
+
+**Why not copy this app to start mine?** It carries what a test bench needs and
+a new app does not: the fixture routes of the `e2e` build in
+`src/tests/fixtures/e2e/`, the texts of the original project, a dependency patch
+the packages do not ship, and guides that in part describe the original
+repository. A fixture is a minimal app on the same packages, and the
+[root README](../../README.md#start-a-new-app-from-a-fixture) lists the three to
+five changes a copy of one takes.
+
+**Does it run only on the packages?** No. The manifest declares 14 direct
+dependencies for the app's own imports and Vite+, against 28 before the packages
+([tooling README](../../packages/solid-tooling/README.md)). Bun also applies a
+patch to `@mdream/js` that the packages do not ship ([limits](#limits)).
+
+**Can I take a single feature from it?** Yes. The behavior comes from runtime
+factories, and the copy keeps thin bindings in `src/`: its header values, its
+public messages, its page metadata and its content sources. Each row of the
+[table below](#what-each-page-and-feature-shows) links the guide for that part.
+
+## Running it
+
+You need the global [Vite+](https://viteplus.dev/guide/) CLI (`vp`). It selects
+the Node and Bun versions the project declares; the app's `engines.node` asks
+for Node 26.13.1 or a later 26 release. From the repository root:
+
+```bash
+vp install
+vp run build
+```
+
+Then run these from this folder. The browser tests and Playwright use Chromium,
+which `vp install` does not download, so the first command installs it once:
+
+```bash
+vp run test:browser:install
+vp run dev
+vp run check:ci
+vp run test
+vp run test:e2e
+```
+
+`vp run dev` serves the app at `http://127.0.0.1:3000/`, from the `HOST` and
+`PORT` of the versioned `.env`. The root redirects to a locale, such as `/en`.
+Use the language button for `/pt` or `/es`, and the theme button for light, dark
+or system. The development server does not send the CSP. To check the production
+build with its security headers:
+
+```bash
+vp run build
+HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
+```
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/security-headers-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/security-headers-light.webp" />
+  <img src="../../docs/assets/readme/security-headers-light.webp" alt="Output of curl -sI on the boilerplate production preview at /en: strict-transport-security max-age=63072000 with includeSubDomains, x-frame-options DENY, x-content-type-options nosniff, referrer-policy strict-origin-when-cross-origin, a permissions-policy that blocks camera, microphone and geolocation, same-origin opener and resource policies, require-corp embedder policy, and a content-security-policy whose script-src carries a request nonce and strict-dynamic. The next requests carried different nonces." width="800" />
+</picture>
+
+`curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
+nonce that changes on every request. `/en/about.md`, or `/en/about` with
+`Accept: text/markdown`, returns the page as Markdown, as in
+[See it work](#see-it-work). The [scripts table](docs/development.md#scripts)
+lists every command.
+
+## What each page and feature shows
+
+The app has five pages and its SEO routes. The `e2e` build adds the fixture
+routes of `src/tests/fixtures/e2e/routes/` and uses a fixture middleware entry;
+`vite.config.ts` passes both in its `e2e` option, which the preset applies only
+to that build. The `/ui-kit` route and the server error scenarios live there.
+The Tests column names the Playwright areas, folders of `src/tests/pages/`, that
+cover each part. "(production)" marks cases that run only in the production
+suite, which CI does not run; "(partly production)" marks an area with cases in
+both suites.
+
+| Part              | What the app shows                                                                                                                                                    | Tests                                                                                                                                                                                                               | Guide                                                                   |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Pages             | Home, about, contact, privacy and a 404, a top bar, language and theme switchers, `LocalizedLink`, `seo.ts` metadata and an error page                                | [Home](src/tests/pages/Home) (partly production), [NotFound](src/tests/pages/NotFound)                                                                                                                              | [Architecture](docs/architecture.md)                                    |
+| Server rendering  | Pages rendered on the server, then hydrated: raw HTML, disabled JavaScript, a held or aborted bundle, reload, click replay and navigation                             | [Hydration](src/tests/pages/Hydration)                                                                                                                                                                              | [Tests](docs/testing.md)                                                |
+| Three languages   | Portuguese, English and Spanish from colocated catalogs, English as the base locale, the locale in the URL and redirects that keep it                                 | [I18n](src/tests/pages/I18n) (partly production)                                                                                                                                                                    | [I18n](docs/i18n.md)                                                    |
+| Theme             | Light, dark or system, applied before hydration and kept in sync across tabs, with tokens from `light-dark()`                                                         | [Home](src/tests/pages/Home): the `theme`, `themeCss` and `themeStorage` files                                                                                                                                      | [UI](docs/ui.md)                                                        |
+| Security headers  | Eight headers from the runtime defaults, three of them also on static files, and a nonce CSP in production that holds for scripts and styles streamed after the shell | [Home](src/tests/pages/Home): the `csp` file (production); [LateRedirect](src/tests/pages/LateRedirect), [FragmentCss](src/tests/pages/FragmentCss)                                                                 | [Security](docs/security.md)                                            |
+| Server errors     | Fresh public errors in production, one HTTP exit (`requestJson`) and wrapped SDK adapters                                                                             | [BackendError](src/tests/pages/BackendError), [OutsideError](src/tests/pages/OutsideError)                                                                                                                          | [Server errors](docs/server-errors.md)                                  |
+| SEO and Markdown  | `robots.txt`, `sitemap.xml`, partitioned `sitemaps/`, `llms.txt`, escaped JSON-LD and a Markdown copy of each opted-in page                                           | [SeoIndexes](src/tests/pages/SeoIndexes) (partly production), [Markdown](src/tests/pages/Markdown), [StructuredData](src/tests/pages/StructuredData), [AgentReadiness](src/tests/pages/AgentReadiness) (production) | [SEO](docs/seo.md)                                                      |
+| Outdated pages    | A tab from the previous build moves to the new one and reloads only where nothing is lost                                                                             | [OutdatedPage](src/tests/pages/OutdatedPage)                                                                                                                                                                        | [Recovery](docs/server-errors/recovery.md#outdated-page-after-a-deploy) |
+| Env, icons, fonts | Validated `env.ts`, icons from `hugeicons` and the app's own SVG folder as Solid components, and two Inter subsets with matching preloads                             | [BuildOutput](src/tests/pages/BuildOutput): the `fonts` file (production)                                                                                                                                           | [UI](docs/ui.md#fonts)                                                  |
+| Test components   | `Button`, `Input`, `Textarea`, `Dialog`, the toasts and `DropdownMenu`, on the `/ui-kit` route of the `e2e` build                                                     | [UiKit](src/tests/pages/UiKit)                                                                                                                                                                                      | [UI](docs/ui.md)                                                        |
 
 ### The same page in three languages
 
@@ -65,8 +233,10 @@ duplicate ID or a parameter that differs between locales.
 of this test app. They exist so the tests can exercise the packages in a real
 interface, and no package publishes them. Their guide is [UI](docs/ui.md). The
 `/ui-kit` route is an E2E fixture that only exists in the `e2e` build
-(`src/tests/fixtures/e2e/routes/(base)/ui-kit/`), covered by the `UiKit` area of
-the [Proof](#proof) table.
+(`src/tests/fixtures/e2e/routes/(base)/ui-kit/`), covered by the
+[UiKit](src/tests/pages/UiKit) area. Their styles read the tokens of
+`src/theme/tokens/`: 36 colors, 11 fonts, 7 shadows, 6 grids, 5 radii and 3
+z-index values, counted as the custom properties declared in each file.
 
 ### Outdated pages after a deploy
 
@@ -82,79 +252,95 @@ is gone or a server function answers 404 or 409 with
 change into a document navigation, unless the page registered unsaved changes. A
 refused submission shows `OutdatedPageNotice` instead of reloading by itself. At
 the root, `ErrorFallback` gives way to a single reload; if the failure comes
-back within 30 seconds, the error page appears with a manual reload.
+back within 30 seconds, the error page appears with a manual reload
+([recovery guide](docs/server-errors/recovery.md#outdated-page-after-a-deploy)).
 
-## Running it
+## How it is tested
 
-From the repository root, with the global [Vite+](https://viteplus.dev/guide/)
-CLI (`vp`) installed:
+The CI run of the 0.8.0 release pull request
+([run 43975952604](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604))
+executed these suites:
 
-```bash
-vp install
-vp run build
-```
+- Vitest: 185 tests passed in 32 files
+  ([Boilerplate app job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119099)).
+  The `node` project ran 68 tests in 12 files, `dom` ran 87 in 13 files in
+  happy-dom, and `browser` ran 30 in 7 files in Chromium. Coverage reached
+  93.38% of statements, 91.86% of branches, 91.72% of functions and 95.83% of
+  lines. The preset sets thresholds of 80% for lines, functions and statements
+  and 75% for branches.
+- Playwright: the 164 cases of the `e2e` build passed on 2 workers in 1.3
+  minutes
+  ([Boilerplate app E2E job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119082)).
 
-Then, from this folder:
+Two suites stay out of CI. `playwright test --list` counts 164 cases in 26 files
+for the `e2e` build and 155 more, in 12 files, for the production build: 319
+cases in 15 areas. Those counts were enumerated on 2026-11-17 over `4d2c326`,
+without running the cases. The production suite covers the CSP of the production
+entry, the static Markdown files, the build output and the indexes of the real
+route tree. Run it locally with `vp run test:e2e:production`.
 
-```bash
-vp run dev
-vp run check:ci
-vp run test
-vp run test:e2e
-```
-
-`vp run dev` serves the app at `http://127.0.0.1:3000/`, from the `HOST` and
-`PORT` of the versioned `.env`. The root redirects to a locale, such as `/en`.
-Use the language button for `/pt` or `/es`, and the theme button for light, dark
-or system. To check the production build with its security headers:
-
-```bash
-vp run build
-HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
-```
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/security-headers-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/security-headers-light.webp" />
-  <img src="../../docs/assets/readme/security-headers-light.webp" alt="Output of curl -sI on the boilerplate production preview at /en: strict-transport-security max-age=63072000 with includeSubDomains, x-frame-options DENY, x-content-type-options nosniff, referrer-policy strict-origin-when-cross-origin, a permissions-policy that blocks camera, microphone and geolocation, same-origin opener and resource policies, require-corp embedder policy, and a content-security-policy whose script-src carries a request nonce and strict-dynamic. The next requests carried different nonces." width="800" />
-</picture>
-
-`curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
-nonce that changes on every request. `/en/about.md`, or `/en/about` with
-`Accept: text/markdown`, returns the page as Markdown, and `/llms.txt` lists the
-pages. The [scripts table](docs/development.md#scripts) lists every command, and
-the [root development guide](../../docs/development.md#the-boilerplate-app)
-lists what changed from the original and how to update the copy.
-
-The development scripts include `vp run dev:phone`, to open the app on a phone
-in the same network, `vp run test:shuffle`, to find tests that depend on their
-order, `vp run detect:duplicates` and `vp run deps:update`. In `vp run dev`, the
-first server HTML of a page already carries its route styles, so the page does
-not appear unstyled while its JavaScript loads
-([styles on the first load](docs/development.md#styles-on-the-first-load-in-development)).
-
-## How it uses the packages
+`PublicationLoad`, 6 cases in 1 file, stays outside the 319 and outside CI.
+`TEST_PUBLICATION_LOAD=true vp run test:e2e` runs it alone against two servers
+of the same build. It fills the publication slots on purpose, checks that normal
+HTML still answers and that the second server takes the work the first one
+refuses, so it never shares a run with the other suites. See
+[publication load](docs/testing.md#publication-load).
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/before-after-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/before-after-light.webp" />
-  <img src="../../docs/assets/readme/before-after-light.webp" alt="About 87 percent fewer lines across five configuration areas, from 945 to 125: Vite 427 to 48, Playwright 173 to 17, Knip 129 to 40, TypeScript 45 to 9, and Stylelint 171 to an 11-line script. Each bar shows the fraction retained in the app." width="800" />
+  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/e2e-coverage-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/e2e-coverage-light.webp" />
+  <img src="../../docs/assets/readme/e2e-coverage-light.webp" alt="Horizontal bars of the 319 Playwright cases of apps/boilerplate across 15 areas, split between the E2E build with 164 cases and the production build with 155: AgentReadiness 77, I18n 40, Home 36, SeoIndexes 29, Markdown 27, BackendError 25, BuildOutput 22, OutsideError 18, Hydration 18, UiKit 8, OutdatedPage 7, StructuredData 6, FragmentCss 2, LateRedirect 2 and NotFound 2. Enumerated with playwright test --list, without running them." width="800" />
 </picture>
+
+The CI runs this app's check, Node type check, dead code, Vitest with coverage,
+tooling tests and the `e2e` suite on every pull request that changes the app, a
+package, a fixture or the root configuration
+([CI coverage](../../docs/development.md#ci)). The
+[reference](#playwright-cases-by-area) lists the cases by area.
+
+## Limits
+
+- CI runs 164 of the 319 enumerated Playwright cases. The 155 production cases
+  and the 6 `PublicationLoad` cases run only when you start them locally
+  ([how it is tested](#how-it-is-tested)).
+- The app's pages, data and traffic are small. Its tests check behavior and do
+  not prove production capacity. The thresholds of `PublicationLoad` are a local
+  starting point and set no production SLO
+  ([publication load](docs/testing.md#publication-load)).
+- The copy installs the packages from the workspace, so it tests the source of
+  the same commit. The packed tarballs are tested in minimal apps by the
+  [installed application scenarios](../../docs/ADRs/0021-installed-application-scenarios.md).
+- Bun applies a patch to `@mdream/js` from [`patches/`](patches), registered in
+  the root `package.json`. The packages do not ship it. An app that installs the
+  runtime from npm gets the published converter, and some conversions differ:
+  `<p>a<span> <span>b</span></span></p>` gives `ab` without the patch and `a b`
+  with it. The [Markdown guide](docs/seo/markdown.md) lists the differences and
+  how to adopt the same patch.
+- The guides describe this copy, but their sections about releases, CI, Git
+  hooks and the Vercel deploy describe the original repository.
+- The interactive controls need JavaScript. The tests check the server-rendered
+  HTML without JavaScript, and the app makes no promise to work without it.
+
+## Reference
+
+### How it uses the packages
 
 It takes its lint preset, lint rules, formatter settings, TypeScript configs,
 Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
 Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`, through the
 workspace, in place of the copies the original keeps in `tooling/`,
-`vite.config.ts` and `tsconfig.json`. Its `vite.config.ts` has 48 lines; the
-original had 427.
+`vite.config.ts` and `tsconfig.json`. The five config files keep 129 lines where
+the original had 945, about 86% fewer: Vite 427 to 52, Playwright 173 to 17,
+Knip 129 to 40, TypeScript 45 to 9, and Stylelint 171 to an 11-line caller
+(`wc -l` at `6145493` and in this folder). The
+[tooling README](../../packages/solid-tooling/README.md) keeps that comparison.
 
-The package supplies tools that this copy does not import itself. The copy keeps
-its Solid libraries, Vite+, Paraglide and message-format, application libraries,
-and direct imports of Nitro, filesystem-routing and Playwright Test. Its
+The package supplies tools that this copy does not import itself. Its
 `playwright`, `knip` and `tsc` tasks resolve executables from the tooling
 package. The inherited tsconfig reads package-owned type references, so no
-application declaration of `@types/node` or TypeScript is needed. The manifest
-declares 14 direct dependencies, against 28 before the packages.
+application declaration of `@types/node` or TypeScript is needed.
+`defineSolidApp` loads the icons plugin, so the app does not declare it; it
+declares only the `hugeicons` collection it imports.
 
 `env.ts` spreads the runtime package's `serverEnv` validators for `HOST`, `PORT`
 and `BASE_URL_TEST`. The SEO preset validates this copy's `VITE_SITE_URL`
@@ -164,16 +350,62 @@ the tooling remains in `devDependencies`, including with Knip's strict
 production check. See
 [environment and preview](docs/development.md#environment-and-preview).
 
-Bun applies one patch from `patches/`, registered in the root `package.json`: it
-fixes conversion differences of `@mdream/js`
-([Markdown guide](docs/seo/markdown.md)). The packages do not ship it.
-
 Middleware, security headers, server errors, the theme, locale navigation, SEO,
 sitemaps, Markdown and `llms.txt` come from runtime factories. The copy keeps
 thin bindings in `src/`: its header values, its public messages, its page
-metadata and its content sources.
+metadata and its content sources. The packages do not cover the `@mdream/js`
+patch ([limits](#limits)).
 
-## Guides
+### Updating the packages
+
+The manifest declares both packages as `workspace:*`, so the copy always runs
+the code of the same commit and has nothing to update. An app outside this
+repository raises them with
+`vp update -L @evertondgn/solid-tooling @evertondgn/solid-runtime`, then aligns
+its versions with the exact peers of the packages and never raises `solid-js`
+with `-L`, as the root README's
+[update the packages](../../README.md#update-the-packages) shows. The
+[boilerplate app section](../../docs/development.md#the-boilerplate-app) of the
+development guide lists what changed from the original and how to bring the copy
+up to date with it.
+
+### Development scripts
+
+The development scripts include `vp run dev:phone`, to open the app on a phone
+in the same network, `vp run test:shuffle`, to find tests that depend on their
+order, and `vp run detect:duplicates`. In `vp run dev`, the first server HTML of
+a page already carries its route styles, so the page does not appear unstyled
+while its JavaScript loads
+([styles on the first load](docs/development.md#styles-on-the-first-load-in-development)).
+The [scripts table](docs/development.md#scripts) lists every command.
+
+### Playwright cases by area
+
+`playwright test --list` gives these counts without running the cases, on
+2026-11-17 over `4d2c326`. CI runs the column of the `e2e` build.
+
+| Area           | E2E build | Production build | Total |
+| -------------- | --------: | ---------------: | ----: |
+| AgentReadiness |         0 |               77 |    77 |
+| I18n           |        18 |               22 |    40 |
+| Home           |        28 |                8 |    36 |
+| SeoIndexes     |         3 |               26 |    29 |
+| Markdown       |        27 |                0 |    27 |
+| BackendError   |        25 |                0 |    25 |
+| BuildOutput    |         0 |               22 |    22 |
+| OutsideError   |        18 |                0 |    18 |
+| Hydration      |        18 |                0 |    18 |
+| UiKit          |         8 |                0 |     8 |
+| OutdatedPage   |         7 |                0 |     7 |
+| StructuredData |         6 |                0 |     6 |
+| FragmentCss    |         2 |                0 |     2 |
+| LateRedirect   |         2 |                0 |     2 |
+| NotFound       |         2 |                0 |     2 |
+
+A sixteenth area, `PublicationLoad`, stays out of both columns, as
+[How it is tested](#how-it-is-tested) explains.
+
+### Guides
 
 The guides describe this copy. Their sections about releases, CI, Git hooks and
 the Vercel deploy describe the original repository.
@@ -200,48 +432,3 @@ the Vercel deploy describe the original repository.
 
 `AGENTS.md` and the guides in `docs/` are in English. The code comments and the
 test titles are in Portuguese, as in the original.
-
-## Proof
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/e2e-coverage-dark.webp" />
-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/e2e-coverage-light.webp" />
-  <img src="../../docs/assets/readme/e2e-coverage-light.webp" alt="Horizontal bars of the 319 Playwright cases of apps/boilerplate across 15 areas, split between the E2E build with 164 cases and the production build with 155: AgentReadiness 77, I18n 40, Home 36, SeoIndexes 29, Markdown 27, BackendError 25, BuildOutput 22, OutsideError 18, Hydration 18, UiKit 8, OutdatedPage 7, StructuredData 6, FragmentCss 2, LateRedirect 2 and NotFound 2. Enumerated with playwright test --list, without running them." width="800" />
-</picture>
-
-At this revision, `vp run test` passed 185 Vitest tests in 32 files: 68 in the
-`node` project, 87 in `dom` and 30 in the `browser` project, in Chromium. The
-Playwright inventory lists 164 cases in 26 files against the `e2e` build and 155
-in 12 files against the production build, 319 in total:
-
-| Area           | E2E build | Production build | Total |
-| -------------- | --------: | ---------------: | ----: |
-| AgentReadiness |         0 |               77 |    77 |
-| I18n           |        18 |               22 |    40 |
-| Home           |        28 |                8 |    36 |
-| SeoIndexes     |         3 |               26 |    29 |
-| Markdown       |        27 |                0 |    27 |
-| BackendError   |        25 |                0 |    25 |
-| BuildOutput    |         0 |               22 |    22 |
-| OutsideError   |        18 |                0 |    18 |
-| Hydration      |        18 |                0 |    18 |
-| UiKit          |         8 |                0 |     8 |
-| OutdatedPage   |         7 |                0 |     7 |
-| StructuredData |         6 |                0 |     6 |
-| FragmentCss    |         2 |                0 |     2 |
-| LateRedirect   |         2 |                0 |     2 |
-| NotFound       |         2 |                0 |     2 |
-
-`playwright test --list` gives those counts without running the cases. A
-sixteenth area stays out of both: `TEST_PUBLICATION_LOAD=true vp run test:e2e`
-runs `PublicationLoad`, 6 cases in 1 file, alone against two servers of the same
-build. It fills the publication slots on purpose, checks that normal HTML still
-answers and that the second server takes the work the first one refuses, so it
-never shares a run with the other suites. See
-[publication load](docs/testing.md#publication-load).
-
-The CI runs this app's check, Node type check, dead code, Vitest with coverage,
-tooling tests and the E2E suite of the `e2e` build on every pull request that
-changes the app, a package, a fixture or the root configuration. Run
-`vp run test:e2e:production` locally for the production suite. See
-[CI coverage](../../docs/development.md#ci).

@@ -175,9 +175,13 @@ the bundle ([How it is tested](#how-it-is-tested)).
 **Does it work in an app with no server?** In part. A client-only build
 (`ssr: false`) can use the theme with `storage: 'local-storage'`, the language
 helpers with one unprefixed language, and fonts, which the preset writes into
-`index.html`. The middleware, the server errors and SEO need the server build:
-the preset rejects `seo` together with `ssr: false`. Translations by URL prefix
-need a server too. See
+`index.html`. The middleware and the server errors need the server build, and
+the preset refuses its `seo` option (robots, sitemaps, Markdown and editorial
+indexes) together with `ssr: false`. `createSeo` writes head tags and JSON-LD
+through `useHead`, and its DOM tests check that output in a browser document,
+but no installed scenario runs it in a client-only build, and a crawler that
+does not run JavaScript sees only tags rendered by a server. Translations by URL
+prefix need a server too. See
 [applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md).
 
 **What does it add to the production install?** Version 0.8.0 unpacks to 280,495

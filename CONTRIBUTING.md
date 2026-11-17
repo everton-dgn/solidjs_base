@@ -110,6 +110,12 @@ The CI runs the same commands and skips the jobs your files do not affect.
   ([ADR 0008](docs/ADRs/0008-merge-commits.md)).
 - Comments explain why, not what. If a rationale needs more than a few lines, it
   goes to `docs/` or to an ADR.
+- The code conventions of [the boilerplate app](apps/boilerplate/AGENTS.md)
+  apply to `packages/` and `tooling/` too: "File and folder names of modules",
+  "TypeScript types", "Type location", "Cohesion and size of modules", "Function
+  parameters", "Events in JSX", "Conditionals and control flow", "Exports",
+  "Functions that return a Promise", "Code comments", "Boolean names" and
+  "Signal names".
 
 ## Pull requests
 

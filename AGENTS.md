@@ -16,6 +16,13 @@ Read [Contributing](CONTRIBUTING.md), [Development](docs/development.md) and
 [Releasing](docs/releasing.md) before changing a package. The rules below are
 the ones that cost a fix after a release when they were missed.
 
+The code conventions of [the boilerplate app](apps/boilerplate/AGENTS.md) apply
+to `packages/` and `tooling/` too: "File and folder names of modules",
+"TypeScript types", "Type location", "Cohesion and size of modules", "Function
+parameters", "Events in JSX", "Conditionals and control flow", "Exports",
+"Functions that return a Promise", "Code comments", "Boolean names" and "Signal
+names".
+
 ## Validation
 
 - Run `vp run validate` at the root. It runs the build, check, dead code,

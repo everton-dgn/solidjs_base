@@ -25,7 +25,7 @@ The home page, captured from the production build at 750 px wide:
   <img src="../../docs/assets/readme/app-home-light.webp" alt="Screenshot of the boilerplate home page at /en from the production build: a top bar with Home, About, Contact, Privacy and 404 links, a GitHub link, the EN language button and the theme button, then the SolidJS Boilerplate badge, the title SolidJS Boilerplate for web applications, two paragraphs about SSR, themes, three languages and tests, the SolidJS logo and the line SolidJS 2, Vite+, TypeScript 7." width="800" />
 </picture>
 
-It started as a copy of
+The app started as a copy of
 [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs) at
 commit `6145493`.
 [ADR 0009](../../docs/ADRs/0009-boilerplate-app-in-the-monorepo.md) explains why
@@ -272,9 +272,10 @@ executed these suites:
   minutes
   ([Boilerplate app E2E job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119082)).
 
-Two suites stay out of CI. `playwright test --list` counts 164 cases in 26 files
-for the `e2e` build and 155 more, in 12 files, for the production build: 319
-cases in 15 areas. Those counts were enumerated on 2026-11-17 over `4d2c326`,
+Two suites stay out of CI: the production suite and `PublicationLoad`.
+`playwright test --list` counts 155 cases in 12 files for the production build,
+next to the 164 in 26 files of the `e2e` build that CI runs: 319 cases in 15
+areas. Those counts were enumerated on 2026-11-17 over `4d2c326`,
 without running the cases. The production suite covers the CSP of the production
 entry, the static Markdown files, the build output and the indexes of the real
 route tree. Run it locally with `vp run test:e2e:production`.
@@ -292,7 +293,7 @@ refuses, so it never shares a run with the other suites. See
   <img src="../../docs/assets/readme/e2e-coverage-light.webp" alt="Horizontal bars of the 319 Playwright cases of apps/boilerplate across 15 areas, split between the E2E build with 164 cases and the production build with 155: AgentReadiness 77, I18n 40, Home 36, SeoIndexes 29, Markdown 27, BackendError 25, BuildOutput 22, OutsideError 18, Hydration 18, UiKit 8, OutdatedPage 7, StructuredData 6, FragmentCss 2, LateRedirect 2 and NotFound 2. Enumerated with playwright test --list, without running them." width="800" />
 </picture>
 
-The CI runs this app's check, Node type check, dead code, Vitest with coverage,
+CI runs this app's check, Node type check, dead code, Vitest with coverage,
 tooling tests and the `e2e` suite on every pull request that changes the app, a
 package, a fixture or the root configuration
 ([CI coverage](../../docs/development.md#ci)). The

@@ -1,6 +1,6 @@
 {
   "name": "@evertondgn/vite-plugin-solid-icons",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Vite plugin that turns Iconify collections and folders of SVG files into SolidJS 2 components.",
   "author": "Éverton Toffanetto",
   "license": "MIT",

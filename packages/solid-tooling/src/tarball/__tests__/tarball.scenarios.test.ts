@@ -169,7 +169,7 @@ async function packWorkspace({
 }
 
 // The tests already write the icon declarations, so the file is removed and
-// the task has to write it again before lint and tsc.
+// the task has to write it again before lint and tsrs.
 async function regenerateIconTypes({
   app,
   deadline
@@ -688,7 +688,7 @@ for (const scenario of SCENARIOS) {
         await run({
           deadline,
           cwd: app,
-          args: ['run', 'tsc', '--noEmit', ...envChecks.typecheckFlags]
+          args: ['run', 'tsrs', '--noEmit', ...envChecks.typecheckFlags]
         })
         instrument({ app, mutation: MUTATION, root: ROOT })
         if (MUTATION === 'request-step') {

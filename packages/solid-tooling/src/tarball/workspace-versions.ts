@@ -36,7 +36,7 @@ const PACKAGED_TOOLS = [
   '@vitest/ui',
   '@testing-library/jest-dom',
   '@types/node',
-  'typescript'
+  'tsrs'
 ]
 
 type Pinned = v.InferOutput<typeof pinnedSchema>
@@ -70,6 +70,16 @@ export function checkApplicationVersions({
   const workspace = readPinned(path.join(root, 'package.json'))
   const copy = readPinned(path.join(root, 'apps/boilerplate/package.json'))
   const { catalog } = workspace
+  // The packaged tsrs must be the copy that runs the type-aware lint, so the
+  // application installs a single compiler.
+  const vitePlus = readPinned(
+    path.join(root, 'node_modules/vite-plus/package.json')
+  )
+  assert.equal(
+    vitePlus.dependencies.tsrs,
+    `=${catalog.tsrs}`,
+    'the catalog must pin the tsrs that vite-plus depends on'
+  )
   assert.ok(!copy.dependencies['@evertondgn/solid-tooling'])
   assert.ok(copy.devDependencies['@evertondgn/solid-tooling'])
   // Without engines.node in the copy, Nitro writes the Vercel function on Bun.

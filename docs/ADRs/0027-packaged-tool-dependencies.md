@@ -1,6 +1,6 @@
 # 0027. Packages supply the tools the application does not import
 
-- Status: Accepted
+- Status: Accepted, amended by [0039](0039-tsrs-type-checker.md)
 - Date: 2026-11-14
 - Supersedes: the tool dependency ownership choices of
   [0002](0002-compiled-tooling-package.md),

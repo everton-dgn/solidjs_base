@@ -46,7 +46,8 @@ The tooling package owns its build, test, type-check and hook dependencies.
 Applications declare only their own imports and the Vite+ installation. The
 runtime owns the routing helpers it imports and exports `StartMiddleware` from
 `./middleware/types`, without depending on the Solid plugin. The copy keeps
-Nitro, routing and Playwright Test because its own code imports them. See
+routing and Playwright Test because its own code imports them; it neither
+declares nor imports Nitro, which comes with the tooling. See
 [requirements](tooling/limits.md#requirements) and
 [ADR 0027](ADRs/0027-packaged-tool-dependencies.md).
 

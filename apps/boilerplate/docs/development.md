@@ -165,6 +165,24 @@ of a page, requested right after the server starts, carries the
 `<style data-vite-dev-id>` of the routes, and that an edit to a route CSS file
 shows up in the HTML of the next request.
 
+## Reactivity diagnostics in development
+
+`package.json` declares `@solidjs/diagnostics`, so the Solid plugin of the
+preset serves `/__solid/diagnostics` on the development server and prints its
+address at startup. `GET` reports how many open pages are connected. With a page
+open, `POST` with `{ "method": "begin" }` and then `{ "method": "end" }` returns
+the diagnostics and the cause of each effect and memo rerun in that window; the
+plugin also forwards `whyDidRun` and `costs`, and `costs` needs an open capture.
+An agent or a script can inspect the reactivity of a running page this way,
+without the browser tools. The packages ship guides for agents in
+`node_modules/@solidjs/diagnostics/skills/agent-loops/SKILL.md` and
+`node_modules/solid-js/skills/reactivity-diagnostics/SKILL.md`.
+
+The endpoint exists only in `vp run dev`: the build, the preview, the E2E tests,
+which run on the build, and Vitest do not load it. The preset does not expose
+the `diagnostics` option of the plugin, so removing the dependency is the way to
+turn the endpoint off.
+
 ## Scripts
 
 | Command                       | Description                                                             |
@@ -487,8 +505,8 @@ with the next jobs after a failure.
 - The `@solidjs/compiler` override keeps the native compiler aligned with the
   Solid runtime, and the `@solidjs/signals` one pins the reactive core to the
   same version as `solid-js`, which declares it with `^`. Update both together
-  with `solid-js` and `@solidjs/web`, respecting the compatibility of the Vite
-  plugin.
+  with `solid-js`, `@solidjs/web` and `@solidjs/diagnostics`, respecting the
+  compatibility of the Vite plugin.
 - The Solid plugin compiles with the native compiler and does not install Babel.
   To use `compiler: 'babel'`, declare `@babel/core` and `@solidjs/babel-plugin`
   as devDependencies, with the Babel plugin at the version of the Solid runtime;

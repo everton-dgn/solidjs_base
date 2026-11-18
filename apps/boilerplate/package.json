@@ -51,6 +51,7 @@
     "@iconify-json/hugeicons": "1.2.36",
     "@inlang/plugin-message-format": "4.6.0",
     "@playwright/test": "1.65.1",
+    "@solidjs/diagnostics": "2.0.0",
     "schema-dts": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

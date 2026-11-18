@@ -30,6 +30,7 @@
         "@iconify-json/hugeicons": "1.2.36",
         "@inlang/plugin-message-format": "4.6.0",
         "@playwright/test": "1.65.1",
+        "@solidjs/diagnostics": "2.0.0",
         "schema-dts": "catalog:",
         "vite": "catalog:",
         "vite-plus": "catalog:",
@@ -526,6 +527,8 @@
     "@solidjs/compiler-wasm32-wasi": ["@solidjs/compiler-wasm32-wasi@2.0.0", "", { "dependencies": { "@emnapi/core": "1.11.3", "@emnapi/runtime": "1.11.3", "@napi-rs/wasm-runtime": "^1.1.6" } }, "sha512-JnF21DJ/jx5fghYKIB6ANihHMM4aWg4JFe5pFLGDvqSeURZJdJGjwyyxOv3siEMUdkBzVGHXotTsviTcRyB5hQ=="],
 
     "@solidjs/compiler-win32-x64-msvc": ["@solidjs/compiler-win32-x64-msvc@2.0.0", "", { "os": "win32", "cpu": "x64" }, "sha512-RkiUXt/LmJ1lk1fECa/iDVGCOv3UiwW5ocZgkhpayUviTSrceFjFHhiM9sFXq0at3kHI7Z8awN6zTaF5IStDAQ=="],
+
+    "@solidjs/diagnostics": ["@solidjs/diagnostics@2.0.0", "", { "dependencies": { "@solidjs/signals": "^2.0.0" }, "peerDependencies": { "@solidjs/web": "^2.0.0", "solid-js": "^2.0.0", "vitest": ">=2.0.0" }, "optionalPeers": ["vitest"] }, "sha512-mjniTyT3W9Ohe+QN5anBA3h2Obl40AjEDx+vLcU+YsxteYNJ6FyoHBZ6cmf9ENLpcGEy2uk4q/9yV76/iVsfvQ=="],
 
     "@solidjs/router": ["@solidjs/router@2.0.0", "", { "peerDependencies": { "@solidjs/web": "^2.0.0", "filesystem-routing": ">=0.4.0", "solid-js": "^2.0.0" }, "optionalPeers": ["filesystem-routing"] }, "sha512-Zpa9djVKDigR1PYd6K32OFN3N90wymPk2yIWhV+Sdrz/aRPpMIIohI5dsAqwx5WIjQ3lBlECZHGBEzaPdcmpCA=="],
 

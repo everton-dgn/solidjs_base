@@ -12,7 +12,9 @@ import { staticBuildPlugin, staticOutput } from '../static-output.ts'
 const HTTP_NOT_FOUND = 404
 const HTTP_SERVER_ERROR = 500
 
-async function fixture(t: TestContext, page = 'about', locales: string[] = []) {
+type FixtureInput = { t: TestContext; page?: string; locales?: string[] }
+
+async function fixture({ t, page = 'about', locales = [] }: FixtureInput) {
   const root = await mkdtemp(path.join(tmpdir(), 'static-route-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   const dir = path.join(root, 'src/routes', page)
@@ -27,7 +29,7 @@ async function fixture(t: TestContext, page = 'about', locales: string[] = []) {
 }
 
 it('publishes the root catch-all response at /404.html', async t => {
-  const config = await fixture(t, '(base)/[...404]')
+  const config = await fixture({ t, page: '(base)/[...404]' })
   assert.ok(config.prerender.routes.includes('/404.html'))
   const route: PrerenderRoute = {
     route: '/404.html',
@@ -40,7 +42,7 @@ it('publishes the root catch-all response at /404.html', async t => {
 })
 
 it('fails when Nitro omits an expected page', async t => {
-  const config = await fixture(t)
+  const config = await fixture({ t })
   assert.throws(
     () =>
       config.hooks['prerender:done']({
@@ -52,7 +54,7 @@ it('fails when Nitro omits an expected page', async t => {
 })
 
 it('accepts HTML metadata containing a literal nonce example', async t => {
-  const config = await fixture(t)
+  const config = await fixture({ t })
   const route: PrerenderRoute = {
     route: '/about',
     contentType: 'text/html',
@@ -63,7 +65,7 @@ it('accepts HTML metadata containing a literal nonce example', async t => {
 })
 
 it('writes per-file inline script hashes and their union outside public', async t => {
-  const config = await fixture(t)
+  const config = await fixture({ t })
   const dir = await mkdtemp(path.join(tmpdir(), 'static-csp-'))
   t.after(() => rm(dir, { recursive: true, force: true }))
   const publicDir = path.join(dir, 'public')
@@ -93,7 +95,7 @@ it('writes per-file inline script hashes and their union outside public', async 
 
 it('retains the original failure and refuses parameterized pages and nested catch-alls', async t => {
   for (const page of ['articles/[id]', 'nested/[...rest]']) {
-    const config = await fixture(t, page)
+    const config = await fixture({ t, page })
     assert.throws(
       () =>
         config.hooks['prerender:done']({
@@ -112,7 +114,7 @@ it('retains the original failure and refuses parameterized pages and nested catc
 })
 
 it('refuses non-HTML pages and nonce attributes', async t => {
-  const config = await fixture(t)
+  const config = await fixture({ t })
   for (const [contentType, contents, expected] of [
     ['text/plain', 'hello', /expected HTML/u],
     ['text/html', '<script nonce="x"></script>', /cannot publish a CSP nonce/u]
@@ -266,7 +268,7 @@ it('refuses pages that export a server component', async t => {
 })
 
 it('preserves prerender failures outside the custom 404 response', async t => {
-  const config = await fixture(t, '[...rest]')
+  const config = await fixture({ t, page: '[...rest]' })
   for (const [url, status] of [
     ['/404.html', HTTP_SERVER_ERROR],
     ['/', HTTP_NOT_FOUND]
@@ -283,14 +285,14 @@ it('preserves prerender failures outside the custom 404 response', async t => {
 })
 
 it('requires the root catch-all to return 404', async t => {
-  const config = await fixture(t, '[...rest]')
+  const config = await fixture({ t, page: '[...rest]' })
   const route: PrerenderRoute = { route: '/404.html', contentType: 'text/html' }
   config.hooks['prerender:generate'](route)
   assert.match(route.error?.message ?? '', /httpStatus\(404\).*enumeration/u)
 })
 
 it('publishes a localized 404 for each configured locale', async t => {
-  const config = await fixture(t, '[...rest]', ['de', 'fr'])
+  const config = await fixture({ t, page: '[...rest]', locales: ['de', 'fr'] })
   for (const url of ['/de/404.html', '/fr/404.html']) {
     assert.ok(config.prerender.routes.includes(url))
     const route: PrerenderRoute = {
@@ -305,7 +307,7 @@ it('publishes a localized 404 for each configured locale', async t => {
 })
 
 it('warns when quoted union hashes exceed the host budget', async t => {
-  const config = await fixture(t)
+  const config = await fixture({ t })
   const dir = await mkdtemp(path.join(tmpdir(), 'static-header-'))
   t.after(() => rm(dir, { recursive: true, force: true }))
   const warn = t.mock.method(console, 'warn', () => null)
@@ -369,7 +371,7 @@ it('rejects ambiguous catch-alls and reserved error filenames', async t => {
 })
 
 it('avoids a DOM parse during prerender when HTML cannot contain a nonce', async t => {
-  const config = await fixture(t)
+  const config = await fixture({ t })
   const { DOMParser } = await import('happy-dom')
   const parse = t.mock.method(DOMParser.prototype, 'parseFromString')
   const route = {

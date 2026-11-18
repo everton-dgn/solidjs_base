@@ -85,3 +85,16 @@ it('validates publication budgets without accepting unknown options or executabl
     })
   )
 })
+
+it('accepts omitted server settings expressed as undefined for static output', () => {
+  assert.doesNotThrow(() =>
+    defineSolidApp({
+      root: OPTIONS.root,
+      output: 'static',
+      serverSetup: undefined,
+      routeRules: undefined,
+      staticPaths: undefined,
+      securityHeaders: undefined
+    })
+  )
+})

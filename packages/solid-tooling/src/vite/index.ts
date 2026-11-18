@@ -40,6 +40,7 @@ const SERVER_OPTIONS = [
 ]
 
 function validateServerOptions(options: ServerAppOptions): void {
+  const supplied: Record<string, unknown> = options
   if (
     options.output !== undefined &&
     !['vercel', 'static'].includes(options.output)
@@ -53,7 +54,7 @@ function validateServerOptions(options: ServerAppOptions): void {
       'staticPaths',
       'securityHeaders'
     ] as const) {
-      if (key in options) {
+      if (supplied[key] !== undefined) {
         throw new Error(
           `defineSolidApp: ${key} requires a server or CDN rules with output: static`
         )

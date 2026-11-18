@@ -95,9 +95,9 @@ public assets and static paths, without forking the preset. See the
   publishes carries npm provenance that names the commit and the workflow run
   that built it. The first version of each package was published by hand and has
   none.
-- The configuration left in an app is counted. The tooling README compares the
-  five config files of the boilerplate app with the starter's 945 lines, file by
-  file, in
+- <a name="before-and-after"></a>The configuration left in an app is counted.
+  The tooling README compares the five config files of the boilerplate app with
+  the starter's 945 lines, file by file, in
   [the configuration you stop maintaining](packages/solid-tooling/README.md#the-configuration-you-stop-maintaining).
 
 [How it is verified](#how-it-is-verified) lists every suite.

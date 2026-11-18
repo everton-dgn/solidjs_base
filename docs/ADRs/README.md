@@ -44,6 +44,7 @@ decided, what led to it and what it costs. The date is the day of the decision.
 | [0037](0037-icons-vite-plugin-package.md)                              | Icons come from a Vite plugin package of this monorepo                 | Accepted                                   |
 | [0038](0038-release-lockfile-workflow.md)                              | A workflow writes the workspace versions in the release lockfile       | Accepted                                   |
 | [0039](0039-tsrs-type-checker.md)                                      | tsrs checks the types instead of tsc                                   | Accepted                                   |
+| [0040](0040-package-docs-ship-with-the-package.md)                     | Package documentation ships with the package                           | Accepted                                   |
 
 ## Adding a record
 

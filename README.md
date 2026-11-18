@@ -46,9 +46,9 @@ and their counterparts in the copy:
 
 > [!IMPORTANT]
 > The three packages are `0.x`: below 1.0.0, a breaking change raises the minor
-> version ([versions](docs/tooling/limits.md#versions)). The packages pin the
-> versions they are tested with, so update them together and read the release
-> notes first.
+> version ([versions](packages/solid-tooling/docs/limits.md#versions)). The
+> packages pin the versions they are tested with, so update them together and
+> read the release notes first.
 
 ## Three packages and the app that tests them
 
@@ -154,11 +154,11 @@ each header and how the nonce reaches the scripts of the page.
 
 - Your app needs the full preset with another folder layout. The test presets,
   Knip and the CSS policy expect the boilerplate layout
-  ([known limits](docs/tooling/limits.md#known-limits)).
+  ([known limits](packages/solid-tooling/docs/limits.md#known-limits)).
 - Your server build must target a host other than Vercel's output format. Nitro
   always uses the `vercel` preset
-  ([known limits](docs/tooling/limits.md#known-limits)). A client-only build
-  (`ssr: false`) writes a static `dist/` with no server
+  ([known limits](packages/solid-tooling/docs/limits.md#known-limits)). A
+  client-only build (`ssr: false`) writes a static `dist/` with no server
   ([applications with no server](docs/tooling/no-server.md)).
 - You cannot pin exact versions. `vite-plus` 1.7.0 and `@solidjs/web` 2.0.0 are
   exact peers in the [tooling](packages/solid-tooling/package.json) and
@@ -281,12 +281,13 @@ vp add @evertondgn/solid-runtime
 ```
 
 Use the versions and layout in the
-[requirements](docs/tooling/limits.md#requirements). Write `vite.config.ts` with
-`defineSolidApp`, as in the [client-only copy](#start-a-new-app-from-a-fixture).
-For SSR, the
+[requirements](packages/solid-tooling/docs/limits.md#requirements). Write
+`vite.config.ts` with `defineSolidApp`, as in the
+[client-only copy](#start-a-new-app-from-a-fixture). For SSR, the
 [SSR fixture's `vite.config.ts`](fixtures/apps/ssr-plain/vite.config.ts) adds
 the header policy, the server error setup, the middleware and SEO. The
-[application config guide](docs/tooling/app-config.md) covers each option.
+[application config guide](packages/solid-tooling/docs/app-config.md) covers
+each option.
 
 To adopt only the lint and format presets, install only the tooling
 (`vp add -D @evertondgn/solid-tooling`) and add two keys to your Vite+ config.
@@ -407,7 +408,8 @@ folder layout, but a few rules follow the boilerplate's conventions, such as
 `project/test-filename`, which expects each test in `__tests__` next to its
 module. You can turn such a rule off in `lint.overrides`. The full
 `defineSolidApp` preset, the test presets, Knip and the CSS policy expect the
-boilerplate layout ([known limits](docs/tooling/limits.md#known-limits)).
+boilerplate layout
+([known limits](packages/solid-tooling/docs/limits.md#known-limits)).
 
 **What happens when a new Solid version ships?** The packages pin Solid, Nitro,
 the router and the icons plugin to versions tested together. Wait for a package
@@ -494,10 +496,10 @@ development, builds and tests. The runtime keeps the language in links,
 redirects, cookies and client navigation. Without a translation project, the
 same calls give one unprefixed language. Generation reads every catalog, their
 sum is limited to 8 MiB, and there is no incremental generation
-([known limits](docs/tooling/limits.md#known-limits)). See
+([known limits](packages/solid-tooling/docs/limits.md#known-limits)). See
 [links that keep the language](packages/solid-runtime/README.md#links-redirects-and-navigation-that-keep-the-language)
 and the tooling's
-[translation setup](packages/solid-tooling/README.md#translations-icons-and-fonts-as-data).
+[translation setup](packages/solid-tooling/docs/app-config.md).
 
 ## Light, dark or system without a flash
 
@@ -599,7 +601,7 @@ variables. Object spread in `env.ts` can override the keys of the preset, so
 keeping their validators is the app's job. See
 [environment values](packages/solid-runtime/README.md#environment-values-checked-at-startup)
 and
-[environment validation](docs/tooling/app-config.md#optional-environment-validation).
+[environment validation](packages/solid-tooling/docs/app-config.md#optional-environment-validation).
 
 ## Icons by name, checked by the build
 
@@ -636,7 +638,7 @@ nothing is generated: the client-only copy without its `fonts` block built to
 `dist/index.html` and one JavaScript file. Font files, licenses and typography
 tokens stay in your app. See
 [fonts with matching preloads](packages/solid-runtime/README.md#fonts-with-matching-preloads)
-and the [fonts guide](docs/tooling/fonts.md).
+and the [fonts guide](packages/solid-tooling/docs/fonts.md).
 
 ## Quality rules you inherit
 
@@ -676,12 +678,11 @@ checks the same rule before each release. The preset also:
 Knip and the CSS policy expect the boilerplate layout, a few lint rules follow
 its conventions, and some rule messages point to `docs/architecture.md` and
 `AGENTS.md` of an app created from boilerplate_solidjs
-([known limits](docs/tooling/limits.md#known-limits)). See the
+([known limits](packages/solid-tooling/docs/limits.md#known-limits)). See the
 [lint rules](packages/solid-tooling/README.md#lint-rules-that-know-your-project),
-the [CSS policy](packages/solid-tooling/README.md#a-css-policy-built-on-tokens),
-[unused code](packages/solid-tooling/README.md#unused-files-exports-and-dependencies)
-and the
-[Git hooks](packages/solid-tooling/README.md#commit-messages-and-git-hooks).
+the [CSS policy](packages/solid-tooling/docs/knip-and-css.md#css-lint),
+[unused code](packages/solid-tooling/docs/knip-and-css.md#knip) and the
+[Git hooks](packages/solid-tooling/docs/commits-and-hooks.md).
 
 ## Tests already wired
 
@@ -700,9 +701,8 @@ boilerplate app, the three projects ran 68, 87 and 30 tests in 12, 13 and 7
 files, and all passed in CI
 ([job 133680119099](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119099)).
 The test presets expect the boilerplate's test names and folders. See
-[tests](packages/solid-tooling/README.md#tests-in-the-environment-each-one-needs)
-and
-[end-to-end tests](packages/solid-tooling/README.md#end-to-end-tests-against-a-real-build).
+[tests](packages/solid-tooling/docs/testing.md) and
+[end-to-end tests](packages/solid-tooling/docs/testing.md).
 
 ## What the boilerplate app shows
 
@@ -801,7 +801,7 @@ version can fix and what stays in your app.
 When the defaults do not fit, `defineSolidApp` takes extra plugins through
 `extend`, replaces tasks by name through `tasks`, and accepts route rules,
 public assets and static paths, without forking the preset. See the
-[application config guide](docs/tooling/app-config.md).
+[application config guide](packages/solid-tooling/docs/app-config.md).
 
 ## How it is verified
 
@@ -879,7 +879,7 @@ The work below is planned, with no version or date set yet.
 | [Runtime package](packages/solid-runtime/README.md)        | Each production feature and the reference of each entry                 |
 | [Icons plugin](packages/vite-plugin-solid-icons/README.md) | Collections, typed names, what happens to your SVG files, and limits    |
 | [Boilerplate app](apps/boilerplate/README.md)              | The test bench, what each page shows, and its guides                    |
-| [Tooling guides](docs/tooling/README.md)                   | Config, lint, tests, Knip, CSS, hooks, fonts and limits, by task        |
+| [Tooling guides](packages/solid-tooling/docs/README.md)    | Config, lint, tests, Knip, CSS, hooks, fonts and limits, by task        |
 | [Development](docs/development.md)                         | Workspace setup, tests and CI                                           |
 | [Architecture](docs/architecture.md)                       | Package boundaries and application ownership                            |
 | [Releasing](docs/releasing.md)                             | Versions, publishing and recovery                                       |

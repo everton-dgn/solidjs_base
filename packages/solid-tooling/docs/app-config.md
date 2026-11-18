@@ -14,7 +14,8 @@ not use reaches its build:
 - `ssr: false` builds a client-only application: no Nitro, no server functions
   and no server bundle. It runs with no server, on a static host, in a folder,
   inside another backend or in an app shell such as Electron, Tauri or
-  Capacitor; see [applications with no server](no-server.md).
+  Capacitor; see
+  [applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md).
 - Publication uses independent `seo.markdown`, `seo.llms`, `seo.llmsFull` and
   `seo.sitemap` options. Static generation is compiled into the tooling package;
   the application binds runtime factories to its routes and middleware.
@@ -131,11 +132,11 @@ The `icons` option maps each folder collection to a folder of SVG files, which
 resolves from `root`. The preset loads `@evertondgn/vite-plugin-solid-icons`
 with these folders and `aria-hidden="true"` on every icon, and the Iconify
 collections that `package.json` installs load by their name. The
-[plugin README](../../packages/vite-plugin-solid-icons/README.md) describes the
-imports, the names and what the build refuses in an SVG file. The plugin reads
-the installed collections from the `package.json` of the Vite root, the folder
-where Vite runs, and writes the declarations of the names there; it is `root`
-when Vite runs in the application folder, as `vp run` does.
+[plugin README](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/README.md)
+describes the imports, the names and what the build refuses in an SVG file. The
+plugin reads the installed collections from the `package.json` of the Vite root,
+the folder where Vite runs, and writes the declarations of the names there; it
+is `root` when Vite runs in the application folder, as `vp run` does.
 
 #### Migrating from `~icons/`
 
@@ -177,7 +178,7 @@ it:
   or that a page reads as HTML, such as `<script>`, an `onload` attribute, a
   `javascript:` URL or `<foreignObject>`, and on a file that is not well-formed
   XML, where the old loader read the file as it was from its `<svg` on. See
-  [what the plugin does with your SVG files](../../packages/vite-plugin-solid-icons/README.md#what-the-plugin-does-with-your-svg-files).
+  [what the plugin does with your SVG files](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/README.md#what-the-plugin-does-with-your-svg-files).
 - Keeps its folders relative to `root`, as before.
 - Installs each Iconify collection as `@iconify-json/<collection>`. An icon of
   the whole `@iconify/json` package still loads by its path, but the
@@ -315,7 +316,8 @@ rejects unknown keys, functions and multiline robots directives. `originEnv`
 defaults to `VITE_SITE_URL` and is validated when SEO is enabled or the origin
 entry is imported. Applications without SEO need no origin.
 
-Use the [runtime SEO API](../../packages/solid-runtime/README.md#optional-seo)
+Use the
+[runtime SEO API](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/seo.md)
 for explicit site values, optional editorial fields, JSON-LD and the robots
 factory/route. Its virtual modules export only serialized data. No application
 module path is accepted. `seo.sitemap` controls static header rules; the
@@ -331,9 +333,26 @@ false features emit no corresponding artifacts or rules. Remove disabled route
 bindings and document announcements from the application too. Importing a
 disabled runtime factory fails the build. The removed `publication` option is
 rejected with a migration diagnostic. See
-[ADR 0034](../ADRs/0034-runtime-markdown-publication.md) for examples and
-budgets. Omit SEO and the origin import for meta-only use with an explicit site
-URL.
+[ADR 0034](https://github.com/everton-dgn/solidjs_base/blob/main/docs/ADRs/0034-runtime-markdown-publication.md)
+for examples and budgets. Omit SEO and the origin import for meta-only use with
+an explicit site URL.
+
+### Publication artifacts
+
+The build writes files for crawlers, for what you turn on: a `.md` copy of each
+opted-in page with `markdown: { static: true }`, `llms.txt` with `llms`,
+`llms-full.txt` with `llmsFull`, and the sitemap XML with
+`sitemap: { static: true }`. A bad artifact fails the build before it reaches
+production: a `.md` file that is empty, not UTF-8 or still an HTML document, an
+index or sitemap file over its byte budget, an `llms.txt` whose link to
+`llms-full.txt` disagrees with the files built, a static page that resolves to
+another route, or a Markdown list or sitemap inventory from a different build
+than the SSR bundle. Your config needs no `extend` callback for this.
+
+`@evertondgn/solid-tooling/publication/read-llms-index` exports
+`readLlmsIndex(text)`, the compiled reader of the generated `llms.txt`, for
+artifact checks in Node. It returns the title, the description and the links of
+the index, and it throws when the title is missing.
 
 ## Optional environment validation
 

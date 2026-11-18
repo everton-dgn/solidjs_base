@@ -4,9 +4,11 @@
 
 ## Requirements
 
-Applications run on Node 26 or a later line. The tooling, the runtime and the
-icons plugin declare it in `engines.node`, from the lowest version they are
-tested with.
+The tooling, the runtime and the icons plugin declare in `engines.node` the
+lowest Node version they are tested with, so an older release of the same major
+line does not qualify. The boilerplate app and the fixture apps also cap their
+range below the next major line. Check `engines.node` in each package and
+application manifest.
 
 The package installs the tools it uses at the versions it tests. Applications
 keep direct dependencies for imports in their own source and for Vite+:
@@ -25,14 +27,14 @@ optional peer; install the versions in the tooling manifest. Bun reads
 package is transitive.
 
 The tooling package supplies `@solidjs/vite-plugin`, `nitro`,
-`filesystem-routing`, `@evertondgn/vite-plugin-solid-icons`, `knip`,
-`typescript`, `@types/node`, `happy-dom`, `playwright`, `@playwright/test`,
+`filesystem-routing`, `@evertondgn/vite-plugin-solid-icons`, `knip`, `tsrs` for
+type checking, `@types/node`, `happy-dom`, `playwright`, `@playwright/test`,
 `@vitest/browser-playwright`, `@vitest/coverage-v8`, `@vitest/ui`,
 `@testing-library/jest-dom`, `@commitlint/cli` and `lefthook`. It also supplies
 its existing lint, CSS and catalog dependencies. Updating the tooling package
 updates these tools, including for applications that do not use every feature.
 Installation cost is measured in
-[ADR 0027](../ADRs/0027-packaged-tool-dependencies.md).
+[ADR 0027](https://github.com/everton-dgn/solidjs_base/blob/main/docs/ADRs/0027-packaged-tool-dependencies.md).
 
 A library used directly still belongs in the application's manifest. The
 boilerplate copy keeps `filesystem-routing` for API helpers and tests, and
@@ -106,7 +108,7 @@ include `node_modules/@evertondgn/solid-tooling/node-env.d.ts`.
   `storage: 'local-storage'` is accepted with SSR, but the server cannot read
   the choice, so the page shows the default theme until `createTheme` applies
   it; the cookie is the storage for SSR. See
-  [applications with no server](no-server.md#limits).
+  [applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md#limits).
 - `@evertondgn/solid-runtime/env` exports optional preset validators, with
   Valibot supplied by the runtime package. Valibot requires no application
   declaration unless the application imports Valibot itself. The isolated
@@ -173,7 +175,7 @@ include `node_modules/@evertondgn/solid-tooling/node-env.d.ts`.
 
 The package follows semantic versioning. Below 1.0.0, a breaking change raises
 the minor version. Each release is listed in the
-[changelog](../../packages/solid-tooling/CHANGELOG.md).
+[changelog](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/CHANGELOG.md).
 
 ## License
 

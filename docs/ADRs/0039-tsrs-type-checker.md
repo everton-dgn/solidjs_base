@@ -46,4 +46,4 @@ The options were:
   update also sets that entry to the new `dependencies.tsrs` of `vite-plus`.
 - tsrs is a beta: it has no `--init` and no `--showConfig`, its `--watch` does
   not run on Windows, and pnpm with `trustPolicy: no-downgrade` rejects it
-  ([known limits](../tooling/limits.md#known-limits)).
+  ([known limits](../../packages/solid-tooling/docs/limits.md#known-limits)).

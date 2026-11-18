@@ -37,7 +37,7 @@ Use `vp run tsrs`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
 `vp run commitlint` for the package's executables. Scripts such as `test:e2e`,
 `test:browser:install` and `dead-code:fix` use these tasks. The standalone
 command pattern is documented in the
-[tooling guide](../../../docs/tooling/limits.md#packaged-commands-and-types).
+[tooling guide](../../../packages/solid-tooling/docs/limits.md#packaged-commands-and-types).
 Keep `trustedDependencies: []` when extracting this copy so dependency
 installation does not change Git hooks; hook installation is explicit.
 
@@ -54,7 +54,7 @@ generated `solid-env.d.ts` types cover the virtual modules, not
 `import.meta.env`; keep `src/@types/env.d.ts` for the application's
 `PUBLICATION_BUILD_ID` declaration. `SITE.url` imports the runtime SEO origin.
 See the
-[environment guide](../../../docs/tooling/app-config.md#optional-environment-validation).
+[environment guide](../../../packages/solid-tooling/docs/app-config.md#optional-environment-validation).
 
 To install and start the project, follow [running it](../README.md#running-it).
 
@@ -480,7 +480,7 @@ run.
 > This section describes the hooks of the original repository,
 > boilerplate_solidjs. The copy installs no Git hooks. The hooks that the
 > tooling package ships are in
-> [Commit messages and Git hooks](../../../docs/tooling/commits-and-hooks.md).
+> [Commit messages and Git hooks](../../../packages/solid-tooling/docs/commits-and-hooks.md).
 
 Installed by Lefthook in `vp install`, authorized in the `trustedDependencies`
 of `package.json`:

@@ -47,7 +47,7 @@ installed fixtures exercise both Bun linkers with reduced manifests. Keep
 application-owned imports and Vite+ overrides aligned with the package versions.
 Use `vp run tsrs`, `vp run knip` and `vp run playwright` in applications using
 `defineSolidApp`; their executables resolve from the tooling package. See
-[the dependency contract](docs/tooling/limits.md).
+[the dependency contract](packages/solid-tooling/docs/limits.md).
 
 ## Where things live
 
@@ -87,7 +87,7 @@ The CI runs the same commands and skips the jobs your files do not affect.
    `packages/solid-tooling/src/tarball/__tests__/tarball.test.ts`. The tarball
    test then proves that the published package reports it.
 4. List the rule in the
-   [lint guide](docs/tooling/lint.md#rules-of-this-package).
+   [lint guide](packages/solid-tooling/docs/lint.md#rules-of-this-package).
 
 ## Conventions
 

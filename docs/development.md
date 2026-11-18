@@ -48,7 +48,7 @@ runtime owns the routing helpers it imports and exports `StartMiddleware` from
 `./middleware/types`, without depending on the Solid plugin. The copy keeps
 routing and Playwright Test because its own code imports them; it neither
 declares nor imports Nitro, which comes with the tooling. See
-[requirements](tooling/limits.md#requirements) and
+[requirements](../packages/solid-tooling/docs/limits.md#requirements) and
 [ADR 0027](ADRs/0027-packaged-tool-dependencies.md).
 
 Bun's default trust list runs Lefthook's postinstall even as a transitive
@@ -654,7 +654,7 @@ into the client entry and requires the plugin's boundary error, restores the
 entry, and retains the existing runtime server-only probe. These negative checks
 run in normal `validate`, including both linkers. See
 [ADR 0030](ADRs/0030-packaged-environment-schemas.md) and the
-[environment API](tooling/app-config.md#optional-environment-validation).
+[environment API](../packages/solid-tooling/docs/app-config.md#optional-environment-validation).
 
 ## Packaged fonts
 
@@ -675,7 +675,8 @@ Use `SCENARIO_MUTATION=fonts-href` or `fonts-inline` with
 prove the corresponding audit fails. These mutate only the temporary
 installation. Run the copy's test suites separately from package builds and the
 matrix; its production E2E checks the real CSP. See
-[ADR 0032](ADRs/0032-packaged-fonts.md) and the [font API](tooling/fonts.md).
+[ADR 0032](ADRs/0032-packaged-fonts.md) and the
+[font API](../packages/solid-tooling/docs/fonts.md).
 
 ## Markdown and llms publication
 

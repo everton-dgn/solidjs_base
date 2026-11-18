@@ -1,7 +1,7 @@
 {
   "name": "@evertondgn/solid-tooling",
   "version": "0.10.0",
-  "description": "Lint, formatter, TypeScript, test and Vite app presets for SolidJS applications built with Vite+.",
+  "description": "The whole vite.config.ts, lint rules, test projects and Git hooks of a SolidJS 2 app on Vite+, as one dev dependency.",
   "author": "Éverton Toffanetto",
   "license": "MIT",
   "repository": {
@@ -36,6 +36,7 @@
   },
   "files": [
     "dist",
+    "docs",
     "tsconfig.base.json",
     "tsconfig.app.json",
     "virtual-modules.d.ts",

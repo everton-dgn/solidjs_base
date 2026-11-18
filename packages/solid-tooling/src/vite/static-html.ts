@@ -22,14 +22,27 @@ export function inspectHtml(html: string): HtmlInspection {
   try {
     const document = new window.DOMParser().parseFromString(html, 'text/html')
     const hashes = new Set<string>()
-    for (const script of document.querySelectorAll('script:not([src])')) {
-      const type = script.getAttribute('type')?.trim().toLowerCase()
-      if (type && !EXECUTABLE_SCRIPT.test(type)) continue
-      const text = script.textContent.replaceAll(/\r\n?/gu, '\n')
-      hashes.add(`sha256-${createHash('sha256').update(text).digest('base64')}`)
+    const roots: (
+      | typeof document
+      | ReturnType<typeof document.createDocumentFragment>
+    )[] = [document]
+    let hasNonce = false
+    for (const root of roots) {
+      hasNonce ||= root.querySelector('[nonce]') !== null
+      for (const template of root.querySelectorAll('template')) {
+        roots.push(template.content)
+      }
+      for (const script of root.querySelectorAll('script:not([src])')) {
+        const type = script.getAttribute('type')?.trim().toLowerCase()
+        if (type && !EXECUTABLE_SCRIPT.test(type)) continue
+        const text = script.textContent.replaceAll(/\r\n?/gu, '\n')
+        hashes.add(
+          `sha256-${createHash('sha256').update(text).digest('base64')}`
+        )
+      }
     }
     return {
-      hasNonce: document.querySelector('[nonce]') !== null,
+      hasNonce,
       hashes: [...hashes].toSorted()
     }
   } finally {

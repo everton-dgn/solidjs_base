@@ -74,7 +74,7 @@ it('writes per-file inline script hashes and their union outside public', async 
   )
   await writeFile(
     path.join(publicDir, '404.html'),
-    '<script>abc</script><script type="module">hello</script><script type="application/json">{}</script>'
+    '<script>abc</script><template><template><script type="module">hello</script></template></template><script type="application/json">{}</script>'
   )
   const output = { dir, publicDir }
   await config.hooks.compiled({ options: { static: false, output } })

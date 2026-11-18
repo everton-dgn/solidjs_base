@@ -6,10 +6,12 @@ type PublicationBuild = {
   plugin: ReturnType<typeof createPublicationBuild>['plugin']
   module: ReturnType<typeof markdownPrerender>
 }
-export function publicationBuild(
-  features: PublicationFeatures,
-  isStatic = false
-): PublicationBuild {
+type PublicationInput = { features: PublicationFeatures; isStatic: boolean }
+
+export function publicationBuild({
+  features,
+  isStatic
+}: PublicationInput): PublicationBuild {
   const publication = createPublicationBuild()
   return {
     plugin: publication.plugin,

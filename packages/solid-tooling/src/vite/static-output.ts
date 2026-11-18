@@ -1,10 +1,23 @@
 import path from 'node:path'
 
-import type { NitroConfig } from 'nitro/types'
+import type { NitroConfig, PrerenderRoute } from 'nitro/types'
 import type { Plugin } from 'vite-plus'
 
+import { readOrigin } from '../seo-module.ts'
+import type { StaticBuild } from './static-html.ts'
 import type { ServerAppOptions } from './types.ts'
 
+const HTTP_NOT_FOUND = 404
+
+type StaticOutputInput = {
+  options: ServerAppOptions
+  locales: string[]
+  directory?: string
+  mode?: string
+}
+type StaticMiddlewareInput = { root: string; middleware?: string }
+
+// The inventory validates sitemap source kinds after Nitro renders it.
 function isPublicationRoute(route: string): boolean {
   const pathname = route.replace(/\/$/u, '')
   return [
@@ -18,44 +31,13 @@ function isPublicationRoute(route: string): boolean {
   ].includes(pathname)
 }
 
-export function staticBuildPlugin(root: string, middleware?: string): Plugin {
-  const entry = middleware ? path.resolve(root, middleware) : undefined
-  const wrapper = '\0solid-app:static-middleware'
-
-  return {
-    name: 'solid-app:static-build',
-    enforce: 'pre',
-    resolveId(id, importer) {
-      if (id === entry && importer !== wrapper) return wrapper
-      return null
-    },
-    load(id) {
-      if (id !== wrapper) return null
-      return `import middleware from ${JSON.stringify(entry)}
-import { configureServerErrors } from '@evertondgn/solid-runtime/server/configure-server-errors'
-configureServerErrors()
-export default [(event, next) => { event.nonce = { script: false, style: false }; return next() }, ...[middleware].flat()]`
-    },
-    transform(code, id) {
-      if (id === 'virtual:solid-server-function-manifest' && code.trim()) {
-        throw new Error(
-          `output: static cannot publish server functions: ${code.trim()}`
-        )
-      }
-    }
-  }
+function publicationFeature(pathname: string) {
+  if (pathname === '/robots.txt') return 'robots'
+  if (pathname === '/llms.txt') return 'llms'
+  return 'sitemap'
 }
 
-export async function staticOutput({
-  options,
-  locales,
-  directory
-}: {
-  options: ServerAppOptions
-  locales: string[]
-  directory?: string
-}): Promise<NitroConfig> {
-  if (options.output !== 'static') return {}
+async function readStaticRoutes({ options, directory }: StaticOutputInput) {
   const { PageFileSystemRouter, stripRouteGroups } =
     await import('filesystem-routing')
   const { DEFAULT_EXTENSIONS } = await import('filesystem-routing/vite')
@@ -67,6 +49,7 @@ export async function staticOutput({
   })
   const paths = new Set(['/'])
   const dynamicPages: string[] = []
+  let hasErrorPage = false
   for (const route of await router.getRoutes()) {
     if (
       route.server ||
@@ -80,19 +63,52 @@ export async function staticOutput({
         `output: static cannot publish the server operation at ${route.path}`
       )
     }
-    if (route.page) {
-      if (/[:*]/u.test(route.path)) {
-        dynamicPages.push(route.path)
-        continue
+    const pathname = stripRouteGroups(route.path).replace(/\/$/u, '')
+    if (('$GET' in route || '$HEAD' in route) && isPublicationRoute(pathname)) {
+      const feature = publicationFeature(pathname)
+      if (
+        typeof options.seo !== 'object' ||
+        typeof options.seo[feature] !== 'object'
+      ) {
+        throw new TypeError(
+          `output: static ${pathname} requires seo.${feature}`
+        )
       }
-      paths.add(stripRouteGroups(route.path).replace(/\/$/u, '') || '/')
     }
+    if (!route.page) continue
+    if (/^\/\*[\w-]+\/?$/u.test(stripRouteGroups(route.path))) {
+      if (hasErrorPage) {
+        throw new Error('output: static requires a single root catch-all')
+      }
+      hasErrorPage = true
+      continue
+    }
+    if (/[:*]/u.test(route.path)) {
+      dynamicPages.push(route.path)
+      continue
+    }
+    paths.add(pathname || '/')
   }
+  return { paths, dynamicPages, hasErrorPage }
+}
+
+async function createStaticConfig(input: StaticOutputInput) {
+  const { options, locales } = input
+  const { inspectHtml, writeHashManifest } = await import('./static-html.ts')
+  const { paths, dynamicPages, hasErrorPage } = await readStaticRoutes(input)
   const routes = [...paths]
   for (const locale of locales) {
     for (const page of paths) {
       routes.push(`/${locale}${page === '/' ? '' : page}`)
     }
+  }
+  if (hasErrorPage) {
+    if (routes.includes('/404.html')) {
+      throw new Error(
+        'output: static reserves /404.html for the root catch-all'
+      )
+    }
+    routes.push('/404.html')
   }
   const pages = new Set(routes)
   if (
@@ -101,18 +117,65 @@ export async function staticOutput({
   ) {
     routes.push('/robots.txt')
   }
+  const robots =
+    typeof options.seo === 'object' ? options.seo.robots : undefined
   return {
     prerender: { routes, crawlLinks: false, failOnError: true },
     hooks: {
-      'prerender:done'({ failedRoutes }) {
+      async compiled({ options: { output } }: StaticBuild) {
+        let sitemaps: string[] = []
+        if (
+          typeof options.seo === 'object' &&
+          typeof robots === 'object' &&
+          robots.sitemapPaths?.length
+        ) {
+          const origin = readOrigin({
+            root: options.root,
+            mode: input.mode ?? 'production',
+            key: options.seo.originEnv ?? 'VITE_SITE_URL'
+          })
+          sitemaps = robots.sitemapPaths
+            .map(href => new URL(href, origin))
+            .filter(url => url.origin === origin)
+            .map(url => decodeURIComponent(url.pathname))
+        }
+        await writeHashManifest({ output, sitemaps })
+      },
+      'prerender:done'({ failedRoutes, prerenderedRoutes }) {
+        // Keep the original Nitro failure when enumeration also fails.
         if (failedRoutes.length === 0 && dynamicPages.length > 0) {
           throw new Error(
             `output: static cannot enumerate pages: ${dynamicPages.join(', ')}`
           )
         }
+        if (failedRoutes.length > 0) return
+        const published = new Set(prerenderedRoutes.map(route => route.route))
+        const files = new Set(prerenderedRoutes.map(route => route.fileName))
+        if (typeof robots === 'object' && !files.has('/robots.txt')) {
+          throw new Error('output: static robots.txt not published')
+        }
+        for (const page of pages) {
+          if (!published.has(page)) {
+            throw new Error(`output: static page not published: ${page}`)
+          }
+        }
       },
-      'prerender:generate'(route) {
+      'prerender:generate'(route: PrerenderRoute) {
+        if (hasErrorPage && route.route === '/404.html') {
+          if (route.error?.status === HTTP_NOT_FOUND) delete route.error
+          route.fileName = '/404.html'
+        }
         if (route.error) return
+        if (
+          route.route === '/robots.txt' &&
+          (!route.contentType?.startsWith('text/plain') ||
+            route.fileName !== '/robots.txt')
+        ) {
+          route.error = new Error(
+            'output: static expected plain text at /robots.txt'
+          )
+          return
+        }
         if (
           pages.has(route.route) &&
           !route.contentType?.startsWith('text/html')
@@ -124,7 +187,7 @@ export async function staticOutput({
         }
         if (
           route.contentType?.startsWith('text/html') &&
-          /<[^>]+\snonce\s*=/iu.test(route.contents ?? '')
+          inspectHtml(route.contents ?? '').hasNonce
         ) {
           route.error = new Error(
             `output: static cannot publish a CSP nonce in ${route.route}; disable nonce generation in the build middleware`
@@ -132,5 +195,77 @@ export async function staticOutput({
         }
       }
     }
+  } satisfies NitroConfig
+}
+
+export function staticBuildPlugin({
+  root,
+  middleware
+}: StaticMiddlewareInput): Plugin {
+  const entry = middleware ? path.resolve(root, middleware) : undefined
+  const wrapper = '\0solid-app:static-middleware'
+
+  return {
+    name: 'solid-app:static-build',
+    enforce: 'pre',
+    resolveId(id, importer) {
+      // Solid validates the middleware path on disk before importing it. Without
+      // app middleware, only intercept its handler's import of the package manifest.
+      if (
+        !entry &&
+        id === path.resolve(root, 'package.json') &&
+        (importer === 'virtual:solid-ssr-handler' ||
+          importer === 'virtual:solid-ssr-handler-impl')
+      ) {
+        return wrapper
+      }
+      if (id === entry && importer !== wrapper) return wrapper
+      return null
+    },
+    load(id) {
+      if (id !== wrapper) return null
+      return `${entry ? `import middleware from ${JSON.stringify(entry)}` : 'const middleware = []'}
+import { pageRoutes } from 'virtual:file-routes'
+import { walkStaticRoutes } from '@evertondgn/solid-runtime/routing/walk-static-routes'
+import { configureServerErrors } from '@evertondgn/solid-runtime/server/configure-server-errors'
+configureServerErrors()
+walkStaticRoutes({
+  routes: pageRoutes,
+  shouldVisitDynamic: true,
+  visit: ({ route, path }) => {
+    if (route.$$route?.require().route?.info?.markdown === 'dynamic') {
+      throw new Error('output: static cannot publish dynamic Markdown at ' + path)
+    }
   }
+})
+export default [async (event, next) => {
+  // Set both destinations before requestNonce fills an unset event nonce.
+  event.nonce = { script: false, style: false }
+  const response = await next()
+  if (!response.headers.get('content-type')?.startsWith('text/html')) return response
+  const body = await response.arrayBuffer()
+  const state = event.locals.ssrRenderState
+  if (state?.hasErrors !== false || state.hasCompleted !== true) {
+    return new Response(null, {status: 500, statusText: 'incomplete or failed render: use createRenderOptions'})
+  }
+  return new Response(body, response)
+}, ...[middleware].flat()]`
+    },
+    transform(code, id) {
+      if (id === 'virtual:solid-server-function-manifest' && code.trim()) {
+        throw new Error(
+          `output: static cannot publish server functions: ${code.trim()}`
+        )
+      }
+    }
+  }
+}
+
+export async function staticOutput(
+  input: StaticOutputInput
+): Promise<
+  | Awaited<ReturnType<typeof createStaticConfig>>
+  | { hooks?: never; prerender?: never }
+> {
+  return input.options.output === 'static' ? createStaticConfig(input) : {}
 }

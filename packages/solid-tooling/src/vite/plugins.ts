@@ -138,7 +138,9 @@ function staticHeaders(
   }
 }
 
-function serverRouteRules(options: ServerAppOptions, locales: string[]) {
+type ServerRulesInput = { options: ServerAppOptions; locales: string[] }
+
+function serverRouteRules({ options, locales }: ServerRulesInput) {
   if (options.output === 'static') return {}
   const { securityHeaders } = options
   const headers = staticHeaders(securityHeaders)
@@ -191,7 +193,10 @@ async function createPublication(options: ServerAppOptions) {
   let publication: ReturnType<typeof publicationBuild> | undefined
   if (enabled) {
     const { publicationBuild } = await import('../publication/index.ts')
-    publication = publicationBuild(features, options.output === 'static')
+    publication = publicationBuild({
+      features,
+      isStatic: options.output === 'static'
+    })
   }
   return publication
 }
@@ -213,6 +218,8 @@ async function serverPlugins({
     ? (options.e2e?.middleware ?? options.middleware)
     : options.middleware
   const e2eRoutes = isE2e ? options.e2e?.routes : undefined
+  const startMiddleware =
+    middleware ?? (options.output === 'static' ? 'package.json' : undefined)
   const publication = await createPublication(options)
   return [
     localeModule(options),
@@ -220,13 +227,13 @@ async function serverPlugins({
     seoModule({ root: options.root, mode, seo: options.seo }),
     ...(publication ? [publication.plugin] : []),
     ...(options.output === 'static'
-      ? [staticBuildPlugin(options.root, middleware)]
+      ? [staticBuildPlugin({ root: options.root, middleware })]
       : []),
     ...(extension.plugins ?? []),
     ...i18n,
     iconsPlugin({ modules, options }),
     modules.solid({
-      start: middleware ? { middleware } : {},
+      start: startMiddleware ? { middleware: startMiddleware } : {},
       ssr: true,
       serverFunctions: options.serverSetup
         ? { serverSetup: options.serverSetup }
@@ -243,17 +250,16 @@ async function serverPlugins({
     nitro({
       serverEntry: false,
       preset: options.output ?? 'vercel',
-      ...(await staticOutput({ options, locales, directory: e2eRoutes })),
+      ...(await staticOutput({ options, locales, directory: e2eRoutes, mode })),
       modules: [
         ...(publication ? [publication.module] : []),
         ...(extension.nitroModules ?? [])
       ],
       // Nitro already registers the assetsDir of Vite, which serves /assets/.
       publicAssets: options.publicAssets ?? [],
-      // The static files leave the CDN without going through the middleware,
-      // so these rules give them the headers the middleware writes on the
-      // responses of the function.
-      routeRules: serverRouteRules(options, locales)
+      // Vercel serves assets outside the response middleware. Static hosts
+      // supply their own headers at deployment.
+      routeRules: serverRouteRules({ options, locales })
     })
   ]
 }

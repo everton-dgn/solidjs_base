@@ -663,12 +663,13 @@ new file mode 100644
 diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/tooling/__tests__/patched-dependencies.test.ts
 --- a/source/tooling/__tests__/patched-dependencies.test.ts
 +++ b/example/tooling/__tests__/patched-dependencies.test.ts
-@@ -1,31 +1,31 @@
+@@ -1,31 +1,30 @@
  import assert from 'node:assert/strict'
-+import { execFileSync } from 'node:child_process'
++import { execFile } from 'node:child_process'
  import { access, readFile } from 'node:fs/promises'
  import path from 'node:path'
  import { it } from 'node:test'
++import { promisify } from 'node:util'
  
 -import * as v from 'valibot'
 +const ROOT = path.resolve(import.meta.dirname, '../..')
@@ -695,21 +696,19 @@ diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/too
 -      `${key} is not resolved in bun.lock`
 -    )
 +it('checks the installed Markdown converter patch policy', async () => {
-+  const workspace = await readFile(
-+    path.join(ROOT, 'pnpm-workspace.yaml'),
-+    'utf8'
-+  )
 +  const lock = await readFile(path.join(ROOT, 'pnpm-lock.yaml'), 'utf8')
-+  const decoded = execFileSync(
++  const { stdout: decoded } = await promisify(execFile)(
 +    'bun',
 +    [
 +      '-p',
-+      'JSON.stringify(Bun.YAML.parse(await Bun.stdin.text()).patchedDependencies)'
++      `JSON.stringify(Bun.YAML.parse(await Bun.file('pnpm-workspace.yaml').text()).patchedDependencies)`
 +    ],
-+    { input: workspace, encoding: 'utf8' }
++    { cwd: ROOT }
 +  )
 +  const patches: unknown = JSON.parse(decoded)
-+  assert.ok(patches && typeof patches === 'object' && !Array.isArray(patches))
++  assert.ok(
++    patches !== null && typeof patches === 'object' && !Array.isArray(patches)
++  )
 +  const entries = Object.entries(patches)
 +  assert.ok(entries.length > 0)
 +  for (const [key, file] of entries) {

@@ -97,11 +97,10 @@ export function rewritePatchTest({ dir, pm }: PatchRewrite): void {
             "  await assert.rejects(access(path.join(ROOT, 'patches')), { code: 'ENOENT' })"
           ]
         : [
-            "  const workspace = await readFile(path.join(ROOT, 'pnpm-workspace.yaml'), 'utf8')",
             "  const lock = await readFile(path.join(ROOT, 'pnpm-lock.yaml'), 'utf8')",
-            "  const decoded = execFileSync('bun', ['-p', 'JSON.stringify(Bun.YAML.parse(await Bun.stdin.text()).patchedDependencies)'], { input: workspace, encoding: 'utf8' })",
+            "  const { stdout: decoded } = await promisify(execFile)('bun', ['-p', `JSON.stringify(Bun.YAML.parse(await Bun.file('pnpm-workspace.yaml').text()).patchedDependencies)`], { cwd: ROOT })",
             '  const patches: unknown = JSON.parse(decoded)',
-            "  assert.ok(patches && typeof patches === 'object' && !Array.isArray(patches))",
+            "  assert.ok(patches !== null && typeof patches === 'object' && !Array.isArray(patches))",
             '  const entries = Object.entries(patches)',
             '  assert.ok(entries.length > 0)',
             '  for (const [key, file] of entries) {',
@@ -114,7 +113,7 @@ export function rewritePatchTest({ dir, pm }: PatchRewrite): void {
       .replace(
         "import * as v from 'valibot'\n\n",
         pm === 'pnpm'
-          ? "import { execFileSync } from 'node:child_process'\n\n"
+          ? "import { execFile } from 'node:child_process'\nimport { promisify } from 'node:util'\n\n"
           : ''
       )}\nit('checks the installed Markdown converter patch policy', async () => {\n${lines.join(
       '\n'

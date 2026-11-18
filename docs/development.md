@@ -658,8 +658,9 @@ environment. The public value is baked into the HTML. The default
 lazy server and requires HTTP 500 plus the boot diagnostic naming `PORT`. It
 then injects a used server env import into the client entry and requires the
 plugin's boundary error, restores the entry, and runs the existing runtime
-server-only probe. These negative checks run in normal `validate`, including
-both linkers. See [ADR 0030](ADRs/0030-packaged-environment-schemas.md) and the
+server-only probe. These negative checks run in normal `validate`, in the
+`isolated` linker only; the `hoisted` case runs the plain smoke. See
+[ADR 0030](ADRs/0030-packaged-environment-schemas.md) and the
 [environment API](../packages/solid-tooling/docs/app-config.md#optional-environment-validation).
 
 ## Packaged fonts

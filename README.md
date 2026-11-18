@@ -511,7 +511,7 @@ Its Packages job ran `vp run validate`, the same checks as the publish job
 | Release automation                | 164 tests passed in CI                                                                                                                                         | [Releasing](docs/releasing.md)                                              |
 | Boilerplate app, Vitest           | 185 tests in 32 files passed in CI ([job](https://github.com/everton-dgn/solidjs_base/actions/runs/44206537981/job/134474053995))                              | [App](apps/boilerplate/README.md#how-it-is-tested)                          |
 | Boilerplate app, E2E build        | 164 Playwright cases passed in CI ([job](https://github.com/everton-dgn/solidjs_base/actions/runs/44206537981/job/134474053917))                               | [App](apps/boilerplate/README.md#how-it-is-tested)                          |
-| Boilerplate app, production build | 155 Playwright cases, enumerated with `playwright test --list` and run only locally                                                                            | [App](apps/boilerplate/README.md#how-it-is-tested)                          |
+| Boilerplate app, production build | 155 Playwright cases, listed locally with `playwright test --list` on 2026-11-17 at `4d2c326`; the CI does not run this suite                                  | [App](apps/boilerplate/README.md#how-it-is-tested)                          |
 
 The installed scenarios pack the three packages and install them in the
 [fixture apps](fixtures/apps), outside the workspace. A case fails when a

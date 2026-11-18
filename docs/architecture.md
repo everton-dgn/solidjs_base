@@ -6,6 +6,10 @@ owns, what stays in an application, how the packages depend on each other and
 how the copy and the fixture apps test them. Each package README holds its API,
 its entry points and its test counts.
 
+The workspace also contains the private application generator in
+`packages/create-solid`. It joins the linked release group after its first
+manual registry release.
+
 ## Where code lives
 
 An application built on the packages takes code from four places.

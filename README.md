@@ -37,6 +37,10 @@ path in the [quick start](#quick-start).
   <img src="docs/assets/readme/fix-once-light.webp" alt="Copied configs drift between apps A, B and C. On Solid Base, thin app configs take one shared fix through vp update." width="800" />
 </picture>
 
+The workspace also contains the private application generator in
+`packages/create-solid`. It joins the linked release group after its first
+manual registry release.
+
 ## Why it exists
 
 Solid Base started as a starter app,

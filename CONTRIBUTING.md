@@ -5,6 +5,10 @@ pull request. The [development guide](docs/development.md) has the details of
 the workspace, and the [architecture guide](docs/architecture.md) explains what
 belongs in each package.
 
+The workspace also contains the private application generator in
+`packages/create-solid`. It joins the linked release group after its first
+manual registry release.
+
 ## Before you start
 
 - Report bugs and propose changes in

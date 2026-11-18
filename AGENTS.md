@@ -23,6 +23,10 @@ parameters", "Events in JSX", "Conditionals and control flow", "Exports",
 "Functions that return a Promise", "Code comments", "Boolean names" and "Signal
 names".
 
+The workspace also contains the private application generator in
+`packages/create-solid`. It joins the linked release group after its first
+manual registry release.
+
 ## Validation
 
 - Run `vp run validate` at the root. It runs the build, check, dead code,

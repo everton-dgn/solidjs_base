@@ -11,18 +11,16 @@ modules of `defineSolidApp`. A section applies only when the app uses it.
 
 ## Headers, CSP and nonce (SSR)
 
-- Call `createSecurityHeaders` once, in one module. Every step that writes a
-  response imports `securityHeaders` or `applySecurityHeaders` from it, and
-  `createMiddleware({ security })` gets the same instance.
+- Call `createSecurityHeaders` once. Every step that writes a response, and
+  `createMiddleware({ security })`, uses the instance of that one module.
 - `headers` and `cspDirectives` replace the defaults: spread `SECURITY_HEADERS`
   or `CSP_DIRECTIVES` from `middleware/security-headers/constants`, and pass the
   same headers to the `securityHeaders` option of `defineSolidApp`.
-- Never set `script-src`, `script-src-elem`, `script-src-attr` or a
-  `content-security-policy` header there: the package builds the script policy
-  from the request nonce and throws at startup.
-- In production only scripts with the request nonce run, and styles come only
-  from external sheets. Give every server-rendered `<script>` the nonce, and use
-  classes instead of a `<style>` element or a `style` prop.
+- Never pass `script-src`, `script-src-elem`, `script-src-attr` or a
+  `content-security-policy` header: the package builds them and refuses yours.
+- Only scripts with the request nonce run in production, and styles only from
+  external sheets: put `requestNonce()`, from `middleware/security-headers`, on
+  each server-rendered `<script>`, and use classes, not `<style>` or `style`.
 - Nothing refuses a host in `img-src` or `'unsafe-inline'` in `style-src`. The
   dev server sends no CSP: check a CSP change in a production build.
 
@@ -30,30 +28,28 @@ modules of `defineSolidApp`. A section applies only when the app uses it.
 
 - Spread `createRenderOptions()` into `renderToStream`. Never pass `onError`,
   and keep its `onCompleteAll`, so a failed render never becomes Markdown.
-- Call `prepareClientLocale()` before hydration, hydrate only when
-  `shouldHydrate` is true and call `dispose()` in the HMR callback.
+- Call `prepareClientLocale()` before hydration. It installs the history guard;
+  hydrate only when `shouldHydrate` is true and `dispose()` it on HMR.
 - `serverSetup` points to `src/infra/server/configureServerErrors/index.ts`,
-  which calls `configureServerErrors` once and exports nothing. With
-  translations, its `publicMessage(locale)` is synchronous and returns only
-  public text; it never receives the original error.
-- Wrap an SDK or database adapter in `protectServerOperation({ run })`. It
-  accepts plain public data and turns a failure into a fresh public error, but
-  it cannot find a secret inside a string: return only the fields you selected.
-- A public error comes only from `createPublicError()` of
-  `server/public-errors`. Never copy the message, cause, properties, body or
-  headers of an upstream error into a result.
+  which calls `configureServerErrors` once and exports nothing. Its
+  `publicMessage(locale)` is synchronous and returns only public text.
+- Wrap an SDK or database adapter in `protectServerOperation({ run })`: it turns
+  a failure into a fresh public error, but cannot find a secret in a string, so
+  return only the fields you selected.
+- Create public errors only with `createPublicError()` of
+  `server/public-errors`, and never copy an upstream error's message, cause,
+  properties, body or headers into a result.
 - The lint refuses `console` (use `logServerFailure`), `fetch` outside
   `src/infra/server/requestJson/index.ts`, Node transports and `markSafeError`.
 
 ## Locales and navigation
 
-- Without `project.inlang/settings.json` there is one unprefixed locale, the
-  `language` of the preset, and `middleware/localize-request` cannot be used.
-  With it, build `createLocalizeRequest({ applySecurityHeaders })` from the same
-  security instance.
-- Navigate with `createLocalizedNavigate()` under the Router. Call
-  `createLocaleNavigationGuard()` at the Router root and
-  `installLocaleHistoryGuard()` before mounting it, disposing its cleanup.
+- Without `project.inlang/settings.json` there is one unprefixed locale,
+  `language`. With it, `createMiddleware` already localizes each request, and
+  `createLocalizeRequest` is only for a chain of your own.
+- Navigate with `createLocalizedNavigate()` under the Router and call
+  `createLocaleNavigationGuard()` at its root. `installLocaleHistoryGuard()` is
+  only for an entry without `prepareClientLocale()`.
 - `localizedRedirect({ href })` and `resolveLocalizedHref({ href, base })` throw
   on a relative page URL without a base. Endpoints and assets take
   `shouldLocalize: false`. `localeTag()` gives the `lang` and SEO tags.
@@ -64,9 +60,8 @@ modules of `defineSolidApp`. A section applies only when the app uses it.
 ## Route SEO and seo.ts (SSR)
 
 - Call `createSeo({ route: true, site })` once in the Router's root owner, with
-  `get locale()` and message getters for translated site values. The `seo`
-  option and `VITE_SITE_URL` are needed for robots.txt, sitemaps, Markdown,
-  llms.txt and `seo/origin`, not for head tags alone.
+  `get locale()` and message getters for translated site values. Head tags alone
+  need neither the `seo` option nor `VITE_SITE_URL`.
 - A page keeps its metadata in `seo.ts` next to its `index.tsx`: export only
   `seo`, with `satisfies SeoRouteInfo` from `seo/types`, as `route.info.seo`.
   `project/seo-module` refuses another export, a relative value import, a value
@@ -78,8 +73,8 @@ modules of `defineSolidApp`. A section applies only when the app uses it.
 ## Markdown, llms.txt and sitemaps (SSR)
 
 - `seo: { markdown: { static: true }, llms: {}, llmsFull: {} }` turns them on;
-  `llmsFull` needs `llms` and static Markdown. Importing the factory of a
-  disabled feature fails the build, so remove its routes and links too.
+  `llmsFull` needs `llms` and static Markdown. A disabled feature's factory
+  fails the build: remove its routes and links.
 - A page opts in with `info: { markdown: true }`, or `'dynamic'` for a
   conversion per request. `data-md-exclude` leaves an element out.
 - Share one `createPublicationController()`, from a server-only module, between
@@ -100,14 +95,14 @@ modules of `defineSolidApp`. A section applies only when the app uses it.
 
 ## Environment and fonts
 
-- An SSR application validates its environment in an optional `env.ts`, as
-  `{ server: { ...serverEnv } }`. Keep the preset keys when adding yours; server
-  validators are synchronous.
+- An SSR application may validate its environment in `env.ts` as
+  `{ server: { ...serverEnv } }`, keeping the preset keys and synchronous
+  validators.
 - Read server values from `virtual:solid-env/server` in server-only code and
   public `VITE_` values from `virtual:solid-env/client`. The server module in a
   client graph fails the build, and only importing it validates at boot.
-- With `env.ts`, the runtime goes in `dependencies` and the tooling stays in
-  `devDependencies`. Declare Valibot only when the application imports it.
+- With `env.ts`, the runtime goes in `dependencies`, the tooling in
+  `devDependencies`, and Valibot only where the application imports it.
 - With `fonts` in the preset, render `FontLinks` once in the SSR Document head.
 
 ## Guides

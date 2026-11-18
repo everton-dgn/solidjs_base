@@ -62,6 +62,7 @@ import {
   mutateServerErrors,
   smokeServerErrors
 } from '../server-errors.ts'
+import { checkStaticOutput } from '../static-output-scenario.ts'
 import { smokeTheme } from '../theme-smoke.ts'
 import {
   checkApplicationVersions,
@@ -614,6 +615,7 @@ async function buildScenario({
 for (const scenario of SCENARIOS) {
   for (const linker of [
     ...LINKERS,
+    ...(scenario === 'client-only' ? [] : ['isolated-static']),
     ...(scenario === 'ssr-i18n' ? [] : ['isolated-language']),
     ...(scenario === 'ssr-plain'
       ? [
@@ -750,6 +752,14 @@ for (const scenario of SCENARIOS) {
               "createSecurityHeaders({ headers: { 'x-content-type-options': 'broken' } })"
             )
           )
+        }
+        if (linker === 'isolated-static') {
+          await checkStaticOutput({
+            app,
+            deadline,
+            translated: scenario === 'ssr-i18n'
+          })
+          return
         }
         const envChecks = await prepareEnvScenario({
           app,

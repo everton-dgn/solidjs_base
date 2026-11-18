@@ -42,6 +42,13 @@ once. Deploy the matching hashes with every HTML release. Use the
 [static hosting policy](../../packages/solid-tooling/docs/app-config.md#static-output)
 for the entry module, inline scripts and response headers.
 
+Prefer per-page policies. A host-wide policy can quote every hash in `union`,
+but each distinct inline script adds about 54 characters. Cloudflare Pages
+limits each header to 2,000 characters and each `_headers` file to 100 rules.
+The build warns above 1,800 characters of quoted hashes to reserve 200 for
+the header name and other directives. Check the complete deployed header.
+See [Cloudflare Pages limits](https://developers.cloudflare.com/pages/platform/limits/).
+
 ## Consequences
 
 Publish the contents of `.output/public` on a host that serves directory

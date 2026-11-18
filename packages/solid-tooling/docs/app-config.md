@@ -476,10 +476,8 @@ even when the browser prefers another language.
 For missing paths under each locale prefix, configure the host to serve
 `/<locale>/404.html` with status 404. Use `/404.html` for unprefixed paths.
 
-The build emits `.output/csp-hashes.json` outside the public directory. For a
-single host-wide policy, append each value in `union` in single quotes to
-`script-src 'self'`. For per-file policies, use that HTML filename's array in
-`pages`. The same-origin source allows the external entry module. The hashes
+The build emits `.output/csp-hashes.json` outside the public directory. Use the array
+in `pages` for the HTML file served at each URL, including error responses. The same-origin source allows the external entry module. The hashes
 allow the inline hydration, data and theme scripts. Regenerate the header
 whenever the HTML changes. From the application root, this command prints the
 complete value for the host's Content-Security-Policy header:
@@ -488,8 +486,8 @@ complete value for the host's Content-Security-Policy header:
 node --input-type=module <<'JS'
 import { readFileSync } from 'node:fs'
 
-const { union } = JSON.parse(readFileSync('.output/csp-hashes.json', 'utf8'))
-const hashes = union.map(hash => `'${hash}'`)
+const { pages } = JSON.parse(readFileSync('.output/csp-hashes.json', 'utf8'))
+const hashes = pages['/index.html'].map(hash => `'${hash}'`)
 console.log([
   "default-src 'self'",
   ["script-src 'self'", ...hashes].join(' '),
@@ -501,6 +499,13 @@ console.log([
 ].join('; '))
 JS
 ```
+
+Prefer per-page policies. A host-wide policy can quote every hash in `union`,
+but each distinct inline script adds about 54 characters. Cloudflare Pages
+limits each header to 2,000 characters and each `_headers` file to 100 rules.
+The build warns above 1,800 characters of quoted hashes to reserve 200 for
+the header name and other directives. Check the complete deployed header.
+See [Cloudflare Pages limits](https://developers.cloudflare.com/pages/platform/limits/).
 
 The Vercel preset sets Strict-Transport-Security, X-Content-Type-Options and
 Cross-Origin-Resource-Policy on static assets. The default response middleware

@@ -8,6 +8,7 @@ type StaticDirectories = { dir: string; publicDir: string }
 type ManifestInput = { output: StaticDirectories; sitemaps: string[] }
 
 type HtmlInspection = { hasNonce: boolean; hashes: string[] }
+const UNION_HASH_BUDGET = 1800
 const JSON_INDENT = 2
 const EXECUTABLE_SCRIPT =
   /^(?:module|importmap|speculationrules|(?:application|text)\/(?:x-)?(?:java|ecma)script|text\/(?:javascript1\.[0-5]|livescript|jscript))$/u
@@ -63,6 +64,11 @@ export async function writeHashManifest({
       inspectHtml(html).hashes
   }
   const union = [...new Set(Object.values(pages).flat())].toSorted()
+  if (union.map(hash => `'${hash}'`).join(' ').length > UNION_HASH_BUDGET) {
+    console.warn(
+      'output: static CSP union exceeds 1800 characters in hashes; use per-page policies'
+    )
+  }
   await writeFile(
     path.join(output.dir, 'csp-hashes.json'),
     `${JSON.stringify({ pages, union }, null, JSON_INDENT)}\n`

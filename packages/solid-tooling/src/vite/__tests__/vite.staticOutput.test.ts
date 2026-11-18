@@ -289,3 +289,19 @@ it('publishes a localized 404 for each configured locale', async t => {
     assert.equal(route.fileName, url)
   }
 })
+
+it('warns when quoted union hashes exceed the host budget', async t => {
+  const config = await fixture(t)
+  const dir = await mkdtemp(path.join(tmpdir(), 'static-header-'))
+  t.after(() => rm(dir, { recursive: true, force: true }))
+  const warn = t.mock.method(console, 'warn', () => undefined)
+  const scripts = Array.from(
+    { length: 34 },
+    (_, index) => `<script>${index}</script>`
+  )
+  await writeFile(path.join(dir, 'index.html'), scripts.join(''))
+  await config.hooks.compiled({
+    options: { static: true, output: { dir, publicDir: dir } }
+  })
+  assert.equal(warn.mock.callCount(), 1)
+})

@@ -28,12 +28,12 @@ and backend adapters.
 
 ## Requirements
 
-| You need       | Solid Base expects                                                                                                                                                                                                            |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Node           | The range in `engines.node` of the [package manifest](package.json), shown by the Node badge above                                                                                                                            |
-| The tooling    | `@evertondgn/solid-tooling` as a dev dependency, at the same version: its `defineSolidApp` sets the `solid` export condition and serves the `virtual:solid-app/*` modules ([requirements](docs/entry-points.md#requirements)) |
-| Solid          | `@solidjs/web` at the exact version of the `peerDependencies` in the manifest, with `solid-js` and `@solidjs/router` at the same version                                                                                      |
-| A host for SSR | Vercel's output format for the server features: the preset's Nitro always uses its `vercel` preset. A client-only build (`ssr: false`) writes a static `dist/` with no server                                                 |
+| You need       | Solid Base expects                                                                                                                                                                                                                              |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Node           | The range in `engines.node` of the [package manifest](package.json), shown by the Node badge above                                                                                                                                              |
+| The tooling    | `@evertondgn/solid-tooling` as a dev dependency: its `defineSolidApp` sets the `solid` export condition and serves the `virtual:solid-app/*` modules. The packages share one version number ([requirements](docs/entry-points.md#requirements)) |
+| Solid          | `@solidjs/web` at the exact version of the `peerDependencies` in the manifest, with `solid-js` at the same version                                                                                                                              |
+| A host for SSR | Vercel's output format for the server features: the preset's Nitro always uses its `vercel` preset. A client-only build (`ssr: false`) writes a static `dist/` with no server                                                                   |
 
 ## Install
 
@@ -648,9 +648,9 @@ provenance statement
 
 ## Reference
 
-The reference ships in this package, in [`docs/`](docs/README.md), so
-`node_modules/@evertondgn/solid-runtime/docs/` holds the reference of the
-version your app installed.
+<a name="optional-seo"></a>The reference ships in this package, in
+[`docs/`](docs/README.md), so `node_modules/@evertondgn/solid-runtime/docs/`
+holds the reference of the version your app installed.
 
 - [Runtime reference, by task](docs/README.md)
 - [Entry points and requirements](docs/entry-points.md)

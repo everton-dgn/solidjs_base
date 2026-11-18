@@ -340,9 +340,7 @@ import { defineTheme } from '@evertondgn/solid-runtime/theme/define-theme'
 export const { createTheme, readTheme, themeColor, themeScript, defaultTheme, themes } =
   defineTheme({
     cookieName: 'app-theme',
-    cookieMaxAge: 31536000,
-    colors: { light: '#ffffff', dark: '#09090b' },
-    defaultTheme: 'system'
+    colors: { light: '#ffffff', dark: '#09090b' }
   })
 ```
 
@@ -1098,13 +1096,14 @@ Read the request cookie with `readTheme(cookieHeader) ?? defaultTheme`. Use an
 explicit light/dark preference as the HTML class and `themeColor(theme)` as the
 meta color. Render `themeScript(theme)` inside your own script with the request
 nonce. Keep the `.light` and `.dark` color-scheme CSS rules in the application.
-The factory validates `cookieName` and a positive integer `cookieMaxAge`, or a
-nonempty `storageKey`, plus nonempty `colors.light`, `colors.dark` and
-`defaultTheme`, and copies the configuration. Colors remain application-owned
-CSS values; validation does not parse CSS. `readTheme` returns `null` for absent
-or invalid preferences and `undefined` for blocked access. `themeColor` uses
-light for system during SSR; the script resolves the actual system preference
-before hydration.
+`cookieMaxAge` defaults to one year (31,536,000 seconds) and `defaultTheme` to
+`system`. The factory validates `cookieName` and a given `cookieMaxAge` as a
+positive integer, or a nonempty `storageKey`, plus nonempty `colors.light` and
+`colors.dark` and a given `defaultTheme`, and copies the configuration. Colors
+remain application-owned CSS values; validation does not parse CSS. `readTheme`
+returns `null` for absent or invalid preferences and `undefined` for blocked
+access. `themeColor` uses light for system during SSR; the script resolves the
+actual system preference before hydration.
 
 Call createTheme once per provider tree. It applies choices before persistence,
 names its BroadcastChannel after the cookie name, or the storage key of the
@@ -1124,8 +1123,7 @@ and its nonce.
 export const { createTheme, defaultTheme, themes } = defineTheme({
   storage: 'local-storage',
   storageKey: 'app-theme',
-  colors: { light: '#ffffff', dark: '#09090b' },
-  defaultTheme: 'system'
+  colors: { light: '#ffffff', dark: '#09090b' }
 })
 ```
 

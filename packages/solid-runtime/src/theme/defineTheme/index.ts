@@ -3,7 +3,15 @@ import { DARK_MEDIA_QUERY, THEMES } from '../constants.ts'
 import { createTheme } from '../createTheme/index.ts'
 import { isTheme } from '../isTheme/index.ts'
 import { readTheme } from '../themeStorage/index.ts'
-import type { Theme, ThemeConfig, ThemeDefinition } from '../types.ts'
+import type {
+  Theme,
+  ThemeConfig,
+  ThemeDefinition,
+  ThemeInput
+} from '../types.ts'
+
+const DEFAULT_THEME = 'system'
+const ONE_YEAR_IN_SECONDS = 31_536_000
 
 function serialize(value: string): string {
   return JSON.stringify(value).replaceAll('<', String.raw`\u003c`)
@@ -31,7 +39,20 @@ function validateStorage(input: ThemeConfig): void {
   }
 }
 
-export function defineTheme(input: ThemeConfig): ThemeDefinition {
+// Only an omitted option takes its default, so an invalid value still fails
+// the validation below.
+function withDefaults(input: ThemeInput): ThemeConfig {
+  const defaultTheme = input.defaultTheme ?? DEFAULT_THEME
+  if (input.storage === 'local-storage') return { ...input, defaultTheme }
+  return {
+    ...input,
+    cookieMaxAge: input.cookieMaxAge ?? ONE_YEAR_IN_SECONDS,
+    defaultTheme
+  }
+}
+
+export function defineTheme(themeInput: ThemeInput): ThemeDefinition {
+  const input = withDefaults(themeInput)
   validateStorage(input)
   if (!isTheme(input.defaultTheme)) {
     throw new Error('defaultTheme must be light, dark or system')

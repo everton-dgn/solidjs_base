@@ -54,7 +54,8 @@ export default defineSolidApp({
 | `diagnostics`     | auto                    | `diagnostics` of the Solid plugin. Left out, `/__solid/diagnostics` runs in development when the application declares `@solidjs/diagnostics`; `false` turns it off                 |
 | `i18nPlugin`      | auto                    | Set `false` to disable only the automatic catalog and Paraglide plugins; locale providers, test setup and the generation task remain enabled by settings                           |
 | `ssr`             | `true`                  | `false` for a client-only application, which takes only `root`, `language`, `diagnostics`, `i18nPlugin`, `icons`, `fonts`, `e2e.routes`, `extend`, `tasks`, `workspace` and `test` |
-| `securityHeaders` | required with SSR       | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files                                                            |
+| `output`          | `vercel` with SSR       | `static` prerenders HTML and enabled publication files for a static host                                                                                                           |
+| `securityHeaders` | required with Vercel    | Values of `strict-transport-security`, `x-content-type-options` and `cross-origin-resource-policy` for the static files                                                            |
 | `seo`             | disabled                | Data-only options for robots, sitemap, Markdown and editorial indexes                                                                                                              |
 | `middleware`      | none                    | `start.middleware` of the Solid plugin. It has to sit inside the application folder                                                                                                |
 | `serverSetup`     | `serverFunctions: true` | `serverFunctions.serverSetup` of the Solid plugin                                                                                                                                  |
@@ -457,3 +458,13 @@ naming the file and both lines, when a Solid Base marker sits below a line that
 can open a code fence or a raw HTML block, such as one with three backticks or
 tildes or an unclosed `<pre>` or `<!--`. It never edits a code example: keep the
 block at the top.
+
+## Static output
+
+Set `output: 'static'` on an SSR configuration to publish `.output/public`.
+Enable the publication features your routes implement. Use
+`sitemap: { static: true }` and `markdown: { static: true }` for file
+publication. Set `robots`, `llms` and `llmsFull` to their respective
+configuration objects to publish those files. Keep the Markdown middleware and
+server entry for the build. Configure headers at the host and serve each
+directory's index.html.

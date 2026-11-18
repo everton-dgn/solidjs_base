@@ -235,3 +235,11 @@ approaches a shell and does not replace a test in one. It does not cover a
 custom protocol such as `app://`, the context isolation or the session
 partitions of Electron, a CSP set by the shell, or the WebKit and Android
 WebViews of Tauri and Capacitor. Test the built application in your shell.
+
+## Prerendered pages
+
+For HTML metadata, multiple languages or static SEO publication, keep SSR
+enabled for the build and set `output: 'static'`. Deploy `.output/public` with
+directory indexes enabled. Use the localStorage theme described above. The
+static root serves the base locale. See
+[ADR 0041](../ADRs/0041-static-output.md) for the hosting and security contract.

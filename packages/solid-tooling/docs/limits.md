@@ -180,3 +180,11 @@ the minor version. Each release is listed in the
 ## License
 
 MIT
+
+## Static hosting
+
+Static output requires concrete page paths. Array and partitioned sitemap
+sources require a server. A static host cannot run server functions or negotiate
+a locale, theme or Markdown response per request. The root serves the base
+locale. Use locale links and direct Markdown links. Configure CSP and other
+response headers at the host.

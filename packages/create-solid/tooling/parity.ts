@@ -13,7 +13,7 @@ import process from 'node:process'
 
 import { parse } from 'valibot'
 
-import { manifestSchema } from './src/types.ts'
+import { manifestSchema } from '../src/types.ts'
 
 const archiveLimit = 64_000_000
 const sandbox = mkdtempSync(path.join(tmpdir(), 'solid-parity-'))

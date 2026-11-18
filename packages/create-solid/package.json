@@ -18,9 +18,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "node build.ts",
-    "test": "node --test profile.test.ts",
-    "test:tarball": "node parity.ts"
+    "build": "node tooling/build.ts",
+    "test": "node --test __tests__/*.test.ts",
+    "test:tarball": "node tooling/parity.ts"
   },
   "devDependencies": {
     "valibot": "catalog:"

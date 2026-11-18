@@ -12,10 +12,9 @@ import path from 'node:path'
 
 import { parse } from 'valibot'
 
-import { rewriteDocuments, rewritePatchTest } from './src/rewrite.ts'
-import { manifestSchema } from './src/types.ts'
+import { manifestSchema } from '../src/types.ts'
 
-const root = path.resolve(import.meta.dirname, '../..')
+const root = path.resolve(import.meta.dirname, '../../..')
 const app = path.join(root, 'apps/boilerplate')
 const json = (file: string) =>
   parse(manifestSchema, JSON.parse(readFileSync(file, 'utf8')))
@@ -93,33 +92,4 @@ const sourceTree = execFileSync('git', ['rev-parse', 'HEAD:apps/boilerplate'], {
 })
 if (sourceTree !== readFileSync('app-tree.txt', 'utf8')) {
   throw new Error('Update app-tree.txt with the reviewed application tree')
-}
-for (const pm of ['bun', 'pnpm', 'npm']) {
-  const profile = path.resolve('dist/profiles', pm)
-  const patchTest = 'tooling/__tests__/patched-dependencies.test.ts'
-  const documents = files.filter(
-    file => rules.get(file) === 'rewrite' && file.endsWith('.md')
-  )
-  for (const file of [...documents, patchTest]) {
-    const target = path.join(profile, file)
-    mkdirSync(path.dirname(target), { recursive: true })
-    cpSync(path.join(app, file), target)
-  }
-  rewriteDocuments({ dir: profile, pm, version: settings.version })
-  rewritePatchTest({ dir: profile, pm, patches: settings.patches })
-  for (const file of [...documents, patchTest]) {
-    const target = path.join(profile, file)
-    const content = readFileSync(target)
-    if (content.equals(readFileSync(path.join(app, file)))) {
-      rmSync(target)
-    } else if (file !== 'AGENTS.md') {
-      writeFileSync(
-        target,
-        execFileSync('vp', ['fmt', `--stdin-filepath=${file}`], {
-          cwd: root,
-          input: content
-        })
-      )
-    }
-  }
 }

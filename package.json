@@ -19,7 +19,7 @@
     "test:release": "node --test 'tooling/release/**/__tests__/*.test.ts'",
     "test:tarball": "vp run --filter './packages/*' test:tarball",
     "validate": "vp run build && vp run check && vp run dead-code && vp run test && vp run test:tarball && vp run test:scenarios",
-    "test:scenarios": "node --test --test-timeout=180000 packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts && node packages/create-solid/scenario.ts",
+    "test:scenarios": "node --test --test-timeout=180000 packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts && node packages/create-solid/tooling/scenario.ts",
     "release:merge": "node tooling/release/merge-pull-request.ts"
   },
   "devDependencies": {

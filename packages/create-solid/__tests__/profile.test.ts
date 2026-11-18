@@ -8,7 +8,7 @@ import { after, before, describe, it } from 'node:test'
 
 import { parse } from 'valibot'
 
-import { manifestSchema } from './src/types.ts'
+import { manifestSchema } from '../src/types.ts'
 
 const bin = path.resolve('dist/create-solid.mjs')
 const manifest = (file: string) =>

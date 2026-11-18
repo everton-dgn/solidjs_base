@@ -14,6 +14,7 @@ export const manifestSchema = v.looseObject({
   catalog: v.optional(versions)
 })
 export const settingsSchema = v.object({
+  version: v.string(),
   catalog: versions,
   versions,
   overrides: versions,

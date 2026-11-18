@@ -15,8 +15,8 @@ import process from 'node:process'
 
 import { parse } from 'valibot'
 
-import { run } from '../solid-tooling/src/tarball/scenario-process.ts'
-import { manifestSchema } from './src/types.ts'
+import { run } from '../../solid-tooling/src/tarball/scenario-process.ts'
+import { manifestSchema } from '../src/types.ts'
 
 const jsonIndent = 2
 const seconds = 1000
@@ -35,7 +35,7 @@ try {
     mkdirSync(output)
     await run({
       args: ['pm', 'pack', '--pack-destination', output],
-      cwd: path.join(import.meta.dirname, '..', name),
+      cwd: path.join(import.meta.dirname, '../..', name),
       deadline: Date.now() + packTimeout
     })
     const [archive] = readdirSync(output)

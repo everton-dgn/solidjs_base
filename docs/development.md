@@ -716,6 +716,6 @@ git rev-parse "$tree:apps/boilerplate" > packages/create-solid/app-tree.txt
 ```
 
 After committing the app and its digest, run `vp run build`. In
-`packages/create-solid`, run `node parity.ts --update` and review the changes in
+`packages/create-solid`, run `node tooling/parity.ts --update` and review the changes in
 `expected.diff` before committing them. The parity test reads the app from the
 current commit and generates the comparison tree from the packed CLI.

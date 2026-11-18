@@ -79,13 +79,16 @@ for (const pm of ['bun', 'pnpm', 'npm']) {
           /https:\/\/github\.com\/everton-dgn\/solidjs_base\/[^\s)"<>]+/gu,
           ''
         )
-        const instructions = local.replaceAll(
-          /^##+ [^\n]+\n\n> The following workflow is an example from the upstream application\.[\s\S]*?(?=^## |(?![\s\S]))/gmu,
-          ''
-        )
+        const instructions =
+          file === 'docs/development.md'
+            ? local.replaceAll(
+                /^(?:### Publication|## Runtimes and CI)\n\n> The following workflow is an example from the upstream application\.[\s\S]*?(?=^## |(?![\s\S]))/gmu,
+                ''
+              )
+            : local
         assert.doesNotMatch(
           instructions,
-          /test:release|tooling\/release|ciReuse|the copy imports|the original (?:keeps|repository)/iu,
+          /release automation|test:release|tooling\/release|ciReuse|the (?:copy|original)\s+(?:imports|keeps|uses|has|runs|installs|repository|application)\b/iu,
           file
         )
         assert.doesNotMatch(

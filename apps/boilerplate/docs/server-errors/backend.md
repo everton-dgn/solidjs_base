@@ -151,9 +151,9 @@ require review. It does not check the content of the log arguments in
 `logServerFailure`. The setter and control-enabled protection are private
 package modules, not AST conventions. Do not use these gaps or a disable comment
 to get around the contract. The pattern of relative imports is shared with
-`packages/solid-tooling/src/lint/rules/javascript.ts` through the
-`RELATIVE_IMPORT_RESTRICTION` constant, in
-`packages/solid-tooling/src/backendPolicy/constants.ts`.
+[`javascript.ts`](../../../../packages/solid-tooling/src/lint/rules/javascript.ts)
+through the `RELATIVE_IMPORT_RESTRICTION` constant, in
+[`constants.ts`](../../../../packages/solid-tooling/src/backendPolicy/constants.ts).
 
 The same exact path exceptions apply when lint runs from the runtime package.
 `server-only` is allowed in `src/infra/server/**/index.ts`, and the Node import

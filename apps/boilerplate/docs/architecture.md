@@ -85,12 +85,12 @@ CSS Module imports use the name `S`, for example,
 
 The split follows the
 [cohesion rule of AGENTS.md](../AGENTS.md#cohesion-and-size-of-modules).
-`packages/solid-tooling/src/lint.ts`, at the monorepo root, builds the
+[`lint.ts`](../../../packages/solid-tooling/src/lint.ts), builds the
 configuration and its overrides. The groups in
-`packages/solid-tooling/src/lint/rules/` gather the rules for JavaScript,
-imports, TypeScript, Unicorn, tests and integrations with the environment. The
-values of the rules and the order of the overrides belong to the same contract,
-even when they live in different modules.
+[`rules`](../../../packages/solid-tooling/src/lint/rules) gather the rules for
+JavaScript, imports, TypeScript, Unicorn, tests and integrations with the
+environment. The values of the rules and the order of the overrides belong to
+the same contract, even when they live in different modules.
 
 `tooling/release/automatic-release.ts` coordinates the preparation and the
 publication. The modules and the limits of the jobs are in the
@@ -149,9 +149,9 @@ imports.
 ## Dependencies between layers
 
 `architecture/layer-imports`, in
-`packages/solid-tooling/src/architecturePolicy/index.ts`, checks the direct
-dependencies of imports and re-exports through the local paths. The restrictions
-are:
+[`index.ts`](../../../packages/solid-tooling/src/architecturePolicy/index.ts),
+checks the direct dependencies of imports and re-exports through the local
+paths. The restrictions are:
 
 | Source                                                                          | Forbidden dependencies                                       |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -182,6 +182,4 @@ contract.
 
 The implementation uses `defineRule` and `definePlugin` from
 `vite-plus/lint/plugins`, with `RuleTester` from `vite-plus/lint/plugins-dev`,
-without an extra dependency. Run `vp run check:ci` in the application. Run
-`vp run test` at the monorepo root to exercise the packaged architecture and
-backend lint policies.
+without an extra dependency. Run `vp run check:ci` in the application.

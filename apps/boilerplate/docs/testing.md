@@ -9,10 +9,10 @@ Test files live in `__tests__` folders next to the code they exercise
 are the exception and live in `src/tests/pages/`, outside the Vitest projects.
 
 The `project/test-filename` lint rule, in
-`packages/solid-tooling/src/test-filename.ts`, at the monorepo root, checks the
-names: `Name[.qualifier].environment.test.ts(x)` in `src`, with the `node`,
-`dom`, `browser` or `e2e` environment; `Name[.qualifier].test-d.ts(x)` for
-type-only tests; and `Name[.qualifier].test.ts` in `tooling`. `Name` is the
+[`test-filename.ts`](../../../packages/solid-tooling/src/test-filename.ts),
+checks the names: `Name[.qualifier].environment.test.ts(x)` in `src`, with the
+`node`, `dom`, `browser` or `e2e` environment; `Name[.qualifier].test-d.ts(x)`
+for type-only tests; and `Name[.qualifier].test.ts` in `tooling`. `Name` is the
 exact subject, which by default is the folder that contains `__tests__`, such as
 `isTheme` in the runtime package at
 `src/theme/isTheme/__tests__/isTheme.node.test.ts`; subjects with a dot, such as
@@ -41,10 +41,9 @@ suite of their own to check mounting, static texts, classes or the native
 behavior of buttons. Choose the environment that covers the behavior and avoid
 repeating the same scenario at another level.
 
-The tests in `tooling/**/__tests__/` use the `node:test` API. In this copy,
-`vp run test:tooling` runs the application tooling tests with Node, outside the
-Vitest commands, and is part of the application validation. The monorepo root
-has a separate `vp run test:release` command, which also runs in Node.
+The tests in `tooling/**/__tests__/` use the `node:test` API. In the
+application, `vp run test:tooling` runs the application tooling tests with Node,
+outside the Vitest commands, and is part of the application validation.
 
 ## Environments
 
@@ -152,7 +151,7 @@ error and success, each one in the initial SSR, in a call from the browser and
 in streaming, plus a reload that still fails, recovery after the backend comes
 back and the isolation of the client bundle. The initial SSR is also checked
 with JavaScript disabled. See [server errors](server-errors.md) for the failure
-scenarios and [CI](../../../docs/development.md#ci) for when the monorepo runs
+scenarios and [CI](../../../docs/development.md#ci) for when upstream CI runs
 the fixture suite.
 
 ### Publication load
@@ -352,14 +351,14 @@ the console, also with the `dark` or `light` theme in the cookie, without a
 `style` attribute on `<html>`. The command uses the same `BASE_URL_TEST`, loads
 the public variables in `production` mode and does not need the mocked backend.
 In the same local checkout, run the two suites one after the other, because they
-share the port and the build artifacts. In this monorepo, the CI runs the
-fixture suite. Run `vp run test:e2e:production` in the app to check the real
-routes locally, and `TEST_PREBUILT=true vp run test:e2e:production` to reuse a
-production build; with `TEST_PREBUILT=true`, Playwright only starts the preview.
-The mode requires production routes. If an earlier `vp run test:e2e` left an E2E
-fixture build in `.vercel/output`, Playwright stops before the preview and
-reports `TEST_PREBUILT found an e2e build`; run `vp run build` in the app to
-replace it with a production build, then run the prebuilt command again. The
+share the port and the build artifacts. Upstream CI runs the fixture suite. Run
+`vp run test:e2e:production` in the app to check the real routes locally, and
+`TEST_PREBUILT=true vp run test:e2e:production` to reuse a production build;
+with `TEST_PREBUILT=true`, Playwright only starts the preview. The mode requires
+production routes. If an earlier `vp run test:e2e` left an E2E fixture build in
+`.vercel/output`, Playwright stops before the preview and reports
+`TEST_PREBUILT found an e2e build`; run `vp run build` in the app to replace it
+with a production build, then run the prebuilt command again. The
 [tooling package tests](../../../packages/solid-tooling/src/playwright/__tests__/playwright.test.ts)
 cover the startup commands and reject an E2E fixture build in prebuilt mode.
 

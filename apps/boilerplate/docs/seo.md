@@ -136,7 +136,8 @@ The runtime requires explicit site title, description, URL, locale and image.
 Author, organization, logo and social fields are optional. Without an
 organization it omits the Organization node and publisher references; without an
 author it omits Person and `twitter:creator`. There are no example identities in
-the package defaults. This copy supplies all its existing editorial fields.
+the package defaults. The application supplies all its existing editorial
+fields.
 
 ## Structured data per page
 

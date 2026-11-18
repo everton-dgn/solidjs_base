@@ -76,15 +76,7 @@ For a local retry with a query, invalidate the key before `reset()`:
 
 After changing that boundary, run:
 
-From the workspace root, run `env -u NODE_ENV vp run validate`. This includes
-the runtime unit tests, the backend policy corpus and the installed tarball
-matrix. The runtime owns the shared protection tests; this application retains
-the catalog, publication-controller integration, composed Markdown-chain tests
-and end-to-end tests. The 54 containment cases now run in the runtime package;
-entry-helper tests cover completion, cancellation and pre-hydration locale
-changes there as well.
-
-Then run in this application:
+Run these checks in the application:
 
 ```bash
 env -u NODE_ENV vp run test:tooling
@@ -94,12 +86,7 @@ env -u NODE_ENV vp run test:e2e:production
 env -u NODE_ENV vp run check:ci
 ```
 
-The copy runs its local tooling tests through `vp run test:tooling`. At the
-monorepo root, `vp run validate` also runs the packaged tests for the backend
-and architecture policies. The policy tests check the rules in the real parser
-and their registration in the whole lint, with refused and allowed cases for
-each exception. See the results of each run in the logs of the local validation
-and of the CI.
+The tooling tests cover the integration with the installed packages.
 
 ### Outdated page after a deploy
 

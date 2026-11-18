@@ -716,6 +716,15 @@ git rev-parse "$tree:apps/boilerplate" > packages/create-solid/app-tree.txt
 ```
 
 After committing the app and its digest, run `vp run build`. In
-`packages/create-solid`, run `node tooling/parity.ts --update` and review the changes in
-`expected.<manager>.diff` before committing them. The parity test reads the app from the
-current commit and generates the comparison tree from the packed CLI.
+`packages/create-solid`, run `node tooling/parity.ts --update` and review the
+changes in `expected.<manager>.diff` before committing them. The parity test
+reads the app from the current commit and generates the comparison tree from the
+packed CLI.
+
+The tracked application exercises the workspace source. Run package tests at the
+root when editing lint policies in `packages/solid-tooling/src/` or runtime
+helpers in `packages/solid-runtime/src/`. Root validation also checks the
+tarballs against installed applications. The generated application installs
+registry pins and configures its own hooks. While the generator is private,
+template changes cannot release it. Once it joins the group, a `fix` or `feat`
+that updates its template digest will trigger a linked release.

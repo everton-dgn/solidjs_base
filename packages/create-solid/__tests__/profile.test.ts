@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import {
+  readdirSync,
+  statSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
@@ -37,6 +44,38 @@ for (const pm of ['bun', 'pnpm', 'npm']) {
       assert.equal(app.name, path.basename(dir).toLowerCase())
       assert.notEqual(app.description, source.description)
       assert.equal(app.packageManager?.split('@')[0], pm)
+    })
+    void it('contains only standalone application instructions', () => {
+      for (const file of readdirSync(dir, {
+        recursive: true,
+        encoding: 'utf8'
+      })) {
+        const absolute = path.join(dir, file)
+        if (!statSync(absolute).isFile()) continue
+        const content = read(file)
+        if (content.includes('\0')) continue
+        // Upstream source links intentionally point outside the installed application.
+        const internalLinks = [
+          '../../src/tests/fixtures/e2e/backend-error/readBackend/index.ts',
+          '../../src/tests/pages/BackendError/BackendError.e2e.test.ts',
+          '../../src/tests/pages/OutsideError/OutsideError.e2e.test.ts',
+          '../../package.json'
+        ]
+        const text = internalLinks.reduce(
+          (value, link) => value.replaceAll(`](${link})`, ']()'),
+          content
+        )
+        const local = text.replaceAll(
+          /https:\/\/github\.com\/everton-dgn\/solidjs_base\/[^\s)"<>]+/gu,
+          ''
+        )
+        assert.doesNotMatch(
+          local,
+          /monorepo|workspace root|this copy|apps\/boilerplate|packages\/solid-|\]\(\.\.\/\.\.\//iu,
+          file
+        )
+      }
+      assert.doesNotMatch(read('.gitignore'), /^\/(?:plans|\.polyhive)\/$/mu)
     })
     void it('preserves Bun environment isolation for every installer', () => {
       assert.equal(

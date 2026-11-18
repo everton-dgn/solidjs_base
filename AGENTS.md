@@ -84,3 +84,24 @@ names".
 - The first automated release of a package needs a trusted publisher, which only
   the maintainer can create on npm
   ([First automated release](docs/releasing.md#first-automated-release-of-a-package)).
+
+## Maintaining the boilerplate copy
+
+- `apps/boilerplate` is a copy of `boilerplate_solidjs` at commit `6145493`, used to
+  test the packages of the monorepo in a complete application. The
+  `README.md` of the application lists what changed from the original.
+- The lint rules, the formatter, the tsconfigs, the Vite and Nitro config
+  (`defineSolidApp`), the Vitest projects (`solidTest`), the Playwright config
+  (`definePlaywrightConfig`) and the Knip (`defineKnipConfig`) and Stylelint
+  (`checkCss`) configs come from the `@evertondgn/solid-tooling` package.
+  `tooling/knip.ts` and `tooling/css/check.ts` only pass to the package what
+  belongs to this application. The `packages/solid-tooling/src/...` paths cited
+  in the application guides resolve from the monorepo root. To change a rule, change it in the package and
+  run `vp run test` at the monorepo root.
+- In the tracked copy, the sections about release automation, the CI workflow, Git hooks and the
+  Vercel deploy describe the original repository and do not apply to this copy.
+- This file, the guides in `docs/`, the code comments and the test titles are in
+  English. The tests check the interface in its three languages. When bringing a
+  change from the original, translate its documentation, comments and test
+  titles.
+

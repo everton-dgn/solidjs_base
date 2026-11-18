@@ -35,25 +35,7 @@ release. Add a tool name to select part of the graph. For example, run
 
 <!--VITE PLUS END-->
 
-## This copy in the monorepo
-
-- This folder is a copy of `boilerplate_solidjs` at commit `6145493`, used to
-  test the packages of the monorepo in a complete application. The
-  `README.md` of this folder lists what changed from the original.
-- The lint rules, the formatter, the tsconfigs, the Vite and Nitro config
-  (`defineSolidApp`), the Vitest projects (`solidTest`), the Playwright config
-  (`definePlaywrightConfig`) and the Knip (`defineKnipConfig`) and Stylelint
-  (`checkCss`) configs come from the `@evertondgn/solid-tooling` package.
-  `tooling/knip.ts` and `tooling/css/check.ts` only pass to the package what
-  belongs to this application. The `packages/solid-tooling/src/...` paths cited
-  here live at the monorepo root. To change a rule, change it in the package and
-  run `vp run test` at the monorepo root.
-- The sections about release automation, the CI workflow, Git hooks and the
-  Vercel deploy describe the original repository and do not apply to this copy.
-- This file, the guides in `docs/`, the code comments and the test titles are in
-  English. The tests check the interface in its three languages. When bringing a
-  change from the original, translate its documentation, comments and test
-  titles.
+## Application packages
 
 - URL helpers, locale alternates and Vary header merging live in
   `@evertondgn/solid-runtime/i18n/urls`,
@@ -63,12 +45,11 @@ release. Add a tool name to select part of the graph. For example, run
   Navigation primitives, the history guard and `localeTag` also live in the
   runtime, under separate `i18n/` exports. Their 10 navigation tests moved with
   them, including the real-browser history cases. Keep `LocalizedLink`,
-  messages and `src/i18n/localeTagOverrides/` in this copy.
+  messages and `src/i18n/localeTagOverrides/` in the application.
 
 ## Sizing for the applications that use the packages
 
-- This app is the test bench of the packages, not a template. The packages
-  serve applications of any size, and the demo pages, data and traffic of this
+- The packages serve applications of any size, and the demo pages, data and traffic of this
   app do not represent them. Never use the current size of the demo as a reason
   to discard scale requirements.
 - When choosing a solution, examine the growth of the data volume, of the
@@ -176,11 +157,11 @@ release. Add a tool name to select part of the graph. For example, run
 ## Translations
 
 - Generation, catalog validation and the Vite plugin belong to
-  `packages/solid-tooling/src/i18n/`. `defineSolidApp` enables them from
+  [`i18n`](../../packages/solid-tooling/src/i18n). `defineSolidApp` enables them from
   `project.inlang/settings.json`; the default application needs no local generator
   or i18n plugin. Custom pipelines can set `i18nPlugin: false`, supply a plugin
   through `extend` and replace `i18n-generate` by name through `tasks`.
-  The package tests use other locales and run at the monorepo root.
+  The package tests use other locales.
 - The locales and the base locale come from `project.inlang/settings.json`. Each
   consumer keeps colocated `i18n/{pt,en,es}.json` files. Share in `src/i18n/`
   only from the second production consumer on.
@@ -225,7 +206,7 @@ release. Add a tool name to select part of the graph. For example, run
 - Use `type` to declare object, props and contract types in code and tests. The
   lint applies `typescript/consistent-type-definitions` with `type`.
 - Keep `interface` when declaration merging is needed: `RequestEventLocals` in the runtime package
-  `packages/solid-runtime/src/@types/solid.d.ts`, `ImportMetaEnv` in `src/@types/env.d.ts` and
+  [`solid.d.ts`](../../packages/solid-runtime/src/@types/solid.d.ts), `ImportMetaEnv` in `src/@types/env.d.ts` and
   `RouteInfo` in the runtime `seo/{sitemap,markdown,llms}/router.d.ts` modules
   extend third-party interfaces. Keep
   the lint exception restricted to the files that need that behavior.
@@ -352,11 +333,10 @@ release. Add a tool name to select part of the graph. For example, run
   initial bundle. `seo` points to the messages directly, without reading the
   page object. Do not move `content` to `seo.ts`, to a module `seo.ts`
   imports or to another one the `route` reaches. The `project/seo-module` rule
-  (`packages/solid-tooling/src/seoModule/index.ts`) refuses in the lint any
+  ([`index.ts`](../../packages/solid-tooling/src/seoModule/index.ts)) refuses in the lint any
   export other than `seo` and any local value import in `seo.ts`, and
   `I18n.production.e2e` checks the result in the build; details in
-  [SEO](docs/seo.md). When changing the rule, run `vp run test` at the monorepo
-  root.
+  [SEO](docs/seo.md).
 - Markdown uses a semantic main and the converter filters. Use
   `data-md-exclude` to exclude content; computed CSS is not interpreted. Keep
   contextual citations in a footer inside main.
@@ -435,13 +415,12 @@ release. Add a tool name to select part of the graph. For example, run
 - `import/exports-last` requires the exports at the end of the file. Declare the
   private types, constants and helpers before them. When an exported value needs
   to exist before the private code that consumes it, move it to a module of its
-  own, such as `packages/solid-tooling/src/backendPolicy/constants.ts`, instead
+  own, such as [`constants.ts`](../../packages/solid-tooling/src/backendPolicy/constants.ts), instead
   of exporting the helpers.
 - The `project/no-export-list` rule
-  (`packages/solid-tooling/src/noExportList/index.ts`, registered in the plugin
-  of `packages/solid-tooling/src/project-plugin.ts`) applies the convention.
-  Validate with `vp run check:ci` and, when changing the rule, with `vp run test`
-  at the monorepo root.
+  ([`index.ts`](../../packages/solid-tooling/src/noExportList/index.ts), registered in the plugin
+  of [`project-plugin.ts`](../../packages/solid-tooling/src/project-plugin.ts)) applies the convention.
+  Validate with `vp run check:ci`.
 
 ## Functions that return a Promise
 
@@ -509,8 +488,7 @@ release. Add a tool name to select part of the graph. For example, run
   size classes live at the top level, outside the base class.
 - Import CSS Modules as `S`. Stylelint requires snake_case in `src/**/*.css`;
   validate changes with `vp run lint:css`. The CSS policy lives in
-  `packages/solid-tooling/src/stylelint/`; when changing it, run `vp run test`
-  at the monorepo root.
+  [`stylelint`](../../packages/solid-tooling/src/stylelint).
 - The tokens of `src/theme/tokens/` are the palette of the boilerplate for the
   derived applications. Do not flag or remove a token for having no consumer in
   the demo; review only a wrong value, name or use.
@@ -526,7 +504,7 @@ release. Add a tool name to select part of the graph. For example, run
 ## Dependencies between layers
 
 - Keep `architecture/layer-imports` in
-  `packages/solid-tooling/src/architecturePolicy/index.ts`. `helpers`,
+  [`index.ts`](../../packages/solid-tooling/src/architecturePolicy/index.ts). `helpers`,
   `constants`, `@types`, `data`, `infra`, `theme`, `i18n` and `paraglide` do not
   depend on UI, primitives, routes or entries (`App`, `Document`,
   `entry-server`, `entry-client`, `router`, `middleware`). Global primitives do
@@ -548,8 +526,7 @@ release. Add a tool name to select part of the graph. For example, run
   disable comments.
 - When creating a layer or an alias, update the rule and its tests. Use the
   `vite-plus/lint/plugins` and `vite-plus/lint/plugins-dev` APIs, without
-  installing another copy of Oxlint. Run `vp run test` at the monorepo root and
-  `vp run check:ci`. See the matrix and the limits in
+  installing another copy of Oxlint. Run `vp run check:ci`. See the matrix and the limits in
   [architecture](docs/architecture.md#dependencies-between-layers).
 
 ## Security headers and CSP
@@ -614,7 +591,7 @@ release. Add a tool name to select part of the graph. For example, run
 - Do not log the original error, headers, cookies, arguments, bodies or
   credentials; detailed logs require a removal of sensitive data defined
   beforehand. The `console` is reserved for `logServerFailure`.
-- Keep the restrictions of `packages/solid-tooling/src/backendPolicy`. A new SDK
+- Keep the restrictions of [`backendPolicy`](../../packages/solid-tooling/src/backendPolicy). A new SDK
   requires restricting the package in the lint, with an exception only for the
   adapter. Do not work around the contract with disable comments, computed
   imports or the other gaps listed in the guide.
@@ -624,8 +601,7 @@ release. Add a tool name to select part of the graph. For example, run
   `configureServerErrors_message` catalogs. The runtime uses its locale seam;
   callback or locale failures fall back to the fixed English message without
   logging. Never give the callback the original error.
-- After changing that boundary, run `vp run test` at the monorepo root,
-  `vp run test:tooling`, the relevant Node tests and
+- After changing that boundary, run `vp run test:tooling`, the relevant Node tests and
   `vp run test:e2e src/tests/pages/BackendError src/tests/pages/OutsideError src/tests/pages/OutdatedPage`.
   Keep in the CI the check of the complete body in the initial SSR, streaming
   and HTTP call.
@@ -637,7 +613,7 @@ release. Add a tool name to select part of the graph. For example, run
 
 The single theme configuration is `src/constants/theme.ts`, using
 `@evertondgn/solid-runtime/theme/define-theme`. Theme adapters, types and
-`createTheme` now live under `packages/solid-runtime/src/theme/`, with their
+`createTheme` now live under [`theme`](../../packages/solid-runtime/src/theme), with their
 tests. Keep the context, Provider, ThemeToggle and CSS in the application.
 Document owns the script element and its request nonce.
 

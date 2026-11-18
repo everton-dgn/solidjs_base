@@ -143,7 +143,7 @@ visitor would download characters the page does not use, or the common text
 would fall back to the system font. Check the coverage of a file with
 `fc-query --format='%{charset}\n' <file>`.
 
-The font loading contract and complete examples are in the monorepo's
+The font loading contract and complete examples are in the tooling package’s
 [font guide](../../../packages/solid-tooling/docs/fonts.md). Keep the CSS
 fallback stack, weights and sizes in the application theme. Remove handwritten
 font faces and preload imports when adopting this mechanism; no inline CSS is
@@ -273,10 +273,9 @@ command reuses that validation for every CSS file in `src/`, those without
 imports in JS/TS included.
 
 The rules and the name check come from `checkCss` in `@evertondgn/solid-tooling`
-(`packages/solid-tooling/src/stylelint/`), called by `tooling/css/check.ts`. The
-in-memory cases that check the policy run with `vp run test` at the monorepo
-root. The lint of the real CSS is still automatic, and its violations block the
-validation until they are fixed.
+([`stylelint`](../../../packages/solid-tooling/src/stylelint)), called by
+`tooling/css/check.ts`. The lint of the real CSS is still automatic, and its
+violations block the validation until they are fixed.
 
 ## CSS processing
 

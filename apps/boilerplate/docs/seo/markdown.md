@@ -43,32 +43,32 @@ upgrade are in
 [server errors](../server-errors/ssr-integrity.md#ssr-integrity-for-markdown).
 
 The build prerender goes through the same adapter. The compiled
-`packages/solid-tooling/src/publication/markdownPrerender/` module asks the
-middleware for the list of static pages (`/_markdown/static.json`), prerenders
-each `.md` and publishes the list as a static file, together with `llms.txt`.
-The middleware only builds the list in the prerender worker, which gets the
-phase from the process environment and from the `x-nitro-prerender` header. In
-production, any client reads the published file, and the header alone does not
-rebuild the inventory: it authenticates nothing. That is why the list can only
-hold public pages, the same ones that the build publishes as `.md`; on a
-redirect, the header only replaces the response with a public 500. A page that
-fails or is not written, or a list that is invalid or does not go through the
-prerender, stops the build. Nitro only fails per route with a recorded error; a
-rejection in the fetch or in the write would leave the file out without failing,
-which is why the module checks at the end that each `.md` of the list was
-written. The status stays with the adapter: only a 200 response becomes
-Markdown, and a redirect in the prerender becomes a 500, which stops the build.
-The validation of the written artifact checks the MIME, the real `fileName`,
-UTF-8 and the content. A redirect or an HTML document written as `.md.html` does
-not satisfy the expected publication. A short page or a legitimate example of
-HTML inside the Markdown are still valid; there is no universal minimum of
-characters and no ban on isolated tags. The result is in
+[`markdownPrerender`](../../../../packages/solid-tooling/src/publication/markdownPrerender)
+module asks the middleware for the list of static pages
+(`/_markdown/static.json`), prerenders each `.md` and publishes the list as a
+static file, together with `llms.txt`. The middleware only builds the list in
+the prerender worker, which gets the phase from the process environment and from
+the `x-nitro-prerender` header. In production, any client reads the published
+file, and the header alone does not rebuild the inventory: it authenticates
+nothing. That is why the list can only hold public pages, the same ones that the
+build publishes as `.md`; on a redirect, the header only replaces the response
+with a public 500. A page that fails or is not written, or a list that is
+invalid or does not go through the prerender, stops the build. Nitro only fails
+per route with a recorded error; a rejection in the fetch or in the write would
+leave the file out without failing, which is why the module checks at the end
+that each `.md` of the list was written. The status stays with the adapter: only
+a 200 response becomes Markdown, and a redirect in the prerender becomes a 500,
+which stops the build. The validation of the written artifact checks the MIME,
+the real `fileName`, UTF-8 and the content. A redirect or an HTML document
+written as `.md.html` does not satisfy the expected publication. A short page or
+a legitimate example of HTML inside the Markdown are still valid; there is no
+universal minimum of characters and no ban on isolated tags. The result is in
 `.vercel/output/static`.
 
 ### llms-full.txt aggregate
 
 The reader of the index is in
-`packages/solid-tooling/src/publication/markdownPrerender/helpers/readLlmsIndex/`,
+[`readLlmsIndex`](../../../../packages/solid-tooling/src/publication/markdownPrerender/helpers/readLlmsIndex),
 next to the generator that uses it. Its tests use the Node runner of the
 tooling.
 
@@ -298,8 +298,8 @@ shared publication controller into `createMarkdownContent` from
 configures limits and enables static generation with `static: true`.
 `seo.llmsFull` requires both static Markdown and `seo.llms`.
 
-The runtime declares published `@mdream/js` as its own dependency. The root
-monorepo patch also applies to that resolved copy. A derived application
+The runtime declares published `@mdream/js` as its own dependency. The optional
+converter patch also applies to that resolved copy. A derived application
 installed from tarballs gets the published converter. In the runtime's 67
 conversion fixtures, the patch passes all cases and published `@mdream/js@2.1.0`
 differs in 29. These cover separators in nested inline wrappers, spaces around

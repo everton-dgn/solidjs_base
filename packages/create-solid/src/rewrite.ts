@@ -20,38 +20,20 @@ export function rewriteDocuments({
     const target = path.join(dir, file)
     let content = readFileSync(target, 'utf8')
     if (file === 'README.md') {
-      content = content
-        .replace(
-          /^# Boilerplate app[\s\S]*?(?=> \[!NOTE\])/u,
-          '# Solid Base application\n\nThis application uses SolidJS 2 with the Solid Base tooling and runtime. Run `vp run dev` to start it locally.\n\n'
-        )
-        .replace(/## Who it fits[\s\S]*?(?=## Running it)/u, '')
-        .replace(
-          /You need the global[\s\S]*?(?=```bash\nvp run test:browser:install)/u,
-          `Install the global [Vite+](https://viteplus.dev/guide/) CLI and Bun. Run \`${pm} install\` from this directory if dependencies are missing. Install Chromium once for the browser tests:\n\n`
-        )
-        .replace(
-          "CI runs this app's check",
-          "The upstream boilerplate CI runs the app's check"
-        )
-        .replace(
-          'The app started as a copy of',
-          'The upstream boilerplate started as a copy of'
-        )
-        .replace('the copy exists.', 'the upstream copy exists.')
-        .replace(
-          /- The copy installs the packages from the workspace,[\s\S]*?(?=- The guides describe)/u,
-          `- Bun is required to run the application tasks. ${
-            pm === 'npm'
-              ? 'npm installs the upstream Markdown converter without the patch.'
-              : 'The installer applies the Markdown converter patch.'
-          }\n`
-        )
-        .replace(', through the\nworkspace,', ',')
-        .replace(
-          /The manifest declares both packages as .+?repository raises them with/su,
-          'Update the installed packages with'
-        )
+      assert.ok(content.includes('dependencies with `vp install`'))
+      content = content.replace(
+        'dependencies with `vp install`',
+        `dependencies with \`${pm} install\``
+      )
+      const policy =
+        'The installer determines whether the Markdown converter patch is applied.'
+      assert.ok(content.includes(policy))
+      content = content.replace(
+        policy,
+        pm === 'npm'
+          ? 'npm installs the upstream Markdown converter.'
+          : 'The installer applies the Markdown converter patch.'
+      )
     }
     content = content.replaceAll(
       /(?:\]\(|(?:src|srcset)=")\.\.\/[^)"\s]+/gu,

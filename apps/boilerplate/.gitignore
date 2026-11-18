@@ -15,8 +15,6 @@ dist-ssr
 coverage
 playwright-report
 test-results
-/plans/
-/.polyhive/
 .tsbuild
 solid-env.d.ts
 /src/icon-collections.d.ts

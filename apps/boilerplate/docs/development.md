@@ -27,10 +27,10 @@ change `engines` and `devEngines` in the same commit.
 
 ## Tool dependencies
 
-`@evertondgn/solid-tooling` installs the tools the preset uses. This copy keeps
-direct declarations only for its own imports and Vite+. Updating the package
-updates those tools. Keep the application-owned routing and Playwright Test
-dependencies aligned with the tooling package; Nitro comes from the tooling
+`@evertondgn/solid-tooling` installs the tools the preset uses. The application
+keeps direct declarations only for its own imports and Vite+. Updating the
+package updates those tools. Keep the application-owned routing and Playwright
+Test dependencies aligned with the tooling package; Nitro comes from the tooling
 package. Keep Paraglide, message-format and the Solid libraries in the
 application, plus the root Vite/Vitest overrides.
 
@@ -39,8 +39,7 @@ Use `vp run tsrs`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
 `test:browser:install` and `dead-code:fix` use these tasks. The standalone
 command pattern is documented in the
 [tooling guide](../../../packages/solid-tooling/docs/limits.md#packaged-commands-and-types).
-Keep `trustedDependencies: []` when extracting this copy so dependency
-installation does not change Git hooks; hook installation is explicit.
+The prepare script controls hook installation.
 
 ## Environment and preview
 
@@ -125,9 +124,7 @@ runtime, plus the complete E2E tests.
 
 ### Publication
 
-> This section describes the deploy of the original repository,
-> boilerplate_solidjs. This repository never deploys the copy: its
-> [CI](../../../docs/development.md#ci) only builds and tests it.
+> The following workflow is an example from the upstream application.
 
 The production deploy comes from the `deploy` job of the
 [CI workflow](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/.github/workflows/ci.yml),
@@ -243,18 +240,16 @@ the cached tasks `lint-project`, `lint-css`, `check-project` and
 declare `dependsOn: ['lint-css', 'icons-generate']`: the CSS lint and the icon
 declarations run first, each with its own cache inputs, and a TypeScript-only
 change does not run them again. The two tasks share the same inputs.
-`check-project` runs `vp fmt --check && vp lint`, because in the monorepo
-`vp check` would use the lint and the formatter of the root: a formatting
-failure stops the task before the lint and the type check.
-`vp run typecheck:node` uses the `typecheck-node` task; `vp run test:tooling`
-uses the `test-tooling` task, without cache, because the tests depend on
-temporary folders the cache does not track. Vite+ reuses successful results when
-the files read, the folder listings, the arguments and the selected environment
-variables stay the same. The lint tasks include `NODE_ENV` in the cache key;
-`PATH` and `NODE_OPTIONS` reach the process without invalidating the result.
-Vite also records the variables it loads. The server configuration limits
-`loadEnv` to the `HOST` and `PORT` prefixes, so it does not record the whole
-environment.
+`check-project` runs `vp fmt --check && vp lint`. Formatting runs before lint
+and type checking. `vp run typecheck:node` uses the `typecheck-node` task;
+`vp run test:tooling` uses the `test-tooling` task, without cache, because the
+tests depend on temporary folders the cache does not track. Vite+ reuses
+successful results when the files read, the folder listings, the arguments and
+the selected environment variables stay the same. The lint tasks include
+`NODE_ENV` in the cache key; `PATH` and `NODE_OPTIONS` reach the process without
+invalidating the result. Vite also records the variables it loads. The server
+configuration limits `loadEnv` to the `HOST` and `PORT` prefixes, so it does not
+record the whole environment.
 
 The automatic tracking records the files the type-aware lint reads, the types in
 `node_modules` included. `typecheck-node` declares its inputs explicitly,
@@ -288,10 +283,7 @@ plan does not replace the invalidation check described above.
 
 ## Runtimes and CI
 
-> This section describes the CI and the release automation of the original
-> repository, boilerplate_solidjs. For this repository, see
-> [CI](../../../docs/development.md#ci) and
-> [Releasing](../../../docs/releasing.md).
+> The following workflow is an example from the upstream application.
 
 In the CI and in the release automation, `setup-vp` provides the Node and the
 Bun declared in the project and reuses the package cache.
@@ -388,9 +380,7 @@ workers and the Node runner of the tooling tests, at most three.
 
 ### Reusing the PR validation on main
 
-> This section describes the reuse proof of the original repository,
-> boilerplate_solidjs. This repository reuses the pull request run in another
-> way, described in [CI](../../../docs/development.md#ci).
+> The following workflow is an example from the upstream application.
 
 The push to `main` is a merge commit created by GitHub from a PR updated with
 the base, which the branch protection requires. When the run of that PR already
@@ -447,9 +437,7 @@ push.
 
 ### How to measure a CI optimization
 
-> This section measures the CI of the original repository, boilerplate_solidjs,
-> with its reuse proof and deploy steps. For the CI of this repository, see
-> [CI](../../../docs/development.md#ci).
+> The following workflow is an example from the upstream application.
 
 Separate runner usage from waiting time. The first is the sum of the job
 durations, computed between `started_at` and `completed_at`, divided by 60;
@@ -479,24 +467,8 @@ run.
 
 ## Git hooks
 
-> This section describes the hooks of the original repository,
-> boilerplate_solidjs. The copy installs no Git hooks. The hooks that the
-> tooling package ships are in
-> [Commit messages and Git hooks](../../../packages/solid-tooling/docs/commits-and-hooks.md).
-
-Installed by Lefthook in `vp install`, authorized in the `trustedDependencies`
-of `package.json`:
-
-| Hook         | What runs                                                                                                                                                             |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pre-commit` | `check:fix` on the staged files (with re-stage) + `scan:secrets --staged` when Kingfisher is available                                                                |
-| `commit-msg` | `commitlint` (header up to 100 characters; blank line before the footer; warning for body and footer lines over 100)                                                  |
-| `pre-push`   | `check:ci`, `typecheck:node` and `test:ci` in sequence; then `test:tooling`, `test:release` and `dead-code` (Knip) in parallel; the first failure stops the next jobs |
-
-`pre-commit` is skipped during `merge` and `rebase`. In the CI, Lefthook does
-not install the hooks; the `Quality` job repeats the commitlint on the commits
-of each PR. `pre-push` uses `piped: true`, because without it Lefthook goes on
-with the next jobs after a failure.
+The generated application installs Lefthook through its prepare script. See the
+[hook commands](../../../packages/solid-tooling/docs/commits-and-hooks.md).
 
 ## Maintenance conventions
 
@@ -513,12 +485,7 @@ with the next jobs after a failure.
   as devDependencies, with the Babel plugin at the version of the Solid runtime;
   the `babel` option of the plugin, with the native compiler, requires only
   `@babel/core`.
-- `vite-plus`, `vite`, `vitest` and the `@vitest/*` packages come from the
-  `catalog` of the root `package.json` of the monorepo; `vite` resolves to the
-  Vite+ core. Update the versions in that catalog and keep the `@vitest/*`
-  packages at the exact version of the Vitest bundled in Vite+. The same catalog
-  pins the `tsrs` that the tooling package ships, at the version `vite-plus`
-  depends on. The CI reads the Vite+ version from that catalog.
+- Keep Vitest packages aligned with the version bundled in Vite+.
 - Commits must follow Conventional Commits.
 - The lint is type-aware and runs with `typeCheck: true` through `tsrs-lint`,
   the backend that Vite+ installs with `tsrs`: the types of the application, the

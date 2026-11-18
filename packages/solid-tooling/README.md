@@ -490,3 +490,10 @@ for each release, and the
 for the packages together.
 
 [MIT](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)
+
+Read the [installed skill](skills/solid-base-app/SKILL.md) for application rules
+and the package reference.
+
+Run `vp run doctor` for installed versions, skill paths and validation commands.
+Run `vp run agents` to add the lookup instructions to AGENTS.md. See
+[installed package diagnostics](docs/app-config.md#installed-package-diagnostics).

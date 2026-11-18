@@ -7,7 +7,10 @@ import type { RunTask, SolidAppOptions } from './types.ts'
 type Task = Exclude<RunTask, string | string[]>
 type TaskCacheConfig = Exclude<Task['cache'], boolean | undefined>
 type TaskInput = NonNullable<TaskCacheConfig['input']>[number]
-type TaskOptions = Pick<SolidAppOptions, 'workspace' | 'root' | 'icons'> & {
+type TaskOptions = Pick<
+  SolidAppOptions,
+  'workspace' | 'root' | 'icons' | 'tasks' | 'i18nPlugin'
+> & {
   isCi: boolean
   hasI18n: boolean
 }
@@ -68,7 +71,9 @@ export function createTasks({
   root,
   icons,
   isCi,
-  hasI18n
+  hasI18n,
+  tasks,
+  i18nPlugin
 }: TaskOptions): Record<string, Task> {
   const install = installInputs({ workspace })
   const dependsOn = workspace ? { dependsOn: workspace.dependsOn } : {}
@@ -92,6 +97,14 @@ export function createTasks({
     : ''
 
   return {
+    agents: {
+      command: `${toolCommand('agents')} --root ${quote(root)}`,
+      cache: false
+    },
+    doctor: {
+      command: `${toolCommand('doctor')} --root ${quote(root)} --preset ${quote(JSON.stringify({ i18nDisabled: i18nPlugin === false, folders: Object.keys(icons ?? {}), tasks: ['check-project', 'typecheck-node', 'test-tooling', 'dead-code-project', ...Object.keys(tasks ?? {})] }))}`,
+      cache: false
+    },
     ...Object.fromEntries(
       TOOL_NAMES.map(name => [
         name,

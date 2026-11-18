@@ -1,6 +1,8 @@
 export const LOCALES = ['en', 'pt']
 export const SOURCE_PACKAGE = '@scope/source'
 export const TASKS = [
+  'agents',
+  'doctor',
   'knip',
   'tsrs',
   'playwright',

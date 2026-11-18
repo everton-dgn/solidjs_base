@@ -424,3 +424,14 @@ tsconfig `include` (`tsconfig.app.json` already does). Inference crosses the
 package boundary, including the optional numeric output of `PORT`. Generated
 virtual-module types do not augment `ImportMetaEnv`; applications using
 `import.meta.env` keep their own declarations.
+
+## Installed package diagnostics
+
+Run `vp run doctor` in the application for installed versions, skills and
+validation commands. Add `--json` for structured checks. Errors exit with
+status 1. If the config cannot load, use
+`node node_modules/@evertondgn/solid-tooling/dist/cli.mjs doctor --root . --json`.
+
+Run `vp run agents` to install the pointer in AGENTS.md. Use
+`vp run agents --check` to verify it without writing. Applications using
+CLAUDE.md can include `@AGENTS.md` there.

@@ -127,6 +127,8 @@ export function defineSolidApp(
             workspace: options.workspace,
             root,
             icons: options.icons,
+            tasks: options.tasks,
+            i18nPlugin: options.i18nPlugin,
             isCi: Boolean(env.CI),
             hasI18n: hasI18n(root)
           }),

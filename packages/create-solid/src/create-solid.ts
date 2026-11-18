@@ -4,6 +4,7 @@ import process from 'node:process'
 import { parseArgs } from 'node:util'
 
 import { generate } from './generate.ts'
+import { UsageError } from './usage-error.ts'
 
 const usageExitCode = 2
 function run(): void {
@@ -33,7 +34,7 @@ function run(): void {
     !positionals[0] ||
     (values.pm !== 'bun' && values.pm !== 'pnpm' && values.pm !== 'npm')
   ) {
-    throw new TypeError(usage)
+    throw new UsageError(usage)
   }
   const profile = {
     siteUrl: values['site-url'],
@@ -50,5 +51,12 @@ try {
   process.stderr.write(
     `${error instanceof Error ? error.message : String(error)}\n`
   )
-  process.exitCode = error instanceof TypeError ? usageExitCode : 1
+  const isArgumentError =
+    error instanceof UsageError ||
+    (error instanceof TypeError &&
+      'code' in error &&
+      typeof error.code === 'string' &&
+      (error.code.startsWith('ERR_PARSE_ARGS_') ||
+        error.code === 'ERR_INVALID_URL'))
+  process.exitCode = isArgumentError ? usageExitCode : 1
 }

@@ -23,6 +23,7 @@ import { parse } from 'valibot'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
 import type { Profile } from './types.ts'
+import { UsageError } from './usage-error.ts'
 
 const maxPackageNameLength = 214
 const jsonIndent = 2
@@ -38,7 +39,7 @@ function resolveSiteUrl(value?: string): URL {
     !['http:', 'https:'].includes(siteUrl.protocol) ||
     siteUrl.href !== `${siteUrl.origin}/`
   ) {
-    throw new TypeError('--site-url requires an HTTP or HTTPS origin')
+    throw new UsageError('--site-url requires an HTTP or HTTPS origin')
   }
   return siteUrl
 }
@@ -59,6 +60,28 @@ function resolveVersion(
     throw new Error(`Missing version for ${name}`)
   }
   return resolved
+}
+function publishTree(stage: string, destination: string): void {
+  if (!existsSync(destination)) {
+    renameSync(stage, destination)
+    return
+  }
+  if (readdirSync(destination).length > 0) {
+    throw new Error('Destination must be empty')
+  }
+  const moved: string[] = []
+  try {
+    for (const file of readdirSync(stage)) {
+      renameSync(path.join(stage, file), path.join(destination, file))
+      moved.push(file)
+    }
+    rmdirSync(stage)
+  } catch (error) {
+    for (const file of moved) {
+      renameSync(path.join(destination, file), path.join(stage, file))
+    }
+    throw error
+  }
 }
 function checkTools(profile: Profile): void {
   const tools = [
@@ -215,7 +238,7 @@ export function generate(profile: Profile): string[] {
     )
     cpSync(installerFiles, stage, { recursive: true })
     write('package.json', `${JSON.stringify(pkg, null, jsonIndent)}\n`)
-    renameSync(stage, path.resolve(profile.dir))
+    publishTree(stage, profile.dir)
   } catch (error) {
     rmSync(stage, { recursive: true, force: true })
     if (firstParent) {

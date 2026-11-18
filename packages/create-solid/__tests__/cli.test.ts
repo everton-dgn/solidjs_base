@@ -4,6 +4,7 @@ import {
   existsSync,
   cpSync,
   symlinkSync,
+  statSync,
   readdirSync,
   mkdirSync,
   mkdtempSync,
@@ -181,4 +182,11 @@ void it('rolls back owned files and directories on an internal generation error'
     if (isExisting) assert.deepEqual(readdirSync(dir), [])
     else assert.ok(!existsSync(path.join(parent, 'new')))
   }
+})
+
+void it('keeps the identity of an existing empty directory', context => {
+  const dir = folder(context)
+  const before = statSync(dir)
+  execFileSync(process.execPath, [bin, dir, '--no-install', '--no-git'])
+  assert.equal(statSync(dir).ino, before.ino)
 })

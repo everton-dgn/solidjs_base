@@ -81,9 +81,9 @@ modules of `defineSolidApp`. A section applies only when the app uses it.
   conversion per request. `data-md-exclude` leaves an element out.
 - Share one `createPublicationController()`, from a server-only module, between
   `createMarkdownContent`, in the middleware `document` slot, and
-  `createSitemapRoutes`. Array sources receive the signal and return the full list. A
-  partitioned source also receives `limit` and bounds its query accordingly;
-  never register an array and a partitioned source for one route.
+  `createSitemapRoutes`. Array sources receive the signal and return the full
+  list. A partitioned source also receives `limit` and bounds its query
+  accordingly; never register an array and a partitioned source for one route.
 
 ## Theme
 

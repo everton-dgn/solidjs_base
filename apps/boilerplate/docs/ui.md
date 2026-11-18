@@ -144,9 +144,10 @@ would fall back to the system font. Check the coverage of a file with
 `fc-query --format='%{charset}\n' <file>`.
 
 The font loading contract and complete examples are in the monorepo's
-[font guide](../../../packages/solid-tooling/docs/fonts.md). Keep the CSS fallback stack,
-weights and sizes in the application theme. Remove handwritten font faces and
-preload imports when adopting this mechanism; no inline CSS is required.
+[font guide](../../../packages/solid-tooling/docs/fonts.md). Keep the CSS
+fallback stack, weights and sizes in the application theme. Remove handwritten
+font faces and preload imports when adopting this mechanism; no inline CSS is
+required.
 
 ## CSS rules
 

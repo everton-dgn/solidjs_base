@@ -41,16 +41,10 @@ suite of their own to check mounting, static texts, classes or the native
 behavior of buttons. Choose the environment that covers the behavior and avoid
 repeating the same scenario at another level.
 
-The tests in `tooling/**/__tests__/` use the `node:test` API. The
-`vp run test:tooling` command runs the modules in Node, except
-`tooling/release/`, which runs in Bun with `vp run test:release`, the same
-runtime as the publication. Both commands run in `validate` and in the
-`pre-push`, outside the Vitest commands: test, coverage, UI and watch. In the
-CI, the Node suite runs in every execution, except in the `main` push whose
-[reuse proof](development.md#reusing-the-pr-validation-on-main) waives the
-`Tooling` job; the release tests only run when the automation or its
-dependencies change, according to the
-[release guide](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md#validação-local-e-no-ci).
+The tests in `tooling/**/__tests__/` use the `node:test` API. In this copy,
+`vp run test:tooling` runs the application tooling tests with Node, outside the
+Vitest commands, and is part of the application validation. The monorepo root
+has a separate `vp run test:release` command, which also runs in Node.
 
 ## Environments
 
@@ -157,10 +151,9 @@ backend, an exception after the read, an `Error` inside the result, a public
 error and success, each one in the initial SSR, in a call from the browser and
 in streaming, plus a reload that still fails, recovery after the backend comes
 back and the isolation of the client bundle. The initial SSR is also checked
-with JavaScript disabled. The details are in
-[docs/server-errors.md](server-errors.md); the CI runs the whole suite, except
-when the [reuse proof](development.md#reusing-the-pr-validation-on-main) waives
-`E2E (fixtures)`.
+with JavaScript disabled. See [server errors](server-errors.md) for the failure
+scenarios and [CI](../../../docs/development.md#ci) for when the monorepo runs
+the fixture suite.
 
 ### Publication load
 
@@ -359,27 +352,14 @@ the console, also with the `dark` or `light` theme in the cookie, without a
 `style` attribute on `<html>`. The command uses the same `BASE_URL_TEST`, loads
 the public variables in `production` mode and does not need the mocked backend.
 In the same local checkout, run the two suites one after the other, because they
-share the port and the build artifacts. The CI runs both in parallel, on
-separate runners to isolate ports and builds; the production suite also checks
-the final build and is the only one that runs when the reuse proof waives
-`E2E (fixtures)`.
-
-On the push to `main`, the production E2E job tests the Vercel build that the
-deploy publishes, according to the
-[Vercel integration](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md#integração-com-a-vercel).
-Playwright receives only the public `VITE_*` variables of the environment file
-obtained from Vercel, keeping values already defined in the process; backend
-credentials from that file are not passed to the preview. With
-`TEST_PREBUILT=true`, Playwright only starts the preview.
-
-PRs, from forks included, keep the local builds without Vercel credentials. The
-local commands also keep building by default. To check a production build
-already generated, use `TEST_PREBUILT=true vp run test:e2e:production`. The mode
-requires production routes; using it with the fixture suite causes an error. An
-`e2e` mode build in `.vercel/output`, left by an earlier `vp run test:e2e`, is
-refused before the preview starts. The tests of
-`tooling/__tests__/playwright.test.ts` run the startup commands with a mocked
-CLI and check the number of builds in each mode.
+share the port and the build artifacts. In this monorepo, the CI runs the
+fixture suite. Run `vp run test:e2e:production` in the app to check the real
+routes locally, and `TEST_PREBUILT=true vp run test:e2e:production` to reuse a
+production build; with `TEST_PREBUILT=true`, Playwright only starts the preview.
+The mode requires production routes; using it with the fixture suite causes an
+error. The
+[tooling package tests](../../../packages/solid-tooling/src/playwright/__tests__/playwright.test.ts)
+cover the startup commands and reject an E2E fixture build in prebuilt mode.
 
 Use `vp run test:e2e:ui` to open the interactive Playwright interface. With
 `CI=true`, the E2E tests use two workers; locally, they keep the default

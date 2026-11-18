@@ -7,11 +7,11 @@
 The security headers of the function responses come from the middleware. For
 static files, the Nitro `routeRules` set `Strict-Transport-Security`,
 `X-Content-Type-Options` and `Cross-Origin-Resource-Policy`, as described in the
-[known limits](#known-limits). `securityHeaders` writes on every response of the
-chain `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`,
+[known limits](#known-limits). For the responses it handles, `securityHeaders`
+sets `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`,
 `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`,
-`Cross-Origin-Embedder-Policy`, `Cross-Origin-Resource-Policy` and the
-`Content-Security-Policy`. The values are in
+`Cross-Origin-Embedder-Policy` and `Cross-Origin-Resource-Policy`. Production
+responses also get the `Content-Security-Policy`. The values are in
 [`src/middleware/securityHeaders/constants.ts`](../src/middleware/securityHeaders/constants.ts),
 which spreads the defaults of the runtime package
 ([`constants.js`](../../../packages/solid-runtime/src/middleware/securityHeaders/constants.js));

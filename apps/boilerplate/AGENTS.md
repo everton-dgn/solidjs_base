@@ -45,9 +45,10 @@ release. Add a tool name to select part of the graph. For example, run
   run `vp run test` at the monorepo root.
 - The sections about release automation, the CI workflow, Git hooks and the
   Vercel deploy describe the original repository and do not apply to this copy.
-- This file and the guides in `docs/` are in English. The code comments and the
-  test titles are still in Portuguese, as in the original. When bringing a change
-  from the original, translate its documentation.
+- This file, the guides in `docs/`, the code comments and the test titles are in
+  English. The tests check the interface in its three languages. When bringing a
+  change from the original, translate its documentation, comments and test
+  titles.
 
 - URL helpers, locale alternates and Vary header merging live in
   `@evertondgn/solid-runtime/i18n/urls`,

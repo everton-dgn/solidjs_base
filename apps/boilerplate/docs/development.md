@@ -29,9 +29,10 @@ change `engines` and `devEngines` in the same commit.
 
 `@evertondgn/solid-tooling` installs the tools the preset uses. This copy keeps
 direct declarations only for its own imports and Vite+. Updating the package
-updates those tools; align the retained Nitro, routing and Playwright Test
-versions when upgrading. Keep Paraglide, message-format and the Solid libraries
-in the application, plus the root Vite/Vitest overrides.
+updates those tools. Keep the application-owned routing and Playwright Test
+dependencies aligned with the tooling package; Nitro comes from the tooling
+package. Keep Paraglide, message-format and the Solid libraries in the
+application, plus the root Vite/Vitest overrides.
 
 Use `vp run tsrs`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
 `vp run commitlint` for the package's executables. Scripts such as `test:e2e`,
@@ -239,11 +240,12 @@ update the pinned version in `package.json` by hand.
 the cached tasks `lint-project`, `lint-css`, `check-project` and
 `dead-code-project`, which `defineSolidApp` from
 `@evertondgn/solid-tooling/vite` declares. `lint-project` and `check-project`
-declare `dependsOn: ['lint-css']`: the CSS lint runs first, with its own cache
-and inputs, and a TypeScript-only change does not run it again. The two tasks
-share the same inputs. `check-project` runs `vp fmt --check && vp lint`, because
-in the monorepo `vp check` would use the lint and the formatter of the root: a
-formatting failure stops the task before the lint and the type check.
+declare `dependsOn: ['lint-css', 'icons-generate']`: the CSS lint and the icon
+declarations run first, each with its own cache inputs, and a TypeScript-only
+change does not run them again. The two tasks share the same inputs.
+`check-project` runs `vp fmt --check && vp lint`, because in the monorepo
+`vp check` would use the lint and the formatter of the root: a formatting
+failure stops the task before the lint and the type check.
 `vp run typecheck:node` uses the `typecheck-node` task; `vp run test:tooling`
 uses the `test-tooling` task, without cache, because the tests depend on
 temporary folders the cache does not track. Vite+ reuses successful results when

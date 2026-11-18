@@ -21,7 +21,7 @@ The home page, captured from the production build at 750 px wide:
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/app-home-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/app-home-light.webp" />
-  <img src="../../docs/assets/readme/app-home-light.webp" alt="Screenshot of the boilerplate home page at /en from the production build: a top bar with Home, About, Contact, Privacy and 404 links, a GitHub link, the EN language button and the theme button, then the SolidJS Boilerplate badge, the title SolidJS Boilerplate for web applications, two paragraphs about SSR, themes, three languages and tests, the SolidJS logo and the line SolidJS 2, Vite+, TypeScript 7." width="800" />
+  <img src="../../docs/assets/readme/app-home-light.webp" alt="The boilerplate app's home page at /en, captured from its production build." width="800" />
 </picture>
 
 The app started as a copy of
@@ -133,10 +133,12 @@ repository. A fixture is a minimal app on the same packages, and the
 [root README](../../README.md#start-a-new-app-from-a-fixture) lists the three to
 five changes a copy of one takes.
 
-**Does it run only on the packages?** No. The manifest declares 14 direct
-dependencies for the app's own imports and Vite+, against 28 before the packages
-([tooling README](../../packages/solid-tooling/README.md)). Bun also applies a
-patch to `@mdream/js` that the packages do not ship ([limits](#limits)).
+**Does it run only on the packages?** No. The manifest declares 15 direct
+dependencies for the app's own imports, Vite+ and `@solidjs/diagnostics`, which
+the Solid plugin reads in development, against 28 before the packages
+([tooling README](../../packages/solid-tooling/README.md#fewer-tool-versions-in-each-manifest)).
+Bun also applies a patch to `@mdream/js` that the packages do not ship
+([limits](#limits)).
 
 **Can I take a single feature from it?** Yes. The behavior comes from runtime
 factories, and the copy keeps thin bindings in `src/`: its header values, its
@@ -179,7 +181,7 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/security-headers-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/security-headers-light.webp" />
-  <img src="../../docs/assets/readme/security-headers-light.webp" alt="Output of curl -sI on the boilerplate production preview at /en: strict-transport-security max-age=63072000 with includeSubDomains, x-frame-options DENY, x-content-type-options nosniff, referrer-policy strict-origin-when-cross-origin, a permissions-policy that blocks camera, microphone and geolocation, same-origin opener and resource policies, require-corp embedder policy, and a content-security-policy whose script-src carries a request nonce and strict-dynamic. The next requests carried different nonces." width="800" />
+  <img src="../../docs/assets/readme/security-headers-light.webp" alt="curl -sI on the boilerplate app's production preview: eight security headers and a CSP whose script-src carries a nonce." width="800" />
 </picture>
 
 `curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
@@ -217,7 +219,7 @@ both suites.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/app-locales-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/app-locales-light.webp" />
-  <img src="../../docs/assets/readme/app-locales-light.webp" alt="Three screenshots of the boilerplate home page from the production build, at /pt with lang pt-BR, /en with lang en-US and /es with lang es-ES. The navigation, the title and the language button change with the locale: Início, Home and Inicio; para aplicações web, for web applications and para aplicaciones web; PT, EN and ES." width="800" />
+  <img src="../../docs/assets/readme/app-locales-light.webp" alt="The boilerplate app's home page at /pt, /en and /es, with the navigation, the title and the language button in each locale." width="800" />
 </picture>
 
 Every page lives under `/pt`, `/en` or `/es`, with `lang`, the navigation and
@@ -242,7 +244,7 @@ z-index values, counted as the custom properties declared in each file.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/outdated-page-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/outdated-page-light.webp" />
-  <img src="../../docs/assets/readme/outdated-page-light.webp" alt="Outdated page recovery in four steps: a deploy removes old chunks and server function ids, the tab detects a missing chunk or a server function refused with 404 or 409, the page is marked as outdated without a reload, and the next path change loads a fresh document. A refused submission shows the notice Your submission was not completed with a Reload page button. At the root error boundary, a missing chunk reloads once, and a repeat within 30 seconds shows the error page." width="800" />
+  <img src="../../docs/assets/readme/outdated-page-light.webp" alt="A tab from the previous build marks the page as outdated and loads a fresh document on the next navigation." width="800" />
 </picture>
 
 `installOutdatedPageDetection` marks the page when a chunk of the previous build
@@ -256,20 +258,19 @@ back within 30 seconds, the error page appears with a manual reload
 
 ## How it is tested
 
-The CI run of the 0.8.0 release pull request
-([run 43975952604](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604))
+The CI run of the 0.10.0 release pull request
+([run 44206537981](https://github.com/everton-dgn/solidjs_base/actions/runs/44206537981))
 executed these suites:
 
 - Vitest: 185 tests passed in 32 files
-  ([Boilerplate app job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119099)).
+  ([Boilerplate app job](https://github.com/everton-dgn/solidjs_base/actions/runs/44206537981/job/134474053995)).
   The `node` project ran 68 tests in 12 files, `dom` ran 87 in 13 files in
   happy-dom, and `browser` ran 30 in 7 files in Chromium. Coverage reached
   93.38% of statements, 91.86% of branches, 91.72% of functions and 95.83% of
   lines. The preset sets thresholds of 80% for lines, functions and statements
   and 75% for branches.
-- Playwright: the 164 cases of the `e2e` build passed on 2 workers in 1.3
-  minutes
-  ([Boilerplate app E2E job](https://github.com/everton-dgn/solidjs_base/actions/runs/43975952604/job/133680119082)).
+- Playwright: the 164 cases of the `e2e` build passed on 2 workers in 1.0 minute
+  ([Boilerplate app E2E job](https://github.com/everton-dgn/solidjs_base/actions/runs/44206537981/job/134474053917)).
 
 Two suites stay out of CI: the production suite and `PublicationLoad`.
 `playwright test --list` counts 155 cases in 12 files for the production build,
@@ -289,7 +290,7 @@ refuses, so it never shares a run with the other suites. See
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/e2e-coverage-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/e2e-coverage-light.webp" />
-  <img src="../../docs/assets/readme/e2e-coverage-light.webp" alt="Horizontal bars of the 319 Playwright cases of apps/boilerplate across 15 areas, split between the E2E build with 164 cases and the production build with 155: AgentReadiness 77, I18n 40, Home 36, SeoIndexes 29, Markdown 27, BackendError 25, BuildOutput 22, OutsideError 18, Hydration 18, UiKit 8, OutdatedPage 7, StructuredData 6, FragmentCss 2, LateRedirect 2 and NotFound 2. Enumerated with playwright test --list, without running them." width="800" />
+  <img src="../../docs/assets/readme/e2e-coverage-light.webp" alt="The boilerplate app's Playwright cases by area, split between the E2E build that CI runs and the production build." width="800" />
 </picture>
 
 CI runs this app's check, Node type check, dead code, Vitest with coverage,
@@ -329,11 +330,9 @@ It takes its lint preset, lint rules, formatter settings, TypeScript configs,
 Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
 Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`, through the
 workspace, in place of the copies the original keeps in `tooling/`,
-`vite.config.ts` and `tsconfig.json`. The five config files keep 129 lines where
-the original had 945, about 86% fewer: Vite 427 to 52, Playwright 173 to 17,
-Knip 129 to 40, TypeScript 45 to 9, and Stylelint 171 to an 11-line caller
-(`wc -l` at `6145493` and in this folder). The
-[tooling README](../../packages/solid-tooling/README.md) keeps that comparison.
+`vite.config.ts` and `tsconfig.json`. See the
+[configuration comparison](../../packages/solid-tooling/README.md#the-configuration-you-stop-maintaining)
+of the tooling README for the line counts by area.
 
 The package supplies tools that this copy does not import itself. Its
 `playwright`, `knip` and `tsrs` tasks resolve executables from the tooling
@@ -430,5 +429,5 @@ the Vercel deploy describe the original repository.
 | [Components, theme and styles](docs/ui.md)                      | Test app components, the theme, tokens, CSS rules, icons and fonts    |
 | [Tests](docs/testing.md)                                        | Vitest projects, E2E suites, production checks and reports            |
 
-`AGENTS.md` and the guides in `docs/` are in English. The code comments and the
-test titles are in Portuguese, as in the original.
+`AGENTS.md`, the guides in `docs/`, the code comments and the test titles are in
+English. The tests check the interface in its three languages.

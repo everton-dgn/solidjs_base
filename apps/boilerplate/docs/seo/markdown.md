@@ -209,7 +209,7 @@ The responses converted on the request get `text/markdown; charset=utf-8`,
 `Link: </llms.txt>; rel="describedby"`, keeping the `Link` values received from
 the render. GET and HEAD keep the same metadata. The build files are served by
 the static layer, without going through the function: `vercel.json` sets the
-`Content-Type`, the Nitro `routeRules` set `nosniff` and
+`Content-Type`, the Nitro `routeRules` set HSTS, `X-Content-Type-Options` and
 `Cross-Origin-Resource-Policy` ([security](../security.md)), and the cache
 follows the Vercel default for static files. They write neither a locale cookie
 nor `Content-Language`; the locale comes from the URL. The local preview

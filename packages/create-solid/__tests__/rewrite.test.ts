@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import {
   cpSync,
   mkdirSync,
@@ -9,6 +10,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import process from 'node:process'
 import { it, type TestContext } from 'node:test'
 
 import {
@@ -58,4 +60,19 @@ void it('refuses a Vite config missing the expected workspace block', context =>
   const dir = folder(context)
   writeFileSync(path.join(dir, 'vite.config.ts'), 'export default {}')
   assert.throws(() => rewriteVite(dir), /Missing Vite workspace inputs/u)
+})
+
+void it('reads pnpm patch paths from YAML with unquoted values', context => {
+  const dir = folder(context)
+  const file = 'tooling/__tests__/patched-dependencies.test.ts'
+  mkdirSync(path.join(dir, path.dirname(file)), { recursive: true })
+  cpSync(path.join('template', file), path.join(dir, file))
+  rewritePatchTest({ dir, pm: 'pnpm' })
+  writeFileSync(
+    path.join(dir, 'pnpm-workspace.yaml'),
+    "patchedDependencies:\n  'example@1.0.0': example.patch\n"
+  )
+  writeFileSync(path.join(dir, 'pnpm-lock.yaml'), 'example@1.0.0:\n')
+  writeFileSync(path.join(dir, 'example.patch'), '')
+  execFileSync(process.execPath, ['--test', file], { cwd: dir })
 })

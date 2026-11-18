@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
 import {
   existsSync,
+  cpSync,
+  symlinkSync,
+  readdirSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -147,5 +150,35 @@ void it('preserves the destination when a required tool is missing', context => 
     assert.equal(result.status, 1)
     assert.equal(existsSync(dir), isExisting)
     assert.ok(!existsSync(path.join(dir, 'package.json')))
+  }
+})
+
+void it('rolls back owned files and directories on an internal generation error', context => {
+  const parent = folder(context)
+  cpSync('dist', path.join(parent, 'dist'), { recursive: true })
+  symlinkSync(path.resolve('template'), path.join(parent, 'template'))
+  const settings = path.join(parent, 'dist/settings.json')
+  const input = readFileSync(settings, 'utf8')
+  writeFileSync(
+    settings,
+    input.replace(/"@evertondgn\/solid-runtime":"[^"]+"/u, '"absent":"0"')
+  )
+  for (const isExisting of [true, false]) {
+    const dir = path.join(parent, isExisting ? 'existing' : 'new/nested/app')
+    if (isExisting) mkdirSync(dir)
+    const result = spawnSync(
+      process.execPath,
+      [
+        path.join(parent, 'dist/create-solid.mjs'),
+        dir,
+        '--no-git',
+        '--no-install'
+      ],
+      { encoding: 'utf8' }
+    )
+    assert.match(result.stderr, /Missing version for/u)
+    assert.equal(result.status, 1)
+    if (isExisting) assert.deepEqual(readdirSync(dir), [])
+    else assert.ok(!existsSync(path.join(parent, 'new')))
   }
 })

@@ -5,6 +5,9 @@ import {
   constants,
   statSync,
   mkdirSync,
+  mkdtempSync,
+  renameSync,
+  rmdirSync,
   readdirSync,
   rmSync,
   readFileSync,
@@ -77,7 +80,7 @@ function resolveVersion(
     resolved = settings.versions[name]
   }
   if (typeof resolved !== 'string') {
-    throw new TypeError(`Missing version for ${name}`)
+    throw new Error(`Missing version for ${name}`)
   }
   return resolved
 }
@@ -145,8 +148,6 @@ export function generate(profile: Profile): string[] {
     JSON.parse(readFileSync(settingsFile, 'utf8'))
   )
   const siteUrl = resolveSiteUrl(profile.siteUrl)
-  const write = (file: string, content: string) =>
-    writeFileSync(path.join(profile.dir, file), content)
   if (existsSync(profile.dir) && readdirSync(profile.dir).length > 0) {
     throw new Error('Destination must be empty')
   }
@@ -166,9 +167,11 @@ export function generate(profile: Profile): string[] {
     if (!found)
       throw new Error(`Install ${tool} before generating the application.`)
   }
-  mkdirSync(path.dirname(profile.dir), { recursive: true })
-  const created = !existsSync(profile.dir)
-  if (created) mkdirSync(profile.dir)
+  const parent = path.dirname(path.resolve(profile.dir))
+  const firstParent = mkdirSync(parent, { recursive: true })
+  const stage = mkdtempSync(path.join(parent, '.create-solid-'))
+  const write = (file: string, content: string) =>
+    writeFileSync(path.join(stage, file), content)
   try {
     for (const file of readdirSync(template)) {
       if (
@@ -179,7 +182,7 @@ export function generate(profile: Profile): string[] {
       }
       cpSync(
         path.join(template, file),
-        path.join(profile.dir, file === '_gitignore' ? '.gitignore' : file),
+        path.join(stage, file === '_gitignore' ? '.gitignore' : file),
         { recursive: true }
       )
     }
@@ -194,7 +197,7 @@ export function generate(profile: Profile): string[] {
         () => `VITE_SITE_URL=${siteUrl.origin}`
       )
     )
-    rewriteVite(profile.dir)
+    rewriteVite(stage)
     const manifestFile = path.join(template, 'package.json')
     const pkg = parse(
       manifestSchema,
@@ -206,17 +209,23 @@ export function generate(profile: Profile): string[] {
     pkg.devDependencies = resolveGroup(context, pkg.devDependencies)
     configureInstaller(context)
     configureHooks(context)
-    rewriteKnip(profile.dir)
+    rewriteKnip(stage)
     const installerFiles = path.resolve(
       import.meta.dirname,
       '../dist/profiles',
       profile.pm
     )
-    cpSync(installerFiles, profile.dir, { recursive: true })
+    cpSync(installerFiles, stage, { recursive: true })
     write('package.json', `${JSON.stringify(pkg, null, jsonIndent)}\n`)
+    renameSync(stage, profile.dir)
   } catch (error) {
-    if (created && !existsSync(path.join(profile.dir, 'package.json'))) {
-      rmSync(profile.dir, { recursive: true, force: true })
+    rmSync(stage, { recursive: true, force: true })
+    if (firstParent) {
+      for (let current = parent; ; current = path.dirname(current)) {
+        if (readdirSync(current).length) break
+        rmdirSync(current)
+        if (current === firstParent) break
+      }
     }
     throw error
   }

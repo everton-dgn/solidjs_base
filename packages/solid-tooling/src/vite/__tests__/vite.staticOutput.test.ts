@@ -157,7 +157,7 @@ it('refuses a publication endpoint without its SEO feature', async t => {
     ['sitemap.xml', 'sitemap'],
     ['robots.txt', 'robots'],
     ['llms.txt', 'llms']
-  ]) {
+  ] as const) {
     const dir = path.join(root, 'src/routes', name)
     await mkdir(dir, { recursive: true })
     await writeFile(

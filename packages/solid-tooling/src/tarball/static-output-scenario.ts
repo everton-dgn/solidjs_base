@@ -106,6 +106,42 @@ async function checkRefusals({
   })
 }
 
+async function checkLocaleHydration(origin: string): Promise<void> {
+  const browser = await chromium.launch({
+    channel: env.CI ? 'chrome' : undefined
+  })
+  try {
+    const page = await browser.newPage({ locale: 'de-DE' })
+    await page.addInitScript(`document.addEventListener('securitypolicyviolation', event => {
+          document.documentElement.dataset.blockedDirective = event.effectiveDirective
+        })`)
+    await page.goto(origin)
+    await page.waitForSelector('html[data-client-locale]', {
+      timeout: 10_000
+    })
+    assert.equal(
+      await page.locator('html').getAttribute('data-client-locale'),
+      'fr'
+    )
+    assert.equal(await page.locator('html').getAttribute('lang'), 'fr-FR')
+    assert.equal(
+      await page.locator('html').getAttribute('data-blocked-directive'),
+      null
+    )
+    assert.equal(
+      await page.locator('p').first().textContent(),
+      'Bonjour le monde'
+    )
+    const missing = await page.goto(`${origin}/de/inexistente`)
+    assert.equal(missing?.status(), HTTP_NOT_FOUND)
+    await page.waitForSelector('html[data-client-locale="de"]')
+    assert.equal(await page.locator('html').getAttribute('lang'), 'de-DE')
+    assert.equal(await page.locator('p').first().textContent(), 'Hallo Welt')
+  } finally {
+    await browser.close()
+  }
+}
+
 export async function checkStaticOutput({
   app,
   deadline,
@@ -257,42 +293,7 @@ export async function checkStaticOutput({
       }
     }
     if (isTranslated) {
-      const browser = await chromium.launch({
-        channel: env.CI ? 'chrome' : undefined
-      })
-      try {
-        const page = await browser.newPage({ locale: 'de-DE' })
-        await page.addInitScript(`document.addEventListener('securitypolicyviolation', event => {
-          document.documentElement.dataset.blockedDirective = event.effectiveDirective
-        })`)
-        await page.goto(origin)
-        await page.waitForSelector('html[data-client-locale]', {
-          timeout: 10_000
-        })
-        assert.equal(
-          await page.locator('html').getAttribute('data-client-locale'),
-          'fr'
-        )
-        assert.equal(await page.locator('html').getAttribute('lang'), 'fr-FR')
-        assert.equal(
-          await page.locator('html').getAttribute('data-blocked-directive'),
-          null
-        )
-        assert.equal(
-          await page.locator('p').first().textContent(),
-          'Bonjour le monde'
-        )
-        const missing = await page.goto(origin + '/de/inexistente')
-        assert.equal(missing?.status(), HTTP_NOT_FOUND)
-        await page.waitForSelector('html[data-client-locale="de"]')
-        assert.equal(await page.locator('html').getAttribute('lang'), 'de-DE')
-        assert.equal(
-          await page.locator('p').first().textContent(),
-          'Hallo Welt'
-        )
-      } finally {
-        await browser.close()
-      }
+      await checkLocaleHydration(origin)
     }
     const markdownPaths = (isTranslated ? pages.slice(1) : pages).map(
       prefix => [`${prefix}/about.md`, 'Scenario application'] as const

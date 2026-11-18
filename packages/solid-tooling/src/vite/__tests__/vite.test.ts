@@ -312,8 +312,9 @@ it('writes the security headers on the static files in a fixed order', async con
   ])
   const compilerCalls = optionsOf({ summary, name: 'paraglide' })
   assert.ok(compilerCalls.length > 0)
-  for (const value of compilerCalls)
+  for (const value of compilerCalls) {
     assert.equal(hasKey({ value, key: 'strategy' }), false)
+  }
   const staticRules = Object.entries(routeRules).filter(
     ([staticPath]) => staticPath !== '/api/**'
   )

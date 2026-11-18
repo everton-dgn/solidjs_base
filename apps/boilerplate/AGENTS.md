@@ -181,8 +181,10 @@ release. Add a tool name to select part of the graph. For example, run
 - Use global IDs prefixed with the owner and the same parameters in the three
   locales. Import `m` from `@paraglide/messages.js` and `Locale` from
   `@paraglide/runtime.js`; do not edit `paraglide/` or `.paraglide/`.
-- Call messages in the component or in getters. Do not capture the locale or a
-  translated text at the top of a module shared between SSR requests.
+- Call messages in the component or in getters, or pass the message function
+  where the API accepts one, such as the `title` of `seo`. Do not capture the
+  locale or a translated text at the top of a module shared between SSR
+  requests.
 - Page links use `LocalizedLink`, programmatic navigation uses
   `createLocalizedNavigate()` and redirects use `localizedRedirect()`.
   Import the navigation primitives from `@evertondgn/solid-runtime/i18n/`:
@@ -331,8 +333,8 @@ release. Add a tool name to select part of the graph. For example, run
 - Parameterized pages stay out of the build and use the native matching on the
   request. The finite enumeration of the sitemap and llms.txt is a separate
   contract.
-- Localized texts and links are getters or calls in the component: do not
-  capture the locale at the top of the module. Objects used by the HTML can stay
+- Localized texts and links are getters, message functions or calls in the
+  component: do not capture the locale at the top of the module. Objects used by the HTML can stay
   as UI data; they do not need to implement a publication contract.
 - `seo.ts` lives next to `index.tsx`, without entering the helper count. Do not
   export a default component or HTTP handlers from that module.
@@ -341,8 +343,8 @@ release. Add a tool name to select part of the graph. For example, run
   `seo.ts`. The route manifest imports the `route` of each page in the initial
   bundle, and everything `seo.ts` imports goes with it: a `content` exported
   from there takes the texts of every page, in the three locales, into the
-  initial bundle. The `seo` getters call the messages directly, without reading
-  the page object. Do not move `content` to `seo.ts`, to a module `seo.ts`
+  initial bundle. `seo` points to the messages directly, without reading the
+  page object. Do not move `content` to `seo.ts`, to a module `seo.ts`
   imports or to another one the `route` reaches. The `project/seo-module` rule
   (`packages/solid-tooling/src/seoModule/index.ts`) refuses in the lint any
   export other than `seo` and any local value import in `seo.ts`, and

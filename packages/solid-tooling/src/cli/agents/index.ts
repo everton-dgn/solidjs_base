@@ -16,6 +16,7 @@ type BlockState = 'current' | 'outdated' | 'missing'
 type Instructions = { original: string; file: string }
 type MarkerPair = { start: number; end: number }
 type AgentsInput = { root: string; shouldWrite: boolean }
+type MarkerLine = { line: string; location: string }
 
 async function readInstructions(file: string): Promise<string> {
   try {
@@ -30,6 +31,17 @@ async function readInstructions(file: string): Promise<string> {
     throw error
   }
 }
+function readMarker({ line, location }: MarkerLine): RegExpExecArray | null {
+  const marker =
+    /<!--(?<kind>SOLID BASE|VITE PLUS) (?<edge>START|END)-->/u.exec(line)
+  if (
+    !marker &&
+    /<!--\s*(?:SOLID BASE|VITE PLUS)\s+(?:START|END)\b/iu.test(line)
+  ) {
+    throw new Error(`${location}: malformed marker`)
+  }
+  return marker
+}
 function markers({ original, file }: Instructions): Map<string, MarkerPair> {
   const lines = original.match(/[^\n]*\n|[^\n]+$/gu) ?? []
   const pairs = new Map<string, MarkerPair>()
@@ -43,14 +55,8 @@ function markers({ original, file }: Instructions): Map<string, MarkerPair> {
     if (!fenceLine && active !== 'VITE PLUS' && FENCE_RUN.test(line)) {
       fenceLine = index + 1
     }
-    const marker =
-      /<!--(?<kind>SOLID BASE|VITE PLUS) (?<edge>START|END)-->/u.exec(line)
-    if (
-      !marker &&
-      /<!--\s*(?:SOLID BASE|VITE PLUS)\s+(?:START|END)\b/iu.test(line)
-    ) {
-      throw new Error(`${file}:${index + 1}: malformed marker`)
-    }
+    const location = `${file}:${index + 1}`
+    const marker = readMarker({ line, location })
     if (marker) {
       const [, kind = '', edge] = marker
       // Vite+ appends its block to an existing file, below any code in it.
@@ -58,7 +64,7 @@ function markers({ original, file }: Instructions): Map<string, MarkerPair> {
       if (fenceLine && kind === 'VITE PLUS') continue
       if (fenceLine) {
         throw new Error(
-          `${file}:${index + 1}: ${kind} marker below the code fence of line ${fenceLine}; keep the managed blocks above every code fence`
+          `${location}: ${kind} marker below the code fence of line ${fenceLine}; move the block above every code fence`
         )
       }
       const isInvalid =
@@ -67,7 +73,7 @@ function markers({ original, file }: Instructions): Map<string, MarkerPair> {
           ? Boolean(active) || pairs.has(kind)
           : active !== kind)
       if (isInvalid) {
-        throw new Error(`${file}:${index + 1}: invalid ${kind} marker`)
+        throw new Error(`${location}: invalid ${kind} marker`)
       }
       if (edge === 'START') {
         active = kind

@@ -96,5 +96,6 @@ test('follows a Vite+ block that holds a code example', async t => {
   const vite = VITE.replace('\n', '\n```sh\nvp check\n```\n')
   await writeFile(file, `${vite}\ncustom`)
   await agents({ root, shouldWrite: true })
-  assert.ok((await readFile(file, 'utf8')).startsWith(`${vite}\n${START}`))
+  const current = await readFile(file, 'utf8')
+  assert.ok(current.startsWith(`${vite}\n${START}`))
 })

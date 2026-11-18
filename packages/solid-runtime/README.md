@@ -1,6 +1,6 @@
 [![Latest solid-runtime version on npm](https://img.shields.io/npm/v/@evertondgn/solid-runtime)](https://www.npmjs.com/package/@evertondgn/solid-runtime)
 [![CI workflow status](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml/badge.svg)](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml)
-[![Node version that solid-runtime requires](https://img.shields.io/node/v/@evertondgn/solid-runtime)](docs/entry-points.md#requirements)
+[![Node version that solid-runtime requires](https://img.shields.io/node/v/@evertondgn/solid-runtime)](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/entry-points.md#requirements)
 [![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)
 
 # @evertondgn/solid-runtime
@@ -28,12 +28,12 @@ and backend adapters.
 
 ## Requirements
 
-| You need       | Solid Base expects                                                                                                                                                                                                                              |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Node           | The range in `engines.node` of the [package manifest](package.json), shown by the Node badge above                                                                                                                                              |
-| The tooling    | `@evertondgn/solid-tooling` as a dev dependency: its `defineSolidApp` sets the `solid` export condition and serves the `virtual:solid-app/*` modules. The packages share one version number ([requirements](docs/entry-points.md#requirements)) |
-| Solid          | `@solidjs/web` at the exact version of the `peerDependencies` in the manifest, with `solid-js` at the same version                                                                                                                              |
-| A host for SSR | Vercel's output format for the server features: the preset's Nitro always uses its `vercel` preset. A client-only build (`ssr: false`) writes a static `dist/` with no server                                                                   |
+| You need       | Solid Base expects                                                                                                                                                                                                                                                                                                           |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Node           | The range in `engines.node` of the [package manifest](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/package.json), shown by the Node badge above                                                                                                                                              |
+| The tooling    | `@evertondgn/solid-tooling` as a dev dependency: its `defineSolidApp` sets the `solid` export condition and serves the `virtual:solid-app/*` modules. The packages share one version number ([requirements](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/entry-points.md#requirements)) |
+| Solid          | `@solidjs/web` at the exact version of the `peerDependencies` in the manifest, with `solid-js` at the same version                                                                                                                                                                                                           |
+| A host for SSR | Vercel's output format for the server features: the preset's Nitro always uses its `vercel` preset. A client-only build (`ssr: false`) writes a static `dist/` with no server                                                                                                                                                |
 
 ## Install
 
@@ -126,8 +126,8 @@ code imports it.
 | Environment values checked at startup                   | `env`                                                               | [Environment values](#environment-values-checked-at-startup)                           |
 | Fonts with matching preloads                            | `fonts/font-links`                                                  | [Fonts with matching preloads](#fonts-with-matching-preloads)                          |
 
-[Entry points and requirements](docs/entry-points.md) lists all 64 entries and
-the virtual modules each one reads.
+[Entry points and requirements](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/entry-points.md)
+lists all 64 entries and the virtual modules each one reads.
 
 ## Who it fits
 
@@ -146,14 +146,14 @@ the virtual modules each one reads.
 - Your app does not use the tooling preset. 27 of the 64 entries read
   `virtual:solid-app/*` modules that only `defineSolidApp` serves, and the
   runtime is not tested without the preset
-  ([what each entry reads](docs/entry-points.md#entry-points)).
+  ([what each entry reads](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/entry-points.md#entry-points)).
 - Your server build must target a host other than Vercel's output format. The
   server features run in the server build of the preset, whose Nitro always uses
   the `vercel` preset
   ([known limits of the tooling](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/limits.md#known-limits)).
   A client-only build (`ssr: false`) writes a static `dist/` with no server.
 - You cannot pin `@solidjs/web`. It is an exact peer in the
-  [package manifest](package.json).
+  [package manifest](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/package.json).
 - You run Node older than the `engines.node` floor of the same manifest.
 - You need sitemap and Markdown quotas shared by several server processes. Each
   process has its own quotas, and there is no global quota.
@@ -167,7 +167,8 @@ theme, the security headers, the env fragment, `createRobots` and `convertHtml`.
 Three more import only the virtual modules of the routing and Solid plugins, and
 27 import the `virtual:solid-app/*` modules that `defineSolidApp` serves. No
 entry was run without the preset, and the TypeScript entries still need the
-`solid` export condition. [Entry points](docs/entry-points.md#entry-points)
+`solid` export condition.
+[Entry points](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/entry-points.md#entry-points)
 marks each entry.
 
 **Do I need translations, a theme or SEO?** No. Each one is a separate import. A
@@ -238,8 +239,9 @@ handlers, which may finish the response. A failure inside the chain is
 contained, and in production the failure response keeps the configured headers.
 A failure after a Response body was returned stays outside that containment. To
 change one value, spread the defaults: see
-[Security headers](docs/middleware.md#security-headers) and
-[Building the chain](docs/middleware.md#building-the-chain).
+[Security headers](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/middleware.md#security-headers)
+and
+[Building the chain](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/middleware.md#building-the-chain).
 
 ## Server failures stay on the server
 
@@ -276,7 +278,7 @@ app does it in
 its only module allowed to call `fetch`. The tooling lint enforces that
 boundary: `fetch` outside that file is an error, and the configurator can only
 be imported in the setup file. See
-[Server error protection](docs/server-errors.md).
+[Server error protection](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/server-errors.md).
 
 ## Links, redirects and navigation that keep the language
 
@@ -312,8 +314,9 @@ const language = localeTag('fr', { fr: 'fr-CA' }) // fr-CA
 With `project.inlang/settings.json`, the middleware also redirects to the
 localized URL and keeps the choice in a cookie. The runtime reads your locales
 through one seam and never imports a translation provider of its own. See
-[Locale support](docs/i18n.md) and
-[Navigation and language tags](docs/i18n.md#navigation-and-language-tags).
+[Locale support](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/i18n.md)
+and
+[Navigation and language tags](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/i18n.md#navigation-and-language-tags).
 
 ## The right theme before hydration
 
@@ -325,9 +328,10 @@ inside a script with the request nonce, which the nonce CSP requires. A choice
 made in one tab reaches the others through BroadcastChannel. The choice stays in
 a cookie, which the server reads; an app with no server keeps it in localStorage
 instead and paints the first frame with `storedThemeScript`, as
-[Optional theme](docs/theme.md) shows. With localStorage and SSR, the server
-cannot read the choice, so the page shows the default theme until `createTheme`
-applies it. One factory, `defineTheme`, binds it all:
+[Optional theme](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/theme.md)
+shows. With localStorage and SSR, the server cannot read the choice, so the page
+shows the default theme until `createTheme` applies it. One factory,
+`defineTheme`, binds it all:
 
 ```ts
 import { defineTheme } from '@evertondgn/solid-runtime/theme/define-theme'
@@ -349,7 +353,8 @@ The cookie lasts one year and the default theme is `system`, unless you pass
 </picture>
 
 Your app keeps its palette, the `.light` and `.dark` CSS rules, the Provider and
-the switcher. See [Optional theme](docs/theme.md).
+the switcher. See
+[Optional theme](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/theme.md).
 
 ## Head tags and robots.txt from route metadata
 
@@ -373,7 +378,8 @@ export { GET } from '@evertondgn/solid-runtime/seo/robots-route'
 Call `createSeo({ route: true, site })` once in the Router's root owner, or
 `createSeo({ structuredData })` for JSON-LD alone. The runtime has no example
 identities in its defaults: author, organization and social fields appear only
-when you pass them. See [Optional SEO](docs/seo.md).
+when you pass them. See
+[Optional SEO](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/seo.md).
 
 Each page declares its metadata in `route.info.seo`. `title`, `description` and
 `image.alt` take a string or a message function, which the runtime calls each
@@ -426,7 +432,8 @@ export const GET = createLlms({
 `markdownContent` goes in the `document` slot of `createMiddleware`, and
 `publication` is the controller shared with sitemaps. The boilerplate app's
 [complete bindings](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/src/middleware/markdownContent/index.ts)
-show the imports. See [Markdown and editorial indexes](docs/markdown.md).
+show the imports. See
+[Markdown and editorial indexes](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/markdown.md).
 
 ## Sitemaps with bounded work
 
@@ -493,7 +500,7 @@ export { index as GET } from '@/infra/server/sitemap/index.ts'
 The fixture publishes only sitemaps, so it creates its controller inline. Once
 sitemaps and Markdown both publish, share one controller between them, as the
 boilerplate app does, so the quotas stay where you set them. See
-[Sitemap and publication](docs/sitemaps-and-publication.md).
+[Sitemap and publication](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/sitemaps-and-publication.md).
 
 ## Environment values checked at startup
 
@@ -512,7 +519,8 @@ export default env
 ```
 
 `HOST`, `PORT` and `BASE_URL_TEST` are optional, and `PORT` becomes an integer
-from 0 through 65535. See [Optional environment validation](docs/env.md).
+from 0 through 65535. See
+[Optional environment validation](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/env.md).
 
 ## Fonts with matching preloads
 
@@ -539,14 +547,15 @@ import { FontLinks } from '@evertondgn/solid-runtime/fonts/font-links'
 
 Client-only apps get the links in `index.html` with no import. Font files,
 licenses and typography tokens stay in your app. See
-[Optional fonts](docs/fonts.md).
+[Optional fonts](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/fonts.md).
 
 ## Import only what you use
 
 The package has 64 entry points in 8 groups and no barrel: `seo` 15,
 `middleware` 12, `server` 12, `theme` 11, `i18n` 10, `routing` 2, `env` 1 and
-`fonts` 1, the keys of `exports` in the [package manifest](package.json). A
-single-language app needs no translation project, and a theme or SEO module
+`fonts` 1, the keys of `exports` in the
+[package manifest](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/package.json).
+A single-language app needs no translation project, and a theme or SEO module
 enters the bundle only when your code imports it. The installed scenarios check
 that on real builds ([How it is tested](#how-it-is-tested)).
 
@@ -554,8 +563,8 @@ Of the 64 entries, a static read of the source at commit `4d2c326` finds 34 that
 import no virtual module, 3 that import only the virtual modules of the routing
 and Solid plugins, and 27 that import `virtual:solid-app/*` modules, which only
 `defineSolidApp` serves. No entry was run without the preset.
-[Entry points and requirements](docs/entry-points.md) lists every entry by
-feature, with the virtual modules in its import graph.
+[Entry points and requirements](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/entry-points.md)
+lists every entry by feature, with the virtual modules in its import graph.
 
 ## Update the packages
 
@@ -625,44 +634,46 @@ provenance statement
 
 - `createSecurityHeaders` checks the directive names, the shape of each item and
   whether the policy can be sent as a header, not the sources you allow, and it
-  does not refuse a second instance ([Limits](docs/middleware.md#limits)).
+  does not refuse a second instance
+  ([Limits](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/middleware.md#limits)).
 - The package cannot detect a secret deliberately embedded in a public string,
   and a failure after a Response body was returned stays outside the containment
-  ([Server error protection](docs/server-errors.md),
-  [Building the chain](docs/middleware.md#building-the-chain)).
+  ([Server error protection](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/server-errors.md),
+  [Building the chain](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/middleware.md#building-the-chain)).
 - Publication quotas belong to one process, a source that ignores cancellation
   keeps its slot until it settles, process caches are not persistent storage,
   and an array source returns its complete list
-  ([Sitemap and publication](docs/sitemaps-and-publication.md)).
+  ([Sitemap and publication](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/sitemaps-and-publication.md)).
 - `themeScript` applies the theme you pass it and needs the request nonce when
   it runs inline under the nonce CSP. With `storage: 'local-storage'` and SSR,
   the page shows the default theme until `createTheme` applies the choice
-  ([Optional theme](docs/theme.md)).
+  ([Optional theme](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/theme.md)).
 - Direct imports of `middleware/localize-request` need a translation project.
   Without one, its functions throw an error that names
   `project.inlang/settings.json`
-  ([Locale request middleware](docs/i18n.md#locale-request-middleware)).
+  ([Locale request middleware](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/i18n.md#locale-request-middleware)).
 - The package converts Markdown with the published `@mdream/js`. The patch that
   the boilerplate app applies to it is not shipped
-  ([Markdown and editorial indexes](docs/markdown.md)).
+  ([Markdown and editorial indexes](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/markdown.md)).
 
 ## Reference
 
 <a name="optional-seo"></a>The reference ships in this package, in
-[`docs/`](docs/README.md), so `node_modules/@evertondgn/solid-runtime/docs/`
-holds the reference of the version your app installed.
+[`docs/`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/README.md),
+so `node_modules/@evertondgn/solid-runtime/docs/` holds the reference of the
+version your app installed.
 
-- [Runtime reference, by task](docs/README.md)
-- [Entry points and requirements](docs/entry-points.md)
-- [Middleware and security headers](docs/middleware.md)
-- [Server error protection](docs/server-errors.md)
-- [Locale support](docs/i18n.md)
-- [Optional theme](docs/theme.md)
-- [Optional SEO](docs/seo.md)
-- [Markdown and editorial indexes](docs/markdown.md)
-- [Sitemap and publication](docs/sitemaps-and-publication.md)
-- [Optional environment validation](docs/env.md)
-- [Optional fonts](docs/fonts.md)
+- [Runtime reference, by task](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/README.md)
+- [Entry points and requirements](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/entry-points.md)
+- [Middleware and security headers](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/middleware.md)
+- [Server error protection](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/server-errors.md)
+- [Locale support](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/i18n.md)
+- [Optional theme](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/theme.md)
+- [Optional SEO](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/seo.md)
+- [Markdown and editorial indexes](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/markdown.md)
+- [Sitemap and publication](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/sitemaps-and-publication.md)
+- [Optional environment validation](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/env.md)
+- [Optional fonts](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-runtime/docs/fonts.md)
 
 ## Versions and license
 

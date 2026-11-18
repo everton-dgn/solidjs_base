@@ -1,7 +1,7 @@
 {
   "name": "@evertondgn/solid-runtime",
   "version": "0.10.0",
-  "description": "Runtime code for SolidJS applications built with Vite+, shipped as TypeScript source.",
+  "description": "Security headers with a nonce CSP, private server errors, links that keep the language, a theme set before hydration and SEO for SolidJS 2 apps on Vite+.",
   "author": "Éverton Toffanetto",
   "license": "MIT",
   "repository": {
@@ -34,6 +34,7 @@
     "node": ">=26.13.1"
   },
   "files": [
+    "docs",
     "src",
     "!src/**/__tests__",
     "!src/tests"

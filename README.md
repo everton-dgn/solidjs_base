@@ -136,8 +136,8 @@ A second request got another nonce (policy shortened):
 content-security-policy: ... script-src 'nonce-+tZMQ1+pW8MBtfSu71btKA==' 'strict-dynamic'
 ```
 
-The [runtime README](packages/solid-runtime/README.md#security-headers) explains
-each header and how the nonce reaches the scripts of the page.
+The [runtime README](packages/solid-runtime/docs/middleware.md#security-headers)
+explains each header and how the nonce reaches the scripts of the page.
 
 ## Who it fits
 
@@ -450,7 +450,7 @@ real response. `createSecurityHeaders` checks the directive names and the shape
 of each item when the app starts. It does not check the values, so
 `'unsafe-inline'` in `style-src` passes. A failure after the Response body was
 returned stays outside the containment. The runtime README explains
-[the policy and the chain](packages/solid-runtime/README.md#every-response-behind-one-security-policy).
+[the policy and the chain](packages/solid-runtime/README.md#every-response-behind-one-header-policy).
 
 ## Server errors stay on the server
 

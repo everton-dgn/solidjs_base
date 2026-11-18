@@ -49,8 +49,9 @@ The options were:
   change to the README does.
 - A guide belongs to its package folder, so release-please assigns a commit that
   edits it to that package. A `docs` commit does not start a release.
-- The link check of the Docs job lists `packages/*/README.md` and
-  `docs/**/*.md`, so it does not read `packages/*/docs/**/*.md` until its file
-  list in `.github/workflows/ci.yml` adds that pattern.
+- The link check of the Docs job reads `packages/*/docs/**/*.md` too. The
+  package READMEs link to their own guides by absolute URL on `main`, as they do
+  for every other file, because they are also the npm pages; the check maps
+  those URLs back to the checkout.
 - The npm pages of versions published before this decision link to
   `docs/tooling/` on `main`. The pointers keep those links working.

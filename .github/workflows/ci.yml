@@ -155,9 +155,9 @@ jobs:
             '^https://raw\.githubusercontent\.com/everton-dgn/solidjs_base/main/
             file://${{ github.workspace }}/' --offline --include-fragments
             --no-progress README.md AGENTS.md CONTRIBUTING.md SECURITY.md
-            'docs/**/*.md' 'packages/*/README.md' '.github/**/*.md'
-            'apps/boilerplate/README.md' 'apps/boilerplate/AGENTS.md'
-            'apps/boilerplate/docs/**/*.md'
+            'docs/**/*.md' 'packages/*/README.md' 'packages/*/docs/**/*.md'
+            '.github/**/*.md' 'apps/boilerplate/README.md'
+            'apps/boilerplate/AGENTS.md' 'apps/boilerplate/docs/**/*.md'
           fail: true
 
   packages:

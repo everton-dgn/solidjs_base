@@ -483,9 +483,10 @@ history of the package.
 Keep `@evertondgn/create-solid` private and outside the release group and
 manifest until the next group release, N. Once all its pins are on npm:
 
-1. Check out that release commit in a clean worktree. For the manual pack, set
-   the generator version to N and remove its private flag in that worktree.
-   Build and pack it with the release commit's template and dependencies.
+1. Check out that release commit in a clean worktree. Run `vp run validate`
+   while the generator is still private. For the manual pack, set the generator
+   version to N and remove its private flag in that worktree. Build and pack it
+   with the release commit's template and dependencies.
 2. Extract the tarball and run its CLI outside the workspace. Keep the exact
    registry pins, install from npm without local overrides, and run
    `vp run check:ci` in the generated application. With `archive` set to the
@@ -500,13 +501,15 @@ manifest until the next group release, N. Once all its pins are on npm:
      cd app
      env -u NODE_ENV bun install
      env -u NODE_ENV vp run check:ci
+     env -u NODE_ENV vp run build
+     env -u NODE_ENV vp run test
    )
    ```
 
    A nonzero exit stops the release.
 
 3. The owner publishes that same tarball by hand and tags the release commit
-   `create-solid@N`.
+   `create-solid@N`. Push that tag to origin before announcing the release.
 4. In a follow-up change, remove the private flag, set the package and manifest
    versions to N, and add the component to the linked release group.
 

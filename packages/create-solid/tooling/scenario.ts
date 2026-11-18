@@ -83,14 +83,23 @@ try {
     }
     writeFileSync(file, `${JSON.stringify(manifest, null, jsonIndent)}\n`)
     execFileSync(pm, ['install'], { cwd, stdio: 'inherit', timeout: 120_000 })
+    if (pm === 'pnpm')
+      execFileSync('vp', ['fmt', 'pnpm-workspace.yaml'], { cwd })
     execFileSync(
       process.execPath,
       ['--test', 'tooling/__tests__/patched-dependencies.test.ts'],
       { cwd, stdio: 'inherit', timeout: 30_000 }
     )
     for (const task of pm === 'bun'
-      ? ['check:ci', 'test', 'build']
-      : ['check:ci']) {
+      ? [
+          'check:ci',
+          'test',
+          'build',
+          'typecheck:node',
+          'test:tooling',
+          'dead-code'
+        ]
+      : ['check:ci', 'build']) {
       execFileSync('vp', ['run', task], {
         cwd,
         stdio: 'inherit',

@@ -59,7 +59,9 @@ assert.ok(
   manifest.catalog && manifest.overrides && manifest.patchedDependencies
 )
 assert.ok(tooling.dependencies.lefthook)
+assert.ok(manifest.packageManager?.startsWith('bun@'))
 const settings = {
+  bunVersion: manifest.packageManager.slice('bun@'.length),
   version: json('package.json').version,
   catalog: manifest.catalog,
   overrides: manifest.overrides,

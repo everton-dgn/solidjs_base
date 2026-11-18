@@ -34,9 +34,25 @@ for (const pm of ['bun', 'pnpm', 'npm']) {
     })
     void it('rewrites the identity and installer', () => {
       const app = manifest(path.join(dir, 'package.json'))
-      assert.equal(app.name, path.basename(dir))
+      assert.equal(app.name, path.basename(dir).toLowerCase())
       assert.notEqual(app.description, source.description)
       assert.equal(app.packageManager?.split('@')[0], pm)
+    })
+    void it('preserves Bun environment isolation for every installer', () => {
+      assert.equal(
+        read('bunfig.toml'),
+        readFileSync('../../bunfig.toml', 'utf8')
+      )
+    })
+    void it('uses a neutral public site origin', () => {
+      assert.match(read('.env'), /^VITE_SITE_URL=https:\/\/example.com$/mu)
+    })
+    void it('rejects invalid arguments without printing a stack', () => {
+      const result = spawnSync(process.execPath, [bin, '--unknown'], {
+        encoding: 'utf8'
+      })
+      assert.equal(result.status, 2)
+      assert.doesNotMatch(result.stderr, /\n +at /u)
     })
     void it('resolves every workspace and catalog entry', () => {
       const app = manifest(path.join(dir, 'package.json'))
@@ -56,9 +72,10 @@ for (const pm of ['bun', 'pnpm', 'npm']) {
     void it('installs hooks through the guarded tooling command', () => {
       const app = manifest(path.join(dir, 'package.json'))
       assert.equal(app.devDependencies.lefthook, tooling.dependencies.lefthook)
+      assert.ok(app.scripts.prepare?.includes('git rev-parse --show-toplevel'))
       assert.match(
         app.scripts.prepare ?? '',
-        /^if git rev-parse .*lefthook install; fi$/u
+        /^if .*git rev-parse .*lefthook install; fi$/u
       )
       assert.equal(existsSync(path.join(dir, '.git')), false)
     })

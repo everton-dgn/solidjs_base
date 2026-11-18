@@ -25,18 +25,25 @@ const jsonIndent = 2
 export interface Profile {
   pm: 'bun' | 'pnpm' | 'npm'
   dir: string
+  siteUrl?: string
   shouldInitGit: boolean
   shouldInstall: boolean
 }
 
 export function generate(profile: Profile): void {
-  const versions = { bun: '1.4.4', pnpm: '12.21.0', npm: '12.2.3' }
   const template = path.resolve(import.meta.dirname, '../template')
   const settingsFile = new URL('../dist/settings.json', import.meta.url)
   const settings = parse(
     settingsSchema,
     JSON.parse(readFileSync(settingsFile, 'utf8'))
   )
+  const versions = { bun: settings.bunVersion, pnpm: '12.21.0', npm: '12.2.3' }
+  const siteUrl = new URL(profile.siteUrl ?? 'https://example.com')
+  if (
+    !['http:', 'https:'].includes(siteUrl.protocol) ||
+    siteUrl.href !== siteUrl.origin + '/'
+  )
+    throw new TypeError('--site-url requires an HTTP or HTTPS origin')
   const write = (file: string, content: string) =>
     writeFileSync(path.join(profile.dir, file), content)
   function resolveVersion(name: string, spec: string) {
@@ -80,13 +87,13 @@ export function generate(profile: Profile): void {
     } else pkg.overrides = overrides
     if (pm === 'bun') {
       pkg.patchedDependencies = settings.patches
-      write('bunfig.toml', settings.bunfig)
     }
+    write('bunfig.toml', settings.bunfig)
   }
   function configureHooks(pkg: Manifest) {
     pkg.devDependencies.lefthook = settings.lefthook
     pkg.scripts.prepare =
-      'if git rev-parse --git-dir > /dev/null 2>&1; then vp exec node node_modules/@evertondgn/solid-tooling/dist/cli.mjs lefthook install; fi'
+      'if [ "$(git rev-parse --show-toplevel 2>/dev/null)" = "$(pwd -P)" ]; then vp exec node node_modules/@evertondgn/solid-tooling/dist/cli.mjs lefthook install; fi'
     write(
       '.lefthook.yml',
       'extends:\n  - node_modules/@evertondgn/solid-tooling/lefthook.yml\n'
@@ -101,7 +108,13 @@ export function generate(profile: Profile): void {
     )
   }
   function rewriteIdentity(pkg: Manifest) {
-    pkg.name = path.basename(profile.dir)
+    pkg.name =
+      path
+        .basename(profile.dir)
+        .toLowerCase()
+        .replaceAll(/[^a-z0-9-]+/gu, '-')
+        .replace(/^-+|-+$/gu, '')
+        .slice(0, 214) || 'solid-app'
     pkg.description = 'SolidJS application built with Vite+.'
   }
   function removeWorkspaceInputs() {
@@ -131,6 +144,13 @@ export function generate(profile: Profile): void {
       { recursive: true }
     )
   }
+  const env = readFileSync(path.join(template, '.env'), 'utf8')
+  if (!/^VITE_SITE_URL=.*$/mu.test(env))
+    throw new Error('Missing template VITE_SITE_URL')
+  write(
+    '.env',
+    env.replace(/^VITE_SITE_URL=.*$/mu, () => 'VITE_SITE_URL=' + siteUrl.origin)
+  )
   removeWorkspaceInputs()
   const manifestFile = path.join(template, 'package.json')
   const pkg = parse(
@@ -158,10 +178,22 @@ export function generate(profile: Profile): void {
     execFileSync('git', ['init'], { cwd: profile.dir, stdio: 'inherit' })
   }
   if (profile.shouldInstall) {
-    execFileSync(profile.pm, ['install'], {
-      cwd: profile.dir,
-      stdio: 'inherit'
-    })
+    try {
+      execFileSync(profile.pm, ['install'], {
+        cwd: profile.dir,
+        stdio: 'inherit'
+      })
+      if (profile.pm === 'pnpm')
+        execFileSync('vp', ['fmt', 'pnpm-workspace.yaml'], {
+          cwd: profile.dir,
+          stdio: 'inherit'
+        })
+    } catch (cause) {
+      throw new Error(
+        `Open ${profile.dir} and run ${profile.pm} install again.`,
+        { cause }
+      )
+    }
   }
   process.stdout.write(`Open ${profile.dir}.\n`)
   if (!profile.shouldInstall)

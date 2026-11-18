@@ -13,5 +13,10 @@ void it('keeps the generator private until its first registry release', async ()
   const config = await read('../../release-please-config.json')
   assert.ok(!Object.hasOwn(config.packages, 'packages/create-solid'))
   assert.ok(!config.plugins[0].components.includes('create-solid'))
-  assert.ok(!Object.hasOwn(await read('../../.release-please-manifest.json'), 'packages/create-solid'))
+  assert.ok(
+    !Object.hasOwn(
+      await read('../../.release-please-manifest.json'),
+      'packages/create-solid'
+    )
+  )
 })

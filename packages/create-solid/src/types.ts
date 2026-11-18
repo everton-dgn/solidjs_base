@@ -19,6 +19,7 @@ export const settingsSchema = v.object({
   versions,
   overrides: versions,
   patches: versions,
+  bunVersion: v.string(),
   bunfig: v.string(),
   lefthook: v.string()
 })

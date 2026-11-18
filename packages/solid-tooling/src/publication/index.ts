@@ -7,12 +7,14 @@ type PublicationBuild = {
   module: ReturnType<typeof markdownPrerender>
 }
 export function publicationBuild(
-  features: PublicationFeatures
+  features: PublicationFeatures,
+  isStatic = false
 ): PublicationBuild {
   const publication = createPublicationBuild()
   return {
     plugin: publication.plugin,
     module: markdownPrerender({
+      isStatic,
       buildId: publication.buildId,
       hasMarkdown:
         typeof features.markdown === 'object' &&

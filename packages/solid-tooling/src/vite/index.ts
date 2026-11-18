@@ -28,6 +28,7 @@ function isPathPrefix(baseURL: string | undefined): boolean {
 }
 
 const SERVER_OPTIONS = [
+  'output',
   'middleware',
   'serverSetup',
   'securityHeaders',
@@ -39,6 +40,37 @@ const SERVER_OPTIONS = [
 ]
 
 function validateServerOptions(options: ServerAppOptions): void {
+  if (
+    options.output !== undefined &&
+    !['vercel', 'static'].includes(options.output)
+  ) {
+    throw new Error('defineSolidApp: output must be vercel or static')
+  }
+  if (options.output === 'static') {
+    for (const key of [
+      'serverSetup',
+      'routeRules',
+      'staticPaths',
+      'securityHeaders'
+    ] as const) {
+      if (key in options) {
+        throw new Error(
+          `defineSolidApp: ${key} requires a server or CDN rules with output: static`
+        )
+      }
+    }
+    if (typeof options.seo === 'object') {
+      if (options.seo.sitemap === true) {
+        throw new Error('output: static requires seo.sitemap.static')
+      }
+      if (
+        typeof options.seo.markdown === 'object' &&
+        !options.seo.markdown.static
+      ) {
+        throw new Error('output: static requires seo.markdown.static')
+      }
+    }
+  }
   if ('publication' in options) {
     throw new Error(
       'publication was replaced by seo.markdown, seo.llms and seo.llmsFull'

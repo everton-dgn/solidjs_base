@@ -8,6 +8,7 @@ import { hasI18n, I18N_SETTINGS } from '../has-i18n.ts'
 import { localeModule } from '../locale-module.ts'
 import type { publicationBuild } from '../publication/index.ts'
 import { seoModule } from '../seo-module.ts'
+import { staticOutput, staticBuildPlugin } from './static-output.ts'
 import { staticFilePaths } from './static-paths.ts'
 import type {
   ExtensionContext,
@@ -124,7 +125,9 @@ function iconsPlugin({ modules, options }: IconsInput) {
   })
 }
 
-function staticHeaders({ securityHeaders }: ServerAppOptions) {
+function staticHeaders(
+  securityHeaders: NonNullable<ServerAppOptions['securityHeaders']>
+) {
   return {
     'strict-transport-security': securityHeaders['strict-transport-security'],
     'x-content-type-options': securityHeaders['x-content-type-options'],
@@ -133,6 +136,20 @@ function staticHeaders({ securityHeaders }: ServerAppOptions) {
   }
 }
 
+function serverRouteRules(options: ServerAppOptions, locales: string[]) {
+  if (options.output === 'static') return {}
+  const { securityHeaders } = options
+  const headers = staticHeaders(securityHeaders)
+  return {
+    ...Object.fromEntries(
+      staticFilePaths({ options, locales }).map(staticPath => [
+        staticPath,
+        { headers }
+      ])
+    ),
+    ...options.routeRules
+  }
+}
 function clientPlugins({
   i18n,
   modules,
@@ -172,7 +189,7 @@ async function createPublication(options: ServerAppOptions) {
   let publication: ReturnType<typeof publicationBuild> | undefined
   if (enabled) {
     const { publicationBuild } = await import('../publication/index.ts')
-    publication = publicationBuild(features)
+    publication = publicationBuild(features, options.output === 'static')
   }
   return publication
 }
@@ -184,7 +201,9 @@ async function serverPlugins({
     loadPluginModules(),
     import('nitro/vite'),
     readExtension({ options, target: 'app', mode }),
-    hasStaticMarkdown(options) ? readLocales(options.root) : [],
+    options.output === 'static' || hasStaticMarkdown(options)
+      ? readLocales(options.root)
+      : [],
     i18nPlugins(options)
   ])
   const isE2e = mode === 'e2e'
@@ -192,13 +211,15 @@ async function serverPlugins({
     ? (options.e2e?.middleware ?? options.middleware)
     : options.middleware
   const e2eRoutes = isE2e ? options.e2e?.routes : undefined
-  const headers = staticHeaders(options)
   const publication = await createPublication(options)
   return [
     localeModule(options),
     fontsPlugin(options),
     seoModule({ root: options.root, mode, seo: options.seo }),
     ...(publication ? [publication.plugin] : []),
+    ...(options.output === 'static'
+      ? [staticBuildPlugin(options.root, middleware)]
+      : []),
     ...(extension.plugins ?? []),
     ...i18n,
     iconsPlugin({ modules, options }),
@@ -219,7 +240,8 @@ async function serverPlugins({
     // Node until Bun keeps the contracts of Response and of the failure log.
     nitro({
       serverEntry: false,
-      preset: 'vercel',
+      preset: options.output ?? 'vercel',
+      ...(await staticOutput({ options, locales, directory: e2eRoutes })),
       modules: [
         ...(publication ? [publication.module] : []),
         ...(extension.nitroModules ?? [])
@@ -229,15 +251,7 @@ async function serverPlugins({
       // The static files leave the CDN without going through the middleware,
       // so these rules give them the headers the middleware writes on the
       // responses of the function.
-      routeRules: {
-        ...Object.fromEntries(
-          staticFilePaths({ options, locales }).map(staticPath => [
-            staticPath,
-            { headers }
-          ])
-        ),
-        ...options.routeRules
-      }
+      routeRules: serverRouteRules(options, locales)
     })
   ]
 }

@@ -51,12 +51,20 @@ export type ServerAppOptions = SharedOptions & {
   middleware?: string
   serverSetup?: string
   e2e?: E2eOptions
-  securityHeaders: StaticSecurityHeaders
   publicAssets?: StaticAssetDir[]
   staticPaths?: string[]
   routeRules?: Record<string, RouteRule>
   seo?: SeoOptions | false
-}
+} & (
+    | { output?: 'vercel'; securityHeaders: StaticSecurityHeaders }
+    | {
+        output: 'static'
+        securityHeaders?: never
+        staticPaths?: never
+        routeRules?: never
+        serverSetup?: never
+      }
+  )
 
 export type ClientAppOptions = SharedOptions & {
   ssr: false

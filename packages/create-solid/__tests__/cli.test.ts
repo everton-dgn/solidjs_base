@@ -106,3 +106,10 @@ fi
     /minimumReleaseAgeExclude:\n {2}- '@example\/pkg'/u
   )
 })
+
+void it('shows the versioned package invocation in help', () => {
+  const help = execFileSync(process.execPath, [bin, '--help'], {
+    encoding: 'utf8'
+  })
+  assert.match(help, /bunx @evertondgn\/create-solid@latest/u)
+})

@@ -23,7 +23,7 @@ function run(): void {
     }
   })
   const usage =
-    'create-solid <dir> [--pm bun|pnpm|npm] [--site-url URL] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
+    'bunx @evertondgn/create-solid@latest <dir> [--pm bun|pnpm|npm] [--site-url URL] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
   if (values.help) {
     process.stdout.write(`${usage}\n`)
     process.exit(0)

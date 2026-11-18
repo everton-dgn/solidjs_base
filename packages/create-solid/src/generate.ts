@@ -14,7 +14,12 @@ import { URL } from 'node:url'
 
 import { parse } from 'valibot'
 
-import { rewriteDocuments, rewritePatchTest, rewriteKnip } from './rewrite.ts'
+import {
+  rewriteDocuments,
+  rewritePatchTest,
+  rewriteKnip,
+  rewriteVite
+} from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
 import type { Profile, Manifest, Versions } from './types.ts'
 
@@ -114,15 +119,6 @@ export function generate(profile: Profile): void {
         .slice(0, maxPackageNameLength) || 'solid-app'
     pkg.description = 'SolidJS application built with Vite+.'
   }
-  function removeWorkspaceInputs() {
-    const vite = readFileSync(path.join(template, 'vite.config.ts'), 'utf8')
-    const output = vite.replace(
-      /,\n {2}\/\/ In the monorepo,[\s\S]+?\n {2}\}\n\}\)/u,
-      '\n})'
-    )
-    if (output === vite) throw new Error('Missing Vite workspace inputs')
-    write('vite.config.ts', output)
-  }
   if (existsSync(profile.dir) && readdirSync(profile.dir).length > 0) {
     throw new Error('Destination must be empty')
   }
@@ -154,7 +150,7 @@ export function generate(profile: Profile): void {
         () => `VITE_SITE_URL=${siteUrl.origin}`
       )
     )
-    removeWorkspaceInputs()
+    rewriteVite(profile.dir)
     const manifestFile = path.join(template, 'package.json')
     const pkg = parse(
       manifestSchema,

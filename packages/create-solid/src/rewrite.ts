@@ -112,3 +112,14 @@ export function rewritePatchTest({ dir, pm, patches }: PatchRewrite): void {
   }
   writeFileSync(file, format('patched-dependencies.test.ts', content))
 }
+
+export function rewriteVite(dir: string): void {
+  const file = path.join(dir, 'vite.config.ts')
+  const vite = readFileSync(file, 'utf8')
+  const output = vite.replace(
+    /,\n {2}\/\/ In the monorepo,[\s\S]+?\n {2}\}\n\}\)/u,
+    '\n})'
+  )
+  if (output === vite) throw new Error('Missing Vite workspace inputs')
+  writeFileSync(file, output)
+}

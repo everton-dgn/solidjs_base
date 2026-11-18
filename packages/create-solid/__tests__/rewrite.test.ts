@@ -14,7 +14,8 @@ import { it, type TestContext } from 'node:test'
 import {
   rewriteDocuments,
   rewriteKnip,
-  rewritePatchTest
+  rewritePatchTest,
+  rewriteVite
 } from '../src/rewrite.ts'
 
 function folder(context: TestContext) {
@@ -51,4 +52,10 @@ void it('makes the patch test read the standalone root', context => {
       "path.resolve(import.meta.dirname, '../..')"
     )
   )
+})
+
+void it('refuses a Vite config missing the expected workspace block', context => {
+  const dir = folder(context)
+  writeFileSync(path.join(dir, 'vite.config.ts'), 'export default {}')
+  assert.throws(() => rewriteVite(dir), /Missing Vite workspace inputs/u)
 })

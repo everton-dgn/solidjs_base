@@ -179,9 +179,8 @@ without the browser tools. The packages ship guides for agents in
 `node_modules/solid-js/skills/reactivity-diagnostics/SKILL.md`.
 
 The endpoint exists only in `vp run dev`: the build, the preview, the E2E tests,
-which run on the build, and Vitest do not load it. The preset does not expose
-the `diagnostics` option of the plugin, so removing the dependency is the way to
-turn the endpoint off.
+which run on the build, and Vitest do not load it. To turn it off, pass
+`diagnostics: false` to `defineSolidApp` in `vite.config.ts`.
 
 ## Scripts
 

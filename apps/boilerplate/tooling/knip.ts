@@ -33,14 +33,7 @@ export default defineKnipConfig({
   ignoreBinaries: ['kingfisher', 'vp!'],
   // server-only is virtual. Inlang loads the message-format plugin by its
   // node_modules path in settings.json, outside Knip's import graph.
-  // @solidjs/vite-plugin turns on the /__solid/diagnostics endpoint of the dev
-  // server when package.json declares @solidjs/diagnostics; only the virtual
-  // module of the plugin imports it.
-  ignoreDependencies: [
-    'server-only',
-    '@inlang/plugin-message-format',
-    '@solidjs/diagnostics'
-  ],
+  ignoreDependencies: ['server-only', '@inlang/plugin-message-format'],
   // In the monorepo, the version catalog lives in the root package.json, which
   // Knip does not read when it runs in this folder. bun install already refuses
   // a reference to an entry missing from the catalog.

@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import {
   mkdtempSync,
   mkdirSync,
+  symlinkSync,
   readFileSync,
   writeFileSync,
   rmSync
@@ -34,6 +35,35 @@ try {
     `Packed ${packed} (${readFileSync(path.join(sandbox, packed)).length} bytes)\n`
   )
   execFileSync('tar', ['xf', packed], { cwd: sandbox })
+  const scope = path.join(sandbox, 'node_modules/@evertondgn')
+  mkdirSync(scope, { recursive: true })
+  symlinkSync(path.join(sandbox, 'package'), path.join(scope, 'create-solid'))
+  writeFileSync(
+    path.join(sandbox, 'consumer.mts'),
+    [
+      "import { generate, type Profile } from '@evertondgn/create-solid'",
+      "const profile: Profile = { dir: 'app', pm: 'bun', shouldInstall: false, shouldInitGit: false }",
+      'export const steps: string[] = generate(profile)'
+    ].join('\n')
+  )
+  writeFileSync(
+    path.join(sandbox, 'tsconfig.json'),
+    JSON.stringify({
+      compilerOptions: {
+        strict: true,
+        noEmit: true,
+        types: [],
+        module: 'NodeNext',
+        target: 'ES2024'
+      },
+      files: ['consumer.mts']
+    })
+  )
+  execFileSync(
+    path.resolve('../../node_modules/.bin/tsc'),
+    ['--project', sandbox],
+    { stdio: 'inherit' }
+  )
   const settingsFile = path.join(sandbox, 'package/dist/settings.json')
   const settings = parse(
     settingsSchema,

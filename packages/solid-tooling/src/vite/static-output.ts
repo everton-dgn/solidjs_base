@@ -199,6 +199,7 @@ async function createStaticConfig(input: StaticOutputInput) {
         }
         if (
           route.contentType?.startsWith('text/html') &&
+          /nonce/iu.test(route.contents ?? '') &&
           inspectHtml(route.contents ?? '').hasNonce
         ) {
           route.error = new Error(

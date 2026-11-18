@@ -360,3 +360,16 @@ it('rejects ambiguous catch-alls and reserved error filenames', async t => {
     )
   }
 })
+
+it('avoids a DOM parse during prerender when HTML cannot contain a nonce', async t => {
+  const config = await fixture(t)
+  const { DOMParser } = await import('happy-dom')
+  const parse = t.mock.method(DOMParser.prototype, 'parseFromString')
+  const route = {
+    route: '/about',
+    contentType: 'text/html',
+    contents: '<script>abc</script>'
+  }
+  config.hooks['prerender:generate'](route)
+  assert.equal(parse.mock.callCount(), 0)
+})

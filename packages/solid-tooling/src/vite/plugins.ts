@@ -65,7 +65,9 @@ function diagnosticsOption({ diagnostics }: SolidAppOptions) {
 async function i18nPlugins(options: SolidAppOptions): Promise<PluginOption[]> {
   if (options.i18nPlugin === false || !hasI18n(options.root)) return []
   const { i18nPlugin } = await import('../i18n/i18nPlugin/index.ts')
-  return i18nPlugin()
+  return i18nPlugin({
+    isStatic: options.ssr !== false && options.output === 'static'
+  })
 }
 
 // The locales come from the same file as the Paraglide compiler, so the rules

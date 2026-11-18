@@ -29,9 +29,9 @@ download another Chromium build.
 
 The root `package.json` lists two workspace folders:
 
-- `packages/*`: the packages published to npm, `@evertondgn/solid-tooling`,
-  `@evertondgn/solid-runtime` and `@evertondgn/vite-plugin-solid-icons`, which
-  the tooling depends on.
+- `packages/*`: the private application generator and the published packages
+  `@evertondgn/solid-tooling`, `@evertondgn/solid-runtime` and
+  `@evertondgn/vite-plugin-solid-icons`, which the tooling depends on.
 - `apps/*`: applications that use the packages through the workspace. They are
   never published.
 
@@ -95,7 +95,8 @@ application links the `@solidjs` folder of the workspace, so it reads the
 published types of `solid-js` and `@solidjs/web` and fails on an error inside
 them, such as a name that the types of `@solidjs/web` import and the types of
 `solid-js` leave out. The tsconfig of the tooling preset sets `skipLibCheck`, so
-an application on the preset does not see those errors; one without it does. After following the
+an application on the preset does not see those errors; one without it does.
+After following the
 [Solid upgrade steps](../apps/boilerplate/docs/server-errors/solid-upgrades.md#upgrading-solid),
 run `vp run test:tarball` at the monorepo root to check the published types.
 
@@ -112,8 +113,8 @@ full boilerplate application suites remain separate.
 | `vp run dead-code`      | Find unused files, exports and dependencies of the runtime and icons packages with Knip           |
 | `vp run test`           | Run the rule tests with `node:test`, the runtime and icons plugin tests and `vp run test:release` |
 | `vp run test:release`   | Run the tests of the release commands in `tooling/release/` with `node:test`                      |
-| `vp run test:tarball`   | Pack each package and install it in a temporary folder                                            |
-| `vp run test:scenarios` | Install and build three minimal applications with both Bun linkers                                |
+| `vp run test:tarball`   | Check installed tarballs and compare generated profiles with the tracked app                      |
+| `vp run test:scenarios` | Exercise installed fixtures with both Bun linkers and run generated app scenarios                 |
 | `vp run validate`       | Build, check, dead code, package tests, tarball tests and application scenarios, in this order    |
 
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so

@@ -2,6 +2,7 @@ import { describeDuration } from '../mergePullRequest/wait.ts'
 import {
   DEPENDENCY_FIELDS,
   findPinnedPackages,
+  findTemplatePins,
   readWorkspaceNames
 } from './pinned.ts'
 import { readRegistry } from './registry.ts'
@@ -88,6 +89,13 @@ export async function waitForPinnedPackages({
     readWorkspaceNames(root)
   ])
   const { name, version, pinned } = findPinnedPackages({ manifest, names })
+  if (name === '@evertondgn/create-solid') {
+    const settings = await readPackedManifest(
+      tarball,
+      'package/dist/settings.json'
+    )
+    pinned.push(...findTemplatePins({ manifest: settings, names }))
+  }
   const packed = `${name}@${version}`
   if (pinned.length === 0) {
     log(

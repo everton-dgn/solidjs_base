@@ -99,10 +99,11 @@ jobs:
                 ;;
               # The link check reads the README and the guides of the app.
               apps/boilerplate/*.md)
+                packages=true
                 docs=true
                 app=true
                 ;;
-              apps/boilerplate/*) app=true ;;
+              apps/boilerplate/*) app=true; packages=true ;;
               packages/*/docs/* | packages/*/skills/*)
                 docs=true
                 packages=true

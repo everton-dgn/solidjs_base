@@ -108,7 +108,10 @@ function* readEntries({ archive, label }: Archive): Generator<Entry> {
   }
 }
 
-export async function readPackedManifest(tarball: string): Promise<unknown> {
+export async function readPackedManifest(
+  tarball: string,
+  file = MANIFEST
+): Promise<unknown> {
   const compressed = await readFile(tarball)
   let archive: Buffer
   try {
@@ -118,12 +121,12 @@ export async function readPackedManifest(tarball: string): Promise<unknown> {
   }
   for (const entry of readEntries({ archive, label: tarball })) {
     const name = entry.name.replace(/^\.\//u, '')
-    if (FILE_TYPES.has(entry.type) && name === MANIFEST) {
+    if (FILE_TYPES.has(entry.type) && name === file) {
       return parseJson({
         text: entry.content.toString('utf8'),
-        label: `${MANIFEST} in ${tarball}`
+        label: `${file} in ${tarball}`
       })
     }
   }
-  throw new Error(`${tarball} has no ${MANIFEST}.`)
+  throw new Error(`${tarball} has no ${file}.`)
 }

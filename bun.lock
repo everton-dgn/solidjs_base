@@ -36,6 +36,16 @@
         "vite-plus": "catalog:",
       },
     },
+    "packages/create-solid": {
+      "name": "@evertondgn/create-solid",
+      "version": "0.10.0",
+      "bin": {
+        "create-solid": "./dist/create-solid.mjs",
+      },
+      "devDependencies": {
+        "valibot": "catalog:",
+      },
+    },
     "packages/solid-runtime": {
       "name": "@evertondgn/solid-runtime",
       "version": "0.10.0",
@@ -262,6 +272,8 @@
     "@emnapi/runtime": ["@emnapi/runtime@1.11.3", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA=="],
 
     "@emnapi/wasi-threads": ["@emnapi/wasi-threads@1.2.3", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-ELEBe8PsLvvJ6QMr0zLt8ffvOHW/dc1m3CEzNMg7aJUv3bMaoDtw2TXyDAwkYBuroxxuHEwhRTLJSe5sya547g=="],
+
+    "@evertondgn/create-solid": ["@evertondgn/create-solid@workspace:packages/create-solid"],
 
     "@evertondgn/solid-runtime": ["@evertondgn/solid-runtime@workspace:packages/solid-runtime"],
 

@@ -1,0 +1,33 @@
+{
+  "name": "@evertondgn/create-solid",
+  "version": "0.10.0",
+  "description": "Generate a standalone Solid Base application.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=26.13.1"
+  },
+  "bin": {
+    "create-solid": "./dist/create-solid.mjs"
+  },
+  "files": [
+    "dist",
+    "template",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node build.ts",
+    "test": "node --test profile.test.ts",
+    "test:tarball": "node parity.ts"
+  },
+  "devDependencies": {
+    "valibot": "catalog:"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/everton-dgn/solidjs_base.git",
+    "directory": "packages/create-solid"
+  }
+}

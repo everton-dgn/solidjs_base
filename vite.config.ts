@@ -73,6 +73,18 @@ export default defineConfig({
       ...(toolingOverrides ?? []),
       ...(iconsOverrides ?? []),
       {
+        files: ['packages/create-solid/*.test.ts'],
+        rules: { 'vitest/no-import-node-test': 'off' }
+      },
+      // The generator and its build scripts run as single-process Node CLIs.
+      {
+        files: ['packages/create-solid/**/*.ts'],
+        rules: {
+          'import/no-nodejs-modules': 'off',
+          'node/no-sync': 'off'
+        }
+      },
+      {
         // An ambient module declaration only works in a script file; an import
         // would turn it into an augmentation of a module that is missing here.
         files: [

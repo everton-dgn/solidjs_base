@@ -28,6 +28,7 @@
     "test:tarball": "node tooling/parity.ts"
   },
   "devDependencies": {
+    "@evertondgn/solid-tooling": "workspace:*",
     "valibot": "catalog:"
   },
   "repository": {

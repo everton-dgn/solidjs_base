@@ -43,6 +43,7 @@
         "create-solid": "./dist/create-solid.mjs",
       },
       "devDependencies": {
+        "@evertondgn/solid-tooling": "workspace:*",
         "valibot": "catalog:",
       },
     },

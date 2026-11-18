@@ -102,8 +102,10 @@ manual registry release.
   The app configures these tools in `apps/boilerplate/tooling/knip.ts` and
   `apps/boilerplate/tooling/css/check.ts`. To change a shared rule, edit
   `packages/solid-tooling/src/` and run `vp run test` at the repository root.
-- The generated app installs its own Git hooks. The tracked copy uses the
-  repository hooks and CI. Its guides identify the upstream deployment workflow.
+- The application guides describe upstream release automation, CI, Git hooks
+  and deployment. Those sections do not apply to the tracked copy, which has
+  no Git hooks. Keep its package pins at `workspace:*` and exclude them from
+  `vp update`. After upgrading Solid, run `vp run test:tarball` at the root.
 - This file, the guides in `docs/`, the code comments and the test titles are in
   English. The tests check the interface in its three languages. When bringing a
   change from the original, translate its documentation, comments and test

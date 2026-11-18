@@ -95,9 +95,9 @@ application links the `@solidjs` folder of the workspace, so it reads the
 published types of `solid-js` and `@solidjs/web` and fails on an error inside
 them, such as a name that the types of `@solidjs/web` import and the types of
 `solid-js` leave out. The tsconfig of the tooling preset sets `skipLibCheck`, so
-an application on the preset does not see those errors; one without it does. The
-[Solid upgrade steps](../apps/boilerplate/docs/server-errors/solid-upgrades.md#upgrading-solid)
-run that check.
+an application on the preset does not see those errors; one without it does. After following the
+[Solid upgrade steps](../apps/boilerplate/docs/server-errors/solid-upgrades.md#upgrading-solid),
+run `vp run test:tarball` at the monorepo root to check the published types.
 
 ## Package commands
 

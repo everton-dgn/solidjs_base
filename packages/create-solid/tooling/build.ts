@@ -41,16 +41,20 @@ const rules = new Map(
 if (files.length !== rules.size || files.some(file => !rules.has(file))) {
   throw new Error('Review classification.txt for changes in apps/boilerplate')
 }
+const featureSchema = object({
+  version: literal(1),
+  files: record(string(), string())
+})
 const features = parse(
-  object({ version: literal(1), files: record(string(), string()) }),
+  featureSchema,
   JSON.parse(readFileSync('features.json', 'utf8'))
 )
 const templateFiles = files
   .filter(file => rules.get(file) !== 'exclude')
   .map(file => (file === '.gitignore' ? '_gitignore' : file))
 assert.deepEqual(
-  Object.keys(features.files).sort(),
-  templateFiles.sort(),
+  Object.keys(features.files).toSorted(),
+  templateFiles.toSorted(),
   'Review features.json for changes in the template'
 )
 rmSync('template', { recursive: true, force: true })

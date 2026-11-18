@@ -99,7 +99,7 @@ export function rewritePatchTest({ dir, pm }: PatchRewrite): void {
         : [
             "  const workspace = await readFile(path.join(ROOT, 'pnpm-workspace.yaml'), 'utf8')",
             "  const lock = await readFile(path.join(ROOT, 'pnpm-lock.yaml'), 'utf8')",
-            "  const section = workspace.split('patchedDependencies:\\n')[1]?.split(/^(?! )\\S/mu)[0]",
+            String.raw`  const section = workspace.split('patchedDependencies:\n')[1]?.split(/^(?! )\S/mu)[0]`,
             '  assert.ok(section)',
             "  const entries = [...section.matchAll(/^  '([^']+)': '([^']+)'$/gmu)]",
             '  assert.ok(entries.length > 0)',

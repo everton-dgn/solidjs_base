@@ -48,7 +48,7 @@ void it('keeps the generator private until its first registry release', async ()
 void it('returns instructions to API callers and exports the generation steps', async context => {
   const { mkdtempSync, rmSync } = await import('node:fs')
   const { tmpdir } = await import('node:os')
-  const path = await import('node:path')
+  const { default: path } = await import('node:path')
   const dir = mkdtempSync(path.join(tmpdir(), 'api-app-'))
   context.after(() => rmSync(dir, { recursive: true, force: true }))
   const api = await import('../src/generate.ts')

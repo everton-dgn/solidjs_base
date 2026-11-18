@@ -43,34 +43,10 @@ function resolveSiteUrl(value?: string): URL {
   return siteUrl
 }
 
-export type { Profile } from './types.ts'
 type Versions = Record<string, string>
-export type GenerationContext = {
-  profile: Profile
-  pkg: {
-    name: string
-    description?: string
-    packageManager?: string
-    devDependencies: Versions
-    scripts: Versions
-    overrides?: Versions
-    patchedDependencies?: Versions
-  }
-  settings: {
-    bunVersion: string
-    catalog: Versions
-    versions: Versions
-    overrides: Versions
-    patches: Versions
-    bunfig: string
-    lefthook: string
-  }
-  write: (file: string, content: string) => void
-}
 function resolveVersion(
   settings: GenerationContext['settings'],
-  name: string,
-  spec: string
+  [name, spec]: [string, string]
 ) {
   let resolved: string | undefined = spec
   if (spec === 'catalog:') {
@@ -79,20 +55,53 @@ function resolveVersion(
   if (spec === 'workspace:*') {
     resolved = settings.versions[name]
   }
-  if (typeof resolved !== 'string') {
+  if (resolved === undefined) {
     throw new Error(`Missing version for ${name}`)
   }
   return resolved
 }
-export function resolveGroup({ settings }: GenerationContext, group: Versions) {
+function checkTools(profile: Profile): void {
+  const tools = [
+    ...(profile.shouldInitGit ? ['git'] : []),
+    ...(profile.shouldInstall ? [profile.pm] : [])
+  ]
+  for (const tool of tools) {
+    const found = process.env.PATH?.split(path.delimiter).some(directory => {
+      try {
+        accessSync(path.join(directory, tool), constants.X_OK)
+        return statSync(path.join(directory, tool)).isFile()
+      } catch {
+        return false
+      }
+    })
+    if (!found) {
+      throw new Error(`Install ${tool} before generating the application.`)
+    }
+  }
+}
+function nextSteps(profile: Profile): string[] {
+  const next = [`Open ${profile.dir}.`]
+  if (!profile.shouldInstall) {
+    next.push(`Run ${profile.pm} install.`)
+    if (profile.pm === 'pnpm') {
+      next.push('Run pnpm exec vp fmt pnpm-workspace.yaml.')
+    }
+  }
+  next.push('Run vp run dev.')
+  return next
+}
+export function resolveGroup(
+  { settings }: GenerationContext,
+  group: Versions
+): Versions {
   return Object.fromEntries(
     Object.entries(group).map(([name, spec]) => [
       name,
-      resolveVersion(settings, name, spec)
+      resolveVersion(settings, [name, spec])
     ])
   )
 }
-export function configureInstaller(context: GenerationContext) {
+export function configureInstaller(context: GenerationContext): void {
   const { profile, settings, write, pkg } = context
   const versions = { bun: settings.bunVersion, pnpm: '12.21.0', npm: '12.2.3' }
 
@@ -113,7 +122,11 @@ export function configureInstaller(context: GenerationContext) {
   }
   write('bunfig.toml', settings.bunfig)
 }
-export function configureHooks({ pkg, settings, write }: GenerationContext) {
+export function configureHooks({
+  pkg,
+  settings,
+  write
+}: GenerationContext): void {
   pkg.devDependencies.lefthook = settings.lefthook
   pkg.scripts.prepare =
     'if [ "$(git rev-parse --show-toplevel 2>/dev/null)" = "$(pwd -P)" ]; then vp exec node node_modules/@evertondgn/solid-tooling/dist/cli.mjs lefthook install; fi'
@@ -130,7 +143,7 @@ export function configureHooks({ pkg, settings, write }: GenerationContext) {
     )}\n`
   )
 }
-export function rewriteIdentity({ pkg, profile }: GenerationContext) {
+export function rewriteIdentity({ pkg, profile }: GenerationContext): void {
   pkg.name =
     path
       .basename(profile.dir)
@@ -151,22 +164,7 @@ export function generate(profile: Profile): string[] {
   if (existsSync(profile.dir) && readdirSync(profile.dir).length > 0) {
     throw new Error('Destination must be empty')
   }
-  const tools = [
-    ...(profile.shouldInitGit ? ['git'] : []),
-    ...(profile.shouldInstall ? [profile.pm] : [])
-  ]
-  for (const tool of tools) {
-    const found = process.env.PATH?.split(path.delimiter).some(directory => {
-      try {
-        accessSync(path.join(directory, tool), constants.X_OK)
-        return statSync(path.join(directory, tool)).isFile()
-      } catch {
-        return false
-      }
-    })
-    if (!found)
-      throw new Error(`Install ${tool} before generating the application.`)
-  }
+  checkTools(profile)
   const parent = path.dirname(path.resolve(profile.dir))
   const firstParent = mkdirSync(parent, { recursive: true })
   const stage = mkdtempSync(path.join(parent, '.create-solid-'))
@@ -217,12 +215,12 @@ export function generate(profile: Profile): string[] {
     )
     cpSync(installerFiles, stage, { recursive: true })
     write('package.json', `${JSON.stringify(pkg, null, jsonIndent)}\n`)
-    renameSync(stage, profile.dir)
+    renameSync(stage, path.resolve(profile.dir))
   } catch (error) {
     rmSync(stage, { recursive: true, force: true })
     if (firstParent) {
       for (let current = parent; ; current = path.dirname(current)) {
-        if (readdirSync(current).length) break
+        if (readdirSync(current).length > 0) break
         rmdirSync(current)
         if (current === firstParent) break
       }
@@ -266,12 +264,29 @@ export function generate(profile: Profile): string[] {
       }
     }
   }
-  const next = [`Open ${profile.dir}.`]
-  if (!profile.shouldInstall) {
-    next.push(`Run ${profile.pm} install.`)
-    if (profile.pm === 'pnpm')
-      next.push('Run pnpm exec vp fmt pnpm-workspace.yaml.')
+  return nextSteps(profile)
+}
+
+export type { Profile } from './types.ts'
+export type GenerationContext = {
+  profile: Profile
+  pkg: {
+    name: string
+    description?: string
+    packageManager?: string
+    devDependencies: Versions
+    scripts: Versions
+    overrides?: Versions
+    patchedDependencies?: Versions
   }
-  next.push('Run vp run dev.')
-  return next
+  settings: {
+    bunVersion: string
+    catalog: Versions
+    versions: Versions
+    overrides: Versions
+    patches: Versions
+    bunfig: string
+    lefthook: string
+  }
+  write: (file: string, content: string) => void
 }

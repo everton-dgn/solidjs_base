@@ -97,7 +97,7 @@ production dependencies, `@mdream/js`, `filesystem-routing`, `schema-dts` and
 `packages/solid-tooling/vite.config.ts`, with its type declarations, and writes
 the `exports` map from those entries. The map adds the two TypeScript configs,
 the declaration files of the app environment, the virtual modules and the icon
-modules, `lefthook.yml` and `package.json`: 26 entry points in all, which the
+modules, `lefthook.yml` and `package.json`: 27 entry points in all, which the
 [package README](../packages/solid-tooling/README.md#entry-points) lists.
 
 The lint preset registers the plugins in `lint.jsPlugins` by package specifier,

@@ -11,3 +11,8 @@ pages.
 [Applications with no server](no-server.md) stays here, because the installed
 application scenarios read it to check that its theme plugin matches the one
 they build.
+
+## Entry points
+
+See [Entry points](../../packages/solid-tooling/README.md#entry-points) in the
+README of the tooling package.

@@ -92,7 +92,10 @@ export default definePlaywrightConfig({ root: import.meta.dirname })
 It reads `BASE_URL_TEST` from `.env.test`, builds the application (`e2e` mode
 for the fixture routes, `production` with `TEST_PRODUCTION_ROUTES=true`), starts
 the preview, and checks the server log for private markers when the suite ends.
-`TEST_PREBUILT=true` reuses an existing production build.
+`TEST_PREBUILT=true` reuses an existing production build. `root` is the only
+required option; the boilerplate app's
+[`playwright.config.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/apps/boilerplate/playwright.config.ts)
+adds a fixture server and its serial suites.
 
 | Option           | Default           | Use                                                                    |
 | ---------------- | ----------------- | ---------------------------------------------------------------------- |
@@ -103,4 +106,5 @@ the preview, and checks the server log for private markers when the suite ends.
 
 Each serial suite gets its own project: `markdown` runs with one worker,
 `serverLogs` runs last as the teardown of the others, and `publicationLoad` runs
-alone, against two servers, with `TEST_PUBLICATION_LOAD=true`.
+alone, against two servers, with `TEST_PUBLICATION_LOAD=true`, which needs the
+fixture routes of the `e2e` mode and a `publicationLoad` suite.

@@ -28,6 +28,16 @@ export default defineKnipConfig({
 })
 ```
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/dead-code-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/dead-code-light.webp" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/dead-code-light.webp" alt="Knip on a copy of the boilerplate app with an unused file, dependency and export added reports each one and where it is." width="800" />
+</picture>
+
+This Knip report comes from a temporary copy of the boilerplate app with an
+unused file, an unused dependency and an unused export added. The first pass
+fails, so `vp run dead-code-project` stops before the `--strict` pass.
+
 Run `vp run knip --config tooling/knip.ts`, then add `--strict`. The task uses
 the package-owned `knip-bun` executable. The icons plugin of the preset resolves
 the `icon:` imports, which Knip reads as a package named `icon`, and loads each
@@ -151,6 +161,15 @@ The policy:
   `src/theme/class/animation.css`. Stylelint stops the whole run when a
   reference matches no file, so each one is passed only when it exists.
 - An exception needs a `stylelint-disable` comment with the reason after `--`.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/css-tokens-dark.webp" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/css-tokens-light.webp" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/css-tokens-light.webp" alt="A literal color in styles.module.css is refused and a var() token passes; the app's token files define the custom properties." width="800" />
+</picture>
+
+The boilerplate app's token files define 36 color, 11 font, 7 shadow, 6 grid, 5
+radius and 3 z-index custom properties.
 
 `stylelint` and `stylelint-use-nesting` are dependencies of this package. The
 config passes the plugin by a path resolved from the package, because Stylelint

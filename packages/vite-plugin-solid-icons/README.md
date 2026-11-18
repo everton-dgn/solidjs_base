@@ -420,3 +420,6 @@ the minor version. Each release is listed in the
 This package is part of
 [Solid Base](https://github.com/everton-dgn/solidjs_base/blob/main/README.md),
 next to `@evertondgn/solid-tooling` and `@evertondgn/solid-runtime`.
+
+Read the [installed skill](skills/solid-icons/SKILL.md) for application rules
+and the package reference.

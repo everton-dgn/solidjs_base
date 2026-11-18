@@ -26,6 +26,7 @@
   "files": [
     "dist",
     "docs",
+    "skills",
     "icon-modules.d.ts"
   ],
   "exports": {

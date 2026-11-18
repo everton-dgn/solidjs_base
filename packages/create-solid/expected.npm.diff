@@ -1,0 +1,1898 @@
+diff --git a/example/.commitlintrc b/example/.commitlintrc
+new file mode 100644
+--- /dev/null
++++ b/example/.commitlintrc
+@@ -0,0 +1,5 @@
++{
++  "extends": [
++    "@evertondgn/solid-tooling/commitlint"
++  ]
++}
+diff --git a/source/.env b/example/.env
+--- a/source/.env
++++ b/example/.env
+@@ -1,3 +1,3 @@
+ HOST=127.0.0.1
+ PORT=3000
+-VITE_SITE_URL=https://boilerplate-solidjs.devinsights.dev
++VITE_SITE_URL=https://example.com
+diff --git a/example/.lefthook.yml b/example/.lefthook.yml
+new file mode 100644
+--- /dev/null
++++ b/example/.lefthook.yml
+@@ -0,0 +1,2 @@
++extends:
++  - node_modules/@evertondgn/solid-tooling/lefthook.yml
+diff --git a/source/README.md b/example/README.md
+--- a/source/README.md
++++ b/example/README.md
+@@ -1,16 +1,6 @@
+-# Boilerplate app
++# Solid Base application
+ 
+-A complete SolidJS 2 app built on the packages of this repository, so a package
+-change that breaks a real app fails CI before it becomes a version. It takes its
+-config, lint, tests and runtime features from `@evertondgn/solid-tooling` and
+-`@evertondgn/solid-runtime`. Its icons come from
+-`@evertondgn/vite-plugin-solid-icons`, which the tooling loads.
+-
+-The app is the test bench of the packages. This repository never publishes or
+-deploys it, and it is neither a template nor a UI kit. To start a new app, copy
+-the closest [fixture](../../README.md#start-a-new-app-from-a-fixture). This
+-README says what each page and feature of the app shows and which tests prove
+-it.
++This application uses SolidJS 2 with the Solid Base tooling and runtime. Run `vp run dev` to start it locally.
+ 
+ > [!NOTE]
+ > This app pins SolidJS 2 in its [package manifest](package.json) to the version
+@@ -19,16 +9,16 @@ it.
+ The home page, captured from the production build at 750 px wide:
+ 
+ <picture>
+-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/app-home-dark.webp" />
+-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/app-home-light.webp" />
+-  <img src="../../docs/assets/readme/app-home-light.webp" alt="The boilerplate app's home page at /en, captured from its production build." width="800" />
++  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-dark.webp" />
++  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-light.webp" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-light.webp" alt="The boilerplate app's home page at /en, captured from its production build." width="800" />
+ </picture>
+ 
+-The app started as a copy of
++The upstream boilerplate started as a copy of
+ [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs) at
+ commit `6145493`.
+-[ADR 0009](../../docs/ADRs/0009-boilerplate-app-in-the-monorepo.md) explains why
+-the copy exists.
++[ADR 0009](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/ADRs/0009-boilerplate-app-in-the-monorepo.md) explains why
++the upstream copy exists.
+ 
+ [See it work](#see-it-work) · [Running it](#running-it) ·
+ [What each page and feature shows](#what-each-page-and-feature-shows) ·
+@@ -100,64 +90,9 @@ the four real pages in each locale and checks the static `.md` files, `llms.txt`
+ and `llms-full.txt` of the production build. CI does not run it
+ ([limits](#limits)).
+ 
+-## Who it fits
+-
+-- You change a package of this repository. The app's checks and its `e2e` suite
+-  run in CI on every pull request that touches a package, and
+-  [AGENTS.md](../../AGENTS.md) asks for
+-  [the app commands](../../docs/development.md#the-boilerplate-app) when a
+-  change reaches a preset or runtime code the app uses.
+-- You are adding the packages to your own app and want one feature wired
+-  together with the others. The [table below](#what-each-page-and-feature-shows)
+-  links each part to its guide and its tests.
+-- You want Playwright examples for SSR, hydration, the CSP, server errors and
+-  Markdown negotiation: 319 cases in 15 areas, enumerated with
+-  `playwright test --list`.
+-
+-## Who it does not fit
+-
+-- You want a template for a new app. Copy the closest
+-  [fixture](../../README.md#start-a-new-app-from-a-fixture); a `vp create`
+-  template is on the [roadmap](../../README.md#roadmap).
+-- You want UI components. `Button`, `Input`, `Dialog` and the other components
+-  of this app exist for the tests, and no package publishes them.
+-- You want a hosted demo. This repository never publishes or deploys the app.
+-
+-## Common questions
+-
+-**Why not copy this app to start mine?** It carries what a test bench needs and
+-a new app does not: the fixture routes of the `e2e` build in
+-`src/tests/fixtures/e2e/`, the texts of the original project, a dependency patch
+-the packages do not ship, and guides that in part describe the original
+-repository. A fixture is a minimal app on the same packages, and the
+-[root README](../../README.md#start-a-new-app-from-a-fixture) lists the three to
+-five changes a copy of one takes.
+-
+-**Does it run only on the packages?** No. The manifest declares 15 direct
+-dependencies for the app's own imports, Vite+ and `@solidjs/diagnostics`, which
+-the Solid plugin reads in development, against 28 before the packages
+-([tooling README](../../packages/solid-tooling/README.md#fewer-tool-versions-in-each-manifest)).
+-Bun also applies a patch to `@mdream/js` that the packages do not ship
+-([limits](#limits)).
+-
+-**Can I take a single feature from it?** Yes. The behavior comes from runtime
+-factories, and the copy keeps thin bindings in `src/`: its header values, its
+-public messages, its page metadata and its content sources. Each row of the
+-[table below](#what-each-page-and-feature-shows) links the guide for that part.
+-
+ ## Running it
+ 
+-You need the global [Vite+](https://viteplus.dev/guide/) CLI (`vp`). It selects
+-the Node and Bun versions the project declares; the app's `engines.node` asks
+-for Node 26.13.1 or a later 26 release. From the repository root:
+-
+-```bash
+-vp install
+-vp run build
+-```
+-
+-Then run these from this folder. The browser tests and Playwright use Chromium,
+-which `vp install` does not download, so the first command installs it once:
++Install the global [Vite+](https://viteplus.dev/guide/) CLI and Bun. Run `npm install` from this directory if dependencies are missing. Install Chromium once for the browser tests:
+ 
+ ```bash
+ vp run test:browser:install
+@@ -179,9 +114,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
+ ```
+ 
+ <picture>
+-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/security-headers-dark.webp" />
+-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/security-headers-light.webp" />
+-  <img src="../../docs/assets/readme/security-headers-light.webp" alt="curl -sI on the boilerplate app's production preview: eight security headers and a CSP whose script-src carries a nonce." width="800" />
++  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/security-headers-dark.webp" />
++  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/security-headers-light.webp" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/security-headers-light.webp" alt="curl -sI on the boilerplate app's production preview: eight security headers and a CSP whose script-src carries a nonce." width="800" />
+ </picture>
+ 
+ `curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
+@@ -217,9 +152,9 @@ both suites.
+ ### The same page in three languages
+ 
+ <picture>
+-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/app-locales-dark.webp" />
+-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/app-locales-light.webp" />
+-  <img src="../../docs/assets/readme/app-locales-light.webp" alt="The boilerplate app's home page at /pt, /en and /es, with the navigation, the title and the language button in each locale." width="800" />
++  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-locales-dark.webp" />
++  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-locales-light.webp" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-locales-light.webp" alt="The boilerplate app's home page at /pt, /en and /es, with the navigation, the title and the language button in each locale." width="800" />
+ </picture>
+ 
+ Every page lives under `/pt`, `/en` or `/es`, with `lang`, the navigation and
+@@ -242,9 +177,9 @@ z-index values, counted as the custom properties declared in each file.
+ ### Outdated pages after a deploy
+ 
+ <picture>
+-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/outdated-page-dark.webp" />
+-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/outdated-page-light.webp" />
+-  <img src="../../docs/assets/readme/outdated-page-light.webp" alt="A tab from the previous build marks the page as outdated and loads a fresh document on the next navigation." width="800" />
++  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/outdated-page-dark.webp" />
++  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/outdated-page-light.webp" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/outdated-page-light.webp" alt="A tab from the previous build marks the page as outdated and loads a fresh document on the next navigation." width="800" />
+ </picture>
+ 
+ `installOutdatedPageDetection` marks the page when a chunk of the previous build
+@@ -288,15 +223,15 @@ refuses, so it never shares a run with the other suites. See
+ [publication load](docs/testing.md#publication-load).
+ 
+ <picture>
+-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/e2e-coverage-dark.webp" />
+-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/e2e-coverage-light.webp" />
+-  <img src="../../docs/assets/readme/e2e-coverage-light.webp" alt="The boilerplate app's Playwright cases by area, split between the E2E build that CI runs and the production build." width="800" />
++  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/e2e-coverage-dark.webp" />
++  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/e2e-coverage-light.webp" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/e2e-coverage-light.webp" alt="The boilerplate app's Playwright cases by area, split between the E2E build that CI runs and the production build." width="800" />
+ </picture>
+ 
+-CI runs this app's check, Node type check, dead code, Vitest with coverage,
++The upstream boilerplate CI runs the app's check, Node type check, dead code, Vitest with coverage,
+ tooling tests and the `e2e` suite on every pull request that changes the app, a
+ package, a fixture or the root configuration
+-([CI coverage](../../docs/development.md#ci)). The
++([CI coverage](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci)). The
+ [reference](#playwright-cases-by-area) lists the cases by area.
+ 
+ ## Limits
+@@ -308,15 +243,7 @@ package, a fixture or the root configuration
+   not prove production capacity. The thresholds of `PublicationLoad` are a local
+   starting point and set no production SLO
+   ([publication load](docs/testing.md#publication-load)).
+-- The copy installs the packages from the workspace, so it tests the source of
+-  the same commit. The packed tarballs are tested in minimal apps by the
+-  [installed application scenarios](../../docs/ADRs/0021-installed-application-scenarios.md).
+-- Bun applies a patch to `@mdream/js` from [`patches/`](patches), registered in
+-  the root `package.json`. The packages do not ship it. An app that installs the
+-  runtime from npm gets the published converter, and some conversions differ:
+-  `<p>a<span> <span>b</span></span></p>` gives `ab` without the patch and `a b`
+-  with it. The [Markdown guide](docs/seo/markdown.md) lists the differences and
+-  how to adopt the same patch.
++- Bun is required to run the application tasks. npm installs the upstream Markdown converter without the patch.
+ - The guides describe this copy, but their sections about releases, CI, Git
+   hooks and the Vercel deploy describe the original repository.
+ - The interactive controls need JavaScript. The tests check the server-rendered
+@@ -328,10 +255,9 @@ package, a fixture or the root configuration
+ 
+ It takes its lint preset, lint rules, formatter settings, TypeScript configs,
+ Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
+-Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`, through the
+-workspace, in place of the copies the original keeps in `tooling/`,
++Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`, in place of the copies the original keeps in `tooling/`,
+ `vite.config.ts` and `tsconfig.json`. See the
+-[configuration comparison](../../packages/solid-tooling/README.md#the-configuration-you-stop-maintaining)
++[configuration comparison](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/README.md#the-configuration-you-stop-maintaining)
+ of the tooling README for the line counts by area.
+ 
+ The package supplies tools that this copy does not import itself. Its
+@@ -357,14 +283,12 @@ patch ([limits](#limits)).
+ 
+ ### Updating the packages
+ 
+-The manifest declares both packages as `workspace:*`, so the copy always runs
+-the code of the same commit and has nothing to update. An app outside this
+-repository raises them with
++Update the installed packages with
+ `vp update -L @evertondgn/solid-tooling @evertondgn/solid-runtime`, then aligns
+ its versions with the exact peers of the packages and never raises `solid-js`
+ with `-L`, as the root README's
+-[update the packages](../../README.md#update-the-packages) shows. The
+-[boilerplate app section](../../docs/development.md#the-boilerplate-app) of the
++[update the packages](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/README.md#update-the-packages) shows. The
++[boilerplate app section](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#the-boilerplate-app) of the
+ development guide lists what changed from the original and how to bring the copy
+ up to date with it.
+ 
+diff --git a/example/bunfig.toml b/example/bunfig.toml
+new file mode 100644
+--- /dev/null
++++ b/example/bunfig.toml
+@@ -0,0 +1,5 @@
++env = false
++
++[install]
++exact = true
++linker = "isolated"
+diff --git a/source/docs/architecture.md b/example/docs/architecture.md
+--- a/source/docs/architecture.md
++++ b/example/docs/architecture.md
+@@ -111,7 +111,7 @@ and their helpers live in the runtime package.
+ `data/errorApi/` (normalization of domain errors from APIs) are conventions for
+ the first consumers and do not have modules yet. Public errors that only the
+ server uses are in
+-[`@evertondgn/solid-runtime/server/public-errors`](../../../packages/solid-runtime/src/infra/server/publicErrors/index.ts),
++[`@evertondgn/solid-runtime/server/public-errors`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/publicErrors/index.ts),
+ next to the protection of the backend operations; requests and persistence live
+ in `infra/`.
+ 
+diff --git a/source/docs/development.md b/example/docs/development.md
+--- a/source/docs/development.md
++++ b/example/docs/development.md
+@@ -38,7 +38,7 @@ Use `vp run tsrs`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
+ `vp run commitlint` for the package's executables. Scripts such as `test:e2e`,
+ `test:browser:install` and `dead-code:fix` use these tasks. The standalone
+ command pattern is documented in the
+-[tooling guide](../../../packages/solid-tooling/docs/limits.md#packaged-commands-and-types).
++[tooling guide](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/limits.md#packaged-commands-and-types).
+ Keep `trustedDependencies: []` when extracting this copy so dependency
+ installation does not change Git hooks; hook installation is explicit.
+ 
+@@ -55,7 +55,7 @@ generated `solid-env.d.ts` types cover the virtual modules, not
+ `import.meta.env`; keep `src/@types/env.d.ts` for the application's
+ `PUBLICATION_BUILD_ID` declaration. `SITE.url` imports the runtime SEO origin.
+ See the
+-[environment guide](../../../packages/solid-tooling/docs/app-config.md#optional-environment-validation).
++[environment guide](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/app-config.md#optional-environment-validation).
+ 
+ To install and start the project, follow [running it](../README.md#running-it).
+ 
+@@ -127,7 +127,7 @@ runtime, plus the complete E2E tests.
+ 
+ > This section describes the deploy of the original repository,
+ > boilerplate_solidjs. This repository never deploys the copy: its
+-> [CI](../../../docs/development.md#ci) only builds and tests it.
++> [CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci) only builds and tests it.
+ 
+ The production deploy comes from the `deploy` job of the
+ [CI workflow](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/.github/workflows/ci.yml),
+@@ -290,8 +290,8 @@ plan does not replace the invalidation check described above.
+ 
+ > This section describes the CI and the release automation of the original
+ > repository, boilerplate_solidjs. For this repository, see
+-> [CI](../../../docs/development.md#ci) and
+-> [Releasing](../../../docs/releasing.md).
++> [CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci) and
++> [Releasing](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/releasing.md).
+ 
+ In the CI and in the release automation, `setup-vp` provides the Node and the
+ Bun declared in the project and reuses the package cache.
+@@ -390,7 +390,7 @@ workers and the Node runner of the tooling tests, at most three.
+ 
+ > This section describes the reuse proof of the original repository,
+ > boilerplate_solidjs. This repository reuses the pull request run in another
+-> way, described in [CI](../../../docs/development.md#ci).
++> way, described in [CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci).
+ 
+ The push to `main` is a merge commit created by GitHub from a PR updated with
+ the base, which the branch protection requires. When the run of that PR already
+@@ -449,7 +449,7 @@ push.
+ 
+ > This section measures the CI of the original repository, boilerplate_solidjs,
+ > with its reuse proof and deploy steps. For the CI of this repository, see
+-> [CI](../../../docs/development.md#ci).
++> [CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci).
+ 
+ Separate runner usage from waiting time. The first is the sum of the job
+ durations, computed between `started_at` and `completed_at`, divided by 60;
+@@ -482,7 +482,7 @@ run.
+ > This section describes the hooks of the original repository,
+ > boilerplate_solidjs. The copy installs no Git hooks. The hooks that the
+ > tooling package ships are in
+-> [Commit messages and Git hooks](../../../packages/solid-tooling/docs/commits-and-hooks.md).
++> [Commit messages and Git hooks](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/commits-and-hooks.md).
+ 
+ Installed by Lefthook in `vp install`, authorized in the `trustedDependencies`
+ of `package.json`:
+diff --git a/source/docs/security.md b/example/docs/security.md
+--- a/source/docs/security.md
++++ b/example/docs/security.md
+@@ -14,7 +14,7 @@ sets `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`,
+ responses also get the `Content-Security-Policy`. The values are in
+ [`src/middleware/securityHeaders/constants.ts`](../src/middleware/securityHeaders/constants.ts),
+ which spreads the defaults of the runtime package
+-([`constants.js`](../../../packages/solid-runtime/src/middleware/securityHeaders/constants.js));
++([`constants.js`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/securityHeaders/constants.js));
+ change a header or a CSP directive there.
+ [`src/middleware/securityHeaders/index.ts`](../src/middleware/securityHeaders/index.ts)
+ passes them to `createSecurityHeaders` once, and the chain, the failure
+@@ -87,7 +87,7 @@ take away the subdomain coverage that the function response had just declared.
+ 
+ The nonce has 16 bytes of `crypto.getRandomValues` in base64 and is created for
+ each request by
+-[`requestNonce`](../../../packages/solid-runtime/src/middleware/securityHeaders/index.ts),
++[`requestNonce`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/securityHeaders/index.ts),
+ on the first access to `event.nonce`. That field belongs to the native contract
+ of the Solid plugin. `securityHeaders` fills it before the render, and the
+ containment also creates it when a failure happens before that middleware, so
+diff --git a/source/docs/seo.md b/example/docs/seo.md
+--- a/source/docs/seo.md
++++ b/example/docs/seo.md
+@@ -258,5 +258,5 @@ See
+ The runtime now owns Markdown and llms services; this application retains their
+ thin bindings and editorial values. `seo` in `vite.config.ts` selects the
+ compiled publication pipeline. See
+-[ADR 0034](../../../docs/ADRs/0034-runtime-markdown-publication.md) for the
++[ADR 0034](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/ADRs/0034-runtime-markdown-publication.md) for the
+ independent options and the single-language configuration.
+diff --git a/source/docs/server-errors/backend.md b/example/docs/server-errors/backend.md
+--- a/source/docs/server-errors/backend.md
++++ b/example/docs/server-errors/backend.md
+@@ -96,7 +96,7 @@ integration.
+ 
+ ## What the lint covers
+ 
+-[backendPolicy](../../../../packages/solid-tooling/src/backendPolicy/index.ts)
++[backendPolicy](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/backendPolicy/index.ts)
+ configures the native Oxlint rules `no-restricted-globals`,
+ `no-restricted-properties` and `no-console`, plus the packaged
+ `backend/restricted-imports` rule, in `src`, fixtures included, for the `.ts`,
+@@ -114,7 +114,7 @@ configures the native Oxlint rules `no-restricted-globals`,
+   that module, `publicErrors` included: each call replaces the global server
+   error hook.
+ - Reserves `observeRenderFailures`, from
+-  [renderIntegrity](../../../../packages/solid-runtime/src/infra/server/renderIntegrity/index.ts),
++  [renderIntegrity](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/renderIntegrity/index.ts),
+   for `configureServerErrors`, through an alias, namespace or re-export too:
+   after that call the render state starts without errors, and only the
+   registration installs the hook that marks it.
+@@ -128,7 +128,7 @@ configures the native Oxlint rules `no-restricted-globals`,
+ 
+ `backend/restricted-imports` checks literal dynamic imports for module-wide
+ restrictions.
+-[backend/static-solid-imports](../../../../packages/solid-tooling/src/backendPolicy/plugin.ts)
++[backend/static-solid-imports](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/backendPolicy/plugin.ts)
+ requires static imports of Solid web modules and the runtime configurator, in
+ `publicErrors` and `configureServerErrors` too.
+ `backend/static-render-integrity-imports` requires static imports of the local
+diff --git a/source/docs/server-errors/recovery.md b/example/docs/server-errors/recovery.md
+--- a/source/docs/server-errors/recovery.md
++++ b/example/docs/server-errors/recovery.md
+@@ -46,7 +46,7 @@ new line with the fixed `[middleware]` message.
+ 
+ The Playwright `webServer` writes the preview output to
+ `test-results/server-<mode>.log`. The
+-[global teardown](../../../../packages/solid-tooling/src/playwright/teardown.ts)
++[global teardown](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/playwright/teardown.ts)
+ checks that the file recorded the preview address and refuses any private
+ marker.
+ 
+diff --git a/source/docs/server-errors/solid-upgrades.md b/example/docs/server-errors/solid-upgrades.md
+--- a/source/docs/server-errors/solid-upgrades.md
++++ b/example/docs/server-errors/solid-upgrades.md
+@@ -10,8 +10,8 @@ The shared registration and protection live in
+ entry and supplies the catalog callback to the package configurator.
+ 
+ Check the dependencies of [package.json](../../package.json), the `catalog` of
+-the [root package.json](../../../../package.json) and the resolution in
+-[bun.lock](../../../../bun.lock). `vp toolchain` shows the tools of the active
++the [root package.json](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/package.json) and the resolution in
++[bun.lock](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/bun.lock). `vp toolchain` shows the tools of the active
+ installation. Those files and the command replace a list of versions kept in
+ this guide.
+ 
+@@ -31,7 +31,7 @@ the published and installed package changed that behavior.
+    internal APIs early. Run `vp run test:tarball` at the monorepo root: the type
+    check of the icons tarball test reads the published types of both packages
+    with `skipLibCheck` off, as the
+-   [workspace section](../../../../docs/development.md#workspace) describes.
++   [workspace section](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#workspace) describes.
+ 2. Check that the contract of the `configureServerErrors({ onError })` hook that
+    the central registration uses is still the same: a synchronous call, the
+    return sent without another sanitization, a verdict per object and the
+diff --git a/source/docs/server-errors/ssr-integrity.md b/example/docs/server-errors/ssr-integrity.md
+--- a/source/docs/server-errors/ssr-integrity.md
++++ b/example/docs/server-errors/ssr-integrity.md
+@@ -7,7 +7,7 @@
+ The entry calls `createRenderOptions()` from
+ `@evertondgn/solid-runtime/server/create-render-options` before rendering. That
+ helper creates the state with `createRenderIntegrity()`, from
+-[renderIntegrity](../../../../packages/solid-runtime/src/infra/server/renderIntegrity/index.ts),
++[renderIntegrity](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/renderIntegrity/index.ts),
+ and stores it in `event.locals.ssrRenderState` before the entry calls
+ `renderToStream`. Its returned options carry the request nonce, signal and
+ completion callback; the authored Document/App tree stays in the application.
+diff --git a/source/docs/server-errors.md b/example/docs/server-errors.md
+--- a/source/docs/server-errors.md
++++ b/example/docs/server-errors.md
+@@ -30,13 +30,13 @@ production.
+ - [requestJson](../src/infra/server/requestJson/index.ts) checks the HTTP
+   status, reads the success JSON and applies the output schema inside the
+   protection.
+-- [protectServerOperation](../../../packages/solid-runtime/src/infra/server/protectServerOperation/index.ts)
++- [protectServerOperation](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/protectServerOperation/index.ts)
+   catches throws and rejections and checks the structure of the result.
+-- [publicErrors](../../../packages/solid-runtime/src/infra/server/publicErrors/index.ts)
++- [publicErrors](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/publicErrors/index.ts)
+   creates a new error with the public message supplied by the application's
+   setup, in the locale of the request, as described in
+   [Locale of the public message](#locale-of-the-public-message).
+-- [logServerFailure](../../../packages/solid-runtime/src/infra/server/logServerFailure/index.ts)
++- [logServerFailure](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/logServerFailure/index.ts)
+   is the only log point: it writes the fixed message of the source and, for an
+   `Error`, only the class and the filtered frames described in
+   [Failure log](server-errors/logging.md#failure-log).
+@@ -95,14 +95,14 @@ with the single application security instance and Markdown adapter. The package
+ adapts the plugin event to the `Request` chain of `filesystem-routing` and
+ `composeMiddleware`, handing that chain to `containFailures`. The containment,
+ in
+-[`packages/solid-runtime/src/middleware/containFailures/index.ts`](../../../packages/solid-runtime/src/middleware/containFailures/index.ts),
++[`packages/solid-runtime/src/middleware/containFailures/index.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/containFailures/index.ts),
+ composes the whole chain inside itself, and an exception in the middlewares, in
+ the API routes or in the page handler becomes a 500 with the security headers
+ and the `[middleware]` log. Only a `Response` without a body and with a status
+ other than 0 passes as a control, and it goes out with the same headers; a
+ thrown `Response` with a body becomes a 500, because it may carry upstream data.
+ The middleware, the hook and the wrapper use the same classification,
+-[`isControlResponse`](../../../packages/solid-runtime/src/infra/server/isControlResponse/index.ts).
++[`isControlResponse`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/isControlResponse/index.ts).
+ The headers of a returned `Response.redirect()` are immutable, so they go on a
+ copy without a body; the raw return of `fetch()`, with immutable headers and an
+ upstream body, is not copied and becomes a 500. In development the original
+@@ -115,7 +115,7 @@ call the default export, a unit test requires it to contain failures, and the
+ The responses of the containment do not go back through `securityHeaders`, so
+ the containment itself writes the security headers and the
+ Content-Security-Policy with the nonce of the request, read by
+-[`requestNonce`](../../../packages/solid-runtime/src/middleware/securityHeaders/index.ts),
++[`requestNonce`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/securityHeaders/index.ts),
+ which uses the native `event.nonce` field. A failure before `securityHeaders`
+ can find the request without a nonce; the containment creates it before
+ rendering the error page, so that its scripts, the plugin handler and the CSP
+@@ -126,7 +126,7 @@ use the same value. Without a request event, the text 500 goes out with
+ In a navigation, the 500 shows the error page of the app. A navigation is a
+ `GET` or `HEAD` on a page path whose `Accept` allows HTML or Markdown, wildcards
+ and a missing header included, according to `isPageRequest` in
+-[`requestClassification`](../../../packages/solid-runtime/src/middleware/requestClassification/index.ts);
++[`requestClassification`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/requestClassification/index.ts);
+ a client that asks only for Markdown also gets the error page in HTML. This
+ criterion is broader than the one of the plugin development server, which only
+ considers HTML, `*/*` or a missing `accept`. `containFailures` writes a
+diff --git a/source/docs/testing.md b/example/docs/testing.md
+--- a/source/docs/testing.md
++++ b/example/docs/testing.md
+@@ -152,7 +152,7 @@ error and success, each one in the initial SSR, in a call from the browser and
+ in streaming, plus a reload that still fails, recovery after the backend comes
+ back and the isolation of the client bundle. The initial SSR is also checked
+ with JavaScript disabled. See [server errors](server-errors.md) for the failure
+-scenarios and [CI](../../../docs/development.md#ci) for when the monorepo runs
++scenarios and [CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci) for when the monorepo runs
+ the fixture suite.
+ 
+ ### Publication load
+@@ -360,7 +360,7 @@ The mode requires production routes. If an earlier `vp run test:e2e` left an E2E
+ fixture build in `.vercel/output`, Playwright stops before the preview and
+ reports `TEST_PREBUILT found an e2e build`; run `vp run build` in the app to
+ replace it with a production build, then run the prebuilt command again. The
+-[tooling package tests](../../../packages/solid-tooling/src/playwright/__tests__/playwright.test.ts)
++[tooling package tests](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/playwright/__tests__/playwright.test.ts)
+ cover the startup commands and reject an E2E fixture build in prebuilt mode.
+ 
+ Use `vp run test:e2e:ui` to open the interactive Playwright interface. With
+diff --git a/source/docs/ui.md b/example/docs/ui.md
+--- a/source/docs/ui.md
++++ b/example/docs/ui.md
+@@ -144,7 +144,7 @@ would fall back to the system font. Check the coverage of a file with
+ `fc-query --format='%{charset}\n' <file>`.
+ 
+ The font loading contract and complete examples are in the monorepo's
+-[font guide](../../../packages/solid-tooling/docs/fonts.md). Keep the CSS
++[font guide](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/fonts.md). Keep the CSS
+ fallback stack, weights and sizes in the application theme. Remove handwritten
+ font faces and preload imports when adopting this mechanism; no inline CSS is
+ required.
+diff --git a/source/package.json b/example/package.json
+--- a/source/package.json
++++ b/example/package.json
+@@ -1,9 +1,7 @@
+ {
+-  "name": "boilerplate",
++  "name": "example",
+   "version": "0.0.0",
+-  "private": true,
+-  "description": "Copy of boilerplate_solidjs that tests the packages of this repository in a complete application.",
+-  "type": "module",
++  "description": "SolidJS application built with Vite+.",
+   "scripts": {
+     "dev": "bun --bun node_modules/vite-plus/bin/vp dev",
+     "dev:phone": "bun --bun node_modules/vite-plus/bin/vp dev --host 0.0.0.0",
+@@ -35,10 +33,11 @@
+     "dead-code": "vp run i18n:generate && vp run dead-code-project",
+     "dead-code:fix": "vp run i18n:generate && vp run knip --config tooling/knip.ts --fix && vp fmt",
+     "scan:secrets": "kingfisher scan . --git-history none --no-validate --redact --exclude node_modules --exclude dist --exclude dist-ssr --exclude .nitro --exclude .output --exclude .vercel --exclude .tsbuild --exclude playwright-report --exclude test-results --exclude coverage --exclude .vitest",
+-    "validate": "vp run check:ci && vp run typecheck:node && vp run dead-code && vp run test:coverage && vp run test:tooling && vp run build"
++    "validate": "vp run check:ci && vp run typecheck:node && vp run dead-code && vp run test:coverage && vp run test:tooling && vp run build",
++    "prepare": "if [ \"$(git rev-parse --show-toplevel 2>/dev/null)\" = \"$(pwd -P)\" ]; then vp exec node node_modules/@evertondgn/solid-tooling/dist/cli.mjs lefthook install; fi"
+   },
+   "dependencies": {
+-    "@evertondgn/solid-runtime": "workspace:*",
++    "@evertondgn/solid-runtime": "{version}",
+     "@inlang/paraglide-js": "3.2.2",
+     "@solidjs/router": "2.0.0",
+     "@solidjs/web": "2.0.0",
+@@ -47,15 +46,18 @@
+     "valibot": "1.5.0"
+   },
+   "devDependencies": {
+-    "@evertondgn/solid-tooling": "workspace:*",
++    "@evertondgn/solid-tooling": "{version}",
+     "@iconify-json/hugeicons": "1.2.36",
+     "@inlang/plugin-message-format": "4.6.0",
+     "@playwright/test": "1.65.1",
+     "@solidjs/diagnostics": "2.0.0",
+-    "schema-dts": "catalog:",
+-    "vite": "catalog:",
+-    "vite-plus": "catalog:"
++    "schema-dts": "2.1.0",
++    "vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
++    "vite-plus": "1.7.0",
++    "lefthook": "2.2.2"
+   },
++  "private": true,
++  "type": "module",
+   "engines": {
+     "node": ">=26.13.1 <27"
+   },
+@@ -66,5 +68,12 @@
+       "onFail": "download"
+     }
+   },
+-  "trustedDependencies": []
++  "trustedDependencies": [],
++  "packageManager": "npm@12.2.3",
++  "overrides": {
++    "@solidjs/compiler": "2.0.0",
++    "@solidjs/signals": "2.0.0",
++    "vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
++    "vitest": "5.1.0"
++  }
+ }
+diff --git a/source/patches/@mdream%2Fjs@2.1.0.patch b/source/patches/@mdream%2Fjs@2.1.0.patch
+deleted file mode 100644
+--- a/source/patches/@mdream%2Fjs@2.1.0.patch
++++ /dev/null
+@@ -1,1219 +0,0 @@
+-diff --git a/dist/_chunks/markdown-processor.mjs b/dist/_chunks/markdown-processor.mjs
+-index ab043462e292ee1cdf51ed9b004e4e3034fd43e4..79f0dc58b2166133d7b93d6781f008fd14f8311e 100644
+---- a/dist/_chunks/markdown-processor.mjs
+-+++ b/dist/_chunks/markdown-processor.mjs
+-@@ -437,7 +437,22 @@ const tagHandlers = {
+- 			if (isInsideRawHtmlBlock(state.depthMap) && !node.tagHandler?.literalEnter) return safeAnchorOutput(node, state.options, false, true);
+- 			const href = resolveUrl(node.attributes.href, state.options?.origin, state.options?.clean);
+- 			let title = node.attributes?.title;
+--			if (state.lastContentCache === title) title = "";
+-+			let preservesCodeWhitespace = false;
+-+			if (state.depthMap?.[23] && !state.depthMap[34] && !state.lastTextNode?.containsWhitespace) {
+-+				const buffer = state.buffer;
+-+				let tail = buffer.length - 1;
+-+				while (tail >= 0 && !buffer[tail]) tail--;
+-+				let parent = buffer[tail] === state.lastContentCache ? node.parent : void 0;
+-+				while (parent) {
+-+					if (parent.tagId === 23 && parent.tagHandler?.enter === tagHandlers[23].enter) {
+-+						preservesCodeWhitespace = true;
+-+						break;
+-+					}
+-+					parent = parent.parent;
+-+				}
+-+			}
+-+			const cachedText = preservesCodeWhitespace ? state.lastContentCache : state.lastContentCache?.replace(/[ \t\n\f\r]+$/, "");
+-+			if (title && !state.cacheFollowsSeparator && state.droppedPairAt !== state.buffer.length && cachedText === title.replace(/[ \t\n\f\r]+$/, "")) title = "";
+- 			if (!title && isAutolinkUri(href)) {
+- 				const buf = state.buffer;
+- 				let i = buf.length - 1;
+-@@ -468,6 +483,7 @@ const tagHandlers = {
+- 					return "";
+- 				}
+- 			}
+-+			if (!node.childTextNodeIndex && !state.depthMap?.[34]) markRenderedChildContent(node);
+- 			return `]${serializeMarkdownResource(href, title)}`;
+- 		},
+- 		collapsesInnerWhiteSpace: true,
+-@@ -868,6 +884,7 @@ const CAPTION_FRAME_SIZE = 4;
+- const CAPTION_OPEN = 1;
+- const CAPTION_INTERNAL_BREAK = 2;
+- const CAPTION_HEADING_BREAK = 4;
+-+const CAPTION_BLOCK_PREFIX = 8;
+- const CAPTION_DEFAULT_SPACING = -1;
+- const CAPTION_NO_ANCHOR = -1;
+- INLINE_MARKER_TYPE[14] = 1;
+-@@ -1410,11 +1427,29 @@ function resetRetractedCaptionFrames(frames, count, fragment) {
+- 	for (let index = 0; index < count; index++) {
+- 		const offset = index * CAPTION_FRAME_SIZE;
+- 		if (frames[offset + 3] >= fragment) {
+--			frames[offset + 2] = frames[offset + 2] & -2;
+-+			frames[offset + 2] = frames[offset + 2] & -10;
+- 			frames[offset + 3] = CAPTION_NO_ANCHOR;
+- 		}
+- 	}
+- }
+-+function dropBlankLinkText(state, openFragment, label, trailingBlank) {
+-+	const buffer = state.buffer;
+-+	if (openFragment < 0 || buffer[openFragment] !== "[" || !hasNonWhitespace(label)) return false;
+-+	let hasSpace = false;
+-+	for (let index = openFragment + 1; index < buffer.length; index++) {
+-+		const fragment = buffer[index];
+-+		for (let offset = 0; offset < fragment.length; offset++) {
+-+			if (fragment.charCodeAt(offset) !== 32) return false;
+-+			hasSpace = true;
+-+		}
+-+	}
+-+	if (!hasSpace && !state.pendingInlineWhitespace && !trailingBlank) return false;
+-+	state.outputPositions?.replace(openFragment + 1, buffer.length, []);
+-+	buffer.length = openFragment + 1;
+-+	noteBufferRewrite(state);
+-+	state.pendingInlineWhitespace = false;
+-+	return true;
+-+}
+- function dropEmptyLinkText(buffer, openFragment, positions) {
+- 	for (let index = openFragment + 1; index < buffer.length; index++) if (hasNonWhitespace(buffer[index])) return false;
+- 	positions?.replace(openFragment, buffer.length, []);
+-@@ -1732,6 +1767,10 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 		emptyItemFragment: void 0,
+- 		headingBreakPending: false,
+- 		emptyItemAfterCr: false,
+-+		pendingLeadingBlank: false,
+-+		pendingPairSeparator: false,
+-+		separatorPending: false,
+-+		cacheFollowsSeparator: false,
+- 		tableRenderedTable: false,
+- 		tableCurrentRowCells: 0,
+- 		tableColumnAlignments: [],
+-@@ -1756,6 +1795,14 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 	let pendingRawHtmlBoundary = false;
+- 	const openMarkers = [];
+- 	let openMarkerCount = 0;
+-+	const openMarkerFollowsSpace = [];
+-+	const openMarkerSeparatorTrimmed = [];
+-+	const openMarkerRunLength = [];
+-+	let silentMarkerCount = 0;
+-+	let blankMarkerCount = 0;
+-+	let pendingSpaceFragment = -1;
+-+	let pendingSpaceTrimmed = false;
+-+	const literalOpeners = [];
+- 	let captionFrames;
+- 	let captionFrameCount = 0;
+- 	let captionBoundary = 0;
+-@@ -1860,32 +1907,46 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 		let changed = false;
+- 		if (captionBoundary === 1 || captionBoundary === 3) changed = appendCaptionSpacing(captionBoundarySpacing, includeBoundaryListIndent);
+- 		const frames = captionFrames;
+--		if (frames) for (let index = 0; index < captionFrameCount; index++) {
+--			const offset = index * CAPTION_FRAME_SIZE;
+--			let flags = frames[offset + 2];
+--			if (flags & CAPTION_OPEN) continue;
+--			const anchor = frames[offset + 3];
+--			const beforeFragment = anchor === CAPTION_NO_ANCHOR ? state.buffer.length : anchor;
+--			let opening = flags & CAPTION_INTERNAL_BREAK ? "" : captionSpacingPrefix(frames[offset], true, beforeFragment);
+--			flags |= CAPTION_OPEN;
+--			if (!explicitTop || index !== captionFrameCount - 1) opening += "*";
+--			if (opening) {
+--				if (beforeFragment === state.buffer.length) {
+--					state.buffer.push(opening);
+--					state.lastContentCache = opening;
+--				} else {
+--					const anchored = state.buffer[beforeFragment];
+--					const replacement = opening + anchored;
+--					state.outputPositions?.replace(beforeFragment, beforeFragment + 1, [replacement], (offset) => offset + opening.length);
+--					state.buffer[beforeFragment] = replacement;
+--					noteBufferRewrite(state);
+--					const codeSpan = gfmLifecycle.openCodeSpans.at(-1);
+--					if (codeSpan?.fragment === beforeFragment) codeSpan.prefix = opening + codeSpan.prefix;
+--					if (state.lastContentCache === anchored) state.lastContentCache = replacement;
+-+		if (frames) {
+-+			let insertedFragment = -1;
+-+			let insertedLength = 0;
+-+			for (let index = 0; index < captionFrameCount; index++) {
+-+				const offset = index * CAPTION_FRAME_SIZE;
+-+				let flags = frames[offset + 2];
+-+				if (flags & CAPTION_OPEN) continue;
+-+				const anchor = frames[offset + 3];
+-+				const beforeFragment = anchor === CAPTION_NO_ANCHOR ? state.buffer.length : anchor;
+-+				let opening = flags & CAPTION_INTERNAL_BREAK && !(flags & CAPTION_BLOCK_PREFIX) ? "" : captionSpacingPrefix(frames[offset], true, beforeFragment);
+-+				if (state.pendingInlineWhitespace) {
+-+					if (!opening) {
+-+						const last = lastOutputChar(state.buffer, beforeFragment);
+-+						if (last !== -1 && last !== 32 && last !== 10 && last !== 9 && last !== 13) opening = " ";
+-+					}
+-+					state.pendingInlineWhitespace = false;
+- 				}
+--				changed = true;
+-+				flags |= CAPTION_OPEN;
+-+				if (!explicitTop || index !== captionFrameCount - 1) opening += "*";
+-+				if (opening) {
+-+					if (beforeFragment === state.buffer.length) {
+-+						state.buffer.push(opening);
+-+						state.lastContentCache = opening;
+-+					} else {
+-+						const anchored = state.buffer[beforeFragment];
+-+						const at = insertedFragment === beforeFragment ? insertedLength : 0;
+-+						const replacement = anchored.slice(0, at) + opening + anchored.slice(at);
+-+						state.outputPositions?.replace(beforeFragment, beforeFragment + 1, [replacement], (offset) => offset >= at ? offset + opening.length : offset);
+-+						state.buffer[beforeFragment] = replacement;
+-+						insertedFragment = beforeFragment;
+-+						insertedLength = at + opening.length;
+-+						noteBufferRewrite(state);
+-+						const codeSpan = gfmLifecycle.openCodeSpans.at(-1);
+-+						if (codeSpan?.fragment === beforeFragment) codeSpan.prefix = codeSpan.prefix.slice(0, at) + opening + codeSpan.prefix.slice(at);
+-+						if (state.lastContentCache === anchored) state.lastContentCache = replacement;
+-+					}
+-+					changed = true;
+-+				}
+-+				frames[offset + 2] = flags;
+- 			}
+--			frames[offset + 2] = flags;
+- 		}
+- 		return changed;
+- 	}
+-@@ -1918,7 +1979,10 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 		if (!frames) return;
+- 		for (let index = 0; index < captionFrameCount; index++) {
+- 			const offset = index * CAPTION_FRAME_SIZE;
+--			if ((frames[offset + 2] & CAPTION_OPEN) === 0 && frames[offset + 3] === CAPTION_NO_ANCHOR) frames[offset + 3] = fragment;
+-+			if ((frames[offset + 2] & CAPTION_OPEN) === 0 && frames[offset + 3] === CAPTION_NO_ANCHOR) {
+-+				frames[offset + 3] = fragment;
+-+				if (!(frames[offset + 2] & CAPTION_INTERNAL_BREAK)) frames[offset + 2] |= CAPTION_BLOCK_PREFIX;
+-+			}
+- 		}
+- 	}
+- 	function commitCaptionFrames() {
+-@@ -1929,7 +1993,7 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 			if (frames[offset + 2] & CAPTION_OPEN) frames[offset + 3] = CAPTION_NO_ANCHOR;
+- 		}
+- 	}
+--	function flushCaptionBreakRun() {
+-+	function flushCaptionBreakRun(beforeText = false) {
+- 		if (captionBreakRun === 0) return false;
+- 		let index = state.buffer.length;
+- 		while (index !== 0) {
+-@@ -1948,8 +2012,36 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 			state.buffer.length = index;
+- 			noteBufferRewrite(state);
+- 		}
+--		const output = `  \n${state.listIndent}`.repeat(captionBreakRun);
+-+		const output = (gfmLifecycle.openCodeSpans.length ? "\n" : `  \n${state.listIndent}`).repeat(captionBreakRun);
+- 		captionBreakRun = 0;
+-+		if (beforeText && !gfmLifecycle.openCodeSpans.length && openMarkerCount && (openMarkers[openMarkerCount - 1] & MARKER_TYPE_MASK) <= 4) for (let frame = 0; frame < captionFrameCount; frame++) {
+-+			const offset = frame * CAPTION_FRAME_SIZE;
+-+			const anchor = captionFrames[offset + 3];
+-+			if (captionFrames[offset + 2] & CAPTION_OPEN || anchor === CAPTION_NO_ANCHOR) continue;
+-+			let onlyOpeners = true;
+-+			for (let index = anchor; index < state.buffer.length && onlyOpeners; index++) {
+-+				const fragment = state.buffer[index];
+-+				for (let at = 0; at < fragment.length; at++) {
+-+					const code = fragment.charCodeAt(at);
+-+					if (code !== 42 && code !== 126) {
+-+						onlyOpeners = false;
+-+						break;
+-+					}
+-+				}
+-+			}
+-+			if (onlyOpeners) {
+-+				prepareCaptionOutput(false);
+-+				const fragment = state.buffer[anchor];
+-+				let at = fragment.length;
+-+				while (at > 0 && (fragment.charCodeAt(at - 1) === 42 || fragment.charCodeAt(at - 1) === 126)) at--;
+-+				const replacement = fragment.slice(0, at) + output + fragment.slice(at);
+-+				state.outputPositions?.replace(anchor, anchor + 1, [replacement], (position) => position >= at ? position + output.length : position);
+-+				state.buffer[anchor] = replacement;
+-+				state.lastContentCache = state.buffer.at(-1);
+-+				noteBufferRewrite(state);
+-+				return true;
+-+			}
+-+		}
+- 		state.buffer.push(output);
+- 		state.lastContentCache = output;
+- 		return true;
+-@@ -1975,6 +2067,63 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 			restoreQuoteParentBoundary();
+- 		} else if (captionBreakRun !== 0 && captionFrameCount === 0 && captionBoundary < 3) captionBoundary = 2;
+- 	}
+-+	function hoistOpenerSpace() {
+-+		const buffer = state.buffer;
+-+		const depthMap = state.depthMap;
+-+		const index = openMarkerCount - 1;
+-+		let fragment = openMarkers[index] >> 3;
+-+		if (fragment !== buffer.length - 1 || (openMarkers[index] & MARKER_TYPE_MASK) > 4 || depthMap[23] || depthMap[34] || depthMap[46] || depthMap[82] || depthMap[92]) return false;
+-+		if (state.blockquotes.at(-1)?.fragment === fragment + 1) return false;
+-+		fragment -= openMarkerRunLength[index] - 1;
+-+		if (literalOpeners.length) {
+-+			const link = openLinkFragment < -1 ? -openLinkFragment - 2 : openLinkFragment;
+-+			let at = fragment;
+-+			while (at > 0 && !buffer[at - 1]) at--;
+-+			if (followsLiteralOpener(link >= 0 && link === at - 1 ? link : fragment)) return true;
+-+		}
+-+		if (buffer[fragment].charCodeAt(0) === 32) return true;
+-+		let previous = fragment;
+-+		let before = -1;
+-+		while (before === -1 && --previous >= 0) {
+-+			const value = buffer[previous];
+-+			if (value) before = value.charCodeAt(value.length - 1);
+-+		}
+-+		if (previous >= 0 && previous === (openLinkFragment < -1 ? -openLinkFragment - 2 : openLinkFragment)) before = lastOutputChar(buffer, previous);
+-+		if (before !== -1 && before !== 32 && before !== 10 && before !== 9) {
+-+			const opener = ` ${buffer[fragment]}`;
+-+			state.outputPositions?.replace(fragment, fragment + 1, [opener], (offset) => offset > 0 ? offset + 1 : offset);
+-+			buffer[fragment] = opener;
+-+			noteBufferRewrite(state);
+-+		}
+-+		return true;
+-+	}
+-+	function placeLeadingBlank() {
+-+		const depthMap = state.depthMap;
+-+		if (depthMap[23] || depthMap[34] || depthMap[46] || depthMap[82] || depthMap[92] || openMarkerCount && hoistOpenerSpace()) return;
+-+		const end = state.buffer.length - 1;
+-+		const link = openLinkFragment < -1 ? -openLinkFragment - 2 : openLinkFragment;
+-+		if (!(openMarkerCount && openMarkers[openMarkerCount - 1] >> 3 === end) && !(link >= 0 && link === end) && !(literalOpeners.length && followsLiteralOpener(end + 1))) {
+-+			state.pendingInlineWhitespace = true;
+-+			state.pendingLeadingBlank = true;
+-+			state.pendingPairSeparator = false;
+-+		}
+-+	}
+-+	function followsLiteralOpener(fragment) {
+-+		const end = literalOpeners[literalOpeners.length - 1];
+-+		if (end < 0 || end > fragment || fragment > state.buffer.length) return false;
+-+		for (let index = end; index < fragment; index++) if (state.buffer[index]) return false;
+-+		return true;
+-+	}
+-+	function holdLiteralOpener(held) {
+-+		const end = literalOpeners[literalOpeners.length - 1];
+-+		if (end < 0 || end >= held) return held;
+-+		const limit = Math.min(held, state.buffer.length);
+-+		for (let index = end; index < limit; index++) if (state.buffer[index]) {
+-+			for (let pair = 1; pair < literalOpeners.length; pair += 2) literalOpeners[pair] = -1;
+-+			return held;
+-+		}
+-+		return end;
+-+	}
+- 	function captionExitOpensBlockLine(buff) {
+- 		let fragment = buff.length - 1;
+- 		let cursor = buff[fragment].length;
+-@@ -2051,18 +2200,31 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 			if (ownsCaptionSpace) {
+- 				if (captionBoundary !== 5 && textNode.value.charCodeAt(0) === 32) textNode.value = textNode.value.slice(1);
+- 				if (!hasNonWhitespace(textNode.value)) return;
+--				flushCaptionBreakRun();
+-+				flushCaptionBreakRun(true);
+- 				prepareCaptionOutput(false);
+- 				commitCaptionFrames();
+- 				captionBoundary = 0;
+- 			}
+- 			if (state.pendingInlineWhitespace) {
+--				if (!textNode.value.trim()) return;
+--				if (lastChar && !" \n	\r".includes(lastChar) && !" \n	\r".includes(textNode.value[0] || "")) textNode.value = ` ${textNode.value}`;
+-+				if (!hasNonWhitespace(textNode.value)) return;
+-+				if (lastChar && !" \n	\r".includes(lastChar) && !" \n	\r".includes(textNode.value[0] || "") && !(literalOpeners.length && followsLiteralOpener(state.buffer.length)) && !(openMarkerCount && hoistOpenerSpace())) {
+-+					if (textNode.generatedMarkdown?.prefix || state.pendingLeadingBlank) {
+-+						state.buffer.push(" ");
+-+						state.lastContentCache = " ";
+-+						state.separatorPending = true;
+-+						lastChar = " ";
+-+					} else textNode.value = ` ${textNode.value}`;
+-+				}
+- 				state.pendingInlineWhitespace = false;
+- 			}
+- 			if (textNode.value === " " && (lastChar === " " || lastChar === "\n" || lastChar === "	" || lastChar === "\r")) return;
+- 			if (!ownsCaptionSpace && shouldAddSpacingBeforeText(lastChar, lastNode, textNode)) textNode.value = ` ${textNode.value}`;
+-+			if (openMarkerCount && textNode.value.charCodeAt(0) === 32 && hoistOpenerSpace()) {
+-+				let start = 1;
+-+				while (textNode.value.charCodeAt(start) === 32) start++;
+-+				textNode.value = textNode.value.slice(start);
+-+				if (!textNode.value) return;
+-+			}
+- 			if ((state.depthMap[34] || 0) > 0 && (state.depthMap[25] || 0) > 0) {
+- 				const indent = state.listIndent;
+- 				let value = textNode.value.replace(/\n(?!\n|$)/g, `\n${indent}`);
+-@@ -2086,6 +2248,8 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 				noteGeneratedFences(state, textNode.generatedMarkdown);
+- 				textNode.value = `${textNode.generatedMarkdown.prefix}${textNode.value}${textNode.generatedMarkdown.suffix}`;
+- 			}
+-+			state.cacheFollowsSeparator = state.separatorPending === true;
+-+			state.separatorPending = false;
+- 			const wrapWidth = state.options?.wrapWidth;
+- 			if (wrapWidth && canWrapHere(state.depthMap)) {
+- 				const column = currentColumn(state.buffer, Math.max(wrapWidth, state.listIndent.length + 1));
+-@@ -2103,6 +2267,9 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 					const first = textNode.value.charCodeAt(0);
+- 					if (first !== 11 && !isAsciiWhitespace(first) || (openMarkers[openMarkerCount - 1] & MARKER_TYPE_MASK) > 4 || !isVerticalTabRun(textNode.value)) openMarkerCount = 0;
+- 					commitCaptionFrames();
+-+				} else if (openMarkerCount && textNode.containsWhitespace === void 0 && textNode.value && (openMarkers[openMarkerCount - 1] & MARKER_TYPE_MASK) > 4) {
+-+					if (silentMarkerCount >= openMarkerCount) openMarkerCount = 0;
+-+					else blankMarkerCount = openMarkerCount;
+- 				}
+- 			}
+- 		}
+-@@ -2131,6 +2298,11 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 		if (pendingRawHtmlBoundary && eventType === 0 && node.type === 1 && node.tagId === 34 && !node.tagHandler?.literalEnter) pendingRawHtmlBoundary = false;
+- 		state.depth = node.depth;
+- 		if (node.type === 1 ? node.excludedFromMarkdown : node.parent?.excludedFromMarkdown) return;
+-+		const blank = node.type === 2 && node.leadingBlank ? node.value : void 0;
+-+		if (blank !== void 0 && !hasNonWhitespace(blank)) {
+-+			if (blank && !node.excludedFromMarkdown && !state.pendingInlineWhitespace && !captionNeedsPreparation()) placeLeadingBlank();
+-+			return;
+-+		}
+- 		if (state.tableRowOpenerPending && state.depthMap[28] <= 1) {
+- 			const tagId = node.type === 1 ? node.tagId : void 0;
+- 			const cellEvent = tagId === 32 || tagId === 31;
+-@@ -2180,6 +2352,7 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 				} else if (consumePendingPreChild(state, node, eventType, preparePendingPreFence)) return;
+- 			} else if (consumePendingPreChild(state, node, eventType, preparePendingPreFence)) return;
+- 		}
+-+		const movesBlankPastLink = node.type === 2 && node.isLinkLabel === true && dropBlankLinkText(state, openLinkFragment < -1 ? -openLinkFragment - 2 : openLinkFragment, node.value, node.parent?.trailingBlankAt !== void 0 && node.parent.trailingBlankAt === node.parent.currentWalkIndex);
+- 		let lastBuffEntry = buff.at(-1);
+- 		let lastChar = lastBuffEntry?.charAt(lastBuffEntry.length - 1) || "";
+- 		if (!lastChar && buff.length > 1) {
+-@@ -2188,12 +2361,14 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 		}
+- 		if (node.type === 2 && eventType === 0) {
+- 			processTextNode(node, lastNode, lastChar);
+-+			if (movesBlankPastLink) state.pendingInlineWhitespace = true;
+- 			return;
+- 		}
+- 		if (node.type !== 1) return;
+- 		const element = node;
+- 		const handler = node.tagHandler;
+- 		const tagId = element.tagId;
+-+		if (eventType === 1) while (literalOpeners.length && literalOpeners[literalOpeners.length - 2] >= element.depth) literalOpeners.length -= 2;
+- 		const insideRawHtmlRegion = isInsideRawHtmlBlock(state.depthMap);
+- 		if (captionBoundary >= 3 && tagId === 25) {
+- 			restoreQuoteParentBoundary();
+-@@ -2230,13 +2405,15 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 					lastChar = lastBuffEntry?.charAt(lastBuffEntry.length - 1) || "";
+- 				}
+- 			}
+--			if (state.pendingInlineWhitespace) {
+-+			const captionHasAnchor = captionFrameCount !== 0 && (captionFrames[(captionFrameCount - 1) * CAPTION_FRAME_SIZE + 2] & CAPTION_OPEN) === 0 && captionFrames[(captionFrameCount - 1) * CAPTION_FRAME_SIZE + 3] !== CAPTION_NO_ANCHOR;
+-+			if (state.pendingInlineWhitespace && !captionHasAnchor) {
+- 				state.pendingInlineWhitespace = false;
+- 				if (breakOutput?.charCodeAt(0) === 60) {
+- 					const last = lastOutputChar(buff);
+- 					if (last !== -1 && last !== 32 && last !== 10 && last !== 9 && last !== 13) {
+- 						buff.push(" ");
+- 						state.lastContentCache = " ";
+-+						state.separatorPending = true;
+- 					}
+- 				}
+- 			}
+-@@ -2331,7 +2508,7 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 				openLinkFragment = -1;
+- 				return;
+- 			}
+--			if (eventType === 1 && tagId === 26 && openLinkFragment !== -1 && !handler.literalExit && !insideRawHtmlRegion && !gfmLifecycle.openCodeSpans.length && lastChar === " ") {
+-+			if (eventType === 1 && tagId === 26 && openLinkFragment !== -1 && handler.exit === tagHandlers[26].exit && !handler.literalExit && !insideRawHtmlRegion && !gfmLifecycle.openCodeSpans.length && lastOutputChar(buff) === 32) {
+- 				const bracket = openLinkFragment < -1 ? -openLinkFragment - 2 : openLinkFragment;
+- 				let removed = 0;
+- 				for (let index = buff.length - 1; index > bracket; index--) {
+-@@ -2340,11 +2517,14 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 					while (end > 0 && fragment.charCodeAt(end - 1) === 32) end--;
+- 					removed += fragment.length - end;
+- 					if (end === 0) continue;
+--					if (removed && !isAsciiWhitespace(fragment.charCodeAt(end - 1))) {
+-+					const code = fragment.charCodeAt(end - 1);
+-+					if (removed && (code < 9 || code === 11 || code > 13)) {
+- 						trimTrailingSpaces(buff);
+- 						const cache = state.lastContentCache;
+- 						if (cache) state.lastContentCache = cache.slice(0, Math.max(0, cache.length - removed));
+- 						state.pendingInlineWhitespace = true;
+-+						state.pendingLeadingBlank = false;
+-+						state.pendingPairSeparator = false;
+- 						lastBuffEntry = buff.at(-1);
+- 						lastChar = String.fromCharCode(lastOutputChar(buff));
+- 					}
+-@@ -2366,7 +2546,7 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 				else {
+- 					gfmAction = res;
+- 					if (res._tag === "BlockquoteExit") closesQuote = state.blockquotes.length > 0;
+--					if (res._tag === "CodeSpanEnter" && captionBoundary === 3 && res.output === " `") res.output = "`";
+-+					if (res._tag === "CodeSpanEnter" && res.output === " `" && (captionBoundary === 3 || captionFrameCount !== 0 && (captionFrames[(captionFrameCount - 1) * CAPTION_FRAME_SIZE + 2] & CAPTION_OPEN) === 0)) res.output = "`";
+- 					handlerOutput = consumeGfmAction(res, state, gfmLifecycle);
+- 				}
+- 				if (handlerOutput) output = [handlerOutput];
+-@@ -2486,18 +2666,34 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 		if (eventType === 1 && openMarkerCount) {
+- 			const markerType = handlerOutput === void 0 ? 0 : INLINE_MARKER_TYPE[tagId];
+- 			if (markerType && (tagId !== 23 || !state.depthMap[34] && !isInsideRawHtmlBlock(state.depthMap)) && !handler?.literalExit) {
+--				const packed = openMarkers[--openMarkerCount];
+--				const restoresHeadingBreak = buff[packed >> 3]?.includes("\n");
+--				const idx = dropEmptyMarker(buff, packed, markerType, state.outputPositions);
+-+				const slot = --openMarkerCount;
+-+				const marker = openMarkers[slot];
+-+				const hoisted = markerType <= 4 && buff[marker >> 3]?.charCodeAt(0) === 32;
+-+				const restoresHeadingBreak = buff[marker >> 3]?.includes("\n");
+-+				let idx = dropEmptyMarker(buff, marker, markerType, state.outputPositions);
+- 				if (idx >= 0) {
+- 					noteBufferRewrite(state);
+-+					if (hoisted) {
+-+						state.pendingInlineWhitespace = true;
+-+						state.pendingLeadingBlank = true;
+-+						state.pendingPairSeparator = false;
+-+					}
+-+					if (openMarkerFollowsSpace[slot] && buff[idx - 1] === " ") {
+-+						idx--;
+-+						state.outputPositions?.replace(idx, buff.length, []);
+-+						buff.length = idx;
+-+						state.pendingInlineWhitespace = true;
+-+						state.pendingLeadingBlank = true;
+-+						state.pendingPairSeparator = openMarkerSeparatorTrimmed[slot];
+-+					}
+- 					if (restoresHeadingBreak) state.headingBreakPending = true;
+- 					resetRetractedCaptionFrames(captionFrames, captionFrameCount, idx);
+- 					state.lastContentCache = idx > 0 ? buff[idx - 1] : void 0;
+-+					state.droppedPairAt = buff.length;
+- 					restoreQuoteParentBoundary();
+- 					return;
+- 				}
+--				if (markerType <= 4 && dropVerticalTabMarker(buff, packed, markerType, handlerOutput, state.outputPositions)) {
+-+				if (markerType <= 4 && dropVerticalTabMarker(buff, marker, markerType, handlerOutput, state.outputPositions)) {
+- 					noteBufferRewrite(state);
+- 					state.lastContentCache = buff[buff.length - 1];
+- 					return;
+-@@ -2538,19 +2734,23 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 		}
+- 		let newLines = Math.max(0, configuredNewLines - (measureFromOutputTail ? 0 : lastNewLines));
+- 		if (newLines > 0 && buff.length === 0 && !hasYieldedContent) newLines = 0;
+--		if (state.pendingInlineWhitespace) {
+-+		pendingSpaceFragment = -1;
+-+		if (state.pendingInlineWhitespace && !(captionFrameCount !== 0 && (captionFrames[(captionFrameCount - 1) * CAPTION_FRAME_SIZE + 2] & CAPTION_OPEN) === 0 && (captionTransition || captionFrames[(captionFrameCount - 1) * CAPTION_FRAME_SIZE + 3] !== CAPTION_NO_ANCHOR || !output && newLines === 0 && (eventType === 1 || tagId === 49 || tagId === 52 || tagId === 53)))) {
+- 			const firstOutput = output?.[0]?.[0] || "";
+-+			const owed = !!state.pendingPairSeparator && !(eventType === 0 && tagId === 22);
+- 			if (eventType === 0) {
+--				if (!isInlineElement || newLines > 0 || firstOutput === "\n" || firstOutput === "\r") state.pendingInlineWhitespace = false;
+-+				if (!isInlineElement && (tagId !== 36 || firstOutput) && !owed || newLines > 0 || firstOutput === "\n" || firstOutput === "\r") state.pendingInlineWhitespace = false;
+- 				else if (firstOutput) {
+--					if (lastChar && !" \n	\r".includes(lastChar) && !" \n	\r".includes(firstOutput)) {
+-+					if (lastChar && !" \n	\r".includes(lastChar) && !" \n	\r".includes(firstOutput) && !(literalOpeners.length && followsLiteralOpener(state.buffer.length)) && !(openMarkerCount && hoistOpenerSpace())) {
+- 						state.buffer.push(" ");
+- 						state.lastContentCache = " ";
+- 						lastChar = " ";
+-+						pendingSpaceFragment = state.buffer.length - 1;
+-+						pendingSpaceTrimmed = !state.pendingLeadingBlank || owed;
+- 					}
+- 					state.pendingInlineWhitespace = false;
+- 				}
+--			} else if (!isInlineElement || newLines > 0) state.pendingInlineWhitespace = false;
+-+			} else if (!isInlineElement && !owed || newLines > 0) state.pendingInlineWhitespace = false;
+- 		}
+- 		if (newLines > 0) {
+- 			if (!buff.length && !captionEvent && !captionTransition) {
+-@@ -2602,7 +2802,11 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 								buff.length--;
+- 							}
+- 						}
+--						if (eventType === 1 && isInlineElement) state.pendingInlineWhitespace = true;
+-+						if (eventType === 1 && isInlineElement) {
+-+							state.pendingInlineWhitespace = true;
+-+							state.pendingLeadingBlank = false;
+-+							state.pendingPairSeparator = false;
+-+						}
+- 					}
+- 				}
+- 				state.lastTextNode = void 0;
+-@@ -2705,6 +2909,7 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 				state.lastContentCache = fragment;
+- 			}
+- 		}
+-+		if (eventType === 0 && handler?.literalEnter && (handler.isInline ?? tagId === -1) && outputStart < buff.length) literalOpeners.push(element.depth, buff.length);
+- 		if (trailingEmphasisWhitespace) {
+- 			state.buffer.push(trailingEmphasisWhitespace);
+- 			state.lastContentCache = trailingEmphasisWhitespace;
+-@@ -2724,12 +2929,34 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 		}
+- 		if (eventType === 0 && handlerOutput !== void 0 && isInlineElement && !handler?.literalEnter) {
+- 			const markerType = INLINE_MARKER_TYPE[tagId];
+--			if (markerType && (tagId !== 23 || !state.depthMap[34] && !isInsideRawHtmlBlock(state.depthMap)) && buff[buff.length - 1] === handlerOutput) openMarkers[openMarkerCount++] = buff.length - 1 << 3 | markerType;
+--			else if (openMarkerCount && !(tagId === 26 && cleanEmptyLinkText) && hasNonWhitespace(handlerOutput)) {
+-+			if (markerType && (tagId !== 23 || !state.depthMap[34] && !isInsideRawHtmlBlock(state.depthMap)) && buff[buff.length - 1] === handlerOutput) {
+-+				const previous = openMarkers[openMarkerCount - 1];
+-+				openMarkerRunLength[openMarkerCount] = openMarkerCount > 0 && markerType <= 4 && (previous & MARKER_TYPE_MASK) <= 4 && previous >> 3 === buff.length - 2 ? openMarkerRunLength[openMarkerCount - 1] + 1 : 1;
+-+				const followsSpace = pendingSpaceFragment === buff.length - 2;
+-+				openMarkerFollowsSpace[openMarkerCount] = followsSpace;
+-+				openMarkerSeparatorTrimmed[openMarkerCount] = followsSpace && pendingSpaceTrimmed;
+-+				if (silentMarkerCount > openMarkerCount) silentMarkerCount = openMarkerCount;
+-+				if (blankMarkerCount > openMarkerCount) blankMarkerCount = 0;
+-+				openMarkers[openMarkerCount++] = buff.length - 1 << 3 | markerType;
+-+			} else if (openMarkerCount && !(tagId === 26 && cleanEmptyLinkText) && hasNonWhitespace(handlerOutput)) {
+- 				openMarkerCount = 0;
+- 				commitCaptionFrames();
+- 			}
+--		} else if (openMarkerCount && (eventType === 1 && handler?.literalExit || tagId !== -1 && !isInlineElement || output?.some(hasNonWhitespace))) openMarkerCount = 0;
+-+		} else if (openMarkerCount && (eventType === 1 && handler?.literalExit || tagId !== -1 && !isInlineElement && (output !== void 0 || configuredNewLines > 0) || output?.some(hasNonWhitespace))) openMarkerCount = 0;
+-+		else if (openMarkerCount && eventType === 1 && tagId !== -1 && !isInlineElement) {
+-+			if (blankMarkerCount && blankMarkerCount <= openMarkerCount) {
+-+				const kept = openMarkerCount - blankMarkerCount;
+-+				for (let i = 0; i < kept; i++) {
+-+					openMarkers[i] = openMarkers[i + blankMarkerCount];
+-+					openMarkerFollowsSpace[i] = openMarkerFollowsSpace[i + blankMarkerCount];
+-+					openMarkerSeparatorTrimmed[i] = openMarkerSeparatorTrimmed[i + blankMarkerCount];
+-+					openMarkerRunLength[i] = openMarkerRunLength[i + blankMarkerCount];
+-+				}
+-+				openMarkerCount = kept;
+-+				blankMarkerCount = 0;
+-+			}
+-+			silentMarkerCount = openMarkerCount;
+-+		}
+- 		if (eventType === 1 && tagId === 26) openLinkFragment = -1;
+- 		if (closesQuote && state.depthMap[25] && !state.depthMap[34] && !insideRawHtmlRegion && !isInsideTableCell(state)) {
+- 			captionBoundary = 3;
+-@@ -2750,6 +2977,7 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 	}
+- 	function getNonQuoteHeldOutputFragment(final = false) {
+- 		let heldFragment = final ? Infinity : Math.min(openMarkerCount ? openMarkers[0] >> 3 : Infinity, gfmLifecycle.openCodeSpans[0]?.fragment ?? Infinity, state.emptyItemFragment ?? Infinity, state.codeFence?.fragment ?? Infinity, openLinkFragment === -1 ? Infinity : openLinkFragment < -1 ? -openLinkFragment - 2 : openLinkFragment - Number(openLinkHeadingBreak));
+-+		if (!final && literalOpeners.length) heldFragment = holdLiteralOpener(heldFragment);
+- 		if (cleanPass && !final) heldFragment = Math.min(heldFragment, cleanPass.held());
+- 		const captionHoldCount = final ? 0 : captionFrameCount;
+- 		for (let index = 0; index < captionHoldCount; index++) {
+-diff --git a/dist/_chunks/output-runner.mjs b/dist/_chunks/output-runner.mjs
+-index 43662440ffce8dc762c483a94dce825ffbc0d635..85e8926efa1e26c5bf2119ec27711cffad7b1dba 100644
+---- a/dist/_chunks/output-runner.mjs
+-+++ b/dist/_chunks/output-runner.mjs
+-@@ -5,9 +5,11 @@ function createParseState(processor, options) {
+- 		depthMap: processor.state.depthMap,
+- 		depth: 0,
+- 		resolvedPlugins: options.plugins,
+-+		outputEvent: processor.processEvent,
+- 		tagHandlers: options.tagHandlers,
+- 		tagOverrideHandlers: options.tagOverrideHandlers,
+- 		plainText: options.plainText,
+-+		keepLeadingBlanks: processor.state.outputFormat === "text",
+- 		urlBaseTarget: processor.state
+- 	};
+- }
+-diff --git a/dist/_chunks/parse.mjs b/dist/_chunks/parse.mjs
+-index e9932fc152b3ba8b4ae3f8b0339177c1fc104d75..9998b237176aacdb7abffcb4ddb4178c5af5f81f 100644
+---- a/dist/_chunks/parse.mjs
+-+++ b/dist/_chunks/parse.mjs
+-@@ -1,5 +1,5 @@
+- import { NO_SPACING, TagIdMap, isInsideRawHtmlBlock } from "./const.mjs";
+--import { decodeHTMLEntities, resolveUrl, traverseUpToFirstBlockNode } from "./url.mjs";
+-+import { countContentInEnclosingLink, decodeHTMLEntities, hasNonWhitespace, resolveUrl, traverseUpToFirstBlockNode } from "./url.mjs";
+- const selfClosing = { isSelfClosing: true };
+- const rawText = { isNonNesting: true };
+- const inertRawText = {
+-@@ -89,6 +89,9 @@ function shouldProtectDecodedEntityReferences(state) {
+- 	const depthMap = state.depthMap;
+- 	return !state.plainText && !depthMap[4] && !depthMap[34] && !depthMap[23] && !isInsideRawHtmlBlock(depthMap);
+- }
+-+function keepsLeadingBlank(node) {
+-+	return node.tagHandler?.isInline ?? node.tagId === -1;
+-+}
+- const SCRIPT_DATA = 0;
+- const SCRIPT_DATA_ESCAPED = 1;
+- const SCRIPT_DATA_ESCAPED_DASH = 2;
+-@@ -370,6 +373,7 @@ function finalizeParse(leftover, state, handleEvent) {
+- 		let text = trailing;
+- 		if (state.currentNode?.tagHandler?.isNonNesting) {
+- 			if (state.rawtextEndTagPending) text = "";
+-+			else if (!(state.discardExcludedText && state.currentNode.tagHandler.excludesTextNodes) && hasNonWhitespace(text)) state.textBufferContainsNonWhitespace = true;
+- 		} else {
+- 			const incompleteTagIndex = findIncompleteTagResidualIndex(trailing);
+- 			if (incompleteTagIndex !== -1) text = trailing.slice(0, incompleteTagIndex);
+-@@ -391,7 +395,10 @@ var ParsedElementNode = class {
+- 	tagHandler;
+- 	currentWalkIndex;
+- 	childTextNodeIndex;
+--	containsWhitespace;
+-+	linkContentCounted;
+-+	enterSkipped;
+-+	hiddenTextNodes;
+-+	trailingBlankAt;
+- 	pluginOutput;
+- 	context;
+- 	cachedDepthMap;
+-@@ -433,6 +440,11 @@ function scriptSequenceEnd(html, nameStart) {
+- 	const delimiter = html.charCodeAt(delimiterIndex);
+- 	return delimiter === GT_CHAR || delimiter === SLASH_CHAR || isWhitespace(delimiter) ? delimiterIndex + 1 : SCRIPT_SEQUENCE_NO_MATCH;
+- }
+-+function inInertRawText(state) {
+-+	const node = state.currentNode;
+-+	const handler = node?.tagHandler;
+-+	return !!handler?.isNonNesting && !!handler.excludesTextNodes && node.tagId !== 4 && !isScriptElement(node);
+-+}
+- function isScriptElement(node) {
+- 	return node.tagId === 52 && node.name === "script";
+- }
+-@@ -498,7 +510,14 @@ function pushScriptTextChunk(state, text) {
+- }
+- function scanScriptChunk(html, start, state) {
+- 	const result = findScriptEndTag(html, start, state);
+--	if (state.discardExcludedText && state.currentNode?.tagHandler?.excludesTextNodes) return result;
+-+	if (state.discardExcludedText && state.currentNode?.tagHandler?.excludesTextNodes) {
+-+		if ((result === SCRIPT_SCAN_COMPLETE ? html.length : result <= SCRIPT_SEQUENCE_INCOMPLETE ? -result - 2 : result) > start) {
+-+			state.lastCharWasWhitespace = false;
+-+			state.justClosedTag = false;
+-+			state.textBufferContainsWhitespace = false;
+-+		}
+-+		return result;
+-+	}
+- 	if (result === SCRIPT_SCAN_COMPLETE) pushScriptTextChunk(state, html.substring(start));
+- 	else if (result <= SCRIPT_SEQUENCE_INCOMPLETE) pushScriptTextChunk(state, html.substring(start, -result - 2));
+- 	else pushScriptTextChunk(state, html.substring(start, result));
+-@@ -533,7 +552,8 @@ function parseHtml(html, options = {}) {
+- 		depthMap: /* @__PURE__ */ new Uint16Array(113),
+- 		depth: 0,
+- 		resolvedPlugins: options.resolvedPlugins || [],
+--		tagHandlers: options.tagHandlers
+-+		tagHandlers: options.tagHandlers,
+-+		outputEvent: (event) => events.push(event)
+- 	};
+- 	let remainingHtml = parseHtmlInternal(html, state, (event) => {
+- 		events.push(event);
+-@@ -737,8 +757,10 @@ function parseHtmlInternal(htmlChunk, state, handleEvent) {
+- 					peekEnd++;
+- 				}
+- 				if (peekEnd === chunkLength) {
+--					state.textBufferContainsNonWhitespace = true;
+--					state.lastCharWasWhitespace = false;
+-+					if (!state.currentNode.name.startsWith(normalizeTagName(htmlChunk.substring(i + 2, peekEnd)))) {
+-+						state.textBufferContainsNonWhitespace = true;
+-+						state.lastCharWasWhitespace = false;
+-+					}
+- 					textBuffer += htmlChunk.substring(i);
+- 					break;
+- 				}
+-@@ -749,6 +771,10 @@ function parseHtmlInternal(htmlChunk, state, handleEvent) {
+- 					textBuffer += htmlChunk[i++];
+- 					continue;
+- 				}
+-+				if (inInertRawText(state)) {
+-+					if (state.inertBodyBlankPending || i > 0 && isWhitespace(htmlChunk.charCodeAt(i - 1))) state.lastCharWasWhitespace = false;
+-+					state.inertBodyBlankPending = false;
+-+				}
+- 			}
+- 			if (textBuffer.length > 0) {
+- 				processTextBuffer(textBuffer, state, handleEvent);
+-@@ -861,6 +887,10 @@ function parseHtmlInternal(htmlChunk, state, handleEvent) {
+- 		state.entitySeals = void 0;
+- 	}
+- 	if (remainingHtml.length > 0 && isWhitespace(remainingHtml.charCodeAt(0))) state.lastCharWasWhitespace = false;
+-+	if (inInertRawText(state)) {
+-+		const last = chunkLength - remainingHtml.length - 1;
+-+		if (last >= 0 && isWhitespace(htmlChunk.charCodeAt(last))) state.inertBodyBlankPending = true;
+-+	}
+- 	state.trailingText = textBuffer;
+- 	return remainingHtml;
+- }
+-@@ -956,10 +986,19 @@ function processTextBuffer(textBuffer, state, handleEvent) {
+- 	}
+- 	const excludesTextNodes = (state.flattenedOpaqueDepth || 0) > 0 || state.flattenedRawExcludesText || state.currentNode?.tagHandler?.excludesTextNodes || state.currentNode?.excludedFromMarkdown;
+- 	const inPreTag = (state.depthMap[34] || 0) > 0;
+--	if (!inPreTag && !containsNonWhitespace && !state.currentNode.childTextNodeIndex) return;
+-+	const isLeadingBlank = !inPreTag && !containsNonWhitespace && !state.currentNode.childTextNodeIndex;
+-+	if (isLeadingBlank && state.currentNode.tagId === 26 && state.currentNode.currentWalkIndex) state.currentNode.trailingBlankAt = state.currentNode.currentWalkIndex;
+-+	if (isLeadingBlank && (state.plainText && !state.keepLeadingBlanks || !keepsLeadingBlank(state.currentNode))) return;
+- 	let text = textBuffer;
+- 	if (text.length === 0) return;
+--	const parentsToIncrement = traverseUpToFirstBlockNode(state.currentNode);
+-+	let parentsToIncrement;
+-+	if (isLeadingBlank && !state.resolvedPlugins?.length) {
+-+		if (state.leadingBlankParent !== state.currentNode) {
+-+			state.leadingBlankParent = state.currentNode;
+-+			state.leadingBlankAncestors = traverseUpToFirstBlockNode(state.currentNode);
+-+		}
+-+		parentsToIncrement = state.leadingBlankAncestors;
+-+	} else parentsToIncrement = traverseUpToFirstBlockNode(state.currentNode);
+- 	const firstBlockParent = parentsToIncrement.at(-1);
+- 	const firstInBlock = containsWhitespace && !firstBlockParent.childTextNodeIndex;
+- 	const inlineAtRoot = firstInBlock && !firstBlockParent.parent && (firstBlockParent.tagHandler?.isInline ?? firstBlockParent.tagId === -1);
+-@@ -968,6 +1007,29 @@ function processTextBuffer(textBuffer, state, handleEvent) {
+- 		while (start < text.length && (inPreTag ? text.charCodeAt(start) === NEWLINE_CHAR || text.charCodeAt(start) === CARRIAGE_RETURN_CHAR : isWhitespace(text.charCodeAt(start)))) start++;
+- 		if (start > 0) text = text.substring(start);
+- 	}
+-+	if (isLeadingBlank) {
+-+		if (text) {
+-+			const blank = {
+-+				type: 2,
+-+				value: text,
+-+				parent: state.currentNode,
+-+				index: state.currentNode.currentWalkIndex,
+-+				depth: state.depth,
+-+				containsWhitespace,
+-+				excludedFromMarkdown: excludesTextNodes,
+-+				leadingBlank: true
+-+			};
+-+			handleEvent({
+-+				type: 0,
+-+				node: blank
+-+			});
+-+			if (!blank.excludedFromMarkdown && hasNonWhitespace(blank.value)) {
+-+				state.currentNode.currentWalkIndex++;
+-+				for (const parent of parentsToIncrement) parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+-+			}
+-+		}
+-+		return;
+-+	}
+- 	if (state.hasEncodedHtmlEntity) {
+- 		text = decodeHTMLEntities(String(text), false, shouldProtectDecodedEntityReferences(state));
+- 		state.hasEncodedHtmlEntity = false;
+-@@ -985,12 +1047,42 @@ function processTextBuffer(textBuffer, state, handleEvent) {
+- 	if (inlineAtRoot) textNode.trimsAtLineStart = true;
+- 	state.endTagClosedNothing = false;
+- 	for (const parent of parentsToIncrement) parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+-+	let hasText = false;
+-+	let wasBlank = false;
+-+	if (state.depthMap[26]) {
+-+		for (let i = 0; i < textNode.value.length; i++) if (!isWhitespace(textNode.value.charCodeAt(i))) {
+-+			hasText = true;
+-+			break;
+-+		}
+-+		wasBlank = !hasText && !inPreTag;
+-+	}
+- 	handleEvent({
+- 		type: 0,
+- 		node: textNode
+- 	});
+-+	if (state.depthMap[26]) {
+-+		const isBlank = textNode.rewrittenBlank ?? wasBlank;
+-+		const hidden = textNode.excludedFromMarkdown || isBlank && !wasBlank;
+-+		if (hidden || isBlank) countHiddenLinkText(parentsToIncrement, hidden);
+-+		else if ((hasText || textNode.rewrittenBlank === false) && (state.depthMap[26] > 1 || !hasAnchorParent(parentsToIncrement))) countContentInEnclosingLink(firstBlockParent);
+-+	}
+- 	state.lastTextNode = textNode;
+- }
+-+function hasAnchorParent(parents) {
+-+	for (let i = 0; i < parents.length; i++) if (parents[i].tagId === 26) return true;
+-+	return false;
+-+}
+-+function countHiddenLinkText(parents, excluded) {
+-+	for (const parent of parents) {
+-+		if (parent.tagId !== 26 || parent.excludedFromMarkdown || parent.enterSkipped) continue;
+-+		const hidden = parent.hiddenTextNodes || 0;
+-+		if (excluded || hidden + 1 === parent.childTextNodeIndex) parent.hiddenTextNodes = hidden + 1;
+-+	}
+-+}
+-+function linkLabelTarget(node, state, handleEvent) {
+-+	if (!node.childTextNodeIndex) return handleEvent;
+-+	if (node.childTextNodeIndex === node.hiddenTextNodes && !node.excludedFromMarkdown && !node.enterSkipped) return state.outputEvent;
+-+}
+- function processClosingTag(htmlChunk, position, state, handleEvent) {
+- 	let i = position + 2;
+- 	const tagNameStart = i;
+-@@ -1127,21 +1219,25 @@ function processClosingTag(htmlChunk, position, state, handleEvent) {
+- }
+- function closeNode(node, state, handleEvent) {
+- 	if (!node) return;
+--	if (node.tagId === 26 && !node.childTextNodeIndex) {
+-+	const emitLabel = node.tagId === 26 ? linkLabelTarget(node, state, handleEvent) : void 0;
+-+	if (emitLabel) {
+- 		const prefix = node.attributes?.title || node.attributes?.["aria-label"] || "";
+- 		if (prefix) {
+- 			node.childTextNodeIndex = 1;
+--			handleEvent({
+-+			emitLabel({
+- 				type: 0,
+- 				node: {
+- 					type: 2,
+- 					value: prefix,
+- 					parent: node,
+- 					index: 0,
+--					depth: node.depth + 1
+-+					depth: node.depth + 1,
+-+					isLinkLabel: true
+- 				}
+- 			});
+--			for (const parent of traverseUpToFirstBlockNode(node)) parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+-+			const parents = traverseUpToFirstBlockNode(node);
+-+			for (const parent of parents) parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+-+			if (state.depthMap[26] > 1) countContentInEnclosingLink(parents.at(-1));
+- 		}
+- 	}
+- 	const tagId = node.tagId;
+-diff --git a/dist/_chunks/src.mjs b/dist/_chunks/src.mjs
+-index 0e5db6cb9e06f64c91662383ab3b5a940594cd32..42b7277c06656869e2d88a629234cd541b2e4d29 100644
+---- a/dist/_chunks/src.mjs
+-+++ b/dist/_chunks/src.mjs
+-@@ -237,7 +237,13 @@ function createMarkdownDrain(context, _hasPlugins) {
+- 		}
+- 		return newContent;
+- 	}
+--	return { getMarkdownChunk };
+-+	function drainKeepingDroppedPair(final = false) {
+-+		const pending = state.droppedPairAt === state.buffer.length;
+-+		const chunk = getMarkdownChunk(final);
+-+		state.droppedPairAt = pending ? state.buffer.length : void 0;
+-+		return chunk;
+-+	}
+-+	return { getMarkdownChunk: drainKeepingDroppedPair };
+- }
+- async function* streamHtmlToMarkdown$1(htmlStream, options = {}, resolvedPlugins = [], tagOverrideHandlers) {
+- 	if (!htmlStream) throw new Error("Invalid HTML stream provided");
+-@@ -248,6 +254,7 @@ async function* streamHtmlToMarkdown$1(htmlStream, options = {}, resolvedPlugins
+- 		depthMap: processor.state.depthMap,
+- 		depth: 0,
+- 		resolvedPlugins,
+-+		outputEvent: processor.processEvent,
+- 		tagHandlers,
+- 		tagOverrideHandlers,
+- 		plainText: false,
+-@@ -290,6 +297,7 @@ function htmlToMarkdown(html, options = {}) {
+- 		depthMap: processor.state.depthMap,
+- 		depth: 0,
+- 		resolvedPlugins: plugins,
+-+		outputEvent: processor.processEvent,
+- 		tagHandlers,
+- 		tagOverrideHandlers,
+- 		plainText: false,
+-diff --git a/dist/_chunks/tag-overrides.mjs b/dist/_chunks/tag-overrides.mjs
+-index 003a8a7d17246bba8ca6256417ae6e129a6638c6..a57f89ee7df4d86f7b0e68dbee7ab9a329022992 100644
+---- a/dist/_chunks/tag-overrides.mjs
+-+++ b/dist/_chunks/tag-overrides.mjs
+-@@ -1,4 +1,5 @@
+- import { TagIdMap } from "./const.mjs";
+-+import { countContentInEnclosingLink } from "./url.mjs";
+- function checkClean(options) {
+- 	const clean = options.clean;
+- 	if (clean && typeof clean.apply !== "function") throw new TypeError("The clean option needs cleanup rules from clean(). Import it from '@mdream/js/clean'.");
+-@@ -51,9 +52,19 @@ function assertEngineOptions(options, entry = "converter") {
+- 	const plugins = options.plugins;
+- 	if (plugins != null && !Array.isArray(plugins)) throw new TypeError("@mdream/js takes `plugins` as an array, such as { plugins: [frontmatterPlugin()] } with frontmatterPlugin from '@mdream/js/plugins'.");
+- }
+-+function isBlankText(value, inPreTag) {
+-+	if (!value) return true;
+-+	if (inPreTag) return false;
+-+	for (let i = 0; i < value.length; i++) {
+-+		const code = value.charCodeAt(i);
+-+		if (code !== 32 && code !== 9 && code !== 10 && code !== 12 && code !== 13) return false;
+-+	}
+-+	return true;
+-+}
+- function processPluginsForEvent(event, plugins, state, processEvent) {
+- 	state.depth = event.node.depth;
+- 	if (plugins?.length) {
+-+		const text = event.node.type === 2 ? event.node.value : void 0;
+- 		if (event.node.type === 1 && event.type === 0) {
+- 			const element = event.node;
+- 			let hasCheckedAttributes = false;
+-@@ -76,7 +87,11 @@ function processPluginsForEvent(event, plugins, state, processEvent) {
+- 			const res = plugin.beforeNodeProcess?.(event, state);
+- 			if (typeof res === "object") shouldSkip = res.skip;
+- 		}
+--		if (shouldSkip) return true;
+-+		if (shouldSkip) {
+-+			if (event.node.type === 2) event.node.excludedFromMarkdown = true;
+-+			else if (event.type === 0 && event.node.tagId === 26) event.node.enterSkipped = true;
+-+			return true;
+-+		}
+- 		if (event.node.type === 1) {
+- 			const element = event.node;
+- 			const fn = event.type === 0 ? "onNodeEnter" : "onNodeExit";
+-@@ -89,7 +104,10 @@ function processPluginsForEvent(event, plugins, state, processEvent) {
+- 					if (result) (pluginOutputs ??= []).push(result);
+- 				}
+- 			}
+--			if (pluginOutputs) element.pluginOutput = element.pluginOutput ? element.pluginOutput.concat(pluginOutputs) : pluginOutputs;
+-+			if (pluginOutputs) {
+-+				element.pluginOutput = element.pluginOutput ? element.pluginOutput.concat(pluginOutputs) : pluginOutputs;
+-+				if (state.depthMap?.[26] && pluginOutputs.some((output) => !isBlankText(output, (state.depthMap?.[34] || 0) > 0))) countContentInEnclosingLink(element.tagId === 26 ? element.parent : element);
+-+			}
+- 		} else if (event.node.type === 2 && event.type === 0) {
+- 			const textNode = event.node;
+- 			for (let index = 0; index < plugins.length; index++) {
+-@@ -98,11 +116,15 @@ function processPluginsForEvent(event, plugins, state, processEvent) {
+- 				if (plugin.processTextNode) {
+- 					const result = plugin.processTextNode(textNode, state);
+- 					if (result) {
+--						if (result.skip) return true;
+-+						if (result.skip) {
+-+							textNode.excludedFromMarkdown = true;
+-+							return true;
+-+						}
+- 						textNode.value = result.content;
+- 					}
+- 				}
+- 			}
+-+			if (state.depthMap?.[26] && textNode.value !== text) textNode.rewrittenBlank = isBlankText(textNode.value, (state.depthMap[34] || 0) > 0);
+- 		}
+- 	}
+- 	processEvent(event);
+-diff --git a/dist/_chunks/text.mjs b/dist/_chunks/text.mjs
+-index d6862fd3a440948dcde9f7ac6ce7a7611d1f61f4..bd36d46a47a958d50fee203b1bf22373149f4fd9 100644
+---- a/dist/_chunks/text.mjs
+-+++ b/dist/_chunks/text.mjs
+-@@ -169,7 +169,10 @@ function trailingNewlines(buffer) {
+- 	}
+- 	return count;
+- }
+--function appendOutput(state, element, eventType, output) {
+-+function isInlineElement(element) {
+-+	return element.tagHandler ? element.tagHandler.isInline === true : element.tagId === -1;
+-+}
+-+function appendOutput(state, element, eventType, output, afterLiteralOpener = false) {
+- 	const buffer = state.buffer;
+- 	const wantedNewlines = newlineConfig(element, state.depthMap)[eventType] || 0;
+- 	if (wantedNewlines > 0 && buffer.length > 0 && !(state.depthMap[34] > 0 && element.tagId !== 34)) {
+-@@ -178,7 +181,7 @@ function appendOutput(state, element, eventType, output) {
+- 		if (trimmed.length !== tail.length) buffer[buffer.length - 1] = trimmed;
+- 	}
+- 	const missingNewlines = Math.max(0, wantedNewlines - trailingNewlines(buffer));
+--	const isInline = element.tagHandler ? element.tagHandler.isInline === true : element.tagId === -1;
+-+	const isInline = isInlineElement(element);
+- 	if (buffer.length === 0) {
+- 		if (output) buffer.push(output);
+- 		return;
+-@@ -189,7 +192,7 @@ function appendOutput(state, element, eventType, output) {
+- 			if (!isInline || element.tagId === 6 || missingNewlines > 0 || firstOutput === "\n" || firstOutput === "\r") state.pendingInlineWhitespace = false;
+- 			else if (firstOutput) {
+- 				const last = charOf(lastOutputChar(buffer));
+--				if (last && !" \n	\r".includes(last) && !" \n	\r".includes(firstOutput)) buffer.push(" ");
+-+				if (last && !" \n	\r".includes(last) && !" \n	\r".includes(firstOutput) && !afterLiteralOpener) buffer.push(" ");
+- 				state.pendingInlineWhitespace = false;
+- 			}
+- 		} else if (!isInline || missingNewlines > 0) state.pendingInlineWhitespace = false;
+-@@ -239,6 +242,13 @@ function createTextOutputProcessor(options, hasPlugins = false) {
+- 	let captionBreakOwnsLine = false;
+- 	const openQuotes = [];
+- 	const openQuoteNodes = [];
+-+	const literalOpeners = [];
+-+	function followsLiteralOpener() {
+-+		const end = literalOpeners[literalOpeners.length - 1];
+-+		if (end < 0 || end > state.buffer.length) return false;
+-+		for (let index = end; index < state.buffer.length; index++) if (state.buffer[index]) return false;
+-+		return true;
+-+	}
+- 	function pushCaptionBoundary(newlines) {
+- 		if (state.buffer.length === 0 || newlines === 0) return false;
+- 		const tail = state.buffer[state.buffer.length - 1];
+-@@ -263,14 +273,18 @@ function createTextOutputProcessor(options, hasPlugins = false) {
+- 	function processTextNode(node, lastNode) {
+- 		if (node.trimsAtLineStart) trimTextAtLineStart(node, state.buffer);
+- 		if (node.excludedFromMarkdown || !node.value) return;
+-+		if (node.leadingBlank && !hasNonWhitespace(node.value)) {
+-+			if (captionClosedSpacing === 0 && !(captionOpen > 0 && !captionContent) && openQuotes.at(-1) !== state.buffer.length - 1 && !(literalOpeners.length && followsLiteralOpener())) state.pendingInlineWhitespace = true;
+-+			return;
+-+		}
+- 		if (hasVisibleContent(node.value) && openCaptionBoundary()) {
+- 			node.value = trimAsciiWhitespaceStart(node.value);
+- 			state.pendingInlineWhitespace = false;
+- 		}
+- 		const last = charOf(lastOutputChar(state.buffer));
+- 		if (state.pendingInlineWhitespace) {
+--			if (!node.value.trim()) return;
+--			if (last && !" \n	\r".includes(last) && !" \n	\r".includes(node.value[0] || "")) node.value = ` ${node.value}`;
+-+			if (!hasNonWhitespace(node.value)) return;
+-+			if (last && !" \n	\r".includes(last) && !" \n	\r".includes(node.value[0] || "") && !(literalOpeners.length && followsLiteralOpener())) node.value = ` ${node.value}`;
+- 			state.pendingInlineWhitespace = false;
+- 		}
+- 		if (state.depthMap[34] && state.buffer.length === 0) preserveLeadingWhitespace = true;
+-@@ -305,7 +319,9 @@ function createTextOutputProcessor(options, hasPlugins = false) {
+- 		}
+- 		if (event.node.type !== 1) return;
+- 		const element = event.node;
+-+		if (event.type === 1) while (literalOpeners.length && literalOpeners[literalOpeners.length - 2] >= element.depth) literalOpeners.length -= 2;
+- 		let output;
+-+		let literalEnter = false;
+- 		if (element.tagId === 81 && event.type === 1 && openQuotes.length !== 0) {
+- 			let record = openQuoteNodes.length - 1;
+- 			while (record >= 0 && openQuoteNodes[record] !== element) record--;
+-@@ -335,7 +351,13 @@ function createTextOutputProcessor(options, hasPlugins = false) {
+- 		if (element.pluginOutput?.length) {
+- 			output = element.pluginOutput.join("");
+- 			element.pluginOutput = void 0;
+--		} else output = elementOutput(element, event.type, state);
+-+		} else {
+-+			output = elementOutput(element, event.type, state);
+-+			if (event.type === 0 && output) {
+-+				const override = state.options.tagOverrides?.[element.name];
+-+				literalEnter = typeof override === "object" && override.enter !== void 0 && (element.tagHandler?.isInline ?? element.tagId === -1);
+-+			}
+-+		}
+- 		if (element.tagId === 6 && event.type === 0 && output) {
+- 			const currentNewlines = trailingNewlines(state.buffer);
+- 			if (!state.depthMap[34] && currentNewlines >= 2) output = void 0;
+-@@ -360,13 +382,16 @@ function createTextOutputProcessor(options, hasPlugins = false) {
+- 			output = trimAsciiWhitespaceStart(output);
+- 			state.pendingInlineWhitespace = false;
+- 		}
+--		appendOutput(state, element, event.type, output);
+-+		const outputStart = state.buffer.length;
+-+		appendOutput(state, element, event.type, output, literalOpeners.length !== 0 && followsLiteralOpener());
+-+		if (literalEnter && state.buffer.length > outputStart) literalOpeners.push(element.depth, state.buffer.length);
+- 		if (element.tagId === 81 && event.type === 0 && (output === "\"" || output === " \"") && state.buffer.at(-1) === output) {
+- 			openQuotes.push(state.buffer.length - 1);
+- 			openQuoteNodes.push(element);
+- 		} else if (openQuotes.length !== 0) {
+--			const isInline = element.tagHandler ? element.tagHandler.isInline === true : element.tagId === -1;
+--			if (output && hasNonWhitespace(output) || element.tagId !== -1 && !isInline) {
+-+			const isInline = isInlineElement(element);
+-+			const blockWrites = element.tagId !== -1 && !isInline && (output !== void 0 && output.length > 0 || newlineConfig(element, state.depthMap)[event.type] > 0);
+-+			if (output && hasNonWhitespace(output) || blockWrites) {
+- 				openQuotes.length = 0;
+- 				openQuoteNodes.length = 0;
+- 			}
+-@@ -393,6 +418,15 @@ function createTextOutputProcessor(options, hasPlugins = false) {
+- 		if (contextStart > 0 && first >= 56320 && first <= 57343) contextStart--;
+- 		if (contextStart === 0) return;
+- 		if (state.options.wrapWidth) bufferColumn = columnAt(content, contextStart, bufferColumn);
+-+		for (let pair = 1; pair < literalOpeners.length; pair += 2) {
+-+			let end = literalOpeners[pair];
+-+			if (end >= keepFrom) end -= keepFrom - 1;
+-+			else if (end >= 0) {
+-+				while (end < keepFrom && !buffer[end]) end++;
+-+				end = end === keepFrom ? 1 : -1;
+-+			}
+-+			literalOpeners[pair] = end;
+-+		}
+- 		const kept = buffer.slice(keepFrom);
+- 		buffer.length = 0;
+- 		buffer.push(content.slice(contextStart, keptStart));
+-diff --git a/dist/_chunks/types.d.mts b/dist/_chunks/types.d.mts
+-index 40d94afa75635f953ca3c094d63dd8cb51f8f58e..d183dc6ee52fbebcd962a89241ff22b6198a140b 100644
+---- a/dist/_chunks/types.d.mts
+-+++ b/dist/_chunks/types.d.mts
+-@@ -109,6 +109,8 @@ interface CleanTarget {
+-   depthMap: Uint16Array;
+-   /** The last buffer entry the converter wrote. */
+-   lastContentCache?: string;
+-+  /** Buffer length right after an empty marker pair was dropped. */
+-+  droppedPairAt?: number;
+-   options?: EngineOptions;
+-   /** @internal */
+-   outputPositions?: OutputPositions;
+-@@ -189,6 +191,14 @@ export interface ElementNode extends Node {
+-   pluginOutput?: string[];
+-   /** Whether this element's enter event wrote an inline wrapper. */
+-   hasEnterOutput?: boolean;
+-+  /** Content below this node already counts for the nearest link at or above it. */
+-+  linkContentCounted?: boolean;
+-+  /** A plugin skipped this link's start, so it takes no title or aria-label text. */
+-+  enterSkipped?: boolean;
+-+  /** Text counted in this link that never shows: excluded text and the blank text after it. */
+-+  hiddenTextNodes?: number;
+-+  /** The child count when this link dropped a blank after other content, as the space in `<a><svg></svg> </a>`. */
+-+  trailingBlankAt?: number;
+- }
+- export interface TextNode extends Node {
+-   /** Text content (for TEXT_NODE) */
+-@@ -202,11 +212,21 @@ export interface TextNode extends Node {
+-   context?: PluginContext;
+-   /** Follows an end tag that closed nothing, so it gets no separator. */
+-   joinsPrevious?: boolean;
+-+  /**
+-+   * Whitespace that opens an inline element, other than one with a literal
+-+   * `tagOverrides` opener. While it stays whitespace it is placed as a word
+-+   * separator, and is not written as text.
+-+   */
+-+  leadingBlank?: boolean;
+-   /**
+-    * First text with no block ancestor: it drops its leading whitespace when
+-    * the output is at the start of a line.
+-    */
+-   trimsAtLineStart?: boolean;
+-+  /** Set when a hook changed this text inside a link: whether the new value shows nothing. */
+-+  rewrittenBlank?: boolean;
+-+  /** The title or aria-label written for a link with no visible text. */
+-+  isLinkLabel?: boolean;
+- }
+- /**
+-  * Base DOM node interface
+-@@ -297,6 +317,15 @@ interface MdreamRuntimeState extends Partial<MdreamProcessingState>, PluginState
+-   buffer: string[];
+-   /** Performance cache for last content to avoid iteration */
+-   lastContentCache?: string;
+-+  /** Buffer length right after an empty marker pair was dropped. */
+-+  droppedPairAt?: number;
+-+  /**
+-+   * A separator was just written on its own, so the next text does not start
+-+   * the run the redundant-title check compares.
+-+   */
+-+  separatorPending?: boolean;
+-+  /** The cached run follows such a separator, whether or not a drain took it. */
+-+  cacheFollowsSeparator?: boolean;
+-   /** Reference to the last processed node */
+-   lastNode?: Node;
+-   context?: PluginContext;
+-diff --git a/dist/_chunks/url.mjs b/dist/_chunks/url.mjs
+-index c2a1274427ad6a77c5ee3145cb7d6bbc19e09df4..c3d4b5bd9a518e37e692b7a9c916ac695cc285bd 100644
+---- a/dist/_chunks/url.mjs
+-+++ b/dist/_chunks/url.mjs
+-@@ -648,23 +648,27 @@ function traverseUpToFirstBlockNode(node) {
+- }
+- function markRenderedChildContent(node) {
+- 	let parent = node.parent;
+--	let anchorInScope = false;
+- 	while (parent) {
+- 		parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+--		if (parent.tagId === 26) anchorInScope = true;
+- 		if (!isInlineNode(parent)) break;
+- 		parent = parent.parent;
+- 	}
+--	if (anchorInScope) return;
+--	let anchorFound = false;
+--	while (parent?.parent) {
+--		parent = parent.parent;
+--		if (!anchorFound) {
+--			if (parent.tagId !== 26) continue;
+--			anchorFound = true;
+-+	countContentInEnclosingLink(parent);
+-+}
+-+function countContentInEnclosingLink(block) {
+-+	let parent = block;
+-+	while (parent && !parent.linkContentCounted) {
+-+		parent.linkContentCounted = true;
+-+		if (parent.tagId !== 26) {
+-+			parent = parent.parent;
+-+			continue;
+-+		}
+-+		while (isInlineNode(parent)) {
+-+			parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+-+			if (!parent.parent) return;
+-+			parent = parent.parent;
+- 		}
+- 		parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+--		if (!isInlineNode(parent)) return;
+- 	}
+- }
+- const URL_SCHEME_RE = /^[A-Z][\dA-Z+.-]*:/i;
+-@@ -747,4 +751,4 @@ function safeAnchorOutput(node, options, entering, protectMarkdown = false) {
+- 	if (!entering) return "</a>";
+- 	return `<a href="${escapeHtml(resolved, true, protectMarkdown)}"${node.attributes?.title === void 0 ? "" : ` title="${escapeHtml(node.attributes.title, true, protectMarkdown)}"`}>`;
+- }
+--export { blockOpenPrefix, decodeHTMLEntities, endsAtHardBreak, escapeHtml, figcaptionOwnsBlockSpacing, getLanguageFromAttributes, hasNonWhitespace, isCharacterReferenceTail, isDataUrl, isEmptyLinkHref, isInsideHeading, isInsideTableCell, isSafeHtmlUrl, lastOutputChar, listMarkerLineStart, markRenderedChildContent, needsSpacing, noteBufferRewrite, orderedItemNumber, parseUnsignedInteger, pendingMarkerIndent, resolveUrl, safeAnchorOutput, suppressesFormattingInPre, traverseUpToFirstBlockNode, trimOutputStart, trimTextAtLineStart };
+-+export { blockOpenPrefix, countContentInEnclosingLink, decodeHTMLEntities, endsAtHardBreak, escapeHtml, figcaptionOwnsBlockSpacing, getLanguageFromAttributes, hasNonWhitespace, isCharacterReferenceTail, isDataUrl, isEmptyLinkHref, isInsideHeading, isInsideTableCell, isSafeHtmlUrl, lastOutputChar, listMarkerLineStart, markRenderedChildContent, needsSpacing, noteBufferRewrite, orderedItemNumber, parseUnsignedInteger, pendingMarkerIndent, resolveUrl, safeAnchorOutput, suppressesFormattingInPre, traverseUpToFirstBlockNode, trimOutputStart, trimTextAtLineStart };
+-diff --git a/dist/parse.d.mts b/dist/parse.d.mts
+-index e7724d5038330179a63c30565a8f980d03aab245..006bef3cb2724dff9dea8c5730cf72c50e90c01b 100644
+---- a/dist/parse.d.mts
+-+++ b/dist/parse.d.mts
+-@@ -63,12 +63,18 @@ export interface ParseState {
+-   lastTextNode?: Node;
+-   /** Resolved plugin instances for event processing */
+-   resolvedPlugins?: TransformPlugin[];
+-+  /** Hands an event to the output past plugins and the splitter, as Rust writes a link label. */
+-+  outputEvent?: (event: NodeEvent) => void;
+-   /** Output-specific tag behavior. Parsing metadata is used when absent. */
+-   tagHandlers?: Record<number, TagHandler>;
+-   /** Tag override handlers built from declarative tagOverrides config */
+-   tagOverrideHandlers?: Map<string, TagHandler>;
+-   /** Whether emitted text should skip Markdown-only escaping */
+-   plainText?: boolean;
+-+  keepLeadingBlanks?: boolean;
+-+  /** Reuse ancestry for repeated retained blanks before any visible child. */
+-+  leadingBlankParent?: ElementNode;
+-+  leadingBlankAncestors?: ElementNode[];
+-   /** Output state whose `options.origin` the first usable `<base href>` replaces. */
+-   urlBaseTarget?: {
+-     options: EngineOptions;
+-@@ -83,6 +89,8 @@ export interface ParseState {
+-   trailingText?: string;
+-   /** The trailing run is an unfinished end tag of the open rawtext element. */
+-   rawtextEndTagPending?: boolean;
+-+  /** A raw-text body the output drops left the previous chunk on a whitespace character. */
+-+  inertBodyBlankPending?: boolean;
+-   /** The last token was an end tag that closed nothing; the next text joins. */
+-   endTagClosedNothing?: boolean;
+- }
+-diff --git a/dist/splitter.mjs b/dist/splitter.mjs
+-index 57e3883b1304041def46be18829c01411a162b48..a99c70151deb460dcf4f9107a7ab46a9ac0bbed3 100644
+---- a/dist/splitter.mjs
+-+++ b/dist/splitter.mjs
+-@@ -263,6 +263,7 @@ function* htmlToMarkdownSplitChunksStream(html, options = {}) {
+- 		depthMap: processor.state.depthMap,
+- 		depth: 0,
+- 		resolvedPlugins: opts.resolvedPlugins,
+-+		outputEvent: processor.processEvent,
+- 		tagHandlers,
+- 		tagOverrideHandlers: opts.tagOverrideHandlers,
+- 		urlBaseTarget: processor.state
+diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/tooling/__tests__/patched-dependencies.test.ts
+--- a/source/tooling/__tests__/patched-dependencies.test.ts
++++ b/example/tooling/__tests__/patched-dependencies.test.ts
+@@ -3,29 +3,10 @@ import { access, readFile } from 'node:fs/promises'
+ import path from 'node:path'
+ import { it } from 'node:test'
+ 
+-import * as v from 'valibot'
++const ROOT = path.resolve(import.meta.dirname, '../..')
+ 
+-// In the monorepo, Bun reads the patches and bun.lock at the workspace root.
+-const ROOT = path.resolve(import.meta.dirname, '../../../..')
+-const patchesSchema = v.record(v.string(), v.string())
+-const manifestSchema = v.object({
+-  patchedDependencies: v.optional(patchesSchema, {})
+-})
+-
+-// Bun only warns, without failing the install, when the key of a patch does not
+-// match the resolved version: updating the package without regenerating the
+-// patch would lose the fix.
+-it('keeps every patch keyed to a version resolved in bun.lock', async () => {
+-  const packageJson = await readFile(path.join(ROOT, 'package.json'), 'utf8')
+-  const manifest = v.parse(manifestSchema, JSON.parse(packageJson))
+-  const lock = await readFile(path.join(ROOT, 'bun.lock'), 'utf8')
+-  const patches = Object.entries(manifest.patchedDependencies)
+-
+-  for (const [key] of patches) {
+-    assert.ok(
+-      lock.includes(`: ["${key}",`),
+-      `${key} is not resolved in bun.lock`
+-    )
+-  }
+-  await Promise.all(patches.map(([, file]) => access(path.join(ROOT, file))))
++it('checks the installed Markdown converter patch policy', async () => {
++  const manifest: unknown = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'))
++  assert.ok(typeof manifest === 'object' && manifest !== null && !('patchedDependencies' in manifest))
++  await assert.rejects(access(path.join(ROOT, "patches/@mdream%2Fjs@2.1.0.patch")), { code: 'ENOENT' })
+ })
+diff --git a/source/tooling/knip.ts b/example/tooling/knip.ts
+--- a/source/tooling/knip.ts
++++ b/example/tooling/knip.ts
+@@ -33,9 +33,5 @@ export default defineKnipConfig({
+   ignoreBinaries: ['kingfisher', 'vp!'],
+   // server-only is virtual. Inlang loads the message-format plugin by its
+   // node_modules path in settings.json, outside Knip's import graph.
+-  ignoreDependencies: ['server-only', '@inlang/plugin-message-format'],
+-  // In the monorepo, the version catalog lives in the root package.json, which
+-  // Knip does not read when it runs in this folder. bun install already refuses
+-  // a reference to an entry missing from the catalog.
+-  exclude: ['catalogReferences']
++  ignoreDependencies: ['server-only', '@inlang/plugin-message-format']
+ })
+diff --git a/source/vite.config.ts b/example/vite.config.ts
+--- a/source/vite.config.ts
++++ b/example/vite.config.ts
+@@ -32,21 +32,5 @@ export default defineSolidApp({
+       maxAge: 31_536_000
+     }
+   ],
+-  staticPaths: ['/favicon/**'],
+-  // In the monorepo, bun.lock, bunfig.toml and the build of the tooling and icons
+-  // packages live at the root, outside the application folder.
+-  workspace: {
+-    dependsOn: [
+-      '@evertondgn/solid-tooling#build',
+-      '@evertondgn/vite-plugin-solid-icons#build'
+-    ],
+-    // The runtime package is source code outside the application folder, and
+-    // its manifest holds the exports that resolve each import.
+-    inputs: [
+-      'packages/solid-tooling/dist/**',
+-      'packages/vite-plugin-solid-icons/dist/**',
+-      'packages/solid-runtime/package.json',
+-      'packages/solid-runtime/src/**'
+-    ]
+-  }
++  staticPaths: ['/favicon/**']
+ })

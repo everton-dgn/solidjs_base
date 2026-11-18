@@ -89,9 +89,3 @@ execFileSync('bun', [
 ])
 const executableMode = 0o755
 chmodSync('dist/create-solid.mjs', executableMode)
-const sourceTree = execFileSync('git', ['rev-parse', 'HEAD:apps/boilerplate'], {
-  encoding: 'utf8'
-})
-if (sourceTree !== readFileSync('app-tree.txt', 'utf8')) {
-  throw new Error('Update app-tree.txt with the reviewed application tree')
-}

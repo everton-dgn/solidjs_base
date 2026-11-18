@@ -180,7 +180,14 @@ export function generate(profile: Profile): void {
     throw error
   }
   if (profile.shouldInitGit) {
-    execFileSync('git', ['init'], { cwd: profile.dir, stdio: 'inherit' })
+    try {
+      execFileSync('git', ['init'], { cwd: profile.dir, stdio: 'inherit' })
+    } catch (error) {
+      throw new Error(
+        `Git initialization failed. Open ${profile.dir} and run git init with Git installed, or continue without Git. Run ${profile.pm} install to install dependencies.`,
+        { cause: error }
+      )
+    }
   }
   if (profile.shouldInstall) {
     try {

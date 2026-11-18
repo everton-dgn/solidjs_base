@@ -113,3 +113,38 @@ void it('shows the versioned package invocation in help', () => {
   })
   assert.match(help, /bunx @evertondgn\/create-solid@latest/u)
 })
+
+void it('explains how to continue after Git initialization fails', context => {
+  const parent = folder(context)
+  const dir = path.join(parent, 'app')
+  writeFileSync(path.join(parent, 'git'), '#!/bin/sh\nexit 1\n', {
+    mode: executable
+  })
+  const result = spawnSync(process.execPath, [bin, dir], {
+    encoding: 'utf8',
+    env: { ...process.env, PATH: `${parent}:${process.env.PATH}` }
+  })
+  assert.equal(result.status, 1)
+  assert.ok(result.stderr.includes(`Open ${dir} and run git init`))
+  assert.ok(result.stderr.includes('bun install'))
+  assert.ok(existsSync(path.join(dir, 'package.json')))
+})
+
+void it('removes only a newly created destination when formatting fails before the manifest', context => {
+  const parent = folder(context)
+  writeFileSync(path.join(parent, 'vp'), '#!/bin/sh\nexit 1\n', {
+    mode: executable
+  })
+  for (const existing of [false, true]) {
+    const dir = path.join(parent, existing ? 'existing' : 'new')
+    if (existing) mkdirSync(dir)
+    const result = spawnSync(
+      process.execPath,
+      [bin, dir, '--no-install', '--no-git'],
+      { env: { ...process.env, PATH: `${parent}:${process.env.PATH}` } }
+    )
+    assert.equal(result.status, 1)
+    assert.equal(existsSync(dir), existing)
+    assert.ok(!existsSync(path.join(dir, 'package.json')))
+  }
+})

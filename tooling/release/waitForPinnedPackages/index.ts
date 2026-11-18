@@ -91,8 +91,7 @@ export async function waitForPinnedPackages({
   const { name, version, pinned } = findPinnedPackages({ manifest, names })
   const settings = await readPackedManifest(
     tarball,
-    'package/dist/settings.json',
-    true
+    'package/dist/settings.json'
   )
   if (settings !== undefined) {
     pinned.push(...findTemplatePins({ manifest: settings, names }))

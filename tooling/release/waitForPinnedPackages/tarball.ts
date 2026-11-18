@@ -110,8 +110,7 @@ function* readEntries({ archive, label }: Archive): Generator<Entry> {
 
 export async function readPackedManifest(
   tarball: string,
-  file = MANIFEST,
-  optional = false
+  file = MANIFEST
 ): Promise<unknown> {
   const compressed = await readFile(tarball)
   let archive: Buffer
@@ -129,6 +128,6 @@ export async function readPackedManifest(
       })
     }
   }
-  if (optional) return undefined
+  if (file !== MANIFEST) return undefined
   throw new Error(`${tarball} has no ${file}.`)
 }

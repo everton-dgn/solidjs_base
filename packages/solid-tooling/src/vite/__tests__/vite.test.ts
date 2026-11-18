@@ -310,6 +310,10 @@ it('writes the security headers on the static files in a fixed order', async con
     '/_markdown/static.json',
     '/api/**'
   ])
+  const compilerCalls = optionsOf({ summary, name: 'paraglide' })
+  assert.ok(compilerCalls.length > 0)
+  for (const value of compilerCalls)
+    assert.equal(hasKey({ value, key: 'strategy' }), false)
   const staticRules = Object.entries(routeRules).filter(
     ([staticPath]) => staticPath !== '/api/**'
   )
@@ -773,6 +777,14 @@ it('configures Nitro with grouped and localized filesystem pages for static outp
       }
     })
     assert.equal(summary.error, null)
+    const calls = optionsOf({ summary, name: 'paraglide' })
+    assert.ok(calls.length > 0)
+    for (const call of calls) {
+      assert.deepEqual(
+        v.parse(v.object({ strategy: namesSchema }), call).strategy,
+        ['url', 'baseLocale']
+      )
+    }
     assert.ok(summary.plugins.app.includes('solid-app:static-build'))
     const [options] = optionsOf({ summary, name: 'nitro' })
     const schema = v.object({

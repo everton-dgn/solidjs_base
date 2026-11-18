@@ -151,16 +151,23 @@ it('refuses server operations on static routes', async t => {
 it('refuses a publication endpoint without its SEO feature', async t => {
   const root = await mkdtemp(path.join(tmpdir(), 'static-robots-'))
   t.after(() => rm(root, { recursive: true, force: true }))
-  const dir = path.join(root, 'src/routes/sitemap.xml')
-  await mkdir(dir, { recursive: true })
-  await writeFile(
-    path.join(dir, 'index.ts'),
-    'export const GET = () => new Response()'
-  )
-  await assert.rejects(
-    staticOutput({ options: { output: 'static', root }, locales: [] }),
-    /requires seo.sitemap/u
-  )
+  for (const [name, feature] of [
+    ['sitemap.xml', 'sitemap'],
+    ['robots.txt', 'robots'],
+    ['llms.txt', 'llms']
+  ]) {
+    const dir = path.join(root, 'src/routes', name)
+    await mkdir(dir, { recursive: true })
+    await writeFile(
+      path.join(dir, 'index.ts'),
+      'export const GET = () => new Response()'
+    )
+    await assert.rejects(
+      staticOutput({ options: { output: 'static', root }, locales: [] }),
+      new RegExp(`requires seo\\.${feature}`, 'u')
+    )
+    await rm(dir, { recursive: true })
+  }
 })
 
 it('wraps the chosen middleware and refuses a nonempty server function manifest', () => {

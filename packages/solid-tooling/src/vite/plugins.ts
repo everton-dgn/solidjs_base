@@ -218,6 +218,7 @@ async function serverPlugins({
     ? (options.e2e?.middleware ?? options.middleware)
     : options.middleware
   const e2eRoutes = isE2e ? options.e2e?.routes : undefined
+  // WHY: Solid checks this path exists before the static plugin substitutes its wrapper.
   const startMiddleware =
     middleware ?? (options.output === 'static' ? 'package.json' : undefined)
   const publication = await createPublication(options)

@@ -4,8 +4,7 @@ import type { NitroConfig, PrerenderRoute } from 'nitro/types'
 import type { Plugin } from 'vite-plus'
 
 import { readOrigin } from '../seo-module.ts'
-import type { StaticBuild } from './static-html.ts'
-import type { ServerAppOptions } from './types.ts'
+import type { ServerAppOptions, StaticBuild } from './types.ts'
 
 const HTTP_NOT_FOUND = 404
 
@@ -278,11 +277,10 @@ export default [async (event, next) => {
   }
 }
 
+type DefaultOutput = { hooks?: never; prerender?: never }
+
 export async function staticOutput(
   input: StaticOutputInput
-): Promise<
-  | Awaited<ReturnType<typeof createStaticConfig>>
-  | { hooks?: never; prerender?: never }
-> {
+): Promise<Awaited<ReturnType<typeof createStaticConfig>> | DefaultOutput> {
   return input.options.output === 'static' ? createStaticConfig(input) : {}
 }

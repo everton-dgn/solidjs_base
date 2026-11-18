@@ -72,3 +72,7 @@ export type ClientAppOptions = SharedOptions & {
 }
 
 export type SolidAppOptions = ServerAppOptions | ClientAppOptions
+
+export type StaticBuild = {
+  options: { static?: boolean; output: { dir: string; publicDir: string } }
+}

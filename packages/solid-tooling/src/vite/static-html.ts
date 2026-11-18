@@ -13,10 +13,6 @@ const JSON_INDENT = 2
 const EXECUTABLE_SCRIPT =
   /^(?:module|importmap|speculationrules|(?:application|text)\/(?:x-)?(?:java|ecma)script|text\/(?:javascript1\.[0-5]|livescript|jscript))$/u
 
-export type StaticBuild = {
-  options: { static?: boolean; output: StaticDirectories }
-}
-
 export function inspectHtml(html: string): HtmlInspection {
   const window = new Window()
   try {

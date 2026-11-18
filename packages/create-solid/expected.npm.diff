@@ -26,7 +26,7 @@ new file mode 100644
 diff --git a/source/AGENTS.md b/example/AGENTS.md
 --- a/source/AGENTS.md
 +++ b/example/AGENTS.md
-@@ -157,7 +157,7 @@ release. Add a tool name to select part of the graph. For example, run
+@@ -149,7 +149,7 @@ release. Add a tool name to select part of the graph. For example, run
  ## Translations
  
  - Generation, catalog validation and the Vite plugin belong to
@@ -35,7 +35,7 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
    `project.inlang/settings.json`; the default application needs no local generator
    or i18n plugin. Custom pipelines can set `i18nPlugin: false`, supply a plugin
    through `extend` and replace `i18n-generate` by name through `tasks`.
-@@ -206,7 +206,7 @@ release. Add a tool name to select part of the graph. For example, run
+@@ -198,7 +198,7 @@ release. Add a tool name to select part of the graph. For example, run
  - Use `type` to declare object, props and contract types in code and tests. The
    lint applies `typescript/consistent-type-definitions` with `type`.
  - Keep `interface` when declaration merging is needed: `RequestEventLocals` in the runtime package
@@ -44,7 +44,7 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
    `RouteInfo` in the runtime `seo/{sitemap,markdown,llms}/router.d.ts` modules
    extend third-party interfaces. Keep
    the lint exception restricted to the files that need that behavior.
-@@ -333,7 +333,7 @@ release. Add a tool name to select part of the graph. For example, run
+@@ -325,7 +325,7 @@ release. Add a tool name to select part of the graph. For example, run
    initial bundle. `seo` points to the messages directly, without reading the
    page object. Do not move `content` to `seo.ts`, to a module `seo.ts`
    imports or to another one the `route` reaches. The `project/seo-module` rule
@@ -53,7 +53,7 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
    export other than `seo` and any local value import in `seo.ts`, and
    `I18n.production.e2e` checks the result in the build; details in
    [SEO](docs/seo.md).
-@@ -415,11 +415,11 @@ release. Add a tool name to select part of the graph. For example, run
+@@ -407,11 +407,11 @@ release. Add a tool name to select part of the graph. For example, run
  - `import/exports-last` requires the exports at the end of the file. Declare the
    private types, constants and helpers before them. When an exported value needs
    to exist before the private code that consumes it, move it to a module of its
@@ -68,7 +68,7 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
    Validate with `vp run check:ci`.
  
  ## Functions that return a Promise
-@@ -488,7 +488,7 @@ release. Add a tool name to select part of the graph. For example, run
+@@ -480,7 +480,7 @@ release. Add a tool name to select part of the graph. For example, run
    size classes live at the top level, outside the base class.
  - Import CSS Modules as `S`. Stylelint requires snake_case in `src/**/*.css`;
    validate changes with `vp run lint:css`. The CSS policy lives in
@@ -77,7 +77,7 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
  - The tokens of `src/theme/tokens/` are the palette of the boilerplate for the
    derived applications. Do not flag or remove a token for having no consumer in
    the demo; review only a wrong value, name or use.
-@@ -504,7 +504,7 @@ release. Add a tool name to select part of the graph. For example, run
+@@ -496,7 +496,7 @@ release. Add a tool name to select part of the graph. For example, run
  ## Dependencies between layers
  
  - Keep `architecture/layer-imports` in
@@ -86,7 +86,7 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
    `constants`, `@types`, `data`, `infra`, `theme`, `i18n` and `paraglide` do not
    depend on UI, primitives, routes or entries (`App`, `Document`,
    `entry-server`, `entry-client`, `router`, `middleware`). Global primitives do
-@@ -591,7 +591,7 @@ release. Add a tool name to select part of the graph. For example, run
+@@ -583,7 +583,7 @@ release. Add a tool name to select part of the graph. For example, run
  - Do not log the original error, headers, cookies, arguments, bodies or
    credentials; detailed logs require a removal of sensitive data defined
    beforehand. The `console` is reserved for `logServerFailure`.
@@ -95,7 +95,7 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
    requires restricting the package in the lint, with an exception only for the
    adapter. Do not work around the contract with disable comments, computed
    imports or the other gaps listed in the guide.
-@@ -613,7 +613,7 @@ release. Add a tool name to select part of the graph. For example, run
+@@ -605,7 +605,7 @@ release. Add a tool name to select part of the graph. For example, run
  
  The single theme configuration is `src/constants/theme.ts`, using
  `@evertondgn/solid-runtime/theme/define-theme`. Theme adapters, types and
@@ -199,15 +199,25 @@ diff --git a/source/README.md b/example/README.md
  - The interactive controls need JavaScript. The tests check the server-rendered
    HTML without JavaScript, and the app makes no promise to work without it.
  
-@@ -249,7 +249,7 @@ Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
- Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`, in place of
- the copies the original keeps in `tooling/`, `vite.config.ts` and
- `tsconfig.json`. See the
+@@ -247,7 +247,7 @@ the app, a package, a fixture or the root configuration
+ It takes its lint preset, lint rules, formatter settings, TypeScript configs,
+ Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
+ Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`. See the
 -[configuration comparison](../../packages/solid-tooling/README.md#the-configuration-you-stop-maintaining)
 +[configuration comparison](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/README.md#the-configuration-you-stop-maintaining)
  of the tooling README for the line counts by area.
  
  The package supplies tools that the application does not import itself. Its
+@@ -314,7 +314,8 @@ A sixteenth area, `PublicationLoad`, stays out of both columns, as
+ 
+ ### Guides
+ 
+-The guides describe the application. The release, CI and Vercel deployment examples describe the upstream workflows.
++The guides describe the application. The release, CI and Vercel deployment
++examples describe the upstream workflows.
+ 
+ | Guide                                                           | What you will find                                                    |
+ | --------------------------------------------------------------- | --------------------------------------------------------------------- |
 diff --git a/example/bunfig.toml b/example/bunfig.toml
 new file mode 100644
 --- /dev/null
@@ -238,9 +248,9 @@ diff --git a/source/docs/architecture.md b/example/docs/architecture.md
 +integrations with the environment. The values of the rules and the order of the
 +overrides belong to the same contract, even when they live in different modules.
  
- `tooling/release/automatic-release.ts` coordinates the preparation and the
- publication. The modules and the limits of the jobs are in the
-@@ -111,7 +111,7 @@ and their helpers live in the runtime package.
+ ## Data and infrastructure
+ 
+@@ -104,7 +104,7 @@ and their helpers live in the runtime package.
  `data/errorApi/` (normalization of domain errors from APIs) are conventions for
  the first consumers and do not have modules yet. Public errors that only the
  server uses are in
@@ -249,7 +259,7 @@ diff --git a/source/docs/architecture.md b/example/docs/architecture.md
  next to the protection of the backend operations; requests and persistence live
  in `infra/`.
  
-@@ -149,7 +149,7 @@ imports.
+@@ -142,7 +142,7 @@ imports.
  ## Dependencies between layers
  
  `architecture/layer-imports`, in
@@ -261,6 +271,24 @@ diff --git a/source/docs/architecture.md b/example/docs/architecture.md
 diff --git a/source/docs/development.md b/example/docs/development.md
 --- a/source/docs/development.md
 +++ b/example/docs/development.md
+@@ -9,12 +9,12 @@ The exact versions live in `package.json`:
+ - Vite+: install the global CLI following the
+   [official guide](https://viteplus.dev/guide/). It selects the Node and the
+   package manager declared in the project.
+-- Node: the runtime of Vitest, of the tooling tests
+-  and of the production SSR. `devEngines.runtime` pins the exact version, within
+-  the line declared in `engines.node`.
++- Node: the runtime of Vitest, of the tooling tests and of the production SSR.
++  `devEngines.runtime` pins the exact version, within the line declared in
++  `engines.node`.
+ - Bun: the installer and the runtime of development, build, Knip and CSS lint,
+-  pinned in the Bun profile. Vite+ selects that version for
+-  the installation and for the `bun` command.
++  pinned in the Bun profile. Vite+ selects that version for the installation and
++  for the `bun` command.
+ - Playwright Chromium: used by the browser and E2E tests. It is not downloaded
+   by `vp install`; install it with `vp run test:browser:install` and repeat the
+   command after updating Playwright, which pins one browser revision per
 @@ -38,7 +38,7 @@ Use `vp run tsrs`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
  `vp run commitlint` for the package's executables. Scripts such as `test:e2e`,
  `test:browser:install` and `dead-code:fix` use these tasks. The standalone
@@ -525,8 +553,14 @@ diff --git a/source/docs/server-errors.md b/example/docs/server-errors.md
 diff --git a/source/docs/testing.md b/example/docs/testing.md
 --- a/source/docs/testing.md
 +++ b/example/docs/testing.md
-@@ -9,7 +9,7 @@ Test files live in `__tests__` folders next to the code they exercise
- are the exception and live in `src/tests/pages/`, outside the Vitest projects.
+@@ -5,11 +5,11 @@
+ ## Organization and criteria
+ 
+ Test files live in `__tests__` folders next to the code they exercise
+-(`src/__tests__/`, module folders and `tooling/__tests__/`). The E2E tests
+-are the exception and live in `src/tests/pages/`, outside the Vitest projects.
++(`src/__tests__/`, module folders and `tooling/__tests__/`). The E2E tests are
++the exception and live in `src/tests/pages/`, outside the Vitest projects.
  
  The `project/test-filename` lint rule, in
 -[`test-filename.ts`](../../../packages/solid-tooling/src/test-filename.ts),

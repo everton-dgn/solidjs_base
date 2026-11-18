@@ -312,3 +312,51 @@ it('warns when quoted union hashes exceed the host budget', async t => {
   })
   assert.equal(warn.mock.callCount(), 1)
 })
+
+it('rejects missing robots output and non-text robots responses', async t => {
+  const root = await mkdtemp(path.join(tmpdir(), 'robots-output-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  await mkdir(path.join(root, 'src/routes'), { recursive: true })
+  const config = await staticOutput({
+    options: { root, output: 'static', seo: { robots: {} } },
+    locales: []
+  })
+  assert.ok(config.hooks)
+  const route: PrerenderRoute = {
+    route: '/robots.txt',
+    fileName: '/robots.txt',
+    contentType: 'text/html'
+  }
+  config.hooks['prerender:generate'](route)
+  assert.match(route.error?.message ?? '', /expected plain text/u)
+  assert.throws(
+    () =>
+      config.hooks?.['prerender:done']({
+        failedRoutes: [],
+        prerenderedRoutes: []
+      }),
+    /robots.txt not published/u
+  )
+})
+
+it('rejects ambiguous catch-alls and reserved error filenames', async t => {
+  for (const [other, expected] of [
+    ['(group)/[...other]', /single root catch-all/u],
+    ['404.html', /reserves \/404.html/u]
+  ] as const) {
+    const root = await mkdtemp(path.join(tmpdir(), 'ambiguous-static-route-'))
+    t.after(() => rm(root, { recursive: true, force: true }))
+    for (const name of ['[...rest]', other]) {
+      const directory = path.join(root, 'src/routes', name)
+      await mkdir(directory, { recursive: true })
+      await writeFile(
+        path.join(directory, 'index.tsx'),
+        'export default () => null'
+      )
+    }
+    await assert.rejects(
+      staticOutput({ options: { root, output: 'static' }, locales: [] }),
+      expected
+    )
+  }
+})

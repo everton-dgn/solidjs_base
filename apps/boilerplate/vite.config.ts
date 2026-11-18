@@ -22,8 +22,8 @@ export default defineSolidApp({
     llms: {},
     llmsFull: {}
   },
-  // Sem fallthrough, um arquivo ausente em /images/ recebe o 404 no-store do
-  // Nitro em vez da página SSR com o cache imutável.
+  // Without fallthrough, a missing file under /images/ gets the no-store 404 of
+  // Nitro instead of the SSR page with the immutable cache.
   publicAssets: [
     {
       baseURL: '/images',
@@ -33,8 +33,8 @@ export default defineSolidApp({
     }
   ],
   staticPaths: ['/favicon/**'],
-  // No monorepo, o bun.lock, o bunfig.toml e o build dos pacotes de ferramentas
-  // e de ícones ficam na raiz, fora da pasta da aplicação.
+  // In the monorepo, bun.lock, bunfig.toml and the build of the tooling and icons
+  // packages live at the root, outside the application folder.
   workspace: {
     dependsOn: [
       '@evertondgn/solid-tooling#build',

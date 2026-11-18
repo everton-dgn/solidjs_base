@@ -1,7 +1,8 @@
 # @evertondgn/create-solid
 
-Generate a Solid Base application with the full profile. Install the global
-Vite+ CLI before running the generator. After the first registry release, run:
+Generate a Solid Base application with the full profile. Use the global Vite+
+CLI to run tasks in the generated application. After the first registry release,
+run:
 
 ```sh
 bunx @evertondgn/create-solid@latest my-app

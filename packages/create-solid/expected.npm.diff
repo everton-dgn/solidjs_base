@@ -23,29 +23,91 @@ new file mode 100644
 @@ -0,0 +1,2 @@
 +extends:
 +  - node_modules/@evertondgn/solid-tooling/lefthook.yml
+diff --git a/source/AGENTS.md b/example/AGENTS.md
+--- a/source/AGENTS.md
++++ b/example/AGENTS.md
+@@ -157,7 +157,7 @@ release. Add a tool name to select part of the graph. For example, run
+ ## Translations
+ 
+ - Generation, catalog validation and the Vite plugin belong to
+-  [`i18n`](../../packages/solid-tooling/src/i18n). `defineSolidApp` enables them from
++  [`i18n`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/i18n). `defineSolidApp` enables them from
+   `project.inlang/settings.json`; the default application needs no local generator
+   or i18n plugin. Custom pipelines can set `i18nPlugin: false`, supply a plugin
+   through `extend` and replace `i18n-generate` by name through `tasks`.
+@@ -206,7 +206,7 @@ release. Add a tool name to select part of the graph. For example, run
+ - Use `type` to declare object, props and contract types in code and tests. The
+   lint applies `typescript/consistent-type-definitions` with `type`.
+ - Keep `interface` when declaration merging is needed: `RequestEventLocals` in the runtime package
+-  [`solid.d.ts`](../../packages/solid-runtime/src/@types/solid.d.ts), `ImportMetaEnv` in `src/@types/env.d.ts` and
++  [`solid.d.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/@types/solid.d.ts), `ImportMetaEnv` in `src/@types/env.d.ts` and
+   `RouteInfo` in the runtime `seo/{sitemap,markdown,llms}/router.d.ts` modules
+   extend third-party interfaces. Keep
+   the lint exception restricted to the files that need that behavior.
+@@ -333,7 +333,7 @@ release. Add a tool name to select part of the graph. For example, run
+   initial bundle. `seo` points to the messages directly, without reading the
+   page object. Do not move `content` to `seo.ts`, to a module `seo.ts`
+   imports or to another one the `route` reaches. The `project/seo-module` rule
+-  ([`index.ts`](../../packages/solid-tooling/src/seoModule/index.ts)) refuses in the lint any
++  ([`index.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/seoModule/index.ts)) refuses in the lint any
+   export other than `seo` and any local value import in `seo.ts`, and
+   `I18n.production.e2e` checks the result in the build; details in
+   [SEO](docs/seo.md).
+@@ -415,11 +415,11 @@ release. Add a tool name to select part of the graph. For example, run
+ - `import/exports-last` requires the exports at the end of the file. Declare the
+   private types, constants and helpers before them. When an exported value needs
+   to exist before the private code that consumes it, move it to a module of its
+-  own, such as [`constants.ts`](../../packages/solid-tooling/src/backendPolicy/constants.ts), instead
++  own, such as [`constants.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/backendPolicy/constants.ts), instead
+   of exporting the helpers.
+ - The `project/no-export-list` rule
+-  ([`index.ts`](../../packages/solid-tooling/src/noExportList/index.ts), registered in the plugin
+-  of [`project-plugin.ts`](../../packages/solid-tooling/src/project-plugin.ts)) applies the convention.
++  ([`index.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/noExportList/index.ts), registered in the plugin
++  of [`project-plugin.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/project-plugin.ts)) applies the convention.
+   Validate with `vp run check:ci`.
+ 
+ ## Functions that return a Promise
+@@ -488,7 +488,7 @@ release. Add a tool name to select part of the graph. For example, run
+   size classes live at the top level, outside the base class.
+ - Import CSS Modules as `S`. Stylelint requires snake_case in `src/**/*.css`;
+   validate changes with `vp run lint:css`. The CSS policy lives in
+-  [`stylelint`](../../packages/solid-tooling/src/stylelint).
++  [`stylelint`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/stylelint).
+ - The tokens of `src/theme/tokens/` are the palette of the boilerplate for the
+   derived applications. Do not flag or remove a token for having no consumer in
+   the demo; review only a wrong value, name or use.
+@@ -504,7 +504,7 @@ release. Add a tool name to select part of the graph. For example, run
+ ## Dependencies between layers
+ 
+ - Keep `architecture/layer-imports` in
+-  [`index.ts`](../../packages/solid-tooling/src/architecturePolicy/index.ts). `helpers`,
++  [`index.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/architecturePolicy/index.ts). `helpers`,
+   `constants`, `@types`, `data`, `infra`, `theme`, `i18n` and `paraglide` do not
+   depend on UI, primitives, routes or entries (`App`, `Document`,
+   `entry-server`, `entry-client`, `router`, `middleware`). Global primitives do
+@@ -591,7 +591,7 @@ release. Add a tool name to select part of the graph. For example, run
+ - Do not log the original error, headers, cookies, arguments, bodies or
+   credentials; detailed logs require a removal of sensitive data defined
+   beforehand. The `console` is reserved for `logServerFailure`.
+-- Keep the restrictions of [`backendPolicy`](../../packages/solid-tooling/src/backendPolicy). A new SDK
++- Keep the restrictions of [`backendPolicy`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/backendPolicy). A new SDK
+   requires restricting the package in the lint, with an exception only for the
+   adapter. Do not work around the contract with disable comments, computed
+   imports or the other gaps listed in the guide.
+@@ -613,7 +613,7 @@ release. Add a tool name to select part of the graph. For example, run
+ 
+ The single theme configuration is `src/constants/theme.ts`, using
+ `@evertondgn/solid-runtime/theme/define-theme`. Theme adapters, types and
+-`createTheme` now live under [`theme`](../../packages/solid-runtime/src/theme), with their
++`createTheme` now live under [`theme`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/theme), with their
+ tests. Keep the context, Provider, ThemeToggle and CSS in the application.
+ Document owns the script element and its request nonce.
+ 
 diff --git a/source/README.md b/example/README.md
 --- a/source/README.md
 +++ b/example/README.md
-@@ -1,16 +1,6 @@
--# Boilerplate app
-+# Solid Base application
- 
--A complete SolidJS 2 app built on the packages of this repository, so a package
--change that breaks a real app fails CI before it becomes a version. It takes its
--config, lint, tests and runtime features from `@evertondgn/solid-tooling` and
--`@evertondgn/solid-runtime`. Its icons come from
--`@evertondgn/vite-plugin-solid-icons`, which the tooling loads.
--
--The app is the test bench of the packages. This repository never publishes or
--deploys it, and it is neither a template nor a UI kit. To start a new app, copy
--the closest [fixture](../../README.md#start-a-new-app-from-a-fixture). This
--README says what each page and feature of the app shows and which tests prove
--it.
-+This application uses SolidJS 2 with the Solid Base tooling and runtime. Run `vp run dev` to start it locally.
- 
- > [!NOTE]
- > This app pins SolidJS 2 in its [package manifest](package.json) to the version
-@@ -19,16 +9,16 @@ it.
+@@ -9,9 +9,9 @@ This SolidJS application uses the Solid Base tooling and runtime.
  The home page, captured from the production build at 750 px wide:
  
  <picture>
@@ -57,84 +119,17 @@ diff --git a/source/README.md b/example/README.md
 +  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-light.webp" alt="The boilerplate app's home page at /en, captured from its production build." width="800" />
  </picture>
  
--The app started as a copy of
-+The upstream boilerplate started as a copy of
- [boilerplate_solidjs](https://github.com/everton-dgn/boilerplate_solidjs) at
- commit `6145493`.
--[ADR 0009](../../docs/ADRs/0009-boilerplate-app-in-the-monorepo.md) explains why
--the copy exists.
-+[ADR 0009](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/ADRs/0009-boilerplate-app-in-the-monorepo.md) explains why
-+the upstream copy exists.
- 
  [See it work](#see-it-work) · [Running it](#running-it) ·
- [What each page and feature shows](#what-each-page-and-feature-shows) ·
-@@ -100,64 +90,9 @@ the four real pages in each locale and checks the static `.md` files, `llms.txt`
- and `llms-full.txt` of the production build. CI does not run it
- ([limits](#limits)).
- 
--## Who it fits
--
--- You change a package of this repository. The app's checks and its `e2e` suite
--  run in CI on every pull request that touches a package, and
--  [AGENTS.md](../../AGENTS.md) asks for
--  [the app commands](../../docs/development.md#the-boilerplate-app) when a
--  change reaches a preset or runtime code the app uses.
--- You are adding the packages to your own app and want one feature wired
--  together with the others. The [table below](#what-each-page-and-feature-shows)
--  links each part to its guide and its tests.
--- You want Playwright examples for SSR, hydration, the CSP, server errors and
--  Markdown negotiation: 319 cases in 15 areas, enumerated with
--  `playwright test --list`.
--
--## Who it does not fit
--
--- You want a template for a new app. Copy the closest
--  [fixture](../../README.md#start-a-new-app-from-a-fixture); a `vp create`
--  template is on the [roadmap](../../README.md#roadmap).
--- You want UI components. `Button`, `Input`, `Dialog` and the other components
--  of this app exist for the tests, and no package publishes them.
--- You want a hosted demo. This repository never publishes or deploys the app.
--
--## Common questions
--
--**Why not copy this app to start mine?** It carries what a test bench needs and
--a new app does not: the fixture routes of the `e2e` build in
--`src/tests/fixtures/e2e/`, the texts of the original project, a dependency patch
--the packages do not ship, and guides that in part describe the original
--repository. A fixture is a minimal app on the same packages, and the
--[root README](../../README.md#start-a-new-app-from-a-fixture) lists the three to
--five changes a copy of one takes.
--
--**Does it run only on the packages?** No. The manifest declares 15 direct
--dependencies for the app's own imports, Vite+ and `@solidjs/diagnostics`, which
--the Solid plugin reads in development, against 28 before the packages
--([tooling README](../../packages/solid-tooling/README.md#fewer-tool-versions-in-each-manifest)).
--Bun also applies a patch to `@mdream/js` that the packages do not ship
--([limits](#limits)).
--
--**Can I take a single feature from it?** Yes. The behavior comes from runtime
--factories, and the copy keeps thin bindings in `src/`: its header values, its
--public messages, its page metadata and its content sources. Each row of the
--[table below](#what-each-page-and-feature-shows) links the guide for that part.
--
+@@ -85,7 +85,7 @@ and `llms-full.txt` of the production build. CI does not run it
  ## Running it
  
--You need the global [Vite+](https://viteplus.dev/guide/) CLI (`vp`). It selects
--the Node and Bun versions the project declares; the app's `engines.node` asks
--for Node 26.13.1 or a later 26 release. From the repository root:
--
--```bash
--vp install
--vp run build
--```
--
--Then run these from this folder. The browser tests and Playwright use Chromium,
--which `vp install` does not download, so the first command installs it once:
-+Install the global [Vite+](https://viteplus.dev/guide/) CLI and Bun. Run `npm install` from this directory if dependencies are missing. Install Chromium once for the browser tests:
+ Install the global [Vite+](https://viteplus.dev/guide/) CLI and Bun. Install
+-dependencies with `vp install`. Install Chromium once for the browser tests:
++dependencies with `npm install`. Install Chromium once for the browser tests:
  
  ```bash
  vp run test:browser:install
-@@ -179,9 +114,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
+@@ -107,9 +107,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
  ```
  
  <picture>
@@ -147,7 +142,7 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  `curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
-@@ -217,9 +152,9 @@ both suites.
+@@ -145,9 +145,9 @@ both suites.
  ### The same page in three languages
  
  <picture>
@@ -160,7 +155,7 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  Every page lives under `/pt`, `/en` or `/es`, with `lang`, the navigation and
-@@ -242,9 +177,9 @@ z-index values, counted as the custom properties declared in each file.
+@@ -170,9 +170,9 @@ z-index values, counted as the custom properties declared in each file.
  ### Outdated pages after a deploy
  
  <picture>
@@ -173,7 +168,7 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  `installOutdatedPageDetection` marks the page when a chunk of the previous build
-@@ -288,15 +223,15 @@ refuses, so it never shares a run with the other suites. See
+@@ -216,15 +216,15 @@ refuses, so it never shares a run with the other suites. See
  [publication load](docs/testing.md#publication-load).
  
  <picture>
@@ -185,63 +180,32 @@ diff --git a/source/README.md b/example/README.md
 +  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/e2e-coverage-light.webp" alt="The boilerplate app's Playwright cases by area, split between the E2E build that CI runs and the production build." width="800" />
  </picture>
  
--CI runs this app's check, Node type check, dead code, Vitest with coverage,
-+The upstream boilerplate CI runs the app's check, Node type check, dead code, Vitest with coverage,
- tooling tests and the `e2e` suite on every pull request that changes the app, a
- package, a fixture or the root configuration
+ The upstream CI runs the app's check, Node type check, dead code, Vitest with
+ coverage, tooling tests and the `e2e` suite on every pull request that changes
+ the app, a package, a fixture or the root configuration
 -([CI coverage](../../docs/development.md#ci)). The
 +([CI coverage](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci)). The
  [reference](#playwright-cases-by-area) lists the cases by area.
  
  ## Limits
-@@ -308,15 +243,7 @@ package, a fixture or the root configuration
+@@ -236,7 +236,7 @@ the app, a package, a fixture or the root configuration
    not prove production capacity. The thresholds of `PublicationLoad` are a local
    starting point and set no production SLO
    ([publication load](docs/testing.md#publication-load)).
--- The copy installs the packages from the workspace, so it tests the source of
--  the same commit. The packed tarballs are tested in minimal apps by the
--  [installed application scenarios](../../docs/ADRs/0021-installed-application-scenarios.md).
--- Bun applies a patch to `@mdream/js` from [`patches/`](patches), registered in
--  the root `package.json`. The packages do not ship it. An app that installs the
--  runtime from npm gets the published converter, and some conversions differ:
--  `<p>a<span> <span>b</span></span></p>` gives `ab` without the patch and `a b`
--  with it. The [Markdown guide](docs/seo/markdown.md) lists the differences and
--  how to adopt the same patch.
-+- Bun is required to run the application tasks. npm installs the upstream Markdown converter without the patch.
- - The guides describe this copy, but their sections about releases, CI, Git
-   hooks and the Vercel deploy describe the original repository.
+-- The installer determines whether the Markdown converter patch is applied.
++- npm installs the upstream Markdown converter.
  - The interactive controls need JavaScript. The tests check the server-rendered
-@@ -328,10 +255,9 @@ package, a fixture or the root configuration
+   HTML without JavaScript, and the app makes no promise to work without it.
  
- It takes its lint preset, lint rules, formatter settings, TypeScript configs,
- Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
--Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`, through the
--workspace, in place of the copies the original keeps in `tooling/`,
-+Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`, in place of the copies the original keeps in `tooling/`,
- `vite.config.ts` and `tsconfig.json`. See the
+@@ -249,7 +249,7 @@ Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
+ Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`, in place of
+ the copies the original keeps in `tooling/`, `vite.config.ts` and
+ `tsconfig.json`. See the
 -[configuration comparison](../../packages/solid-tooling/README.md#the-configuration-you-stop-maintaining)
 +[configuration comparison](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/README.md#the-configuration-you-stop-maintaining)
  of the tooling README for the line counts by area.
  
- The package supplies tools that this copy does not import itself. Its
-@@ -357,14 +283,12 @@ patch ([limits](#limits)).
- 
- ### Updating the packages
- 
--The manifest declares both packages as `workspace:*`, so the copy always runs
--the code of the same commit and has nothing to update. An app outside this
--repository raises them with
-+Update the installed packages with
- `vp update -L @evertondgn/solid-tooling @evertondgn/solid-runtime`, then aligns
- its versions with the exact peers of the packages and never raises `solid-js`
- with `-L`, as the root README's
--[update the packages](../../README.md#update-the-packages) shows. The
--[boilerplate app section](../../docs/development.md#the-boilerplate-app) of the
-+[update the packages](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/README.md#update-the-packages) shows. The
-+[boilerplate app section](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#the-boilerplate-app) of the
- development guide lists what changed from the original and how to bring the copy
- up to date with it.
- 
+ The package supplies tools that the application does not import itself. Its
 diff --git a/example/bunfig.toml b/example/bunfig.toml
 new file mode 100644
 --- /dev/null
@@ -255,6 +219,18 @@ new file mode 100644
 diff --git a/source/docs/architecture.md b/example/docs/architecture.md
 --- a/source/docs/architecture.md
 +++ b/example/docs/architecture.md
+@@ -85,9 +85,9 @@ CSS Module imports use the name `S`, for example,
+ 
+ The split follows the
+ [cohesion rule of AGENTS.md](../AGENTS.md#cohesion-and-size-of-modules).
+-[`lint.ts`](../../../packages/solid-tooling/src/lint.ts), builds the
++[`lint.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/lint.ts), builds the
+ configuration and its overrides. The groups in
+-[`rules`](../../../packages/solid-tooling/src/lint/rules) gather the rules for
++[`rules`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/lint/rules) gather the rules for
+ JavaScript, imports, TypeScript, Unicorn, tests and integrations with the
+ environment. The values of the rules and the order of the overrides belong to
+ the same contract, even when they live in different modules.
 @@ -111,7 +111,7 @@ and their helpers live in the runtime package.
  `data/errorApi/` (normalization of domain errors from APIs) are conventions for
  the first consumers and do not have modules yet. Public errors that only the
@@ -263,6 +239,15 @@ diff --git a/source/docs/architecture.md b/example/docs/architecture.md
 +[`@evertondgn/solid-runtime/server/public-errors`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/publicErrors/index.ts),
  next to the protection of the backend operations; requests and persistence live
  in `infra/`.
+ 
+@@ -149,7 +149,7 @@ imports.
+ ## Dependencies between layers
+ 
+ `architecture/layer-imports`, in
+-[`index.ts`](../../../packages/solid-tooling/src/architecturePolicy/index.ts),
++[`index.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/architecturePolicy/index.ts),
+ checks the direct dependencies of imports and re-exports through the local
+ paths. The restrictions are:
  
 diff --git a/source/docs/development.md b/example/docs/development.md
 --- a/source/docs/development.md
@@ -273,10 +258,10 @@ diff --git a/source/docs/development.md b/example/docs/development.md
  command pattern is documented in the
 -[tooling guide](../../../packages/solid-tooling/docs/limits.md#packaged-commands-and-types).
 +[tooling guide](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/limits.md#packaged-commands-and-types).
- Keep `trustedDependencies: []` when extracting this copy so dependency
- installation does not change Git hooks; hook installation is explicit.
+ The prepare script controls hook installation.
  
-@@ -55,7 +55,7 @@ generated `solid-env.d.ts` types cover the virtual modules, not
+ ## Environment and preview
+@@ -54,7 +54,7 @@ generated `solid-env.d.ts` types cover the virtual modules, not
  `import.meta.env`; keep `src/@types/env.d.ts` for the application's
  `PUBLICATION_BUILD_ID` declaration. `SITE.url` imports the runtime SEO origin.
  See the
@@ -285,53 +270,36 @@ diff --git a/source/docs/development.md b/example/docs/development.md
  
  To install and start the project, follow [running it](../README.md#running-it).
  
-@@ -127,7 +127,7 @@ runtime, plus the complete E2E tests.
+@@ -468,7 +468,7 @@ run.
+ ## Git hooks
  
- > This section describes the deploy of the original repository,
- > boilerplate_solidjs. This repository never deploys the copy: its
--> [CI](../../../docs/development.md#ci) only builds and tests it.
-+> [CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci) only builds and tests it.
+ The generated application installs Lefthook through its prepare script. See the
+-[hook commands](../../../packages/solid-tooling/docs/commits-and-hooks.md).
++[hook commands](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/commits-and-hooks.md).
  
- The production deploy comes from the `deploy` job of the
- [CI workflow](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/.github/workflows/ci.yml),
-@@ -290,8 +290,8 @@ plan does not replace the invalidation check described above.
+ ## Maintenance conventions
  
- > This section describes the CI and the release automation of the original
- > repository, boilerplate_solidjs. For this repository, see
--> [CI](../../../docs/development.md#ci) and
--> [Releasing](../../../docs/releasing.md).
-+> [CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci) and
-+> [Releasing](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/releasing.md).
+diff --git a/source/docs/i18n.md b/example/docs/i18n.md
+--- a/source/docs/i18n.md
++++ b/example/docs/i18n.md
+@@ -123,7 +123,7 @@ The cost of the generation grows with the whole set: each preparation reads and
+ validates again every catalog of every locale, and the Paraglide compiler loads
+ all of them at once. In development, this repeats on every saved catalog. None
+ of it runs on requests. The `CATALOGS_MAX_BYTES` limit, in
+-[`constants.ts`](../../../packages/solid-tooling/src/i18n/readCatalogs/constants.ts),
++[`constants.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/i18n/readCatalogs/constants.ts),
+ limits the sum of the catalog files: past it, the generation fails on the file
+ that crossed the limit, before reading it, instead of degrading the build. In
+ measurements with synthetic catalogs in three locales, 1 MiB (5,000 messages per
+@@ -218,7 +218,7 @@ isolation between the locales. The locale and the content of those files come
+ from the URL, regardless of cookies and `Accept-Language`; direct access does
+ not go through the localization of pages.
  
- In the CI and in the release automation, `setup-vp` provides the Node and the
- Bun declared in the project and reuses the package cache.
-@@ -390,7 +390,7 @@ workers and the Node runner of the tooling tests, at most three.
- 
- > This section describes the reuse proof of the original repository,
- > boilerplate_solidjs. This repository reuses the pull request run in another
--> way, described in [CI](../../../docs/development.md#ci).
-+> way, described in [CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci).
- 
- The push to `main` is a merge commit created by GitHub from a PR updated with
- the base, which the branch protection requires. When the run of that PR already
-@@ -449,7 +449,7 @@ push.
- 
- > This section measures the CI of the original repository, boilerplate_solidjs,
- > with its reuse proof and deploy steps. For the CI of this repository, see
--> [CI](../../../docs/development.md#ci).
-+> [CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci).
- 
- Separate runner usage from waiting time. The first is the sum of the job
- durations, computed between `started_at` and `completed_at`, divided by 60;
-@@ -482,7 +482,7 @@ run.
- > This section describes the hooks of the original repository,
- > boilerplate_solidjs. The copy installs no Git hooks. The hooks that the
- > tooling package ships are in
--> [Commit messages and Git hooks](../../../packages/solid-tooling/docs/commits-and-hooks.md).
-+> [Commit messages and Git hooks](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/commits-and-hooks.md).
- 
- Installed by Lefthook in `vp install`, authorized in the `trustedDependencies`
- of `package.json`:
+-[`requestClassification`](../../../packages/solid-runtime/src/middleware/requestClassification)
++[`requestClassification`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/requestClassification)
+ gathers the page criteria used by the localization and by the failure
+ containment. The localization of GET and HEAD pages looks at the path,
+ regardless of `Accept`, so that pages excluded from the Markdown negotiation
 diff --git a/source/docs/security.md b/example/docs/security.md
 --- a/source/docs/security.md
 +++ b/example/docs/security.md
@@ -353,10 +321,43 @@ diff --git a/source/docs/security.md b/example/docs/security.md
  on the first access to `event.nonce`. That field belongs to the native contract
  of the Solid plugin. `securityHeaders` fills it before the render, and the
  containment also creates it when a failure happens before that middleware, so
+diff --git a/source/docs/seo/indexes.md b/example/docs/seo/indexes.md
+--- a/source/docs/seo/indexes.md
++++ b/example/docs/seo/indexes.md
+@@ -24,7 +24,7 @@ section and optional mark. `noindex: true` excludes the page from the sitemap
+ and from llms.txt, even with the flag. The filter looks at the effective setting
+ of the page, including inheritance and the child index route. The resolver is
+ colocated in
+-[`resolveRouteLlms`](../../../../packages/solid-runtime/src/seo/llms/helpers/resolveRouteLlms).
++[`resolveRouteLlms`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/seo/llms/helpers/resolveRouteLlms).
+ The index is in the base locale. Routes with a parameter stay out even with
+ `llms`, and the sources of `route.info.sitemap` do not feed this index. Markdown
+ publication is controlled separately by `seo.markdown` and
+diff --git a/source/docs/seo/markdown.md b/example/docs/seo/markdown.md
+--- a/source/docs/seo/markdown.md
++++ b/example/docs/seo/markdown.md
+@@ -43,7 +43,7 @@ upgrade are in
+ [server errors](../server-errors/ssr-integrity.md#ssr-integrity-for-markdown).
+ 
+ The build prerender goes through the same adapter. The compiled
+-[`markdownPrerender`](../../../../packages/solid-tooling/src/publication/markdownPrerender)
++[`markdownPrerender`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/publication/markdownPrerender)
+ module asks the middleware for the list of static pages
+ (`/_markdown/static.json`), prerenders each `.md` and publishes the list as a
+ static file, together with `llms.txt`. The middleware only builds the list in
+@@ -68,7 +68,7 @@ universal minimum of characters and no ban on isolated tags. The result is in
+ ### llms-full.txt aggregate
+ 
+ The reader of the index is in
+-[`readLlmsIndex`](../../../../packages/solid-tooling/src/publication/markdownPrerender/helpers/readLlmsIndex),
++[`readLlmsIndex`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/publication/markdownPrerender/helpers/readLlmsIndex),
+ next to the generator that uses it. Its tests use the Node runner of the
+ tooling.
+ 
 diff --git a/source/docs/seo.md b/example/docs/seo.md
 --- a/source/docs/seo.md
 +++ b/example/docs/seo.md
-@@ -258,5 +258,5 @@ See
+@@ -259,5 +259,5 @@ See
  The runtime now owns Markdown and llms services; this application retains their
  thin bindings and editorial values. `seo` in `vite.config.ts` selects the
  compiled publication pipeline. See
@@ -393,6 +394,18 @@ diff --git a/source/docs/server-errors/backend.md b/example/docs/server-errors/b
  requires static imports of Solid web modules and the runtime configurator, in
  `publicErrors` and `configureServerErrors` too.
  `backend/static-render-integrity-imports` requires static imports of the local
+@@ -151,9 +151,9 @@ require review. It does not check the content of the log arguments in
+ `logServerFailure`. The setter and control-enabled protection are private
+ package modules, not AST conventions. Do not use these gaps or a disable comment
+ to get around the contract. The pattern of relative imports is shared with
+-[`javascript.ts`](../../../../packages/solid-tooling/src/lint/rules/javascript.ts)
++[`javascript.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/lint/rules/javascript.ts)
+ through the `RELATIVE_IMPORT_RESTRICTION` constant, in
+-[`constants.ts`](../../../../packages/solid-tooling/src/backendPolicy/constants.ts).
++[`constants.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/backendPolicy/constants.ts).
+ 
+ The same exact path exceptions apply when lint runs from the runtime package.
+ `server-only` is allowed in `src/infra/server/**/index.ts`, and the Node import
 diff --git a/source/docs/server-errors/recovery.md b/example/docs/server-errors/recovery.md
 --- a/source/docs/server-errors/recovery.md
 +++ b/example/docs/server-errors/recovery.md
@@ -408,26 +421,15 @@ diff --git a/source/docs/server-errors/recovery.md b/example/docs/server-errors/
 diff --git a/source/docs/server-errors/solid-upgrades.md b/example/docs/server-errors/solid-upgrades.md
 --- a/source/docs/server-errors/solid-upgrades.md
 +++ b/example/docs/server-errors/solid-upgrades.md
-@@ -10,8 +10,8 @@ The shared registration and protection live in
- entry and supplies the catalog callback to the package configurator.
+@@ -5,7 +5,7 @@
+ ## Upgrading Solid
  
- Check the dependencies of [package.json](../../package.json), the `catalog` of
--the [root package.json](../../../../package.json) and the resolution in
--[bun.lock](../../../../bun.lock). `vp toolchain` shows the tools of the active
-+the [root package.json](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/package.json) and the resolution in
-+[bun.lock](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/bun.lock). `vp toolchain` shows the tools of the active
- installation. Those files and the command replace a list of versions kept in
- this guide.
- 
-@@ -31,7 +31,7 @@ the published and installed package changed that behavior.
-    internal APIs early. Run `vp run test:tarball` at the monorepo root: the type
-    check of the icons tarball test reads the published types of both packages
-    with `skipLibCheck` off, as the
--   [workspace section](../../../../docs/development.md#workspace) describes.
-+   [workspace section](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#workspace) describes.
- 2. Check that the contract of the `configureServerErrors({ onError })` hook that
-    the central registration uses is still the same: a synchronous call, the
-    return sent without another sanitization, a verdict per object and the
+ The shared registration and protection live in
+-[`server`](../../../../packages/solid-runtime/src/infra/server). The
++[`server`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server). The
+ application's `src/infra/server/configureServerErrors/index.ts` remains the
+ `serverSetup` entry and supplies the catalog callback to the package
+ configurator.
 diff --git a/source/docs/server-errors/ssr-integrity.md b/example/docs/server-errors/ssr-integrity.md
 --- a/source/docs/server-errors/ssr-integrity.md
 +++ b/example/docs/server-errors/ssr-integrity.md
@@ -443,7 +445,16 @@ diff --git a/source/docs/server-errors/ssr-integrity.md b/example/docs/server-er
 diff --git a/source/docs/server-errors.md b/example/docs/server-errors.md
 --- a/source/docs/server-errors.md
 +++ b/example/docs/server-errors.md
-@@ -30,13 +30,13 @@ production.
+@@ -9,7 +9,7 @@ contract below must be kept through dependency upgrades.
+ ## Current protection
+ 
+ The shared protection lives in
+-[`server`](../../../packages/solid-runtime/src/infra/server). Each module has
++[`server`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server). Each module has
+ its own `@evertondgn/solid-runtime/server/` entry, with the `solid` condition
+ and `server-only`. Public errors use
+ `@evertondgn/solid-runtime/server/public-errors`. The application keeps
+@@ -31,13 +31,13 @@ production.
  - [requestJson](../src/infra/server/requestJson/index.ts) checks the HTTP
    status, reads the success JSON and applies the output schema inside the
    protection.
@@ -460,12 +471,12 @@ diff --git a/source/docs/server-errors.md b/example/docs/server-errors.md
    is the only log point: it writes the fixed message of the source and, for an
    `Error`, only the class and the filtered frames described in
    [Failure log](server-errors/logging.md#failure-log).
-@@ -95,14 +95,14 @@ with the single application security instance and Markdown adapter. The package
+@@ -96,14 +96,14 @@ with the single application security instance and Markdown adapter. The package
  adapts the plugin event to the `Request` chain of `filesystem-routing` and
  `composeMiddleware`, handing that chain to `containFailures`. The containment,
  in
--[`packages/solid-runtime/src/middleware/containFailures/index.ts`](../../../packages/solid-runtime/src/middleware/containFailures/index.ts),
-+[`packages/solid-runtime/src/middleware/containFailures/index.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/containFailures/index.ts),
+-[`index.ts`](../../../packages/solid-runtime/src/middleware/containFailures/index.ts),
++[`index.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/containFailures/index.ts),
  composes the whole chain inside itself, and an exception in the middlewares, in
  the API routes or in the page handler becomes a 500 with the security headers
  and the `[middleware]` log. Only a `Response` without a body and with a status
@@ -477,7 +488,7 @@ diff --git a/source/docs/server-errors.md b/example/docs/server-errors.md
  The headers of a returned `Response.redirect()` are immutable, so they go on a
  copy without a body; the raw return of `fetch()`, with immutable headers and an
  upstream body, is not copied and becomes a 500. In development the original
-@@ -115,7 +115,7 @@ call the default export, a unit test requires it to contain failures, and the
+@@ -116,7 +116,7 @@ call the default export, a unit test requires it to contain failures, and the
  The responses of the containment do not go back through `securityHeaders`, so
  the containment itself writes the security headers and the
  Content-Security-Policy with the nonce of the request, read by
@@ -486,7 +497,7 @@ diff --git a/source/docs/server-errors.md b/example/docs/server-errors.md
  which uses the native `event.nonce` field. A failure before `securityHeaders`
  can find the request without a nonce; the containment creates it before
  rendering the error page, so that its scripts, the plugin handler and the CSP
-@@ -126,7 +126,7 @@ use the same value. Without a request event, the text 500 goes out with
+@@ -127,7 +127,7 @@ use the same value. Without a request event, the text 500 goes out with
  In a navigation, the 500 shows the error page of the app. A navigation is a
  `GET` or `HEAD` on a page path whose `Accept` allows HTML or Markdown, wildcards
  and a missing header included, according to `isPageRequest` in
@@ -498,19 +509,28 @@ diff --git a/source/docs/server-errors.md b/example/docs/server-errors.md
 diff --git a/source/docs/testing.md b/example/docs/testing.md
 --- a/source/docs/testing.md
 +++ b/example/docs/testing.md
-@@ -152,7 +152,7 @@ error and success, each one in the initial SSR, in a call from the browser and
+@@ -9,7 +9,7 @@ Test files live in `__tests__` folders next to the code they exercise
+ are the exception and live in `src/tests/pages/`, outside the Vitest projects.
+ 
+ The `project/test-filename` lint rule, in
+-[`test-filename.ts`](../../../packages/solid-tooling/src/test-filename.ts),
++[`test-filename.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/test-filename.ts),
+ checks the names: `Name[.qualifier].environment.test.ts(x)` in `src`, with the
+ `node`, `dom`, `browser` or `e2e` environment; `Name[.qualifier].test-d.ts(x)`
+ for type-only tests; and `Name[.qualifier].test.ts` in `tooling`. `Name` is the
+@@ -151,7 +151,7 @@ error and success, each one in the initial SSR, in a call from the browser and
  in streaming, plus a reload that still fails, recovery after the backend comes
  back and the isolation of the client bundle. The initial SSR is also checked
  with JavaScript disabled. See [server errors](server-errors.md) for the failure
--scenarios and [CI](../../../docs/development.md#ci) for when the monorepo runs
-+scenarios and [CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci) for when the monorepo runs
+-scenarios and [CI](../../../docs/development.md#ci) for when upstream CI runs
++scenarios and [CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci) for when upstream CI runs
  the fixture suite.
  
  ### Publication load
-@@ -360,7 +360,7 @@ The mode requires production routes. If an earlier `vp run test:e2e` left an E2E
- fixture build in `.vercel/output`, Playwright stops before the preview and
- reports `TEST_PREBUILT found an e2e build`; run `vp run build` in the app to
- replace it with a production build, then run the prebuilt command again. The
+@@ -359,7 +359,7 @@ production routes. If an earlier `vp run test:e2e` left an E2E fixture build in
+ `.vercel/output`, Playwright stops before the preview and reports
+ `TEST_PREBUILT found an e2e build`; run `vp run build` in the app to replace it
+ with a production build, then run the prebuilt command again. The
 -[tooling package tests](../../../packages/solid-tooling/src/playwright/__tests__/playwright.test.ts)
 +[tooling package tests](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/playwright/__tests__/playwright.test.ts)
  cover the startup commands and reject an E2E fixture build in prebuilt mode.
@@ -522,12 +542,21 @@ diff --git a/source/docs/ui.md b/example/docs/ui.md
 @@ -144,7 +144,7 @@ would fall back to the system font. Check the coverage of a file with
  `fc-query --format='%{charset}\n' <file>`.
  
- The font loading contract and complete examples are in the monorepo's
+ The font loading contract and complete examples are in the tooling package’s
 -[font guide](../../../packages/solid-tooling/docs/fonts.md). Keep the CSS
 +[font guide](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/fonts.md). Keep the CSS
  fallback stack, weights and sizes in the application theme. Remove handwritten
  font faces and preload imports when adopting this mechanism; no inline CSS is
  required.
+@@ -273,7 +273,7 @@ command reuses that validation for every CSS file in `src/`, those without
+ imports in JS/TS included.
+ 
+ The rules and the name check come from `checkCss` in `@evertondgn/solid-tooling`
+-([`stylelint`](../../../packages/solid-tooling/src/stylelint)), called by
++([`stylelint`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/stylelint)), called by
+ `tooling/css/check.ts`. The lint of the real CSS is still automatic, and its
+ violations block the validation until they are fixed.
+ 
 diff --git a/source/package.json b/example/package.json
 --- a/source/package.json
 +++ b/example/package.json

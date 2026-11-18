@@ -31,3 +31,21 @@ void it('fails the build when a template file has no feature assignment', contex
     /Review features.json for changes in the template/u
   )
 })
+
+void it('rejects an unknown feature before assembling the template', context => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'unknown-feature-'))
+  context.after(() => rmSync(dir, { recursive: true, force: true }))
+  copyFileSync('classification.txt', path.join(dir, 'classification.txt'))
+  const input = readFileSync('features.json', 'utf8')
+  writeFileSync(
+    path.join(dir, 'features.json'),
+    input.replace('"fonts.ts": "fonts"', '"fonts.ts": "unknown-feature"')
+  )
+  const result = spawnSync(
+    process.execPath,
+    [path.resolve('tooling/build.ts')],
+    { cwd: dir, encoding: 'utf8' }
+  )
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /unknown-feature/u)
+})

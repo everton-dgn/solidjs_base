@@ -14,7 +14,7 @@ import path from 'node:path'
 import process from 'node:process'
 
 import { fmt } from '@evertondgn/solid-tooling/fmt'
-import { literal, object, parse, record, string } from 'valibot'
+import { literal, object, parse, picklist, record, string } from 'valibot'
 
 import { rewriteDocuments, rewritePatchTest } from '../src/rewrite.ts'
 import { manifestSchema } from '../src/schema.ts'
@@ -43,7 +43,23 @@ if (files.length !== rules.size || files.some(file => !rules.has(file))) {
 }
 const featureSchema = object({
   version: literal(1),
-  files: record(string(), string())
+  files: record(
+    string(),
+    picklist([
+      'core',
+      'fonts',
+      'i18n',
+      'icons',
+      'markdown',
+      'outdated-page',
+      'publication',
+      'security-headers',
+      'seo',
+      'server-errors',
+      'sitemap',
+      'theme'
+    ])
+  )
 })
 const features = parse(
   featureSchema,

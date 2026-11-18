@@ -122,7 +122,9 @@ async function createStaticConfig(input: StaticOutputInput) {
   return {
     prerender: { routes, crawlLinks: false, failOnError: true },
     hooks: {
-      async compiled({ options: { output } }: StaticBuild) {
+      async compiled({ options: { static: isStatic, output } }: StaticBuild) {
+        // Nitro compiles its request renderer before writing prerendered files.
+        if (!isStatic) return
         let sitemaps: string[] = []
         if (
           typeof options.seo === 'object' &&

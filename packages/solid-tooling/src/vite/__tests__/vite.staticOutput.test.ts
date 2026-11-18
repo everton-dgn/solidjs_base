@@ -76,7 +76,12 @@ it('writes per-file inline script hashes and their union outside public', async 
     path.join(publicDir, '404.html'),
     '<script>abc</script><script type="module">hello</script><script type="application/json">{}</script>'
   )
-  await config.hooks.compiled({ options: { output: { dir, publicDir } } })
+  const output = { dir, publicDir }
+  await config.hooks.compiled({ options: { static: false, output } })
+  await assert.rejects(readFile(path.join(dir, 'csp-hashes.json')), {
+    code: 'ENOENT'
+  })
+  await config.hooks.compiled({ options: { static: true, output } })
   const hash = 'sha256-ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0='
   const moduleHash = 'sha256-LPJNul+wow4m6DsqxbninhsWHlwfp0JecwQzYpOLmCQ='
   const manifest = await readFile(path.join(dir, 'csp-hashes.json'), 'utf8')
@@ -217,7 +222,9 @@ it('checks the published files for relative and same-origin sitemap links', asyn
       locales: []
     })
     assert.ok(config.hooks)
-    const nitro = { options: { output: { dir: root, publicDir } } }
+    const nitro = {
+      options: { static: true, output: { dir: root, publicDir } }
+    }
     await assert.rejects(
       config.hooks.compiled(nitro),
       /sitemap not published: \/map.xml/u

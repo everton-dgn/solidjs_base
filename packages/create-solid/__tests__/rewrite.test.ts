@@ -74,5 +74,12 @@ void it('reads pnpm patch paths from YAML with unquoted values', context => {
   )
   writeFileSync(path.join(dir, 'pnpm-lock.yaml'), 'example@1.0.0:\n')
   writeFileSync(path.join(dir, 'example.patch'), '')
-  execFileSync(process.execPath, ['--test', file], { cwd: dir })
+  const env = { ...process.env }
+  delete env.NODE_TEST_CONTEXT
+  const output = execFileSync(process.execPath, ['--test', file], {
+    cwd: dir,
+    env,
+    encoding: 'utf8'
+  })
+  assert.match(output, /pass 1/u)
 })

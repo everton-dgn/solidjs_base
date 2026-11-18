@@ -3,19 +3,20 @@ import { readFile, realpath } from 'node:fs/promises'
 import path from 'node:path'
 import { argv } from 'node:process'
 
-// The tarball harness runs this test with the workspace's pinned Bun.
-declare const Bun: {
-  YAML: { parse: (source: string) => unknown }
-  markdown: {
-    render: (
-      source: string,
-      callbacks: {
-        link: (text: string, attributes: { href: string }) => string
-        image: (text: string, attributes: { src: string }) => string
-      }
-    ) => string
-  }
+type LinkAttributes = { href: string }
+type ImageAttributes = { src: string }
+type RenderCallbacks = {
+  link: (text: string, attributes: LinkAttributes) => string
+  image: (text: string, attributes: ImageAttributes) => string
 }
+type BunYaml = { parse: (source: string) => unknown }
+type BunMarkdown = {
+  render: (source: string, callbacks: RenderCallbacks) => string
+}
+type BunRuntime = { YAML: BunYaml; markdown: BunMarkdown }
+
+// The tarball harness runs this test with the workspace's pinned Bun.
+declare const Bun: BunRuntime
 
 const CLI_ARGUMENT_OFFSET = 2
 const [folder, name] = argv.slice(CLI_ARGUMENT_OFFSET)

@@ -15,11 +15,11 @@ the page. This Vite plugin turns both sources into components at build time. You
 import an icon by name, TypeScript knows every name of the collection, and the
 build stops with the name you asked for when an icon does not exist.
 
-> SolidJS 2 is still a release candidate, and this package is `0.x`
-> ([versions](#versions-and-license)). The package pins its `@solidjs/web` and
-> `vite-plus` peer dependencies to the versions it is tested with, listed in its
+> This package is `0.x` ([versions](#versions-and-license)). It pins its
+> `@solidjs/web` and `vite-plus` peer dependencies to the versions it is tested
+> with, listed in its
 > [`package.json`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/package.json),
-> so plan to update them together until SolidJS 2 is stable.
+> so update them together.
 
 [See it work](#a-typo-in-an-icon-name-stops-the-build) ·
 [Who it fits](#who-it-fits) · [Questions](#questions-before-you-adopt-it) ·
@@ -107,10 +107,9 @@ client bundle, and the path of the shared icon once.
 - Your app shows SVG files that users upload. The checks of the plugin do not
   make an untrusted SVG safe, and such a file needs a sanitizer at runtime
   ([what the plugin does with your SVG files](#what-the-plugin-does-with-your-svg-files)).
-- You cannot pin exact versions. `vite-plus` 1.7.0 and `@solidjs/web`
-  2.0.0-rc.23 are exact peers in the
-  [`package.json`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/package.json),
-  and SolidJS 2 is a release candidate.
+- You cannot pin exact versions. `vite-plus` 1.7.0 and `@solidjs/web` 2.0.0 are
+  exact peers in the
+  [`package.json`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/package.json).
 - You run Node older than 26.13.1, the `engines.node` floor of the package.
 - You build folder collections on Windows and rely on the checks that keep an
   icon inside its folder. Those checks are tested on macOS and Linux
@@ -245,8 +244,8 @@ vp update -L @evertondgn/vite-plugin-solid-icons
 `npm view @evertondgn/vite-plugin-solid-icons peerDependencies` prints, with the
 `vite` alias that `vp migrate` writes for that `vite-plus`, and align `solid-js`
 and the Solid overrides with `@solidjs/web` as the root README describes. Do not
-raise `solid-js` with `-L`: the newest release candidate can be newer than the
-one the plugin was tested with. The
+raise `solid-js` with `-L`: the newest Solid release can be newer than the one
+the plugin was tested with. The
 [release notes](https://github.com/everton-dgn/solidjs_base/releases) list the
 breaking changes.
 

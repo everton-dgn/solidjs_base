@@ -7,7 +7,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" />
-  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 RC and Vite+. Build your Solid app. Stop rebuilding its foundation. Optional languages and theme. Shared server protection, SEO, assets and development tools. Two install commands: vp add -D @evertondgn/solid-tooling and vp add @evertondgn/solid-runtime. Cards: languages from your locale list, light, dark or system theme, CSP and server errors, metadata and sitemap, icons and fonts, config, tests and hooks." width="800" />
+  <img src="https://raw.githubusercontent.com/everton-dgn/solidjs_base/main/docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 and Vite+. Build your Solid app. Stop rebuilding its foundation. Optional languages and theme. Shared server protection, SEO, assets and development tools. Two install commands: vp add -D @evertondgn/solid-tooling and vp add @evertondgn/solid-runtime. Cards: languages from your locale list, light, dark or system theme, CSP and server errors, metadata and sitemap, icons and fonts, config, tests and hooks." width="800" />
 </picture>
 
 **The whole `vite.config.ts`, lint rules, test projects and Git hooks of a
@@ -28,11 +28,10 @@ version, and each app takes it when it updates. The
 in this repository keeps
 [129 lines of configuration where the starter had 945](#the-configuration-you-stop-maintaining).
 
-> SolidJS 2 is still a release candidate, and this package is `0.x`: below
-> 1.0.0, a breaking change raises the minor version. The package is tested with
-> `2.0.0-rc.23`, and its Solid, Nitro, router and icons plugins are pinned to
-> the versions tested together. A new version of one of them needs a package
-> version tested with it.
+> This package is `0.x`: below 1.0.0, a breaking change raises the minor
+> version. The package is tested with SolidJS `2.0.0`, and its Solid, Nitro,
+> router and icons plugins are pinned to the versions tested together. A new
+> version of one of them needs a package version tested with it.
 
 The package loads
 [`@evertondgn/vite-plugin-solid-icons`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/README.md)
@@ -199,7 +198,7 @@ Build audits check that these tools stay out of the app bundles.
   static `dist/` with no server
   ([applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)).
 - You cannot pin exact versions. `vite-plus` 1.7.0 is an exact peer of this
-  package, its plugins are pinned, and SolidJS 2 is a release candidate.
+  package, and its plugins are pinned.
 - You run Node older than 26.13.1, the `engines.node` floor of the package.
 - Install size matters more than fewer declarations. The tooling installs the
   tools of features you do not use: 8.41% more `node_modules` with Bun's hoisted
@@ -222,9 +221,9 @@ conventions, such as `project/test-filename`, which expects each test in
 `lint.overrides`. The full `defineSolidApp` preset, the test presets, Knip and
 the CSS policy expect the boilerplate layout ([limits](#limits)).
 
-**What happens when a new Solid release candidate ships?** The package pins the
-Solid, Nitro, router and icons plugins to versions tested together. Wait for a
-package version tested with the new release, then
+**What happens when a new Solid version ships?** The package pins the Solid,
+Nitro, router and icons plugins to versions tested together. Wait for a package
+version tested with the new release, then
 [update the packages together](#update-the-package). Do not raise Solid alone.
 
 **How heavy is the install?** Heavier than the manifest suggests: 8.41% more
@@ -290,8 +289,8 @@ to the exact peer of this package, `@inlang/paraglide-js` to its optional exact
 peer if your app has translations, and `solid-js`, `@solidjs/web` and the Solid
 overrides to the peer of the runtime.
 [Update the packages](https://github.com/everton-dgn/solidjs_base/blob/main/README.md#update-the-packages)
-lists each step. Do not raise `solid-js` with `-L`: the newest release candidate
-can be newer than the one the packages were tested with. Read the
+lists each step. Do not raise `solid-js` with `-L`: the newest Solid release can
+be newer than the one the packages were tested with. Read the
 [changelog](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/CHANGELOG.md)
 before you update.
 

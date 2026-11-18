@@ -757,7 +757,7 @@ for (const scenario of SCENARIOS) {
           await checkStaticOutput({
             app,
             deadline,
-            translated: scenario === 'ssr-i18n'
+            isTranslated: scenario === 'ssr-i18n'
           })
           return
         }

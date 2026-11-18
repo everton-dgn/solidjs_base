@@ -159,3 +159,18 @@ it('rejects base-locale paths outside the list', async () => {
   handlers['prerender:generate']?.(route)
   assert.equal(route.error?.message, 'Invalid static Markdown list')
 })
+
+it('keeps the static Markdown inventory and Vercel configuration out of static output', async () => {
+  const { handlers } = await setup({ isStatic: true })
+  const queue = new Set<string>()
+  handlers['prerender:routes']?.(queue)
+  const route: PrerenderRoute = {
+    route: MARKDOWN_PRERENDER_PATH,
+    contents: manifest({ paths: ['/en/page.md'] })
+  }
+  handlers['prerender:generate']?.(route)
+  assert.deepEqual([...queue], ['/en/page.md'])
+  assert.equal(route.error, undefined)
+  assert.equal(route.skip, true)
+  assert.equal(handlers.compiled, undefined)
+})

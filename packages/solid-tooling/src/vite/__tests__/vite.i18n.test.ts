@@ -8,6 +8,8 @@ import { promisify } from 'node:util'
 
 import * as v from 'valibot'
 
+import { localeModule } from '../../locale-module.ts'
+
 type Scenario = {
   options: Record<string, unknown>
   mode?: string
@@ -138,5 +140,24 @@ it('replaces the automatic plugin through extend in app and test targets', async
         target !== 'app' || mode !== 'test'
       )
     }
+  }
+})
+
+it('keeps locale request exports and disables redirects for static pages', async context => {
+  const root = await createRoot(context)
+  const runtime = JSON.stringify(path.join(root, 'paraglide/runtime.js'))
+  const server = JSON.stringify(path.join(root, 'paraglide/server.js'))
+  const exports = `extractLocaleFromRequest, cookieName, cookieMaxAge, cookieDomain, cookieSameSite, cookieSecure } from ${runtime}; export { paraglideMiddleware } from ${server}`
+  for (const output of ['static', undefined]) {
+    const { load } = localeModule({ root, output })
+    assert.ok(typeof load === 'function')
+    const source: unknown = Reflect.apply(load, {}, [
+      '\0solid-app:locale-request'
+    ])
+    const prefix =
+      output === 'static'
+        ? 'export const shouldRedirect = () => undefined; export {'
+        : 'export { shouldRedirect,'
+    assert.equal(source, `${prefix} ${exports}`)
   }
 })

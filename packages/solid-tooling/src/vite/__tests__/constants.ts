@@ -28,3 +28,9 @@ export const ALL_PUBLICATION_SEO = {
   llms: {},
   llmsFull: {}
 }
+
+export const HEADERS = {
+  'strict-transport-security': 'max-age=63072000; includeSubDomains',
+  'x-content-type-options': 'nosniff',
+  'cross-origin-resource-policy': 'same-origin'
+}

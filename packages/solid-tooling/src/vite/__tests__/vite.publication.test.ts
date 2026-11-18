@@ -98,3 +98,44 @@ it('accepts omitted server settings expressed as undefined for static output', (
     })
   )
 })
+
+it('refuses incompatible JavaScript options before creating static plugins', () => {
+  const options = { root: OPTIONS.root, output: 'static' } as const
+  for (const key of [
+    'serverSetup',
+    'routeRules',
+    'staticPaths',
+    'securityHeaders'
+  ]) {
+    assert.throws(
+      () => defineSolidApp({ ...options, [key]: {} }),
+      new RegExp(`${key} requires`, 'u')
+    )
+  }
+  assert.throws(
+    () => defineSolidApp({ ...options, seo: { sitemap: true } }),
+    /requires seo.sitemap.static/u
+  )
+  for (const markdown of [{}, { static: false }]) {
+    assert.throws(
+      () => defineSolidApp({ ...options, seo: { markdown } }),
+      /requires seo.markdown.static/u
+    )
+  }
+  assert.doesNotThrow(() =>
+    defineSolidApp({
+      ...options,
+      seo: { sitemap: { static: true }, markdown: false }
+    })
+  )
+  assert.doesNotThrow(() => defineSolidApp({ ...options, seo: false }))
+  assert.throws(
+    // @ts-expect-error JavaScript configs can pass an unknown output.
+    () => defineSolidApp({ ...options, output: 'netlify' }),
+    /output must be vercel or static/u
+  )
+  assert.throws(
+    () => defineSolidApp({ ...options, ssr: false }),
+    /output needs SSR/u
+  )
+})

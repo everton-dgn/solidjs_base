@@ -703,3 +703,19 @@ matrix and its separate checks. `SCENARIO_MUTATION=llms-budget` on
 `ssr-plain / isolated$` must fail the build; `llms-link` and `llms-module` on
 `ssr-plain / isolated-publication-off$` must fail the bundle/config audit. See
 [ADR 0034](ADRs/0034-runtime-markdown-publication.md).
+
+## Updating the generator template
+
+Review each new tracked app path in `packages/create-solid/classification.txt`.
+Stage the app changes first, then record the Git tree from the index in the same
+commit. From the repository root:
+
+```sh
+tree=$(git write-tree)
+git rev-parse "$tree:apps/boilerplate" > packages/create-solid/app-tree.txt
+```
+
+After committing the app and its digest, run `vp run build`. In
+`packages/create-solid`, run `node parity.ts --update` and review the changes in
+`expected.diff` before committing them. The parity test reads the app from the
+current commit and generates the comparison tree from the packed CLI.

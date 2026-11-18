@@ -126,3 +126,10 @@ This changes the public installation contract and uses a feat commit with a
 BREAKING CHANGE footer. The guides describe the complete installation and
 command patterns; the original decisions remain valid outside dependency
 ownership and type resolution.
+
+## Generated applications
+
+Generated applications declare Lefthook directly so that Vite+ recognizes their
+hook manager during creation. Their prepare script checks for a Git repository
+before installing hooks through the tooling CLI. This also allows installation
+in a directory created without Git.

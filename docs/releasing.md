@@ -477,6 +477,9 @@ Release or, failing that, its tag. Merging first leaves neither, so it collects
 the commits back to `bootstrap-sha` and proposes a release with the whole
 history of the package.
 
+For `@evertondgn/create-solid`, pack `packages/create-solid` and use the tag
+`create-solid@<version>` on the reviewed commit before merging.
+
 A version published this way has its tag and no GitHub Release, and the package
 has no `CHANGELOG.md` until its first automated release writes both, as with
 `vite-plugin-solid-icons@0.7.0`.

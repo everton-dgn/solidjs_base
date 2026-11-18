@@ -3,7 +3,8 @@ import type {
   SeoImage,
   SeoMetadata,
   SeoRouteInfo,
-  SeoSite
+  SeoSite,
+  SeoText
 } from '../types.ts'
 
 type ResolveOptions = {
@@ -13,7 +14,7 @@ type ResolveOptions = {
 
 type ResolveImageOptions = {
   base: SeoImage
-  image: Partial<SeoImage> | undefined
+  image: SeoRouteInfo['image']
 }
 
 type ResolveArticleOptions = {
@@ -21,12 +22,16 @@ type ResolveArticleOptions = {
   article: SeoArticle | undefined
 }
 
+function readText(text: SeoText | undefined): string | undefined {
+  return typeof text === 'function' ? text() : text
+}
+
 function resolveImage({ base, image }: ResolveImageOptions): SeoImage {
   return {
     path: image?.path ?? base.path,
     width: image?.width ?? base.width,
     height: image?.height ?? base.height,
-    alt: image?.alt ?? base.alt
+    alt: readText(image?.alt) ?? base.alt
   }
 }
 
@@ -57,8 +62,8 @@ export function resolveRouteSeo({
     image: { ...SITE.image }
   }
   for (const seo of metadata) {
-    resolved.title = seo?.title ?? resolved.title
-    resolved.description = seo?.description ?? resolved.description
+    resolved.title = readText(seo?.title) ?? resolved.title
+    resolved.description = readText(seo?.description) ?? resolved.description
     resolved.noindex = seo?.noindex ?? resolved.noindex
     resolved.type = seo?.type ?? resolved.type
     resolved.image = resolveImage({ base: resolved.image, image: seo?.image })

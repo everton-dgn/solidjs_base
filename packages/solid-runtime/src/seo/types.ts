@@ -25,8 +25,16 @@ export type SeoMetadata = {
   article?: SeoArticle
 }
 
-export type SeoRouteInfo = Partial<Omit<SeoMetadata, 'image'>> & {
-  image?: Partial<SeoImage>
+// A function is called each time the route metadata resolves, so a message
+// function such as m.about_title reads the locale of the current request.
+export type SeoText = string | (() => string)
+
+export type SeoRouteInfo = Partial<
+  Omit<SeoMetadata, 'title' | 'description' | 'image'>
+> & {
+  title?: SeoText
+  description?: SeoText
+  image?: Partial<Omit<SeoImage, 'alt'>> & { alt?: SeoText }
 }
 
 export type SeoSite = {

@@ -379,6 +379,11 @@ Call `createSeo({ route: true, site })` once in the Router's root owner, or
 identities in its defaults: author, organization and social fields appear only
 when you pass them. See [Optional SEO](#optional-seo).
 
+Each page declares its metadata in `route.info.seo`. `title`, `description` and
+`image.alt` take a string or a message function, which the runtime calls each
+time it resolves the metadata, so `title: m.about_title` follows the locale of
+the request without a getter.
+
 ## Each page as Markdown, plus llms.txt
 
 <picture>

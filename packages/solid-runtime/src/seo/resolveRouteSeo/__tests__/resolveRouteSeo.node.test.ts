@@ -39,6 +39,33 @@ describe('SEO metadata resolution through the route chain', () => {
     })
   })
 
+  it('reads text functions on each resolution, as message functions', () => {
+    let locale = 'pt'
+    const titles: Record<string, string> = { pt: 'Sobre', en: 'About' }
+    const metadata = [
+      {
+        title: () => titles[locale] ?? '',
+        description: () => `${locale} description`,
+        image: { alt: () => `${locale} cover` }
+      }
+    ]
+
+    const first = resolveRouteSeo({ metadata, site: SITE })
+    locale = 'en'
+    const second = resolveRouteSeo({ metadata, site: SITE })
+
+    expect([first.title, first.description, first.image.alt]).toStrictEqual([
+      'Sobre',
+      'pt description',
+      'pt cover'
+    ])
+    expect([second.title, second.description, second.image.alt]).toStrictEqual([
+      'About',
+      'en description',
+      'en cover'
+    ])
+  })
+
   it('inherits the layout type and merges image attributes', () => {
     const seo = resolveRouteSeo({
       metadata: [

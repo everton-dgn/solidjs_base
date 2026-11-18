@@ -89,11 +89,12 @@ export async function waitForPinnedPackages({
     readWorkspaceNames(root)
   ])
   const { name, version, pinned } = findPinnedPackages({ manifest, names })
-  if (name === '@evertondgn/create-solid') {
-    const settings = await readPackedManifest(
-      tarball,
-      'package/dist/settings.json'
-    )
+  const settings = await readPackedManifest(
+    tarball,
+    'package/dist/settings.json',
+    true
+  )
+  if (settings !== undefined) {
     pinned.push(...findTemplatePins({ manifest: settings, names }))
   }
   const packed = `${name}@${version}`

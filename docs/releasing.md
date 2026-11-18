@@ -62,6 +62,9 @@ version too. From 1.0.0 on, a breaking change raises the major version.
 
 ## The order of the publication
 
+When a tarball includes `dist/settings.json`, the wait also checks the exact
+workspace versions pinned by the application template in its `versions` map.
+
 The publish job runs once for each released package, at the same time and in no
 order. `vp pm pack` writes the version of this release in place of
 `workspace:*`, so the tooling pins the icons plugin of the same version, and an

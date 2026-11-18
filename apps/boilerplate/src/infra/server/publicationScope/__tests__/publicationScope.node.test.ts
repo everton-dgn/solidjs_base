@@ -7,7 +7,7 @@ async function ignoreRejection(operation: Promise<unknown>): Promise<void> {
   try {
     await operation
   } catch {
-    // Este chamador desacoplado observa a falha sem encerrar a publicação.
+    // This decoupled caller observes the failure without ending the publication.
   }
 }
 

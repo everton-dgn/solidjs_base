@@ -7,34 +7,35 @@ export default defineKnipConfig({
   entry: [
     // The Vite config serializes these production values into the robots virtual module.
     'src/constants/site/robots.ts!',
-    // serverSetup do @solidjs/vite-plugin, carregado pelo caminho configurado
-    // no vite.config.ts.
+    // serverSetup of @solidjs/vite-plugin, loaded through the path configured in
+    // vite.config.ts.
     'src/infra/server/configureServerErrors/index.ts!',
-    // API de transporte do boilerplate; o consumidor atual está na fixture E2E.
+    // Transport API of the boilerplate; the current consumer is in the E2E fixture.
     'src/infra/server/requestJson/index.ts!',
-    // API pública de configuração e métricas; fixtures exercitam os consumidores.
+    // Public configuration and metrics API; fixtures exercise the consumers.
     'src/infra/server/publication/index.ts!',
-    // Componentes e APIs públicas reutilizáveis, exercitados pelas fixtures.
+    // Reusable public components and APIs, exercised by the fixtures.
     'src/components/atoms/Input/index.tsx!',
     'src/components/atoms/Textarea/index.tsx!',
     'src/components/molecules/Dialog/index.tsx!',
     'src/components/atoms/ToastProvider/useToast/index.ts!',
     'src/primitives/createOutdatedPageGuard/index.ts!',
-    // Cadeia de middleware do build E2E, escolhida por modo no vite.config.ts.
+    // Middleware chain of the E2E build, chosen by mode in vite.config.ts.
     'src/tests/fixtures/e2e/middleware/index.ts',
-    // Scripts das tarefas do vp run. O Knip só lê os comandos de run.tasks
-    // escritos no vite.config.ts, e as tarefas vêm do preset.
+    // Scripts of the vp run tasks. Knip only reads the run.tasks commands written
+    // in vite.config.ts, and the tasks come from the preset.
     'tooling/css/check.ts'
   ],
-  // O Kingfisher é externo. O vp do script start vem de uma devDependency, que
-  // o modo production (ativado pelo --strict) não considera; o '!' restringe o
-  // ignore a esse modo, porque na execução padrão ele viraria hint de redundância.
+  // Kingfisher is external. The vp of the start script comes from a
+  // devDependency, which production mode (turned on by --strict) does not
+  // consider; the '!' limits the ignore to that mode, because in the default run
+  // it would become a redundancy hint.
   ignoreBinaries: ['kingfisher', 'vp!'],
   // server-only is virtual. Inlang loads the message-format plugin by its
   // node_modules path in settings.json, outside Knip's import graph.
   ignoreDependencies: ['server-only', '@inlang/plugin-message-format'],
-  // No monorepo, o catálogo de versões fica no package.json da raiz, que o Knip
-  // não lê ao rodar nesta pasta. O bun install já recusa referência a uma
-  // entrada que não existe no catálogo.
+  // In the monorepo, the version catalog lives in the root package.json, which
+  // Knip does not read when it runs in this folder. bun install already refuses
+  // a reference to an entry missing from the catalog.
   exclude: ['catalogReferences']
 })

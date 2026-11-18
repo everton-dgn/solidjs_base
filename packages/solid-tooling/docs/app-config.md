@@ -473,6 +473,9 @@ Configure the host to serve `/404.html` with status 404 for missing pages when
 the application declares a root catch-all. Unprefixed pages use the base locale
 even when the browser prefers another language.
 
+For missing paths under each locale prefix, configure the host to serve
+`/<locale>/404.html` with status 404. Use `/404.html` for unprefixed paths.
+
 The build emits `.output/csp-hashes.json` outside the public directory. For a
 single host-wide policy, append each value in `union` in single quotes to
 `script-src 'self'`. For per-file policies, use that HTML filename's array in

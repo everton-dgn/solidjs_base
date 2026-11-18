@@ -12,7 +12,7 @@ import { staticBuildPlugin, staticOutput } from '../static-output.ts'
 const HTTP_NOT_FOUND = 404
 const HTTP_SERVER_ERROR = 500
 
-async function fixture(t: TestContext, page = 'about') {
+async function fixture(t: TestContext, page = 'about', locales: string[] = []) {
   const root = await mkdtemp(path.join(tmpdir(), 'static-route-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   const dir = path.join(root, 'src/routes', page)
@@ -20,7 +20,7 @@ async function fixture(t: TestContext, page = 'about') {
   await writeFile(path.join(dir, 'index.tsx'), 'export default () => null')
   const config = await staticOutput({
     options: { root, output: 'static' },
-    locales: []
+    locales
   })
   assert.ok(config.hooks)
   return { hooks: config.hooks, prerender: config.prerender }
@@ -273,4 +273,19 @@ it('requires the root catch-all to return 404', async t => {
   const route: PrerenderRoute = { route: '/404.html', contentType: 'text/html' }
   config.hooks['prerender:generate'](route)
   assert.match(route.error?.message ?? '', /httpStatus\(404\).*enumeration/u)
+})
+
+it('publishes a localized 404 for each configured locale', async t => {
+  const config = await fixture(t, '[...rest]', ['de', 'fr'])
+  for (const url of ['/de/404.html', '/fr/404.html']) {
+    assert.ok(config.prerender.routes.includes(url))
+    const route: PrerenderRoute = {
+      route: url,
+      contentType: 'text/html',
+      error: { status: HTTP_NOT_FOUND }
+    }
+    config.hooks['prerender:generate'](route)
+    assert.equal(route.error, undefined)
+    assert.equal(route.fileName, url)
+  }
 })

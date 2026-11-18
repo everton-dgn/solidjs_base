@@ -20,6 +20,9 @@ catch-alls still need an enumeration contract. Visitors choose another language
 through links. A CDN does not negotiate the language from cookies or request
 headers.
 
+For missing paths under each locale prefix, configure the host to serve
+`/<locale>/404.html` with status 404. Use `/404.html` for unprefixed paths.
+
 The existing publication hooks verify the files before deployment. Use static
 sitemap and Markdown publication, configure the robots route and select the
 editorial indexes the application publishes. Parameterized pages and sitemap

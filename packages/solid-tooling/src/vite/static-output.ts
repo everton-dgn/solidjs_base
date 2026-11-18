@@ -102,13 +102,18 @@ async function createStaticConfig(input: StaticOutputInput) {
       routes.push(`/${locale}${page === '/' ? '' : page}`)
     }
   }
+  const errorPages = new Set<string>()
   if (hasErrorPage) {
-    if (routes.includes('/404.html')) {
-      throw new Error(
-        'output: static reserves /404.html for the root catch-all'
-      )
+    for (const url of [
+      '/404.html',
+      ...locales.map(locale => `/${locale}/404.html`)
+    ]) {
+      if (routes.includes(url)) {
+        throw new Error(`output: static reserves ${url} for the root catch-all`)
+      }
+      errorPages.add(url)
+      routes.push(url)
     }
-    routes.push('/404.html')
   }
   const pages = new Set(routes)
   if (
@@ -163,7 +168,7 @@ async function createStaticConfig(input: StaticOutputInput) {
         }
       },
       'prerender:generate'(route: PrerenderRoute) {
-        if (hasErrorPage && route.route === '/404.html') {
+        if (errorPages.has(route.route)) {
           if (!route.error) {
             route.error = new Error(
               `output: static expected httpStatus(404) at ${route.route}; content catch-alls require an enumeration contract`
@@ -171,7 +176,7 @@ async function createStaticConfig(input: StaticOutputInput) {
             return
           }
           if (route.error?.status === HTTP_NOT_FOUND) delete route.error
-          route.fileName = '/404.html'
+          route.fileName = route.route
         }
         if (route.error) return
         if (

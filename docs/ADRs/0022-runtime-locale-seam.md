@@ -1,6 +1,7 @@
 # 0022. Runtime locale helpers use an application virtual module
 
-- Status: Accepted, amended by [0023](0023-runtime-locale-requests.md)
+- Status: Accepted, amended by [0023](0023-runtime-locale-requests.md) and
+  [0026](0026-runtime-locale-navigation.md)
 - Date: 2026-11-14
 
 ## Context

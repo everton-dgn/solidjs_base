@@ -2,6 +2,10 @@
 
 - Status: Accepted
 - Date: 2026-11-13
+- Updated by
+  [pull request #66](https://github.com/everton-dgn/solidjs_base/pull/66): the
+  repository also translated the code comments and the test titles of the copy
+  into English.
 
 ## Context
 

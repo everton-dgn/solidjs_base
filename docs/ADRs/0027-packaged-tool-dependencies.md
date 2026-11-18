@@ -37,12 +37,13 @@ that type from the existing runtime middleware/types entry. Keep Solid, its web
 package and router in the application so the compiler and application use the
 same instance.
 
-Applications retain libraries their own source imports. The copy keeps Nitro for
-publication tooling, filesystem-routing for API helpers and tests, and
-Playwright Test for E2E imports. Their versions stay aligned with the package.
-Valibot, schema-dts, mdream and icon collections remain application-owned too.
-The local Vite+ installation, Vite alias and root Vite/Vitest overrides stay in
-each application. Bun applies root overrides and patches to transitive packages.
+Applications retain libraries their own source imports. The copy keeps
+filesystem-routing for API helpers and tests, Playwright Test for E2E imports,
+Valibot, schema-dts and its icon collections. Their versions stay aligned with
+the package. The tooling supplies Nitro, and the runtime supplies `@mdream/js`
+for Markdown conversion. The local Vite+ installation, Vite alias and root
+Vite/Vitest overrides stay in each application. Bun applies root overrides and
+patches to transitive packages.
 
 The preset registers uncached knip, tsc, playwright, lefthook and commitlint
 tasks. Its CLI resolves executable entries from its own dependencies and

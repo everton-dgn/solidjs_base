@@ -1,6 +1,7 @@
 # 0009. A copy of the boilerplate runs in the monorepo
 
-- Status: Accepted
+- Status: Accepted, amended by [0010](0010-ci-runs-what-a-change-affects.md) for
+  the selection of the CI jobs
 - Date: 2026-11-12
 
 ## Context

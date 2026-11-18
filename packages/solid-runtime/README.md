@@ -685,3 +685,6 @@ for each release, and the
 for the three packages together.
 
 [MIT](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)
+
+Read the [installed skill](skills/solid-base-runtime/SKILL.md) for application
+rules and the package reference.

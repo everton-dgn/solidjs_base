@@ -473,6 +473,11 @@ Configure the host to serve `/404.html` with status 404 for missing pages when
 the application declares a root catch-all. Unprefixed pages use the base locale
 even when the browser prefers another language.
 
+For static i18n builds, set `strategy: ['url', 'baseLocale']` in the app's
+`paraglide.config.ts` after spreading the shared preset. This also configures
+`i18n-generate`. When using `i18nPlugin: false`, pass the same strategy to
+the replacement compiler so standalone generation and Vite agree.
+
 For missing paths under each locale prefix, configure the host to serve
 `/<locale>/404.html` with status 404. Use `/404.html` for unprefixed paths.
 

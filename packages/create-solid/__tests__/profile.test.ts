@@ -15,8 +15,9 @@ import { after, before, describe, it } from 'node:test'
 
 import { parse } from 'valibot'
 
-import { manifestSchema } from '../src/types.ts'
+import { manifestSchema } from '../src/schema.ts'
 
+const usageExitCode = 2
 const bin = path.resolve('dist/create-solid.mjs')
 const manifest = (file: string) =>
   parse(manifestSchema, JSON.parse(readFileSync(file, 'utf8')))
@@ -43,6 +44,7 @@ for (const pm of ['bun', 'pnpm', 'npm']) {
       const app = manifest(path.join(dir, 'package.json'))
       assert.equal(app.name, path.basename(dir).toLowerCase())
       assert.notEqual(app.description, source.description)
+      if (pm === 'bun') assert.equal(app.packageManager, root.packageManager)
       assert.equal(app.packageManager?.split('@')[0], pm)
     })
     void it('contains only standalone application instructions', () => {
@@ -61,10 +63,10 @@ for (const pm of ['bun', 'pnpm', 'npm']) {
           '../../src/tests/pages/OutsideError/OutsideError.e2e.test.ts',
           '../../package.json'
         ]
-        const text = internalLinks.reduce(
-          (value, link) => value.replaceAll(`](${link})`, ']()'),
-          content
-        )
+        let text = content
+        for (const link of internalLinks) {
+          text = text.replaceAll(`](${link})`, ']()')
+        }
         const local = text.replaceAll(
           /https:\/\/github\.com\/everton-dgn\/solidjs_base\/[^\s)"<>]+/gu,
           ''
@@ -90,7 +92,7 @@ for (const pm of ['bun', 'pnpm', 'npm']) {
       const result = spawnSync(process.execPath, [bin, '--unknown'], {
         encoding: 'utf8'
       })
-      assert.equal(result.status, 2)
+      assert.equal(result.status, usageExitCode)
       assert.doesNotMatch(result.stderr, /\n +at /u)
     })
     void it('resolves every workspace and catalog entry', () => {

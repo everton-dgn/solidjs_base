@@ -2,17 +2,21 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import {
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   writeFileSync,
   cpSync,
   rmSync,
   chmodSync
 } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
+import process from 'node:process'
 
 import { parse } from 'valibot'
 
-import { manifestSchema } from '../src/types.ts'
+import { fmt } from '../../solid-tooling/src/fmt.ts'
+import { manifestSchema } from '../src/schema.ts'
 
 const root = path.resolve(import.meta.dirname, '../../..')
 const app = path.join(root, 'apps/boilerplate')
@@ -59,9 +63,11 @@ assert.ok(
   manifest.catalog && manifest.overrides && manifest.patchedDependencies
 )
 assert.ok(tooling.dependencies.lefthook)
-assert.ok(manifest.packageManager?.startsWith('bun@'))
+const { packageManager } = manifest
+assert.ok(packageManager)
+assert.ok(packageManager.startsWith('bun@'))
 const settings = {
-  bunVersion: manifest.packageManager.slice('bun@'.length),
+  bunVersion: packageManager.slice('bun@'.length),
   version: json('package.json').version,
   catalog: manifest.catalog,
   overrides: manifest.overrides,
@@ -85,7 +91,35 @@ execFileSync('bun', [
   'build',
   'src/create-solid.ts',
   '--target=node',
-  '--outfile=dist/create-solid.mjs'
+  'src/generate.ts',
+  '--outdir=dist',
+  '--entry-naming=[name].mjs',
+  '--splitting'
 ])
+const formatter = path.join('dist', 'formatter')
+mkdirSync(formatter)
+writeFileSync(
+  path.join(formatter, 'package.json'),
+  JSON.stringify({ name: 'template-formatter', private: true })
+)
+writeFileSync(
+  path.join(formatter, 'vite.config.mjs'),
+  `export default ${JSON.stringify({ fmt })}\n`
+)
 const executableMode = 0o755
 chmodSync('dist/create-solid.mjs', executableMode)
+
+// Exercise the conditional patch rewrite too, so stale template inputs fail the build.
+const probe = mkdtempSync(path.join(tmpdir(), 'check-solid-template-'))
+try {
+  execFileSync(process.execPath, [
+    'dist/create-solid.mjs',
+    probe,
+    '--pm',
+    'npm',
+    '--no-install',
+    '--no-git'
+  ])
+} finally {
+  rmSync(probe, { recursive: true, force: true })
+}

@@ -8,6 +8,7 @@
   "engines": {
     "node": ">=26.13.1"
   },
+  "exports": "./dist/generate.mjs",
   "bin": {
     "create-solid": "./dist/create-solid.mjs"
   },

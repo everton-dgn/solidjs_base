@@ -168,7 +168,7 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  `installOutdatedPageDetection` marks the page when a chunk of the previous build
-@@ -216,15 +216,15 @@ refuses, so it never shares a run with the other suites. See
+@@ -216,16 +216,16 @@ refuses, so it never shares a run with the other suites. See
  [publication load](docs/testing.md#publication-load).
  
  <picture>
@@ -184,10 +184,12 @@ diff --git a/source/README.md b/example/README.md
  coverage, tooling tests and the `e2e` suite on every pull request that changes
  the app, a package, a fixture or the root configuration
 -([CI coverage](../../docs/development.md#ci)). The
-+([CI coverage](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci)). The
- [reference](#playwright-cases-by-area) lists the cases by area.
+-[reference](#playwright-cases-by-area) lists the cases by area.
++([CI coverage](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci)).
++The [reference](#playwright-cases-by-area) lists the cases by area.
  
  ## Limits
+ 
 @@ -236,7 +236,7 @@ the app, a package, a fixture or the root configuration
    not prove production capacity. The thresholds of `PublicationLoad` are a local
    starting point and set no production SLO
@@ -219,18 +221,25 @@ new file mode 100644
 diff --git a/source/docs/architecture.md b/example/docs/architecture.md
 --- a/source/docs/architecture.md
 +++ b/example/docs/architecture.md
-@@ -85,9 +85,9 @@ CSS Module imports use the name `S`, for example,
+@@ -85,12 +85,12 @@ CSS Module imports use the name `S`, for example,
  
  The split follows the
  [cohesion rule of AGENTS.md](../AGENTS.md#cohesion-and-size-of-modules).
 -[`lint.ts`](../../../packages/solid-tooling/src/lint.ts), builds the
-+[`lint.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/lint.ts), builds the
- configuration and its overrides. The groups in
+-configuration and its overrides. The groups in
 -[`rules`](../../../packages/solid-tooling/src/lint/rules) gather the rules for
-+[`rules`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/lint/rules) gather the rules for
- JavaScript, imports, TypeScript, Unicorn, tests and integrations with the
- environment. The values of the rules and the order of the overrides belong to
- the same contract, even when they live in different modules.
+-JavaScript, imports, TypeScript, Unicorn, tests and integrations with the
+-environment. The values of the rules and the order of the overrides belong to
+-the same contract, even when they live in different modules.
++[`lint.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/lint.ts),
++builds the configuration and its overrides. The groups in
++[`rules`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/lint/rules)
++gather the rules for JavaScript, imports, TypeScript, Unicorn, tests and
++integrations with the environment. The values of the rules and the order of the
++overrides belong to the same contract, even when they live in different modules.
+ 
+ `tooling/release/automatic-release.ts` coordinates the preparation and the
+ publication. The modules and the limits of the jobs are in the
 @@ -111,7 +111,7 @@ and their helpers live in the runtime package.
  `data/errorApi/` (normalization of domain errors from APIs) are conventions for
  the first consumers and do not have modules yet. Public errors that only the
@@ -362,8 +371,9 @@ diff --git a/source/docs/seo.md b/example/docs/seo.md
  thin bindings and editorial values. `seo` in `vite.config.ts` selects the
  compiled publication pipeline. See
 -[ADR 0034](../../../docs/ADRs/0034-runtime-markdown-publication.md) for the
-+[ADR 0034](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/ADRs/0034-runtime-markdown-publication.md) for the
- independent options and the single-language configuration.
+-independent options and the single-language configuration.
++[ADR 0034](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/ADRs/0034-runtime-markdown-publication.md)
++for the independent options and the single-language configuration.
 diff --git a/source/docs/server-errors/backend.md b/example/docs/server-errors/backend.md
 --- a/source/docs/server-errors/backend.md
 +++ b/example/docs/server-errors/backend.md
@@ -421,15 +431,17 @@ diff --git a/source/docs/server-errors/recovery.md b/example/docs/server-errors/
 diff --git a/source/docs/server-errors/solid-upgrades.md b/example/docs/server-errors/solid-upgrades.md
 --- a/source/docs/server-errors/solid-upgrades.md
 +++ b/example/docs/server-errors/solid-upgrades.md
-@@ -5,7 +5,7 @@
+@@ -5,8 +5,8 @@
  ## Upgrading Solid
  
  The shared registration and protection live in
 -[`server`](../../../../packages/solid-runtime/src/infra/server). The
-+[`server`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server). The
- application's `src/infra/server/configureServerErrors/index.ts` remains the
+-application's `src/infra/server/configureServerErrors/index.ts` remains the
++[`server`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server).
++The application's `src/infra/server/configureServerErrors/index.ts` remains the
  `serverSetup` entry and supplies the catalog callback to the package
  configurator.
+ 
 diff --git a/source/docs/server-errors/ssr-integrity.md b/example/docs/server-errors/ssr-integrity.md
 --- a/source/docs/server-errors/ssr-integrity.md
 +++ b/example/docs/server-errors/ssr-integrity.md
@@ -445,15 +457,19 @@ diff --git a/source/docs/server-errors/ssr-integrity.md b/example/docs/server-er
 diff --git a/source/docs/server-errors.md b/example/docs/server-errors.md
 --- a/source/docs/server-errors.md
 +++ b/example/docs/server-errors.md
-@@ -9,7 +9,7 @@ contract below must be kept through dependency upgrades.
+@@ -9,9 +9,9 @@ contract below must be kept through dependency upgrades.
  ## Current protection
  
  The shared protection lives in
 -[`server`](../../../packages/solid-runtime/src/infra/server). Each module has
-+[`server`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server). Each module has
- its own `@evertondgn/solid-runtime/server/` entry, with the `solid` condition
- and `server-only`. Public errors use
+-its own `@evertondgn/solid-runtime/server/` entry, with the `solid` condition
+-and `server-only`. Public errors use
++[`server`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server).
++Each module has its own `@evertondgn/solid-runtime/server/` entry, with the
++`solid` condition and `server-only`. Public errors use
  `@evertondgn/solid-runtime/server/public-errors`. The application keeps
+ `requestJson`, `publication`, `sitemapSources`, the Markdown adapter and
+ authored render trees. The runtime owns failure containment, chain composition
 @@ -31,13 +31,13 @@ production.
  - [requestJson](../src/infra/server/requestJson/index.ts) checks the HTTP
    status, reads the success JSON and applies the output schema inside the
@@ -518,16 +534,19 @@ diff --git a/source/docs/testing.md b/example/docs/testing.md
  checks the names: `Name[.qualifier].environment.test.ts(x)` in `src`, with the
  `node`, `dom`, `browser` or `e2e` environment; `Name[.qualifier].test-d.ts(x)`
  for type-only tests; and `Name[.qualifier].test.ts` in `tooling`. `Name` is the
-@@ -151,7 +151,7 @@ error and success, each one in the initial SSR, in a call from the browser and
+@@ -151,8 +151,9 @@ error and success, each one in the initial SSR, in a call from the browser and
  in streaming, plus a reload that still fails, recovery after the backend comes
  back and the isolation of the client bundle. The initial SSR is also checked
  with JavaScript disabled. See [server errors](server-errors.md) for the failure
 -scenarios and [CI](../../../docs/development.md#ci) for when upstream CI runs
-+scenarios and [CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci) for when upstream CI runs
- the fixture suite.
+-the fixture suite.
++scenarios and
++[CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci)
++for when upstream CI runs the fixture suite.
  
  ### Publication load
-@@ -359,7 +359,7 @@ production routes. If an earlier `vp run test:e2e` left an E2E fixture build in
+ 
+@@ -359,7 +360,7 @@ production routes. If an earlier `vp run test:e2e` left an E2E fixture build in
  `.vercel/output`, Playwright stops before the preview and reports
  `TEST_PREBUILT found an e2e build`; run `vp run build` in the app to replace it
  with a production build, then run the prebuilt command again. The
@@ -539,23 +558,33 @@ diff --git a/source/docs/testing.md b/example/docs/testing.md
 diff --git a/source/docs/ui.md b/example/docs/ui.md
 --- a/source/docs/ui.md
 +++ b/example/docs/ui.md
-@@ -144,7 +144,7 @@ would fall back to the system font. Check the coverage of a file with
+@@ -144,10 +144,10 @@ would fall back to the system font. Check the coverage of a file with
  `fc-query --format='%{charset}\n' <file>`.
  
  The font loading contract and complete examples are in the tooling package’s
 -[font guide](../../../packages/solid-tooling/docs/fonts.md). Keep the CSS
-+[font guide](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/fonts.md). Keep the CSS
- fallback stack, weights and sizes in the application theme. Remove handwritten
- font faces and preload imports when adopting this mechanism; no inline CSS is
- required.
-@@ -273,7 +273,7 @@ command reuses that validation for every CSS file in `src/`, those without
+-fallback stack, weights and sizes in the application theme. Remove handwritten
+-font faces and preload imports when adopting this mechanism; no inline CSS is
+-required.
++[font guide](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/fonts.md).
++Keep the CSS fallback stack, weights and sizes in the application theme. Remove
++handwritten font faces and preload imports when adopting this mechanism; no
++inline CSS is required.
+ 
+ ## CSS rules
+ 
+@@ -273,9 +273,9 @@ command reuses that validation for every CSS file in `src/`, those without
  imports in JS/TS included.
  
  The rules and the name check come from `checkCss` in `@evertondgn/solid-tooling`
 -([`stylelint`](../../../packages/solid-tooling/src/stylelint)), called by
-+([`stylelint`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/stylelint)), called by
- `tooling/css/check.ts`. The lint of the real CSS is still automatic, and its
- violations block the validation until they are fixed.
+-`tooling/css/check.ts`. The lint of the real CSS is still automatic, and its
+-violations block the validation until they are fixed.
++([`stylelint`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/stylelint)),
++called by `tooling/css/check.ts`. The lint of the real CSS is still automatic,
++and its violations block the validation until they are fixed.
+ 
+ ## CSS processing
  
 diff --git a/source/package.json b/example/package.json
 --- a/source/package.json
@@ -634,12 +663,13 @@ new file mode 100644
 diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/tooling/__tests__/patched-dependencies.test.ts
 --- a/source/tooling/__tests__/patched-dependencies.test.ts
 +++ b/example/tooling/__tests__/patched-dependencies.test.ts
-@@ -3,29 +3,12 @@ import { access, readFile } from 'node:fs/promises'
+@@ -3,29 +3,15 @@ import { access, readFile } from 'node:fs/promises'
  import path from 'node:path'
  import { it } from 'node:test'
  
 -import * as v from 'valibot'
--
++const ROOT = path.resolve(import.meta.dirname, '../..')
+ 
 -// In the monorepo, Bun reads the patches and bun.lock at the workspace root.
 -const ROOT = path.resolve(import.meta.dirname, '../../../..')
 -const patchesSchema = v.record(v.string(), v.string())
@@ -663,14 +693,15 @@ diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/too
 -    )
 -  }
 -  await Promise.all(patches.map(([, file]) => access(path.join(ROOT, file))))
-+const ROOT = path.resolve(import.meta.dirname, '../..')
-+
 +it('checks the installed Markdown converter patch policy', async () => {
-+  const workspace = await readFile(path.join(ROOT, 'pnpm-workspace.yaml'), 'utf8')
++  const workspace = await readFile(
++    path.join(ROOT, 'pnpm-workspace.yaml'),
++    'utf8'
++  )
 +  const lock = await readFile(path.join(ROOT, 'pnpm-lock.yaml'), 'utf8')
-+  assert.ok(workspace.includes("@mdream/js@2.1.0"))
-+  assert.ok(lock.includes("@mdream/js@2.1.0"))
-+  await access(path.join(ROOT, "patches/@mdream%2Fjs@2.1.0.patch"))
++  assert.ok(workspace.includes('@mdream/js@2.1.0'))
++  assert.ok(lock.includes('@mdream/js@2.1.0'))
++  await access(path.join(ROOT, 'patches/@mdream%2Fjs@2.1.0.patch'))
  })
 diff --git a/source/tooling/knip.ts b/example/tooling/knip.ts
 --- a/source/tooling/knip.ts

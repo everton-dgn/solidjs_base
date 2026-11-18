@@ -1,24 +1,26 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 
-import type { Versions } from './types.ts'
+import type { DocumentRewrite, PatchRewrite } from './types.ts'
 
-export function rewriteDocuments({
-  dir,
-  pm,
-  version
-}: {
-  dir: string
-  pm: string
-  version: string
-}): void {
+function format(file: string, content: string): string {
+  return execFileSync('vp', ['fmt', `--stdin-filepath=${file}`], {
+    cwd: path.join(import.meta.dirname, '../dist/formatter'),
+    input: content,
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe']
+  })
+}
+export function rewriteDocuments({ dir, pm, version }: DocumentRewrite): void {
   for (const file of readdirSync(dir, {
     recursive: true,
     encoding: 'utf8'
   }).filter(candidate => candidate.endsWith('.md'))) {
     const target = path.join(dir, file)
-    let content = readFileSync(target, 'utf8')
+    const source = readFileSync(target, 'utf8')
+    let content = source
     if (file === 'README.md') {
       assert.ok(content.includes('dependencies with `vp install`'))
       content = content.replace(
@@ -51,33 +53,35 @@ export function rewriteDocuments({
         }/create-solid@${version}/${location}`
       }
     )
-    writeFileSync(target, content)
+    if (source !== content) {
+      writeFileSync(
+        target,
+        file === 'AGENTS.md' ? content : format(file, content)
+      )
+    }
   }
 }
 export function rewriteKnip(dir: string): void {
   const file = path.join(dir, 'tooling/knip.ts')
-  writeFileSync(
-    file,
-    readFileSync(file, 'utf8').replace(
-      /,\n {2}\/\/ In the monorepo,[\s\S]*?\n\}\)/u,
-      '\n})'
-    )
+  const source = readFileSync(file, 'utf8')
+  const output = source.replace(
+    /,\n {2}\/\/ In the monorepo,[\s\S]*?\n\}\)/u,
+    '\n})'
   )
+  assert.notEqual(output, source, 'Missing Knip workspace inputs')
+  writeFileSync(file, output)
 }
-export function rewritePatchTest({
-  dir,
-  pm,
-  patches
-}: {
-  dir: string
-  pm: string
-  patches: Versions
-}): void {
+export function rewritePatchTest({ dir, pm, patches }: PatchRewrite): void {
   const file = path.join(dir, 'tooling/__tests__/patched-dependencies.test.ts')
-  let content = readFileSync(file, 'utf8')
+  const source = readFileSync(file, 'utf8')
+  assert.match(source, /\/\/ In the monorepo,.*\n/u)
+  assert.ok(source.includes('../../../..'))
+  let content = source
     .replace(/\/\/ In the monorepo,.*\n/u, '')
     .replace('../../../..', '../..')
   if (pm !== 'bun') {
+    assert.ok(content.includes('const patchesSchema'))
+    assert.ok(content.includes("import * as v from 'valibot'\n\n"))
     const [entry] = Object.entries(patches)
     assert.ok(entry)
     const [key, patch] = entry
@@ -106,5 +110,5 @@ export function rewritePatchTest({
       '\n'
     )}\n})\n`
   }
-  writeFileSync(file, content)
+  writeFileSync(file, format('patched-dependencies.test.ts', content))
 }

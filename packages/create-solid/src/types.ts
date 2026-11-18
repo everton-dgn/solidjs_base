@@ -1,27 +1,15 @@
-import * as v from 'valibot'
+import type * as v from 'valibot'
 
-const versions = v.record(v.string(), v.string())
-export const manifestSchema = v.looseObject({
-  name: v.string(),
-  version: v.string(),
-  description: v.optional(v.string()),
-  scripts: v.optional(versions, {}),
-  dependencies: v.optional(versions, {}),
-  devDependencies: v.optional(versions, {}),
-  overrides: v.optional(versions),
-  packageManager: v.optional(v.string()),
-  patchedDependencies: v.optional(versions),
-  catalog: v.optional(versions)
-})
-export const settingsSchema = v.object({
-  version: v.string(),
-  catalog: versions,
-  versions,
-  overrides: versions,
-  patches: versions,
-  bunVersion: v.string(),
-  bunfig: v.string(),
-  lefthook: v.string()
-})
+import type { versions, manifestSchema } from './schema.ts'
+
 export type Versions = v.InferOutput<typeof versions>
 export type Manifest = v.InferOutput<typeof manifestSchema>
+export type Profile = {
+  pm: 'bun' | 'pnpm' | 'npm'
+  dir: string
+  siteUrl?: string
+  shouldInitGit: boolean
+  shouldInstall: boolean
+}
+export type DocumentRewrite = Pick<Profile, 'pm' | 'dir'> & { version: string }
+export type PatchRewrite = Pick<Profile, 'pm' | 'dir'> & { patches: Versions }

@@ -3,6 +3,7 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  rmSync,
   readFileSync,
   writeFileSync,
   cpSync
@@ -14,20 +15,26 @@ import { URL } from 'node:url'
 import { parse } from 'valibot'
 
 import { rewriteDocuments, rewritePatchTest, rewriteKnip } from './rewrite.ts'
-import {
-  manifestSchema,
-  settingsSchema,
-  type Manifest,
-  type Versions
-} from './types.ts'
+import { manifestSchema, settingsSchema } from './schema.ts'
+import type { Profile, Manifest, Versions } from './types.ts'
 
+const maxPackageNameLength = 214
 const jsonIndent = 2
-export interface Profile {
-  pm: 'bun' | 'pnpm' | 'npm'
-  dir: string
-  siteUrl?: string
-  shouldInitGit: boolean
-  shouldInstall: boolean
+function section(name: string, entries: Versions) {
+  return `${name}:\n${Object.entries(entries)
+    .map(([key, value]) => `  '${key}': '${value}'`)
+    .join('\n')}\n`
+}
+
+function resolveSiteUrl(value?: string): URL {
+  const siteUrl = new URL(value ?? 'https://example.com')
+  if (
+    !['http:', 'https:'].includes(siteUrl.protocol) ||
+    siteUrl.href !== `${siteUrl.origin}/`
+  ) {
+    throw new TypeError('--site-url requires an HTTP or HTTPS origin')
+  }
+  return siteUrl
 }
 
 export function generate(profile: Profile): void {
@@ -38,12 +45,7 @@ export function generate(profile: Profile): void {
     JSON.parse(readFileSync(settingsFile, 'utf8'))
   )
   const versions = { bun: settings.bunVersion, pnpm: '12.21.0', npm: '12.2.3' }
-  const siteUrl = new URL(profile.siteUrl ?? 'https://example.com')
-  if (
-    !['http:', 'https:'].includes(siteUrl.protocol) ||
-    siteUrl.href !== siteUrl.origin + '/'
-  )
-    throw new TypeError('--site-url requires an HTTP or HTTPS origin')
+  const siteUrl = resolveSiteUrl(profile.siteUrl)
   const write = (file: string, content: string) =>
     writeFileSync(path.join(profile.dir, file), content)
   function resolveVersion(name: string, spec: string) {
@@ -66,11 +68,6 @@ export function generate(profile: Profile): void {
         resolveVersion(name, spec)
       ])
     )
-  }
-  function section(name: string, entries: Versions) {
-    return `${name}:\n${Object.entries(entries)
-      .map(([key, value]) => `  '${key}': '${value}'`)
-      .join('\n')}\n`
   }
   function configureInstaller(pkg: Manifest) {
     const { pm } = profile
@@ -113,67 +110,79 @@ export function generate(profile: Profile): void {
         .basename(profile.dir)
         .toLowerCase()
         .replaceAll(/[^a-z0-9-]+/gu, '-')
-        .replace(/^-+|-+$/gu, '')
-        .slice(0, 214) || 'solid-app'
+        .replaceAll(/^-+|-+$/gu, '')
+        .slice(0, maxPackageNameLength) || 'solid-app'
     pkg.description = 'SolidJS application built with Vite+.'
   }
   function removeWorkspaceInputs() {
     const vite = readFileSync(path.join(template, 'vite.config.ts'), 'utf8')
-    write(
-      'vite.config.ts',
-      vite.replace(
-        /,\n {2}\/\/ In the monorepo,[\s\S]+?\n {2}\}\n\}\)/u,
-        '\n})'
-      )
+    const output = vite.replace(
+      /,\n {2}\/\/ In the monorepo,[\s\S]+?\n {2}\}\n\}\)/u,
+      '\n})'
     )
+    if (output === vite) throw new Error('Missing Vite workspace inputs')
+    write('vite.config.ts', output)
   }
   if (existsSync(profile.dir) && readdirSync(profile.dir).length > 0) {
     throw new Error('Destination must be empty')
   }
-  mkdirSync(profile.dir, { recursive: true })
-  for (const file of readdirSync(template)) {
-    if (
-      file === 'package.json' ||
-      (profile.pm === 'npm' && file === 'patches')
-    ) {
-      continue
+  mkdirSync(path.dirname(profile.dir), { recursive: true })
+  const created = !existsSync(profile.dir)
+  if (created) mkdirSync(profile.dir)
+  try {
+    for (const file of readdirSync(template)) {
+      if (
+        file === 'package.json' ||
+        (profile.pm === 'npm' && file === 'patches')
+      ) {
+        continue
+      }
+      cpSync(
+        path.join(template, file),
+        path.join(profile.dir, file === '_gitignore' ? '.gitignore' : file),
+        { recursive: true }
+      )
     }
-    cpSync(
-      path.join(template, file),
-      path.join(profile.dir, file === '_gitignore' ? '.gitignore' : file),
-      { recursive: true }
+    const env = readFileSync(path.join(template, '.env'), 'utf8')
+    if (!/^VITE_SITE_URL=.*$/mu.test(env)) {
+      throw new Error('Missing template VITE_SITE_URL')
+    }
+    write(
+      '.env',
+      env.replace(
+        /^VITE_SITE_URL=.*$/mu,
+        () => `VITE_SITE_URL=${siteUrl.origin}`
+      )
     )
+    removeWorkspaceInputs()
+    const manifestFile = path.join(template, 'package.json')
+    const pkg = parse(
+      manifestSchema,
+      JSON.parse(readFileSync(manifestFile, 'utf8'))
+    )
+    rewriteIdentity(pkg)
+    pkg.dependencies = resolveGroup(pkg.dependencies)
+    pkg.devDependencies = resolveGroup(pkg.devDependencies)
+    configureInstaller(pkg)
+    configureHooks(pkg)
+    rewriteKnip(profile.dir)
+    rewriteDocuments({
+      dir: profile.dir,
+      pm: profile.pm,
+      version: settings.version
+    })
+    rewritePatchTest({
+      dir: profile.dir,
+      pm: profile.pm,
+      patches: settings.patches
+    })
+    write('package.json', `${JSON.stringify(pkg, null, jsonIndent)}\n`)
+  } catch (error) {
+    if (created && !existsSync(path.join(profile.dir, 'package.json'))) {
+      rmSync(profile.dir, { recursive: true, force: true })
+    }
+    throw error
   }
-  const env = readFileSync(path.join(template, '.env'), 'utf8')
-  if (!/^VITE_SITE_URL=.*$/mu.test(env))
-    throw new Error('Missing template VITE_SITE_URL')
-  write(
-    '.env',
-    env.replace(/^VITE_SITE_URL=.*$/mu, () => 'VITE_SITE_URL=' + siteUrl.origin)
-  )
-  removeWorkspaceInputs()
-  const manifestFile = path.join(template, 'package.json')
-  const pkg = parse(
-    manifestSchema,
-    JSON.parse(readFileSync(manifestFile, 'utf8'))
-  )
-  rewriteIdentity(pkg)
-  pkg.dependencies = resolveGroup(pkg.dependencies)
-  pkg.devDependencies = resolveGroup(pkg.devDependencies)
-  configureInstaller(pkg)
-  configureHooks(pkg)
-  rewriteKnip(profile.dir)
-  rewriteDocuments({
-    dir: profile.dir,
-    pm: profile.pm,
-    version: settings.version
-  })
-  rewritePatchTest({
-    dir: profile.dir,
-    pm: profile.pm,
-    patches: settings.patches
-  })
-  write('package.json', `${JSON.stringify(pkg, null, jsonIndent)}\n`)
   if (profile.shouldInitGit) {
     execFileSync('git', ['init'], { cwd: profile.dir, stdio: 'inherit' })
   }
@@ -183,20 +192,22 @@ export function generate(profile: Profile): void {
         cwd: profile.dir,
         stdio: 'inherit'
       })
-      if (profile.pm === 'pnpm')
+      if (profile.pm === 'pnpm') {
         execFileSync('vp', ['fmt', 'pnpm-workspace.yaml'], {
           cwd: profile.dir,
           stdio: 'inherit'
         })
-    } catch (cause) {
+      }
+    } catch (error) {
       throw new Error(
         `Open ${profile.dir} and run ${profile.pm} install again.`,
-        { cause }
+        { cause: error }
       )
     }
   }
   process.stdout.write(`Open ${profile.dir}.\n`)
-  if (!profile.shouldInstall)
+  if (!profile.shouldInstall) {
     process.stdout.write(`Run ${profile.pm} install.\n`)
+  }
   process.stdout.write('Run vp run dev.\n')
 }

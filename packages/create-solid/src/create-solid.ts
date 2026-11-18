@@ -5,11 +5,13 @@ import { parseArgs } from 'node:util'
 
 import { generate } from './generate.ts'
 
+const usageExitCode = 2
 function run(): void {
-  if (process.platform === 'win32')
+  if (process.platform === 'win32') {
     throw new Error(
       'create-solid supports macOS and Linux. Windows is unsupported.'
     )
+  }
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
@@ -48,5 +50,5 @@ try {
   process.stderr.write(
     `${error instanceof Error ? error.message : String(error)}\n`
   )
-  process.exitCode = error instanceof TypeError ? 2 : 1
+  process.exitCode = error instanceof TypeError ? usageExitCode : 1
 }

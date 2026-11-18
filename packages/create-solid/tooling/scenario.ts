@@ -15,8 +15,7 @@ import process from 'node:process'
 
 import { parse } from 'valibot'
 
-import { run } from '../../solid-tooling/src/tarball/scenario-process.ts'
-import { manifestSchema } from '../src/types.ts'
+import { manifestSchema } from '../src/schema.ts'
 
 const jsonIndent = 2
 const seconds = 1000
@@ -33,10 +32,9 @@ try {
   for (const name of packages) {
     const output = path.join(sandbox, name)
     mkdirSync(output)
-    await run({
-      args: ['pm', 'pack', '--pack-destination', output],
+    execFileSync('vp', ['pm', 'pack', '--pack-destination', output], {
       cwd: path.join(import.meta.dirname, '../..', name),
-      deadline: Date.now() + packTimeout
+      timeout: packTimeout
     })
     const [archive] = readdirSync(output)
     assert.ok(archive)
@@ -83,8 +81,9 @@ try {
     }
     writeFileSync(file, `${JSON.stringify(manifest, null, jsonIndent)}\n`)
     execFileSync(pm, ['install'], { cwd, stdio: 'inherit', timeout: 120_000 })
-    if (pm === 'pnpm')
+    if (pm === 'pnpm') {
       execFileSync('vp', ['fmt', 'pnpm-workspace.yaml'], { cwd })
+    }
     execFileSync(
       process.execPath,
       ['--test', 'tooling/__tests__/patched-dependencies.test.ts'],

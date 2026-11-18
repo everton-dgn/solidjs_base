@@ -13,7 +13,7 @@ import process from 'node:process'
 
 import { parse } from 'valibot'
 
-import { manifestSchema } from '../src/types.ts'
+import { manifestSchema } from '../src/schema.ts'
 
 const sourceTree = execFileSync('git', ['rev-parse', 'HEAD:apps/boilerplate'], {
   encoding: 'utf8'

@@ -5,8 +5,8 @@
 ## Organization and criteria
 
 Test files live in `__tests__` folders next to the code they exercise
-(`src/__tests__/`, module folders and `tooling/__tests__/`). The E2E tests
-are the exception and live in `src/tests/pages/`, outside the Vitest projects.
+(`src/__tests__/`, module folders and `tooling/__tests__/`). The E2E tests are
+the exception and live in `src/tests/pages/`, outside the Vitest projects.
 
 The `project/test-filename` lint rule, in
 [`test-filename.ts`](../../../packages/solid-tooling/src/test-filename.ts),

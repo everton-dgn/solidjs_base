@@ -314,7 +314,8 @@ A sixteenth area, `PublicationLoad`, stays out of both columns, as
 
 ### Guides
 
-The guides describe the application. The release, CI and Vercel deployment examples describe the upstream workflows.
+The guides describe the application. The release, CI and Vercel deployment
+examples describe the upstream workflows.
 
 | Guide                                                           | What you will find                                                    |
 | --------------------------------------------------------------- | --------------------------------------------------------------------- |

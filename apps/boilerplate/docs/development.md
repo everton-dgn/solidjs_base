@@ -9,12 +9,12 @@ The exact versions live in `package.json`:
 - Vite+: install the global CLI following the
   [official guide](https://viteplus.dev/guide/). It selects the Node and the
   package manager declared in the project.
-- Node: the runtime of Vitest, of the tooling tests
-  and of the production SSR. `devEngines.runtime` pins the exact version, within
-  the line declared in `engines.node`.
+- Node: the runtime of Vitest, of the tooling tests and of the production SSR.
+  `devEngines.runtime` pins the exact version, within the line declared in
+  `engines.node`.
 - Bun: the installer and the runtime of development, build, Knip and CSS lint,
-  pinned in the Bun profile. Vite+ selects that version for
-  the installation and for the `bun` command.
+  pinned in the Bun profile. Vite+ selects that version for the installation and
+  for the `bun` command.
 - Playwright Chromium: used by the browser and E2E tests. It is not downloaded
   by `vp install`; install it with `vp run test:browser:install` and repeat the
   command after updating Playwright, which pins one browser revision per

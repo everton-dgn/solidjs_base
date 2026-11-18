@@ -183,6 +183,11 @@ it('wraps the chosen middleware and refuses a nonempty server function manifest'
     assert.equal(resolve('other.ts', entry), null)
     const source: unknown = Reflect.apply(load, {}, [wrapper])
     assert.ok(typeof source === 'string')
+    assert.ok(
+      source.includes(
+        "if (!event.request.headers.has('x-nitro-prerender')) return next()"
+      )
+    )
     assert.match(source, /configureServerErrors\(\)/u)
     assert.match(source, /event.nonce = \{ script: false, style: false \}/u)
     const manifest = 'virtual:solid-server-function-manifest'

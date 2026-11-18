@@ -252,6 +252,7 @@ walkStaticRoutes({
   }
 })
 export default [async (event, next) => {
+  if (!event.request.headers.has('x-nitro-prerender')) return next()
   // Set both destinations before requestNonce fills an unset event nonce.
   event.nonce = { script: false, style: false }
   const response = await next()

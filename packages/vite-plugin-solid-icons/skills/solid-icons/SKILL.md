@@ -37,7 +37,7 @@ add `solidIcons()` to the Vite+ config, as the [README](../../README.md) shows.
 - A folder collection maps a name to a folder of SVG files, relative to the
   root: `icons: { brand: './src/assets/icons' }` in `defineSolidApp`, or
   `collections` in `solidIcons()`. `logo.svg` there is `icon:brand/logo` and
-  `Logo`.
+  can also be imported by name: `import { Logo } from 'icon:brand'`.
 - A collection name has lowercase letters, digits and single hyphens. A folder
   with the name of an installed collection takes its place.
 - An import names the file in its exact case on every file system. A symbolic
@@ -65,9 +65,9 @@ add `solidIcons()` to the Vite+ config, as the [README](../../README.md) shows.
 
 ## An unknown name
 
-- A typo stops the build and the dev server with the closest name, as in
+- A typo stops the build and the dev server with an error. A close match gets a suggestion, as in
   `"Githb" is not an icon of 'icon:hugeicons'. Did you mean Github?`, and the
-  type check reports TS2724 with the same suggestion. Fix the import: the
+  type check can report TS2724 for a close match. Fix the import: the
   declaration file is generated.
 - `Icon collection "mdi" not found` means the package is not installed and no
   folder has that name. A name of two icons lists the strict name of each.

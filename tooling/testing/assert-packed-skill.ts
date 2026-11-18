@@ -33,6 +33,10 @@ for (const file of pending) {
   if (!resolved.endsWith('.md')) continue
   const contents = await readFile(resolved, 'utf8')
   if (file === skill) {
+    if (name === 'solid-icons') {
+      assert.ok(contents.includes("import { Logo } from 'icon:brand'"))
+      assert.ok(contents.includes('A close match gets a suggestion'))
+    }
     if (name === 'solid-base-runtime') {
       assert.match(contents, /strict-dynamic/u)
       assert.match(contents, /default style policy/u)

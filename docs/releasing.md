@@ -1,8 +1,8 @@
 # Releasing
 
-Each package has its own version, in its `package.json`, and is published on its
-own to the public npm registry under the `@evertondgn` scope. The workspace root
-is private and is never published.
+Each member of the release group has its own version, in its `package.json`, and
+is published on its own to the public npm registry under the `@evertondgn`
+scope. The workspace root is private and is never published.
 
 [release-please](https://github.com/googleapis/release-please) derives the
 versions from Conventional Commits. It runs only in CI, from
@@ -488,7 +488,23 @@ manifest until the next group release, N. Once all its pins are on npm:
    Build and pack it with the release commit's template and dependencies.
 2. Extract the tarball and run its CLI outside the workspace. Keep the exact
    registry pins, install from npm without local overrides, and run
-   `vp run check:ci` in the generated application. Stop if the check fails.
+   `vp run check:ci` in the generated application. With `archive` set to the
+   absolute path of the tarball from step 1, run this gate before publishing:
+
+   ```sh
+   (
+     set -eu
+     cd "$(mktemp -d)"
+     tar -xzf "$archive"
+     node package/dist/create-solid.mjs app --pm bun --no-install --no-git
+     cd app
+     env -u NODE_ENV bun install
+     env -u NODE_ENV vp run check:ci
+   )
+   ```
+
+   A nonzero exit stops the release.
+
 3. The owner publishes that same tarball by hand and tags the release commit
    `create-solid@N`.
 4. In a follow-up change, remove the private flag, set the package and manifest

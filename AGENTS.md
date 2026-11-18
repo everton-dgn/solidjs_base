@@ -93,17 +93,17 @@ manual registry release.
 
 - `apps/boilerplate` is a copy of `boilerplate_solidjs` at commit `6145493`, used to
   test the packages of the monorepo in a complete application. The
-  `README.md` of the application lists what changed from the original.
+  [development guide](docs/development.md#what-changed-from-the-original) lists
+  what changed from the original.
 - The lint rules, the formatter, the tsconfigs, the Vite and Nitro config
   (`defineSolidApp`), the Vitest projects (`solidTest`), the Playwright config
   (`definePlaywrightConfig`) and the Knip (`defineKnipConfig`) and Stylelint
   (`checkCss`) configs come from the `@evertondgn/solid-tooling` package.
-  `tooling/knip.ts` and `tooling/css/check.ts` only pass to the package what
-  belongs to this application. The `packages/solid-tooling/src/...` paths cited
-  in the application guides resolve from the monorepo root. To change a rule, change it in the package and
-  run `vp run test` at the monorepo root.
-- In the tracked copy, the sections about release automation, the CI workflow, Git hooks and the
-  Vercel deploy describe the original repository and do not apply to this copy.
+  The app configures these tools in `apps/boilerplate/tooling/knip.ts` and
+  `apps/boilerplate/tooling/css/check.ts`. To change a shared rule, edit
+  `packages/solid-tooling/src/` and run `vp run test` at the repository root.
+- The generated app installs its own Git hooks. The tracked copy uses the
+  repository hooks and CI. Its guides identify the upstream deployment workflow.
 - This file, the guides in `docs/`, the code comments and the test titles are in
   English. The tests check the interface in its three languages. When bringing a
   change from the original, translate its documentation, comments and test

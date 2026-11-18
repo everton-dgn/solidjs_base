@@ -157,6 +157,14 @@ original. A change to a package that breaks the application fails here, before
 it becomes a version. [ADR 0009](ADRs/0009-boilerplate-app-in-the-monorepo.md)
 explains why the copy exists.
 
+The tracked app includes E2E fixture routes and examples for SSR, hydration, CSP
+and Markdown negotiation. Its UI components stay in the app. For a minimal
+starting point, choose an
+[installed fixture](../README.md#start-a-new-app-from-a-fixture). For an
+individual feature, the
+[application guide](../apps/boilerplate/README.md#what-each-page-and-feature-shows)
+links its binding and tests.
+
 Run its commands from `apps/boilerplate`:
 
 | Command                      | What it does                                                                    |

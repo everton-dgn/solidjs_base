@@ -818,6 +818,7 @@ The package exports 26 entries, counted from `exports` in its `package.json`:
 | `./lefthook.yml`                | The Git hooks, extended from the app's `.lefthook.yml`                           |
 | `./cli`                         | Command entry for packaged Knip, TypeScript, Playwright, Lefthook and commitlint |
 | `./i18n-generate`               | Compiled catalog generator run by the preset's `i18n-generate` task              |
+| `./paraglide`                   | `defineParaglideConfig(locales)`, the Paraglide compiler profile                 |
 | `./icons-generate`              | Compiled writer of the icon declarations, run by the `icons-generate` task       |
 | `./publication/read-llms-index` | Compiled reader of the llms index, for artifact checks in Node                   |
 | `./package.json`                | The package manifest                                                             |

@@ -37,6 +37,7 @@ export default defineConfig({
       'solid-plugin': 'src/solid-plugin.ts',
       vite: 'src/vite/index.ts',
       'i18n-generate': 'src/i18n/generate.ts',
+      paraglide: 'src/i18n/defineParaglideConfig/index.ts',
       'icons-generate': 'src/icons/generate.ts',
       vitest: 'src/vitest/index.ts',
       'vitest-setup/browser': 'src/vitest/setup/browser.ts',

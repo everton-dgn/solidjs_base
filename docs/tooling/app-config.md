@@ -22,7 +22,11 @@ not use reaches its build:
   Paraglide plugin in dev, build and the `dom` and `browser` test projects. Keep
   catalogs at `src/**/i18n/<locale>.json` and the compiler options in
   `project.inlang/paraglide.config.ts`; no application generator or plugin is
-  needed. Locales and the base locale come from the settings, with no fixed set.
+  needed. `defineParaglideConfig(settings.locales)`, from
+  `@evertondgn/solid-tooling/paraglide`, returns the profile of the boilerplate
+  app: a URL prefix for every locale, the URL, cookie, browser and base locale
+  strategy, and the `locale` cookie. Spread it to change one option. Locales and
+  the base locale come from the settings, with no fixed set.
 - Without `project.inlang/settings.json`, there is no i18n plugin or
   `i18n-generate` task, no Paraglide setup in the browser tests and no locale
   folder in the rules. The lint preset registers the Paraglide plugin and its

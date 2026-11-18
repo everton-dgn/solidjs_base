@@ -55,6 +55,7 @@
     "./icons-generate": "./dist/icons-generate.mjs",
     "./knip": "./dist/knip.mjs",
     "./lint": "./dist/lint.mjs",
+    "./paraglide": "./dist/paraglide.mjs",
     "./playwright": "./dist/playwright.mjs",
     "./playwright-teardown": "./dist/playwright-teardown.mjs",
     "./project-plugin": "./dist/project-plugin.mjs",

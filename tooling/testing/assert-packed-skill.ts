@@ -33,6 +33,13 @@ for (const file of pending) {
   if (!resolved.endsWith('.md')) continue
   const contents = await readFile(resolved, 'utf8')
   if (file === skill) {
+    if (name === 'solid-base-runtime') {
+      assert.match(contents, /strict-dynamic/u)
+      assert.match(contents, /default style policy/u)
+      assert.match(contents, /Tests and declarations keep only the relative import limit/u)
+      assert.match(contents, /Array sources receive the signal/u)
+      assert.match(contents, /partitioned source also receives/u)
+    }
     const header = /^---\r?\n(?<yaml>[\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(
       contents
     )

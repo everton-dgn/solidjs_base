@@ -18,9 +18,10 @@ modules of `defineSolidApp`. A section applies only when the app uses it.
   same headers to the `securityHeaders` option of `defineSolidApp`.
 - Never pass `script-src`, `script-src-elem`, `script-src-attr` or a
   `content-security-policy` header: the package builds them and refuses yours.
-- Only scripts with the request nonce run in production, and styles only from
-  external sheets: put `requestNonce()`, from `middleware/security-headers`, on
-  each server-rendered `<script>`, and use classes, not `<style>` or `style`.
+- Put `requestNonce()`, from `middleware/security-headers`, on each
+  server-rendered script. In production, `strict-dynamic` also trusts scripts
+  loaded by a trusted script. The default style policy allows external sheets;
+  use classes unless the application overrides `style-src`.
 - Nothing refuses a host in `img-src` or `'unsafe-inline'` in `style-src`. The
   dev server sends no CSP: check a CSP change in a production build.
 
@@ -41,6 +42,7 @@ modules of `defineSolidApp`. A section applies only when the app uses it.
   properties, body or headers into a result.
 - The lint refuses `console` (use `logServerFailure`), `fetch` outside
   `src/infra/server/requestJson/index.ts`, Node transports and `markSafeError`.
+  Tests and declarations keep only the relative import limit.
 
 ## Locales and navigation
 
@@ -79,7 +81,8 @@ modules of `defineSolidApp`. A section applies only when the app uses it.
   conversion per request. `data-md-exclude` leaves an element out.
 - Share one `createPublicationController()`, from a server-only module, between
   `createMarkdownContent`, in the middleware `document` slot, and
-  `createSitemapRoutes`. A source reads only its `limit` and honors the signal;
+  `createSitemapRoutes`. Array sources receive the signal and return the full list. A
+  partitioned source also receives `limit` and bounds its query accordingly;
   never register an array and a partitioned source for one route.
 
 ## Theme

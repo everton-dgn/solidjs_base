@@ -18,13 +18,15 @@ function run(): void {
     options: {
       pm: { type: 'string', default: 'bun' },
       'site-url': { type: 'string', default: 'https://example.com' },
+      diagnostics: { type: 'boolean' },
+      'no-diagnostics': { type: 'boolean' },
       help: { type: 'boolean' },
       'no-git': { type: 'boolean' },
       'no-install': { type: 'boolean' }
     }
   })
   const usage =
-    'bunx @evertondgn/create-solid@latest <dir> [--pm bun|pnpm|npm] [--site-url URL] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
+    'bunx @evertondgn/create-solid@latest <dir> [--pm bun|pnpm|npm] [--site-url URL] [--diagnostics|--no-diagnostics] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
   if (values.help) {
     process.stdout.write(`${usage}\n`)
     process.exit(0)
@@ -37,6 +39,7 @@ function run(): void {
     throw new UsageError(usage)
   }
   const profile = {
+    diagnostics: !values['no-diagnostics'],
     siteUrl: values['site-url'],
     pm: values.pm,
     dir: path.resolve(positionals[0]),

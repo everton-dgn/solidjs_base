@@ -113,6 +113,25 @@ function nextSteps(profile: Profile): string[] {
   next.push('Run vp run dev.')
   return next
 }
+function configureDiagnostics(stage: string, context: GenerationContext): void {
+  if (context.profile.diagnostics !== false) return
+  delete context.pkg.devDependencies['@solidjs/diagnostics']
+  const file = 'docs/development.md'
+  const guide = readFileSync(path.join(stage, file), 'utf8')
+  context.write(
+    file,
+    guide
+      .replace(
+        /^## Reactivity diagnostics in development\n[\s\S]*?(?=^## )/mu,
+        ''
+      )
+      .replace(
+        '`solid-js`, `@solidjs/web` and `@solidjs/diagnostics`',
+        '`solid-js` and `@solidjs/web`'
+      )
+  )
+}
+
 export function resolveGroup(
   { settings }: GenerationContext,
   group: Versions
@@ -225,6 +244,7 @@ export function generate(profile: Profile): string[] {
       JSON.parse(readFileSync(manifestFile, 'utf8'))
     )
     const context = { profile, settings, pkg, write }
+    configureDiagnostics(stage, context)
     rewriteIdentity(context)
     pkg.dependencies = resolveGroup(context, pkg.dependencies)
     pkg.devDependencies = resolveGroup(context, pkg.devDependencies)

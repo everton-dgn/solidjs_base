@@ -131,3 +131,25 @@ void it('uses the configured hook version and writes its configuration', async (
   assert.equal(context.pkg.devDependencies.lefthook, '9')
   assert.ok(files.has('.lefthook.yml'))
 })
+
+void it('removes reactivity diagnostics from the application and its guide', async context => {
+  const { mkdtempSync, readFileSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { default: path } = await import('node:path')
+  const dir = mkdtempSync(path.join(tmpdir(), 'app-diagnostics-'))
+  context.after(() => rmSync(dir, { recursive: true, force: true }))
+  const { generate } = await import('../src/generate.ts')
+  generate({
+    dir,
+    pm: 'bun',
+    diagnostics: false,
+    shouldInitGit: false,
+    shouldInstall: false
+  })
+  for (const file of ['package.json', 'docs/development.md']) {
+    assert.doesNotMatch(
+      readFileSync(path.join(dir, file), 'utf8'),
+      /@solidjs\/diagnostics|\/__solid\/diagnostics/u
+    )
+  }
+})

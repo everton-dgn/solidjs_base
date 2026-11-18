@@ -8,8 +8,11 @@ const BLOCK = [
   'The report lists installed versions, skills to read, missing dependencies and validation commands.',
   '<!--SOLID BASE END-->'
 ]
+// Every fence opener holds a run of three backticks or tildes, whatever list
+// or quote surrounds it. A marker with no such run above it therefore cannot
+// sit inside a fenced code block, with no Markdown parser to get wrong.
+const FENCE_RUN = /`{3}|~{3}/u
 type BlockState = 'current' | 'outdated' | 'missing'
-type FenceLine = { line: string; fence: string }
 type Instructions = { original: string; file: string }
 type MarkerPair = { start: number; end: number }
 type AgentsInput = { root: string; shouldWrite: boolean }
@@ -27,35 +30,15 @@ async function readInstructions(file: string): Promise<string> {
     throw error
   }
 }
-function nextFence({ line, fence }: FenceLine): string {
-  const delimiter = /^ {0,3}(?<run>`{3,}|~{3,})(?<rest>.*)$/u.exec(line)?.groups
-  if (!delimiter) return fence
-  const { run = '', rest = '' } = delimiter
-  if (!fence) return run.startsWith('`') && rest.includes('`') ? '' : run
-  return run.startsWith(fence) && !rest.trim() ? '' : fence
-}
-type ListLine = { line: string; listIndent: number }
-// Indented list content ends with the item. A column-zero marker can
-// therefore only belong to a fence opened at the top level.
-function nextListIndent({ line, listIndent }: ListLine): number {
-  if (listIndent && (!line.trim() || line.startsWith(' '.repeat(listIndent)))) {
-    return listIndent
-  }
-  const item = /^ {0,3}(?:[-+*]|\d{1,9}[.)])(?: {1,4}(?=\S)| |$)/u.exec(line)
-  if (!item) return 0
-  return item[0].endsWith(' ') ? item[0].length : item[0].length + 1
-}
 function markers({ original, file }: Instructions): Map<string, MarkerPair> {
   const lines = original.match(/[^\n]*\n|[^\n]+$/gu) ?? []
   const pairs = new Map<string, MarkerPair>()
   let active = ''
-  let fence = ''
-  let listIndent = 0
+  let fenceLine = 0
   let offset = 0
   for (const [index, raw] of lines.entries()) {
     const line = raw.replace(/\r?\n$/u, '')
-    if (!fence) listIndent = nextListIndent({ line, listIndent })
-    if (!listIndent) fence = nextFence({ line, fence })
+    if (!fenceLine && FENCE_RUN.test(line)) fenceLine = index + 1
     const marker =
       /<!--(?<kind>SOLID BASE|VITE PLUS) (?<edge>START|END)-->/u.exec(line)
     if (
@@ -66,8 +49,12 @@ function markers({ original, file }: Instructions): Map<string, MarkerPair> {
     }
     if (marker) {
       const [, kind = '', edge] = marker
+      if (fenceLine) {
+        throw new Error(
+          `${file}:${index + 1}: ${kind} marker below the code fence of line ${fenceLine}; keep the managed blocks above every code fence`
+        )
+      }
       const isInvalid =
-        Boolean(fence) ||
         marker[0] !== line ||
         (edge === 'START'
           ? Boolean(active) || pairs.has(kind)

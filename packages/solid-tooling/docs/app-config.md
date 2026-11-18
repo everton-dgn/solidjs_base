@@ -451,4 +451,8 @@ stdout stream, or when the config cannot load, use
 
 Run `vp run agents` to install the pointer in AGENTS.md. Use
 `vp run agents --check` to verify it without writing. Applications using
-CLAUDE.md can include `@AGENTS.md` there.
+CLAUDE.md can include `@AGENTS.md` there. The command writes the block right
+after the Vite+ block, or at the top of the file. It refuses to write, naming
+the file and both lines, when a block marker sits below any line with three
+backticks or tildes, so it never edits a code example: keep the managed blocks
+above every code fence.

@@ -126,6 +126,7 @@ async function iconChecks({
         ) {
           continue
         }
+        seen.add(collection)
         warnings.push({
           id: 'icon-collection',
           package: name,

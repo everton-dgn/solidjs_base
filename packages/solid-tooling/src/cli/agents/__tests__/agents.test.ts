@@ -18,6 +18,9 @@ const VITE = '<!--VITE PLUS START-->\n<!--VITE PLUS END-->'
 for (const contents of [
   ['``` invalid`', '```', START, END, '```'].join('\n'),
   ['- example', '  ```', '', '```', START, END, '```'].join('\n'),
+  ['- - -', '  ```', START, 'example', END, '```'].join('\n'),
+  ['    ```', '  ```', START, END, '```'].join('\n'),
+  ['Use ``` to open a fence.', START, END].join('\n'),
   START,
   END,
   `${END}\n${START}`,
@@ -58,4 +61,21 @@ test('updates after Vite+, preserving CRLF and surrounding text', async t => {
   await agents({ root, shouldWrite: true })
   assert.equal(await agents({ root, shouldWrite: true }), 'current')
   assert.equal(await readFile(file, 'utf8'), current)
+})
+test('names the code fence that blocks a marker', async t => {
+  const { root, file } = await fixture(t)
+  await writeFile(file, ['# App', '~~~sh', '~~~', START, END].join('\n'))
+  await assert.rejects(
+    agents({ root, shouldWrite: true }),
+    /AGENTS\.md:4: SOLID BASE marker below the code fence of line 2/u
+  )
+})
+test('updates the block and keeps the code fences below it', async t => {
+  const { root, file } = await fixture(t)
+  const below = ['', '```sh', 'vp run doctor', '```'].join('\n')
+  await writeFile(file, [START, 'old', END].join('\n') + below)
+  assert.equal(await agents({ root, shouldWrite: true }), 'outdated')
+  const current = await readFile(file, 'utf8')
+  assert.ok(current.endsWith(`${END}${below}`))
+  assert.equal(await agents({ root, shouldWrite: true }), 'current')
 })

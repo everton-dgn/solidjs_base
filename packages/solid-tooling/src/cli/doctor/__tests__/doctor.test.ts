@@ -193,7 +193,7 @@ test('classifies optional features from the preset and application files', async
   await write({
     file: path.join(root, 'src/more.ts'),
     value:
-      "import Home from 'icon:mdi/home'\nimport Mystery from 'icon:unknown/mystery'"
+      "import Home from 'icon:mdi/home'\nimport Mystery from 'icon:unknown/mystery'\nimport Sun from 'icon:solar/sun'\nimport Star from 'icon:solar/star'"
   })
   const unreadable = path.join(root, 'src/unreadable.ts')
   await write({ file: unreadable, value: '' })

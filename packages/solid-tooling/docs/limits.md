@@ -37,9 +37,9 @@ Installation cost is measured in
 [ADR 0027](https://github.com/everton-dgn/solidjs_base/blob/main/docs/ADRs/0027-packaged-tool-dependencies.md).
 
 A library used directly still belongs in the application's manifest. The
-boilerplate copy keeps `filesystem-routing` for API helpers and tests, and
+boilerplate app keeps `filesystem-routing` for API helpers and tests, and
 `@playwright/test` for its E2E imports. Keep those versions aligned with the
-package to avoid duplicate instances. The copy also keeps `valibot` and
+package to avoid duplicate instances. The app also keeps `valibot` and
 `schema-dts`. The runtime owns `@mdream/js`; compiled publication tooling uses
 its own Nitro dependency. The runtime exports `StartMiddleware` from
 `./middleware/types`, so a middleware needs no direct Solid plugin dependency

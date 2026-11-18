@@ -13,7 +13,8 @@ import process from 'node:process'
 
 import { parse } from 'valibot'
 
-import { manifestSchema } from '../src/schema.ts'
+import { settingsSchema } from '../src/schema.ts'
+import { normalizeDiff } from './normalizeDiff.ts'
 
 const sourceTree = execFileSync('git', ['rev-parse', 'HEAD:apps/boilerplate'], {
   encoding: 'utf8'
@@ -68,29 +69,14 @@ try {
       { cwd: sandbox, encoding: 'utf8' }
     )
     assert.equal(diff.status, 1, diff.stderr)
-    const { version } = parse(
-      manifestSchema,
-      JSON.parse(readFileSync('package.json', 'utf8'))
+    const settings = parse(
+      settingsSchema,
+      JSON.parse(
+        readFileSync(path.join(sandbox, 'package/dist/settings.json'), 'utf8')
+      )
     )
     // The release changes only pinned package versions and the documentation tag.
-    const snapshot = diff.stdout
-      .split('\n')
-      .filter(line => !line.startsWith('index '))
-      .map(line => {
-        if (!line.startsWith('+')) return line
-        let normalized = line.replaceAll(
-          `/create-solid@${version}/`,
-          '/create-solid@{version}/'
-        )
-        for (const name of ['solid-runtime', 'solid-tooling']) {
-          normalized = normalized.replace(
-            `"@evertondgn/${name}": "${version}"`,
-            `"@evertondgn/${name}": "{version}"`
-          )
-        }
-        return normalized
-      })
-      .join('\n')
+    const snapshot = normalizeDiff(diff.stdout, settings)
     if (process.argv.includes('--update')) {
       writeFileSync(expected, snapshot)
     } else assert.equal(snapshot, readFileSync(expected, 'utf8'))

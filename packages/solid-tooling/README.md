@@ -1,6 +1,6 @@
 [![Latest solid-tooling version on npm](https://img.shields.io/npm/v/@evertondgn/solid-tooling)](https://www.npmjs.com/package/@evertondgn/solid-tooling)
 [![CI workflow status](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml/badge.svg)](https://github.com/everton-dgn/solidjs_base/actions/workflows/ci.yml)
-[![Node version that solid-tooling requires](https://img.shields.io/node/v/@evertondgn/solid-tooling)](docs/limits.md#requirements)
+[![Node version that solid-tooling requires](https://img.shields.io/node/v/@evertondgn/solid-tooling)](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/limits.md#requirements)
 [![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/everton-dgn/solidjs_base/blob/main/LICENSE)
 
 # @evertondgn/solid-tooling
@@ -32,15 +32,15 @@ production, such as security headers, server errors and SEO, come from
 
 ## Requirements
 
-| You need           | Solid Base expects                                                                                                                                                                                                       |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Node               | The range in `engines.node` of the [package manifest](package.json), shown by the Node badge above                                                                                                                       |
-| Vite+              | `vite-plus` at the exact version of the `peerDependencies` in the manifest                                                                                                                                               |
-| Solid              | `solid-js`, `@solidjs/web` and `@solidjs/router` in your app, at the version the packages are tested with ([requirements](docs/limits.md#requirements))                                                                  |
-| Translations       | Optional. `@inlang/paraglide-js` at the exact version of its optional peer, and its message-format plugin                                                                                                                |
-| A folder layout    | None for the lint and format presets. The full preset, the test presets, Knip and the CSS policy expect the boilerplate layout ([known limits](#known-limits))                                                           |
-| A host for SSR     | Vercel's output format: Nitro always uses its `vercel` preset. A client-only build (`ssr: false`) writes a static `dist/` ([no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)) |
-| Room for the tools | The package installs the tools of features you do not use ([measured cost](#fewer-tool-versions-in-each-manifest))                                                                                                       |
+| You need           | Solid Base expects                                                                                                                                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Node               | The range in `engines.node` of the [package manifest](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/package.json), shown by the Node badge above                                                      |
+| Vite+              | `vite-plus` at the exact version of the `peerDependencies` in the manifest                                                                                                                                                           |
+| Solid              | `solid-js`, `@solidjs/web` and `@solidjs/router` in your app, at the version the packages are tested with ([requirements](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/limits.md#requirements)) |
+| Translations       | Optional. `@inlang/paraglide-js` at the exact version of its optional peer, and its message-format plugin                                                                                                                            |
+| A folder layout    | None for the lint and format presets. The full preset, the test presets, Knip and the CSS policy expect the boilerplate layout ([known limits](#known-limits))                                                                       |
+| A host for SSR     | Vercel's output format: Nitro always uses its `vercel` preset. A client-only build (`ssr: false`) writes a static `dist/` ([no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md))             |
+| Room for the tools | The package installs the tools of features you do not use ([measured cost](#fewer-tool-versions-in-each-manifest))                                                                                                                   |
 
 > This package is `0.x`: below 1.0.0, a breaking change raises the minor
 > version. Its Solid, Nitro, router and icons plugins are pinned to the versions
@@ -93,17 +93,17 @@ request
 
 ## What the preset covers
 
-| Area                  | What your app gets                                                                                                                               | Guide                                                                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `vite.config.ts`      | `defineSolidApp`: the Solid, routing, icons and Nitro plugins, the headers of the static files, the build, the dev server and the `vp run` tasks | [Application config](docs/app-config.md)                                                                                |
-| Lint and format       | Oxlint with type-aware rules, the [rules of this package](#lint-rules-that-know-your-project) and the formatter settings                         | [Lint](docs/lint.md), [TypeScript and formatting](docs/typescript-and-format.md)                                        |
-| Tests                 | Node, DOM and browser Vitest projects with coverage thresholds, and a Playwright config that builds the app and checks the server log            | [Testing](docs/testing.md)                                                                                              |
-| Dead code and CSS     | Knip with the entries of a Solid app, and a Stylelint policy built on tokens                                                                     | [Knip and CSS](docs/knip-and-css.md)                                                                                    |
-| Commits and Git hooks | commitlint with Conventional Commits, and shared Lefthook hooks for commit, pre-commit and pre-push                                              | [Commit messages and Git hooks](docs/commits-and-hooks.md)                                                              |
-| Translations          | Catalog validation and Paraglide compilation, only when the app has `project.inlang/settings.json`                                               | [Application config](docs/app-config.md)                                                                                |
-| Icons and fonts       | The icons plugin, and font CSS with matching preloads                                                                                            | [Icons](docs/app-config.md#icons), [Application fonts](docs/fonts.md)                                                   |
-| SEO and environment   | Robots, sitemap, Markdown and `llms.txt` options written as data, and optional env validation                                                    | [SEO](docs/app-config.md#optional-seo-configuration), [environment](docs/app-config.md#optional-environment-validation) |
-| No server             | A client-only build for a static host, a folder or an app shell                                                                                  | [Applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)          |
+| Area                  | What your app gets                                                                                                                               | Guide                                                                                                                                                                                                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vite.config.ts`      | `defineSolidApp`: the Solid, routing, icons and Nitro plugins, the headers of the static files, the build, the dev server and the `vp run` tasks | [Application config](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/app-config.md)                                                                                                                                                             |
+| Lint and format       | Oxlint with type-aware rules, the [rules of this package](#lint-rules-that-know-your-project) and the formatter settings                         | [Lint](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/lint.md), [TypeScript and formatting](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/typescript-and-format.md)                                        |
+| Tests                 | Node, DOM and browser Vitest projects with coverage thresholds, and a Playwright config that builds the app and checks the server log            | [Testing](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/testing.md)                                                                                                                                                                           |
+| Dead code and CSS     | Knip with the entries of a Solid app, and a Stylelint policy built on tokens                                                                     | [Knip and CSS](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/knip-and-css.md)                                                                                                                                                                 |
+| Commits and Git hooks | commitlint with Conventional Commits, and shared Lefthook hooks for commit, pre-commit and pre-push                                              | [Commit messages and Git hooks](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/commits-and-hooks.md)                                                                                                                                           |
+| Translations          | Catalog validation and Paraglide compilation, only when the app has `project.inlang/settings.json`                                               | [Application config](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/app-config.md)                                                                                                                                                             |
+| Icons and fonts       | The icons plugin, and font CSS with matching preloads                                                                                            | [Icons](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/app-config.md#icons), [Application fonts](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/fonts.md)                                                   |
+| SEO and environment   | Robots, sitemap, Markdown and `llms.txt` options written as data, and optional env validation                                                    | [SEO](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/app-config.md#optional-seo-configuration), [environment](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/app-config.md#optional-environment-validation) |
+| No server             | A client-only build for a static host, a folder or an app shell                                                                                  | [Applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md)                                                                                                                                                                    |
 
 ## Who it fits
 
@@ -117,7 +117,7 @@ request
 
 - Your app needs the full preset with another folder layout. The test presets,
   Knip and the CSS policy expect the boilerplate layout
-  ([known limits](docs/limits.md#known-limits)).
+  ([known limits](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/limits.md#known-limits)).
 - Your server build must target a host other than Vercel's output format. Nitro
   always uses the `vercel` preset. A client-only build (`ssr: false`) writes a
   static `dist/` with no server
@@ -190,8 +190,10 @@ preset, as the fixture's
 does. These presets need no folder layout, but a few rules follow the
 boilerplate's conventions: `project/test-filename` expects each test in
 `__tests__` next to its module, and you turn it off in `lint.overrides` for
-other test folders ([known limits](docs/limits.md#known-limits)). See
-[TypeScript and formatting](docs/typescript-and-format.md).
+other test folders
+([known limits](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/limits.md#known-limits)).
+See
+[TypeScript and formatting](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/typescript-and-format.md).
 
 ## Use the whole preset
 
@@ -200,7 +202,7 @@ boilerplate layout. The app keeps its own direct imports, such as `solid-js`,
 `@solidjs/web` and `@solidjs/router`, plus Vite+ and its overrides. An app with
 translations also installs `@inlang/paraglide-js` at the version in this
 package's manifest, and its message-format plugin. See the
-[dependency requirements](docs/limits.md#requirements).
+[dependency requirements](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/limits.md#requirements).
 
 The shortest working setup is a copy of the closest
 [fixture app](https://github.com/everton-dgn/solidjs_base/tree/main/fixtures/apps).
@@ -225,8 +227,8 @@ copy of a fixture takes three to five changes, including the removal of `fonts`.
 lists them with the build output. For SSR, the
 [SSR fixture's `vite.config.ts`](https://github.com/everton-dgn/solidjs_base/blob/main/fixtures/apps/ssr-plain/vite.config.ts)
 adds the header policy, the server error setup, the middleware and SEO. The
-[application config guide](docs/app-config.md) covers every option, the tasks
-and how to change the result without a fork.
+[application config guide](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/app-config.md)
+covers every option, the tasks and how to change the result without a fork.
 
 ## Lint rules that know your project
 
@@ -252,7 +254,7 @@ cannot see:
 </picture>
 
 An import in the wrong direction fails `vp lint` before review. See
-[all rules and customization](docs/lint.md).
+[all rules and customization](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/lint.md).
 
 ## The configuration you stop maintaining
 
@@ -410,7 +412,9 @@ To check the packages you installed, run `npm audit signatures` in your app.
 - Some rule messages point to `docs/architecture.md` and `AGENTS.md`, files of
   an app created from boilerplate_solidjs.
 
-The [known limits](docs/limits.md#known-limits) list the rest.
+The
+[known limits](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/limits.md#known-limits)
+list the rest.
 
 ## Entry points
 
@@ -459,19 +463,20 @@ presets.
 
 ## Reference
 
-The guides ship in this package, in [`docs/`](docs/README.md), so
-`node_modules/@evertondgn/solid-tooling/docs/` holds the guides of the version
-your app installed.
+The guides ship in this package, in
+[`docs/`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/README.md),
+so `node_modules/@evertondgn/solid-tooling/docs/` holds the guides of the
+version your app installed.
 
-- [Tooling guides, by task](docs/README.md)
-- [Application config, plugins and tasks](docs/app-config.md)
-- [Lint rules and customization](docs/lint.md)
-- [Vitest and Playwright](docs/testing.md)
-- [Knip and CSS](docs/knip-and-css.md)
-- [Commit messages and Git hooks](docs/commits-and-hooks.md)
-- [TypeScript and formatting](docs/typescript-and-format.md)
-- [Application fonts](docs/fonts.md)
-- [Requirements, limits and versions](docs/limits.md)
+- [Tooling guides, by task](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/README.md)
+- [Application config, plugins and tasks](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/app-config.md)
+- [Lint rules and customization](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/lint.md)
+- [Vitest and Playwright](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/testing.md)
+- [Knip and CSS](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/knip-and-css.md)
+- [Commit messages and Git hooks](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/commits-and-hooks.md)
+- [TypeScript and formatting](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/typescript-and-format.md)
+- [Application fonts](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/fonts.md)
+- [Requirements, limits and versions](https://github.com/everton-dgn/solidjs_base/blob/main/packages/solid-tooling/docs/limits.md)
 - [Applications with no server](https://github.com/everton-dgn/solidjs_base/blob/main/docs/tooling/no-server.md),
   which stays in the repository because the installed scenarios read it
 

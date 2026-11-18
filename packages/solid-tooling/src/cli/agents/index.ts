@@ -8,11 +8,16 @@ const BLOCK = [
   'The report lists installed versions, skills to read, missing dependencies and validation commands.',
   '<!--SOLID BASE END-->'
 ]
-// Every fence opener holds a run of three backticks or tildes, whatever list
-// or quote surrounds it. A marker with no such run above it therefore cannot
-// sit inside a fenced code block, with no Markdown parser to get wrong.
+// The reader refuses instead of parsing Markdown. A marker is only ours when
+// CommonMark reads its line as a comment of its own, and a line above it that
+// can open a code fence or a raw HTML block could swallow it. A fence always
+// holds a run of three backticks or tildes; a raw HTML block that can hold a
+// column-zero line starts its own line, outside any list or quote.
 const FENCE_RUN = /`{3}|~{3}/u
+const RAW_HTML_OPENER =
+  /^[\s>*+\-\d.)]*<(?:(?:pre|script|style|textarea)(?:[\s>]|$)(?!.*<\/(?:pre|script|style|textarea)>)|!--(?!.*-->)|\?(?!.*\?>)|![a-z](?!.*>)|!\[CDATA\[(?!.*\]\]>))/iu
 type BlockState = 'current' | 'outdated' | 'missing'
+type Edge = 'START' | 'END'
 type Instructions = { original: string; file: string }
 type MarkerPair = { start: number; end: number }
 type AgentsInput = { root: string; shouldWrite: boolean }
@@ -31,67 +36,53 @@ async function readInstructions(file: string): Promise<string> {
     throw error
   }
 }
-function readMarker({ line, location }: MarkerLine): RegExpExecArray | null {
-  const marker =
-    /<!--(?<kind>SOLID BASE|VITE PLUS) (?<edge>START|END)-->/u.exec(line)
-  if (
-    !marker &&
-    /<!--\s*(?:SOLID BASE|VITE PLUS)\s+(?:START|END)\b/iu.test(line)
-  ) {
-    throw new Error(`${location}: malformed marker`)
+function readMarker({ line, location }: MarkerLine): Edge | undefined {
+  const marker = /<!--SOLID BASE (?<edge>START|END)-->/u.exec(line)
+  if (!marker) {
+    if (/<!--\s*SOLID BASE\s+(?:START|END)\b/iu.test(line)) {
+      throw new Error(`${location}: malformed marker`)
+    }
+    return undefined
   }
-  return marker
+  if (marker[0] !== line) throw new Error(`${location}: invalid marker`)
+  return marker.groups?.edge === 'START' ? 'START' : 'END'
 }
-function markers({ original, file }: Instructions): Map<string, MarkerPair> {
+function markers({ original, file }: Instructions): MarkerPair | undefined {
   const lines = original.match(/[^\n]*\n|[^\n]+$/gu) ?? []
-  const pairs = new Map<string, MarkerPair>()
-  let active = ''
-  let fenceLine = 0
+  let pair: MarkerPair | undefined
+  let isOpen = false
+  let startLine = 0
+  let openerLine = 0
   let offset = 0
   for (const [index, raw] of lines.entries()) {
     const line = raw.replace(/\r?\n$/u, '')
-    // Vite+ writes its block from its own template, so a fence inside it is
-    // balanced and cannot hide the markers that follow.
-    if (!fenceLine && active !== 'VITE PLUS' && FENCE_RUN.test(line)) {
-      fenceLine = index + 1
-    }
     const location = `${file}:${index + 1}`
-    const marker = readMarker({ line, location })
-    if (marker) {
-      const [, kind = '', edge] = marker
-      // Vite+ appends its block to an existing file, below any code in it.
-      // Such a block is no anchor, and the pointer goes to the top instead.
-      if (fenceLine && kind === 'VITE PLUS') continue
-      if (fenceLine) {
-        throw new Error(
-          `${location}: ${kind} marker below the code fence of line ${fenceLine}; move the block above every code fence`
-        )
-      }
-      const isInvalid =
-        marker[0] !== line ||
-        (edge === 'START'
-          ? Boolean(active) || pairs.has(kind)
-          : active !== kind)
-      if (isInvalid) {
-        throw new Error(`${location}: invalid ${kind} marker`)
-      }
-      if (edge === 'START') {
-        active = kind
-        pairs.set(kind, { start: offset, end: offset })
-      } else {
-        const pair = pairs.get(kind)
-        if (pair) pair.end = offset + line.length
-        active = ''
-      }
+    const edge = readMarker({ line, location })
+    if (edge && openerLine) {
+      throw new Error(
+        `${location}: SOLID BASE marker below line ${openerLine}, which can open a code or HTML block; move the block to the top of the file`
+      )
+    }
+    if (edge && (edge === 'START' ? isOpen || pair !== undefined : !isOpen)) {
+      throw new Error(`${location}: invalid marker`)
+    }
+    if (edge === 'START') {
+      pair = { start: offset, end: offset }
+      startLine = index + 1
+    }
+    if (edge === 'END' && pair) pair.end = offset + line.length
+    if (edge) isOpen = edge === 'START'
+    if (
+      !edge &&
+      !openerLine &&
+      (FENCE_RUN.test(line) || RAW_HTML_OPENER.test(line))
+    ) {
+      openerLine = index + 1
     }
     offset += raw.length
   }
-  if (active) {
-    throw new Error(
-      `${file}:${original.slice(0, pairs.get(active)?.start).split('\n').length}: missing ${active} end marker`
-    )
-  }
-  return pairs
+  if (isOpen) throw new Error(`${file}:${startLine}: missing end marker`)
+  return pair
 }
 export async function agents({
   root,
@@ -99,17 +90,15 @@ export async function agents({
 }: AgentsInput): Promise<BlockState> {
   const file = path.join(root, 'AGENTS.md')
   const original = await readInstructions(file)
-  const pairs = markers({ original, file })
+  const pair = markers({ original, file })
   const eol = original.includes('\r\n') ? '\r\n' : '\n'
   const block = BLOCK.join(eol)
-  const solid = pairs.get('SOLID BASE')
-  const vite = pairs.get('VITE PLUS')
-  const at = solid?.start ?? vite?.end ?? 0
-  let replacement = block
-  if (!solid) replacement = vite ? eol + block : block + eol
-  const updated =
-    original.slice(0, at) + replacement + original.slice(solid?.end ?? at)
+  // A new block goes to the top, where no line above it can hide it.
+  const top = original.startsWith('﻿') ? 1 : 0
+  const updated = pair
+    ? original.slice(0, pair.start) + block + original.slice(pair.end)
+    : original.slice(0, top) + block + eol + original.slice(top)
   if (shouldWrite && updated !== original) await writeFile(file, updated)
   if (updated === original) return 'current'
-  return solid ? 'outdated' : 'missing'
+  return pair ? 'outdated' : 'missing'
 }

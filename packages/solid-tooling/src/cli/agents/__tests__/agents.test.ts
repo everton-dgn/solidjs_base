@@ -79,3 +79,22 @@ test('updates the block and keeps the code fences below it', async t => {
   assert.ok(current.endsWith(`${END}${below}`))
   assert.equal(await agents({ root, shouldWrite: true }), 'current')
 })
+test('goes to the top when Vite+ appended its block below code', async t => {
+  const { root, file } = await fixture(t)
+  const existing = ['# Notes', '```sh', 'vp run dev', '```', VITE, ''].join(
+    '\n'
+  )
+  await writeFile(file, existing)
+  assert.equal(await agents({ root, shouldWrite: true }), 'missing')
+  const current = await readFile(file, 'utf8')
+  assert.ok(current.startsWith(START))
+  assert.ok(current.endsWith(`${END}\n${existing}`))
+  assert.equal(await agents({ root, shouldWrite: true }), 'current')
+})
+test('follows a Vite+ block that holds a code example', async t => {
+  const { root, file } = await fixture(t)
+  const vite = VITE.replace('\n', '\n```sh\nvp check\n```\n')
+  await writeFile(file, `${vite}\ncustom`)
+  await agents({ root, shouldWrite: true })
+  assert.ok((await readFile(file, 'utf8')).startsWith(`${vite}\n${START}`))
+})

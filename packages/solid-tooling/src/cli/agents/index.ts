@@ -38,7 +38,11 @@ function markers({ original, file }: Instructions): Map<string, MarkerPair> {
   let offset = 0
   for (const [index, raw] of lines.entries()) {
     const line = raw.replace(/\r?\n$/u, '')
-    if (!fenceLine && FENCE_RUN.test(line)) fenceLine = index + 1
+    // Vite+ writes its block from its own template, so a fence inside it is
+    // balanced and cannot hide the markers that follow.
+    if (!fenceLine && active !== 'VITE PLUS' && FENCE_RUN.test(line)) {
+      fenceLine = index + 1
+    }
     const marker =
       /<!--(?<kind>SOLID BASE|VITE PLUS) (?<edge>START|END)-->/u.exec(line)
     if (
@@ -49,6 +53,9 @@ function markers({ original, file }: Instructions): Map<string, MarkerPair> {
     }
     if (marker) {
       const [, kind = '', edge] = marker
+      // Vite+ appends its block to an existing file, below any code in it.
+      // Such a block is no anchor, and the pointer goes to the top instead.
+      if (fenceLine && kind === 'VITE PLUS') continue
       if (fenceLine) {
         throw new Error(
           `${file}:${index + 1}: ${kind} marker below the code fence of line ${fenceLine}; keep the managed blocks above every code fence`

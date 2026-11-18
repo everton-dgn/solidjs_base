@@ -234,16 +234,18 @@ configuration requires neither of them.
 
 ### Tasks
 
-| Task                | Command                                                                                                 |
-| ------------------- | ------------------------------------------------------------------------------------------------------- |
-| `i18n-generate`     | `bun '<package>/dist/i18n-generate.mjs'`, only with `project.inlang/settings.json`                      |
-| `icons-generate`    | `node '<package>/dist/icons-generate.mjs'`, with `root` and `icons` as JSON                             |
-| `lint-css`          | `bun tooling/css/check.ts`                                                                              |
-| `dead-code-project` | Package-owned Knip with `--config tooling/knip.ts`, then again with `--strict`                          |
-| `lint-project`      | `vp lint`, after `lint-css` and `icons-generate`                                                        |
-| `check-project`     | `vp fmt --check && vp lint`, after `lint-css` and `icons-generate`                                      |
-| `typecheck-node`    | Package-owned `tsrs` with `--project tsconfig.node.json`                                                |
-| `test-tooling`      | `node --test` over `tooling/**/__tests__` except `tooling/release/`, three workers on CI, with no cache |
+| Task                | Command                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `i18n-generate`     | `bun '<package>/dist/i18n-generate.mjs'`, only with `project.inlang/settings.json`                            |
+| `icons-generate`    | `node '<package>/dist/icons-generate.mjs'`, with `root` and `icons` as JSON                                   |
+| `lint-css`          | `bun tooling/css/check.ts`                                                                                    |
+| `dead-code-project` | Package-owned Knip with `--config tooling/knip.ts`, then again with `--strict`                                |
+| `lint-project`      | `vp lint`, after `lint-css` and `icons-generate`                                                              |
+| `check-project`     | `vp fmt --check && vp lint`, after `lint-css` and `icons-generate`                                            |
+| `typecheck-node`    | Package-owned `tsrs` with `--project tsconfig.node.json`                                                      |
+| `test-tooling`      | `node --test` over `tooling/**/__tests__` except `tooling/release/`, three workers on CI, with no cache       |
+| `doctor`            | The [installed package diagnostics](#installed-package-diagnostics), with the preset's options, with no cache |
+| `agents`            | Writes the pointer block of `AGENTS.md`, or compares it with `--check`, with no cache                         |
 
 The uncached `knip`, `tsrs`, `playwright`, `lefthook` and `commitlint` tasks
 forward their arguments to binaries resolved from the package. For example, use
@@ -427,9 +429,23 @@ virtual-module types do not augment `ImportMetaEnv`; applications using
 
 ## Installed package diagnostics
 
-Run `vp run doctor` in the application for installed versions, skills and
-validation commands. Add `--json` for structured checks. Errors exit with
-status 1. Vite+ prints the task command before its output. For a JSON-only
+Run `vp run doctor` in the application before changing code. It prints five
+sections:
+
+- the application folder and, when it differs, the installation root, whose
+  `package.json` holds the `overrides` that align versions;
+- the Solid Base and Solid packages installed, with their versions;
+- a summary of the checks, with how many passed, warned and failed, followed by
+  each warning and error with the expected and observed values, the fix and the
+  file to edit;
+- the skills to read, relative to the application folder when they are inside
+  it;
+- the `vp run` commands that validate a change.
+
+Errors exit with status 1; warnings do not. Color and status symbols appear only
+when stdout is a terminal and `NO_COLOR` is not set. Add `--json` for the same
+report as one object, with absolute paths and every check, the passed ones
+included. Vite+ prints the task command before its output. For a JSON-only
 stdout stream, or when the config cannot load, use
 `node node_modules/@evertondgn/solid-tooling/dist/cli.mjs doctor --root . --json`.
 

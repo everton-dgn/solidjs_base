@@ -18,17 +18,19 @@ build stops with the name you asked for when an icon does not exist.
 
 > This package is `0.x` ([versions](#versions-and-license)). It pins its
 > `@solidjs/web` and `vite-plus` peer dependencies to the versions it is tested
-> with, listed in its [`package.json`](package.json), so update them together.
+> with, listed in its
+> [`package.json`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/package.json),
+> so update them together.
 
 ## Requirements
 
-| You need      | Solid Base expects                                                                                                                                 |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Node          | The range in `engines.node` of the [package manifest](package.json), shown by the Node badge above                                                 |
-| Vite+         | `vite-plus` at the exact version of the `peerDependencies` in the manifest. The plugin reads your imports with the parser that `vite-plus` exports |
-| Solid         | `@solidjs/web` at the exact version of the `peerDependencies`, and `@solidjs/vite-plugin` in the plugins of your app                               |
-| Icon sets     | One `@iconify-json/<collection>` package for each Iconify collection you import. A folder of your own SVG files needs no package                   |
-| Folder checks | The checks that keep an icon inside its folder are tested on macOS and Linux                                                                       |
+| You need      | Solid Base expects                                                                                                                                                                        |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Node          | The range in `engines.node` of the [package manifest](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/package.json), shown by the Node badge above |
+| Vite+         | `vite-plus` at the exact version of the `peerDependencies` in the manifest. The plugin reads your imports with the parser that `vite-plus` exports                                        |
+| Solid         | `@solidjs/web` at the exact version of the `peerDependencies`, and `@solidjs/vite-plugin` in the plugins of your app                                                                      |
+| Icon sets     | One `@iconify-json/<collection>` package for each Iconify collection you import. A folder of your own SVG files needs no package                                                          |
+| Folder checks | The checks that keep an icon inside its folder are tested on macOS and Linux                                                                                                              |
 
 ## Install
 
@@ -149,9 +151,10 @@ Load the module declarations in the `tsconfig.json` of the application:
 The declarations of the names of each collection live in a file that the dev
 server and the build write, `src/icon-collections.d.ts` by default. A
 `tsconfig.json` that includes `src` already reads it. See
-[Typed names](docs/types.md). `vp check` type-checks these imports only when
-`lint.options` in `vite.config.ts` sets `typeAware` and `typeCheck` to `true`;
-the lint preset of `@evertondgn/solid-tooling` sets both.
+[Typed names](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/types.md).
+`vp check` type-checks these imports only when `lint.options` in
+`vite.config.ts` sets `typeAware` and `typeCheck` to `true`; the lint preset of
+`@evertondgn/solid-tooling` sets both.
 
 ## Who it fits
 
@@ -171,11 +174,12 @@ the lint preset of `@evertondgn/solid-tooling` sets both.
   make an untrusted SVG safe, and such a file needs a sanitizer at runtime
   ([what the plugin does with your SVG files](#what-the-plugin-does-with-your-svg-files)).
 - You cannot pin exact versions. `vite-plus` and `@solidjs/web` are exact peers
-  in the [`package.json`](package.json).
+  in the
+  [`package.json`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/package.json).
 - You run Node older than the `engines.node` floor of the package.
 - You build folder collections on Windows and rely on the checks that keep an
   icon inside its folder. Those checks are tested on macOS and Linux
-  ([collections](docs/collections.md)).
+  ([collections](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/collections.md)).
 
 ## Questions before you adopt it
 
@@ -188,7 +192,7 @@ in a page, such as a `<script>`, an event handler attribute, a `javascript:`
 URL, an HTML element or a `<foreignObject>`. The checks do not make an untrusted
 SVG safe: they leave external references, such as an `<image>` that points to a
 URL, or a CSS `url()`. Review the SVG files of a folder as you review code
-([the full list](docs/svg-files.md)).
+([the full list](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/svg-files.md)).
 
 **Does it render on the server and hydrate?** Yes. The icon module goes through
 the Solid plugin of the app, so a server build and the dev server render it with
@@ -234,7 +238,8 @@ the real messages:
 The suggestion is the closest name within three edits, ignoring case. A name can
 only use letters, digits, `_`, `-` and dots between them, so an import cannot
 read a file outside the folder of its collection. The names follow one fixed
-rule, described in [Names you can predict](docs/names.md).
+rule, described in
+[Names you can predict](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/names.md).
 
 ## What the plugin does with your SVG files
 
@@ -247,8 +252,9 @@ markup that a page reads as HTML, such as `<foreignObject>`, and on a file that
 is not well-formed XML. The icons of an installed collection go through the same
 checks. They do not make an untrusted SVG safe: they leave external references,
 such as an `<image>` that points to a URL, or a CSS `url()`. An SVG that a user
-uploads needs a sanitizer at runtime. [The full list](docs/svg-files.md) covers
-every check.
+uploads needs a sanitizer at runtime.
+[The full list](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/svg-files.md)
+covers every check.
 
 ## Options
 
@@ -386,22 +392,23 @@ describes.
   every instance of the icon on a page.
 - The import forms that have no names to read, such as `import * as Icons`, stop
   the build
-  ([what is not supported](docs/imports.md#what-is-not-supported-and-why)).
+  ([what is not supported](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/imports.md#what-is-not-supported-and-why)).
 
 ## Reference
 
-The reference ships in this package, in [`docs/`](docs/README.md), so
-`node_modules/@evertondgn/vite-plugin-solid-icons/docs/` holds the reference of
-the version your app installed.
+The reference ships in this package, in
+[`docs/`](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/README.md),
+so `node_modules/@evertondgn/vite-plugin-solid-icons/docs/` holds the reference
+of the version your app installed.
 
-- [Icons plugin reference, by task](docs/README.md)
-- [Imports](docs/imports.md): by name, by path, `?raw`, server rendering and the
-  forms the build refuses
-- [Collections](docs/collections.md): installed collections, your own folders
-  and SVG edits without a restart
-- [What the plugin does with your SVG files](docs/svg-files.md)
-- [Names you can predict](docs/names.md)
-- [Typed names and a suggestion on a typo](docs/types.md)
+- [Icons plugin reference, by task](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/README.md)
+- [Imports](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/imports.md):
+  by name, by path, `?raw`, server rendering and the forms the build refuses
+- [Collections](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/collections.md):
+  installed collections, your own folders and SVG edits without a restart
+- [What the plugin does with your SVG files](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/svg-files.md)
+- [Names you can predict](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/names.md)
+- [Typed names and a suggestion on a typo](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/docs/types.md)
 
 ## Versions and license
 
@@ -409,6 +416,7 @@ The package follows semantic versioning. Below 1.0.0, a breaking change raises
 the minor version. Each release is listed in the
 [changelog](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/CHANGELOG.md).
 
-[MIT](LICENSE). This package is part of
+[MIT](https://github.com/everton-dgn/solidjs_base/blob/main/packages/vite-plugin-solid-icons/LICENSE).
+This package is part of
 [Solid Base](https://github.com/everton-dgn/solidjs_base/blob/main/README.md),
 next to `@evertondgn/solid-tooling` and `@evertondgn/solid-runtime`.

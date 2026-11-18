@@ -176,10 +176,11 @@ changing the HTML of the application.
   the preset writes the `.md` files as `/<locale>/**.md`, with the locales of
   `project.inlang/settings.json`, and refuses a static path of the application
   inside the folder of a locale. This depends on the `urlPatterns` of
-  `project.inlang/paraglide.config.ts` prefixing every locale: an application
-  that serves a locale without a prefix needs its own pattern for the `.md`
-  files of that locale, or they go out from the CDN without these headers.
-  `AgentReadiness` checks the headers of each published `.md`.
+  `defineParaglideConfig`, in `project.inlang/paraglide.config.ts`, prefixing
+  every locale: an application that serves a locale without a prefix needs its
+  own pattern for the `.md` files of that locale, or they go out from the CDN
+  without these headers. `AgentReadiness` checks the headers of each published
+  `.md`.
 - On the Vercel CDN, the routes of `config.json` compare the path still encoded,
   and the static file is found by the decoded path. A percent-encoded spelling
   of a static path, such as `/%70t/index.md` or

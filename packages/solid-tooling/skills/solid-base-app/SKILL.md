@@ -80,7 +80,8 @@ to read and the commands that validate a change.
 - `backend/*`, in `src/`: no `console`, no `fetch` outside
   `src/infra/server/requestJson/index.ts`, no Node transports, no
   `markSafeError`, no `node_modules` path in an import and at most three `../`.
-  The server-error configurator belongs only to
+  Tests and declarations keep only the relative import limit. The server-error
+  configurator belongs only to
   `src/infra/server/configureServerErrors/index.ts`, which exports nothing.
 - `architecture/layer-imports`: `@types`, `constants`, `helpers`, `data`,
   `infra`, `theme`, `i18n` and `paraglide/` do not import primitives,
@@ -88,9 +89,9 @@ to read and the commands that validate a change.
   molecules do not import organisms, and production code imports no test and
   nothing from `tooling/`.
 - The rules read import specifiers as text, so a computed `import()` escapes
-  them; do not use one to get around a rule. Turn a rule off for some files in
-  `lint.overrides`, spreading the existing entries, and never replace
-  `lint.jsPlugins`.
+  static specifier checks. A route `seo.ts` rejects computed imports. Turn a
+  rule off for some files in `lint.overrides`, spreading the existing entries,
+  and never replace `lint.jsPlugins`.
 
 ## Guides
 

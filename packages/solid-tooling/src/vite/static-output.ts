@@ -164,6 +164,12 @@ async function createStaticConfig(input: StaticOutputInput) {
       },
       'prerender:generate'(route: PrerenderRoute) {
         if (hasErrorPage && route.route === '/404.html') {
+          if (!route.error) {
+            route.error = new Error(
+              `output: static expected httpStatus(404) at ${route.route}; content catch-alls require an enumeration contract`
+            )
+            return
+          }
           if (route.error?.status === HTTP_NOT_FOUND) delete route.error
           route.fileName = '/404.html'
         }

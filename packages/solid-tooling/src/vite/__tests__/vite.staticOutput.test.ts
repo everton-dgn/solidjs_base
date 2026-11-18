@@ -267,3 +267,10 @@ it('preserves prerender failures outside the custom 404 response', async t => {
     assert.equal(route.error, error)
   }
 })
+
+it('requires the root catch-all to return 404', async t => {
+  const config = await fixture(t, '[...rest]')
+  const route: PrerenderRoute = { route: '/404.html', contentType: 'text/html' }
+  config.hooks['prerender:generate'](route)
+  assert.match(route.error?.message ?? '', /httpStatus\(404\).*enumeration/u)
+})

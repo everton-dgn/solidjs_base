@@ -108,7 +108,11 @@ export async function checkStaticOutput({
     ? appSource
         .replace(
           'getRequestEvent, isServer',
-          'getRequestEvent, HydrationScript, isServer'
+          'getRequestEvent, httpStatus, HydrationScript, isServer'
+        )
+        .replace(
+          '  const theme =',
+          "  if (event && new URL(event.request.url).pathname.endsWith('/404.html')) httpStatus(404)\n  const theme ="
         )
         .replace(
           '</head>',
@@ -155,6 +159,12 @@ export async function checkStaticOutput({
     "export { inventory as GET } from '../../../infra/server/sitemap/index.ts'"
   )
   if (isTranslated) {
+    const catchAll = file('src/routes/[...rest]')
+    await mkdir(catchAll)
+    await writeFile(
+      path.join(catchAll, 'index.tsx'),
+      'export default () => null'
+    )
     await appendFile(
       file('src/entry-client.tsx'),
       "\nimport { getLocale } from '../paraglide/runtime.js'; document.documentElement.dataset.clientLocale = getLocale()"
@@ -192,6 +202,10 @@ export async function checkStaticOutput({
       `default-src 'self'; script-src 'self' ${scriptSources}`
     )
     const url = new URL(request.url ?? '/', 'http://localhost')
+    if (url.pathname === '/de/inexistente') {
+      response.statusCode = HTTP_NOT_FOUND
+      url.pathname = '/de/404.html'
+    }
     const name = path.extname(url.pathname)
       ? url.pathname
       : path.join(url.pathname, 'index.html')
@@ -254,6 +268,14 @@ export async function checkStaticOutput({
         assert.equal(
           await page.locator('p').first().textContent(),
           'Bonjour le monde'
+        )
+        const missing = await page.goto(origin + '/de/inexistente')
+        assert.equal(missing?.status(), HTTP_NOT_FOUND)
+        await page.waitForSelector('html[data-client-locale="de"]')
+        assert.equal(await page.locator('html').getAttribute('lang'), 'de-DE')
+        assert.equal(
+          await page.locator('p').first().textContent(),
+          'Hallo Welt'
         )
       } finally {
         await browser.close()

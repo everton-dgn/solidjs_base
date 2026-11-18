@@ -79,20 +79,12 @@ release. Add a tool name to select part of the graph. For example, run
 - Use `vp run dev` and `vp run build`: the scripts call the local Vite+ CLI
   with Bun explicitly. The built-in `vp dev` and `vp build` commands follow the
   Node selection of the global CLI.
-- Keep Node in Vitest, in the tooling tests outside `tooling/release/` and in
+- Keep Node in Vitest, in the tooling tests and in
   the production SSR until the incompatibilities described in
   [development](docs/development.md) are solved and verified. Nitro chooses the
   runtime of the Vercel function from `engines.node`, so running the build in
   Bun does not switch the function to Bun.
-- Knip, the CSS lint, the mocked E2E backend and the release automation run in
-  Bun. Validate the automation with `vp run test:release`, which also runs in
-  the pre-push. In the CI, that suite runs when the automation or its
-  dependencies change; the publication keeps the real checks without repeating
-  the tests. Only the plan job of the release installs dependencies and imports
-  Vite+ (`tooling/release/plan-release.ts`); the jobs with write permission use
-  only Git, `gh` and `node:` modules. The pre-push runs Knip
-  (`vp run dead-code`) in parallel with `test:tooling` and `test:release`; in
-  the CI, Knip runs in the `Quality` job.
+- Knip, the CSS lint and the mocked E2E backend run in Bun.
 - The `vp run` tasks come from `defineSolidApp` of
   `@evertondgn/solid-tooling/vite`. The ones that run files of `tooling/`, such
   as the CSS lint, use `bun tooling/<file>.ts`. `i18n:generate` runs the compiled

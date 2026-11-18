@@ -92,13 +92,6 @@ JavaScript, imports, TypeScript, Unicorn, tests and integrations with the
 environment. The values of the rules and the order of the overrides belong to
 the same contract, even when they live in different modules.
 
-`tooling/release/automatic-release.ts` coordinates the preparation and the
-publication. The modules and the limits of the jobs are in the
-[release guide](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md).
-In `tooling/ciReuse/decideReuse/`, the validation of the evidence stays in the
-entry; `hasMainCaches/` checks that the caches are available, and `types.ts`
-holds the long contracts used in that decision.
-
 ## Data and infrastructure
 
 The application binds the Markdown adapter in

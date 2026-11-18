@@ -338,7 +338,7 @@ The typed names of each collection, for
 `import { Solid } from 'icon:my-images'`, live in `src/icon-collections.d.ts`.
 The dev server and the build write it, and the `icons-generate` task writes it
 before `check:ci` and `lint`. The file is generated: it stays out of Git, of the
-formatter and of the linter. The copy imports each icon by its path.
+formatter and of the linter. The application imports each icon by its path.
 
 The
 [Solid SVG comes from the official Vite template](https://github.com/vitejs/vite/blob/main/packages/create-vite/template-solid/src/assets/solid.svg).

@@ -246,9 +246,7 @@ the app, a package, a fixture or the root configuration
 
 It takes its lint preset, lint rules, formatter settings, TypeScript configs,
 Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
-Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`, in place of
-the copies the original keeps in `tooling/`, `vite.config.ts` and
-`tsconfig.json`. See the
+Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`. See the
 [configuration comparison](../../packages/solid-tooling/README.md#the-configuration-you-stop-maintaining)
 of the tooling README for the line counts by area.
 
@@ -316,8 +314,7 @@ A sixteenth area, `PublicationLoad`, stays out of both columns, as
 
 ### Guides
 
-The guides describe the application. Their sections about releases, CI, Git
-hooks and the Vercel deploy describe the original repository.
+The guides describe the application. The release, CI and Vercel deployment examples describe the upstream workflows.
 
 | Guide                                                           | What you will find                                                    |
 | --------------------------------------------------------------- | --------------------------------------------------------------------- |

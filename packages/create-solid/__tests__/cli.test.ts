@@ -73,6 +73,8 @@ void it('formats pnpm settings added by the installer', context => {
   writeFileSync(
     path.join(parent, 'pnpm'),
     `#!/bin/sh
+mkdir -p node_modules/.bin
+cp "$TEST_VP" node_modules/.bin/vp
 printf 'minimumReleaseAgeExclude:\\n  - "@example/pkg"\\n' >> pnpm-workspace.yaml
 `,
     { mode: executable }
@@ -97,6 +99,7 @@ fi
     env: {
       ...process.env,
       PATH: `${parent}:${process.env.PATH}`,
+      TEST_VP: path.join(parent, 'vp'),
       REAL_VP: realVp,
       FORMATTER: formatter
     }
@@ -130,21 +133,19 @@ void it('explains how to continue after Git initialization fails', context => {
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })
 
-void it('removes only a newly created destination when formatting fails before the manifest', context => {
+void it('preserves the destination when a required tool is missing', context => {
   const parent = folder(context)
   writeFileSync(path.join(parent, 'vp'), '#!/bin/sh\nexit 1\n', {
     mode: executable
   })
-  for (const existing of [false, true]) {
-    const dir = path.join(parent, existing ? 'existing' : 'new')
-    if (existing) mkdirSync(dir)
-    const result = spawnSync(
-      process.execPath,
-      [bin, dir, '--no-install', '--no-git'],
-      { env: { ...process.env, PATH: `${parent}:${process.env.PATH}` } }
-    )
+  for (const isExisting of [false, true]) {
+    const dir = path.join(parent, isExisting ? 'existing' : 'new')
+    if (isExisting) mkdirSync(dir)
+    const result = spawnSync(process.execPath, [bin, dir, '--no-install'], {
+      env: { ...process.env, PATH: parent }
+    })
     assert.equal(result.status, 1)
-    assert.equal(existsSync(dir), existing)
+    assert.equal(existsSync(dir), isExisting)
     assert.ok(!existsSync(path.join(dir, 'package.json')))
   }
 })

@@ -46,7 +46,7 @@ void it('makes the patch test read the standalone root', context => {
   const file = 'tooling/__tests__/patched-dependencies.test.ts'
   mkdirSync(path.join(dir, path.dirname(file)), { recursive: true })
   cpSync(path.join('template', file), path.join(dir, file))
-  rewritePatchTest({ dir, pm: 'bun', patches: {} })
+  rewritePatchTest({ dir, pm: 'bun' })
   assert.ok(
     readFileSync(path.join(dir, file), 'utf8').includes(
       "path.resolve(import.meta.dirname, '../..')"

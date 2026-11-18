@@ -6,12 +6,16 @@ import path from 'node:path'
 import type { DocumentRewrite, PatchRewrite } from './types.ts'
 
 function format(file: string, content: string): string {
-  return execFileSync('vp', ['fmt', `--stdin-filepath=${file}`], {
-    cwd: path.join(import.meta.dirname, '../dist/formatter'),
-    input: content,
-    encoding: 'utf8',
-    stdio: ['pipe', 'pipe', 'pipe']
-  })
+  return execFileSync(
+    path.resolve(import.meta.dirname, '../../../node_modules/.bin/vp'),
+    ['fmt', `--stdin-filepath=${file}`],
+    {
+      cwd: path.join(import.meta.dirname, '../dist/formatter'),
+      input: content,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe']
+    }
+  )
 }
 export function rewriteDocuments({ dir, pm, version }: DocumentRewrite): void {
   for (const file of readdirSync(dir, {
@@ -71,7 +75,7 @@ export function rewriteKnip(dir: string): void {
   assert.notEqual(output, source, 'Missing Knip workspace inputs')
   writeFileSync(file, output)
 }
-export function rewritePatchTest({ dir, pm, patches }: PatchRewrite): void {
+export function rewritePatchTest({ dir, pm }: PatchRewrite): void {
   const file = path.join(dir, 'tooling/__tests__/patched-dependencies.test.ts')
   const source = readFileSync(file, 'utf8')
   assert.match(source, /\/\/ In the monorepo,.*\n/u)
@@ -82,24 +86,24 @@ export function rewritePatchTest({ dir, pm, patches }: PatchRewrite): void {
   if (pm !== 'bun') {
     assert.ok(content.includes('const patchesSchema'))
     assert.ok(content.includes("import * as v from 'valibot'\n\n"))
-    const [entry] = Object.entries(patches)
-    assert.ok(entry)
-    const [key, patch] = entry
     const lines =
       pm === 'npm'
         ? [
             "  const manifest: unknown = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'))",
             "  assert.ok(typeof manifest === 'object' && manifest !== null && !('patchedDependencies' in manifest))",
-            `  await assert.rejects(access(path.join(ROOT, ${JSON.stringify(
-              patch
-            )})), { code: 'ENOENT' })`
+            "  await assert.rejects(access(path.join(ROOT, 'patches')), { code: 'ENOENT' })"
           ]
         : [
             "  const workspace = await readFile(path.join(ROOT, 'pnpm-workspace.yaml'), 'utf8')",
             "  const lock = await readFile(path.join(ROOT, 'pnpm-lock.yaml'), 'utf8')",
-            `  assert.ok(workspace.includes(${JSON.stringify(key)}))`,
-            `  assert.ok(lock.includes(${JSON.stringify(key)}))`,
-            `  await access(path.join(ROOT, ${JSON.stringify(patch)}))`
+            "  const section = workspace.split('patchedDependencies:\\n')[1]?.split(/^(?! )\\S/mu)[0]",
+            '  assert.ok(section)',
+            "  const entries = [...section.matchAll(/^  '([^']+)': '([^']+)'$/gmu)]",
+            '  assert.ok(entries.length > 0)',
+            '  for (const [, key, file] of entries) {',
+            '    assert.ok(key && file && lock.includes(key))',
+            '    await access(path.join(ROOT, file))',
+            '  }'
           ]
     content = `${content
       .slice(0, content.indexOf('const patchesSchema'))

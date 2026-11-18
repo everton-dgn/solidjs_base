@@ -697,7 +697,7 @@ new file mode 100644
 diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/tooling/__tests__/patched-dependencies.test.ts
 --- a/source/tooling/__tests__/patched-dependencies.test.ts
 +++ b/example/tooling/__tests__/patched-dependencies.test.ts
-@@ -3,29 +3,15 @@ import { access, readFile } from 'node:fs/promises'
+@@ -3,29 +3,22 @@ import { access, readFile } from 'node:fs/promises'
  import path from 'node:path'
  import { it } from 'node:test'
  
@@ -725,17 +725,23 @@ diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/too
 -      lock.includes(`: ["${key}",`),
 -      `${key} is not resolved in bun.lock`
 -    )
--  }
--  await Promise.all(patches.map(([, file]) => access(path.join(ROOT, file))))
 +it('checks the installed Markdown converter patch policy', async () => {
 +  const workspace = await readFile(
 +    path.join(ROOT, 'pnpm-workspace.yaml'),
 +    'utf8'
 +  )
 +  const lock = await readFile(path.join(ROOT, 'pnpm-lock.yaml'), 'utf8')
-+  assert.ok(workspace.includes('@mdream/js@2.1.0'))
-+  assert.ok(lock.includes('@mdream/js@2.1.0'))
-+  await access(path.join(ROOT, 'patches/@mdream%2Fjs@2.1.0.patch'))
++  const section = workspace
++    .split('patchedDependencies:\n')[1]
++    ?.split(/^(?! )\S/mu)[0]
++  assert.ok(section)
++  const entries = [...section.matchAll(/^  '([^']+)': '([^']+)'$/gmu)]
++  assert.ok(entries.length > 0)
++  for (const [, key, file] of entries) {
++    assert.ok(key && file && lock.includes(key))
++    await access(path.join(ROOT, file))
+   }
+-  await Promise.all(patches.map(([, file]) => access(path.join(ROOT, file))))
  })
 diff --git a/source/tooling/knip.ts b/example/tooling/knip.ts
 --- a/source/tooling/knip.ts

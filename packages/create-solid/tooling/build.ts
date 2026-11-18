@@ -13,9 +13,10 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 
+import { fmt } from '@evertondgn/solid-tooling/fmt'
 import { parse } from 'valibot'
 
-import { fmt } from '../../solid-tooling/src/fmt.ts'
+import { rewriteDocuments, rewritePatchTest } from '../src/rewrite.ts'
 import { manifestSchema } from '../src/schema.ts'
 
 const root = path.resolve(import.meta.dirname, '../../..')
@@ -106,6 +107,21 @@ writeFileSync(
   path.join(formatter, 'vite.config.mjs'),
   `export default ${JSON.stringify({ fmt })}\n`
 )
+const patchTest = 'tooling/__tests__/patched-dependencies.test.ts'
+for (const pm of ['bun', 'npm', 'pnpm'] as const) {
+  const dir = path.resolve('dist/profiles', pm)
+  mkdirSync(path.join(dir, path.dirname(patchTest)), { recursive: true })
+  for (const file of ['README.md', patchTest]) {
+    cpSync(path.join('template', file), path.join(dir, file))
+  }
+  rewriteDocuments({ dir, pm, version: settings.version })
+  rewritePatchTest({ dir, pm })
+}
+rewriteDocuments({
+  dir: path.resolve('template'),
+  pm: 'bun',
+  version: settings.version
+})
 const executableMode = 0o755
 chmodSync('dist/create-solid.mjs', executableMode)
 

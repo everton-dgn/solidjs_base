@@ -1913,7 +1913,7 @@ deleted file mode 100644
 diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/tooling/__tests__/patched-dependencies.test.ts
 --- a/source/tooling/__tests__/patched-dependencies.test.ts
 +++ b/example/tooling/__tests__/patched-dependencies.test.ts
-@@ -3,29 +3,19 @@ import { access, readFile } from 'node:fs/promises'
+@@ -3,29 +3,16 @@ import { access, readFile } from 'node:fs/promises'
  import path from 'node:path'
  import { it } from 'node:test'
  
@@ -1952,10 +1952,7 @@ diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/too
 +      manifest !== null &&
 +      !('patchedDependencies' in manifest)
 +  )
-+  await assert.rejects(
-+    access(path.join(ROOT, 'patches/@mdream%2Fjs@2.1.0.patch')),
-+    { code: 'ENOENT' }
-+  )
++  await assert.rejects(access(path.join(ROOT, 'patches')), { code: 'ENOENT' })
  })
 diff --git a/source/tooling/knip.ts b/example/tooling/knip.ts
 --- a/source/tooling/knip.ts

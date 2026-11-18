@@ -8,7 +8,6 @@ import {
   readFileSync,
   rmSync
 } from 'node:fs'
-import { tmpdir } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 import { after, before, describe, it } from 'node:test'
@@ -26,7 +25,9 @@ const source = manifest('../../apps/boilerplate/package.json')
 const tooling = manifest('../solid-tooling/package.json')
 for (const pm of ['bun', 'pnpm', 'npm']) {
   await describe(pm, () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'solid-profile-'))
+    const dir = mkdtempSync(
+      path.resolve('../../apps/boilerplate/solid-profile-')
+    )
     const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
     before(() => {
       execFileSync(process.execPath, [
@@ -39,6 +40,13 @@ for (const pm of ['bun', 'pnpm', 'npm']) {
     })
     after(() => {
       rmSync(dir, { recursive: true, force: true })
+    })
+    void it('passes the pinned formatter before installation', () => {
+      execFileSync(
+        path.resolve('../../node_modules/.bin/vp'),
+        ['fmt', '--check', '.'],
+        { cwd: dir, stdio: 'inherit' }
+      )
     })
     void it('rewrites the identity and installer', () => {
       const app = manifest(path.join(dir, 'package.json'))

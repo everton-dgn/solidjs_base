@@ -1,6 +1,9 @@
 import { execFileSync } from 'node:child_process'
 import {
   existsSync,
+  accessSync,
+  constants,
+  statSync,
   mkdirSync,
   readdirSync,
   rmSync,
@@ -14,12 +17,7 @@ import { URL } from 'node:url'
 
 import { parse } from 'valibot'
 
-import {
-  rewriteDocuments,
-  rewritePatchTest,
-  rewriteKnip,
-  rewriteVite
-} from './rewrite.ts'
+import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
 import type { Profile, Manifest, Versions } from './types.ts'
 
@@ -122,6 +120,22 @@ export function generate(profile: Profile): void {
   if (existsSync(profile.dir) && readdirSync(profile.dir).length > 0) {
     throw new Error('Destination must be empty')
   }
+  const tools = [
+    ...(profile.shouldInitGit ? ['git'] : []),
+    ...(profile.shouldInstall ? [profile.pm] : [])
+  ]
+  for (const tool of tools) {
+    const found = process.env.PATH?.split(path.delimiter).some(directory => {
+      try {
+        accessSync(path.join(directory, tool), constants.X_OK)
+        return statSync(path.join(directory, tool)).isFile()
+      } catch {
+        return false
+      }
+    })
+    if (!found)
+      throw new Error(`Install ${tool} before generating the application.`)
+  }
   mkdirSync(path.dirname(profile.dir), { recursive: true })
   const created = !existsSync(profile.dir)
   if (created) mkdirSync(profile.dir)
@@ -162,16 +176,12 @@ export function generate(profile: Profile): void {
     configureInstaller(pkg)
     configureHooks(pkg)
     rewriteKnip(profile.dir)
-    rewriteDocuments({
-      dir: profile.dir,
-      pm: profile.pm,
-      version: settings.version
-    })
-    rewritePatchTest({
-      dir: profile.dir,
-      pm: profile.pm,
-      patches: settings.patches
-    })
+    const installerFiles = path.resolve(
+      import.meta.dirname,
+      '../dist/profiles',
+      profile.pm
+    )
+    cpSync(installerFiles, profile.dir, { recursive: true })
     write('package.json', `${JSON.stringify(pkg, null, jsonIndent)}\n`)
   } catch (error) {
     if (created && !existsSync(path.join(profile.dir, 'package.json'))) {
@@ -195,17 +205,25 @@ export function generate(profile: Profile): void {
         cwd: profile.dir,
         stdio: 'inherit'
       })
-      if (profile.pm === 'pnpm') {
-        execFileSync('vp', ['fmt', 'pnpm-workspace.yaml'], {
-          cwd: profile.dir,
-          stdio: 'inherit'
-        })
-      }
     } catch (error) {
       throw new Error(
         `Open ${profile.dir} and run ${profile.pm} install again.`,
         { cause: error }
       )
+    }
+    if (profile.pm === 'pnpm') {
+      try {
+        execFileSync(
+          path.resolve(profile.dir, 'node_modules/.bin/vp'),
+          ['fmt', 'pnpm-workspace.yaml'],
+          { cwd: profile.dir, stdio: 'inherit' }
+        )
+      } catch (error) {
+        throw new Error(
+          'pnpm installed dependencies. Run pnpm exec vp fmt pnpm-workspace.yaml in the application.',
+          { cause: error }
+        )
+      }
     }
   }
   process.stdout.write(`Open ${profile.dir}.\n`)

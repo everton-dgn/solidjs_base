@@ -12,4 +12,4 @@ export type Profile = {
   shouldInstall: boolean
 }
 export type DocumentRewrite = Pick<Profile, 'pm' | 'dir'> & { version: string }
-export type PatchRewrite = Pick<Profile, 'pm' | 'dir'> & { patches: Versions }
+export type PatchRewrite = Pick<Profile, 'pm' | 'dir'>

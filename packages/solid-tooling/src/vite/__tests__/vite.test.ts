@@ -340,6 +340,15 @@ it('passes the application paths to Solid, the routes and the icons', async cont
   assert.deepEqual(optionsOf({ summary, name: 'icons' }), [icons, icons, icons])
 })
 
+it('passes the diagnostics choice to the Solid plugin of each target', async context => {
+  const root = await createRoot(context)
+  const summary = await readSummary({ options: { root, diagnostics: false } })
+  const diagnostics = optionsOf({ summary, name: 'solid' }).map(
+    value => v.parse(v.object({ diagnostics: v.boolean() }), value).diagnostics
+  )
+  assert.deepEqual(diagnostics, [false, false, false])
+})
+
 it('falls back to server functions without setup and no middleware', async context => {
   const root = await createRoot(context)
   const summary = await readSummary({

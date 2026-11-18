@@ -55,6 +55,12 @@ async function readExtension({
   return (await options.extend?.({ target, mode })) ?? {}
 }
 
+// Left out, the Solid plugin serves /__solid/diagnostics in development when
+// the application declares @solidjs/diagnostics.
+function diagnosticsOption({ diagnostics }: SolidAppOptions) {
+  return diagnostics === undefined ? {} : { diagnostics }
+}
+
 async function i18nPlugins(options: SolidAppOptions): Promise<PluginOption[]> {
   if (options.i18nPlugin === false || !hasI18n(options.root)) return []
   const { i18nPlugin } = await import('../i18n/i18nPlugin/index.ts')
@@ -141,7 +147,7 @@ function clientPlugins({
     ...(extension.plugins ?? []),
     ...i18n,
     iconsPlugin({ modules, options }),
-    modules.solid({ ssr: false }),
+    modules.solid({ ssr: false, ...diagnosticsOption(options) }),
     modules.fileRoutes(
       e2eRoutes
         ? { dir: e2eRoutes, httpMethods: true }
@@ -201,7 +207,8 @@ async function serverPlugins({
       ssr: true,
       serverFunctions: options.serverSetup
         ? { serverSetup: options.serverSetup }
-        : true
+        : true,
+      ...diagnosticsOption(options)
     }),
     modules.fileRoutes(
       e2eRoutes
@@ -273,7 +280,10 @@ export function testPlugins({
       ...(extension.plugins ?? []),
       ...i18n,
       iconsPlugin({ modules, options }),
-      modules.solid(options.ssr === false ? {} : { serverFunctions: true }),
+      modules.solid({
+        ...(options.ssr === false ? {} : { serverFunctions: true }),
+        ...diagnosticsOption(options)
+      }),
       modules.fileRoutes({ types: ROUTE_TYPES, httpMethods: true })
     ]
   })

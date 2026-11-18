@@ -21,6 +21,7 @@ type StaticAssetDir = PublicAssetDir & { baseURL: string }
 type RouteRule = NonNullable<NitroConfig['routeRules']>[string]
 
 type SharedOptions = {
+  diagnostics?: boolean
   fonts?: readonly FontFamily[]
   i18nPlugin?: false
   language?: string

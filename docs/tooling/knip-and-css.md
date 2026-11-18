@@ -5,6 +5,9 @@ The Knip preset ignores `happy-dom`, `@vitest/coverage-v8` and
 config even though the test preset owns them. Set `packagedTestTools: false`
 when defining your own test config and declaring those dependencies, as the
 runtime package does. Direct imports still require application declarations.
+When the application declares `@solidjs/diagnostics`, the preset also ignores
+it: the Solid plugin reads that declaration to serve `/__solid/diagnostics` in
+development, and only the virtual module of the plugin imports the package.
 
 [Tooling reference](README.md)
 

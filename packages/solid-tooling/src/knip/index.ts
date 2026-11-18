@@ -11,6 +11,7 @@ import type { KnipConfiguration } from 'knip'
 import { hasMatch } from '../has-match.ts'
 import { ICON_TYPES_FILE } from '../icons/constants.ts'
 import { iconIgnores } from './iconIgnores/index.ts'
+import { readDependencies } from './readDependencies/index.ts'
 
 type AppSettings = Pick<
   KnipConfiguration,
@@ -57,6 +58,9 @@ const ROUTE_DIRECTORIES: RouteDirectory[] = [
   { directory: 'src/tests/fixtures/e2e/routes', isProduction: false }
 ]
 const TOOLING_PROJECT = 'tooling/**/*.ts'
+// The Solid plugin turns on /__solid/diagnostics when the application declares
+// this package, and only the virtual module of the plugin imports it.
+const DIAGNOSTICS = '@solidjs/diagnostics'
 
 function isModuleRef(value: unknown): value is ModuleRef {
   return (
@@ -123,14 +127,18 @@ export function defineKnipConfig({
       ? RUNTIME_ENTRIES
       : [...SOLID_ENTRIES, ...RUNTIME_ENTRIES]
   return async function configureKnip() {
-    const [conventions, routes, hasTooling, icons] = await Promise.all([
-      conventionEntries({ root, patterns }),
-      Promise.all(
-        ROUTE_DIRECTORIES.map(route => discoverRouteModules({ root, ...route }))
-      ),
-      hasMatch({ root, pattern: TOOLING_PROJECT }),
-      iconIgnores(root)
-    ])
+    const [conventions, routes, hasTooling, icons, dependencies] =
+      await Promise.all([
+        conventionEntries({ root, patterns }),
+        Promise.all(
+          ROUTE_DIRECTORIES.map(route =>
+            discoverRouteModules({ root, ...route })
+          )
+        ),
+        hasMatch({ root, pattern: TOOLING_PROJECT }),
+        iconIgnores(root),
+        readDependencies(root)
+      ])
     // Knip adds the --config file to the entries in production mode too, and
     // --strict accepts only dependencies there. Ignoring the issue in that file
     // keeps an import of this package in src/ reported.
@@ -160,6 +168,7 @@ export function defineKnipConfig({
           ? ['@vitest/coverage-v8', 'happy-dom', '@testing-library/jest-dom']
           : []),
         ...icons,
+        ...(dependencies.includes(DIAGNOSTICS) ? [DIAGNOSTICS] : []),
         ...(ignoreDependencies ?? [])
       ],
       ignoreIssues: {

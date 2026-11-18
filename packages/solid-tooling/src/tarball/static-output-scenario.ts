@@ -51,6 +51,19 @@ async function checkRefusals({
     expectedError: /render failed during SSR/u
   })
   await rm(errorPage, { recursive: true })
+  const entry = file('src/entry-server.tsx')
+  const streamingEntry = await readFile(entry, 'utf8')
+  await writeFile(
+    entry,
+    streamingEntry.replaceAll('renderToStream', 'renderToString')
+  )
+  await run({
+    cwd: app,
+    deadline,
+    args: ['build'],
+    expectedError: /render incomplete: use renderToStream/u
+  })
+  await writeFile(entry, streamingEntry)
   const article = file('src/routes/articles/[id]')
   await mkdir(article, { recursive: true })
   await writeFile(

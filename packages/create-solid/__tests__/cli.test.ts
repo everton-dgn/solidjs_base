@@ -190,3 +190,30 @@ void it('keeps the identity of an existing empty directory', context => {
   execFileSync(process.execPath, [bin, dir, '--no-install', '--no-git'])
   assert.equal(statSync(dir).ino, before.ino)
 })
+
+void it('generates without a formatter or installer on PATH when setup is disabled', context => {
+  const parent = folder(context)
+  const dir = path.join(parent, 'app')
+  const output = execFileSync(
+    process.execPath,
+    [bin, dir, '--no-install', '--no-git'],
+    { encoding: 'utf8', env: { ...process.env, PATH: parent } }
+  )
+  assert.ok(output.includes('Run bun install.'))
+  assert.ok(existsSync(path.join(dir, 'package.json')))
+})
+
+void it('reports a local formatter failure after a successful pnpm install', context => {
+  const parent = folder(context)
+  const dir = path.join(parent, 'app')
+  writeFileSync(path.join(parent, 'pnpm'), '#!/bin/sh\nexit 0\n', {
+    mode: executable
+  })
+  const result = spawnSync(
+    process.execPath,
+    [bin, dir, '--no-git', '--pm', 'pnpm'],
+    { encoding: 'utf8', env: { ...process.env, PATH: parent } }
+  )
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /pnpm installed dependencies.*pnpm exec vp fmt/u)
+})

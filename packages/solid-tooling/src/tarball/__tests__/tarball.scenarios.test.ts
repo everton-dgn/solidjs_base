@@ -109,6 +109,60 @@ type PreviewTarget = Target & { hasInvalidPort?: boolean }
 
 type PackedMutation = { archive: string; deadline: number; name: string }
 
+const skillSchema = v.object({ path: v.string(), package: v.string() })
+const inventorySchema = v.object({ skills: v.array(skillSchema) })
+async function checkDiagnostics({
+  app,
+  deadline
+}: {
+  app: string
+  deadline: number
+}) {
+  const instructions = path.join(app, 'AGENTS.md')
+  assert.equal(existsSync(instructions), false)
+  await run({ deadline, cwd: app, args: ['run', 'agents'] })
+  const generated = readFileSync(instructions)
+  await run({ deadline, cwd: app, args: ['run', 'agents', '--check'] })
+  await run({ deadline, cwd: app, args: ['run', 'agents'] })
+  assert.deepEqual(readFileSync(instructions), generated)
+  // The direct command remains available even when the preset cannot load.
+  const config = path.join(app, 'vite.config.ts')
+  const original = readFileSync(config)
+  let diagnostic: string
+  try {
+    writeFileSync(config, "throw new Error('invalid scenario config')")
+    diagnostic = await run({
+      deadline,
+      cwd: app,
+      file: 'node',
+      args: [
+        'node_modules/@evertondgn/solid-tooling/dist/cli.mjs',
+        'doctor',
+        '--root',
+        '.',
+        '--json'
+      ]
+    })
+  } finally {
+    writeFileSync(config, original)
+  }
+  const inventory = v.parse(inventorySchema, JSON.parse(diagnostic))
+  for (const name of [
+    '@evertondgn/solid-tooling',
+    '@evertondgn/solid-runtime',
+    '@evertondgn/vite-plugin-solid-icons',
+    'solid-js'
+  ]) {
+    assert.ok(
+      inventory.skills.some(skill => skill.package === name),
+      name
+    )
+  }
+  for (const skill of inventory.skills) {
+    assert.ok(readFileSync(skill.path, 'utf8').startsWith('---'))
+  }
+}
+
 async function removePackedDependency({
   archive,
   deadline,
@@ -633,6 +687,7 @@ for (const scenario of SCENARIOS) {
             linker.startsWith('isolated-') ? 'isolated' : linker
           ]
         })
+        await checkDiagnostics({ app, deadline })
         mutateLocaleStandIn({ app, mutation: MUTATION })
         if (scenario === 'ssr-i18n') {
           // Keep the shared fixture App unchanged while adopting the catalog ID convention.

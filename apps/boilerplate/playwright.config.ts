@@ -2,7 +2,7 @@ import { definePlaywrightConfig } from '@evertondgn/solid-tooling/playwright'
 
 export default definePlaywrightConfig({
   root: import.meta.dirname,
-  // Backend simulado das fixtures de erro, usado só pelas rotas E2E.
+  // Simulated backend of the error fixtures, used only by the E2E routes.
   fixtureServers: [
     {
       command: 'bun tooling/testing/error-backend.ts',

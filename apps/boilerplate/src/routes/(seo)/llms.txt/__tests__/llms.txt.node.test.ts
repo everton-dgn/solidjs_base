@@ -12,7 +12,7 @@ const INDEX_LANGUAGE =
   new Intl.DisplayNames(['en'], { type: 'language' }).of(baseLocale) ??
   baseLocale
 
-// Contexto de uma requisição em português, como o de uma página localizada.
+// Context of a request in Portuguese, like the one of a localized page.
 function inPortuguese(read: () => Promise<Response>): Promise<Response> {
   return paraglideMiddleware(new Request('https://example.com/pt/'), () => {
     expect(getLocale()).toBe('pt')
@@ -20,8 +20,8 @@ function inPortuguese(read: () => Promise<Response>): Promise<Response> {
   })
 }
 
-describe('rota do llms.txt', () => {
-  it('publica o mesmo índice dentro e fora de um contexto em português', async () => {
+describe('llms.txt route', () => {
+  it('publishes the same index inside and outside a Portuguese context', async () => {
     const baseResponse = await GET()
     const base = await baseResponse.text()
 
@@ -36,7 +36,7 @@ describe('rota do llms.txt', () => {
     expect(response.headers.get('cache-control')).toBe(SITE_CACHE_CONTROL)
   })
 
-  it('declara na nota o idioma base em que o índice é montado', async () => {
+  it('declares in the note the base locale in which the index is built', async () => {
     const response = await GET()
 
     await expect(response.text()).resolves.toContain(

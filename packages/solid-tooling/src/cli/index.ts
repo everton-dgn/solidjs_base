@@ -32,28 +32,33 @@ const TOOLS: Record<string, Tool> = {
 }
 
 const [name = '', ...args] = argv.slice(CLI_ARGUMENT_OFFSET)
-if (name === 'agents' || name === 'doctor') {
+function applicationRoot(value: string | undefined): string {
+  if (!value) throw new Error('Specify --root <application>')
+  return path.resolve(value)
+}
+if (name === 'agents') {
+  const { values } = parseArgs({
+    args,
+    options: { root: { type: 'string' }, check: { type: 'boolean' } }
+  })
+  process.exitCode = await runAgents({
+    root: applicationRoot(values.root),
+    shouldCheck: values.check === true
+  })
+} else if (name === 'doctor') {
   const { values } = parseArgs({
     args,
     options: {
       root: { type: 'string' },
-      check: { type: 'boolean' },
       json: { type: 'boolean' },
       preset: { type: 'string' }
     }
   })
-  if (typeof values.root !== 'string' || !values.root) {
-    throw new Error('Specify --root <application>')
-  }
-  const root = path.resolve(values.root)
-  process.exitCode =
-    name === 'agents'
-      ? await runAgents({ root, shouldCheck: values.check === true })
-      : await runDoctor({
-          root,
-          preset: values.preset,
-          isJson: values.json === true
-        })
+  process.exitCode = await runDoctor({
+    root: applicationRoot(values.root),
+    preset: values.preset,
+    isJson: values.json === true
+  })
 } else {
   const tool = Object.hasOwn(TOOLS, name) ? TOOLS[name] : undefined
   if (!tool) {

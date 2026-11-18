@@ -4,7 +4,7 @@ import path from 'node:path'
 const BLOCK = [
   '<!--SOLID BASE START-->',
   'This application uses the Solid Base packages. Before changing code, run `vp run doctor`.',
-  'If the Vite config fails to load, run `node node_modules/@evertondgn/solid-tooling/dist/cli.mjs doctor --root .`.',
+  'If the Vite config fails to load, run `node --input-type=module -e "import \'@evertondgn/solid-tooling/cli\'" -- solid-tooling doctor --root .`.',
   'The report lists installed versions, skills to read, missing dependencies and validation commands.',
   '<!--SOLID BASE END-->'
 ]
@@ -31,18 +31,31 @@ function nextFence({ line, fence }: FenceLine): string {
   const delimiter = /^ {0,3}(?<run>`{3,}|~{3,})(?<rest>.*)$/u.exec(line)?.groups
   if (!delimiter) return fence
   const { run = '', rest = '' } = delimiter
-  if (!fence) return run
+  if (!fence) return run.startsWith('`') && rest.includes('`') ? '' : run
   return run.startsWith(fence) && !rest.trim() ? '' : fence
+}
+type ListLine = { line: string; listIndent: number }
+// Indented list content ends with the item. A column-zero marker can
+// therefore only belong to a fence opened at the top level.
+function nextListIndent({ line, listIndent }: ListLine): number {
+  if (listIndent && (!line.trim() || line.startsWith(' '.repeat(listIndent)))) {
+    return listIndent
+  }
+  const item = /^ {0,3}(?:[-+*]|\d{1,9}[.)])(?: {1,4}(?=\S)| |$)/u.exec(line)
+  if (!item) return 0
+  return item[0].endsWith(' ') ? item[0].length : item[0].length + 1
 }
 function markers({ original, file }: Instructions): Map<string, MarkerPair> {
   const lines = original.match(/[^\n]*\n|[^\n]+$/gu) ?? []
   const pairs = new Map<string, MarkerPair>()
   let active = ''
   let fence = ''
+  let listIndent = 0
   let offset = 0
   for (const [index, raw] of lines.entries()) {
     const line = raw.replace(/\r?\n$/u, '')
-    fence = nextFence({ line, fence })
+    if (!fence) listIndent = nextListIndent({ line, listIndent })
+    if (!listIndent) fence = nextFence({ line, fence })
     const marker =
       /<!--(?<kind>SOLID BASE|VITE PLUS) (?<edge>START|END)-->/u.exec(line)
     if (

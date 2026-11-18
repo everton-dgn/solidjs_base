@@ -23,6 +23,7 @@ type Command = {
   args: string[]
   deadline: number
   file?: string
+  expectedCode?: number
   expectedError?: RegExp
   variables?: Record<string, string>
 }
@@ -48,6 +49,7 @@ export async function run({
   deadline,
   file: executable,
   expectedError,
+  expectedCode,
   variables
 }: Command): Promise<string> {
   let file = executable ?? path.join(cwd, 'node_modules/.bin/vp')
@@ -83,6 +85,7 @@ export async function run({
     if (expectedError) {
       assert.equal(result[1], null, 'Expected a diagnostic exit, not a signal')
       assert.notEqual(code, 0, 'The negative probe must fail')
+      if (expectedCode !== undefined) assert.equal(code, expectedCode)
       assert.match(output, expectedError)
       stdout.write(`Expected failure: ${output.match(expectedError)?.[0]}\n`)
     } else {

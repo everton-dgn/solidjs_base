@@ -447,7 +447,7 @@ when stdout is a terminal and `NO_COLOR` is not set. Add `--json` for the same
 report as one object, with absolute paths and every check, the passed ones
 included. Vite+ prints the task command before its output. For a JSON-only
 stdout stream, or when the config cannot load, use
-`node node_modules/@evertondgn/solid-tooling/dist/cli.mjs doctor --root . --json`.
+`node --input-type=module -e "import '@evertondgn/solid-tooling/cli'" -- solid-tooling doctor --root . --json`.
 
 Run `vp run agents` to install the pointer in AGENTS.md. Use
 `vp run agents --check` to verify it without writing. Applications using

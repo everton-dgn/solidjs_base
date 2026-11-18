@@ -16,6 +16,8 @@ const END = '<!--SOLID BASE END-->'
 const VITE = '<!--VITE PLUS START-->\n<!--VITE PLUS END-->'
 
 for (const contents of [
+  ['``` invalid`', '```', START, END, '```'].join('\n'),
+  ['- example', '  ```', '', '```', START, END, '```'].join('\n'),
   START,
   END,
   `${END}\n${START}`,

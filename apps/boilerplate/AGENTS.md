@@ -31,7 +31,7 @@ release. Add a tool name to select part of the graph. For example, run
 <!--VITE PLUS END-->
 <!--SOLID BASE START-->
 This application uses the Solid Base packages. Before changing code, run `vp run doctor`.
-If the Vite config fails to load, run `node node_modules/@evertondgn/solid-tooling/dist/cli.mjs doctor --root .`.
+If the Vite config fails to load, run `node --input-type=module -e "import '@evertondgn/solid-tooling/cli'" -- solid-tooling doctor --root .`.
 The report lists installed versions, skills to read, missing dependencies and validation commands.
 <!--SOLID BASE END-->
 

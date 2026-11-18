@@ -115,33 +115,68 @@ type DiagnosticsTarget = { app: string; deadline: number }
 
 async function checkDiagnostics({ app, deadline }: DiagnosticsTarget) {
   const instructions = path.join(app, 'AGENTS.md')
+  const check = (expectedError: RegExp) =>
+    run({
+      cwd: app,
+      deadline,
+      args: ['run', 'agents', '--check'],
+      expectedError,
+      expectedCode: 1
+    })
+  assert.equal(existsSync(instructions), false)
+  await check(/AGENTS\.md: missing/u)
+  for (const [command, option] of [
+    ['agents', '--json'],
+    ['doctor', '--check']
+  ] as const) {
+    await run({
+      deadline,
+      cwd: app,
+      args: ['run', command, option],
+      expectedError: /Unknown option/u
+    })
+  }
   assert.equal(existsSync(instructions), false)
   await run({ deadline, cwd: app, args: ['run', 'agents'] })
   const generated = readFileSync(instructions)
   await run({ deadline, cwd: app, args: ['run', 'agents', '--check'] })
   await run({ deadline, cwd: app, args: ['run', 'agents'] })
   assert.deepEqual(readFileSync(instructions), generated)
+  const stale = generated
+    .toString()
+    .replace('Before changing code', 'Before editing code')
+  writeFileSync(instructions, stale)
+  await check(/AGENTS\.md: outdated/u)
+  assert.deepEqual(readFileSync(instructions), Buffer.from(stale))
+  writeFileSync(instructions, generated)
+  const configured = await run({
+    deadline,
+    cwd: app,
+    args: ['run', 'doctor', '--json']
+  })
+  assert.match(configured, /"vp run check-project"/u)
   // The direct command remains available even when the preset cannot load.
-  const config = path.join(app, 'vite.config.ts')
-  const original = readFileSync(config)
-  let diagnostic: string
-  try {
-    writeFileSync(config, "throw new Error('invalid scenario config')")
-    diagnostic = await run({
-      deadline,
-      cwd: app,
-      file: 'node',
-      args: [
-        'node_modules/@evertondgn/solid-tooling/dist/cli.mjs',
-        'doctor',
-        '--root',
-        '.',
-        '--json'
-      ]
-    })
-  } finally {
-    writeFileSync(config, original)
-  }
+  const child = path.join(app, 'nested')
+  mkdirSync(child)
+  writeFileSync(
+    path.join(child, 'package.json'),
+    readFileSync(path.join(app, 'package.json'))
+  )
+  writeFileSync(
+    path.join(child, 'vite.config.ts'),
+    "throw new Error('invalid scenario config')"
+  )
+  const command =
+    /If the Vite config fails to load, run `(?<command>[^`]+)`/u.exec(
+      generated.toString()
+    )?.groups?.command
+  assert.ok(command)
+  const diagnostic = await run({
+    deadline,
+    cwd: child,
+    file: 'sh',
+    args: ['-c', `${command} --json`]
+  })
   const inventory = v.parse(inventorySchema, JSON.parse(diagnostic))
   for (const name of [
     '@evertondgn/solid-tooling',

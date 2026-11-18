@@ -429,7 +429,8 @@ virtual-module types do not augment `ImportMetaEnv`; applications using
 
 Run `vp run doctor` in the application for installed versions, skills and
 validation commands. Add `--json` for structured checks. Errors exit with
-status 1. If the config cannot load, use
+status 1. Vite+ prints the task command before its output. For a JSON-only
+stdout stream, or when the config cannot load, use
 `node node_modules/@evertondgn/solid-tooling/dist/cli.mjs doctor --root . --json`.
 
 Run `vp run agents` to install the pointer in AGENTS.md. Use

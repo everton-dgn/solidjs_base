@@ -356,8 +356,10 @@ share the port and the build artifacts. In this monorepo, the CI runs the
 fixture suite. Run `vp run test:e2e:production` in the app to check the real
 routes locally, and `TEST_PREBUILT=true vp run test:e2e:production` to reuse a
 production build; with `TEST_PREBUILT=true`, Playwright only starts the preview.
-The mode requires production routes; using it with the fixture suite causes an
-error. The
+The mode requires production routes. If an earlier `vp run test:e2e` left an E2E
+fixture build in `.vercel/output`, Playwright stops before the preview and
+reports `TEST_PREBUILT found an e2e build`; run `vp run build` in the app to
+replace it with a production build, then run the prebuilt command again. The
 [tooling package tests](../../../packages/solid-tooling/src/playwright/__tests__/playwright.test.ts)
 cover the startup commands and reject an E2E fixture build in prebuilt mode.
 

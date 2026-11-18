@@ -373,6 +373,7 @@ both boilerplate jobs.
 | `apps/boilerplate/patches/`                                               | Packages, Boilerplate app, Boilerplate app E2E       |
 | Markdown of `apps/boilerplate/`                                           | Docs, Boilerplate app, Boilerplate app E2E           |
 | Anything else in `apps/boilerplate/`                                      | Boilerplate app, Boilerplate app E2E                 |
+| Package guides and skills in `packages/*/docs/` and `packages/*/skills/`  | Docs, Packages                                       |
 | Other Markdown, `docs/`, `LICENSE`, issue templates or `.coderabbit.yaml` | Docs                                                 |
 | Anything else: packages, fixtures, root config, lockfile, workflows       | Docs, Packages, Boilerplate app, Boilerplate app E2E |
 

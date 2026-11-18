@@ -188,6 +188,8 @@ it('wraps the chosen middleware and refuses a nonempty server function manifest'
         "if (!event.request.headers.has('x-nitro-prerender')) return next()"
       )
     )
+    assert.match(source, /render incomplete: use renderToStream/u)
+    assert.match(source, /render failed during SSR/u)
     assert.match(source, /configureServerErrors\(\)/u)
     assert.match(source, /event.nonce = \{ script: false, style: false \}/u)
     const manifest = 'virtual:solid-server-function-manifest'

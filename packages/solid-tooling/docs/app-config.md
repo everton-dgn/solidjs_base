@@ -466,7 +466,7 @@ Enable the publication features your routes implement. Use
 `sitemap: { static: true }` and `markdown: { static: true }` for file
 publication. Set `robots`, `llms` and `llmsFull` to their respective
 configuration objects to publish those files. Keep the Markdown middleware and
-server entry for the build. Configure headers at the host and serve each
+server entry for the build. Use `renderToStream` with `createRenderOptions()` so the build observes completion. Configure headers at the host and serve each
 directory's index.html.
 
 Configure the host to serve `/404.html` with status 404 for missing pages when

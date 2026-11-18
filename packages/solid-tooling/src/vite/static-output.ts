@@ -259,9 +259,12 @@ export default [async (event, next) => {
   if (!response.headers.get('content-type')?.startsWith('text/html')) return response
   const body = await response.arrayBuffer()
   const state = event.locals.ssrRenderState
-  if (state?.hasErrors !== false || state.hasCompleted !== true) {
-    return new Response(null, {status: 500, statusText: 'incomplete or failed render: use createRenderOptions'})
-  }
+  let statusText
+  if (!state) statusText = 'missing render state: use createRenderOptions'
+  else if (state.hasErrors === true) statusText = 'render failed during SSR'
+  else if (state.hasErrors !== false) statusText = 'render error observer unavailable'
+  else if (state.hasCompleted !== true) statusText = 'render incomplete: use renderToStream'
+  if (statusText) return new Response(null, { status: 500, statusText })
   return new Response(body, response)
 }, ...[middleware].flat()]`
     },

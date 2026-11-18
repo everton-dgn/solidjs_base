@@ -48,7 +48,7 @@ async function checkRefusals({
     cwd: app,
     deadline,
     args: ['build'],
-    expectedError: /incomplete or failed render/u
+    expectedError: /render failed during SSR/u
   })
   await rm(errorPage, { recursive: true })
   const article = file('src/routes/articles/[id]')

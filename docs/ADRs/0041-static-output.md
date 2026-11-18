@@ -31,7 +31,7 @@ beyond this target.
 
 The build runs application middleware for rendering. It disables request nonces
 and registers the render error observer that the Markdown converter requires.
-Render HTML with `createRenderOptions()`. The build reads the complete response
+Use `renderToStream` with `createRenderOptions()` so the build observes completion. The build reads the complete response
 and rejects failed or incomplete rendering, even with HTTP status 200. HTML with
 a nonce fails the build. Static publication refuses dynamic Markdown opt-ins.
 

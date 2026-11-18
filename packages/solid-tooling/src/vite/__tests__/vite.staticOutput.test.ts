@@ -301,7 +301,7 @@ it('warns when quoted union hashes exceed the host budget', async t => {
   const config = await fixture(t)
   const dir = await mkdtemp(path.join(tmpdir(), 'static-header-'))
   t.after(() => rm(dir, { recursive: true, force: true }))
-  const warn = t.mock.method(console, 'warn', () => undefined)
+  const warn = t.mock.method(console, 'warn', () => null)
   const scripts = Array.from(
     { length: 34 },
     (_, index) => `<script>${index}</script>`
@@ -331,7 +331,7 @@ it('rejects missing robots output and non-text robots responses', async t => {
   assert.match(route.error?.message ?? '', /expected plain text/u)
   assert.throws(
     () =>
-      config.hooks?.['prerender:done']({
+      config.hooks['prerender:done']({
         failedRoutes: [],
         prerenderedRoutes: []
       }),

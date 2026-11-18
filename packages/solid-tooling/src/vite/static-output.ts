@@ -14,6 +14,7 @@ type StaticOutputInput = {
   directory?: string
   mode?: string
 }
+type DefaultOutput = { hooks?: never; prerender?: never }
 type StaticMiddlewareInput = { root: string; middleware?: string }
 
 // The inventory validates sitemap source kinds after Nitro renders it.
@@ -174,7 +175,7 @@ async function createStaticConfig(input: StaticOutputInput) {
             )
             return
           }
-          if (route.error?.status === HTTP_NOT_FOUND) delete route.error
+          if (route.error.status === HTTP_NOT_FOUND) delete route.error
           route.fileName = route.route
         }
         if (route.error) return
@@ -277,8 +278,6 @@ export default [async (event, next) => {
     }
   }
 }
-
-type DefaultOutput = { hooks?: never; prerender?: never }
 
 export async function staticOutput(
   input: StaticOutputInput

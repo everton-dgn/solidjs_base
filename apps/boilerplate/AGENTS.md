@@ -29,6 +29,11 @@ release. Add a tool name to select part of the graph. For example, run
 - [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
 
 <!--VITE PLUS END-->
+<!--SOLID BASE START-->
+This application uses the Solid Base packages. Before changing code, run `vp run doctor`.
+If the Vite config fails to load, run `node node_modules/@evertondgn/solid-tooling/dist/cli.mjs doctor --root .`.
+The report lists installed versions, skills to read, missing dependencies and validation commands.
+<!--SOLID BASE END-->
 
 ## This copy in the monorepo
 

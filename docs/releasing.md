@@ -477,8 +477,19 @@ Release or, failing that, its tag. Merging first leaves neither, so it collects
 the commits back to `bootstrap-sha` and proposes a release with the whole
 history of the package.
 
-For `@evertondgn/create-solid`, pack `packages/create-solid` and use the tag
-`create-solid@<version>` on the reviewed commit before merging.
+Keep `@evertondgn/create-solid` private and outside the release group and
+manifest until the next group release, N. Once all its pins are on npm:
+
+1. Check out that release commit in a clean worktree. For the manual pack,
+   set the generator version to N and remove its private flag in that worktree.
+   Build and pack it with the release commit's template and dependencies.
+2. Extract the tarball and run its CLI outside the workspace. Keep the exact
+   registry pins, install from npm without local overrides, and run
+   `vp run check:ci` in the generated application. Stop if the check fails.
+3. The owner publishes that same tarball by hand and tags the release commit
+   `create-solid@N`.
+4. In a follow-up change, remove the private flag, set the package and
+   manifest versions to N, and add the component to the linked release group.
 
 A version published this way has its tag and no GitHub Release, and the package
 has no `CHANGELOG.md` until its first automated release writes both, as with

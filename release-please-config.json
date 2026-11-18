@@ -16,9 +16,6 @@
     },
     "packages/vite-plugin-solid-icons": {
       "component": "vite-plugin-solid-icons"
-    },
-    "packages/create-solid": {
-      "component": "create-solid"
     }
   },
   "plugins": [
@@ -28,8 +25,7 @@
       "components": [
         "solid-tooling",
         "solid-runtime",
-        "vite-plugin-solid-icons",
-        "create-solid"
+        "vite-plugin-solid-icons"
       ]
     }
   ]

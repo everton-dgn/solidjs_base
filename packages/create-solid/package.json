@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@evertondgn/create-solid",
   "version": "0.10.0",
   "description": "Generate a standalone Solid Base application.",

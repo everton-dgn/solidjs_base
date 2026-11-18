@@ -3,28 +3,20 @@ import path from 'node:path'
 
 import * as v from 'valibot'
 
+import type { Check, Preset } from './types.ts'
+
 const strings = v.array(v.string())
 const presetSchema = v.object({
-  i18nDisabled: v.boolean(),
+  isI18nDisabled: v.boolean(),
   folders: strings,
   tasks: strings
 })
-type Preset = v.InferOutput<typeof presetSchema>
 type FeatureInput = { root: string; dependencies: string[]; preset?: Preset }
-type Signal = {
-  id: string
-  package: string
-  source: string
-  expected: string
-  observed: string
-  file: string
-  fix: string
-  status: 'warning'
-}
+type Signal = Check & { status: 'warning' }
 
 // A direct invocation cannot evaluate a broken config. Only a literal option
 // whose value is not overridden by a later spread establishes disablement.
-async function explicitlyDisabled(root: string): Promise<boolean> {
+async function isI18nPluginDisabled(root: string): Promise<boolean> {
   const config = path.join(root, 'vite.config.ts')
   try {
     const source = await readFile(config, 'utf8')
@@ -67,12 +59,12 @@ export async function featureWarnings({
   const warnings: Signal[] = []
   const file = path.join(root, 'package.json')
   const settings = path.join(root, 'project.inlang/settings.json')
-  const disabled = preset?.i18nDisabled === true
+  const isDisabled = preset?.isI18nDisabled === true
   if (
-    !disabled &&
+    !isDisabled &&
     !dependencies.includes('@inlang/paraglide-js') &&
     (await stat(settings, { throwIfNoEntry: false })) &&
-    (preset !== undefined || !(await explicitlyDisabled(root)))
+    (preset !== undefined || !(await isI18nPluginDisabled(root)))
   ) {
     warnings.push({
       id: 'i18n-dependency',

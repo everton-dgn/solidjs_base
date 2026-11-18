@@ -111,13 +111,9 @@ type PackedMutation = { archive: string; deadline: number; name: string }
 
 const skillSchema = v.object({ path: v.string(), package: v.string() })
 const inventorySchema = v.object({ skills: v.array(skillSchema) })
-async function checkDiagnostics({
-  app,
-  deadline
-}: {
-  app: string
-  deadline: number
-}) {
+type DiagnosticsTarget = { app: string; deadline: number }
+
+async function checkDiagnostics({ app, deadline }: DiagnosticsTarget) {
   const instructions = path.join(app, 'AGENTS.md')
   assert.equal(existsSync(instructions), false)
   await run({ deadline, cwd: app, args: ['run', 'agents'] })

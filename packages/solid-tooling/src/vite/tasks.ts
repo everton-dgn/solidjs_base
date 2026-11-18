@@ -15,6 +15,7 @@ type TaskOptions = Pick<
   hasI18n: boolean
 }
 type IconFolders = Pick<SolidAppOptions, 'root' | 'icons'>
+type DoctorOptions = Pick<SolidAppOptions, 'icons' | 'tasks' | 'i18nPlugin'>
 
 const TOOLING_CI_TEST_WORKERS = 3
 const TOOL_NAMES = ['knip', 'tsrs', 'playwright', 'lefthook', 'commitlint']
@@ -66,6 +67,22 @@ function installInputs({ workspace }: Pick<TaskOptions, 'workspace'>) {
   return workspace ? patterns.map(pattern => fromWorkspace(pattern)) : patterns
 }
 
+// What the doctor cannot read from a broken config: the switches of the
+// preset, the folder collections and the task names next to the scripts.
+function doctorPreset({ icons, tasks, i18nPlugin }: DoctorOptions): string {
+  return JSON.stringify({
+    isI18nDisabled: i18nPlugin === false,
+    folders: Object.keys(icons ?? {}),
+    tasks: [
+      'check-project',
+      'typecheck-node',
+      'test-tooling',
+      'dead-code-project',
+      ...Object.keys(tasks ?? {})
+    ]
+  })
+}
+
 export function createTasks({
   workspace,
   root,
@@ -102,7 +119,7 @@ export function createTasks({
       cache: false
     },
     doctor: {
-      command: `${toolCommand('doctor')} --root ${quote(root)} --preset ${quote(JSON.stringify({ i18nDisabled: i18nPlugin === false, folders: Object.keys(icons ?? {}), tasks: ['check-project', 'typecheck-node', 'test-tooling', 'dead-code-project', ...Object.keys(tasks ?? {})] }))}`,
+      command: `${toolCommand('doctor')} --root ${quote(root)} --preset ${quote(doctorPreset({ icons, tasks, i18nPlugin }))}`,
       cache: false
     },
     ...Object.fromEntries(

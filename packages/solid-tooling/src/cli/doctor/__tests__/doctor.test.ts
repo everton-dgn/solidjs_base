@@ -6,7 +6,9 @@ import { test } from 'node:test'
 
 import { doctor } from '../index.ts'
 
-async function write({ file, value }: { file: string; value: string }) {
+type FixtureFile = { file: string; value: string }
+
+async function write({ file, value }: FixtureFile) {
   await mkdir(path.dirname(file), { recursive: true })
   await writeFile(file, value)
 }
@@ -117,7 +119,7 @@ test('classifies optional features from the preset and application files', async
   const preset = {
     folders: ['brand'],
     tasks: ['check-project'],
-    i18nDisabled: true
+    isI18nDisabled: true
   }
   const report = await doctor({ root, preset })
   const warnings = report.checks.filter(item => item.id === 'icon-collection')

@@ -8,17 +8,21 @@ import * as v from 'valibot'
 
 import { readDependencies } from '../../knip/readDependencies/index.ts'
 import { agents } from '../agents/index.ts'
-import { featureWarnings, type readPreset } from './features.ts'
+import { featureWarnings } from './features.ts'
+import type { Check, Preset, Report } from './types.ts'
 
+type RangePredicate = (version: string, range: string) => boolean
+type VersionRange = { version: string; range: string }
+
+// WHY: semver ships CommonJS without type declarations, and the package does
+// not add @types/semver for one function, so the guard types the export.
 const testRange: unknown = createRequire(import.meta.url)(
   'semver/functions/satisfies.js'
 )
-function isRangePredicate(
-  value: unknown
-): value is (version: string, range: string) => boolean {
+function isRangePredicate(value: unknown): value is RangePredicate {
   return typeof value === 'function'
 }
-function satisfies(version: string, range: string): boolean {
+function satisfies({ version, range }: VersionRange): boolean {
   if (!isRangePredicate(testRange)) {
     throw new Error('Invalid semver installation')
   }
@@ -40,16 +44,17 @@ const manifestSchema = v.object({
 })
 type Manifest = v.InferOutput<typeof manifestSchema>
 type Installed = { manifest: Manifest; file: string; source: string }
-type Check = {
-  id: string
-  status: 'ok' | 'warning' | 'error'
-  package: string
-  expected: string
-  observed: string
-  source: string
-  file: string
-  fix: string
+type PackageRequest = { name: string; source: string }
+type SkillInspection = {
+  dep: Installed
+  skill: string | undefined
+  report: Report
 }
+type Dependency = { owner: Installed; name: string }
+type DoctorInput = { root: string; preset?: Preset }
+type AppTasks = { app: Manifest; preset?: Preset }
+type BlockOwner = { root: string; name: string }
+
 const BASE = new Map([
   ['@evertondgn/solid-tooling', 'solid-base-app'],
   ['@evertondgn/solid-runtime', 'solid-base-runtime'],
@@ -62,10 +67,21 @@ const FAMILY = new Set([
   '@solidjs/signals',
   '@solidjs/diagnostics'
 ])
+const VALIDATION_TASKS = new Set([
+  'validate',
+  'check:ci',
+  'test',
+  'build',
+  'dead-code',
+  'check-project',
+  'typecheck-node',
+  'test-tooling',
+  'dead-code-project'
+])
 async function manifest(file: string): Promise<Manifest> {
   return v.parse(manifestSchema, JSON.parse(await readFile(file, 'utf8')))
 }
-async function accessible(file: string): Promise<boolean> {
+async function isAccessible(file: string): Promise<boolean> {
   try {
     await access(file)
     return true
@@ -76,17 +92,14 @@ async function accessible(file: string): Promise<boolean> {
 async function resolvePackage({
   name,
   source
-}: {
-  name: string
-  source: string
-}): Promise<Installed | undefined> {
+}: PackageRequest): Promise<Installed | undefined> {
   try {
     let candidate = findPackageJSON(name, pathToFileURL(source))
     if (name === '@evertondgn/solid-runtime') {
       let dir = path.dirname(createRequire(source).resolve(`${name}/env`))
       while (dir !== path.dirname(dir)) {
         const file = path.join(dir, 'package.json')
-        const parent = (await accessible(file))
+        const parent = (await isAccessible(file))
           ? await manifest(file)
           : undefined
         if (parent?.name === name) {
@@ -103,28 +116,11 @@ async function resolvePackage({
     return undefined
   }
 }
-
-type Report = {
-  root: string
-  workspaceRoot: string
-  packages: { package: string; version: string; source: string; file: string }[]
-  skills: { package: string; source: string; path: string }[]
-  checks: Check[]
-  validation: { cwd: string; commands: string[] }
-}
-async function inspectSkills({
-  dep,
-  skill,
-  report
-}: {
-  dep: Installed
-  skill: string | undefined
-  report: Report
-}) {
+async function inspectSkills({ dep, skill, report }: SkillInspection) {
   const { name } = dep.manifest
   const dir = path.join(path.dirname(dep.file), 'skills')
   let required = skill ? [skill] : []
-  if (!skill && (await accessible(dir))) {
+  if (!skill && (await isAccessible(dir))) {
     const entries = await readdir(dir, { withFileTypes: true })
     required = entries
       .filter(entry => entry.isDirectory())
@@ -132,44 +128,68 @@ async function inspectSkills({
   }
   for (const entry of required.length > 0 ? required : ['']) {
     const target = path.join(dir, entry, 'SKILL.md')
-    let present = true
+    let isPresent = true
     try {
       await readFile(target, 'utf8')
     } catch {
-      present = false
+      isPresent = false
     }
     report.checks.push({
       package: name,
       source: dep.source,
       file: dep.file,
       id: 'skill-present',
-      status: present ? 'ok' : 'error',
+      status: isPresent ? 'ok' : 'error',
       expected: target,
-      observed: present ? 'present' : 'missing',
+      observed: isPresent ? 'present' : 'missing',
       fix: 'Use a package release that includes the skill.'
     })
-    if (present) {
+    if (isPresent) {
       report.skills.push({ package: name, source: dep.source, path: target })
     }
   }
 }
-export async function doctor({
-  root,
-  preset
-}: {
-  root: string
-  preset?: ReturnType<typeof readPreset>
-}): Promise<Report> {
+// The nearest bun.lock marks the installation root, whose package.json holds
+// the overrides that align versions.
+async function findWorkspaceRoot(root: string): Promise<string> {
+  for (let dir = root; ; dir = path.dirname(dir)) {
+    if (await isAccessible(path.join(dir, 'bun.lock'))) return dir
+    if (path.dirname(dir) === dir) return root
+  }
+}
+async function agentsBlockCheck({ root, name }: BlockOwner): Promise<Check> {
+  let state: string
+  try {
+    state = await agents({ root, shouldWrite: false })
+  } catch (error) {
+    state = String(error)
+  }
+  let status: Check['status'] = 'error'
+  if (state === 'current') status = 'ok'
+  if (state === 'missing') status = 'warning'
+  return {
+    id: 'agents-block',
+    package: name,
+    status,
+    observed: state,
+    expected: 'current',
+    file: path.join(root, 'AGENTS.md'),
+    source: root,
+    fix: 'Run vp run agents.'
+  }
+}
+function validationCommands({ app, preset }: AppTasks): string[] {
+  return [
+    ...new Set([...Object.keys(app.scripts ?? {}), ...(preset?.tasks ?? [])])
+  ]
+    .filter(name => VALIDATION_TASKS.has(name))
+    .map(name => `vp run ${name}`)
+}
+
+export async function doctor({ root, preset }: DoctorInput): Promise<Report> {
   const file = path.join(root, 'package.json')
   const app = await manifest(file)
-  let workspaceRoot = root
-  for (let dir = root; ; dir = path.dirname(dir)) {
-    if (await accessible(path.join(dir, 'bun.lock'))) {
-      workspaceRoot = dir
-      break
-    }
-    if (path.dirname(dir) === dir) break
-  }
+  const workspaceRoot = await findWorkspaceRoot(root)
   const report: Report = {
     root,
     workspaceRoot,
@@ -209,12 +229,13 @@ export async function doctor({
     }
     const engine = dep.manifest.engines?.node
     if (skill && engine) {
+      const { node } = process.versions
       checks.push({
         ...context,
         id: 'node-version',
-        status: satisfies(process.versions.node, engine) ? 'ok' : 'error',
+        status: satisfies({ version: node, range: engine }) ? 'ok' : 'error',
         expected: engine,
-        observed: process.versions.node,
+        observed: node,
         fix: 'Use a compatible Node version.'
       })
     }
@@ -222,9 +243,9 @@ export async function doctor({
       await inspectSkills({ dep, skill, report })
     }
   }
-  async function inspect({ owner, name }: { owner: Installed; name: string }) {
-    const base = BASE.has(owner.manifest.name)
-    const peer = base ? owner.manifest.peerDependencies?.[name] : undefined
+  async function inspect({ owner, name }: Dependency) {
+    const isBase = BASE.has(owner.manifest.name)
+    const peer = isBase ? owner.manifest.peerDependencies?.[name] : undefined
     if (
       owner.file !== file &&
       !BASE.has(name) &&
@@ -235,12 +256,12 @@ export async function doctor({
       return
     }
     const dep = await resolvePackage({ name, source: owner.file })
-    const optional =
+    const isOptional =
       owner.manifest.optionalDependencies?.[name] !== undefined ||
       owner.manifest.peerDependenciesMeta?.[name]?.optional
     const context = { package: name, source: owner.file, file: owner.file }
     if (!dep) {
-      if (!optional) {
+      if (!isOptional) {
         checks.push({
           ...context,
           id: 'dependency-unresolved',
@@ -258,7 +279,7 @@ export async function doctor({
         ...context,
         file: path.join(workspaceRoot, 'package.json'),
         id: 'peer-version',
-        status: satisfies(version, peer) ? 'ok' : 'error',
+        status: satisfies({ version, range: peer }) ? 'ok' : 'error',
         expected: peer,
         observed: version,
         fix: 'Install a compatible peer version.'
@@ -281,42 +302,7 @@ export async function doctor({
           })
     for (const name of new Set(names)) await inspect({ owner, name })
   }
-  let state: string
-  try {
-    state = await agents({ root, write: false })
-  } catch (error) {
-    state = String(error)
-  }
-  let blockStatus: Check['status'] = 'error'
-  if (state === 'current') blockStatus = 'ok'
-  if (state === 'missing') blockStatus = 'warning'
-  checks.push({
-    id: 'agents-block',
-    package: app.name,
-    status: blockStatus,
-    observed: state,
-    expected: 'current',
-    file: path.join(root, 'AGENTS.md'),
-    source: root,
-    fix: 'Run vp run agents.'
-  })
-  const commands = [
-    ...new Set([...Object.keys(app.scripts ?? {}), ...(preset?.tasks ?? [])])
-  ]
-    .filter(name =>
-      [
-        'validate',
-        'check:ci',
-        'test',
-        'build',
-        'dead-code',
-        'check-project',
-        'typecheck-node',
-        'test-tooling',
-        'dead-code-project'
-      ].includes(name)
-    )
-    .map(name => `vp run ${name}`)
-  report.validation.commands = commands
+  checks.push(await agentsBlockCheck({ root, name: app.name }))
+  report.validation.commands = validationCommands({ app, preset })
   return report
 }

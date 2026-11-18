@@ -8,6 +8,11 @@ const BLOCK = [
   'The report lists installed versions, skills to read, missing dependencies and validation commands.',
   '<!--SOLID BASE END-->'
 ]
+type BlockState = 'current' | 'outdated' | 'missing'
+type FenceLine = { line: string; fence: string }
+type Instructions = { original: string; file: string }
+type MarkerPair = { start: number; end: number }
+type AgentsInput = { root: string; shouldWrite: boolean }
 
 async function readInstructions(file: string): Promise<string> {
   try {
@@ -22,16 +27,16 @@ async function readInstructions(file: string): Promise<string> {
     throw error
   }
 }
-function nextFence({ line, fence }: { line: string; fence: string }): string {
+function nextFence({ line, fence }: FenceLine): string {
   const delimiter = /^ {0,3}(?<run>`{3,}|~{3,})(?<rest>.*)$/u.exec(line)?.groups
   if (!delimiter) return fence
   const { run = '', rest = '' } = delimiter
   if (!fence) return run
   return run.startsWith(fence) && !rest.trim() ? '' : fence
 }
-function markers({ original, file }: { original: string; file: string }) {
+function markers({ original, file }: Instructions): Map<string, MarkerPair> {
   const lines = original.match(/[^\n]*\n|[^\n]+$/gu) ?? []
-  const pairs = new Map<string, { start: number; end: number }>()
+  const pairs = new Map<string, MarkerPair>()
   let active = ''
   let fence = ''
   let offset = 0
@@ -48,13 +53,13 @@ function markers({ original, file }: { original: string; file: string }) {
     }
     if (marker) {
       const [, kind = '', edge] = marker
-      const invalid =
+      const isInvalid =
         Boolean(fence) ||
         marker[0] !== line ||
         (edge === 'START'
           ? Boolean(active) || pairs.has(kind)
           : active !== kind)
-      if (invalid) {
+      if (isInvalid) {
         throw new Error(`${file}:${index + 1}: invalid ${kind} marker`)
       }
       if (edge === 'START') {
@@ -77,11 +82,8 @@ function markers({ original, file }: { original: string; file: string }) {
 }
 export async function agents({
   root,
-  write
-}: {
-  root: string
-  write: boolean
-}): Promise<string> {
+  shouldWrite
+}: AgentsInput): Promise<BlockState> {
   const file = path.join(root, 'AGENTS.md')
   const original = await readInstructions(file)
   const pairs = markers({ original, file })
@@ -94,7 +96,7 @@ export async function agents({
   if (!solid) replacement = vite ? eol + block : block + eol
   const updated =
     original.slice(0, at) + replacement + original.slice(solid?.end ?? at)
-  if (write && updated !== original) await writeFile(file, updated)
+  if (shouldWrite && updated !== original) await writeFile(file, updated)
   if (updated === original) return 'current'
   return solid ? 'outdated' : 'missing'
 }

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.10.0](https://github.com/everton-dgn/solidjs_base/compare/vite-plugin-solid-icons@0.9.0...vite-plugin-solid-icons@0.10.0) (2026-11-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **icons:** @evertondgn/vite-plugin-solid-icons requires @solidjs/web 2.0.0. Update solid-js and @solidjs/web to 2.0.0 together, with the overrides of @solidjs/signals and @solidjs/compiler at the same version.
+
+### Bug Fixes
+
+* **icons:** require Solid 2.0.0 ([368cac1](https://github.com/everton-dgn/solidjs_base/commit/368cac1a799ce6d90a446fb786825915a2e7dd94))
+
 ## [0.9.0](https://github.com/everton-dgn/solidjs_base/compare/vite-plugin-solid-icons@0.8.0...vite-plugin-solid-icons@0.9.0) (2026-11-17)
 
 

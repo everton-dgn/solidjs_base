@@ -1,6 +1,6 @@
 {
   "name": "@evertondgn/solid-runtime",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Runtime code for SolidJS applications built with Vite+, shipped as TypeScript source.",
   "author": "Éverton Toffanetto",
   "license": "MIT",

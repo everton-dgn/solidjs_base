@@ -183,8 +183,12 @@ MIT
 
 ## Static hosting
 
-Static output requires concrete page paths. Array and partitioned sitemap
+Static output requires concrete page paths. A fixed URL alone cannot identify a
+request-independent GET handler. The preset renders only the configured
+publication endpoints and refuses other handlers. Array and partitioned sitemap
 sources require a server. A static host cannot run server functions or negotiate
-a locale, theme or Markdown response per request. The root serves the base
-locale. Use locale links and direct Markdown links. Configure CSP and other
-response headers at the host.
+a locale, theme or Markdown response per request. Every unprefixed page serves
+the base locale. A root catch-all produces `/404.html`; nested catch-alls are
+refused. Use locale links and direct Markdown links. Use the hashes from
+`.output/csp-hashes.json` and configure the
+[static hosting headers](app-config.md#static-output) at the host.

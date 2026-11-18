@@ -468,3 +468,40 @@ publication. Set `robots`, `llms` and `llmsFull` to their respective
 configuration objects to publish those files. Keep the Markdown middleware and
 server entry for the build. Configure headers at the host and serve each
 directory's index.html.
+
+Configure the host to serve `/404.html` with status 404 for missing pages when
+the application declares a root catch-all. Unprefixed pages use the base locale
+even when the browser prefers another language.
+
+The build emits `.output/csp-hashes.json` outside the public directory. For a
+single host-wide policy, append each value in `union` in single quotes to
+`script-src 'self'`. For per-file policies, use that HTML filename's array in
+`pages`. The same-origin source allows the external entry module. The hashes
+allow the inline hydration, data and theme scripts. Regenerate the header
+whenever the HTML changes. From the application root, this command prints the
+complete value for the host's Content-Security-Policy header:
+
+```sh
+node --input-type=module <<'JS'
+import { readFileSync } from 'node:fs'
+
+const { union } = JSON.parse(readFileSync('.output/csp-hashes.json', 'utf8'))
+const hashes = union.map(hash => `'${hash}'`)
+console.log([
+  "default-src 'self'",
+  ["script-src 'self'", ...hashes].join(' '),
+  "style-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'"
+].join('; '))
+JS
+```
+
+The Vercel preset sets Strict-Transport-Security, X-Content-Type-Options and
+Cross-Origin-Resource-Policy on static assets. The default response middleware
+also supplies Content-Security-Policy, X-Frame-Options, Referrer-Policy,
+Permissions-Policy, Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy.
+Configure these headers on the static host. The build writes no host-specific
+configuration.

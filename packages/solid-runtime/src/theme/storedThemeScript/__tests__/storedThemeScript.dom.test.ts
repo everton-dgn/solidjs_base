@@ -42,8 +42,10 @@ function setReadyState(state: DocumentReadyState): void {
   vi.spyOn(document, 'readyState', 'get').mockReturnValue(state)
 }
 
+type ObserverCounts = { created: number; disconnected: number }
+
 // Counts the observers that the script creates and stops.
-function countObservers(): { created: number; disconnected: number } {
+function countObservers(): ObserverCounts {
   const counts = { created: 0, disconnected: 0 }
   const Native = MutationObserver
   vi.stubGlobal(

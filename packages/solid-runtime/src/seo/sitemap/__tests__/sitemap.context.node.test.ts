@@ -4,11 +4,12 @@ import {
   HTTP_NOT_FOUND,
   HTTP_OK,
   HTTP_SERVICE_UNAVAILABLE
-} from '../../../http/constants.ts'
+} from '#solid-runtime/http/constants.ts'
 import {
   PUBLICATION_PHASE_ENV,
   PUBLICATION_PRERENDER_PHASE
-} from '../../../infra/server/publication/protocol.js'
+} from '#solid-runtime/infra/server/publication/protocol.js'
+
 import type { SitemapEntry } from '../source-types.ts'
 
 type Handler = (event: APIEvent) => Promise<Response>

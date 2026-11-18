@@ -23,7 +23,7 @@ build stops with the name you asked for when an icon does not exist.
 
 [See it work](#a-typo-in-an-icon-name-stops-the-build) ·
 [Who it fits](#who-it-fits) · [Questions](#questions-before-you-adopt-it) ·
-[Install](#install) · [Set up](#set-up) · [Update](#update-the-plugin) ·
+[Install](#install) · [Set up](#set-up) · [Update](#update-the-package) ·
 [Tests](#how-it-is-tested) · [Limits](#requirements-and-limits) ·
 [Reference](#reference)
 
@@ -218,7 +218,7 @@ server and the build write, `src/icon-collections.d.ts` by default. A
 these imports only when `lint.options` in `vite.config.ts` sets `typeAware` and
 `typeCheck` to `true`; the lint preset of `@evertondgn/solid-tooling` sets both.
 
-## Update the plugin
+## Update the package
 
 In an app on the tooling, the plugin comes with `@evertondgn/solid-tooling`, at
 the same version. Raise the tooling and the runtime in one command:

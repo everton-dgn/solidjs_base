@@ -9,12 +9,21 @@ Install the global [Vite+](https://viteplus.dev/guide/) CLI (`vp`). The root
 ```bash
 vp install
 vp run build
+vp exec -F @evertondgn/vite-plugin-solid-icons playwright install chromium
 ```
 
 `vp run build` compiles `@evertondgn/solid-tooling` and
 `@evertondgn/vite-plugin-solid-icons`, which the tooling loads, to `dist/`. The
 application in `apps/boilerplate` imports the packages from there, so build them
 before running anything in the application.
+
+The last command downloads the Chromium of the Playwright version the packages
+pin. `vp run validate` needs it: the browser tests of the runtime and of the
+icons plugin and the [client-only scenario](#client-only-build-in-a-browser)
+open it, while the CI uses the Chrome of the runner. The filter runs the
+Playwright of the icons plugin, because the root has no `playwright` binary:
+there, `vp exec playwright` fails, or runs a global installation that can
+download another Chromium build.
 
 ## Workspace
 
@@ -37,7 +46,8 @@ The tooling package owns its build, test, type-check and hook dependencies.
 Applications declare only their own imports and the Vite+ installation. The
 runtime owns the routing helpers it imports and exports `StartMiddleware` from
 `./middleware/types`, without depending on the Solid plugin. The copy keeps
-Nitro, routing and Playwright Test because its own code imports them. See
+routing and Playwright Test because its own code imports them; it neither
+declares nor imports Nitro, which comes with the tooling. See
 [requirements](tooling/limits.md#requirements) and
 [ADR 0027](ADRs/0027-packaged-tool-dependencies.md).
 
@@ -133,6 +143,10 @@ runs Knip in the default and `--strict` modes; Knip reads the entries from the
 `node_modules` of a temporary folder and checks that the header constants load
 in Node, that every target of `exports` is in the tarball and that no
 `__tests__` folder is published.
+
+In `packages/solid-runtime/src`, an import from one top folder into another uses
+the `#solid-runtime/*` alias, and the imports from or into `@types/` and
+`tests/` keep a relative path.
 
 ## The boilerplate app
 
@@ -351,13 +365,21 @@ a passed `CI required` starts no job, because the pull request run checked the
 same tree ([ADR 0017](ADRs/0017-main-reuses-the-pull-request-run.md)). Manual
 runs start every job.
 
-| Changed files                                                            | Jobs                                           |
-| ------------------------------------------------------------------------ | ---------------------------------------------- |
-| Only Markdown, `docs/`, `LICENSE`, issue templates or `.coderabbit.yaml` | Docs                                           |
-| Only `apps/boilerplate/`                                                 | Boilerplate app, Boilerplate app E2E           |
-| Anything else: packages, fixtures, root config, lockfile, workflows      | Packages, Boilerplate app, Boilerplate app E2E |
+| Changed files                                                             | Jobs                                                 |
+| ------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `apps/boilerplate/patches/`                                               | Packages, Boilerplate app, Boilerplate app E2E       |
+| Markdown of `apps/boilerplate/`                                           | Docs, Boilerplate app, Boilerplate app E2E           |
+| Anything else in `apps/boilerplate/`                                      | Boilerplate app, Boilerplate app E2E                 |
+| Other Markdown, `docs/`, `LICENSE`, issue templates or `.coderabbit.yaml` | Docs                                                 |
+| Anything else: packages, fixtures, root config, lockfile, workflows       | Docs, Packages, Boilerplate app, Boilerplate app E2E |
 
-A pull request that touches more than one group runs the jobs of each.
+A pull request that touches more than one group runs the jobs of each. The last
+group runs the Docs job too, because a README can link any file and moving one
+breaks the link. For the same reason, removing or renaming a file of any group
+runs the Docs job, which checks the root, package and app guides, the
+`AGENTS.md` of the app included. The root `package.json` registers the patches
+of `apps/boilerplate/patches/` for the whole workspace, so a patch change also
+runs the package validation.
 
 | Job                 | What it runs                                                                                                                                                                                                |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

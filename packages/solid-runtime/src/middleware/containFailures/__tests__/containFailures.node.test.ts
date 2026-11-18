@@ -4,8 +4,9 @@ import { provideRequestEvent } from '@solidjs/web/storage'
 import { hostileValue } from '@testing/failureValues/index.ts'
 import { readLog } from '@testing/readLog/index.ts'
 
-import { configureServerErrors } from '../../../infra/server/configureServerErrors/index.ts'
-import { isPublicError } from '../../../infra/server/publicErrors/index.ts'
+import { configureServerErrors } from '#solid-runtime/infra/server/configureServerErrors/index.ts'
+import { isPublicError } from '#solid-runtime/infra/server/publicErrors/index.ts'
+
 import { createSecurityHeaders } from '../../securityHeaders/index.ts'
 import { containFailures } from '../index.ts'
 

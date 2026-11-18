@@ -27,11 +27,19 @@ git clone https://github.com/everton-dgn/solidjs_base.git
 cd solidjs_base
 vp install
 vp run build
+vp exec -F @evertondgn/vite-plugin-solid-icons playwright install chromium
 ```
 
 `vp run build` compiles the packages to `dist/`. The application in
 `apps/boilerplate` loads the presets from there, so run it again after you
 change a package.
+
+The last command downloads the Chromium of the Playwright version the packages
+pin. `vp run validate` needs it: the browser tests of the runtime and of the
+icons plugin and the client-only scenario open it, while the CI uses the Chrome
+of the runner. The filter runs the Playwright of the icons plugin, because the
+root has no `playwright` binary: there, `vp exec playwright` fails, or runs a
+global installation that can download another Chromium build.
 
 When changing tooling dependencies, update the package manifest and lockfile. Do
 not add a dependency back to an application just to make the workspace pass: the
@@ -44,12 +52,15 @@ Use `vp run tsrs`, `vp run knip` and `vp run playwright` in applications using
 ## Where things live
 
 ```text
-packages/solid-tooling/             published package: lint preset, rules, formatter, TypeScript base
+packages/solid-tooling/             published package: defineSolidApp, lint and format presets, rules,
+                                    TypeScript base, test presets, Knip, Stylelint, commitlint, Git hooks
+                                    and the i18n and icons generators
 packages/solid-runtime/             published package: runtime helpers, shipped as TypeScript source
 packages/vite-plugin-solid-icons/   published package: the icons plugin that the tooling loads
 apps/boilerplate/                   copy of boilerplate_solidjs that runs on the workspace package
 fixtures/consumer/                  small application that installs the packed tarball
 fixtures/apps/                      minimal applications that install, test and build from the tarballs
+tooling/release/                    the merge command, the wait in the publish job and the release lockfile check
 docs/                               guides and architecture decision records (ADRs)
 .github/workflows/                  CI and the release workflows
 ```
@@ -99,6 +110,12 @@ The CI runs the same commands and skips the jobs your files do not affect.
   ([ADR 0008](docs/ADRs/0008-merge-commits.md)).
 - Comments explain why, not what. If a rationale needs more than a few lines, it
   goes to `docs/` or to an ADR.
+- The code conventions of [the boilerplate app](apps/boilerplate/AGENTS.md)
+  apply to `packages/` and `tooling/` too: "File and folder names of modules",
+  "TypeScript types", "Type location", "Cohesion and size of modules", "Function
+  parameters", "Events in JSX", "Conditionals and control flow", "Exports",
+  "Functions that return a Promise", "Code comments", "Boolean names" and
+  "Signal names".
 
 ## Pull requests
 

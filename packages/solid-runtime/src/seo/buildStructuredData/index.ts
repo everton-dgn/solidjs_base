@@ -1,7 +1,8 @@
 import type { Article, Graph, Organization, WebPage, WebSite } from 'schema-dts'
 
-import { locales } from '../../i18n/locale/index.ts'
-import { localeTag } from '../../i18n/localeTag/index.ts'
+import { locales } from '#solid-runtime/i18n/locale/index.ts'
+import { localeTag } from '#solid-runtime/i18n/localeTag/index.ts'
+
 import { serializeJsonLd } from '../serializeJsonLd/index.ts'
 import type { SeoMetadata, RouteSeoOptions } from '../types.ts'
 

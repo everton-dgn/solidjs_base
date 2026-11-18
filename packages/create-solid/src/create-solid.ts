@@ -42,7 +42,7 @@ function run(): void {
     shouldInitGit: !values['no-git'],
     shouldInstall: !values['no-install']
   } as const
-  generate(profile)
+  process.stdout.write(`${generate(profile).join('\n')}\n`)
 }
 try {
   run()

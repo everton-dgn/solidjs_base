@@ -19,7 +19,7 @@ import { parse } from 'valibot'
 
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
-import type { Profile, Manifest, Versions } from './types.ts'
+import type { Profile } from './types.ts'
 
 const maxPackageNameLength = 214
 const jsonIndent = 2
@@ -40,83 +40,113 @@ function resolveSiteUrl(value?: string): URL {
   return siteUrl
 }
 
-export function generate(profile: Profile): void {
+export type { Profile } from './types.ts'
+type Versions = Record<string, string>
+export type GenerationContext = {
+  profile: Profile
+  pkg: {
+    name: string
+    description?: string
+    packageManager?: string
+    devDependencies: Versions
+    scripts: Versions
+    overrides?: Versions
+    patchedDependencies?: Versions
+  }
+  settings: {
+    bunVersion: string
+    catalog: Versions
+    versions: Versions
+    overrides: Versions
+    patches: Versions
+    bunfig: string
+    lefthook: string
+  }
+  write: (file: string, content: string) => void
+}
+function resolveVersion(
+  settings: GenerationContext['settings'],
+  name: string,
+  spec: string
+) {
+  let resolved: string | undefined = spec
+  if (spec === 'catalog:') {
+    resolved = settings.catalog[name]
+  }
+  if (spec === 'workspace:*') {
+    resolved = settings.versions[name]
+  }
+  if (typeof resolved !== 'string') {
+    throw new TypeError(`Missing version for ${name}`)
+  }
+  return resolved
+}
+export function resolveGroup({ settings }: GenerationContext, group: Versions) {
+  return Object.fromEntries(
+    Object.entries(group).map(([name, spec]) => [
+      name,
+      resolveVersion(settings, name, spec)
+    ])
+  )
+}
+export function configureInstaller(context: GenerationContext) {
+  const { profile, settings, write, pkg } = context
+  const versions = { bun: settings.bunVersion, pnpm: '12.21.0', npm: '12.2.3' }
+
+  const { pm } = profile
+  pkg.packageManager = `${pm}@${versions[pm]}`
+  const overrides = resolveGroup(context, settings.overrides)
+  if (pm === 'pnpm') {
+    write(
+      'pnpm-workspace.yaml',
+      `${
+        section('overrides', overrides) +
+        section('patchedDependencies', settings.patches)
+      }allowBuilds:\n  lefthook: false\n`
+    )
+  } else pkg.overrides = overrides
+  if (pm === 'bun') {
+    pkg.patchedDependencies = settings.patches
+  }
+  write('bunfig.toml', settings.bunfig)
+}
+export function configureHooks({ pkg, settings, write }: GenerationContext) {
+  pkg.devDependencies.lefthook = settings.lefthook
+  pkg.scripts.prepare =
+    'if [ "$(git rev-parse --show-toplevel 2>/dev/null)" = "$(pwd -P)" ]; then vp exec node node_modules/@evertondgn/solid-tooling/dist/cli.mjs lefthook install; fi'
+  write(
+    '.lefthook.yml',
+    'extends:\n  - node_modules/@evertondgn/solid-tooling/lefthook.yml\n'
+  )
+  write(
+    '.commitlintrc',
+    `${JSON.stringify(
+      { extends: ['@evertondgn/solid-tooling/commitlint'] },
+      null,
+      jsonIndent
+    )}\n`
+  )
+}
+export function rewriteIdentity({ pkg, profile }: GenerationContext) {
+  pkg.name =
+    path
+      .basename(profile.dir)
+      .toLowerCase()
+      .replaceAll(/[^a-z0-9-]+/gu, '-')
+      .replaceAll(/^-+|-+$/gu, '')
+      .slice(0, maxPackageNameLength) || 'solid-app'
+  pkg.description = 'SolidJS application built with Vite+.'
+}
+export function generate(profile: Profile): string[] {
   const template = path.resolve(import.meta.dirname, '../template')
   const settingsFile = new URL('../dist/settings.json', import.meta.url)
   const settings = parse(
     settingsSchema,
     JSON.parse(readFileSync(settingsFile, 'utf8'))
   )
-  const versions = { bun: settings.bunVersion, pnpm: '12.21.0', npm: '12.2.3' }
   const siteUrl = resolveSiteUrl(profile.siteUrl)
   const write = (file: string, content: string) =>
     writeFileSync(path.join(profile.dir, file), content)
-  function resolveVersion(name: string, spec: string) {
-    let resolved: string | undefined = spec
-    if (spec === 'catalog:') {
-      resolved = settings.catalog[name]
-    }
-    if (spec === 'workspace:*') {
-      resolved = settings.versions[name]
-    }
-    if (typeof resolved !== 'string') {
-      throw new TypeError(`Missing version for ${name}`)
-    }
-    return resolved
-  }
-  function resolveGroup(group: Versions) {
-    return Object.fromEntries(
-      Object.entries(group).map(([name, spec]) => [
-        name,
-        resolveVersion(name, spec)
-      ])
-    )
-  }
-  function configureInstaller(pkg: Manifest) {
-    const { pm } = profile
-    pkg.packageManager = `${pm}@${versions[pm]}`
-    const overrides = resolveGroup(settings.overrides)
-    if (pm === 'pnpm') {
-      write(
-        'pnpm-workspace.yaml',
-        `${
-          section('overrides', overrides) +
-          section('patchedDependencies', settings.patches)
-        }allowBuilds:\n  lefthook: false\n`
-      )
-    } else pkg.overrides = overrides
-    if (pm === 'bun') {
-      pkg.patchedDependencies = settings.patches
-    }
-    write('bunfig.toml', settings.bunfig)
-  }
-  function configureHooks(pkg: Manifest) {
-    pkg.devDependencies.lefthook = settings.lefthook
-    pkg.scripts.prepare =
-      'if [ "$(git rev-parse --show-toplevel 2>/dev/null)" = "$(pwd -P)" ]; then vp exec node node_modules/@evertondgn/solid-tooling/dist/cli.mjs lefthook install; fi'
-    write(
-      '.lefthook.yml',
-      'extends:\n  - node_modules/@evertondgn/solid-tooling/lefthook.yml\n'
-    )
-    write(
-      '.commitlintrc',
-      `${JSON.stringify(
-        { extends: ['@evertondgn/solid-tooling/commitlint'] },
-        null,
-        jsonIndent
-      )}\n`
-    )
-  }
-  function rewriteIdentity(pkg: Manifest) {
-    pkg.name =
-      path
-        .basename(profile.dir)
-        .toLowerCase()
-        .replaceAll(/[^a-z0-9-]+/gu, '-')
-        .replaceAll(/^-+|-+$/gu, '')
-        .slice(0, maxPackageNameLength) || 'solid-app'
-    pkg.description = 'SolidJS application built with Vite+.'
-  }
   if (existsSync(profile.dir) && readdirSync(profile.dir).length > 0) {
     throw new Error('Destination must be empty')
   }
@@ -170,11 +200,12 @@ export function generate(profile: Profile): void {
       manifestSchema,
       JSON.parse(readFileSync(manifestFile, 'utf8'))
     )
-    rewriteIdentity(pkg)
-    pkg.dependencies = resolveGroup(pkg.dependencies)
-    pkg.devDependencies = resolveGroup(pkg.devDependencies)
-    configureInstaller(pkg)
-    configureHooks(pkg)
+    const context = { profile, settings, pkg, write }
+    rewriteIdentity(context)
+    pkg.dependencies = resolveGroup(context, pkg.dependencies)
+    pkg.devDependencies = resolveGroup(context, pkg.devDependencies)
+    configureInstaller(context)
+    configureHooks(context)
     rewriteKnip(profile.dir)
     const installerFiles = path.resolve(
       import.meta.dirname,
@@ -226,9 +257,12 @@ export function generate(profile: Profile): void {
       }
     }
   }
-  process.stdout.write(`Open ${profile.dir}.\n`)
+  const next = [`Open ${profile.dir}.`]
   if (!profile.shouldInstall) {
-    process.stdout.write(`Run ${profile.pm} install.\n`)
+    next.push(`Run ${profile.pm} install.`)
+    if (profile.pm === 'pnpm')
+      next.push('Run pnpm exec vp fmt pnpm-workspace.yaml.')
   }
-  process.stdout.write('Run vp run dev.\n')
+  next.push('Run vp run dev.')
+  return next
 }

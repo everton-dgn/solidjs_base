@@ -8,14 +8,16 @@ Pass the destination, installer and the two setup switches explicitly:
 ```js
 import { generate } from '@evertondgn/create-solid'
 
-generate({
+const nextSteps = generate({
   dir: 'my-app',
   pm: 'bun',
   shouldInitGit: true,
   shouldInstall: true,
   siteUrl: 'https://example.com'
 })
+console.log(nextSteps.join('\n'))
 ```
 
-`siteUrl` is optional. Generation uses the global Vite+ CLI to format the
-rewritten files, including when installation is deferred.
+`siteUrl` is optional. The build prepares the formatted template. After a pnpm
+installation the generator uses the installed application's Vite+ to format the
+workspace settings that pnpm may update.

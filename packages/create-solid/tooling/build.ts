@@ -14,7 +14,7 @@ import path from 'node:path'
 import process from 'node:process'
 
 import { fmt } from '@evertondgn/solid-tooling/fmt'
-import { parse } from 'valibot'
+import { literal, object, parse, record, string } from 'valibot'
 
 import { rewriteDocuments, rewritePatchTest } from '../src/rewrite.ts'
 import { manifestSchema } from '../src/schema.ts'
@@ -41,6 +41,18 @@ const rules = new Map(
 if (files.length !== rules.size || files.some(file => !rules.has(file))) {
   throw new Error('Review classification.txt for changes in apps/boilerplate')
 }
+const features = parse(
+  object({ version: literal(1), files: record(string(), string()) }),
+  JSON.parse(readFileSync('features.json', 'utf8'))
+)
+const templateFiles = files
+  .filter(file => rules.get(file) !== 'exclude')
+  .map(file => (file === '.gitignore' ? '_gitignore' : file))
+assert.deepEqual(
+  Object.keys(features.files).sort(),
+  templateFiles.sort(),
+  'Review features.json for changes in the template'
+)
 rmSync('template', { recursive: true, force: true })
 for (const file of files) {
   const rule = rules.get(file)
@@ -58,6 +70,7 @@ for (const file of files) {
 }
 rmSync('dist', { recursive: true, force: true })
 mkdirSync('dist', { recursive: true })
+cpSync('features.json', 'dist/features.json')
 const manifest = json(path.join(root, 'package.json'))
 const tooling = json(path.join(root, 'packages/solid-tooling/package.json'))
 assert.ok(
@@ -96,6 +109,10 @@ execFileSync('bun', [
   '--outdir=dist',
   '--entry-naming=[name].mjs',
   '--splitting'
+])
+execFileSync(path.join(root, 'node_modules/.bin/tsc'), [
+  '--project',
+  'tsconfig.types.json'
 ])
 const formatter = path.join('dist', 'formatter')
 mkdirSync(formatter)

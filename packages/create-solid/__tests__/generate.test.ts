@@ -44,3 +44,90 @@ void it('keeps the generator private until its first registry release', async ()
   )
   assert.ok(!Object.hasOwn(versions, 'packages/create-solid'))
 })
+
+void it('returns instructions to API callers and exports the generation steps', async context => {
+  const { mkdtempSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const path = await import('node:path')
+  const dir = mkdtempSync(path.join(tmpdir(), 'api-app-'))
+  context.after(() => rmSync(dir, { recursive: true, force: true }))
+  const api = await import('../src/generate.ts')
+  assert.deepEqual(
+    api.generate({
+      dir,
+      pm: 'pnpm',
+      shouldInstall: false,
+      shouldInitGit: false
+    }),
+    [
+      `Open ${dir}.`,
+      'Run pnpm install.',
+      'Run pnpm exec vp fmt pnpm-workspace.yaml.',
+      'Run vp run dev.'
+    ]
+  )
+})
+
+const stepContext = () => {
+  const files = new Map<string, string>()
+  const context = {
+    profile: {
+      dir: 'My App',
+      pm: 'pnpm' as const,
+      shouldInitGit: false,
+      shouldInstall: false
+    },
+    pkg: {
+      name: '',
+      scripts: {} as Record<string, string>,
+      devDependencies: {} as Record<string, string>
+    },
+    settings: {
+      bunVersion: '1',
+      catalog: { lib: '1' },
+      versions: { local: '2' },
+      overrides: {},
+      patches: {},
+      bunfig: 'config',
+      lefthook: '9'
+    },
+    write: (file: string, content: string) => {
+      files.set(file, content)
+    }
+  }
+  return { context, files }
+}
+
+void it('resolves catalog and workspace versions from its context', async () => {
+  const { resolveGroup } = await import('../src/generate.ts')
+  assert.deepEqual(
+    resolveGroup(stepContext().context, {
+      lib: 'catalog:',
+      local: 'workspace:*'
+    }),
+    { lib: '1', local: '2' }
+  )
+})
+
+void it('sets the package identity from the destination', async () => {
+  const { rewriteIdentity } = await import('../src/generate.ts')
+  const { context } = stepContext()
+  rewriteIdentity(context)
+  assert.equal(context.pkg.name, 'my-app')
+})
+
+void it('writes installer settings through the supplied context', async () => {
+  const { configureInstaller } = await import('../src/generate.ts')
+  const { context, files } = stepContext()
+  configureInstaller(context)
+  assert.ok(files.get('pnpm-workspace.yaml')?.includes('patchedDependencies:'))
+  assert.equal(files.get('bunfig.toml'), 'config')
+})
+
+void it('uses the configured hook version and writes its configuration', async () => {
+  const { configureHooks } = await import('../src/generate.ts')
+  const { context, files } = stepContext()
+  configureHooks(context)
+  assert.equal(context.pkg.devDependencies.lefthook, '9')
+  assert.ok(files.has('.lefthook.yml'))
+})

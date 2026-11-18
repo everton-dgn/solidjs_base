@@ -3,7 +3,10 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 
-import type { DocumentRewrite, PatchRewrite } from './types.ts'
+import type { Profile } from './types.ts'
+
+type PatchRewrite = Pick<Profile, 'pm' | 'dir'>
+type DocumentRewrite = PatchRewrite & { version: string }
 
 function format(file: string, content: string): string {
   return execFileSync(

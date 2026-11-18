@@ -466,7 +466,8 @@ Enable the publication features your routes implement. Use
 `sitemap: { static: true }` and `markdown: { static: true }` for file
 publication. Set `robots`, `llms` and `llmsFull` to their respective
 configuration objects to publish those files. Keep the Markdown middleware and
-server entry for the build. Use `renderToStream` with `createRenderOptions()` so the build observes completion. Configure headers at the host and serve each
+server entry for the build. Use `renderToStream` with `createRenderOptions()` so
+the build observes completion. Configure headers at the host and serve each
 directory's index.html.
 
 Configure the host to serve `/404.html` with status 404 for missing pages when
@@ -474,15 +475,16 @@ the application declares a root catch-all. Unprefixed pages use the base locale
 even when the browser prefers another language.
 
 For static i18n builds, set `strategy: ['url', 'baseLocale']` in the app's
-`paraglide.config.ts` after spreading the shared preset. This also configures
-`i18n-generate`. When using `i18nPlugin: false`, pass the same strategy to
-the replacement compiler so standalone generation and Vite agree.
+`project.inlang/paraglide.config.ts` after spreading the shared preset. This
+also configures `i18n-generate`. When using `i18nPlugin: false`, pass the same
+strategy to the replacement compiler so standalone generation and Vite agree.
 
 For missing paths under each locale prefix, configure the host to serve
 `/<locale>/404.html` with status 404. Use `/404.html` for unprefixed paths.
 
-The build emits `.output/csp-hashes.json` outside the public directory. Use the array
-in `pages` for the HTML file served at each URL, including error responses. The same-origin source allows the external entry module. The hashes
+The build emits `.output/csp-hashes.json` outside the public directory. Use the
+array in `pages` for the HTML file served at each URL, including error
+responses. The same-origin source allows the external entry module. The hashes
 allow the inline hydration, data and theme scripts. Regenerate the header
 whenever the HTML changes. From the application root, this command prints the
 complete value for the host's Content-Security-Policy header:
@@ -508,9 +510,9 @@ JS
 Prefer per-page policies. A host-wide policy can quote every hash in `union`,
 but each distinct inline script adds about 54 characters. Cloudflare Pages
 limits each header to 2,000 characters and each `_headers` file to 100 rules.
-The build warns above 1,800 characters of quoted hashes to reserve 200 for
-the header name and other directives. Check the complete deployed header.
-See [Cloudflare Pages limits](https://developers.cloudflare.com/pages/platform/limits/).
+The build warns above 1,800 characters of quoted hashes to reserve 200 for the
+header name and other directives. Check the complete deployed header. See
+[Cloudflare Pages limits](https://developers.cloudflare.com/pages/platform/limits/).
 
 The Vercel preset sets Strict-Transport-Security, X-Content-Type-Options and
 Cross-Origin-Resource-Policy on static assets. The default response middleware

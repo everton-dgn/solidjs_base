@@ -31,9 +31,10 @@ beyond this target.
 
 The build runs application middleware for rendering. It disables request nonces
 and registers the render error observer that the Markdown converter requires.
-Use `renderToStream` with `createRenderOptions()` so the build observes completion. The build reads the complete response
-and rejects failed or incomplete rendering, even with HTTP status 200. HTML with
-a nonce fails the build. Static publication refuses dynamic Markdown opt-ins.
+Use `renderToStream` with `createRenderOptions()` so the build observes
+completion. The build reads the complete response and rejects failed or
+incomplete rendering, even with HTTP status 200. HTML with a nonce fails the
+build. Static publication refuses dynamic Markdown opt-ins.
 
 The build writes `.output/csp-hashes.json` beside the public directory. Its
 `pages` object maps each HTML filename (for example `/about/index.html`) to
@@ -45,9 +46,9 @@ for the entry module, inline scripts and response headers.
 Prefer per-page policies. A host-wide policy can quote every hash in `union`,
 but each distinct inline script adds about 54 characters. Cloudflare Pages
 limits each header to 2,000 characters and each `_headers` file to 100 rules.
-The build warns above 1,800 characters of quoted hashes to reserve 200 for
-the header name and other directives. Check the complete deployed header.
-See [Cloudflare Pages limits](https://developers.cloudflare.com/pages/platform/limits/).
+The build warns above 1,800 characters of quoted hashes to reserve 200 for the
+header name and other directives. Check the complete deployed header. See
+[Cloudflare Pages limits](https://developers.cloudflare.com/pages/platform/limits/).
 
 ## Consequences
 

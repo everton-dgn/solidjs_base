@@ -1,3 +1,3 @@
 export class UsageError extends TypeError {
-  override name = 'UsageError'
+  public override name = 'UsageError'
 }

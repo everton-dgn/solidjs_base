@@ -1,5 +1,4 @@
 import { realpath } from 'node:fs/promises'
-import path from 'node:path'
 import process from 'node:process'
 
 import { readPreset } from '../features.ts'
@@ -22,14 +21,14 @@ function failureReport({ root, message }: Failure): Report {
     validation: { cwd: root, commands: [] },
     checks: [
       {
-        id: 'application-manifest',
+        id: 'application-inspection',
         status: 'error',
-        package: null,
-        expected: 'readable manifest',
+        package: root,
+        expected: 'complete application inspection',
         observed: message,
         source: root,
-        file: path.join(root, 'package.json'),
-        fix: 'Repair the application manifest.'
+        file: root,
+        fix: 'Check the reported inspection error.'
       }
     ]
   }

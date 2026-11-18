@@ -1,10 +1,19 @@
 import assert from 'node:assert/strict'
-import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  realpath,
+  rm,
+  writeFile
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
 
 import { doctor } from '../index.ts'
+
+const OWNER_DIRECTORY_MODE = 0o700
 
 type FixtureFile = { file: string; value: string }
 
@@ -39,8 +48,17 @@ test('resolves each application and its peers from their declaring manifests', a
       value: JSON.stringify({
         name: tooling,
         version,
-        peerDependencies: { '@solidjs/web': '1.0.0', optional: '1' },
-        peerDependenciesMeta: { optional: { optional: true } }
+        peerDependencies: {
+          '@solidjs/web': '1.0.0',
+          optional: '1',
+          present: '1',
+          damaged: '1'
+        },
+        peerDependenciesMeta: {
+          optional: { optional: true },
+          present: { optional: true },
+          damaged: { optional: true }
+        }
       })
     })
     for (const [name, installed] of Object.entries({
@@ -52,7 +70,50 @@ test('resolves each application and its peers from their declaring manifests', a
         value: JSON.stringify({ name, version: installed })
       })
     }
+    for (const name of ['@solidjs/web', 'present']) {
+      await write({
+        file: path.join(modules, tooling, 'node_modules', name, 'package.json'),
+        value: JSON.stringify({ name, version: '4.0.0' })
+      })
+    }
+    const damaged = path.join(
+      modules,
+      tooling,
+      'node_modules',
+      'damaged',
+      'package.json'
+    )
+    await write({ file: damaged, value: '{' })
+    const skills = path.join(modules, 'solid-js', 'skills')
+    await mkdir(skills)
+    await chmod(skills, 0)
     const report = await doctor({ root })
+    await chmod(skills, OWNER_DIRECTORY_MODE)
+    assert.ok(
+      report.checks.some(
+        item => item.file === skills && item.status === 'error'
+      )
+    )
+    assert.ok(
+      report.checks.some(
+        item =>
+          item.id === 'dependency-manifest' &&
+          item.file === damaged &&
+          item.source === source &&
+          item.status === 'error'
+      )
+    )
+    for (const name of ['@solidjs/web', 'present']) {
+      assert.ok(
+        report.checks.some(
+          item =>
+            item.package === name &&
+            item.id === 'peer-version' &&
+            item.observed === '4.0.0' &&
+            item.status === 'error'
+        )
+      )
+    }
     assert.equal(report.workspaceRoot, workspace)
     assert.equal(
       report.packages.find(item => item.package === tooling)?.version,
@@ -121,7 +182,28 @@ test('classifies optional features from the preset and application files', async
     tasks: ['check-project'],
     isI18nDisabled: true
   }
+  await write({
+    file: path.join(root, 'node_modules/@iconify/json/collections.json'),
+    value: '{"mdi":{},"solar":{}}'
+  })
+  await write({
+    file: path.join(root, 'node_modules/@iconify/json/json/mdi.json'),
+    value: '{"icons":{"home":{}}}'
+  })
+  await write({
+    file: path.join(root, 'src/more.ts'),
+    value:
+      "import Home from 'icon:mdi/home'\nimport Mystery from 'icon:unknown/mystery'"
+  })
+  const unreadable = path.join(root, 'src/unreadable.ts')
+  await write({ file: unreadable, value: '' })
+  await chmod(unreadable, 0)
   const report = await doctor({ root, preset })
+  assert.ok(
+    report.checks.some(
+      item => item.file === unreadable && item.status === 'error'
+    )
+  )
   const warnings = report.checks.filter(item => item.id === 'icon-collection')
   assert.deepEqual(
     warnings.map(item => item.package),
@@ -137,8 +219,35 @@ test('classifies optional features from the preset and application files', async
   )
   await write({
     file: path.join(root, 'vite.config.ts'),
-    value: 'export default defineSolidApp({i18nPlugin:false})'
+    value: 'export default defineSolidApp({i18nPlugin:true,"i18nPlugin":false})'
   })
   const disabled = await doctor({ root })
   assert.ok(disabled.checks.every(item => item.id !== 'i18n-dependency'))
+})
+
+test('uses the root to identify an unnamed application', async t => {
+  const root = await mkdtemp(path.join(tmpdir(), 'solid-unnamed-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  await writeFile(path.join(root, 'package.json'), '{"private":true}')
+  const report = await doctor({ root })
+  assert.equal(
+    report.checks.find(check => check.id === 'agents-block')?.package,
+    root
+  )
+})
+
+test('identifies missing, malformed and unreadable application manifests', async t => {
+  const root = await mkdtemp(path.join(tmpdir(), 'solid-manifest-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const file = path.join(root, 'package.json')
+  for (const failure of ['ENOENT', 'SyntaxError', 'EACCES']) {
+    if (failure === 'SyntaxError') await writeFile(file, '{')
+    if (failure === 'EACCES') await chmod(file, 0)
+    const { checks } = await doctor({ root })
+    const check = checks.at(0)
+    assert.ok(check)
+    assert.equal(check.id, 'application-manifest')
+    assert.equal(check.file, file)
+    assert.ok(check.observed.includes(failure))
+  }
 })

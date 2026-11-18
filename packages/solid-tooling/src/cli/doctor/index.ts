@@ -78,8 +78,15 @@ const VALIDATION_TASKS = new Set([
   'test-tooling',
   'dead-code-project'
 ])
+class ManifestError extends Error {
+  public override name = 'ManifestError'
+}
 async function manifest(file: string): Promise<Manifest> {
-  return v.parse(manifestSchema, JSON.parse(await readFile(file, 'utf8')))
+  try {
+    return v.parse(manifestSchema, JSON.parse(await readFile(file, 'utf8')))
+  } catch (error) {
+    throw new ManifestError(file, { cause: error })
+  }
 }
 async function isAccessible(file: string): Promise<boolean> {
   try {
@@ -93,8 +100,9 @@ async function resolvePackage({
   name,
   source
 }: PackageRequest): Promise<Installed | undefined> {
+  let candidate: string | undefined
   try {
-    let candidate = findPackageJSON(name, pathToFileURL(source))
+    candidate = findPackageJSON(name, pathToFileURL(source))
     if (name === '@evertondgn/solid-runtime') {
       let dir = path.dirname(createRequire(source).resolve(`${name}/env`))
       while (dir !== path.dirname(dir)) {
@@ -109,22 +117,52 @@ async function resolvePackage({
         dir = path.dirname(dir)
       }
     }
-    if (!candidate) return undefined
-    const file = await realpath(candidate)
-    return { file, source, manifest: await manifest(file) }
-  } catch {
-    return undefined
+  } catch (error) {
+    if (error instanceof ManifestError) throw error
+    if (
+      !(
+        error instanceof Error &&
+        'code' in error &&
+        error.code === 'ERR_INVALID_PACKAGE_CONFIG'
+      )
+    ) {
+      return undefined
+    }
+    for (const dir of createRequire(source).resolve.paths(name) ?? []) {
+      const file = path.join(dir, name, 'package.json')
+      if (await isAccessible(file)) {
+        candidate = file
+        break
+      }
+    }
   }
+  if (!candidate) return undefined
+  const file = await realpath(candidate)
+  return { file, source, manifest: await manifest(file) }
 }
 async function inspectSkills({ dep, skill, report }: SkillInspection) {
   const { name } = dep.manifest
   const dir = path.join(path.dirname(dep.file), 'skills')
   let required = skill ? [skill] : []
   if (!skill && (await isAccessible(dir))) {
-    const entries = await readdir(dir, { withFileTypes: true })
-    required = entries
-      .filter(entry => entry.isDirectory())
-      .map(entry => entry.name)
+    try {
+      const entries = await readdir(dir, { withFileTypes: true })
+      required = entries
+        .filter(entry => entry.isDirectory())
+        .map(entry => entry.name)
+    } catch (error) {
+      report.checks.push({
+        id: 'skill-present',
+        package: name,
+        source: dep.file,
+        file: dir,
+        expected: 'readable skills directory',
+        observed: String(error),
+        status: 'error',
+        fix: 'Check the installed skills directory.'
+      })
+      return
+    }
   }
   for (const entry of required.length > 0 ? required : ['']) {
     const target = path.join(dir, entry, 'SKILL.md')
@@ -188,7 +226,6 @@ function validationCommands({ app, preset }: AppTasks): string[] {
 
 export async function doctor({ root, preset }: DoctorInput): Promise<Report> {
   const file = path.join(root, 'package.json')
-  const app = await manifest(file)
   const workspaceRoot = await findWorkspaceRoot(root)
   const report: Report = {
     root,
@@ -199,6 +236,26 @@ export async function doctor({ root, preset }: DoctorInput): Promise<Report> {
     validation: { cwd: root, commands: [] }
   }
   const { checks, packages } = report
+  let app: Manifest
+  try {
+    const appSchema = v.object({
+      ...manifestSchema.entries,
+      name: v.optional(v.string(), root)
+    })
+    app = v.parse(appSchema, JSON.parse(await readFile(file, 'utf8')))
+  } catch (error) {
+    checks.push({
+      id: 'application-manifest',
+      status: 'error',
+      package: null,
+      expected: 'readable manifest',
+      observed: String(error),
+      source: root,
+      file,
+      fix: 'Repair the application manifest.'
+    })
+    return report
+  }
   const queue: Installed[] = [{ manifest: app, file, source: file }]
   const visited = new Set([file])
   const versions = new Map<string, string>()
@@ -255,7 +312,23 @@ export async function doctor({ root, preset }: DoctorInput): Promise<Report> {
     ) {
       return
     }
-    const dep = await resolvePackage({ name, source: owner.file })
+    let dep: Installed | undefined
+    try {
+      dep = await resolvePackage({ name, source: owner.file })
+    } catch (error) {
+      if (!(error instanceof ManifestError)) throw error
+      checks.push({
+        id: 'dependency-manifest',
+        package: name,
+        source: owner.file,
+        file: error.message,
+        expected: 'readable package manifest',
+        observed: String(error.cause),
+        status: 'error',
+        fix: 'Repair the installed package.'
+      })
+      return
+    }
     const isOptional =
       owner.manifest.optionalDependencies?.[name] !== undefined ||
       owner.manifest.peerDependenciesMeta?.[name]?.optional

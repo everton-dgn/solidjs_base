@@ -208,16 +208,6 @@ diff --git a/source/README.md b/example/README.md
  of the tooling README for the line counts by area.
  
  The package supplies tools that the application does not import itself. Its
-@@ -314,7 +314,8 @@ A sixteenth area, `PublicationLoad`, stays out of both columns, as
- 
- ### Guides
- 
--The guides describe the application. The release, CI and Vercel deployment examples describe the upstream workflows.
-+The guides describe the application. The release, CI and Vercel deployment
-+examples describe the upstream workflows.
- 
- | Guide                                                           | What you will find                                                    |
- | --------------------------------------------------------------- | --------------------------------------------------------------------- |
 diff --git a/example/bunfig.toml b/example/bunfig.toml
 new file mode 100644
 --- /dev/null
@@ -271,24 +261,6 @@ diff --git a/source/docs/architecture.md b/example/docs/architecture.md
 diff --git a/source/docs/development.md b/example/docs/development.md
 --- a/source/docs/development.md
 +++ b/example/docs/development.md
-@@ -9,12 +9,12 @@ The exact versions live in `package.json`:
- - Vite+: install the global CLI following the
-   [official guide](https://viteplus.dev/guide/). It selects the Node and the
-   package manager declared in the project.
--- Node: the runtime of Vitest, of the tooling tests
--  and of the production SSR. `devEngines.runtime` pins the exact version, within
--  the line declared in `engines.node`.
-+- Node: the runtime of Vitest, of the tooling tests and of the production SSR.
-+  `devEngines.runtime` pins the exact version, within the line declared in
-+  `engines.node`.
- - Bun: the installer and the runtime of development, build, Knip and CSS lint,
--  pinned in the Bun profile. Vite+ selects that version for
--  the installation and for the `bun` command.
-+  pinned in the Bun profile. Vite+ selects that version for the installation and
-+  for the `bun` command.
- - Playwright Chromium: used by the browser and E2E tests. It is not downloaded
-   by `vp install`; install it with `vp run test:browser:install` and repeat the
-   command after updating Playwright, which pins one browser revision per
 @@ -38,7 +38,7 @@ Use `vp run tsrs`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
  `vp run commitlint` for the package's executables. Scripts such as `test:e2e`,
  `test:browser:install` and `dead-code:fix` use these tasks. The standalone
@@ -553,14 +525,8 @@ diff --git a/source/docs/server-errors.md b/example/docs/server-errors.md
 diff --git a/source/docs/testing.md b/example/docs/testing.md
 --- a/source/docs/testing.md
 +++ b/example/docs/testing.md
-@@ -5,11 +5,11 @@
- ## Organization and criteria
- 
- Test files live in `__tests__` folders next to the code they exercise
--(`src/__tests__/`, module folders and `tooling/__tests__/`). The E2E tests
--are the exception and live in `src/tests/pages/`, outside the Vitest projects.
-+(`src/__tests__/`, module folders and `tooling/__tests__/`). The E2E tests are
-+the exception and live in `src/tests/pages/`, outside the Vitest projects.
+@@ -9,7 +9,7 @@ Test files live in `__tests__` folders next to the code they exercise
+ the exception and live in `src/tests/pages/`, outside the Vitest projects.
  
  The `project/test-filename` lint rule, in
 -[`test-filename.ts`](../../../packages/solid-tooling/src/test-filename.ts),

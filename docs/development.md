@@ -360,10 +360,13 @@ Update the image, alt text and README together whenever those numbers change.
 
 `.github/workflows/ci.yml` runs on pull requests, on pushes to `main` and by
 hand. The `Changes` job reads the list of changed files and starts only the jobs
-those files affect. A push to `main` that merges an up-to-date pull request with
-a passed `CI required` starts no job, because the pull request run checked the
-same tree ([ADR 0017](ADRs/0017-main-reuses-the-pull-request-run.md)). Manual
-runs start every job.
+those files affect. On a push to `main`, `Changes` skips Docs, Packages and both
+boilerplate jobs when the merge has the same tree as its up-to-date second
+parent and that parent passed `CI required`, because the pull request run
+checked the same tree
+([ADR 0017](ADRs/0017-main-reuses-the-pull-request-run.md)). `Merge commit body`
+and `CI required` still run on that push. Manual runs enable Docs, Packages and
+both boilerplate jobs.
 
 | Changed files                                                             | Jobs                                                 |
 | ------------------------------------------------------------------------- | ---------------------------------------------------- |
@@ -381,14 +384,14 @@ runs the Docs job, which checks the root, package and app guides, the
 of `apps/boilerplate/patches/` for the whole workspace, so a patch change also
 runs the package validation.
 
-| Job                 | What it runs                                                                                                                                                                                                |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Docs                | `vp fmt --check`, and an offline link check (lychee) over the Markdown of the repository, anchors included; the absolute links to the `main` branch that the npm pages use are checked against the checkout |
-| Packages            | `vp run validate`, the same command as the publish job                                                                                                                                                      |
-| Boilerplate app     | `vp run build` at the root, then check, Node type check, dead code, tests with coverage and tooling tests                                                                                                   |
-| Boilerplate app E2E | `vp run build` at the root, then the application build and the end-to-end tests                                                                                                                             |
-| Merge commit body   | On a push to `main`, fails when the merge commit has a body, which release-please reads as one more commit                                                                                                  |
-| CI required         | Fails when any job above failed or was cancelled                                                                                                                                                            |
+| Job                 | What it runs                                                                                                                                                                                                                                                                                                                     |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Docs                | `vp fmt --check`, and an offline link check (lychee) over the Markdown of the repository, anchors included; the absolute links to the `main` branch that the npm pages use are checked against the checkout. Its file list does not include `packages/*/docs/` yet ([ADR 0040](ADRs/0040-package-docs-ship-with-the-package.md)) |
+| Packages            | `vp run validate`, the same command as the publish job                                                                                                                                                                                                                                                                           |
+| Boilerplate app     | `vp run build` at the root, then check, Node type check, dead code, tests with coverage and tooling tests                                                                                                                                                                                                                        |
+| Boilerplate app E2E | `vp run build` at the root, then the application build and the end-to-end tests                                                                                                                                                                                                                                                  |
+| Merge commit body   | On a push to `main`, fails when the merge commit has a body, which release-please reads as one more commit                                                                                                                                                                                                                       |
+| CI required         | Fails when any job above failed or was cancelled                                                                                                                                                                                                                                                                                 |
 
 `CI required` is the only check the `main` ruleset requires. A job skipped by
 its `if`
@@ -437,9 +440,12 @@ override or the engines differ from the workspace. It also fails when the
 `engines` or `devEngines` of `apps/boilerplate` differ from the root, since
 Nitro picks the runtime of the Vercel function from `engines.node`. The test
 after it fails when a package of `packages/` does not declare `>=` and the
-`devEngines` Node version of the root in `engines.node`. No browser download or
-remote page request belongs to this suite; only dependency installation uses the
-network. Paraglide uses a local project without remote modules.
+`devEngines` Node version of the root in `engines.node`. Install Playwright
+Chromium before running the matrix locally: the client-only isolated case opens
+the build in that browser, or in the runner's Chrome on CI. The suite downloads
+no browser, and its browser checks use local HTTP and files; only dependency
+installation uses the network. Paraglide uses a local project without remote
+modules.
 
 To select a case, use Node's `--test-name-pattern` with
 `packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts`. For
@@ -473,10 +479,10 @@ client-only fixture uses `createLocalizedNavigate` and `localeTag` while its
 bundle audit keeps rejecting translation modules. It tests unprefixed DOM
 navigation, query, hash, state, history and the single-language `setLocale`
 no-op. Its additional `isolated-language` case sets `language: 'zh-Hant-TW'`.
-The matrix has 14 application cases plus the version-alignment test: 3
-client-only, 9 SSR plain and 2 SSR i18n. The alignment check also resolves and
-compares every runtime production dependency against the workspace catalog and
-application/tooling pins.
+The matrix has 14 installed application cases: 3 client-only, 9 SSR plain and 2
+SSR i18n. The runner also registers two version checks and six fast no-server
+checks. The alignment check also resolves and compares every runtime production
+dependency against the workspace catalog and application/tooling pins.
 
 The locale negative probes use `SCENARIO_MUTATION=locale-provider` or
 `locale-node` with `ssr-plain / isolated$`, and `locale-prefix` with
@@ -647,13 +653,13 @@ instrumented build checks the bundle graph.
 
 The preview smoke reads the application's server variable through an `extra`
 step of the middleware factory and checks a value different from the build
-environment. The public value is baked into the HTML. Each SSR plain case then
-starts preview with `PORT=abc`, requests the lazy server and requires HTTP 500
-plus the boot diagnostic naming `PORT`. It also injects a used server env import
-into the client entry and requires the plugin's boundary error, restores the
-entry, and retains the existing runtime server-only probe. These negative checks
-run in normal `validate`, including both linkers. See
-[ADR 0030](ADRs/0030-packaged-environment-schemas.md) and the
+environment. The public value is baked into the HTML. The default
+`ssr-plain / isolated` case also starts preview with `PORT=abc`, requests the
+lazy server and requires HTTP 500 plus the boot diagnostic naming `PORT`. It
+then injects a used server env import into the client entry and requires the
+plugin's boundary error, restores the entry, and runs the existing runtime
+server-only probe. These negative checks run in normal `validate`, including
+both linkers. See [ADR 0030](ADRs/0030-packaged-environment-schemas.md) and the
 [environment API](../packages/solid-tooling/docs/app-config.md#optional-environment-validation).
 
 ## Packaged fonts
@@ -688,9 +694,10 @@ pipeline.
 
 The installed matrix adds four SSR plain profiles under the isolated linker:
 `isolated-markdown-only`, `isolated-llms-only`, `isolated-publication-off` and
-`isolated-dynamic-only`. The all-enabled cases still run with both linkers and
-with/without i18n. There are fifteen cases including version alignment.
-`SCENARIO_MUTATION=llms-budget` on `ssr-plain / isolated$` must fail the build;
-`llms-link` and `llms-module` on `ssr-plain / isolated-publication-off$` must
-fail the bundle/config audit. See
+`isolated-dynamic-only`. The all-enabled cases still run with both linkers, with
+and without i18n. See
+[Installed application scenarios](#installed-application-scenarios) for the full
+matrix and its separate checks. `SCENARIO_MUTATION=llms-budget` on
+`ssr-plain / isolated$` must fail the build; `llms-link` and `llms-module` on
+`ssr-plain / isolated-publication-off$` must fail the bundle/config audit. See
 [ADR 0034](ADRs/0034-runtime-markdown-publication.md).

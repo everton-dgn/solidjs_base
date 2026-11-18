@@ -697,7 +697,7 @@ changelog that release-please had generated.
    ```bash
    git fetch origin
    git diff --stat solid-tooling@0.2.0 origin/main -- packages/solid-tooling package.json
-   git diff --stat origin/main...origin/<fix-branch> -- packages/solid-tooling package.json
+   git diff --stat origin/main origin/<fix-branch> -- packages/solid-tooling package.json
    ```
 
 3. Delete the GitHub Release and the tag:

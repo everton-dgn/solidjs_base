@@ -47,7 +47,9 @@ jobs:
           # The compare API lists at most this many files.
           max_files=300
           # A renamed file counts in the area it left and in the one it entered.
-          paths='[] | .filename, (.previous_filename // empty)'
+          # A removed or renamed file carries the moved: prefix, because a link
+          # can point to it.
+          paths='[] | if .status == "removed" or .status == "renamed" then ("moved:" + .filename), (.previous_filename // empty | "moved:" + .) else .filename end'
           case "$EVENT" in
             pull_request)
               files="$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq ".$paths")"
@@ -82,6 +84,12 @@ jobs:
           packages=false
           app=false
           while IFS= read -r file; do
+            case "$file" in
+              moved:*)
+                docs=true
+                file="${file#moved:}"
+                ;;
+            esac
             case "$file" in
               # The root package.json registers these patches for the whole
               # workspace, the runtime dependencies included.
@@ -148,7 +156,8 @@ jobs:
             file://${{ github.workspace }}/' --offline --include-fragments
             --no-progress README.md AGENTS.md CONTRIBUTING.md SECURITY.md
             'docs/**/*.md' 'packages/*/README.md' '.github/**/*.md'
-            'apps/boilerplate/README.md' 'apps/boilerplate/docs/**/*.md'
+            'apps/boilerplate/README.md' 'apps/boilerplate/AGENTS.md'
+            'apps/boilerplate/docs/**/*.md'
           fail: true
 
   packages:

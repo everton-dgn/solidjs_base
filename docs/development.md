@@ -375,9 +375,11 @@ runs start every job.
 
 A pull request that touches more than one group runs the jobs of each. The last
 group runs the Docs job too, because a README can link any file and moving one
-breaks the link. The root `package.json` registers the patches of
-`apps/boilerplate/patches/` for the whole workspace, so a patch change also runs
-the package validation.
+breaks the link. For the same reason, removing or renaming a file of any group
+runs the Docs job, which checks the root, package and app guides, the
+`AGENTS.md` of the app included. The root `package.json` registers the patches
+of `apps/boilerplate/patches/` for the whole workspace, so a patch change also
+runs the package validation.
 
 | Job                 | What it runs                                                                                                                                                                                                |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

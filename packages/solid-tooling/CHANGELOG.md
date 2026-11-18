@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.9.0...solid-tooling@0.10.0) (2026-11-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **tooling:** the lint preset of @evertondgn/solid-tooling warns when dynamicComponent is imported from @solidjs/web, and the preset denies warnings, so the check fails until the import comes from solid-js.
+* **tooling:** @evertondgn/solid-tooling installs @solidjs/vite-plugin 3.0.1, which requires solid-js and @solidjs/web 2.0.0. Update solid-js, @solidjs/web and @solidjs/router to 2.0.0 together, with the overrides of @solidjs/signals and @solidjs/compiler at the same version.
+
+### Bug Fixes
+
+* **tooling:** require Solid 2.0.0 ([29dbfac](https://github.com/everton-dgn/solidjs_base/commit/29dbfac85426c9938e5264d9b07a6b62fca148d5))
+* **tooling:** update eslint-plugin-solid to 0.20.0 ([003bad5](https://github.com/everton-dgn/solidjs_base/commit/003bad50aa1a37b0eed634dd2587a1c0207acda8))
+
 ## [0.9.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.8.0...solid-tooling@0.9.0) (2026-11-17)
 
 

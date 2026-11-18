@@ -12,10 +12,9 @@ the closest [fixture](../../README.md#start-a-new-app-from-a-fixture). This
 README says what each page and feature of the app shows and which tests prove
 it.
 
-> [!IMPORTANT]
-> SolidJS 2 is still a release candidate. This app uses the release candidate
-> pinned in its [package manifest](package.json), the same one the packages are
-> tested with.
+> [!NOTE]
+> This app pins SolidJS 2 in its [package manifest](package.json) to the version
+> the packages are tested with.
 
 The home page, captured from the production build at 750 px wide:
 

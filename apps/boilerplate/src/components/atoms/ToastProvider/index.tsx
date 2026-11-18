@@ -1,12 +1,11 @@
 import { m } from '@paraglide/messages.js'
-import { dynamicComponent } from '@solidjs/web'
 import IconWarning from 'icon:hugeicons/alert-02'
 import IconError from 'icon:hugeicons/alert-circle'
 import IconClose from 'icon:hugeicons/cancel-01'
 import IconSuccess from 'icon:hugeicons/checkmark-circle-02'
 import IconInfo from 'icon:hugeicons/information-circle'
 import IconLoading from 'icon:hugeicons/loader-circle'
-import { For, type ParentProps, untrack } from 'solid-js'
+import { dynamicComponent, For, type ParentProps, untrack } from 'solid-js'
 
 import { makeFocusOriginHandler } from '@/helpers/makeFocusOriginHandler/index.ts'
 

@@ -1,6 +1,6 @@
 {
   "name": "@evertondgn/solid-runtime",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Runtime code for SolidJS applications built with Vite+, shipped as TypeScript source.",
   "author": "Éverton Toffanetto",
   "license": "MIT",
@@ -247,16 +247,16 @@
     "test:tarball": "node --test --test-timeout=120000 tooling/tarball/__tests__/tarball.test.ts"
   },
   "peerDependencies": {
-    "@solidjs/web": "2.0.0-rc.23"
+    "@solidjs/web": "2.0.0"
   },
   "devDependencies": {
-    "@solidjs/web": "2.0.0-rc.23",
-    "@solidjs/vite-plugin": "3.0.0-next.57",
+    "@solidjs/web": "2.0.0",
+    "@solidjs/vite-plugin": "3.0.1",
     "@types/node": "26.6.6",
     "@vitest/coverage-v8": "catalog:",
     "knip": "6.45.1",
     "nitro": "3.0.261103-rc",
-    "solid-js": "2.0.0-rc.23",
+    "solid-js": "2.0.0",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
@@ -264,7 +264,7 @@
     "@inlang/paraglide-js": "3.2.2",
     "happy-dom": "21.0.4",
     "@testing-library/jest-dom": "7.0.1",
-    "@solidjs/router": "2.0.0-next.44",
+    "@solidjs/router": "2.0.0",
     "@vitest/browser-playwright": "catalog:",
     "playwright": "1.65.1"
   },

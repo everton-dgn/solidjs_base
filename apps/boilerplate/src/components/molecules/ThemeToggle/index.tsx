@@ -1,11 +1,10 @@
 import type { Theme } from '@evertondgn/solid-runtime/theme/types'
 import { m } from '@paraglide/messages.js'
-import { dynamicComponent } from '@solidjs/web'
 import IconComputer from 'icon:hugeicons/computer'
 import IconLoader from 'icon:hugeicons/loader-circle'
 import IconMoon from 'icon:hugeicons/moon-02'
 import IconSun from 'icon:hugeicons/sun-01'
-import { Show, useContext } from 'solid-js'
+import { dynamicComponent, Show, useContext } from 'solid-js'
 
 import { Button } from '@/components/atoms/Button/index.tsx'
 import { DropdownMenu } from '@/components/atoms/DropdownMenu/index.tsx'

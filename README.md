@@ -9,7 +9,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/hero-dark.webp" />
   <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/hero-light.webp" />
-  <img src="docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 RC and Vite+. Build your Solid app. Stop rebuilding its foundation. Optional languages and theme. Shared server protection, SEO, assets and development tools. Two install commands: vp add -D @evertondgn/solid-tooling and vp add @evertondgn/solid-runtime. Cards: languages from your locale list, light, dark or system theme, CSP and server errors, metadata and sitemap, icons and fonts, config, tests and hooks." width="800" />
+  <img src="docs/assets/readme/hero-light.webp" alt="Solid Base for SolidJS 2 and Vite+. Build your Solid app. Stop rebuilding its foundation. Optional languages and theme. Shared server protection, SEO, assets and development tools. Two install commands: vp add -D @evertondgn/solid-tooling and vp add @evertondgn/solid-runtime. Cards: languages from your locale list, light, dark or system theme, CSP and server errors, metadata and sitemap, icons and fonts, config, tests and hooks." width="800" />
 </picture>
 
 **Build your Solid app. Stop rebuilding its foundation.**
@@ -45,11 +45,10 @@ and their counterparts in the copy:
 </details>
 
 > [!IMPORTANT]
-> SolidJS 2 is still a release candidate, and the three packages are `0.x`:
-> below 1.0.0, a breaking change raises the minor version
-> ([versions](docs/tooling/limits.md#versions)). The packages pin the versions
-> they are tested with, so update them together and read the release notes
-> first.
+> The three packages are `0.x`: below 1.0.0, a breaking change raises the minor
+> version ([versions](docs/tooling/limits.md#versions)). The packages pin the
+> versions they are tested with, so update them together and read the release
+> notes first.
 
 ## Three packages and the app that tests them
 
@@ -161,11 +160,9 @@ each header and how the nonce reaches the scripts of the page.
   ([known limits](docs/tooling/limits.md#known-limits)). A client-only build
   (`ssr: false`) writes a static `dist/` with no server
   ([applications with no server](docs/tooling/no-server.md)).
-- You cannot pin exact versions. `vite-plus` 1.7.0 and `@solidjs/web`
-  2.0.0-rc.23 are exact peers in the
-  [tooling](packages/solid-tooling/package.json) and
-  [runtime](packages/solid-runtime/package.json) manifests, and SolidJS 2 is a
-  release candidate.
+- You cannot pin exact versions. `vite-plus` 1.7.0 and `@solidjs/web` 2.0.0 are
+  exact peers in the [tooling](packages/solid-tooling/package.json) and
+  [runtime](packages/solid-runtime/package.json) manifests.
 - You run Node older than 26.13.1, the `engines.node` floor of each package
   ([tooling manifest](packages/solid-tooling/package.json)).
 - Install size matters more than fewer declarations. The tooling installs the
@@ -351,8 +348,8 @@ version, such as
 [client-only at `solid-tooling@0.8.0`](https://github.com/everton-dgn/solidjs_base/blob/solid-tooling@0.8.0/fixtures/apps/client-only/package.json).
 The [release notes](https://github.com/everton-dgn/solidjs_base/releases) list
 the other breaking changes, such as a new Node version. Do not raise `solid-js`
-with `-L`: the newest release candidate can be newer than the one the packages
-were tested with.
+with `-L`: the newest Solid release can be newer than the one the packages were
+tested with.
 
 ## What you get
 
@@ -412,9 +409,9 @@ module. You can turn such a rule off in `lint.overrides`. The full
 `defineSolidApp` preset, the test presets, Knip and the CSS policy expect the
 boilerplate layout ([known limits](docs/tooling/limits.md#known-limits)).
 
-**What happens when a new Solid release candidate ships?** The packages pin
-Solid, Nitro, the router and the icons plugin to versions tested together. Wait
-for a package version tested with the new release, then
+**What happens when a new Solid version ships?** The packages pin Solid, Nitro,
+the router and the icons plugin to versions tested together. Wait for a package
+version tested with the new release, then
 [update the packages](#update-the-packages). Do not raise `solid-js` alone.
 
 **How heavy is the install?** Heavier than the manifest suggests: 8.41% more

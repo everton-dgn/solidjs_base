@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.10.0](https://github.com/everton-dgn/solidjs_base/compare/solid-runtime@0.9.0...solid-runtime@0.10.0) (2026-11-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **runtime:** @evertondgn/solid-runtime requires @solidjs/web 2.0.0. Update solid-js, @solidjs/web and @solidjs/router to 2.0.0 together, with the overrides of @solidjs/signals and @solidjs/compiler at the same version.
+
+### Bug Fixes
+
+* **runtime:** require Solid 2.0.0 ([0ac79e0](https://github.com/everton-dgn/solidjs_base/commit/0ac79e023967abd4589da9d49a32edbb93c369b6))
+
 ## [0.9.0](https://github.com/everton-dgn/solidjs_base/compare/solid-runtime@0.8.0...solid-runtime@0.9.0) (2026-11-17)
 
 

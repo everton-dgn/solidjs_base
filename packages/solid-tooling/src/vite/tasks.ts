@@ -225,8 +225,7 @@ export function createTasks({
         input: [
           'tsconfig.json',
           'tsconfig.node.json',
-          'vite.config.ts',
-          'playwright.config.ts',
+          '*.ts',
           'tooling/**/*.ts',
           // tooling imports modules from src, and the tsconfig includes the
           // Paraglide config, which imports settings.json.

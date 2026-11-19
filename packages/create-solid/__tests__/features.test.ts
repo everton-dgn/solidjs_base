@@ -68,3 +68,18 @@ void it('rejects missing local imports, re-exports and imported types', async co
     )
   }
 })
+void it('rejects a group of modules reachable only from one another', async context => {
+  const { checkImports } = await import('../tooling/check-imports.ts')
+  const dir = mkdtempSync(path.join(tmpdir(), 'orphan-modules-'))
+  context.after(() => rmSync(dir, { recursive: true, force: true }))
+  writeFileSync(path.join(dir, 'env.ts'), 'export {}')
+  writeFileSync(path.join(dir, 'left.ts'), "import './right.ts'")
+  writeFileSync(path.join(dir, 'right.ts'), "import './left.ts'")
+  const files = ['env.ts', 'left.ts', 'right.ts']
+  assert.throws(
+    () => checkImports(dir, files),
+    /Unreachable template module: left.ts/u
+  )
+  writeFileSync(path.join(dir, 'env.ts'), "import './left.ts'")
+  checkImports(dir, files)
+})

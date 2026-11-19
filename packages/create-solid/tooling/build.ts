@@ -14,7 +14,15 @@ import path from 'node:path'
 import process from 'node:process'
 
 import { fmt } from '@evertondgn/solid-tooling/fmt'
-import { literal, object, parse, picklist, record, string } from 'valibot'
+import {
+  array,
+  literal,
+  object,
+  parse,
+  picklist,
+  record,
+  string
+} from 'valibot'
 
 import { rewriteDocuments, rewritePatchTest } from '../src/rewrite.ts'
 import { manifestSchema } from '../src/schema.ts'
@@ -45,6 +53,7 @@ if (files.length !== rules.size || files.some(file => !rules.has(file))) {
 }
 const featureSchema = object({
   version: literal(1),
+  serverOnly: array(string()),
   files: record(
     string(),
     picklist([
@@ -75,6 +84,12 @@ assert.deepEqual(
   templateFiles.toSorted(),
   'Review features.json for changes in the template'
 )
+for (const file of features.serverOnly) {
+  assert.ok(
+    Object.hasOwn(features.files, file),
+    `Unknown server-only file: ${file}`
+  )
+}
 checkImports(app, templateFiles)
 rmSync('template', { recursive: true, force: true })
 for (const file of files) {

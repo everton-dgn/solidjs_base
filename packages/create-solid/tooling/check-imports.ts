@@ -32,11 +32,38 @@ function references(file: string, text: string): Set<string> {
   return sources
 }
 
+const taskEntries = new Set([
+  'env.ts',
+  'src/entry-client.tsx',
+  'src/entry-server.tsx',
+  'src/tests/fixtures/e2e/middleware/index.ts',
+  'src/tests/fixtures/routes/users/[id].tsx',
+  'tooling/css/check.ts',
+  'tooling/knip.ts',
+  'tooling/testing/error-backend.ts',
+  'tooling/testing/serve-public.ts'
+])
+
+function isEntry(file: string): boolean {
+  return (
+    taskEntries.has(file) ||
+    /(?:\.test(?:-d)?|\.d|\.config)\.[cm]?[jt]sx?$/u.test(file) ||
+    (/^src\/(?:routes|tests\/fixtures\/e2e\/routes)\//u.test(file) &&
+      /(?:\/index\.[jt]sx?|\.tsx)$/u.test(file)) ||
+    /^src\/tests\/fixtures\/e2e\/routes\/(?:robots\.txt|llms\.txt|sitemap\.xml|publication-(?:source|stream)|sitemaps\/.*)\.ts$/u.test(
+      file
+    )
+  )
+}
+
 export function checkImports(dir: string, files: readonly string[]): void {
   const paths = new Set(files)
+  const graph = new Map<string, string[]>()
   for (const file of files) {
     if (!/\.[cm]?[jt]sx?$/u.test(file)) continue
     const text = readFileSync(path.join(dir, file), 'utf8')
+    const dependencies: string[] = []
+    graph.set(file, dependencies)
     for (const source of references(file, text)) {
       if (!source.startsWith('.') && !source.startsWith('@/')) continue
       const resolved = source.startsWith('@/')
@@ -48,9 +75,25 @@ export function checkImports(dir: string, files: readonly string[]): void {
           suffix => resolved + suffix
         )
       ]
-      if (!candidates.some(candidate => paths.has(candidate))) {
+      const target = candidates.find(candidate => paths.has(candidate))
+      if (!target) {
         throw new Error(`Unknown template import in ${file}: ${source}`)
       }
+      dependencies.push(target)
+    }
+  }
+  const visited = new Set<string>()
+  function visit(file: string): void {
+    if (visited.has(file)) return
+    visited.add(file)
+    for (const target of graph.get(file) ?? []) visit(target)
+  }
+  for (const file of graph.keys()) {
+    if (isEntry(file)) visit(file)
+  }
+  for (const file of graph.keys()) {
+    if (!visited.has(file)) {
+      throw new Error(`Unreachable template module: ${file}`)
     }
   }
 }

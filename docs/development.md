@@ -106,17 +106,20 @@ Run them from the root. Package commands select `./packages/*`. The release
 verification job runs `vp run validate`, including installed tooling fixtures.
 The full boilerplate application suites remain separate.
 
-| Command                     | What it does                                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `vp run build`              | Compile the packages to `dist/`                                                                        |
-| `vp run check`              | Check format, lint and types at the root, then lint the runtime package in its folder                  |
-| `vp run dead-code`          | Find unused files, exports and dependencies of the runtime and icons packages with Knip                |
-| `vp run test`               | Run the rule tests with `node:test`, the runtime and icons plugin tests and `vp run test:release`      |
-| `vp run test:release`       | Run the tests of the release commands in `tooling/release/` with `node:test`                           |
-| `vp run test:tarball`       | Check installed tarballs and compare generated profiles with the tracked app                           |
-| `vp run test:scenarios`     | Exercise installed fixtures with both Bun linkers and run generated app scenarios                      |
-| `vp run validate`           | Validate published packages, workspace consistency and installed tooling fixtures                      |
-| `vp run validate:generator` | Build generator prerequisites, run the workspace check, test each profile and compare packed templates |
+| Command                                                 | What it does                                                                                           |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `vp run build`                                          | Compile the packages to `dist/`                                                                        |
+| `vp run check`                                          | Check format, lint and types at the root, then lint the runtime package in its folder                  |
+| `vp run dead-code`                                      | Find unused files, exports and dependencies of the runtime and icons packages with Knip                |
+| `vp run test`                                           | Run the rule tests with `node:test`, the runtime and icons plugin tests and `vp run test:release`      |
+| `vp run test:release`                                   | Run the tests of the release commands in `tooling/release/` with `node:test`                           |
+| `vp run test:tarball`                                   | Check installed tarballs and compare generated profiles with the tracked app                           |
+| `vp run test:scenarios`                                 | Exercise installed fixtures with both Bun linkers and run generated app scenarios                      |
+| `node packages/create-solid/tooling/scenario.ts [name]` | Install and test one generated scenario or all when the name is omitted                                |
+| `vp run test:consistency`                               | Check workspace consistency                                                                            |
+| `vp run test:ci`                                        | Test job selection, results and workflow contracts                                                     |
+| `vp run validate`                                       | Validate published packages, workspace consistency and installed tooling fixtures                      |
+| `vp run validate:generator`                             | Build generator prerequisites, run the workspace check, test each profile and compare packed templates |
 
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so
 `vp run test` builds the package first. The runtime tests run in the Vitest of
@@ -370,26 +373,29 @@ Update the image, alt text and README together whenever those numbers change.
 
 Every pull request runs Changes, Consistency and CI required. Consistency checks
 the workspace pins, the no-server guide and the workflow contracts. Generator
-runs its tests and parity checks. Eight Generated app jobs each install and
-build one generated project. The app jobs first build the tooling and icons.
+runs its tests and parity checks. Generated app jobs each install and build one
+generated project. The app jobs first build the tooling and icons.
 
-| Changed files                                             | Additional jobs                                 |
-| --------------------------------------------------------- | ----------------------------------------------- |
-| Root docs and published package READMEs or changelogs     | Docs                                            |
-| Generator files except its manifest                       | Docs, Generator, Generated app                  |
-| Boilerplate sources                                       | Both boilerplate jobs, Generator, Generated app |
-| Boilerplate Markdown                                      | Same as boilerplate sources, plus Docs          |
-| Boilerplate patches or manifest                           | Same as boilerplate sources, plus Packages      |
-| Published package guides and skills                       | Docs, Packages, Generator, Generated app        |
-| Package code, generator manifest, root config or lockfile | All                                             |
+| Changed files                                                                     | Additional jobs                                 |
+| --------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Root Markdown, docs/, GitHub Markdown or published package READMEs and changelogs | Docs                                            |
+| Generator files except its manifest                                               | Docs, Generator, Generated app                  |
+| Boilerplate sources                                                               | Both boilerplate jobs, Generator, Generated app |
+| Boilerplate Markdown                                                              | Same as boilerplate sources, plus Docs          |
+| Boilerplate patches or manifest                                                   | Same as boilerplate sources, plus Packages      |
+| Published package guides and skills                                               | Docs, Packages, Generator, Generated app        |
+| Package code, generator manifest, root config or lockfile                         | All                                             |
 
 Changes combines both paths of a rename and enables Docs for removals. Release
 pull requests, manual runs, the daily schedule, forced pushes and pull requests
 with at least 3,000 files run all suites. A checked merge tree reuses its pull
 request results ([ADR 0017](ADRs/0017-main-reuses-the-pull-request-run.md)).
 Pushes also check the merge commit body. CI required compares the direct
-dependencies and individual job results for its run attempt. Re-run all jobs
-when a partial rerun lacks an expected result.
+dependencies and individual job results for its run attempt. In the `CI`
+workflow only, re-run all jobs when a partial rerun lacks an expected result.
+
+Add each new job to the `required.needs` list in `ci.yml` and the expected job
+map in the classifier.
 
 ### Measuring the first push
 
@@ -405,6 +411,27 @@ split installed tooling fixtures by profile with an assertion on the case count.
 If a generator or app job runs over, isolate its slow step and split independent
 suites while preserving the required-job inventory. Investigate queue time
 separately from runner limits.
+
+Record the run URL and measurements in the first push's pull request. Use
+`gh run view <run-id> --json jobs` for start and completion times. Flag jobs
+above 60% of their timeout. The historical hosted Packages job took 4 min 5 s (3
+min 50 s for validate). Compare the full critical path with the local baseline
+of 737 s and target of about 292 s, and the slowest generator leg with the local
+155 to 175 s range. Aim for Packages near the historical hosted duration. For
+docs alone, compare the former 180 s locally with Docs and Consistency. For
+generator-only changes, compare 737 s plus the app jobs with the slowest
+generator leg. For app-only changes, compare 737 s with the slower of the app
+jobs and the generator legs. Record the setup-vp restore key from
+`Cache restored from key:` or the cache miss for a cold run. `Cache mode: write`
+identifies the writer.
+
+After the full run passes, re-run one scenario with
+`gh run rerun <run-id> --job <job-id>`. Check that CI required passes on attempt
+2 and inspect
+`gh api --paginate repos/{owner}/{repo}/actions/runs/<run-id>/attempts/2/jobs`
+for the successful jobs from attempt 1 that were not re-run. Record both
+observations in the same pull request. If inherited jobs are missing, keep the
+gate closed and use the workflow-specific recovery instructions.
 
 The browser and end-to-end tests use the Chrome installed on the GitHub runner,
 as in the original repository.

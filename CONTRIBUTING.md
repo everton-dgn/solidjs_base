@@ -74,10 +74,14 @@ docs/                               guides and architecture decision records (AD
 | You changed        | Run from the root                                                                               |
 | ------------------ | ----------------------------------------------------------------------------------------------- |
 | Published packages | `vp run validate`: build, check, dead code, package tests, tarball tests and scenarios          |
-| Generator          | `vp run validate:generator` and the installed generator scenarios                               |
+| Generator          | `vp run validate:generator` and `node packages/create-solid/tooling/scenario.ts [name]`         |
 | Only a lint rule   | `vp run test` while you work, then `vp run validate`                                            |
 | `apps/boilerplate` | The commands in [the boilerplate app section](docs/development.md#the-boilerplate-app)          |
 | Only documentation | `vp fmt`, plus `vp fmt` inside `apps/boilerplate` for its files, which the root formatter skips |
+| CI and workspace   | `vp run test:ci` and `vp run test:consistency`                                                  |
+
+Add each new job to `required.needs` in `ci.yml` and the classifier's expected
+job map.
 
 The CI runs the same commands and skips the jobs your files do not affect.
 

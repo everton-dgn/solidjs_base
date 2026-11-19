@@ -85,6 +85,7 @@ void it('rejects invalid locale flags before creating the destination', context 
   context.after(() => rmSync(root, { recursive: true, force: true }))
   const dir = path.join(root, 'app')
   for (const [args, message] of [
+    [['--no-i18n', '--locales', 'en'], '--locales'],
     [['--locales', ''], '--locales'],
     [['--locales', 'es,ES'], '--locales'],
     [['--locales', 'bad_tag'], '--locales'],
@@ -114,7 +115,7 @@ void it('generates only the requested catalogs and identifies every seed', conte
       '--mode',
       'static',
       '--locales',
-      'pt-br,fr,ja',
+      'pt-br,fr,ja,en-x-custom',
       '--base-locale',
       'ja',
       '--title',
@@ -125,7 +126,7 @@ void it('generates only the requested catalogs and identifies every seed', conte
     { encoding: 'utf8' }
   )
   assert.equal(result.status, 0, result.stderr)
-  const locales = ['pt-BR', 'fr', 'ja']
+  const locales = ['pt-BR', 'fr', 'ja', 'en-x-custom']
   assert.deepEqual(readLocaleSettings(dir), { locales, baseLocale: 'ja' })
   for (const locale of locales) {
     assert.ok(
@@ -142,7 +143,9 @@ void it('generates only the requested catalogs and identifies every seed', conte
     Object.fromEntries(
       locales.map(locale => [
         locale,
-        new Intl.DisplayNames([locale], { type: 'language' }).of(locale)
+        locale === 'en-x-custom'
+          ? locale
+          : new Intl.DisplayNames([locale], { type: 'language' }).of(locale)
       ])
     )
   )
@@ -192,4 +195,43 @@ void it('omits the language switcher and its unused menu in a one-language clien
     readFileSync(path.join(dir, 'index.html'), 'utf8'),
     /<html lang="zh-Hant-TW">/u
   )
+})
+
+void it('emits local messages, plain links and the base language without a catalog compiler', context => {
+  const root = mkdtempSync(path.join(tmpdir(), 'solid-plain-application-'))
+  context.after(() => rmSync(root, { recursive: true, force: true }))
+  for (const mode of ['client', 'static', 'server']) {
+    const dir = path.join(root, mode)
+    const result = spawnSync(
+      process.execPath,
+      [
+        'src/create-solid.ts',
+        dir,
+        '--no-install',
+        '--no-git',
+        '--no-i18n',
+        '--base-locale',
+        'es-MX',
+        '--mode',
+        mode
+      ],
+      { encoding: 'utf8' }
+    )
+    assert.equal(result.status, 0, result.stderr)
+    assert.ok(!existsSync(path.join(dir, 'project.inlang')))
+    assert.deepEqual(catalogFolders(dir), [])
+    const read = (name: string) => readFileSync(path.join(dir, name), 'utf8')
+    assert.match(read('vite.config.ts'), /language: 'es-MX'/u)
+    assert.doesNotMatch(
+      read('package.json'),
+      /@inlang|paraglide|i18n:generate/iu
+    )
+    assert.doesNotMatch(read('src/App.tsx'), /createLocaleNavigationGuard/u)
+    assert.match(read('src/constants/messages/index.ts'), /Acerca de/u)
+    assert.match(
+      read('src/components/organisms/Topbar/index.tsx'),
+      /<a href="\/"/u
+    )
+    if (mode === 'client') assert.match(read('index.html'), /lang="es-MX"/u)
+  }
 })

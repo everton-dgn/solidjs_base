@@ -21,7 +21,7 @@ function localeFlags(values: LanguageFlags) {
 }
 function run(): void {
   const usage =
-    'bunx @evertondgn/create-solid@latest <dir> [--pm bun|pnpm|npm] [--title TEXT] [--locales TAGS] [--base-locale TAG] [--site-url URL] [--mode server|static|client] [--seo|--no-seo] [--theme|--no-theme] [--icons|--no-icons] [--fonts|--no-fonts] [--diagnostics|--no-diagnostics] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
+    'bunx @evertondgn/create-solid@latest <dir> [--pm bun|pnpm|npm] [--title TEXT] [--locales TAGS|--no-i18n] [--base-locale TAG] [--site-url URL] [--mode server|static|client] [--seo|--no-seo] [--theme|--no-theme] [--icons|--no-icons] [--fonts|--no-fonts] [--diagnostics|--no-diagnostics] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
   const args = process.argv.slice(argumentOffset)
   const separator = args.indexOf('--')
   if (
@@ -43,6 +43,7 @@ function run(): void {
       title: { type: 'string' },
       locales: { type: 'string' },
       'base-locale': { type: 'string' },
+      'no-i18n': { type: 'boolean' },
       'site-url': { type: 'string' },
       seo: { type: 'boolean' },
       'no-seo': { type: 'boolean' },
@@ -88,6 +89,7 @@ function run(): void {
   const profile = {
     ...(values.title === undefined ? {} : { title: values.title }),
     ...localeFlags(values),
+    hasI18n: !values['no-i18n'],
     mode: values.mode,
     hasSeo: values.mode === 'client' ? Boolean(values.seo) : !values['no-seo'],
     hasTheme: !values['no-theme'],

@@ -98,6 +98,33 @@ function checkCatalogs(dir: string, tree: readonly string[]): void {
   }
 }
 
+function checkMessages({
+  dir,
+  tree,
+  hasI18n
+}: {
+  dir: string
+  tree: string[]
+  hasI18n: boolean
+}): void {
+  const read = (name: string) => readFileSync(path.join(dir, name), 'utf8')
+  if (hasI18n) checkCatalogs(dir, tree)
+  else {
+    assert.ok(tree.includes('src/constants/messages/index.ts'))
+    assert.ok(
+      !tree.some(
+        file =>
+          file.startsWith('project.inlang/') ||
+          /\/i18n\/[^/]+\.json$/u.test(file)
+      )
+    )
+    assert.doesNotMatch(
+      read('package.json'),
+      /@inlang|paraglide|i18n:generate/iu
+    )
+  }
+}
+
 function checkScriptFiles({
   dir,
   tree,
@@ -271,7 +298,7 @@ const modes = ['server', 'static', 'client'] as const
 const publications = modes.flatMap(mode =>
   [true, false].map(hasSeo => ({ mode, hasSeo }))
 )
-const profilesPerManager = 116
+const profilesPerManager = 122
 function* matrixCases() {
   for (const { mode, hasSeo } of publications) {
     for (const diagnostics of [true, false]) {
@@ -280,7 +307,11 @@ function* matrixCases() {
         hasIcons: icons,
         hasTheme: theme
       } of uiProfiles()) {
-        const selections: { locales?: string[]; baseLocale?: string }[] = [{}]
+        const selections: {
+          locales?: string[]
+          baseLocale?: string
+          hasI18n?: boolean
+        }[] = [{}]
         if (
           diagnostics === fonts &&
           fonts === icons &&
@@ -288,6 +319,7 @@ function* matrixCases() {
           hasSeo === (mode === 'client' ? false : theme)
         ) {
           selections.push(
+            { hasI18n: false },
             { locales: ['es'] },
             { locales: ['zh-Hant-TW'] },
             ...(mode === 'client'
@@ -464,9 +496,10 @@ export function testProfiles(
         files: tree,
         knownImports: importsFor(profile)
       })
-      assert.deepEqual(guideProblems(dir), [])
-      checkScriptFiles({ dir, tree, hasI18n: true })
-      checkCatalogs(dir, tree)
+      const hasI18n = profile.hasI18n !== false
+      assert.deepEqual(guideProblems(dir, hasI18n), [])
+      checkScriptFiles({ dir, tree, hasI18n })
+      checkMessages({ dir, tree, hasI18n })
       const files = readdirSync(dir)
       copyFileSync(
         'dist/formatter/vite.config.mjs',

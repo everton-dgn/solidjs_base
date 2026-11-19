@@ -15,12 +15,33 @@ function* publications() {
     }
   }
 }
+function* translationVariants<
+  T extends {
+    hasDiagnostics: boolean
+    hasFonts: boolean
+    hasTheme: boolean
+    hasIcons: boolean
+    hasSeo: boolean
+    mode: string
+  }
+>(profile: T) {
+  yield profile
+  const { hasDiagnostics, hasFonts, hasTheme, hasIcons, hasSeo, mode } = profile
+  if (
+    hasDiagnostics === hasFonts &&
+    hasFonts === hasTheme &&
+    hasTheme === hasIcons &&
+    hasSeo === (mode === 'client' ? false : hasTheme)
+  ) {
+    yield { ...profile, hasI18n: false }
+  }
+}
 function* profiles() {
   for (const publication of publications()) {
     for (const pm of ['bun', 'npm', 'pnpm'] as const) {
       for (const hasDiagnostics of [true, false]) {
         for (const { hasFonts, hasTheme, hasIcons } of uiProfiles()) {
-          yield {
+          const profile = {
             ...publication,
             pm,
             hasDiagnostics,
@@ -28,6 +49,7 @@ function* profiles() {
             hasFonts,
             hasTheme
           }
+          yield* translationVariants(profile)
         }
       }
     }

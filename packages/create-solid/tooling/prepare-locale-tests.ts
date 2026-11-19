@@ -13,6 +13,19 @@ const alternate =
 const navigation =
   'primitives/createOutdatedPageGuard/__tests__/createOutdatedPageGuard'
 const files: FileEdits = {
+  'infra/server/configureServerErrors/__tests__/configureServerErrors.messages.node.test.ts':
+    [
+      [
+        /import \{\n {2}getLocale,/u,
+        "import { m } from '@paraglide/messages.js'\nimport {\n  baseLocale,\n  locales,\n  getLocale,"
+      ],
+      [
+        /const MESSAGES = \{[\s\S]*?const LOCALES:[^\n]+/u,
+        'const message = (locale: Locale) => m.configureServerErrors_message({}, {locale})'
+      ],
+      [/new Error\(MESSAGES.en\)/u, 'new Error(message(baseLocale))'],
+      [/toBe\(MESSAGES.en\)/u, "toBe('The request could not be completed.')"]
+    ],
   'components/atoms/LocalizedLink/__tests__/LocalizedLink.dom.test.tsx': [
     [/import \{ getLocale \}/u, 'import { baseLocale, getLocale, locales }'],
     [/describe\(/u, `${alternate}describe(`],
@@ -66,7 +79,11 @@ function prepareBrowserCatalogs(): string[] {
     [
       'I18n.e2e.test.ts',
       'components/organisms/ErrorFallback',
-      ['errorFallback_runtimeTitle', 'errorFallback_runtimeDescription']
+      [
+        'errorFallback_runtimeTitle',
+        'errorFallback_runtimeDescription',
+        'errorFallback_runtimePageTitle'
+      ]
     ],
     [
       'I18n.seo.production.e2e.test.ts',
@@ -123,6 +140,8 @@ export function prepareLocaleTests(): void {
       text = editTemplate({ file, text, pattern, replacement })
     }
     text = text
+      .replaceAll('it.each(LOCALES)', 'it.each(locales)')
+      .replaceAll('MESSAGES[locale]', 'message(locale)')
       .replaceAll('PORTUGUESE_DESCRIPTION', 'alternateDescription')
       .replaceAll('inPortuguese', 'inLocaleContext')
       .replaceAll(/'\/(?:en|es|pt)(?:[^']*)'/gu, match => {

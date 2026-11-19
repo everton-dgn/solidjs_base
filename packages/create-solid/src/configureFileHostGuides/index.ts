@@ -88,7 +88,7 @@ function configureHostingReadme({
     file: readme,
     pattern: /^## See it work[\s\S]*?(?=^## Running it)/mu,
     replacement:
-      '## See it work\n\nOpen the home page and use the language menu to visit a localized URL.\n\n'
+      '## See it work\n\nOpen the home page and follow a navigation link to visit another page.\n\n'
   })
   edit({
     file: readme,
@@ -195,7 +195,7 @@ function configureStaticSeoGuides({ edit, write }: StaticGuideOptions): void {
   write({
     file: 'docs/seo/markdown.md',
     content:
-      '# Markdown publication\n\nPublish the contents of `.output/public` together. The build writes localized\nMarkdown files such as `/pt/about.md`, the index `/llms.txt` and the combined\ntext `/llms-full.txt`. Serve the .md files as `text/markdown; charset=utf-8`.\nLink to their file URLs from clients that read Markdown.\n'
+      '# Markdown publication\n\nPublish the contents of `.output/public` together. The build writes localized\nMarkdown files for each page, the index `/llms.txt` and the combined\ntext `/llms-full.txt`. Serve the .md files as `text/markdown; charset=utf-8`.\nLink to their file URLs from clients that read Markdown.\n'
   })
   const sitemap = 'docs/seo/sitemap.md'
   edit({
@@ -357,7 +357,7 @@ export function configureFileHostGuides({
     pattern:
       /^## Negotiation and isolation on the server[\s\S]*?(?=^## Runtime navigation and language tags)/mu,
     replacement:
-      '## Navigation\n\nThe current URL selects the language. Use a locale prefix to link directly to a\npage, such as `/pt/about`.\n\n'
+      '## Navigation\n\nThe current URL selects the language. Use a locale prefix to link directly to a\npage. The available prefixes come from `project.inlang/settings.json`.\n\n'
   })
   edit({
     file: development,

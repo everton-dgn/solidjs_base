@@ -1,7 +1,7 @@
 import { readLocaleSettings } from '../configureLocales/catalogs.ts'
 import type { StagedContext } from '../types.ts'
 
-const themeCheck = `
+const translatedTheme = `
   const theme = await label(
     'components/molecules/ThemeToggle',
     'themeToggle_select'
@@ -10,6 +10,8 @@ const themeCheck = `
     'components/molecules/ThemeToggle',
     'themeToggle_dark'
   )
+`
+const themeInteraction = `
   await page.getByRole('button', { name: theme }).click()
   await page.getByRole('menuitemradio', { name: dark, exact: true }).click()
   await expect(page.locator('html')).toHaveClass('dark')
@@ -33,6 +35,8 @@ const themeCheck = `
     released.resolve(null)
     await page.unrouteAll({ behavior: 'wait' })
   }`
+const themeCheck = translatedTheme.trimEnd() + themeInteraction
+const plainTheme = `\n  const theme = m.themeToggle_select()\n  const dark = m.themeToggle_dark()${themeInteraction}`
 const fontCheck = `
   await expect(page.locator('link[rel="preload"][as="font"]')).toHaveCount(1)
   await expect
@@ -102,10 +106,35 @@ export function addProfileBrowserTest({
   write,
   stage
 }: StagedContext): void {
+  if (profile.hasI18n === false) {
+    const { baseLocale } = readLocaleSettings(stage)
+    write({
+      file: 'src/tests/pages/Home/Home.profile.production.e2e.test.ts',
+      content: `import { expect, test } from '@playwright/test'
+
+import { m } from '@/constants/messages/index.ts'
+import { SITE } from '@/constants/site/title.ts'
+
+const language = '${baseLocale}'
+
+test('serves the application in its configured language', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('html')).toHaveAttribute('lang', language)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
+  await page
+    .getByRole('banner')
+    .getByRole('link', { name: m.siteLinks_aboutLabel() })
+    .click()
+  await expect(page).toHaveURL(/\\/about$/u)
+  await expect(page).toHaveTitle(m.about_pageTitle())${profile.hasTheme === false ? '' : plainTheme}${profile.hasFonts === false ? '' : fontCheck}
+})
+`
+    })
+    return
+  }
   if (
     profile.mode !== 'static' &&
     profile.locales === undefined &&
-    profile.hasI18n !== false &&
     [
       profile.hasTheme,
       profile.hasFonts,
@@ -128,14 +157,18 @@ export function addProfileBrowserTest({
   await page.getByRole('button', { name, exact: true }).click()
   await expect(page.getByRole('menu')).toBeVisible()
   for (const locale of locales) {
-    const names = new Intl.DisplayNames([locale], {
-      type: 'language',
-      fallback: 'none'
-    })
-    const item =
-      Intl.DisplayNames.supportedLocalesOf(locale).length > 0
-        ? (names.of(locale) ?? locale)
-        : locale
+    let item = locale
+    try {
+      if (Intl.DisplayNames.supportedLocalesOf(locale).length > 0) {
+        const names = new Intl.DisplayNames([locale], {
+          type: 'language',
+          fallback: 'none'
+        })
+        item = names.of(locale) ?? locale
+      }
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error
+    }
     await expect(
       page.getByRole('menuitemradio', { name: item, exact: true })
     ).toBeVisible()

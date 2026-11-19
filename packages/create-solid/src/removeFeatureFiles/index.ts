@@ -6,7 +6,9 @@ import { array, object, parse, record, string, union } from 'valibot'
 import { distribution } from '../paths.ts'
 
 const owners = union([string(), array(string())])
+const transforms = object({ localMessages: array(string()) })
 const schema = object({
+  transforms,
   serverOnly: array(string()),
   clientExcludes: array(string()),
   files: record(string(), owners)
@@ -21,6 +23,13 @@ type FileSelection = {
   disabled: string[]
   group?: 'serverOnly' | 'clientExcludes'
 }
+export function localMessageFolders(stage: string): string[] {
+  inventory ??= readInventory()
+  return inventory.transforms.localMessages
+    .map(folder => path.join(stage, folder))
+    .filter(folder => existsSync(folder))
+}
+
 export function featureFiles({
   disabled,
   group

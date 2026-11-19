@@ -1,5 +1,25 @@
 {
   "version": 2,
+  "transforms": {
+    "localMessages": [
+      "src/components/atoms/ToastProvider/i18n",
+      "src/components/molecules/Dialog/i18n",
+      "src/components/molecules/LocaleSwitcher/i18n",
+      "src/components/molecules/OutdatedPageNotice/i18n",
+      "src/components/molecules/SiteContent/i18n",
+      "src/components/molecules/ThemeToggle/i18n",
+      "src/components/organisms/ErrorFallback/i18n",
+      "src/components/organisms/Topbar/i18n",
+      "src/constants/site/i18n",
+      "src/constants/siteLinks/i18n",
+      "src/infra/server/configureServerErrors/i18n",
+      "src/routes/(base)/(home)/i18n",
+      "src/routes/(base)/[...404]/i18n",
+      "src/routes/(base)/about/i18n",
+      "src/routes/(base)/contact/i18n",
+      "src/routes/(base)/privacy/i18n"
+    ]
+  },
   "files": {
     ".env": "core",
     ".env.test": "core",
@@ -60,8 +80,8 @@
     "src/components/atoms/Input/__tests__/Input.styles.browser.test.tsx": "core",
     "src/components/atoms/Input/index.tsx": "core",
     "src/components/atoms/Input/styles.module.css": "core",
-    "src/components/atoms/LocalizedLink/__tests__/LocalizedLink.dom.test.tsx": "core",
-    "src/components/atoms/LocalizedLink/index.tsx": "core",
+    "src/components/atoms/LocalizedLink/__tests__/LocalizedLink.dom.test.tsx": "i18n",
+    "src/components/atoms/LocalizedLink/index.tsx": "i18n",
     "src/components/atoms/PageBadge/index.tsx": "core",
     "src/components/atoms/PageBadge/styles.module.css": "core",
     "src/components/atoms/Textarea/__tests__/Textarea.dom.test.tsx": "core",
@@ -331,7 +351,7 @@
     "src/tests/pages/UiKit/UiKit.e2e.test.ts": "core",
     "src/tests/pages/UiKit/UiKit.fields.e2e.test.ts": "core",
     "src/tests/providers/renderComponent/index.tsx": "core",
-    "src/tests/setup/browser/__tests__/browser.browser.test.ts": "core",
+    "src/tests/setup/browser/__tests__/browser.browser.test.ts": "i18n",
     "src/theme/class/animation.css": "core",
     "src/theme/globalStyles.css": "core",
     "src/theme/tokens/colors.css": "core",

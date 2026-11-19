@@ -65,8 +65,10 @@ const feature = picklist([
 ])
 const inventoryVersion = 2
 const fileOwners = union([feature, array(feature)])
+const transforms = object({ localMessages: array(string()) })
 const featureSchema = object({
   version: literal(inventoryVersion),
+  transforms,
   imports: record(string(), feature),
   serverOnly: array(string()),
   clientExcludes: array(string()),
@@ -83,6 +85,14 @@ assert.deepEqual(
   Object.keys(features.files).toSorted(),
   templateFiles.toSorted(),
   'Review features.json for changes in the template'
+)
+const catalogPaths = templateFiles.filter(file =>
+  /\/i18n\/[^/]+\.json$/u.test(file)
+)
+assert.deepEqual(
+  features.transforms.localMessages.toSorted(),
+  [...new Set(catalogPaths.map(file => path.dirname(file)))].toSorted(),
+  'Classify every catalog folder converted to local messages'
 )
 for (const file of [...features.serverOnly, ...features.clientExcludes]) {
   assert.ok(

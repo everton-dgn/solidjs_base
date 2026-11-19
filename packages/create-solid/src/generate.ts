@@ -29,9 +29,13 @@ import { configureClient } from './configureClient/index.ts'
 import { configureFileHostGuides } from './configureFileHostGuides/index.ts'
 import { configureFonts } from './configureFonts/index.ts'
 import { readLocaleSettings } from './configureLocales/catalogs.ts'
+import { configureLocaleCopy } from './configureLocales/copy.ts'
+import { configureLocaleGuides } from './configureLocales/guides.ts'
 import { configureLocales } from './configureLocales/index.ts'
 import { configureLocaleUi } from './configureLocaleUi/index.ts'
 import { configurePageTitles } from './configurePageTitles/index.ts'
+import { configurePlainApp } from './configurePlainApp/index.ts'
+import { removeCatalogTasks } from './configurePlainApp/package.ts'
 import { configureSeo } from './configureSeo/index.ts'
 import { configureSiteIdentity } from './configureSiteIdentity/index.ts'
 import { configureStandaloneGuides } from './configureStandaloneGuides/index.ts'
@@ -40,6 +44,7 @@ import { editTemplate } from './edit-template.ts'
 import { installProfile } from './installProfile/index.ts'
 import { resolveLocaleOptions } from './locale-options.ts'
 import { applyPreparedGuides } from './prepared-guides.ts'
+import { applyPreparedSource } from './prepared-source.ts'
 import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
@@ -296,7 +301,7 @@ export function rewriteIdentity({ pkg, profile }: GenerationContext): void {
 }
 export function generateSource(
   input: Profile,
-  prepareGuides: (stage: string) => void
+  prepare: { guides: (stage: string) => void; source: (stage: string) => void }
 ): string[] {
   const profile = resolveProfile(input)
   const title = resolveAppTitle(profile)
@@ -383,14 +388,21 @@ export function generateSource(
     configureStandaloneGuides(context)
     mkdirSync(path.join(stage, 'src/tests/pages/Home'), { recursive: true })
     addProfileBrowserTest(context)
+    configureSiteIdentity(context)
+    configureLocaleCopy(context)
+    configureLocaleGuides(context)
+    prepare.guides(stage)
+    configureAppTitle({ context, title })
+    configurePageTitles({ context, title })
+    if (profile.hasI18n === false) {
+      removeCatalogTasks(pkg)
+      configurePlainApp(context)
+      prepare.source(stage)
+    }
     write({
       file: 'package.json',
       content: `${JSON.stringify(pkg, null, jsonIndent)}\n`
     })
-    configureSiteIdentity(context)
-    prepareGuides(stage)
-    configureAppTitle({ context, title })
-    configurePageTitles({ context, title })
     removeEmptyFolders(stage)
     publishTree({ stage, destination: profile.dir })
   } catch (error) {
@@ -425,7 +437,10 @@ export function generateSource(
 }
 
 export function generate(input: Profile): string[] {
-  return generateSource(input, applyPreparedGuides)
+  return generateSource(input, {
+    guides: applyPreparedGuides,
+    source: applyPreparedSource
+  })
 }
 
 export type { Profile } from './types.ts'

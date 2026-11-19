@@ -36,7 +36,7 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
  - Document the contract, the limits and the validation commands. When updating
    dependencies, review the behavior and keep the numbers in the files that
    control the installation.
-@@ -149,7 +148,7 @@ release. Add a tool name to select part of the graph. For example, run
+@@ -149,13 +148,13 @@ release. Add a tool name to select part of the graph. For example, run
  ## Translations
  
  - Generation, catalog validation and the Vite plugin belong to
@@ -45,6 +45,22 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
    `project.inlang/settings.json`; the default application needs no local generator
    or i18n plugin. Custom pipelines can set `i18nPlugin: false`, supply a plugin
    through `extend` and replace `i18n-generate` by name through `tasks`.
+   The package tests use other locales.
+ - The locales and the base locale come from `project.inlang/settings.json`. Each
+-  consumer keeps colocated `i18n/{pt,en,es}.json` files. Share in `src/i18n/`
++  consumer keeps colocated `i18n/{locale}.json` files. Share in `src/i18n/`
+   only from the second production consumer on.
+ - Use global IDs prefixed with the owner and the same parameters in the three
+   locales. Import `m` from `@paraglide/messages.js` and `Locale` from
+@@ -177,7 +176,7 @@ release. Add a tool name to select part of the graph. For example, run
+   document navigation on locale change and the tolerance to blocked cookies.
+ - Run `vp run i18n:generate` to check parity, duplicates and parameters.
+   Integration changes require typecheck, tooling, tests and the i18n E2E tests.
+-  The split is per page and message; each module includes the three locales it
++  The split is per page and message; each module includes the languages it
+   uses.
+ 
+ ## TypeScript types
 @@ -198,7 +197,7 @@ release. Add a tool name to select part of the graph. For example, run
  - Use `type` to declare object, props and contract types in code and tests. The
    lint applies `typescript/consistent-type-definitions` with `type`.
@@ -54,7 +70,12 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
    `RouteInfo` in the runtime `seo/{sitemap,markdown,llms}/router.d.ts` modules
    extend third-party interfaces. Keep
    the lint exception restricted to the files that need that behavior.
-@@ -325,7 +324,7 @@ release. Add a tool name to select part of the graph. For example, run
+@@ -321,11 +320,11 @@ release. Add a tool name to select part of the graph. For example, run
+   `content` of about, contact and privacy) lives in `index.tsx`, never in
+   `seo.ts`. The route manifest imports the `route` of each page in the initial
+   bundle, and everything `seo.ts` imports goes with it: a `content` exported
+-  from there takes the texts of every page, in the three locales, into the
++  from there takes the texts of every page, in the configured languages, into the
    initial bundle. `seo` points to the messages directly, without reading the
    page object. Do not move `content` to `seo.ts`, to a module `seo.ts`
    imports or to another one the `route` reaches. The `project/seo-module` rule
@@ -191,7 +212,21 @@ diff --git a/source/README.md b/example/README.md
  
  ```bash
  vp run test:browser:install
-@@ -107,9 +119,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
+@@ -96,10 +108,9 @@ vp run test:e2e
+ ```
+ 
+ `vp run dev` serves the app at `http://127.0.0.1:3000/`, from the `HOST` and
+-`PORT` of the versioned `.env`. The root redirects to a locale, such as `/en`.
+-Use the language button for `/pt` or `/es`, and the theme button for light, dark
+-or system. The development server does not send the CSP. To check the production
+-build with its security headers:
++`PORT` of the versioned `.env`. Open the home page and follow a link in the
++navigation. The development server does not send the CSP. To check the
++production build with its security headers:
+ 
+ ```bash
+ vp run build
+@@ -107,9 +118,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
  ```
  
  <picture>
@@ -204,20 +239,38 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  `curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
-@@ -145,9 +157,9 @@ both suites.
- ### The same page in three languages
+@@ -133,7 +144,7 @@ both suites.
+ | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+ | Pages             | Home, about, contact, privacy and a 404, a top bar, language and theme switchers, `LocalizedLink`, `seo.ts` metadata and an error page                                | [Home](src/tests/pages/Home) (partly production), [NotFound](src/tests/pages/NotFound)                                                                                                                              | [Architecture](docs/architecture.md)                                    |
+ | Server rendering  | Pages rendered on the server, then hydrated: raw HTML, disabled JavaScript, a held or aborted bundle, reload, click replay and navigation                             | [Hydration](src/tests/pages/Hydration)                                                                                                                                                                              | [Tests](docs/testing.md)                                                |
+-| Three languages   | Portuguese, English and Spanish from colocated catalogs, English as the base locale, the locale in the URL and redirects that keep it                                 | [I18n](src/tests/pages/I18n) (partly production)                                                                                                                                                                    | [I18n](docs/i18n.md)                                                    |
++| Languages         | Configured language catalogs and routes                                                                                                                               | [I18n](src/tests/pages/I18n)                                                                                                                                                                                        | [I18n](docs/i18n.md)                                                    |
+ | Theme             | Light, dark or system, applied before hydration and kept in sync across tabs, with tokens from `light-dark()`                                                         | [Home](src/tests/pages/Home): the `theme`, `themeCss` and `themeStorage` files                                                                                                                                      | [UI](docs/ui.md)                                                        |
+ | Security headers  | Eight headers from the runtime defaults, three of them also on static files, and a nonce CSP in production that holds for scripts and styles streamed after the shell | [Home](src/tests/pages/Home): the `csp` file (production); [LateRedirect](src/tests/pages/LateRedirect), [FragmentCss](src/tests/pages/FragmentCss)                                                                 | [Security](docs/security.md)                                            |
+ | Server errors     | Fresh public errors in production, one HTTP exit (`requestJson`) and wrapped SDK adapters                                                                             | [BackendError](src/tests/pages/BackendError), [OutsideError](src/tests/pages/OutsideError)                                                                                                                          | [Server errors](docs/server-errors.md)                                  |
+@@ -142,19 +153,9 @@ both suites.
+ | Env, icons, fonts | Validated `env.ts`, icons from `hugeicons` and the app's own SVG folder as Solid components, and two Inter subsets with matching preloads                             | [BuildOutput](src/tests/pages/BuildOutput): the `fonts` file (production)                                                                                                                                           | [UI](docs/ui.md#fonts)                                                  |
+ | Test components   | `Button`, `Input`, `Textarea`, `Dialog`, the toasts and `DropdownMenu`, on the `/ui-kit` route of the `e2e` build                                                     | [UiKit](src/tests/pages/UiKit)                                                                                                                                                                                      | [UI](docs/ui.md)                                                        |
  
- <picture>
+-### The same page in three languages
+-
+-<picture>
 -  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/app-locales-dark.webp" />
 -  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/app-locales-light.webp" />
 -  <img src="../../docs/assets/readme/app-locales-light.webp" alt="The boilerplate app's home page at /pt, /en and /es, with the navigation, the title and the language button in each locale." width="800" />
-+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-locales-dark.webp" />
-+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-locales-light.webp" />
-+  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-locales-light.webp" alt="The boilerplate app's home page at /pt, /en and /es, with the navigation, the title and the language button in each locale." width="800" />
- </picture>
+-</picture>
++### Application languages
  
- Every page lives under `/pt`, `/en` or `/es`, with `lang`, the navigation and
-@@ -170,9 +182,9 @@ z-index values, counted as the custom properties declared in each file.
+-Every page lives under `/pt`, `/en` or `/es`, with `lang`, the navigation and
+-the metadata in that language. Messages sit next to the component that uses
+-them, in `i18n/{pt,en,es}.json`. `vp run i18n:generate`, which `check:ci`,
+-`lint` and the test scripts call first, fails on a missing translation, a
+-duplicate ID or a parameter that differs between locales.
++Configure languages in `project.inlang/settings.json`.
+ 
+ ### Components of the test app
+ 
+@@ -170,9 +171,9 @@ z-index values, counted as the custom properties declared in each file.
  ### Outdated pages after a deploy
  
  <picture>
@@ -230,7 +283,7 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  `installOutdatedPageDetection` marks the page when a chunk of the previous build
-@@ -216,16 +228,16 @@ refuses, so it never shares a run with the other suites. See
+@@ -216,16 +217,16 @@ refuses, so it never shares a run with the other suites. See
  [publication load](docs/testing.md#publication-load).
  
  <picture>
@@ -252,7 +305,7 @@ diff --git a/source/README.md b/example/README.md
  
  ## Limits
  
-@@ -236,7 +248,7 @@ the app, a package, a fixture or the root configuration
+@@ -236,7 +237,7 @@ the app, a package, a fixture or the root configuration
    not prove production capacity. The thresholds of `PublicationLoad` are a local
    starting point and set no production SLO
    ([publication load](docs/testing.md#publication-load)).
@@ -261,7 +314,7 @@ diff --git a/source/README.md b/example/README.md
  - The interactive controls need JavaScript. The tests check the server-rendered
    HTML without JavaScript, and the app makes no promise to work without it.
  
-@@ -247,7 +259,7 @@ the app, a package, a fixture or the root configuration
+@@ -247,7 +248,7 @@ the app, a package, a fixture or the root configuration
  It takes its lint preset, lint rules, formatter settings, TypeScript configs,
  Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
  Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`. See the
@@ -270,6 +323,12 @@ diff --git a/source/README.md b/example/README.md
  of the tooling README for the line counts by area.
  
  The package supplies tools that the application does not import itself. Its
+@@ -338,4 +339,4 @@ examples describe the upstream workflows.
+ | [Tests](docs/testing.md)                                        | Vitest projects, E2E suites, production checks and reports            |
+ 
+ `AGENTS.md`, the guides in `docs/`, the code comments and the test titles are in
+-English. The tests check the interface in its three languages.
++English. The tests check the interface in the configured languages.
 diff --git a/example/bunfig.toml b/example/bunfig.toml
 new file mode 100644
 --- /dev/null
@@ -283,6 +342,17 @@ new file mode 100644
 diff --git a/source/docs/architecture.md b/example/docs/architecture.md
 --- a/source/docs/architecture.md
 +++ b/example/docs/architecture.md
+@@ -17,8 +17,8 @@ The `src/routes/(base).tsx` file defines the shared layout with `Topbar` and
+ renders `props.children` with `RouteSectionProps`. Its `(base)/` folder holds
+ `(home)/index.tsx`, `about/index.tsx`, `contact/index.tsx`, `privacy/index.tsx`
+ and `[...404]/index.tsx`. Groups in parentheses do not show up in the URL. The
+-router matches on the path without the locale; the home page answers on `/pt`,
+-`/en` and `/es`, and the fallback keeps the navigation bar. `App.tsx` keeps the
++router matches on the path without the locale; the home page renders at the
++application root, and the fallback keeps the navigation bar. `App.tsx` keeps the
+ provider, the SEO and the global boundary, which also catches failures in the
+ layout. The E2E fixtures have their own tree and re-export that layout for the
+ pages, home and 404 included.
 @@ -85,12 +85,12 @@ CSS Module imports use the name `S`, for example,
  
  The split follows the
@@ -613,6 +683,23 @@ diff --git a/source/docs/development.md b/example/docs/development.md
 diff --git a/source/docs/i18n.md b/example/docs/i18n.md
 --- a/source/docs/i18n.md
 +++ b/example/docs/i18n.md
+@@ -4,11 +4,11 @@
+ 
+ ## Catalogs and messages
+ 
+-`project.inlang/settings.json` defines `pt`, `en` and `es`, with English as the
+-base locale. Each page or component keeps `i18n/pt.json`, `i18n/en.json` and
+-`i18n/es.json` next to its code. Messages with two or more production consumers
+-can go to `src/i18n/`; the others stay in the consumer. The keys are global and
+-use the prefix of the owner, such as `home_title` and `themeToggle_select`.
++`project.inlang/settings.json` defines the languages and the base locale. Each
++page or component keeps a catalog for each configured locale next to its code.
++Messages with two or more production consumers can go to `src/i18n/`; the others
++stay in the consumer. The keys are global and use the prefix of the owner, such
++as `home_title` and `themeToggle_select`.
+ 
+ ```text
+ src/routes/(base)/(home)/
 @@ -123,7 +123,7 @@ The cost of the generation grows with the whole set: each preparation reads and
  validates again every catalog of every locale, and the Paraglide compiler loads
  all of them at once. In development, this repeats on every saved catalog. None
@@ -622,7 +709,28 @@ diff --git a/source/docs/i18n.md b/example/docs/i18n.md
  limits the sum of the catalog files: past it, the generation fails on the file
  that crossed the limit, before reading it, instead of degrading the build. In
  measurements with synthetic catalogs in three locales, 1 MiB (5,000 messages per
-@@ -218,7 +218,7 @@ isolation between the locales. The locale and the content of those files come
+@@ -176,10 +176,10 @@ stays in the adapter, with `checkBundle` from the official SDK. Paraglide keeps
+ aggregates, without pointing to the colocated catalog that failed.
+ 
+ The bundler removes unused messages and keeps the messages exclusive to the page
+-in its lazy module. Each module holds the three locales of the messages it uses.
+-The experimental per-locale split is turned off to keep the streaming and the
+-CSP of the project. The i18n E2E test finds the lazy module of each page through
+-the exclusive message of the body in the three locales, checks that no other
++in its lazy module. Each module holds the languages of the messages it uses. The
++experimental per-locale split is turned off to keep the streaming and the CSP of
++the project. The i18n E2E test finds the lazy module of each page through the
++exclusive message of the body in the configured languages, checks that no other
+ module holds it, that the 404 downloads none of those modules and that the one
+ of the home page arrives on the navigation to it.
+ 
+@@ -213,12 +213,12 @@ isolates the locale of each SSR with `AsyncLocalStorage` and keeps
+ functions use the source page of the same domain, falling back to the cookie and
+ the language header, keeping the request body and the Solid control signals.
+ APIs, indexes and common assets stay without a prefix. The Markdown snapshots
+-are localized files, such as `/pt/about.md`, generated in the build with
++are localized files, such as `/{locale}/about.md`, generated in the build with
+ isolation between the locales. The locale and the content of those files come
  from the URL, regardless of cookies and `Accept-Language`; direct access does
  not go through the localization of pages.
  
@@ -631,6 +739,27 @@ diff --git a/source/docs/i18n.md b/example/docs/i18n.md
  gathers the page criteria used by the localization and by the failure
  containment. The localization of GET and HEAD pages looks at the path,
  regardless of `Accept`, so that pages excluded from the Markdown negotiation
+@@ -307,7 +307,8 @@ and in the locale switcher.
+ 
+ The sitemap publishes one URL per locale, with reciprocal alternates and
+ `x-default`. The count and byte limits are checked after that expansion.
+-`llms.txt` uses English and `/en` URLs to keep a single, cacheable index.
++`llms.txt` uses the base language and its URLs to keep a single, cacheable
++index.
+ 
+ ## Runtime request step
+ 
+@@ -329,8 +330,8 @@ locale and URL helpers from the runtime.
+ `localeTag(locale, overrides?)`, from
+ `@evertondgn/solid-runtime/i18n/locale-tag`, uses `Intl.Locale` instead of a
+ fixed list. The application passes `LOCALE_TAG_OVERRIDES` from
+-`src/i18n/localeTagOverrides/` to preserve pt-BR, en-US and es-ES in HTML, Open
+-Graph and JSON-LD. Additional locales use their canonical BCP 47 tags unless the
++`src/i18n/localeTagOverrides/` to set language tags for HTML, Open Graph and
++JSON-LD. Additional locales use their canonical BCP 47 tags unless the
+ application adds an override. Open Graph replaces hyphens with underscores after
+ calling the function.
+ 
 diff --git a/source/docs/security.md b/example/docs/security.md
 --- a/source/docs/security.md
 +++ b/example/docs/security.md
@@ -652,6 +781,35 @@ diff --git a/source/docs/security.md b/example/docs/security.md
  on the first access to `event.nonce`. That field belongs to the native contract
  of the Solid plugin. `securityHeaders` fills it before the render, and the
  containment also creates it when a failure happens before that middleware, so
+@@ -170,17 +170,17 @@ changing the HTML of the application.
+ - Nitro compiles every `routeRules` entry, the ones the application adds
+   included, with the h3 preMerge, with no option to turn it off
+   ([nitrojs/nitro#5048](https://github.com/nitrojs/nitro/issues/5048)). Patterns
+-  that overlap in part, such as `/**.md` next to `/assets/**` or `/pt/blog/**`
+-  next to `/pt/**.md`, make the compilation fall back to the simple mode, with
+-  the same result and a warning in development and in each build. That is why
+-  the preset writes the `.md` files as `/<locale>/**.md`, with the locales of
+-  `project.inlang/settings.json`, and refuses a static path of the application
+-  inside the folder of a locale. This depends on the `urlPatterns` of
+-  `defineParaglideConfig`, in `project.inlang/paraglide.config.ts`, prefixing
+-  every locale: an application that serves a locale without a prefix needs its
+-  own pattern for the `.md` files of that locale, or they go out from the CDN
+-  without these headers. `AgentReadiness` checks the headers of each published
+-  `.md`.
++  that overlap in part, such as `/**.md` next to `/assets/**` or
++  `/{locale}/blog/**` next to `/{locale}/**.md`, make the compilation fall back
++  to the simple mode, with the same result and a warning in development and in
++  each build. That is why the preset writes the `.md` files as
++  `/<locale>/**.md`, with the locales of `project.inlang/settings.json`, and
++  refuses a static path of the application inside the folder of a locale. This
++  depends on the `urlPatterns` of `defineParaglideConfig`, in
++  `project.inlang/paraglide.config.ts`, prefixing every locale: an application
++  that serves a locale without a prefix needs its own pattern for the `.md`
++  files of that locale, or they go out from the CDN without these headers.
++  `AgentReadiness` checks the headers of each published `.md`.
+ - On the Vercel CDN, the routes of `config.json` compare the path still encoded,
+   and the static file is found by the decoded path. A percent-encoded spelling
+   of a static path, such as `/%70t/index.md` or
 diff --git a/source/docs/seo/indexes.md b/example/docs/seo/indexes.md
 --- a/source/docs/seo/indexes.md
 +++ b/example/docs/seo/indexes.md
@@ -667,7 +825,41 @@ diff --git a/source/docs/seo/indexes.md b/example/docs/seo/indexes.md
 diff --git a/source/docs/seo/markdown.md b/example/docs/seo/markdown.md
 --- a/source/docs/seo/markdown.md
 +++ b/example/docs/seo/markdown.md
-@@ -43,7 +43,7 @@ upgrade are in
+@@ -14,19 +14,20 @@ still independent: it decides the inclusion in the index. Login and per-visitor
+ content must not opt in to the publication. The opt-in only declares that the
+ content is public and does not control access.
+ 
+-`/pt/index.md` represents the home page and `/pt/about.md` represents the about
+-page. A page whose last segment is `index` adds `/index.md`: `/pt/index` uses
+-`/pt/index/index.md`, and `/pt/docs/index` uses `/pt/docs/index/index.md`. This
+-rule also covers repeated segments: `/pt/index/index` uses
+-`/pt/index/index/index.md`. The middleware removes the `.md` and a trailing
+-`/index` and answers 404 to any `.md` URL that is not the canonical form of the
+-page: `/pt/docs/index.md` is not an alias of `/pt/docs`, and `/pt.md`, without a
+-locale prefix, follows the redirect of the paths without a locale instead of
+-publishing the home page. The middleware uses the native matching for parameters
+-too, without a producer, a required `SitePage`, `getPaths` or an artifact
+-manifest. The finite enumeration of the sitemap and of llms.txt stays separate;
+-llms enumerates the known static routes. The SEO alternate follows the current
+-route in client navigation too.
++`/{locale}/index.md` represents the home page and `/{locale}/about.md`
++represents the about page. A page whose last segment is `index` adds
++`/index.md`: `/{locale}/index` uses `/{locale}/index/index.md`, and
++`/{locale}/docs/index` uses `/{locale}/docs/index/index.md`. This rule also
++covers repeated segments: `/{locale}/index/index` uses
++`/{locale}/index/index/index.md`. The middleware removes the `.md` and a
++trailing `/index` and answers 404 to any `.md` URL that is not the canonical
++form of the page: `/{locale}/docs/index.md` is not an alias of `/{locale}/docs`,
++and `/{locale}.md`, without a locale prefix, follows the redirect of the paths
++without a locale instead of publishing the home page. The middleware uses the
++native matching for parameters too, without a producer, a required `SitePage`,
++`getPaths` or an artifact manifest. The finite enumeration of the sitemap and of
++llms.txt stays separate; llms enumerates the known static routes. The SEO
++alternate follows the current route in client navigation too.
+ 
+ HTML is the only authored source. Objects used by the components, such as
+ `SiteArticle`, can stay as UI data; there is no manual serializer and no extra
+@@ -43,7 +44,7 @@ upgrade are in
  [server errors](../server-errors/ssr-integrity.md#ssr-integrity-for-markdown).
  
  The build prerender goes through the same adapter. The compiled
@@ -676,7 +868,7 @@ diff --git a/source/docs/seo/markdown.md b/example/docs/seo/markdown.md
  module asks the middleware for the list of static pages
  (`/_markdown/static.json`), prerenders each `.md` and publishes the list as a
  static file, together with `llms.txt`. The middleware only builds the list in
-@@ -68,7 +68,7 @@ universal minimum of characters and no ban on isolated tags. The result is in
+@@ -68,7 +69,7 @@ universal minimum of characters and no ban on isolated tags. The result is in
  ### llms-full.txt aggregate
  
  The reader of the index is in
@@ -685,9 +877,109 @@ diff --git a/source/docs/seo/markdown.md b/example/docs/seo/markdown.md
  next to the generator that uses it. Its tests use the Node runner of the
  tooling.
  
+@@ -114,11 +115,11 @@ that ends the routing on a protected page also stops the build. The headers of
+ the Nitro `routeRules` go out with `continue: true` and do not end the routing;
+ a custom rule in `vercel.config.routes` that reaches those pages needs the same
+ `continue: true`. The module does not force the continuation, because that would
+-change the priority of headers and redirects. That way, `/pt` still negotiates
+-HTML or Markdown, while `/pt/index.md` keeps the static file. The tooling tests
+-exercise the real preset without a previous configuration and with extra rules.
+-The production E2E tests check the precedence in the final artifact, after
+-`vercel build` too.
++change the priority of headers and redirects. That way, `/{locale}` still
++negotiates HTML or Markdown, while `/{locale}/index.md` keeps the static file.
++The tooling tests exercise the real preset without a previous configuration and
++with extra rules. The production E2E tests check the precedence in the final
++artifact, after `vercel build` too.
+ 
+ `@mdream/js` receives the path of the document over the public origin
+ (`VITE_SITE_URL`) to resolve relative links; in the prerender, the request is
+@@ -275,8 +276,8 @@ After publishing, check the final status, the headers and the body, following
+ redirects:
+ 
+ ```sh
+-curl -sS -i https://your-domain.example/pt/index.md
+-curl -sS -L -i -H 'Accept: text/markdown' https://your-domain.example/pt/
++curl -sS -i https://your-domain.example/{locale}/index.md
++curl -sS -L -i -H 'Accept: text/markdown' https://your-domain.example/{locale}/
+ curl -sS -L -i -H 'Accept: text/html' https://your-domain.example/
+ curl -sS -L -i -H 'Accept: text/markdown' https://your-domain.example/missing-page
+ ```
+diff --git a/source/docs/seo/publication.md b/example/docs/seo/publication.md
+--- a/source/docs/seo/publication.md
++++ b/example/docs/seo/publication.md
+@@ -158,13 +158,13 @@ come from data should prefer partitioned sources.
+ 
+ The later pilot, already with build artifacts, prepared 100,000 synthetic pages
+ in 10.1 s and serialized and wrote their 29 parts in another 8.6 s. That was
+-300,000 URLs in the three locales and 120.1 MB of XML. The first read of the
+-manifest by a new reader took 0.8 ms; loading the 100,000 identities used with
+-an array source took 16.2 ms, with a 3.6 MB file. Those reads happened in the
+-same process that prepared the files, with a warm filesystem, and do not measure
+-the cold start of the process or of the operating system. The RSS peak of the
+-whole run was 720 MB, including Vitest, preparation and serialization. That peak
+-sizes the build pilot, not the memory of a new function. There was no
++300,000 URLs in the configured languages and 120.1 MB of XML. The first read of
++the manifest by a new reader took 0.8 ms; loading the 100,000 identities used
++with an array source took 16.2 ms, with a 3.6 MB file. Those reads happened in
++the same process that prepared the files, with a warm filesystem, and do not
++measure the cold start of the process or of the operating system. The RSS peak
++of the whole run was 720 MB, including Vitest, preparation and serialization.
++That peak sizes the build pilot, not the memory of a new function. There was no
+ compilation of 100,000 route files and no HTTP load in that measurement.
+ 
+ With virtual catalogs of 100,000 and 1 million records, the direct read of a
+diff --git a/source/docs/seo/sitemap.md b/example/docs/seo/sitemap.md
+--- a/source/docs/seo/sitemap.md
++++ b/example/docs/seo/sitemap.md
+@@ -30,12 +30,12 @@ start with `/`, or that has a host, scheme, query, fragment or space, fails;
+ trailing and repeated slashes are normalized; entries that result in the same
+ published URL keep the first occurrence (the static page before the source). The
+ comparison uses the localized URL that goes into the XML, so `/a/../b` and `/b`,
+-`/café` and `/caf%C3%A9` or `/pt/blog/x` and `/blog/x` count as the same page. A
+-`lastmod` outside W3C Datetime is left out. A failure of any source, an invalid
+-entry, an exceeded deadline or a sitemap over the protocol limits (of URLs and
+-of bytes, in the runtime sitemap constants) answer 503 without a body and with
+-`no-store`. The expected abort and timeout of the controller are silent; real
+-exceptions log the fixed `[sitemap]` line described in
++`/café` and `/caf%C3%A9` or `/{locale}/blog/x` and `/blog/x` count as the same
++page. A `lastmod` outside W3C Datetime is left out. A failure of any source, an
++invalid entry, an exceeded deadline or a sitemap over the protocol limits (of
++URLs and of bytes, in the runtime sitemap constants) answer 503 without a body
++and with `no-store`. The expected abort and timeout of the controller are
++silent; real exceptions log the fixed `[sitemap]` line described in
+ [server errors](../server-errors/logging.md#failure-log). The crawler tries
+ again, and the CDN does not keep a partial sitemap for an hour. The successful
+ response carries `stale-if-error=86400`: after the cached copy expires, if the
 diff --git a/source/docs/seo.md b/example/docs/seo.md
 --- a/source/docs/seo.md
 +++ b/example/docs/seo.md
+@@ -82,7 +82,7 @@ resolves the metadata, so the text follows the locale of the request. A message
+ with parameters goes in a getter, such as
+ `get title() { return m.post_title({ name }) }`. Do not copy the translated
+ texts into values at the top of the module. The catalogs are in
+-`i18n/{pt,en,es}.json` next to those files. The data that the component renders
++`i18n/{locale}.json` next to those files. The data that the component renders
+ stays in `index.tsx`, in a non-exported constant with getters (the pages that
+ use `SiteArticle` type it with `satisfies SitePage`), or in calls to `m` in the
+ JSX itself. The route manifest imports the `route` of each page in the initial
+@@ -126,11 +126,11 @@ hydration. The Twitter handles come from `SITE.twitter` (`twitter:site`, the
+ account of the site) and from `SITE.author.twitter` (`twitter:creator`, the
+ account of the author). LinkedIn has no meta tag of its own: it reads Open Graph
+ for the preview, and the profile goes only into `sameAs`. Indexable pages
+-publish `hreflang` for the three locales and `x-default` pointing to English.
+-The canonical and the page URL in the JSON-LD include the locale; the identity
+-of the organization stays at the site root. The error fallback publishes a
+-translated title and description with `noindex`, even when the failure happens
+-before the Router.
++publish `hreflang` for the configured locales and `x-default` pointing to the
++base locale. The canonical and the page URL in the JSON-LD include the locale;
++the identity of the organization stays at the site root. The error fallback
++publishes a translated title and description with `noindex`, even when the
++failure happens before the Router.
+ 
+ The runtime requires explicit site title, description, URL, locale and image.
+ Author, organization, logo and social fields are optional. Without an
 @@ -259,5 +259,5 @@ See
  The runtime now owns Markdown and llms services; this application retains their
  thin bindings and editorial values. `seo` in `vite.config.ts` selects the
@@ -868,6 +1160,25 @@ diff --git a/source/docs/testing.md b/example/docs/testing.md
  
  ### Publication load
  
+@@ -337,12 +338,12 @@ rules of Vercel still need a check on the published site.
+ `AgentReadiness.content.production.e2e.test.ts` checks the compact presentation
+ of the home page, without subheadings or a footer in `main`, and keeps the
+ requirement for detailed content, with subheadings, on the inner pages. The
+-initial HTML and the topbar links are inspected in the three locales. After the
+-hydration, the links stay visible and named; the navigation, on narrow and wide
+-screens, keeps the theme, the locale and the same header, without widening the
+-document. At 375 px, the links overflow and scroll inside the bar, and the theme
+-and locale buttons, outside it, stay visible. The Markdown of the home page has
+-the title and no second-level section.
++initial HTML and the topbar links are inspected in the configured languages.
++After the hydration, the links stay visible and named; the navigation, on narrow
++and wide screens, keeps the theme, the locale and the same header, without
++widening the document. At 375 px, the links overflow and scroll inside the bar,
++and the theme and locale buttons, outside it, stay visible. The Markdown of the
++home page has the title and no second-level section.
+ 
+ `Home.csp.production.e2e.test.ts` checks that the CSP carries a nonce that
+ changes on each request, that every `<script>` and `modulepreload` of the raw
 @@ -359,7 +360,7 @@ production routes. If an earlier `vp run test:e2e` left an E2E fixture build in
  `.vercel/output`, Playwright stops before the preview and reports
  `TEST_PREBUILT found an e2e build`; run `vp run build` in the app to replace it
@@ -880,7 +1191,39 @@ diff --git a/source/docs/testing.md b/example/docs/testing.md
 diff --git a/source/docs/ui.md b/example/docs/ui.md
 --- a/source/docs/ui.md
 +++ b/example/docs/ui.md
-@@ -144,10 +144,10 @@ would fall back to the system font. Check the coverage of a file with
+@@ -50,19 +50,18 @@ toast.update({ id, message: m.save_done(), variant: 'success' })
+ toast.dismiss(id)
+ ```
+ 
+-The messages of the example must exist in the catalog of the consumer in the
+-three locales. The API accepts plain text and the `info`, `success`, `warning`,
+-`error` and `loading` variants. The default duration is five seconds; `loading`
+-without a duration and `duration: 0` stay until they are closed. Updating the
+-variant or the duration restarts the timer; updating only the text keeps the
+-remaining time. Hover, focus and a hidden tab pause the timer. The queue keeps
+-up to five notifications and, when that limit is exceeded, removes the oldest
+-one that is not hovered or focused. The screen reader announcements are grouped
+-by priority; errors use the assertive region. A notification does not move the
+-focus when it appears. If the removed notification holds the focus, it moves to
+-the close button of the neighbor or, without a neighbor, back to the element
+-focused before entering the region. Each provider has its own state and releases
+-the timers when it unmounts.
++Define the example messages before using them. The API accepts plain text and
++the `info`, `success`, `warning`, `error` and `loading` variants. The default
++duration is five seconds; `loading` without a duration and `duration: 0` stay
++until they are closed. Updating the variant or the duration restarts the timer;
++updating only the text keeps the remaining time. Hover, focus and a hidden tab
++pause the timer. The queue keeps up to five notifications and, when that limit
++is exceeded, removes the oldest one that is not hovered or focused. The screen
++reader announcements are grouped by priority; errors use the assertive region. A
++notification does not move the focus when it appears. If the removed
++notification holds the focus, it moves to the close button of the neighbor or,
++without a neighbor, back to the element focused before entering the region. Each
++provider has its own state and releases the timers when it unmounts.
+ 
+ ## Dropdown menus
+ 
+@@ -144,10 +143,10 @@ would fall back to the system font. Check the coverage of a file with
  `fc-query --format='%{charset}\n' <file>`.
  
  The font loading contract and complete examples are in the tooling package’s
@@ -895,7 +1238,7 @@ diff --git a/source/docs/ui.md b/example/docs/ui.md
  
  ## CSS rules
  
-@@ -273,9 +273,9 @@ command reuses that validation for every CSS file in `src/`, those without
+@@ -273,9 +272,9 @@ command reuses that validation for every CSS file in `src/`, those without
  imports in JS/TS included.
  
  The rules and the name check come from `checkCss` in `@evertondgn/solid-tooling`
@@ -1384,6 +1727,75 @@ diff --git a/source/src/i18n/__tests__/i18n.test-d.ts b/example/src/i18n/__tests
 +    m.home_title({}, { locale: 'invalid_locale' })
    })
  })
+diff --git a/source/src/infra/server/configureServerErrors/__tests__/configureServerErrors.messages.node.test.ts b/example/src/infra/server/configureServerErrors/__tests__/configureServerErrors.messages.node.test.ts
+--- a/source/src/infra/server/configureServerErrors/__tests__/configureServerErrors.messages.node.test.ts
++++ b/example/src/infra/server/configureServerErrors/__tests__/configureServerErrors.messages.node.test.ts
+@@ -3,19 +3,18 @@ import {
+   isPublicError,
+   publicErrorMessage
+ } from '@evertondgn/solid-runtime/server/public-errors'
++import { m } from '@paraglide/messages.js'
+ import {
++  baseLocale,
++  locales,
+   getLocale,
+   type Locale,
+   overwriteGetLocale
+ } from '@paraglide/runtime.js'
+ import { paraglideMiddleware } from '@paraglide/server.js'
+ 
+-const MESSAGES = {
+-  pt: 'Não foi possível concluir a solicitação.',
+-  en: 'The request could not be completed.',
+-  es: 'No se pudo completar la solicitud.'
+-} satisfies Record<Locale, string>
+-const LOCALES: Locale[] = ['pt', 'en', 'es']
++const message = (locale: Locale) =>
++  m.configureServerErrors_message({}, { locale })
+ 
+ describe('application public error messages', () => {
+   beforeAll(async () => {
+@@ -25,11 +24,11 @@ describe('application public error messages', () => {
+   it('uses the base locale outside the Paraglide request context', () => {
+     const error = createPublicError()
+ 
+-    expect(error).toStrictEqual(new Error(MESSAGES.en))
++    expect(error).toStrictEqual(new Error(message(baseLocale)))
+     expect(isPublicError(error)).toBe(true)
+   })
+ 
+-  it.each(LOCALES)(
++  it.each(locales)(
+     'uses request locale %s inside the locale context',
+     async locale => {
+       const response = await paraglideMiddleware(
+@@ -37,12 +36,12 @@ describe('application public error messages', () => {
+         () => new Response(createPublicError().message)
+       )
+ 
+-      await expect(response.text()).resolves.toBe(MESSAGES[locale])
++      await expect(response.text()).resolves.toBe(message(locale))
+     }
+   )
+ 
+-  it.each(LOCALES)('accepts explicit locale %s', locale => {
+-    expect(publicErrorMessage(locale)).toBe(MESSAGES[locale])
++  it.each(locales)('accepts explicit locale %s', locale => {
++    expect(publicErrorMessage(locale)).toBe(message(locale))
+   })
+ 
+   // The error hook calls this factory synchronously and must never throw.
+@@ -52,7 +51,9 @@ describe('application public error messages', () => {
+       throw new Error('PRIVATE_LOCALE')
+     })
+     try {
+-      expect(createPublicError().message).toBe(MESSAGES.en)
++      expect(createPublicError().message).toBe(
++        'The request could not be completed.'
++      )
+     } finally {
+       overwriteGetLocale(resolveLocale)
+     }
 diff --git a/source/src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts b/example/src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts
 --- a/source/src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts
 +++ b/example/src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts
@@ -1650,10 +2062,11 @@ diff --git a/source/src/routes/(base)/(home)/i18n/en.json b/example/src/routes/(
 @@ -1,6 +1,6 @@
  {
 -  "home_title": "SolidJS Boilerplate for web applications",
-+  "home_title": "SolidJS Boilerplate",
-   "home_description": "Start your next project with {framework}, {toolchain} and {language}. Server-side rendering and light, dark or system theme preferences are already configured.",
+-  "home_description": "Start your next project with {framework}, {toolchain} and {language}. Server-side rendering and light, dark or system theme preferences are already configured.",
 -  "home_seoTitle": "SolidJS Boilerplate | Web applications with SSR",
 -  "home_features": "You start with pages in Portuguese, English and Spanish, SEO defined per route and user interface components ready to adapt. Automated unit, component and browser tests accompany the source code, while backend calls handle errors without exposing server details."
++  "home_title": "SolidJS Boilerplate",
++  "home_description": "Start your next project with {framework}, {toolchain} and {language}. Bookmark any page or share its address with someone else.",
 +  "home_seoTitle": "SolidJS Boilerplate",
 +  "home_features": "This application was built with Solid Base. Use the navigation links to open the about, contact and privacy pages. Each page has its own address, so you can bookmark it or share a direct link. The about page describes the project and the tools used to build it. The contact page explains what information to include when reporting a problem. The privacy page describes browser preferences and what happens when you follow an external link. Use the home link in the navigation to return to this page."
  }
@@ -1663,10 +2076,11 @@ diff --git a/source/src/routes/(base)/(home)/i18n/es.json b/example/src/routes/(
 @@ -1,6 +1,6 @@
  {
 -  "home_title": "SolidJS Boilerplate para aplicaciones web",
-+  "home_title": "SolidJS Boilerplate",
-   "home_description": "Empieza tu próximo proyecto con {framework}, {toolchain} y {language}. El renderizado en el servidor y las preferencias de tema claro, oscuro o del sistema ya están configurados.",
+-  "home_description": "Empieza tu próximo proyecto con {framework}, {toolchain} y {language}. El renderizado en el servidor y las preferencias de tema claro, oscuro o del sistema ya están configurados.",
 -  "home_seoTitle": "SolidJS Boilerplate | Aplicaciones web con SSR",
 -  "home_features": "Ya cuentas con páginas en portugués, inglés y español, SEO definido por ruta y componentes de interfaz listos para adaptar. El código incluye pruebas unitarias, de componentes y de navegador, y las llamadas al backend gestionan errores sin exponer detalles del servidor."
++  "home_title": "SolidJS Boilerplate",
++  "home_description": "Empieza tu proyecto con {framework}, {toolchain} y {language}. Puedes guardar las páginas en tus favoritos o compartir su dirección.",
 +  "home_seoTitle": "SolidJS Boilerplate",
 +  "home_features": "Esta aplicación se creó con Solid Base. Usa los enlaces de navegación para abrir las páginas de información, contacto y privacidad. Cada página tiene su propia dirección, que puedes guardar en tus favoritos o compartir con otra persona. La página de información presenta el proyecto y las herramientas utilizadas para crearlo. La página de contacto explica qué detalles incluir al comunicar un problema. La página de privacidad describe las preferencias del navegador y los enlaces externos. El enlace de inicio te permite volver a esta página."
  }
@@ -1676,10 +2090,11 @@ diff --git a/source/src/routes/(base)/(home)/i18n/pt.json b/example/src/routes/(
 @@ -1,6 +1,6 @@
  {
 -  "home_title": "SolidJS Boilerplate para aplicações web",
-+  "home_title": "SolidJS Boilerplate",
-   "home_description": "Comece seu próximo projeto com {framework}, {toolchain} e {language}. Renderização no servidor e tema claro, escuro ou do sistema já vêm configurados.",
+-  "home_description": "Comece seu próximo projeto com {framework}, {toolchain} e {language}. Renderização no servidor e tema claro, escuro ou do sistema já vêm configurados.",
 -  "home_seoTitle": "SolidJS Boilerplate | Aplicações web com SSR",
 -  "home_features": "Você já parte de páginas em português, inglês e espanhol, SEO definido por rota e componentes de interface prontos para adaptar. Testes de unidade, de componentes e de navegador acompanham o código, e as chamadas ao backend tratam erros sem expor detalhes do servidor."
++  "home_title": "SolidJS Boilerplate",
++  "home_description": "Comece seu projeto com {framework}, {toolchain} e {language}. Você pode salvar as páginas nos favoritos ou compartilhar o endereço delas.",
 +  "home_seoTitle": "SolidJS Boilerplate",
 +  "home_features": "Esta aplicação foi criada com Solid Base. Use os links de navegação para abrir as páginas sobre o projeto, de contato e de privacidade. Cada página tem um endereço próprio que você pode salvar nos favoritos ou compartilhar com outra pessoa. A página sobre o projeto apresenta as ferramentas usadas no desenvolvimento. A página de contato explica quais informações incluir ao relatar um problema. A página de privacidade descreve as preferências do navegador e os links externos. Use o link de início para voltar a esta página."
  }
@@ -1721,7 +2136,8 @@ diff --git a/source/src/routes/(base)/about/i18n/en.json b/example/src/routes/(b
 +  "about_description": "Learn about the application and its features.",
 +  "about_intro": "This page describes SolidJS Boilerplate and the tools used to build it.",
    "about_purposeTitle": "Purpose and features",
-   "about_purpose": "The project brings together the initial integrations for an application: server-side rendering, route organization, translated content, themes and automated tests. This website demonstrates the foundation in use. Its examples and documentation help explain the project choices before you adapt it for another product.",
+-  "about_purpose": "The project brings together the initial integrations for an application: server-side rendering, route organization, translated content, themes and automated tests. This website demonstrates the foundation in use. Its examples and documentation help explain the project choices before you adapt it for another product.",
++  "about_purpose": "Solid Base provides routing, reusable components and automated tests. You can adapt the pages and components to your project.",
    "about_sourceTitle": "Source code and documentation",
 -  "about_source": "The repository is the reference for installation, development commands and implementation details. Its guides cover architecture, testing, SEO and server error handling. You can freely use, modify, distribute and sell the code, including in commercial and closed-source projects.",
 -  "about_documentationLabel": "Documentation"
@@ -1740,7 +2156,8 @@ diff --git a/source/src/routes/(base)/about/i18n/es.json b/example/src/routes/(b
 +  "about_description": "Conoce la aplicación y sus funciones.",
 +  "about_intro": "Esta página describe SolidJS Boilerplate y las herramientas de desarrollo que utiliza.",
    "about_purposeTitle": "Propósito y recursos",
-   "about_purpose": "El proyecto reúne las integraciones iniciales de una aplicación: renderizado en el servidor, organización de rutas, traducción del contenido, temas y pruebas automatizadas. Este sitio demuestra la base en funcionamiento. Los ejemplos y la documentación ayudan a entender las decisiones del proyecto antes de adaptarlo a otro producto.",
+-  "about_purpose": "El proyecto reúne las integraciones iniciales de una aplicación: renderizado en el servidor, organización de rutas, traducción del contenido, temas y pruebas automatizadas. Este sitio demuestra la base en funcionamiento. Los ejemplos y la documentación ayudan a entender las decisiones del proyecto antes de adaptarlo a otro producto.",
++  "about_purpose": "Solid Base ofrece rutas, componentes reutilizables y pruebas automatizadas. Puedes adaptar las páginas y los componentes a tu proyecto.",
    "about_sourceTitle": "Código y documentación",
 -  "about_source": "El repositorio es la referencia para la instalación, los comandos de desarrollo y los detalles de implementación. Sus guías explican la arquitectura, las pruebas, el SEO y el tratamiento de errores en el servidor. Puedes usar, modificar, distribuir y vender el código libremente, incluso en proyectos comerciales y de código cerrado.",
 -  "about_documentationLabel": "Documentación"
@@ -1760,7 +2177,8 @@ diff --git a/source/src/routes/(base)/about/i18n/pt.json b/example/src/routes/(b
 +  "about_description": "Conheça a aplicação e seus recursos.",
 +  "about_intro": "Esta página apresenta SolidJS Boilerplate e as ferramentas usadas no desenvolvimento.",
    "about_purposeTitle": "Propósito e recursos",
-   "about_purpose": "A proposta é reunir as integrações iniciais de um projeto: renderização no servidor, organização de rotas, tradução de conteúdo, temas e testes automatizados. Este site demonstra a base em funcionamento. Os exemplos e a documentação ajudam a entender as escolhas do projeto antes de adaptá-lo para outro produto.",
+-  "about_purpose": "A proposta é reunir as integrações iniciais de um projeto: renderização no servidor, organização de rotas, tradução de conteúdo, temas e testes automatizados. Este site demonstra a base em funcionamento. Os exemplos e a documentação ajudam a entender as escolhas do projeto antes de adaptá-lo para outro produto.",
++  "about_purpose": "Solid Base oferece rotas, componentes reutilizáveis e testes automatizados. Você pode adaptar as páginas e os componentes ao seu projeto.",
    "about_sourceTitle": "Código e documentação",
 -  "about_source": "O repositório é a referência para instalação, comandos de desenvolvimento e detalhes da implementação. Os guias descrevem arquitetura, testes, SEO e tratamento de erros no servidor. Você pode usar, modificar, distribuir e vender o código livremente, inclusive em projetos comerciais e de código fechado.",
 -  "about_documentationLabel": "Documentação"
@@ -1909,11 +2327,13 @@ diff --git a/source/src/routes/(base)/privacy/i18n/en.json b/example/src/routes/
 @@ -1,9 +1,10 @@
  {
    "privacy_title": "Privacy",
-   "privacy_description": "Learn how this demonstration uses language and theme preferences and where to find its public channels.",
+-  "privacy_description": "Learn how this demonstration uses language and theme preferences and where to find its public channels.",
 -  "privacy_intro": "This page describes the privacy features observable in the source code of this SolidJS Boilerplate demonstration. Its public pages do not provide account registration, checkout or a form for submitting personal data.",
++  "privacy_description": "Learn about browser preferences and links to external sites.",
 +  "privacy_intro": "This page describes how this application handles privacy.",
    "privacy_preferencesTitle": "Browser preferences",
-   "privacy_preferences": "The interface uses cookies to remember the language and theme preference. The language also appears in the page address, such as /pt, /en or /es. These preferences keep the presentation consistent between visits. You can delete or block cookies through your browser settings; a choice may then stop persisting on your next visit.",
+-  "privacy_preferences": "The interface uses cookies to remember the language and theme preference. The language also appears in the page address, such as /pt, /en or /es. These preferences keep the presentation consistent between visits. You can delete or block cookies through your browser settings; a choice may then stop persisting on your next visit.",
++  "privacy_preferences": "Use your browser settings to review or clear the data this application stores on your device.",
    "privacy_hostingTitle": "Accessing the site and external links",
 -  "privacy_hosting": "When you access this site, your browser sends technical information needed for the HTTP connection to the hosting infrastructure. This notice does not establish a retention period for that infrastructure's logs. Links to GitHub and other services lead to websites with their own policies. Information posted in a public issue is available to other people on that service."
 +  "privacy_hosting": "When you access this site, your browser sends technical information needed for the HTTP connection to the hosting infrastructure. This notice does not establish a retention period for that infrastructure's logs. Links to GitHub and other services lead to websites with their own policies. Information posted in a public issue is available to other people on that service.",
@@ -1925,11 +2345,13 @@ diff --git a/source/src/routes/(base)/privacy/i18n/es.json b/example/src/routes/
 @@ -1,9 +1,10 @@
  {
    "privacy_title": "Privacidad",
-   "privacy_description": "Conoce cómo esta demostración usa las preferencias de idioma y tema y dónde encontrar sus canales públicos.",
+-  "privacy_description": "Conoce cómo esta demostración usa las preferencias de idioma y tema y dónde encontrar sus canales públicos.",
 -  "privacy_intro": "Esta página describe las funciones de privacidad observables en el código de esta demostración de SolidJS Boilerplate. Sus páginas públicas no ofrecen registro de cuentas, compras ni formularios para enviar datos personales.",
++  "privacy_description": "Consulta información sobre las preferencias del navegador y los enlaces a sitios externos.",
 +  "privacy_intro": "Esta página describe cómo se gestiona la privacidad en esta aplicación.",
    "privacy_preferencesTitle": "Preferencias en el navegador",
-   "privacy_preferences": "La interfaz usa cookies para recordar el idioma y la preferencia de tema. El idioma también aparece en la dirección de la página, como /pt, /en o /es. Estas preferencias mantienen la presentación entre visitas. Puedes borrar o bloquear las cookies en los ajustes del navegador; en ese caso, una elección puede dejar de guardarse para la siguiente visita.",
+-  "privacy_preferences": "La interfaz usa cookies para recordar el idioma y la preferencia de tema. El idioma también aparece en la dirección de la página, como /pt, /en o /es. Estas preferencias mantienen la presentación entre visitas. Puedes borrar o bloquear las cookies en los ajustes del navegador; en ese caso, una elección puede dejar de guardarse para la siguiente visita.",
++  "privacy_preferences": "Usa los ajustes del navegador para revisar o borrar los datos que esta aplicación guarda en tu dispositivo.",
    "privacy_hostingTitle": "Acceso al sitio y enlaces externos",
 -  "privacy_hosting": "Al acceder al sitio, tu navegador envía la información técnica necesaria para la conexión HTTP a la infraestructura de alojamiento. Este aviso no establece un plazo de conservación para los registros de esa infraestructura. Los enlaces a GitHub y otros servicios llevan a sitios con políticas propias. Los datos publicados en una issue pública quedan disponibles para otras personas en ese servicio."
 +  "privacy_hosting": "Al acceder al sitio, tu navegador envía la información técnica necesaria para la conexión HTTP a la infraestructura de alojamiento. Este aviso no establece un plazo de conservación para los registros de esa infraestructura. Los enlaces a GitHub y otros servicios llevan a sitios con políticas propias. Los datos publicados en una issue pública quedan disponibles para otras personas en ese servicio.",
@@ -1941,11 +2363,13 @@ diff --git a/source/src/routes/(base)/privacy/i18n/pt.json b/example/src/routes/
 @@ -1,9 +1,10 @@
  {
    "privacy_title": "Privacidade",
-   "privacy_description": "Saiba como esta demonstração usa preferências de idioma e tema e como acessar seus canais públicos.",
+-  "privacy_description": "Saiba como esta demonstração usa preferências de idioma e tema e como acessar seus canais públicos.",
 -  "privacy_intro": "Esta página descreve os recursos de privacidade observáveis no código desta demonstração do SolidJS Boilerplate. As páginas públicas não oferecem cadastro, checkout ou formulário para enviar dados pessoais.",
++  "privacy_description": "Saiba mais sobre as preferências do navegador e os links para sites externos.",
 +  "privacy_intro": "Esta página descreve como esta aplicação trata a privacidade.",
    "privacy_preferencesTitle": "Preferências no navegador",
-   "privacy_preferences": "A interface usa cookies para lembrar o idioma e a preferência de tema. O idioma também aparece no endereço da página, como /pt, /en ou /es. Essas preferências permitem manter a apresentação entre navegações. Você pode apagar ou bloquear os cookies nas configurações do navegador; nesse caso, uma escolha pode deixar de persistir na próxima visita.",
+-  "privacy_preferences": "A interface usa cookies para lembrar o idioma e a preferência de tema. O idioma também aparece no endereço da página, como /pt, /en ou /es. Essas preferências permitem manter a apresentação entre navegações. Você pode apagar ou bloquear os cookies nas configurações do navegador; nesse caso, uma escolha pode deixar de persistir na próxima visita.",
++  "privacy_preferences": "Use as configurações do navegador para consultar ou apagar os dados que esta aplicação guarda no seu dispositivo.",
    "privacy_hostingTitle": "Acesso ao site e links externos",
 -  "privacy_hosting": "Ao acessar o site, seu navegador envia informações técnicas necessárias à conexão HTTP para a infraestrutura de hospedagem. Este aviso não estabelece um prazo de retenção para registros dessa infraestrutura. Os links para GitHub e outros serviços levam a sites com políticas próprias. Se publicar dados em uma issue pública, eles ficam disponíveis a outras pessoas nesse serviço."
 +  "privacy_hosting": "Ao acessar o site, seu navegador envia informações técnicas necessárias à conexão HTTP para a infraestrutura de hospedagem. Este aviso não estabelece um prazo de retenção para registros dessa infraestrutura. Os links para GitHub e outros serviços levam a sites com políticas próprias. Se publicar dados em uma issue pública, eles ficam disponíveis a outras pessoas nesse serviço.",
@@ -2019,6 +2443,23 @@ diff --git a/source/src/routes/(seo)/llms.txt/__tests__/llms.txt.node.test.ts b/
      expect(response.headers.get('content-type')).toBe(
        'text/markdown; charset=utf-8'
      )
+diff --git a/source/src/routes/(seo)/llms.txt/constants.ts b/example/src/routes/(seo)/llms.txt/constants.ts
+--- a/source/src/routes/(seo)/llms.txt/constants.ts
++++ b/example/src/routes/(seo)/llms.txt/constants.ts
+@@ -7,7 +7,12 @@ import { baseLocale, locales, type Locale } from '@paraglide/runtime.js'
+ const LANGUAGE_NAMES = new Intl.DisplayNames(['en'], { type: 'language' })
+ 
+ function languageName(locale: Locale): string {
+-  return LANGUAGE_NAMES.of(locale) ?? locale
++  try {
++    return LANGUAGE_NAMES.of(locale) ?? locale
++  } catch (error) {
++    if (!(error instanceof RangeError)) throw error
++    return locale
++  }
+ }
+ 
+ const INDEX_LANGUAGE = languageName(baseLocale)
 diff --git a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts b/example/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
 --- a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
 +++ b/example/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
@@ -2201,7 +2642,7 @@ diff --git a/source/src/tests/pages/Hydration/Hydration.preload.e2e.test.ts b/ex
 diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pages/I18n/I18n.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.e2e.test.ts
-@@ -1,16 +1,31 @@
+@@ -1,16 +1,32 @@
 +import { readFileSync } from 'node:fs'
 +
  import { expect, test } from '@playwright/test'
@@ -2228,7 +2669,8 @@ diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pa
 +)
 +const schema = object({
 +  errorFallback_runtimeTitle: string(),
-+  errorFallback_runtimeDescription: string()
++  errorFallback_runtimeDescription: string(),
++  errorFallback_runtimePageTitle: string()
 +})
 +
 +const LANGUAGES = settings.locales.map(locale => {
@@ -2241,7 +2683,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pa
  
  test.describe('without JavaScript', () => {
    test.use({ javaScriptEnabled: false })
-@@ -23,7 +38,7 @@ test.describe('without JavaScript', () => {
+@@ -23,7 +39,7 @@ test.describe('without JavaScript', () => {
          `/${locale}/outside-error?case=render-root&id=${crypto.randomUUID()}`
        )
        expect(response?.status()).toBe(HTTP_INTERNAL_SERVER_ERROR)
@@ -2250,7 +2692,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pa
        await expect(
          page.locator('head meta[name="description"]')
        ).toHaveAttribute('content', messages.errorFallback_runtimeDescription)
-@@ -54,7 +69,7 @@ test('a server function keeps the page locale when the cookie disagrees', async
+@@ -54,7 +70,7 @@ test('a server function keeps the page locale when the cookie disagrees', async
    await page.getByRole('button', { name: 'Read server locale' }).focus()
    await page.keyboard.press('Enter')
    await expect(

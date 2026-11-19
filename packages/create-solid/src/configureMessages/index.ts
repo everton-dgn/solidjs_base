@@ -83,6 +83,6 @@ export function configureMessages({
       : `{ ${names.join(', ')} }`
   write({
     file,
-    content: `${methods.join('\n\n')}\n\nexport const m = ${exported}\n`
+    content: `import type { getLocale } from '@evertondgn/solid-runtime/i18n/locale'\n\nexport type Locale = ReturnType<typeof getLocale>\n\n${methods.join('\n\n')}\n\nexport const m = ${exported}\n`
   })
 }

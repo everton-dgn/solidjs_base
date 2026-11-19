@@ -11,6 +11,7 @@ type Sections = Map<string, string>
 type GuideState = { profile: Profile; sections: Sections }
 type Transition = { owner: string; parent: Profile }
 const switches = [
+  ['hasI18n', 'configurePlainApp'],
   ['hasFonts', 'configureFonts'],
   ['hasIcons', 'configureIcons'],
   ['hasTheme', 'configureTheme'],

@@ -10,11 +10,17 @@ const switcher = 'src/components/molecules/LocaleSwitcher'
 const indent = 2
 function autonym(locale: string): string {
   if (Intl.DisplayNames.supportedLocalesOf(locale).length === 0) return locale
-  return (
-    new Intl.DisplayNames([locale], { type: 'language', fallback: 'none' }).of(
-      locale
-    ) ?? locale
-  )
+  try {
+    return (
+      new Intl.DisplayNames([locale], {
+        type: 'language',
+        fallback: 'none'
+      }).of(locale) ?? locale
+    )
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error
+    return locale
+  }
 }
 
 export function configureLocaleUi({
@@ -73,6 +79,17 @@ export function configureLocaleUi({
       '    await trigger.click()\n    const itemName = LOCALE_NAMES[baseLocale]'
     )
     test("name: 'English'", 'name: itemName')
+  }
+  if (profile.hasSeo !== false) {
+    edit('src/routes/(seo)/llms.txt/constants.ts')(
+      '  return LANGUAGE_NAMES.of(locale) ?? locale',
+      `  try {
+    return LANGUAGE_NAMES.of(locale) ?? locale
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error
+    return locale
+  }`
+    )
   }
   const overrides = 'src/i18n/localeTagOverrides/index.ts'
   const input = read(overrides)

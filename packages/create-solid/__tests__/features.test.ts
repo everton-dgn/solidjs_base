@@ -94,3 +94,25 @@ void it('rejects unclassified external imports', async context => {
     /Unclassified import in env.ts: virtual:unknown-module/u
   )
 })
+
+void it('rejects an unreviewed source digest before assembling whole-file variants', context => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'solid-variant-drift-'))
+  context.after(() => rmSync(dir, { recursive: true, force: true }))
+  for (const file of ['classification.txt', 'features.json']) {
+    copyFileSync(file, path.join(dir, file))
+  }
+  writeFileSync(
+    path.join(dir, 'variant-sources.json'),
+    JSON.stringify({ 'src/entry-client.tsx': 'unreviewed' })
+  )
+  const result = spawnSync(
+    process.execPath,
+    [path.resolve('tooling/build.ts')],
+    { cwd: dir, encoding: 'utf8' }
+  )
+  assert.equal(result.status, 1)
+  assert.match(
+    result.stderr,
+    /Review the generated variant for src\/entry-client.tsx/u
+  )
+})

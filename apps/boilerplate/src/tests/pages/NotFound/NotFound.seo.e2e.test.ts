@@ -1,5 +1,5 @@
+import { SITE } from '@/constants/site/title.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
-
 const HTTP_NOT_FOUND = 404
 const SOCIAL_TAGS = 'head meta[property^="og:"], head meta[name^="twitter:"]'
 
@@ -54,7 +54,7 @@ test.describe('hydrated missing page', () => {
     await page.getByRole('link', { name: 'Back to home' }).click()
     await expect(page).toHaveURL('/en')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      'SolidJS Boilerplate for web applications'
+      `${SITE.title} for web applications`
     )
     expect(pageErrors).toStrictEqual([])
   })

@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test'
 
+import { SITE } from '@/constants/site/title.ts'
 import { holdRoute } from '@/tests/helpers/holdRoute/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
@@ -8,8 +9,8 @@ const HTTP_OK = 200
 const PAGE_URL = '/en'
 const SCRIPTS = '**/*.js'
 const MARKER = 'data-hydration-ended'
-const HOME_TITLE = 'SolidJS Boilerplate for web applications'
-const ABOUT_TITLE = 'About SolidJS Boilerplate'
+const HOME_TITLE = `${SITE.title} for web applications`
+const ABOUT_TITLE = `About ${SITE.title}`
 const THEME_BUTTON = 'Select theme'
 // The order of the attributes is not part of the plugin contract.
 const ENTRY_SCRIPT =

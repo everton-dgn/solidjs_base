@@ -1,5 +1,5 @@
+import { SITE } from '@/constants/site/title.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
-
 const REDIRECT = 302
 
 for (const [kind, destination] of [
@@ -47,7 +47,7 @@ for (const source of ['action', 'query']) {
     await expect(page.locator('html')).toHaveAttribute('lang', 'es-ES')
     await expect(page.getByTestId('locale')).toHaveText('es')
     await expect(page.getByTestId('message')).toHaveText(
-      'SolidJS Boilerplate para aplicaciones web'
+      `${SITE.title} para aplicaciones web`
     )
     await expect(page.locator('html')).not.toHaveAttribute(
       'data-previous-document'

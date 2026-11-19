@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import type { APIRequestContext } from '@playwright/test'
 import * as v from 'valibot'
 
+import { SITE } from '@/constants/site/title.ts'
 import { holdRoute } from '@/tests/helpers/holdRoute/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
@@ -12,7 +13,7 @@ const chunkSchema = v.object({
   file: v.string()
 })
 const manifestSchema = v.record(v.string(), chunkSchema)
-const HOME_TITLE = 'SolidJS Boilerplate for web applications'
+const HOME_TITLE = `${SITE.title} for web applications`
 
 async function readHomeModule(request: APIRequestContext): Promise<string> {
   const json = await readFile(

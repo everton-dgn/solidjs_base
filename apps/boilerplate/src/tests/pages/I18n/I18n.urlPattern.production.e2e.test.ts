@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test'
 
+import { SITE } from '@/constants/site/title.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
 import { watchCspViolations } from '@/tests/helpers/watchCspViolations/index.ts'
@@ -28,7 +29,7 @@ async function loadHome(page: Page): Promise<LoadedPage> {
   await page.goto('/pt')
   await expect.poll(() => hydrationFinished(page)).toBe(true)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'SolidJS Boilerplate para aplicações web'
+    `${SITE.title} para aplicações web`
   )
   // The copy ends the collection at the same point on both pages.
   return {
@@ -82,7 +83,7 @@ test('loads the URLPattern polyfill only without the native API and keeps the lo
     .click()
   await expect(page).toHaveURL('/en')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'SolidJS Boilerplate for web applications'
+    `${SITE.title} for web applications`
   )
   await expect.poll(() => hydrationFinished(page)).toBe(true)
   expect(await readUrlPatternKind(page)).toBe('polyfill')

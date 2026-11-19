@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test'
 import english from '@/components/organisms/ErrorFallback/i18n/en.json' with { type: 'json' }
 import spanish from '@/components/organisms/ErrorFallback/i18n/es.json' with { type: 'json' }
 import portuguese from '@/components/organisms/ErrorFallback/i18n/pt.json' with { type: 'json' }
+import { SITE } from '@/constants/site/title.ts'
 
 const HTTP_INTERNAL_SERVER_ERROR = 500
 const LANGUAGES = [
@@ -53,7 +54,7 @@ test('a server function keeps the page locale when the cookie disagrees', async 
   await page.getByRole('button', { name: 'Read server locale' }).focus()
   await page.keyboard.press('Enter')
   await expect(
-    page.getByText('SolidJS Boilerplate for web applications', { exact: true })
+    page.getByText(`${SITE.title} for web applications`, { exact: true })
   ).toBeVisible()
   const actionResponse = await response
   expect(actionResponse.headers()['content-language']).toBe('en')

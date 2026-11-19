@@ -137,6 +137,7 @@
     "src/constants/site/i18n/es.json": "seo",
     "src/constants/site/i18n/pt.json": "seo",
     "src/constants/site/index.ts": "core",
+    "src/constants/site/title.ts": "core",
     "src/constants/site/robots.ts": "seo",
     "src/constants/siteLinks/i18n/en.json": "i18n",
     "src/constants/siteLinks/i18n/es.json": "i18n",

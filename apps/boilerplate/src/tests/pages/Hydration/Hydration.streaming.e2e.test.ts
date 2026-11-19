@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test'
 
+import { SITE } from '@/constants/site/title.ts'
 import {
   releaseFixtureGate,
   releaseFixtureGateQuietly
@@ -136,7 +137,7 @@ test('ends the phase when the navigation drops pending fragments', async ({
       .getByRole('link', { name: 'About', exact: true })
       .click()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      'About SolidJS Boilerplate'
+      `About ${SITE.title}`
     )
     await expect.poll(() => hydrationFinished(page)).toBe(true)
     await page.getByRole('button', { name: 'Select theme' }).click()

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 
+import { SITE } from '@/constants/site/title.ts'
 import { releaseFixtureGate } from '@/tests/helpers/fixtureGate/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
@@ -164,7 +165,7 @@ for (const locale of LOCALES) {
     expect(home.status()).toBe(HTTP_OK)
     expect(home.headers()['set-cookie']).toBeUndefined()
     const homeBody = await home.text()
-    expect(homeBody).toContain('# SolidJS Boilerplate')
+    expect(homeBody).toContain(`# ${SITE.title}`)
     expect(homeBody).not.toContain('# HTML Markdown contract: index')
   })
 }

@@ -1,5 +1,6 @@
 import type { Page, Route } from '@playwright/test'
 
+import { SITE } from '@/constants/site/title.ts'
 import { readBackendState } from '@/tests/helpers/fixtureGate/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
@@ -33,7 +34,7 @@ type Refusal = {
 const ABOUT: Destination = {
   link: 'Go to About',
   url: /\/pt\/about$/u,
-  title: 'Sobre o SolidJS Boilerplate'
+  title: `Sobre o ${SITE.title}`
 }
 // The About CSS already comes in the fixture document; the UI kit one does not.
 const UI_KIT: Destination = {

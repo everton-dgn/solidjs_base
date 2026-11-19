@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 
+import { SITE } from '@/constants/site/title.ts'
 const HTTP_OK = 200
 const HTTP_NOT_FOUND = 404
 const MENU_TRIGGERS = 2
@@ -13,7 +14,7 @@ test.describe('layout in the production tree', () => {
     await expect(page.getByRole('banner')).toHaveCount(1)
     await expect(
       page.getByRole('heading', {
-        name: 'SolidJS Boilerplate para aplicações web'
+        name: `${SITE.title} para aplicações web`
       })
     ).toBeVisible()
     const menuTriggers = page

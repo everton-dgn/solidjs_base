@@ -1,7 +1,7 @@
+import { SITE } from '@/constants/site/title.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
-
 // With --headed, the viewport of the per-width blocks would resize the browser window.
 test.use({ headless: true })
 
@@ -19,8 +19,8 @@ const LANGUAGES = [
     selector: 'Selecionar idioma',
     dark: 'Escuro',
     headings: [
-      'SolidJS Boilerplate para aplicações web',
-      'Sobre o SolidJS Boilerplate',
+      `${SITE.title} para aplicações web`,
+      `Sobre o ${SITE.title}`,
       'Contato',
       'Privacidade'
     ]
@@ -32,8 +32,8 @@ const LANGUAGES = [
     selector: 'Select language',
     dark: 'Dark',
     headings: [
-      'SolidJS Boilerplate for web applications',
-      'About SolidJS Boilerplate',
+      `${SITE.title} for web applications`,
+      `About ${SITE.title}`,
       'Contact',
       'Privacy'
     ]
@@ -45,8 +45,8 @@ const LANGUAGES = [
     selector: 'Seleccionar idioma',
     dark: 'Oscuro',
     headings: [
-      'SolidJS Boilerplate para aplicaciones web',
-      'Acerca de SolidJS Boilerplate',
+      `${SITE.title} para aplicaciones web`,
+      `Acerca de ${SITE.title}`,
       'Contacto',
       'Privacidad'
     ]

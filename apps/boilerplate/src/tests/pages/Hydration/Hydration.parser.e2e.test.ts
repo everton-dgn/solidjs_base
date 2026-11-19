@@ -7,6 +7,7 @@ import {
   type ServerResponse
 } from 'node:http'
 
+import { SITE } from '@/constants/site/title.ts'
 import {
   releaseFixtureGate,
   releaseFixtureGateQuietly
@@ -187,7 +188,7 @@ test('does not mark before the shell when the async entry already ran', async ({
     proxy.release()
     await expect.poll(() => hydrationFinished(page)).toBe(true)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      'SolidJS Boilerplate for web applications'
+      `${SITE.title} for web applications`
     )
     await page.getByRole('button', { name: 'Select theme' }).click()
     await expect(page.getByRole('menu')).toBeVisible()

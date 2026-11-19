@@ -1,6 +1,7 @@
 import type { APIRequestContext, Page } from '@playwright/test'
 import * as v from 'valibot'
 
+import { SITE } from '@/constants/site/title.ts'
 import { UNSAFE_JSON_LD_TEXT } from '@/tests/fixtures/structured-data.ts'
 import {
   readGatedBody,
@@ -140,7 +141,7 @@ test('hydrates without duplicating the JSON-LD and removes it when leaving the r
   await expect(page.locator(`body ${JSON_LD}`)).toHaveCount(0)
 
   await page.getByRole('link', { name: 'Início', exact: true }).click()
-  await expect(page).toHaveTitle('SolidJS Boilerplate | Aplicações web com SSR')
+  await expect(page).toHaveTitle(`${SITE.title} | Aplicações web com SSR`)
   await expect(page.locator(`head ${JSON_LD}`)).toHaveCount(1)
   const remaining = await page.locator(JSON_LD).allTextContents()
   expect(remaining.join('')).not.toContain(PRODUCT_NAME)

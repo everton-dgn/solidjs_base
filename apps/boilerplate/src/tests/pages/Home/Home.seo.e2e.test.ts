@@ -1,5 +1,6 @@
 import { expect, type Page, test } from '@playwright/test'
 
+import { SITE } from '@/constants/site/title.ts'
 import {
   parseStructuredData,
   type StructuredData
@@ -9,11 +10,11 @@ import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
 test.use({ locale: 'pt-BR' })
 
 const HTTP_OK = 200
-const SITE_TITLE = 'SolidJS Boilerplate'
-const HOME_TITLE = 'SolidJS Boilerplate | Aplicações web com SSR'
+const SITE_TITLE = SITE.title
+const HOME_TITLE = `${SITE.title} | Aplicações web com SSR`
 const SITE_DESCRIPTION =
   'Uma base para aplicações web com SolidJS, TypeScript e Vite+, com renderização no servidor e temas claro e escuro.'
-const SITE_IMAGE_ALT = 'Logo do SolidJS sobre o título SolidJS Boilerplate'
+const SITE_IMAGE_ALT = `Logo do SolidJS sobre o título ${SITE.title}`
 const ROBOTS_INDEX = 'index, follow, max-image-preview:large'
 const SOCIAL_TAGS = 'head meta[property^="og:"], head meta[name^="twitter:"]'
 // Base graph of createSeo plus the own script of the page.

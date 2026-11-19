@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test'
 
+import { SITE } from '@/constants/site/title.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
 
 const HTTP_OK = 200
 const HTTP_NOT_FOUND = 404
 // Entries published by the source of `blog/[slug]`.
 const BLOG_ENTRIES = 2
-const HOME_TITLE = 'SolidJS Boilerplate | Web applications with SSR'
+const HOME_TITLE = `${SITE.title} | Web applications with SSR`
 const SITE_DESCRIPTION =
   'A foundation for web applications with SolidJS, TypeScript and Vite+, with server-side rendering and light and dark themes.'
 

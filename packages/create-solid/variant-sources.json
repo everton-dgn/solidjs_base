@@ -20,7 +20,7 @@
   "playwright.config.ts": "46144fca8f91bd37541829f01938ac6d1db1d4266b40aeb130539dedf88ecfc3",
   "project.inlang/paraglide.config.ts": "befbac75dda77906e92b756e9be9f958ce472d8c72a06387efff5456bcbd6754",
   "src/Document.tsx": "2d213c08c3ad4110ba542c276fc684b3b04134600e43a431ffcdf1a566bfd9ee",
-  "src/constants/site/index.ts": "23de3286704bfd4337db1b04908f55ebd5ef2e2bd345facfa73765eafe01908a",
+  "src/constants/site/index.ts": "5b1708f0a265c1eb9c70b272b4c8ad1aeb061f3553ec253673be3bcdb67c1a67",
   "src/constants/theme.ts": "71a0d2a4767a0965d513bba9fc4070608a90d1f4a01b8967178b6c217b854e5f",
   "src/entry-client.tsx": "1540debbfdaf5ea7b9e4ea41986965fdd7975edc0429df2d77b86d91f1ef9c3f",
   "tooling/testing/serve-public.ts": null

@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises'
 
 import * as v from 'valibot'
 
+import { SITE } from '@/constants/site/title.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
@@ -16,7 +17,7 @@ const LANGUAGES = [
   {
     locale: 'pt',
     tag: 'pt-BR',
-    title: 'SolidJS Boilerplate para aplicações web',
+    title: `${SITE.title} para aplicações web`,
     selector: 'Selecionar idioma',
     missing: 'Página não encontrada',
     home: 'Voltar ao início'
@@ -24,7 +25,7 @@ const LANGUAGES = [
   {
     locale: 'en',
     tag: 'en-US',
-    title: 'SolidJS Boilerplate for web applications',
+    title: `${SITE.title} for web applications`,
     selector: 'Select language',
     missing: 'Page not found',
     home: 'Back to home'
@@ -32,7 +33,7 @@ const LANGUAGES = [
   {
     locale: 'es',
     tag: 'es-ES',
-    title: 'SolidJS Boilerplate para aplicaciones web',
+    title: `${SITE.title} para aplicaciones web`,
     selector: 'Seleccionar idioma',
     missing: 'Página no encontrada',
     home: 'Volver al inicio'
@@ -102,7 +103,7 @@ test('switches language and hydrates when cookie access is blocked', async ({
     .click()
   await expect(page).toHaveURL('/es')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'SolidJS Boilerplate para aplicaciones web'
+    `${SITE.title} para aplicaciones web`
   )
   await page.getByRole('button', { name: 'Seleccionar tema' }).click()
   await expect(page.getByRole('menu')).toBeVisible()
@@ -153,7 +154,7 @@ test('loads each page body only with its route implementation', async ({
   }
   await page.getByRole('link', { name: 'Voltar ao início' }).click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'SolidJS Boilerplate para aplicações web'
+    `${SITE.title} para aplicações web`
   )
   expect(requested.has(String(homeModule))).toBe(true)
 })
@@ -221,7 +222,7 @@ test('switches language by keyboard, persists the choice and preserves query and
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL('/en?campaign=example#section')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'SolidJS Boilerplate for web applications'
+    `${SITE.title} for web applications`
   )
   await page.goto('/')
   await expect(page).toHaveURL('/en')
@@ -231,7 +232,7 @@ test('switches language by keyboard, persists the choice and preserves query and
     .click()
   await expect(page).toHaveURL('/es')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'SolidJS Boilerplate para aplicaciones web'
+    `${SITE.title} para aplicaciones web`
   )
 })
 

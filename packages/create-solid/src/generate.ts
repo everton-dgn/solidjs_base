@@ -32,6 +32,10 @@ import { readLocaleSettings } from './configureLocales/catalogs.ts'
 import { configureLocaleCopy } from './configureLocales/copy.ts'
 import { configureLocaleGuides } from './configureLocales/guides.ts'
 import { configureLocales } from './configureLocales/index.ts'
+import {
+  configureMiddlewareTests,
+  middlewareTest
+} from './configureLocales/middleware-tests.ts'
 import { configureLocaleUi } from './configureLocaleUi/index.ts'
 import { configurePageTitles } from './configurePageTitles/index.ts'
 import { configurePlainApp } from './configurePlainApp/index.ts'
@@ -235,6 +239,21 @@ function removeEmptyFolders(folder: string): void {
     if (readdirSync(child).length === 0) rmdirSync(child)
   }
 }
+function configureTranslationProfile(
+  context: StagedContext,
+  prepare: typeof applyPreparedSource
+): void {
+  const { profile, stage, pkg } = context
+  if (profile.hasI18n === false) {
+    removeCatalogTasks(pkg)
+    configurePlainApp(context)
+    prepare(stage)
+  } else if ((profile.mode ?? 'server') === 'server') {
+    configureMiddlewareTests(context)
+    prepare(stage, [path.join(stage, middlewareTest)])
+  }
+}
+
 export function resolveGroup(
   { settings }: GenerationContext,
   group: Versions
@@ -301,7 +320,10 @@ export function rewriteIdentity({ pkg, profile }: GenerationContext): void {
 }
 export function generateSource(
   input: Profile,
-  prepare: { guides: (stage: string) => void; source: (stage: string) => void }
+  prepare: {
+    guides: (stage: string) => void
+    source: (stage: string, files?: string[]) => void
+  }
 ): string[] {
   const profile = resolveProfile(input)
   const title = resolveAppTitle(profile)
@@ -394,11 +416,7 @@ export function generateSource(
     prepare.guides(stage)
     configureAppTitle({ context, title })
     configurePageTitles({ context, title })
-    if (profile.hasI18n === false) {
-      removeCatalogTasks(pkg)
-      configurePlainApp(context)
-      prepare.source(stage)
-    }
+    configureTranslationProfile(context, prepare.source)
     write({
       file: 'package.json',
       content: `${JSON.stringify(pkg, null, jsonIndent)}\n`

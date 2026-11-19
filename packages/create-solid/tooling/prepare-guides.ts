@@ -70,8 +70,8 @@ export function prepareGuides(): void {
               writeFileSync(path.join(inputs, `${digest}.md`), content)
             }
           },
-          source: stage => {
-            for (const file of plainSourceFiles(stage)) {
+          source: (stage, files = plainSourceFiles(stage)) => {
+            for (const file of files) {
               const original = readFileSync(file, 'utf8')
               const digest = guideDigest(original)
               if (sources.has(digest)) continue

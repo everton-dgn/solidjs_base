@@ -27,6 +27,16 @@ controls and controls with visible text. Both features are enabled by default.
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `--mode server` (default) | Deploy the SSR application to Vercel.                                                                                                                  |
 | `--mode static`           | Publish `.output/public` on a file host. Serve directory indexes and localized 404 pages, and set per-page CSP headers from `.output/csp-hashes.json`. |
+| `--mode client`           | Publish the Vite `dist` directory. Configure an HTML fallback to `index.html` for direct page URLs. JavaScript renders the application.                |
 
 Static builds prerender the current locales. When enabled, the appearance
 control saves the preference in local storage.
+
+Use `--seo` or `--no-seo` to include or omit page metadata, JSON-LD, robots,
+sitemaps, the llms text files and Markdown pages together. Server and static
+applications enable these by default. Client rendering disables them. Use
+`--mode static --seo` to publish searchable pages on a file host. All modes keep
+the current English, Portuguese and Spanish catalogs.
+
+Use `--no-git` to skip repository initialization and `--no-install` to generate
+files without installing dependencies.

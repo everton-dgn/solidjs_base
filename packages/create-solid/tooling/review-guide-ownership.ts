@@ -43,8 +43,8 @@ const previous = new Set(
 const approved = new Set<string>()
 function reviewManager(pm: string) {
   return guideOwnership(({ line, before, after }) => {
-    if (previous.has(pm + ' | ' + line) || approved.has(pm + ' | ' + line))
-      return
+    const entry = `${pm} | ${line}`
+    if (previous.has(entry) || approved.has(entry)) return
     process.stdout.write(
       `${line}\nBefore\n${before ?? '(absent)'}\nAfter\n${after ?? '(absent)'}\n`
     )
@@ -67,8 +67,9 @@ try {
       shouldInstall: false
     }
     generate(profile)
-    for (const change of managers[profile.pm](profile))
-      approved.add(profile.pm + ' | ' + change)
+    for (const change of managers[profile.pm](profile)) {
+      approved.add(`${profile.pm} | ${change}`)
+    }
     rmSync(dir, { recursive: true })
   }
   writeFileSync('guide-edits.txt', `${[...approved].toSorted().join('\n')}\n`)

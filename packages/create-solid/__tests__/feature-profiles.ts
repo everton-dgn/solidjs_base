@@ -246,7 +246,7 @@ export function testProfiles(
   pm: 'bun' | 'npm' | 'pnpm',
   it: typeof registerTest
 ): void {
-  const prefix = pm + ' | '
+  const prefix = `${pm} | `
   const approvedEdits = new Set(
     readFileSync('guide-edits.txt', 'utf8')
       .trimEnd()

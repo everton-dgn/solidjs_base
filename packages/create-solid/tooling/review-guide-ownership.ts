@@ -18,11 +18,7 @@ function* profiles() {
   for (const publication of publications()) {
     for (const pm of ['bun', 'npm', 'pnpm'] as const) {
       for (const hasDiagnostics of [true, false]) {
-        for (const {
-          fonts: hasFonts,
-          theme: hasTheme,
-          icons: hasIcons
-        } of uiProfiles()) {
+        for (const { hasFonts, hasTheme, hasIcons } of uiProfiles()) {
           yield {
             ...publication,
             pm,

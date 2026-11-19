@@ -79,11 +79,12 @@ function generatedParent(profile: Profile): Sections {
 
 // Each edge changes one feature. Following the parent edges reaches the full
 // server profile for the same installer, including from the client profile.
-type ReviewChange = (change: {
+type GuideChange = {
   line: string
   before: string | undefined
   after: string | undefined
-}) => void
+}
+type ReviewChange = (change: GuideChange) => void
 export function guideOwnership(
   review?: ReviewChange
 ): (profile: Profile) => string[] {

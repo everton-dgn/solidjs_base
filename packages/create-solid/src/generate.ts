@@ -381,8 +381,8 @@ export function generateSource(
     })
     configureSiteIdentity(context)
     prepareGuides(stage)
-    configureAppTitle(context, title)
-    configurePageTitles(context, title)
+    configureAppTitle({ context, title })
+    configurePageTitles({ context, title })
     removeEmptyFolders(stage)
     publishTree({ stage, destination: profile.dir })
   } catch (error) {

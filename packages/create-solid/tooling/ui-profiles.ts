@@ -1,9 +1,11 @@
 export function* uiProfiles(): Generator<
-  Record<'theme' | 'icons' | 'fonts', boolean>
+  Record<'hasTheme' | 'hasIcons' | 'hasFonts', boolean>
 > {
-  for (const theme of [true, false]) {
-    for (const icons of [true, false]) {
-      for (const fonts of [true, false]) yield { theme, icons, fonts }
+  for (const hasTheme of [true, false]) {
+    for (const hasIcons of [true, false]) {
+      for (const hasFonts of [true, false]) {
+        yield { hasTheme, hasIcons, hasFonts }
+      }
     }
   }
 }

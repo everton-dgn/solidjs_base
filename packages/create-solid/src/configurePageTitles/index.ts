@@ -19,15 +19,11 @@ const titles = [
   ]
 ] as const
 
-export function configurePageTitles(
-  context: StagedContext,
-  title: string
-): void {
+type TitleOptions = { context: StagedContext; title: string }
+type TitleEdit = { file: string; change: readonly [string, string] }
+export function configurePageTitles({ context, title }: TitleOptions): void {
   const { profile, stage, write } = context
-  const edit = (
-    file: string,
-    [pattern, replacement]: readonly [string, string]
-  ) => {
+  const edit = ({ file, change: [pattern, replacement] }: TitleEdit) => {
     const text = readFileSync(path.join(stage, file), 'utf8')
     write({
       file,
@@ -51,42 +47,60 @@ export function configurePageTitles(
     }
     if (!['contact_title', 'privacy_title'].includes(original)) continue
     if (profile.hasSeo === false) {
-      edit(`src/${folder}/index.tsx`, [
-        `children: m.${original}()`,
-        `children: m.${key}()`
-      ])
+      edit({
+        file: `src/${folder}/index.tsx`,
+        change: [`children: m.${original}()`, `children: m.${key}()`]
+      })
     } else {
-      edit(`src/${folder}/seo.ts`, [`title: m.${original}`, `title: m.${key}`])
+      edit({
+        file: `src/${folder}/seo.ts`,
+        change: [`title: m.${original}`, `title: m.${key}`]
+      })
     }
   }
   const error = 'src/components/organisms/ErrorFallback/index.tsx'
-  edit(error, [
-    'import { httpStatus, useHead }',
-    "import { m } from '@paraglide/messages.js'\nimport { httpStatus, useHead }"
-  ])
-  edit(error, [
-    '  useHead(() =>',
-    '  const pageTitle = m.errorFallback_runtimePageTitle\n  useHead(() =>'
-  ])
-  edit(error, ['children: content().title', 'children: pageTitle()'])
+  edit({
+    file: error,
+    change: [
+      'import { httpStatus, useHead }',
+      "import { m } from '@paraglide/messages.js'\nimport { httpStatus, useHead }"
+    ]
+  })
+  edit({
+    file: error,
+    change: [
+      '  useHead(() =>',
+      '  const pageTitle = m.errorFallback_runtimePageTitle\n  useHead(() =>'
+    ]
+  })
+  edit({
+    file: error,
+    change: ['children: content().title', 'children: pageTitle()']
+  })
   if (profile.hasSeo !== false) {
-    edit(
-      'src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx',
-      [
+    edit({
+      file: 'src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx',
+      change: [
         'expect(document.title).toBe(m.errorFallback_runtimeTitle())',
         'expect(document.title).toBe(m.errorFallback_runtimePageTitle())'
       ]
-    )
+    })
   }
   if ((profile.mode ?? 'server') !== 'server') return
-  edit('src/tests/pages/I18n/I18n.e2e.test.ts', [
-    'toHaveTitle(messages.errorFallback_runtimeTitle)',
-    'toHaveTitle(messages.errorFallback_runtimePageTitle)'
-  ])
-  edit('src/tests/pages/I18n/I18n.production.e2e.test.ts', [
-    'toHaveTitle(language.missing)',
-    `toHaveTitle(\`\${language.missing} | \${SITE.title}\`)`
-  ])
+  edit({
+    file: 'src/tests/pages/I18n/I18n.e2e.test.ts',
+    change: [
+      'toHaveTitle(messages.errorFallback_runtimeTitle)',
+      'toHaveTitle(messages.errorFallback_runtimePageTitle)'
+    ]
+  })
+  edit({
+    file: 'src/tests/pages/I18n/I18n.production.e2e.test.ts',
+    change: [
+      'toHaveTitle(language.missing)',
+      `toHaveTitle(\`\${language.missing} | \${SITE.title}\`)`
+    ]
+  })
   for (const file of [
     'Home/Home.production.e2e.test.ts',
     'I18n/I18n.urlPattern.production.e2e.test.ts',
@@ -97,9 +111,12 @@ export function configurePageTitles(
     const missing = file.startsWith('NotFound')
       ? 'Page not found'
       : 'Página não encontrada'
-    edit(`src/tests/pages/${file}`, [
-      `toHaveTitle('${missing}')`,
-      `toHaveTitle(\`${missing} | \${SITE.title}\`)`
-    ])
+    edit({
+      file: `src/tests/pages/${file}`,
+      change: [
+        `toHaveTitle('${missing}')`,
+        `toHaveTitle(\`${missing} | \${SITE.title}\`)`
+      ]
+    })
   }
 }

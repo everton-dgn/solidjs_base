@@ -25,11 +25,7 @@ function* guideProfiles() {
   for (const pm of ['bun', 'npm', 'pnpm'] as const) {
     for (const variant of modeVariants()) {
       for (const hasDiagnostics of [true, false]) {
-        for (const {
-          fonts: hasFonts,
-          icons: hasIcons,
-          theme: hasTheme
-        } of uiProfiles()) {
+        for (const { hasFonts, hasIcons, hasTheme } of uiProfiles()) {
           yield { pm, ...variant, hasDiagnostics, hasFonts, hasIcons, hasTheme }
         }
       }

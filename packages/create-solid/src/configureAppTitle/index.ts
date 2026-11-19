@@ -28,6 +28,9 @@ function literal(value: string): string {
   return `${quote}${escaped}${quote}`
 }
 
+type TitleOptions = { context: StagedContext; title: string }
+type TitleEdit = { file: string; change: readonly [string, string] }
+
 export function resolveAppTitle({
   title,
   dir
@@ -41,19 +44,22 @@ export function resolveAppTitle({
   return value.trim().replaceAll(/ +/gu, ' ')
 }
 
-export function configureAppTitle(context: StagedContext, title: string): void {
+export function configureAppTitle({ context, title }: TitleOptions): void {
   const { stage, write, profile } = context
-  const edit = (file: string, [pattern, value]: readonly [string, string]) => {
+  const edit = ({ file, change: [pattern, value] }: TitleEdit) => {
     const text = readFileSync(path.join(stage, file), 'utf8')
     write({
       file,
       content: editTemplate({ file, text, pattern, replacement: () => value })
     })
   }
-  edit('src/constants/site/title.ts', [
-    "  title: 'SolidJS Boilerplate'",
-    `  get title(): string {\n    return ${literal(title)}\n  }`
-  ])
+  edit({
+    file: 'src/constants/site/title.ts',
+    change: [
+      "  title: 'SolidJS Boilerplate'",
+      `  get title(): string {\n    return ${literal(title)}\n  }`
+    ]
+  })
   for (const [folder, keys] of Object.entries(catalogs)) {
     if (folder === 'constants/site' && profile.hasSeo === false) continue
     for (const locale of ['en', 'es', 'pt']) {
@@ -97,11 +103,17 @@ export function configureAppTitle(context: StagedContext, title: string): void {
       html.length <= inlineWidth
         ? `<title>${html}</title>`
         : `<title>\n      ${lines.join('\n      ')}\n    </title>`
-    edit('index.html', [`<title>${original}</title>`, element])
+    edit({
+      file: 'index.html',
+      change: [`<title>${original}</title>`, element]
+    })
   }
   const heading = html.replaceAll(
     /[\\`*_~#[\]|]/gu,
     char => `&#${char.codePointAt(0)};`
   )
-  edit('README.md', ['# Solid Base application\n', `# ${heading}\n`])
+  edit({
+    file: 'README.md',
+    change: ['# Solid Base application\n', `# ${heading}\n`]
+  })
 }

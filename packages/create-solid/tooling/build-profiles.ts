@@ -69,7 +69,11 @@ function prepareFile(input: FileVariant, edits: typeof iconReadmeEdits): void {
 function buildReadmes(): void {
   for (const pm of ['bun', 'pnpm', 'npm']) {
     const source = path.join('dist/profiles', pm, 'README.md')
-    for (const { icons, fonts, theme } of uiProfiles()) {
+    for (const {
+      hasIcons: icons,
+      hasFonts: fonts,
+      hasTheme: theme
+    } of uiProfiles()) {
       if (icons && fonts && theme) continue
       const edits = [
         ...(icons ? [] : iconReadmeEdits),

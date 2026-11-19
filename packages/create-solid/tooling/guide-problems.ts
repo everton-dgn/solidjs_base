@@ -35,8 +35,11 @@ function emptySections(content: string): string[] {
   for (const line of content.split('\n')) {
     const fence = fences.exec(line)?.groups?.fence
     if (marker) {
-      if (fence?.startsWith(marker)) marker = ''
-      else if (line.trim()) pending.length = 0
+      if (fence?.startsWith(marker)) {
+        marker = ''
+        continue
+      }
+      if (line.trim()) pending.length = 0
       continue
     }
     if (fence) {

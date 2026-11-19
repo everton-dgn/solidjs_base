@@ -130,18 +130,19 @@ const inventory = parse(
   inventorySchema,
   JSON.parse(readFileSync('features.json', 'utf8'))
 )
-function importsFor(profile: {
+type ImportProfile = {
   hasSeo: boolean
-  theme: boolean
-  icons: boolean
-  fonts: boolean
-}): Set<string> {
+  hasTheme: boolean
+  hasIcons: boolean
+  hasFonts: boolean
+}
+function importsFor(profile: ImportProfile): Set<string> {
   const disabled = new Set<string>(
     profile.hasSeo ? [] : ['seo', 'publication', 'sitemap', 'markdown']
   )
-  if (!profile.fonts) disabled.add('fonts')
-  if (!profile.theme) disabled.add('theme')
-  if (!profile.icons) disabled.add('icons')
+  if (!profile.hasFonts) disabled.add('fonts')
+  if (!profile.hasTheme) disabled.add('theme')
+  if (!profile.hasIcons) disabled.add('icons')
   return new Set(
     Object.entries(inventory.imports)
       .filter(([, owner]) => !disabled.has(owner))
@@ -265,7 +266,11 @@ export function testProfiles(
   let count = 0
   for (const { mode, hasSeo } of publications) {
     for (const diagnostics of [true, false]) {
-      for (const { fonts, icons, theme } of uiProfiles()) {
+      for (const {
+        hasFonts: fonts,
+        hasIcons: icons,
+        hasTheme: theme
+      } of uiProfiles()) {
         count += 1
         void it(`generates ${mode} ${pm} with seo=${hasSeo}, theme=${theme}, icons=${icons}, fonts=${fonts} and diagnostics=${diagnostics}`, context => {
           const dir = mkdtempSync(path.join(tmpdir(), 'app-profile-'))
@@ -411,7 +416,7 @@ export function testProfiles(
           checkImports({
             dir,
             files: tree,
-            knownImports: importsFor({ hasSeo, theme, fonts, icons })
+            knownImports: importsFor(profile)
           })
           assert.deepEqual(guideProblems(dir), [])
           checkScriptFiles(dir, tree)

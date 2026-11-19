@@ -359,6 +359,29 @@
       "docs/ui.md",
       "docs/security.md",
       "README.md"
+    ],
+    "icons": [
+      "AGENTS.md",
+      "README.md",
+      "_gitignore",
+      "docs/architecture.md",
+      "docs/development.md",
+      "docs/ui.md",
+      "package.json",
+      "src/components/atoms/ToastProvider/index.tsx",
+      "src/components/atoms/ToastProvider/styles.module.css",
+      "src/components/molecules/OutdatedPageNotice/index.tsx",
+      "src/components/molecules/OutdatedPageNotice/styles.module.css",
+      "src/components/molecules/ThemeToggle/index.tsx",
+      "src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx",
+      "src/components/organisms/ErrorFallback/constants.ts",
+      "src/components/organisms/ErrorFallback/index.tsx",
+      "src/components/organisms/ErrorFallback/styles.module.css",
+      "src/components/organisms/Topbar/index.tsx",
+      "src/components/organisms/Topbar/styles.module.css",
+      "src/routes/(base)/(home)/index.tsx",
+      "src/routes/(base)/(home)/styles.module.css",
+      "vite.config.ts"
     ]
   },
   "forbiddenTerms": {
@@ -374,6 +397,13 @@
       "FontLinks",
       "Inter subsets",
       "./fonts.ts"
+    ],
+    "icons": [
+      "icon:hugeicons",
+      "icon:my-images",
+      "@iconify-json/hugeicons",
+      "icons-generate",
+      "src/icon-collections.d.ts"
     ]
   }
 }

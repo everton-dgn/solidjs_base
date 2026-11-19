@@ -114,6 +114,25 @@ function nextSteps(profile: Profile): string[] {
   next.push('Run vp run dev.')
   return next
 }
+function configureReadme(stage: string, profile: Profile): void {
+  if (profile.icons !== false && profile.fonts !== false) return
+  const variant = `icons-${profile.icons !== false}-fonts-${profile.fonts !== false}`
+  const source = new URL(
+    `../dist/readmes/${profile.pm}/${variant}/README.md`,
+    import.meta.url
+  )
+  cpSync(source, path.join(stage, 'README.md'))
+}
+
+function configureIcons(stage: string, context: GenerationContext): void {
+  if (context.profile.icons !== false) return
+  const variants = new URL('../dist/without-icons/files/', import.meta.url)
+  cpSync(variants, stage, { recursive: true })
+  renameSync(path.join(stage, '_gitignore'), path.join(stage, '.gitignore'))
+  rmSync(path.join(stage, 'src/assets/images/solid.svg'))
+  delete context.pkg.devDependencies['@iconify-json/hugeicons']
+}
+
 function configureDiagnostics(stage: string, context: GenerationContext): void {
   if (context.profile.diagnostics !== false) return
   delete context.pkg.devDependencies['@solidjs/diagnostics']
@@ -238,13 +257,14 @@ export function generate(profile: Profile): string[] {
         () => `VITE_SITE_URL=${siteUrl.origin}`
       )
     )
-    rewriteVite(stage)
     const manifestFile = path.join(template, 'package.json')
     const pkg = parse(
       manifestSchema,
       JSON.parse(readFileSync(manifestFile, 'utf8'))
     )
     const context = { profile, settings, pkg, write }
+    configureIcons(stage, context)
+    rewriteVite(stage)
     configureDiagnostics(stage, context)
     rewriteIdentity(context)
     pkg.dependencies = resolveGroup(context, pkg.dependencies)
@@ -259,6 +279,7 @@ export function generate(profile: Profile): string[] {
     )
     cpSync(installerFiles, stage, { recursive: true })
     write('package.json', `${JSON.stringify(pkg, null, jsonIndent)}\n`)
+    configureReadme(stage, profile)
     configureFonts(stage, profile.fonts)
     publishTree(stage, profile.dir)
   } catch (error) {

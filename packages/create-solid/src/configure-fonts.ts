@@ -12,26 +12,6 @@ function edit(target: string, edits: readonly (readonly [RegExp, string])[]) {
   writeFileSync(target, text)
 }
 
-function fontFreeRow(stage: string): string {
-  const readme = readFileSync(path.join(stage, 'README.md'), 'utf8')
-  const row = readme
-    .split('\n')
-    .find(line => line.startsWith('| Env, icons, fonts '))
-  if (!row) throw new Error('Missing feature row in README.md')
-  const values = [
-    '',
-    ' Environment files',
-    ' Validated environment variables in `env.ts`.',
-    ' See `env.ts`.',
-    ' [Architecture](docs/architecture.md)',
-    ''
-  ]
-  return row
-    .split('|')
-    .map((cell, index) => (values[index] ?? '').padEnd(cell.length))
-    .join('|')
-}
-
 export function configureFonts(stage: string, fonts?: boolean): void {
   if (fonts !== false) return
   const schema = object({ files: record(string(), string()) })
@@ -55,9 +35,5 @@ export function configureFonts(stage: string, fonts?: boolean): void {
   edit(path.join(stage, 'docs/ui.md'), [[/^## Fonts\n[\s\S]*?(?=^## )/mu, '']])
   edit(path.join(stage, 'docs/security.md'), [
     [/^The font preset [\s\S]*?(?=^## HSTS)/mu, '']
-  ])
-  edit(path.join(stage, 'README.md'), [
-    [/^\| Env, icons, fonts [^\n]*/mu, fontFreeRow(stage)],
-    [/CSS rules, icons and fonts/u, 'CSS rules and icons       ']
   ])
 }

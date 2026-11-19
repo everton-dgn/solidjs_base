@@ -67,7 +67,7 @@ function checkCatalogs(dir: string, tree: readonly string[]): void {
 
 const terms = array(string())
 const inventorySchema = object({
-  forbiddenTerms: object({ fonts: terms, diagnostics: terms })
+  forbiddenTerms: object({ fonts: terms, diagnostics: terms, icons: terms })
 })
 const inventory = parse(
   inventorySchema,
@@ -76,54 +76,86 @@ const inventory = parse(
 for (const pm of ['bun', 'npm', 'pnpm'] as const) {
   for (const diagnostics of [true, false]) {
     for (const fonts of [true, false]) {
-      void it(`generates ${pm} with fonts=${fonts} and diagnostics=${diagnostics}`, context => {
-        const dir = mkdtempSync(path.join(tmpdir(), 'app-profile-'))
-        context.after(() => rmSync(dir, { recursive: true, force: true }))
-        generate({
-          dir,
-          pm,
-          diagnostics,
-          fonts,
-          shouldInstall: false,
-          shouldInitGit: false
-        })
-        const read = (file: string) =>
-          readFileSync(path.join(dir, file), 'utf8')
-        assert.equal(existsSync(path.join(dir, 'fonts.ts')), fonts)
-        assert.equal(read('vite.config.ts').includes('fonts: FONTS'), fonts)
-        assert.equal(read('src/Document.tsx').includes('<FontLinks />'), fonts)
-        assert.equal(read('docs/ui.md').includes('## Fonts'), fonts)
-        assert.equal(read('README.md').includes('Inter subsets'), fonts)
-        assert.equal(
-          read('package.json').includes('"@solidjs/diagnostics"'),
-          diagnostics
-        )
-        assert.equal(
-          read('docs/development.md').includes('/__solid/diagnostics'),
-          diagnostics
-        )
-        checkForbiddenTerms(dir, [
-          ...(fonts ? [] : inventory.forbiddenTerms.fonts),
-          ...(diagnostics ? [] : inventory.forbiddenTerms.diagnostics)
-        ])
-        const tree = readdirSync(dir, { recursive: true, withFileTypes: true })
-          .filter(file => file.isFile())
-          .map(file =>
-            path.relative(dir, path.join(file.parentPath, file.name))
+      for (const icons of [true, false]) {
+        void it(`generates ${pm} with icons=${icons}, fonts=${fonts} and diagnostics=${diagnostics}`, context => {
+          const dir = mkdtempSync(path.join(tmpdir(), 'app-profile-'))
+          context.after(() => rmSync(dir, { recursive: true, force: true }))
+          generate({
+            dir,
+            pm,
+            icons,
+            diagnostics,
+            fonts,
+            shouldInstall: false,
+            shouldInitGit: false
+          })
+          const read = (file: string) =>
+            readFileSync(path.join(dir, file), 'utf8')
+          assert.equal(existsSync(path.join(dir, 'fonts.ts')), fonts)
+          assert.equal(read('vite.config.ts').includes('fonts: FONTS'), fonts)
+          assert.equal(
+            read('src/Document.tsx').includes('<FontLinks />'),
+            fonts
           )
-        checkImports(dir, tree)
-        checkCatalogs(dir, tree)
-        const files = readdirSync(dir)
-        copyFileSync(
-          'dist/formatter/vite.config.mjs',
-          path.join(dir, 'fmt.config.mjs')
-        )
-        execFileSync(
-          path.resolve('../../node_modules/.bin/vp'),
-          ['fmt', '--config', 'fmt.config.mjs', '--check', ...files],
-          { cwd: dir }
-        )
-      })
+          assert.equal(read('docs/ui.md').includes('## Fonts'), fonts)
+          assert.equal(read('README.md').includes('Inter subsets'), fonts)
+          assert.equal(
+            read('package.json').includes('"@solidjs/diagnostics"'),
+            diagnostics
+          )
+          assert.equal(
+            read('docs/development.md').includes('/__solid/diagnostics'),
+            diagnostics
+          )
+          assert.equal(
+            read('package.json').includes('@iconify-json/hugeicons'),
+            icons
+          )
+          assert.equal(
+            existsSync(path.join(dir, 'src/assets/images/solid.svg')),
+            icons
+          )
+          if (!icons) {
+            assert.match(
+              read('src/components/organisms/Topbar/index.tsx'),
+              />\s*\{SITE_LINKS.repository.label\}\s*<\/a>/u
+            )
+            assert.match(
+              read('src/components/atoms/ToastProvider/index.tsx'),
+              />\s*\{m.toast_close\(\)\}\s*<\/button>/u
+            )
+            assert.match(
+              read('src/components/molecules/OutdatedPageNotice/index.tsx'),
+              />\s*\{m.outdatedPageNotice_dismiss\(\)\}\s*<\/Button>/u
+            )
+          }
+          checkForbiddenTerms(dir, [
+            ...(icons ? [] : inventory.forbiddenTerms.icons),
+            ...(fonts ? [] : inventory.forbiddenTerms.fonts),
+            ...(diagnostics ? [] : inventory.forbiddenTerms.diagnostics)
+          ])
+          const tree = readdirSync(dir, {
+            recursive: true,
+            withFileTypes: true
+          })
+            .filter(file => file.isFile())
+            .map(file =>
+              path.relative(dir, path.join(file.parentPath, file.name))
+            )
+          checkImports(dir, tree)
+          checkCatalogs(dir, tree)
+          const files = readdirSync(dir)
+          copyFileSync(
+            'dist/formatter/vite.config.mjs',
+            path.join(dir, 'fmt.config.mjs')
+          )
+          execFileSync(
+            path.resolve('../../node_modules/.bin/vp'),
+            ['fmt', '--config', 'fmt.config.mjs', '--check', ...files],
+            { cwd: dir }
+          )
+        })
+      }
     }
   }
 }

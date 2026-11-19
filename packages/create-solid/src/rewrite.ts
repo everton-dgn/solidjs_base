@@ -8,7 +8,7 @@ import type { Profile } from './types.ts'
 type PatchRewrite = Pick<Profile, 'pm' | 'dir'>
 type DocumentRewrite = PatchRewrite & { version: string }
 
-function format(file: string, content: string): string {
+export function format(file: string, content: string): string {
   return execFileSync(
     path.resolve(import.meta.dirname, '../../../node_modules/.bin/vp'),
     ['fmt', `--stdin-filepath=${file}`],

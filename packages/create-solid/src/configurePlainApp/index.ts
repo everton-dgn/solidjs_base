@@ -12,10 +12,10 @@ import {
   removeFeatureFiles
 } from '../removeFeatureFiles/index.ts'
 import type { StagedContext } from '../types.ts'
+import { configurePlainSource } from './configure-plain-source.ts'
 import { configurePlainTest } from './configure-plain-test.ts'
 
 const messages = '@/constants/messages/index.ts'
-const seam = '@evertondgn/solid-runtime/i18n/locale'
 const hydration =
   'const locale = prepareClientLocale()\nif (locale.shouldHydrate) {\n'
 type NamedEdit = { file: string; pattern: RegExp | string; replacement: string }
@@ -66,18 +66,16 @@ export function configurePlainApp(context: StagedContext): void {
     replacement: ''
   })
   const knip = 'tooling/knip.ts'
-  const configuration = read(knip)
-  if (configuration.includes('@inlang/plugin-message-format')) {
-    write({
-      file: knip,
-      content: configuration
-        .replace(
-          / {2}\/\/ server-only is virtual\.[^\n]*\n(?: {2}\/\/ [^\n]*\n)*/u,
-          ''
-        )
-        .replace(/,? ?'@inlang\/plugin-message-format'/u, '')
-    })
-  }
+  edit({
+    file: knip,
+    pattern: / {2}\/\/ server-only is virtual\.[^\n]*\n(?: {2}\/\/ [^\n]*\n)*/u,
+    replacement: ''
+  })
+  edit({
+    file: knip,
+    pattern: /,? ?'@inlang\/plugin-message-format'/u,
+    replacement: ''
+  })
   const router = 'src/router.ts'
   edit({
     file: router,
@@ -85,18 +83,31 @@ export function configurePlainApp(context: StagedContext): void {
     replacement: '\n'
   })
   const clientEntry = 'src/entry-client.tsx'
-  if (read(clientEntry).includes(hydration)) {
+  if (context.profile.mode !== 'client') {
     const [imports, body = ''] = read(clientEntry).split(hydration)
     if (!imports || !body.endsWith('}\n')) {
       throw new Error('Missing hydration body')
     }
-    const content =
-      imports.replace(/^import \{ prepareClientLocale \}[^\n]+\n/mu, '') +
-      body
-        .slice(0, -'}\n'.length)
-        .replace(/^ +locale\.dispose\(\)\n/mu, '')
-        .replaceAll(/^ {2}/gmu, '')
-    write({ file: clientEntry, content })
+    const before = editTemplate({
+      file: clientEntry,
+      text: imports,
+      pattern: /^import \{ prepareClientLocale \}[^\n]+\n/mu,
+      replacement: ''
+    })
+    const inner = editTemplate({
+      file: clientEntry,
+      text: body.slice(0, -'}\n'.length),
+      pattern: /^ +locale\.dispose\(\)\n/mu,
+      replacement: ''
+    })
+    const after = editTemplate({
+      file: clientEntry,
+      text: inner,
+      pattern: /^ {2}/gmu,
+      replacement: '',
+      expectedMatches: 19
+    })
+    write({ file: clientEntry, content: before + after })
   }
   for (const entry of readdirSync(path.join(stage, 'src'), {
     recursive: true,
@@ -112,42 +123,11 @@ export function configurePlainApp(context: StagedContext): void {
       continue
     }
     const original = read(file)
-    let text = original
-      .replaceAll('@paraglide/messages.js', messages)
-      .replaceAll('@paraglide/runtime.js', seam)
-      .replace(/^import \{ LocalizedLink \}[^\n]+\n/mu, '')
-      .replaceAll(/<(?<close>\/?)LocalizedLink\b/gu, '<$<close>a')
-      .replace(
-        "href={props.kind === 'runtime' ? '' : paths}",
-        "href={props.kind === 'runtime' ? '' : '/'}"
-      )
-      .replace(
-        /^import \{ paths \} from '@\/router.ts'\n(?=[\s\S]*href=\{props.kind)/mu,
-        ''
-      )
-      .replace(/^import \{ createLocaleNavigationGuard \}[^\n]+\n/mu, '')
-      .replace(/^ +createLocaleNavigationGuard\(\)\n/mu, '')
-      .replace(/^import \{ LOCALE_TAG_OVERRIDES \}[^\n]+\n/mu, '')
-      .replace(/^ +localeTagOverrides: LOCALE_TAG_OVERRIDES,\n/mu, '')
-      .replace(/^import \{ localeTag \}[^\n]+\n/mu, '')
-    text = text
-      .replace(/^import \{ delocalizePathname \}[^\n]+\n/mu, '')
-      .replace(/,\n {2}transformUrl: delocalizePathname/u, '')
-      .replace(
-        'const pathname = delocalizePathname(url.pathname)',
-        'const { pathname } = url'
-      )
-      .replaceAll(/delocalizePathname\((?<pathname>[\w.]+)\)/gu, '$<pathname>')
-      .replace(/^import \{ localizeHref \}[^\n]+\n/mu, '')
-      .replace(/localizeHref\(\{ href: (?<href>'[^']+') \}\)/u, '$<href>')
-      .replace(
-        "import { localizedRedirect } from '@evertondgn/solid-runtime/i18n/localized-redirect'",
-        "import { redirect } from '@solidjs/web'"
-      )
-      .replace(
-        /localizedRedirect\(\{ href: (?<href>'[^']+') \}\)/u,
-        'redirect($<href>)'
-      )
+    let text = configurePlainSource({
+      file,
+      text: original,
+      profile: context.profile
+    })
     const apply = (pattern: string | RegExp, replacement: string) => {
       text = editTemplate({ file, text, pattern, replacement })
     }

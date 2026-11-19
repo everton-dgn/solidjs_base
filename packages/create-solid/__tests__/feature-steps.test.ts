@@ -15,6 +15,8 @@ import { configureClient } from '../src/configureClient/index.ts'
 import { configureFileHostGuides } from '../src/configureFileHostGuides/index.ts'
 import { configureFonts } from '../src/configureFonts/index.ts'
 import { configureTestLabels } from '../src/configureLocales/browser-labels.ts'
+import { configurePlainGuide } from '../src/configureLocales/configure-plain-guide.ts'
+import { configurePlainSource } from '../src/configurePlainApp/configure-plain-source.ts'
 import { configureSeo } from '../src/configureSeo/index.ts'
 import { configureStatic } from '../src/configureStatic/index.ts'
 import { editTemplate } from '../src/edit-template.ts'
@@ -214,4 +216,24 @@ void it('rejects extra or missing global anchors in the theme conventions', () =
   for (const text of ['Theme', 'Theme or Theme or Theme']) {
     assert.throws(() => editTemplate({ ...edit, text }), /expected 2 matches/u)
   }
+})
+
+void it('rejects a missing plain router edit at its source file', t => {
+  const { profile } = fixture(t)
+  const file = 'src/router.ts'
+  const text = "import { delocalizePathname } from './locale.ts'\n"
+  assert.throws(
+    () => configurePlainSource({ profile, file, text }),
+    /Missing template edit in src\/router\.ts:.*transformUrl/u
+  )
+})
+
+void it('requires each occurrence owned by a plain language guide', t => {
+  const { profile } = fixture(t)
+  const file = 'docs/seo.md'
+  assert.throws(
+    () =>
+      configurePlainGuide({ profile, file, text: '@paraglide/messages.js' }),
+    /docs\/seo\.md: expected 2 matches of @paraglide\/messages\.js, found 1/u
+  )
 })

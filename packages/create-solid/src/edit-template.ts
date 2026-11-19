@@ -12,6 +12,7 @@ type TextEdit = {
   text: string
   pattern: RegExp | string
   replacement: string | ((match: string) => string)
+  expectedMatches?: number
   missing?: string
 }
 
@@ -20,21 +21,34 @@ export function editTemplate({
   text,
   pattern,
   replacement,
+  expectedMatches,
   missing
 }: TextEdit): string {
   if (pattern instanceof RegExp && pattern.global) {
     const source = Object.keys(globalEditCounts).find(
       key => file === key || file.endsWith(`/${key}`)
     )
-    const expected = source
-      ? (globalEditCounts[source]?.[String(pattern)] ?? 1)
-      : 1
+    const expected =
+      expectedMatches ??
+      (source ? (globalEditCounts[source]?.[String(pattern)] ?? 1) : 1)
     const count = [...text.matchAll(pattern)].length
     if (count !== expected) {
       throw new Error(
         `Template edit in ${file}: expected ${expected} matches of ${pattern}, found ${count}`
       )
     }
+  }
+  if (typeof pattern === 'string' && expectedMatches !== undefined) {
+    const count = text.split(pattern).length - 1
+    if (count !== expectedMatches) {
+      throw new Error(
+        `Template edit in ${file}: expected ${expectedMatches} matches of ${pattern}, found ${count}`
+      )
+    }
+    if (typeof replacement === 'string') {
+      return text.replaceAll(pattern, replacement)
+    }
+    return text.replaceAll(pattern, replacement)
   }
   const hasMatch =
     typeof pattern === 'string'

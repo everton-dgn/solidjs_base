@@ -5,7 +5,7 @@ import * as v from 'valibot'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_OK = 200
 const HTTP_NOT_FOUND = 404

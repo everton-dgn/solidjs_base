@@ -2,10 +2,10 @@ import { readdirSync } from 'node:fs'
 import path from 'node:path'
 
 import type { StagedContext } from '../types.ts'
-import { configureTestLabels } from './browser-labels.ts'
 import { readLocaleSettings } from './catalogs.ts'
-import { configureSingleBrowserTests } from './single-browser-tests.ts'
-import { configureSingleMenuTests } from './single-menu-tests.ts'
+import { configureSingleBrowserTests } from './configure-single-browser-tests.ts'
+import { configureSingleMenuTests } from './configure-single-menu-tests.ts'
+import { configureTestLabels } from './configure-test-labels.ts'
 
 export function configureBrowserPaths(context: StagedContext): string[] {
   const { stage } = context
@@ -13,7 +13,7 @@ export function configureBrowserPaths(context: StagedContext): string[] {
     configureSingleBrowserTests(context)
     configureSingleMenuTests(context)
   }
-  const helper = 'src/tests/helpers/scenarioLocales/index.ts'
+  const helper = 'src/tests/helpers/testLanguages/index.ts'
   configureTestLabels(context)
   return [
     path.join(stage, helper),

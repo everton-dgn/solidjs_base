@@ -1,5 +1,5 @@
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 test.use({ javaScriptEnabled: false })
 

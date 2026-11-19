@@ -3,7 +3,7 @@ import * as v from 'valibot'
 import { UNSAFE_JSON_LD_TEXT } from '@/tests/fixtures/structured-data.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
 import { parseStructuredData } from '@/tests/helpers/parseStructuredData/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const JSON_LD = 'script[type="application/ld+json"]'
 const EXPECTED_SCRIPTS = 2

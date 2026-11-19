@@ -1,10 +1,10 @@
 /* oxlint-disable unicorn/no-document-cookie -- The tests exercise the cookie persistence and blocking directly. */
 import { expect, test } from '@playwright/test'
 
-import { testLocale } from '@/tests/helpers/testLocale/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 import { themeLabels } from '@/tests/helpers/themeLabels/index.ts'
 
-test.use({ locale: testLocale.tag(testLocale.alternate) })
+test.use({ locale: testLanguages.tag(testLanguages.alternate) })
 
 test('propagates the temporary choice when the cookie write is ignored', async ({
   context,
@@ -129,7 +129,7 @@ test('switches right away when access to document.cookie is blocked', async ({
   const cookies = await context.cookies(page.url())
   expect(cookies.some(cookie => cookie.name === 'app-theme')).toBe(false)
   expect(cookies.find(cookie => cookie.name === 'locale')?.value).toBe(
-    testLocale.header(testLocale.alternate)
+    testLanguages.header(testLanguages.alternate)
   )
   await page.reload()
   await expect(page.locator('html')).toHaveClass('light')

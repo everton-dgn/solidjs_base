@@ -1,5 +1,5 @@
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_NOT_FOUND = 404
 const SOCIAL_TAGS = 'head meta[property^="og:"], head meta[name^="twitter:"]'

@@ -10,29 +10,35 @@ export function configureTestLabels({
   profile,
   write
 }: StagedContext): void {
-  const file = 'src/tests/helpers/scenarioLocales/index.ts'
+  const file = 'src/tests/helpers/testLanguages/index.ts'
   const input = readFileSync(path.join(stage, file), 'utf8')
   let text = input
   const edit = (pattern: string | RegExp, replacement: string) => {
-    text = editTemplate({ file, text, pattern, replacement })
+    text = editTemplate({
+      file,
+      text,
+      pattern,
+      replacement,
+      expectedMatches: 1
+    })
   }
   if (readLocaleSettings(stage).locales.length === 1) {
     edit(
-      /const third =\s*locales\.find\(locale => locale !== base && locale !== alternate\) \?\? alternate/u,
+      /const third =\s*locales\.find\(locale => locale !== base && locale !== alternate\) \?\? alternate/gu,
       'const third = alternate'
     )
     edit(
-      /const other = \(locale: Locale\) =>\s*locales\.find\(candidate => candidate !== locale\) \?\? locale/u,
+      /const other = \(locale: Locale\) =>\s*locales\.find\(candidate => candidate !== locale\) \?\? locale/gu,
       'const other = (locale: Locale) => locale'
     )
     edit(
       'const entries = [base, ...locales.filter(locale => locale !== base)]',
       'const entries = [base]'
     )
-    edit(/^import \{ LOCALE_NAMES as names \}[^\n]+\n/mu, '')
+    edit(/^import \{ LOCALE_NAMES as names \}[^\n]+\n/gmu, '')
     edit('name: names[locale]', 'name: locale')
     edit(
-      /const selector = m\.localeSwitcher_select\([\s\S]*?\n {2}\)/u,
+      /const selector = m\.localeSwitcher_select\([\s\S]*?\n {2}\)/gu,
       'const selector = locale'
     )
   }

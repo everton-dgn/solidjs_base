@@ -33,12 +33,13 @@ export function configurePlainTest({
     edit('message(baseLocale)', 'm.configureServerErrors_message()')
   }
   if (file.endsWith('/llms.txt.node.test.ts')) {
+    edit(/^import \{ testLanguages \}[^\n]+\n/mu, '')
     edit(
-      /import \{ baseLocale, getLocale, locales \}[^\n]+\nimport \{ paraglideMiddleware \}[^\n]+/u,
+      /import \{ baseLocale, getLocale \}[^\n]+\nimport \{ paraglideMiddleware \}[^\n]+/u,
       `import { baseLocale } from '${seam}'`
     )
     edit(
-      /const alternate = [\s\S]*?(?=const INDEX_LANGUAGE)/u,
+      /const \{ alternate \} = [\s\S]*?(?=const INDEX_LANGUAGE)/u,
       'const BASE_DESCRIPTION = m.site_description()\n'
     )
     edit(/function inLocaleContext[\s\S]*?(?=describe\()/u, '')

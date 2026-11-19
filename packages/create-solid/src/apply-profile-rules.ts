@@ -26,10 +26,10 @@ export function applyProfileRules({
   for (const group of groups) {
     if (!group.files.includes(file)) continue
     if (group.modes && !group.modes.includes(profile.mode ?? 'server')) continue
-    const applies = features.every(
+    const hasMatchingFeatures = features.every(
       key => group[key] === undefined || group[key] === (profile[key] !== false)
     )
-    if (applies) {
+    if (hasMatchingFeatures) {
       for (const [pattern, replacement] of group.rules) {
         result = editTemplate({
           file,

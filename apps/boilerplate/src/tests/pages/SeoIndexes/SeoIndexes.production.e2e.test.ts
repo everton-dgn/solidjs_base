@@ -4,7 +4,7 @@ import nodePath from 'node:path'
 import { expect, test } from '@playwright/test'
 
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const LOCALES = testLanguages.locales
 const PAGE_PATHS = ['', '/about', '/contact', '/privacy']

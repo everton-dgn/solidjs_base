@@ -5,7 +5,7 @@ import {
   releaseFixtureGate,
   waitForGate
 } from '@/tests/helpers/fixtureGate/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_OK = 200
 const HTTP_REDIRECT = 307

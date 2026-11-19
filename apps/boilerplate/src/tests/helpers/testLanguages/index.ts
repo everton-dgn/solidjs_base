@@ -1,11 +1,23 @@
 import { m } from '@paraglide/messages.js'
+import { baseLocale, locales, type Locale } from '@paraglide/runtime.js'
 
 import { LOCALE_NAMES as names } from '@/components/molecules/LocaleSwitcher/constants.ts'
+import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.ts'
 
-import { testLocale } from '../testLocale/index.ts'
+const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
+const tags: Readonly<Record<string, string>> = LOCALE_TAG_OVERRIDES
 
-type Locale = (typeof testLocale.locales)[number]
-const { base, alternate, locales, tag } = testLocale
+const routing = {
+  hasPrefix: true,
+  base: baseLocale,
+  alternate,
+  locales,
+  header: (locale: Locale): string => locale,
+  tag: (locale: Locale): string => tags[locale] ?? locale,
+  path: (locale: string, suffix: string): string => `/${locale}${suffix}`
+}
+
+const { base, tag } = routing
 const third =
   locales.find(locale => locale !== base && locale !== alternate) ?? alternate
 const other = (locale: Locale) =>
@@ -26,7 +38,7 @@ const entries = [base, ...locales.filter(locale => locale !== base)]
 const available = new Intl.ListFormat('en', { type: 'conjunction' }).format(
   entries.map(locale => `${indexLanguage(locale)} (/${locale})`)
 )
-const availability = testLocale.hasPrefix
+const availability = routing.hasPrefix
   ? `Content is available in ${available}. ${indexNote}`
   : indexNote
 
@@ -86,8 +98,8 @@ export const testLanguages = {
   locales,
   other,
   tag,
-  hasPrefix: testLocale.hasPrefix,
-  header: testLocale.header,
-  path: testLocale.path,
+  hasPrefix: routing.hasPrefix,
+  header: routing.header,
+  path: routing.path,
   third
 }

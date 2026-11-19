@@ -41,7 +41,7 @@ const groups: readonly ProfileRuleGroup[] = [
       'src/routes/(base)/privacy/index.tsx',
       'src/routes/(base)/privacy/seo.ts',
       'src/routes/(seo)/llms.txt/__tests__/llms.txt.node.test.ts',
-      'src/tests/helpers/scenarioLocales/index.ts',
+      'src/tests/helpers/testLanguages/index.ts',
       'src/tests/helpers/themeLabels/index.ts',
       'src/tests/pages/BackendError/BackendError.e2e.test.ts',
       'src/tests/pages/Home/Home.seo.e2e.test.ts',
@@ -70,14 +70,12 @@ const groups: readonly ProfileRuleGroup[] = [
       'src/infra/server/configureServerErrors/__tests__/configureServerErrors.messages.node.test.ts',
       'src/infra/server/configureServerErrors/index.ts',
       'src/middleware/markdownContent/__tests__/markdownContent.abort.node.test.ts',
-      'src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts',
       'src/middleware/markdownContent/__tests__/markdownContent.serialization.node.test.ts',
       'src/primitives/createOutdatedPageGuard/__tests__/createOutdatedPageGuard.dom.test.tsx',
       'src/primitives/createOutdatedPageGuard/__tests__/createOutdatedPageGuard.initial.dom.test.tsx',
       'src/routes/(seo)/llms.txt/__tests__/llms.txt.node.test.ts',
       'src/routes/(seo)/llms.txt/constants.ts',
-      'src/tests/fixtures/e2e/routes/(base)/markdown-contract/[slug].tsx',
-      'src/tests/fixtures/e2e/routes/(base)/ui-kit/index.tsx'
+      'src/tests/fixtures/e2e/routes/(base)/markdown-contract/[slug].tsx'
     ],
     rules: [['@paraglide/runtime.js', seam]]
   },

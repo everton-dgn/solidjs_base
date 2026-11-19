@@ -2,9 +2,9 @@ import type { FileEdits } from './profile-edits.ts'
 
 export const staticEdits: FileEdits = {
   'src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts':
-    [[/ORIGIN\}\/\$\{alternate\}/u, `ORIGIN}/\${baseLocale}`]],
+    [[/ORIGIN\}\/\$\{alternate\}/u, `ORIGIN}/\${testLanguages.base}`]],
   'src/tests/setup/browser/__tests__/browser.browser.test.ts': [
-    [/,\n {2}setLocale/u, ''],
+    [/, setLocale/u, ''],
     [
       /beforeAll\(\(\) => setLocale\(alternate, \{ reload: false \}\)\)/u,
       "const original = location.href\n  afterEach(() => history.replaceState(null, '', original))"

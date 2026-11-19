@@ -14,8 +14,8 @@ import { it, type TestContext } from 'node:test'
 import { configureClient } from '../src/configureClient/index.ts'
 import { configureFileHostGuides } from '../src/configureFileHostGuides/index.ts'
 import { configureFonts } from '../src/configureFonts/index.ts'
-import { configureTestLabels } from '../src/configureLocales/browser-labels.ts'
 import { configurePlainGuide } from '../src/configureLocales/configure-plain-guide.ts'
+import { configureTestLabels } from '../src/configureLocales/configure-test-labels.ts'
 import { configurePlainSource } from '../src/configurePlainApp/configure-plain-source.ts'
 import { configureSeo } from '../src/configureSeo/index.ts'
 import { configureStatic } from '../src/configureStatic/index.ts'
@@ -66,7 +66,7 @@ void it('rejects a locale helper missing the language menu import', t => {
     content: JSON.stringify({ baseLocale: 'es', locales: ['es'] })
   })
   context.write({
-    file: 'src/tests/helpers/scenarioLocales/index.ts',
+    file: 'src/tests/helpers/testLanguages/index.ts',
     content: 'export {}\n'
   })
   assert.throws(() => configureTestLabels(context), /Missing template edit/u)

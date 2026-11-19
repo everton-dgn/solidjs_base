@@ -1,7 +1,7 @@
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 // With --headed, the viewport of the per-width blocks would resize the browser window.
 test.use({ headless: true })
 

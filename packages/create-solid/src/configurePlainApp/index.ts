@@ -1,10 +1,10 @@
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
-import { configureTestLabels } from '../configureLocales/browser-labels.ts'
 import { readLocaleSettings } from '../configureLocales/catalogs.ts'
-import { configureSingleBrowserTests } from '../configureLocales/single-browser-tests.ts'
-import { configureSingleMenuTests } from '../configureLocales/single-menu-tests.ts'
+import { configureSingleBrowserTests } from '../configureLocales/configure-single-browser-tests.ts'
+import { configureSingleMenuTests } from '../configureLocales/configure-single-menu-tests.ts'
+import { configureTestLabels } from '../configureLocales/configure-test-labels.ts'
 import { configureMessages } from '../configureMessages/index.ts'
 import { editTemplate } from '../edit-template.ts'
 import {
@@ -115,13 +115,6 @@ export function configurePlainApp(context: StagedContext): void {
   })) {
     if (!entry.isFile() || !/\.tsx?$/u.test(entry.name)) continue
     const file = path.relative(stage, path.join(entry.parentPath, entry.name))
-    if (file === 'src/tests/helpers/testLocale/index.ts') {
-      write({
-        file,
-        content: `const language = '${baseLocale}'\n\nexport const testLocale = {\n  hasPrefix: false,\n  base: language,\n  alternate: language,\n  locales: [language],\n  header: (_locale: string): string | undefined => undefined,\n  tag: (locale: string): string => locale,\n  path: (_locale: string, suffix: string): string =>\n    suffix.startsWith('/') ? suffix : \`/\${suffix}\`\n}\n`
-      })
-      continue
-    }
     const original = read(file)
     let text = configurePlainSource({
       file,
@@ -130,6 +123,26 @@ export function configurePlainApp(context: StagedContext): void {
     })
     const apply = (pattern: string | RegExp, replacement: string) => {
       text = editTemplate({ file, text, pattern, replacement })
+    }
+    if (file === 'src/tests/helpers/testLanguages/index.ts') {
+      apply(/^import \{ baseLocale, locales, type Locale \}[^\n]+\n/mu, '')
+      apply(/^import \{ LOCALE_TAG_OVERRIDES \}[^\n]+\n\n/mu, '')
+      apply(
+        /const alternate = [\s\S]*?(?=const \{ base, tag \} = routing)/u,
+        `const alternate = '${baseLocale}'\nconst locales = [alternate]\ntype Locale = string\nconst routing = {\n  hasPrefix: false,\n  base: alternate,\n  alternate,\n  locales,\n  header: (_locale: string): string | undefined => undefined,\n  tag: (locale: string): string => locale,\n  path: (_locale: string, suffix: string): string =>\n    suffix.startsWith('/') ? suffix : \`/\${suffix}\`\n}\n\n`
+      )
+      if (
+        context.profile.mode === 'client' ||
+        context.profile.mode === 'static'
+      ) {
+        apply(/^import \{ m \}[^\n]+\n/mu, '')
+        apply(/^import \{ LOCALE_NAMES as names \}[^\n]+\n/mu, '')
+        apply(
+          /^const \{ base, tag \} = routing[\s\S]*$/mu,
+          'export const testLanguages = routing\n'
+        )
+        apply('type Locale = string\n', '')
+      }
     }
     if (file === 'src/constants/site/index.ts') {
       apply('localeTag(getLocale(), LOCALE_TAG_OVERRIDES)', 'getLocale()')
@@ -143,8 +156,8 @@ export function configurePlainApp(context: StagedContext): void {
     }
     if (file.endsWith('/ui-kit/index.tsx')) {
       apply(' locale={alternate}', '')
-      apply(/^import \{ baseLocale, locales \}[^\n]+\n/mu, '')
-      apply(/^const alternate = [^\n]+\n/mu, '')
+      apply(/^import \{ testLanguages \}[^\n]+\n/mu, '')
+      apply(/^const \{ alternate \} = testLanguages\n/mu, '')
       apply(' shouldLocalize={false}', ' target="_self"')
       apply('Alternate language page', 'Page link')
       apply('Localized page', 'Page')

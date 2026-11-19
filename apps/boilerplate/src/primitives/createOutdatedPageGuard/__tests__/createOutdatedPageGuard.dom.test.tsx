@@ -1,4 +1,4 @@
-import { baseLocale, locales } from '@paraglide/runtime.js'
+import { baseLocale } from '@paraglide/runtime.js'
 import {
   createRouter,
   memoryHistory,
@@ -11,6 +11,7 @@ import {
 import { flush } from 'solid-js'
 import type { MockInstance } from 'vite-plus/test'
 
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
 
 import {
@@ -110,7 +111,7 @@ async function renderGuardedRouter({
 // The mark lasts until the next document load and does not go back in the
 // module. The case of the tab that is still current is in
 // createOutdatedPageGuard.initial.dom.test.tsx, which loads the module isolated.
-const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
+const { alternate } = testLanguages
 
 describe('outdated page guard', () => {
   beforeEach(markPageOutdated)

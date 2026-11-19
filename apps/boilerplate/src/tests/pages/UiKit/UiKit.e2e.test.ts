@@ -1,6 +1,6 @@
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const LANGUAGES = testLanguages.locales.map(locale =>
   testLanguages.labels(locale)

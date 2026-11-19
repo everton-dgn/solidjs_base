@@ -1,12 +1,13 @@
-import { baseLocale, getLocale, locales } from '@paraglide/runtime.js'
+import { baseLocale, getLocale } from '@paraglide/runtime.js'
 import { createRouter, memoryHistory } from '@solidjs/router'
 import { createSignal } from 'solid-js'
 
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
 
 import { LocalizedLink } from '../index.tsx'
 
-const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
+const { alternate } = testLanguages
 
 describe('localizedLink contracts', () => {
   it('works outside a Router and reacts to href and locale changes', async () => {

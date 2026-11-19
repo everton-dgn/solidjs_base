@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test'
 import { holdRoute } from '@/tests/helpers/holdRoute/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_OK = 200
 const PAGE_URL = testLanguages.path(testLanguages.base, '')

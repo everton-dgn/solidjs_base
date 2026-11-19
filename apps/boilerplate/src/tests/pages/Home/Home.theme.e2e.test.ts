@@ -1,8 +1,8 @@
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
-import { testLocale } from '@/tests/helpers/testLocale/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 import { themeLabels } from '@/tests/helpers/themeLabels/index.ts'
 
-test.use({ locale: testLocale.tag(testLocale.alternate) })
+test.use({ locale: testLanguages.tag(testLanguages.alternate) })
 
 const THEME_KEY = 'app-theme'
 

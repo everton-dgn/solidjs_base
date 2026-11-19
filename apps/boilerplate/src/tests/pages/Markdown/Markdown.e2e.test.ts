@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 import { releaseFixtureGate } from '@/tests/helpers/fixtureGate/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_OK = 200
 const HTTP_REDIRECT = 307

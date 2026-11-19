@@ -13,7 +13,7 @@ import { expect, test, type APIRequestContext } from '@playwright/test'
 import * as v from 'valibot'
 
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 type Destination = { url: URL; fragments: Set<string> }
 type CheckOptions = {

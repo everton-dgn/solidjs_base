@@ -1,43 +1,26 @@
-import { readFile } from 'node:fs/promises'
-
+import { m } from '@paraglide/messages.js'
 import { expect, test } from '@playwright/test'
-import { array, object, parse, string } from 'valibot'
 
-import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.ts'
 import { parseStructuredData } from '@/tests/helpers/parseStructuredData/index.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_OK = 200
 const HTTP_NOT_FOUND = 404
 const PAGE_PATHS = ['', '/about', '/contact', '/privacy']
-const settingsSchema = object({
-  baseLocale: string(),
-  locales: array(string())
-})
-const settings = parse(
-  settingsSchema,
-  JSON.parse(await readFile('project.inlang/settings.json', 'utf8'))
-)
-const schema = object({ site_description: string(), site_imageAlt: string() })
-const tags: Readonly<Record<string, string>> = LOCALE_TAG_OVERRIDES
-const LANGUAGES = await Promise.all(
-  settings.locales.map(async locale => {
-    const source = await readFile(
-      `src/constants/site/i18n/${locale}.json`,
-      'utf8'
-    )
-    return {
-      locale,
-      tag: tags[locale] ?? locale,
-      messages: parse(schema, JSON.parse(source))
-    }
-  })
-)
+const LANGUAGES = testLanguages.locales.map(locale => ({
+  locale,
+  tag: testLanguages.tag(locale),
+  messages: {
+    site_description: m.site_description({}, { locale }),
+    site_imageAlt: m.site_imageAlt({}, { locale })
+  }
+}))
 const ALTERNATES = Object.fromEntries<string>([
   ...LANGUAGES.map(
     ({ locale }) => [locale, `${readSiteOrigin()}/${locale}`] as const
   ),
-  ['x-default', `${readSiteOrigin()}/${settings.baseLocale}`]
+  ['x-default', `${readSiteOrigin()}/${testLanguages.base}`]
 ])
 
 type SitemapRecord = { loc: string; alternates: Record<string, string> }
@@ -181,7 +164,7 @@ for (const { locale, tag, messages } of LANGUAGES) {
       headers: {
         'sec-fetch-dest': 'empty',
         accept: '*/*',
-        cookie: `locale=${settings.locales.find(other => other !== locale) ?? locale}`
+        cookie: `locale=${testLanguages.other(locale)}`
       }
     })
     expect(response.status()).toBe(HTTP_OK)
@@ -205,7 +188,7 @@ test('sitemap alternates are reciprocal and every localized URL resolves without
         ({ locale }) =>
           [locale, `${readSiteOrigin()}/${locale}${path}`] as const
       ),
-      ['x-default', `${readSiteOrigin()}/${settings.baseLocale}${path}`]
+      ['x-default', `${readSiteOrigin()}/${testLanguages.base}${path}`]
     ])
     return LANGUAGES.map(({ locale }) => ({
       loc: `${readSiteOrigin()}/${locale}${path}`,

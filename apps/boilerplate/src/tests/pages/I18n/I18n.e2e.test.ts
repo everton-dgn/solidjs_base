@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 import { array, object, optional, parse, string } from 'valibot'
 
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_INTERNAL_SERVER_ERROR = 500
 const settingsSchema = object({

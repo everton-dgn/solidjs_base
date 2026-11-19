@@ -1,11 +1,8 @@
-import {
-  baseLocale,
-  getLocale,
-  locales,
-  setLocale
-} from '@paraglide/runtime.js'
+import { baseLocale, getLocale, setLocale } from '@paraglide/runtime.js'
 
-const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
+
+const { alternate } = testLanguages
 
 describe('locale isolation between browser tests', () => {
   beforeAll(() => setLocale(alternate, { reload: false }))

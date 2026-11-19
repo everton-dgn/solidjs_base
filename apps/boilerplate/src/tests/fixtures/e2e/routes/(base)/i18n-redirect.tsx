@@ -11,7 +11,7 @@ import {
 } from '@solidjs/router'
 import { createMemo, createSignal, Loading, untrack } from 'solid-js'
 
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 import { redirectLocale } from '../../i18n/redirectLocale/index.ts'
 import { redirectRelative } from '../../i18n/redirectRelative/index.ts'

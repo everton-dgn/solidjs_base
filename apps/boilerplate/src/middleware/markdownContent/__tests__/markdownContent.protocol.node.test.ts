@@ -1,8 +1,8 @@
-import { baseLocale, locales } from '@paraglide/runtime.js'
 import { createRequestEvent } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
 
 import { Router } from '@/router.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 import middleware from '../../index.ts'
 
@@ -14,7 +14,7 @@ const HTTP_NOT_FOUND = 404
 const HTTP_NOT_ACCEPTABLE = 406
 const ORIGIN = 'https://example.com'
 
-const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
+const { alternate } = testLanguages
 
 type RequestOptions = { path: string; method?: string }
 

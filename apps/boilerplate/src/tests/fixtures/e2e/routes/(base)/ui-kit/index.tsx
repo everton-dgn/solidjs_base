@@ -1,5 +1,4 @@
 import { createLocalizedNavigate } from '@evertondgn/solid-runtime/i18n/create-localized-navigate'
-import { baseLocale, locales } from '@paraglide/runtime.js'
 import { useSearchParams, type RouteDefinition } from '@solidjs/router'
 import { createSignal, untrack } from 'solid-js'
 
@@ -9,10 +8,11 @@ import { LocalizedLink } from '@/components/atoms/LocalizedLink/index.tsx'
 import { Textarea } from '@/components/atoms/Textarea/index.tsx'
 import { useToast } from '@/components/atoms/ToastProvider/useToast/index.ts'
 import { Dialog } from '@/components/molecules/Dialog/index.tsx'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 import S from './styles.module.css'
 
-const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
+const { alternate } = testLanguages
 
 export const route = {
   info: { seo: { noindex: true } }

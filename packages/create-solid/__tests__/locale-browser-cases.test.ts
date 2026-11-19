@@ -32,7 +32,7 @@ for (const locales of [['fr', 'ja'], ['zh-Hant-TW']]) {
       source.includes('switches language by keyboard'),
       locales.length > 1
     )
-    const helper = read('helpers/scenarioLocales/index.ts')
+    const helper = read('helpers/testLanguages/index.ts')
     assert.match(helper, /m\.errorFallback_notFoundTitle/u)
     const urlPattern = read('pages/I18n/I18n.urlPattern.production.e2e.test.ts')
     assert.equal(urlPattern.includes('menuitemradio'), locales.length > 1)

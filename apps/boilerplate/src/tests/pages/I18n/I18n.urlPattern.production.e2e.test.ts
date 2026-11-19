@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 import { watchCspViolations } from '@/tests/helpers/watchCspViolations/index.ts'
 
 type UrlPatternKind = 'native' | 'polyfill' | 'missing'

@@ -1,12 +1,13 @@
 import { m } from '@paraglide/messages.js'
-import { baseLocale, getLocale, locales } from '@paraglide/runtime.js'
+import { baseLocale, getLocale } from '@paraglide/runtime.js'
 import { paraglideMiddleware } from '@paraglide/server.js'
 
 import { SITE_CACHE_CONTROL } from '@/constants/cache.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 import { GET } from '../index.ts'
 
-const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
+const { alternate } = testLanguages
 
 const BASE_DESCRIPTION = m.site_description({}, { locale: baseLocale })
 const INDEX_LANGUAGE =

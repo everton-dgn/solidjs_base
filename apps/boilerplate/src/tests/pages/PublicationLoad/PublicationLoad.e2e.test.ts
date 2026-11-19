@@ -9,7 +9,7 @@ import {
   readBackendState,
   releaseFixtureGateQuietly
 } from '@/tests/helpers/fixtureGate/index.ts'
-import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 type HttpResult = { status: number; headers: Headers; bytes: number }
 type RequestState = { result?: HttpResult; error?: Error }

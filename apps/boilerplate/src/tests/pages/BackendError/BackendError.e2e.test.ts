@@ -10,9 +10,9 @@ import {
   waitForGate
 } from '@/tests/helpers/fixtureGate/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
-import { testLocale } from '@/tests/helpers/testLocale/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
-test.use({ locale: testLocale.tag(testLocale.alternate) })
+test.use({ locale: testLanguages.tag(testLanguages.alternate) })
 
 const HTTP_OK = 200
 const HTTP_FOUND = 302
@@ -22,7 +22,7 @@ const ATTEMPTS_AFTER_RETRY = 2
 // opens the page and calls the server functions in pt.
 const PUBLIC_MESSAGE = m.configureServerErrors_message(
   {},
-  { locale: testLocale.alternate }
+  { locale: testLanguages.alternate }
 )
 type ServerResponse = {
   body: string
@@ -74,17 +74,17 @@ test('a redirect thrown by a server function in the SSR still redirects', async 
   request
 }) => {
   const response = await request.get(
-    testLocale.path(testLocale.alternate, '/control-signal'),
+    testLanguages.path(testLanguages.alternate, '/control-signal'),
     { maxRedirects: 0 }
   )
   expect(response.status()).toBe(HTTP_FOUND)
   expect(response.headers().location).toBe(
-    testLocale.path(testLocale.alternate, '?from=control-signal')
+    testLanguages.path(testLanguages.alternate, '?from=control-signal')
   )
   await page.goto('/control-signal')
   await expect(page).toHaveURL(
     new RegExp(
-      String.raw`${testLocale.path(testLocale.alternate, '')}\?from=control-signal$`,
+      String.raw`${testLanguages.path(testLanguages.alternate, '')}\?from=control-signal$`,
       'u'
     )
   )
@@ -128,10 +128,10 @@ test('an envelope thrown by a server function in the SSR becomes a render failur
   expect(response.status()).toBe(HTTP_INTERNAL_SERVER_ERROR)
   expect(document).not.toContain(marker)
   expect(response.headers()['content-language']).toBe(
-    testLocale.header(testLocale.base)
+    testLanguages.header(testLanguages.base)
   )
   expect(document).toContain(
-    m.errorFallback_runtimeTitle({}, { locale: testLocale.base })
+    m.errorFallback_runtimeTitle({}, { locale: testLanguages.base })
   )
   // Positive control: the server function read the marker before throwing.
   const after = await readBackendState({ request, id })
@@ -167,7 +167,7 @@ for (const { phase, javaScriptEnabled } of SCENARIOS) {
         page.getByRole('heading', {
           name: m.errorFallback_runtimeTitle(
             {},
-            { locale: testLocale.alternate }
+            { locale: testLanguages.alternate }
           )
         })
       ).toBeVisible()
@@ -179,7 +179,7 @@ for (const { phase, javaScriptEnabled } of SCENARIOS) {
       )
       await page
         .getByRole('link', {
-          name: m.errorFallback_reload({}, { locale: testLocale.alternate })
+          name: m.errorFallback_reload({}, { locale: testLanguages.alternate })
         })
         .click()
       const failedReload = await retryResponse
@@ -205,7 +205,7 @@ for (const { phase, javaScriptEnabled } of SCENARIOS) {
         page.getByRole('heading', {
           name: m.errorFallback_runtimeTitle(
             {},
-            { locale: testLocale.alternate }
+            { locale: testLanguages.alternate }
           )
         })
       ).toBeVisible()
@@ -228,7 +228,7 @@ for (const { phase, javaScriptEnabled } of SCENARIOS) {
       )
       await page
         .getByRole('link', {
-          name: m.errorFallback_reload({}, { locale: testLocale.alternate })
+          name: m.errorFallback_reload({}, { locale: testLanguages.alternate })
         })
         .click()
       const recoveredReload = await recoveryResponse
@@ -296,7 +296,7 @@ for (const phase of ['ssr', 'stream', 'action']) {
           : page.getByRole('heading', {
               name: m.errorFallback_runtimeTitle(
                 {},
-                { locale: testLocale.alternate }
+                { locale: testLanguages.alternate }
               )
             })
       await expect(content).toBeVisible()

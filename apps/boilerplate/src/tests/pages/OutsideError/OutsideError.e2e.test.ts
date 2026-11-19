@@ -12,9 +12,9 @@ import {
 } from '@/tests/helpers/fixtureGate/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
-import { testLocale } from '@/tests/helpers/testLocale/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
-test.use({ locale: testLocale.tag(testLocale.alternate) })
+test.use({ locale: testLanguages.tag(testLanguages.alternate) })
 
 const HTTP_OK = 200
 const HTTP_INTERNAL_SERVER_ERROR = 500
@@ -25,11 +25,11 @@ const LOADING_TEXT = 'Loading fixture...'
 // The direct request uses the base locale. The browser sends its preferred language.
 const PUBLIC_MESSAGE = m.configureServerErrors_message(
   {},
-  { locale: testLocale.base }
+  { locale: testLanguages.base }
 )
 const PAGE_PUBLIC_MESSAGE = m.configureServerErrors_message(
   {},
-  { locale: testLocale.alternate }
+  { locale: testLanguages.alternate }
 )
 // Messages that the browser can throw when hydrating, depending on the order
 // between the hydration and the arrival of the rejected fragment: the list
@@ -71,35 +71,50 @@ const CASES: FixtureCase[] = [
     name: 'render-root',
     gate: 'none',
     status: HTTP_INTERNAL_SERVER_ERROR,
-    content: m.errorFallback_runtimeTitle({}, { locale: testLocale.alternate }),
+    content: m.errorFallback_runtimeTitle(
+      {},
+      { locale: testLanguages.alternate }
+    ),
     pageErrors: []
   },
   {
     name: 'render-stream',
     gate: 'stream',
     status: HTTP_OK,
-    content: m.errorFallback_runtimeTitle({}, { locale: testLocale.alternate }),
+    content: m.errorFallback_runtimeTitle(
+      {},
+      { locale: testLanguages.alternate }
+    ),
     pageErrors: [PAGE_PUBLIC_MESSAGE]
   },
   {
     name: 'async-ssr',
     gate: 'before',
     status: HTTP_INTERNAL_SERVER_ERROR,
-    content: m.errorFallback_runtimeTitle({}, { locale: testLocale.alternate }),
+    content: m.errorFallback_runtimeTitle(
+      {},
+      { locale: testLanguages.alternate }
+    ),
     pageErrors: [RUNTIME_MESSAGE]
   },
   {
     name: 'async-direct',
     gate: 'stream',
     status: HTTP_OK,
-    content: m.errorFallback_runtimeTitle({}, { locale: testLocale.alternate }),
+    content: m.errorFallback_runtimeTitle(
+      {},
+      { locale: testLanguages.alternate }
+    ),
     pageErrors: [RUNTIME_MESSAGE, PAGE_PUBLIC_MESSAGE]
   },
   {
     name: 'async-element',
     gate: 'stream',
     status: HTTP_OK,
-    content: m.errorFallback_runtimeTitle({}, { locale: testLocale.alternate }),
+    content: m.errorFallback_runtimeTitle(
+      {},
+      { locale: testLanguages.alternate }
+    ),
     pageErrors: [RUNTIME_MESSAGE, PAGE_PUBLIC_MESSAGE]
   }
 ]
@@ -270,10 +285,10 @@ test.describe('middleware exceptions', () => {
       if (hasErrorPage) {
         expect(response.headers.get('content-type')).toContain('text/html')
         expect(response.headers.get('content-language') ?? undefined).toBe(
-          testLocale.header(testLocale.base)
+          testLanguages.header(testLanguages.base)
         )
         expect(body).toContain(
-          m.errorFallback_runtimeTitle({}, { locale: testLocale.base })
+          m.errorFallback_runtimeTitle({}, { locale: testLanguages.base })
         )
       } else {
         expect(body).toBe(PUBLIC_MESSAGE)
@@ -333,7 +348,7 @@ test.describe('middleware exceptions', () => {
     expect(response?.status()).toBe(HTTP_INTERNAL_SERVER_ERROR)
     await expect(
       page.getByRole('link', {
-        name: m.errorFallback_reload({}, { locale: testLocale.alternate })
+        name: m.errorFallback_reload({}, { locale: testLanguages.alternate })
       })
     ).toBeVisible()
     await expect.poll(async () => hydrationFinished(page)).toBe(true)

@@ -3,6 +3,10 @@ import path from 'node:path'
 
 import { parse, record, string } from 'valibot'
 
+import {
+  catalogLanguage,
+  readLocaleSettings
+} from '../configureLocales/catalogs.ts'
 import { editCatalog, editTemplate } from '../edit-template.ts'
 import type { StagedContext } from '../types.ts'
 
@@ -71,7 +75,8 @@ type Replacement = { pattern: RegExp | string; replacement: string }
 type IdentityEdit = (file: string) => (change: Replacement) => void
 
 function neutralCopy({ stage, profile, write }: StagedContext): void {
-  for (const [locale, copy] of Object.entries(messages)) {
+  for (const locale of readLocaleSettings(stage).locales) {
+    const copy = messages[catalogLanguage(locale)]
     for (const page of ['(home)', 'about', 'contact', 'privacy']) {
       const file = `src/routes/(base)/${page}/i18n/${locale}.json`
       const text = readFileSync(path.join(stage, file), 'utf8')

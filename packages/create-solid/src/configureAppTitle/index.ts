@@ -3,6 +3,7 @@ import path from 'node:path'
 
 import { parse, record, string } from 'valibot'
 
+import { readLocaleSettings } from '../configureLocales/catalogs.ts'
 import { editTemplate } from '../edit-template.ts'
 import { escapeMessageText } from '../escape-message-text.ts'
 import type { StagedContext } from '../types.ts'
@@ -59,7 +60,7 @@ export function configureAppTitle({ context, title }: TitleOptions): void {
     ]
   })
   for (const [folder, keys] of Object.entries(catalogs)) {
-    for (const locale of ['en', 'es', 'pt']) {
+    for (const locale of readLocaleSettings(stage).locales) {
       const file = `src/${folder}/i18n/${locale}.json`
       const source = readFileSync(path.join(stage, file), 'utf8')
       const catalog = parse(record(string(), string()), JSON.parse(source))

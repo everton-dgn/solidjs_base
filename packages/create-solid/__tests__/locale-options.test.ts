@@ -1,9 +1,25 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import process from 'node:process'
 import { it } from 'node:test'
 
+import {
+  catalogFolders,
+  readLocaleSettings
+} from '../src/configureLocales/catalogs.ts'
 import { resolveLocaleOptions } from '../src/locale-options.ts'
 import type { Profile } from '../src/types.ts'
 
+const usageExitCode = 2
 const defaults = { baseLocale: 'en', locales: ['pt', 'en', 'es'] }
 const resolve = (options: Partial<Profile>) =>
   resolveLocaleOptions({ options, defaults })
@@ -62,4 +78,74 @@ void it('rejects contradictory or malformed locale options with the flag name', 
     () => resolve({ mode: 'client', locales: ['fr', 'ja'] }),
     /--mode static/u
   )
+})
+
+void it('rejects invalid locale flags before creating the destination', context => {
+  const root = mkdtempSync(path.join(tmpdir(), 'solid-locale-flags-'))
+  context.after(() => rmSync(root, { recursive: true, force: true }))
+  const dir = path.join(root, 'app')
+  for (const [args, message] of [
+    [['--locales', ''], '--locales'],
+    [['--locales', 'es,ES'], '--locales'],
+    [['--locales', 'bad_tag'], '--locales'],
+    [['--locales', 'fr', '--base-locale', 'ja'], '--base-locale'],
+    [['--mode', 'client', '--locales', 'en,ja'], '--mode static']
+  ] as const) {
+    const result = spawnSync(
+      process.execPath,
+      ['src/create-solid.ts', dir, ...args, '--no-git', '--no-install'],
+      { encoding: 'utf8' }
+    )
+    assert.equal(result.status, usageExitCode)
+    assert.ok(result.stderr.includes(message))
+    assert.ok(!existsSync(dir))
+  }
+})
+
+void it('generates only the requested catalogs and identifies every seed', context => {
+  const root = mkdtempSync(path.join(tmpdir(), 'solid-locale-catalogs-'))
+  context.after(() => rmSync(root, { recursive: true, force: true }))
+  const dir = path.join(root, 'app')
+  const result = spawnSync(
+    process.execPath,
+    [
+      'src/create-solid.ts',
+      dir,
+      '--mode',
+      'static',
+      '--locales',
+      'pt-br,fr,ja',
+      '--base-locale',
+      'ja',
+      '--title',
+      'Loja {x}',
+      '--no-git',
+      '--no-install'
+    ],
+    { encoding: 'utf8' }
+  )
+  assert.equal(result.status, 0, result.stderr)
+  const locales = ['pt-BR', 'fr', 'ja']
+  assert.deepEqual(readLocaleSettings(dir), { locales, baseLocale: 'ja' })
+  for (const locale of locales) {
+    assert.ok(
+      result.stdout.includes(`Translate the seeded messages for ${locale}.`)
+    )
+  }
+  const folders = catalogFolders(dir)
+  assert.ok(folders.length > 0)
+  for (const folder of folders) {
+    assert.deepEqual(
+      readdirSync(folder)
+        .filter(file => file.endsWith('.json'))
+        .toSorted(),
+      locales.map(tag => `${tag}.json`).toSorted()
+    )
+  }
+  const file = path.join(dir, 'src/routes/(base)/about/i18n')
+  const message = (tag: string) =>
+    readFileSync(path.join(file, `${tag}.json`), 'utf8')
+  assert.match(message('pt-BR'), /Sobre Loja/u)
+  assert.match(message('ja'), /About Loja/u)
+  assert.equal(message('ja'), message('fr'))
 })

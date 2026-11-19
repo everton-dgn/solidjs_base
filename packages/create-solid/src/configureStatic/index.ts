@@ -3,6 +3,10 @@ import path from 'node:path'
 
 import { parse, record, string } from 'valibot'
 
+import {
+  catalogLanguage,
+  readLocaleSettings
+} from '../configureLocales/catalogs.ts'
 import { editCatalog, editTemplate } from '../edit-template.ts'
 import { distribution } from '../paths.ts'
 import { removeFeatureFiles } from '../removeFeatureFiles/index.ts'
@@ -72,7 +76,8 @@ function staticCatalogs({ stage, profile }: StaticCatalogOptions): void {
         ' A aplicação guarda sua preferência de aparência no armazenamento local deste dispositivo.'
     }
   }
-  for (const [locale, text] of Object.entries(messages)) {
+  for (const locale of readLocaleSettings(stage).locales) {
+    const text = messages[catalogLanguage(locale)]
     const siteFile = path.join(
       stage,
       'src/constants/site/i18n',

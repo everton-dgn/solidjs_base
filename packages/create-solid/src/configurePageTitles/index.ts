@@ -3,6 +3,10 @@ import path from 'node:path'
 
 import { parse, record, string } from 'valibot'
 
+import {
+  catalogLanguage,
+  readLocaleSettings
+} from '../configureLocales/catalogs.ts'
 import { editTemplate } from '../edit-template.ts'
 import { escapeMessageText } from '../escape-message-text.ts'
 import type { StagedContext } from '../types.ts'
@@ -37,7 +41,7 @@ export function configurePageTitles({ context, title }: TitleOptions): void {
     })
   }
   for (const [folder, original, key] of titles) {
-    for (const locale of ['en', 'es', 'pt']) {
+    for (const locale of readLocaleSettings(stage).locales) {
       const file = `src/${folder}/i18n/${locale}.json`
       const input = readFileSync(path.join(stage, file), 'utf8')
       const data = parse(record(string(), string()), JSON.parse(input))
@@ -50,7 +54,7 @@ export function configurePageTitles({ context, title }: TitleOptions): void {
       }
       const label =
         original === 'about_title'
-          ? (aboutLabels[locale] ?? aboutLabels.en)
+          ? (aboutLabels[catalogLanguage(locale)] ?? aboutLabels.en)
           : message
       data[key] = `${label} | ${escapeMessageText(title)}`
       write({ file, content: `${JSON.stringify(data, null, indent)}\n` })

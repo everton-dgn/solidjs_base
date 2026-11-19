@@ -74,6 +74,10 @@ void it('rejects a changed SEO import before rewriting the app', t => {
 void it('rejects a missing catalog key in the SEO copy', t => {
   const context = fixture(t)
   context.write({
+    file: 'project.inlang/settings.json',
+    content: JSON.stringify({ baseLocale: 'en', locales: ['en'] })
+  })
+  context.write({
     file: 'src/routes/(base)/(home)/i18n/en.json',
     content: '{}'
   })

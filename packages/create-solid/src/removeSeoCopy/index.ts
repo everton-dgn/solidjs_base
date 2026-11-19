@@ -3,6 +3,10 @@ import path from 'node:path'
 
 import { parse, record, string } from 'valibot'
 
+import {
+  catalogLanguage,
+  readLocaleSettings
+} from '../configureLocales/catalogs.ts'
 import { editCatalog } from '../edit-template.ts'
 import { removeSeoConventions } from '../removeSeoConventions/index.ts'
 import { removeSeoGuideCopy } from '../removeSeoGuideCopy/index.ts'
@@ -23,7 +27,8 @@ const locales = {
 } as const
 const indent = 2
 export function removeSeoCopy(stage: string): void {
-  for (const [locale, [home, about]] of Object.entries(locales)) {
+  for (const locale of readLocaleSettings(stage).locales) {
+    const [home, about] = locales[catalogLanguage(locale)]
     for (const page of ['(home)', 'about', 'contact', 'privacy', '[...404]']) {
       const file = path.join(
         stage,

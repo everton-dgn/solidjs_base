@@ -28,6 +28,8 @@ import {
 import { configureClient } from './configureClient/index.ts'
 import { configureFileHostGuides } from './configureFileHostGuides/index.ts'
 import { configureFonts } from './configureFonts/index.ts'
+import { readLocaleSettings } from './configureLocales/catalogs.ts'
+import { configureLocales } from './configureLocales/index.ts'
 import { configurePageTitles } from './configurePageTitles/index.ts'
 import { configureSeo } from './configureSeo/index.ts'
 import { configureSiteIdentity } from './configureSiteIdentity/index.ts'
@@ -35,6 +37,7 @@ import { configureStandaloneGuides } from './configureStandaloneGuides/index.ts'
 import { configureStatic } from './configureStatic/index.ts'
 import { editTemplate } from './edit-template.ts'
 import { installProfile } from './installProfile/index.ts'
+import { resolveLocaleOptions } from './locale-options.ts'
 import { applyPreparedGuides } from './prepared-guides.ts'
 import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
@@ -300,6 +303,8 @@ export function generateSource(
     throw new UsageError('--site-url requires SEO')
   }
   const template = path.resolve(import.meta.dirname, '../template')
+  const defaults = readLocaleSettings(template)
+  const languages = resolveLocaleOptions({ options: profile, defaults })
   const settingsFile = new URL('../dist/settings.json', import.meta.url)
   const settings = parse(
     settingsSchema,
@@ -367,6 +372,7 @@ export function generateSource(
     )
     cpSync(installerFiles, stage, { recursive: true })
     configureReadme(context)
+    configureLocales({ stage, settings: languages })
     configureStatic(context)
     configureFonts({ stage, hasFonts: profile.hasFonts })
     configureSeo(context)
@@ -407,7 +413,13 @@ export function generateSource(
     }
   }
   installProfile(profile)
-  return nextSteps(profile)
+  const seeded = languages.locales.filter(
+    tag => !defaults.locales.includes(tag)
+  )
+  return [
+    ...seeded.map(tag => `Translate the seeded messages for ${tag}.`),
+    ...nextSteps(profile)
+  ]
 }
 
 export function generate(input: Profile): string[] {

@@ -17,7 +17,7 @@ import { generate } from '../src/generate.ts'
 
 const repetitions = 15
 for (const title of [
-  String.raw`Été " ' < & \ \` #`,
+  String.raw`Été " ' < & {x} \\ \` #`,
   'Um título comprido '.repeat(repetitions).trim()
 ]) {
   void it(`escapes and formats a client application named ${title}`, async context => {
@@ -42,8 +42,15 @@ for (const title of [
       'utf8'
     )
     const catalog = parse(record(string(), string()), JSON.parse(source))
-    assert.equal(catalog.home_seoTitle, `${title} | Web applications`)
-    assert.equal(catalog.home_title, `${title} for web applications`)
+    for (const [key, expected] of [
+      ['home_seoTitle', `${title} | Web applications`],
+      ['home_title', `${title} for web applications`]
+    ] as const) {
+      const pattern = catalog[key]
+      assert.ok(pattern)
+      assert.match(pattern, /^(?:[^\\{}]|\\[\\{}])*$/u)
+      assert.equal(pattern.replaceAll(/\\([\\{}])/gu, '$1'), expected)
+    }
     const files = readdirSync(dir)
     copyFileSync(
       'dist/formatter/vite.config.mjs',

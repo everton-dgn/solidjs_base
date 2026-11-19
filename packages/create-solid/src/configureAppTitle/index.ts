@@ -4,6 +4,7 @@ import path from 'node:path'
 import { parse, record, string } from 'valibot'
 
 import { editTemplate } from '../edit-template.ts'
+import { escapeMessageText } from '../escape-message-text.ts'
 import type { StagedContext } from '../types.ts'
 import { UsageError } from '../usage-error.ts'
 
@@ -69,7 +70,7 @@ export function configureAppTitle(context: StagedContext, title: string): void {
           file,
           text,
           pattern: original,
-          replacement: () => title
+          replacement: () => escapeMessageText(title)
         })
       }
       write({ file, content: `${JSON.stringify(catalog, null, indent)}\n` })

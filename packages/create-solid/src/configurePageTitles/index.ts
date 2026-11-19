@@ -4,6 +4,7 @@ import path from 'node:path'
 import { parse, record, string } from 'valibot'
 
 import { editTemplate } from '../edit-template.ts'
+import { escapeMessageText } from '../escape-message-text.ts'
 import type { StagedContext } from '../types.ts'
 
 const indent = 2
@@ -45,7 +46,7 @@ export function configurePageTitles(
       const data = parse(record(string(), string()), JSON.parse(input))
       const message = data[original]
       if (!message) throw new Error(`Missing page title: ${file} ${original}`)
-      data[key] = `${message} | ${title}`
+      data[key] = `${message} | ${escapeMessageText(title)}`
       write({ file, content: `${JSON.stringify(data, null, indent)}\n` })
     }
     if (!['contact_title', 'privacy_title'].includes(original)) continue

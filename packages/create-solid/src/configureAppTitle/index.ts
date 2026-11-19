@@ -11,11 +11,9 @@ import { UsageError } from '../usage-error.ts'
 const original = 'SolidJS Boilerplate'
 const indent = 2
 const catalogs = {
-  'constants/site': ['site_imageAlt'],
   'routes/(base)/(home)': ['home_title', 'home_seoTitle'],
   'routes/(base)/about': ['about_title', 'about_intro'],
-  'routes/(base)/contact': ['contact_description', 'contact_intro'],
-  'routes/(base)/privacy': ['privacy_intro']
+  'routes/(base)/contact': ['contact_description']
 }
 
 function literal(value: string): string {
@@ -61,7 +59,6 @@ export function configureAppTitle({ context, title }: TitleOptions): void {
     ]
   })
   for (const [folder, keys] of Object.entries(catalogs)) {
-    if (folder === 'constants/site' && profile.hasSeo === false) continue
     for (const locale of ['en', 'es', 'pt']) {
       const file = `src/${folder}/i18n/${locale}.json`
       const source = readFileSync(path.join(stage, file), 'utf8')
@@ -72,10 +69,12 @@ export function configureAppTitle({ context, title }: TitleOptions): void {
         if (!text) {
           throw new Error(`Missing title message: ${file} ${key}`)
         }
+        const pattern =
+          key === 'home_title' || key === 'home_seoTitle' ? text : original
         catalog[key] = editTemplate({
           file,
           text,
-          pattern: original,
+          pattern,
           replacement: () => escapeMessageText(title)
         })
       }

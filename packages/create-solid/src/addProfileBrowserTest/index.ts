@@ -99,14 +99,12 @@ import { SITE } from '@/constants/site/title.ts'
 
 test('mounts and opens a localized route directly', async ({ page }) => {
   await page.goto('/en')
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    \`\${SITE.title} for web applications\`
-  )
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
   await page.getByRole('button', { name: /select language/iu }).click()
   await expect(page.getByRole('menu')).toBeVisible()
   await page.keyboard.press('Escape')
   await page.getByRole('banner').getByRole('link', { name: 'About' }).click()
-  await expect(page).toHaveTitle(\`About \${SITE.title}\`)
+  await expect(page).toHaveTitle(\`About | \${SITE.title}\`)
   await page.goto('/en/about')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     \`About \${SITE.title}\`

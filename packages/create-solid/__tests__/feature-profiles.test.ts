@@ -17,6 +17,68 @@ import { generate } from '../src/generate.ts'
 
 const localeSettings = object({ locales: array(string()) })
 const repetitions = 15
+type AppTitleCase = {
+  dir: string
+  mode: 'server' | 'static' | 'client'
+  title: string
+}
+function checkTitleMessages({ dir, mode, title }: AppTitleCase): void {
+  const settingsSource = readFileSync(
+    path.join(dir, 'project.inlang/settings.json'),
+    'utf8'
+  )
+  const { locales } = parse(localeSettings, JSON.parse(settingsSource))
+  const folders = {
+    'routes/(base)/(home)': ['home_title', 'home_seoTitle'],
+    'routes/(base)/about': ['about_title', 'about_pageTitle', 'about_intro'],
+    'routes/(base)/contact': [
+      'contact_pageTitle',
+      'contact_intro',
+      ...(mode === 'client' ? [] : ['contact_description'])
+    ],
+    'routes/(base)/privacy': ['privacy_pageTitle', 'privacy_intro'],
+    'routes/(base)/[...404]': ['notFound_title'],
+    'components/organisms/ErrorFallback': ['errorFallback_runtimePageTitle'],
+    'constants/site': mode === 'client' ? [] : ['site_imageAlt']
+  }
+  for (const locale of locales) {
+    for (const [folder, keys] of Object.entries(folders)) {
+      if (keys.length === 0) continue
+      const source = readFileSync(
+        path.join(dir, 'src', folder, 'i18n', `${locale}.json`),
+        'utf8'
+      )
+      const catalog = parse(record(string(), string()), JSON.parse(source))
+      for (const key of keys) {
+        const pattern = catalog[key]
+        assert.ok(pattern, `${locale}: ${key}`)
+        assert.match(pattern, /^(?:[^\\{}]|\\[\\{}])*$/u)
+        const decoded = pattern.replaceAll(
+          /\\(?<escaped>[\\{}])/gu,
+          '$<escaped>'
+        )
+        if (key === 'site_imageAlt') {
+          assert.ok(decoded.includes('SolidJS Boilerplate'))
+        }
+        if (['privacy_intro', 'contact_intro', 'site_imageAlt'].includes(key)) {
+          assert.ok(!decoded.includes(title))
+          continue
+        }
+        assert.ok(decoded.includes(title), `${locale}: ${key}`)
+        if (key === 'home_title' || key === 'home_seoTitle') {
+          assert.equal(decoded, title)
+        }
+        if (key === 'about_pageTitle') {
+          assert.ok(decoded.endsWith(` | ${title}`))
+        }
+        if (key === 'about_title' && locale === 'pt') {
+          assert.equal(decoded, `Sobre ${title}`)
+        }
+      }
+    }
+  }
+}
+
 for (const mode of ['server', 'static', 'client'] as const) {
   for (const title of [
     String.raw`Été " ' < & {x} \\ \` # ~~x~~`,
@@ -39,56 +101,7 @@ for (const mode of ['server', 'static', 'client'] as const) {
       const siteSchema = object({ title: string() })
       const { SITE } = parse(object({ SITE: siteSchema }), module)
       assert.equal(SITE.title, title)
-      const settingsSource = readFileSync(
-        path.join(dir, 'project.inlang/settings.json'),
-        'utf8'
-      )
-      const { locales } = parse(localeSettings, JSON.parse(settingsSource))
-      const folders = {
-        'routes/(base)/(home)': ['home_title', 'home_seoTitle'],
-        'routes/(base)/about': ['about_title', 'about_intro'],
-        'routes/(base)/contact': [
-          'contact_pageTitle',
-          'contact_intro',
-          ...(mode === 'client' ? [] : ['contact_description'])
-        ],
-        'routes/(base)/privacy': ['privacy_pageTitle', 'privacy_intro'],
-        'routes/(base)/[...404]': ['notFound_title'],
-        'components/organisms/ErrorFallback': [
-          'errorFallback_runtimePageTitle'
-        ],
-        'constants/site': mode === 'client' ? [] : ['site_imageAlt']
-      }
-      for (const locale of locales) {
-        for (const [folder, keys] of Object.entries(folders)) {
-          if (keys.length === 0) continue
-          const source = readFileSync(
-            path.join(dir, 'src', folder, 'i18n', `${locale}.json`),
-            'utf8'
-          )
-          const catalog = parse(record(string(), string()), JSON.parse(source))
-          for (const key of keys) {
-            const pattern = catalog[key]
-            assert.ok(pattern, `${locale}: ${key}`)
-            assert.match(pattern, /^(?:[^\\{}]|\\[\\{}])*$/u)
-            const decoded = pattern.replaceAll(
-              /\\(?<escaped>[\\{}])/gu,
-              '$<escaped>'
-            )
-            assert.ok(decoded.includes(title), `${locale}: ${key}`)
-            if (mode === 'client' && locale === 'en' && key === 'home_title') {
-              assert.equal(decoded, `${title} for web applications`)
-            }
-            if (
-              mode === 'client' &&
-              locale === 'en' &&
-              key === 'home_seoTitle'
-            ) {
-              assert.equal(decoded, `${title} | Web applications`)
-            }
-          }
-        }
-      }
+      checkTitleMessages({ dir, mode, title })
       const values = []
       if (mode === 'client') {
         const html = readFileSync(path.join(dir, 'index.html'), 'utf8')
@@ -96,7 +109,7 @@ for (const mode of ['server', 'static', 'client'] as const) {
         values.push(
           /<title>(?<title>[^<]*)<\/title>/u.exec(html)?.groups?.title
         )
-        for (const page of ['contact', 'privacy']) {
+        for (const page of ['about', 'contact', 'privacy']) {
           const route = readFileSync(
             path.join(dir, `src/routes/(base)/${page}/index.tsx`),
             'utf8'

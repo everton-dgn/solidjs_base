@@ -33,6 +33,7 @@ import { manifestSchema } from '../src/schema.ts'
 import { buildProfiles } from './build-profiles.ts'
 import { checkImports } from './check-imports.ts'
 import { prepareGuides } from './prepare-guides.ts'
+import { prepareTitleTests } from './prepare-title-tests.ts'
 
 const root = path.resolve(import.meta.dirname, '../../..')
 const app = path.join(root, 'apps/boilerplate')
@@ -168,6 +169,7 @@ writeFileSync(
   path.join(formatter, 'vite.config.mjs'),
   `export default ${JSON.stringify({ fmt })}\n`
 )
+prepareTitleTests()
 const patchTest = 'tooling/__tests__/patched-dependencies.test.ts'
 for (const pm of ['bun', 'npm', 'pnpm'] as const) {
   const dir = path.resolve('dist/profiles', pm)

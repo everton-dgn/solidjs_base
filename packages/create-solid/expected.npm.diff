@@ -2431,6 +2431,45 @@ diff --git a/source/src/primitives/createSeo/index.ts b/example/src/primitives/c
        localeTagOverrides: LOCALE_TAG_OVERRIDES,
        markdownHref: (
          pathname: string,
+diff --git a/source/src/routes/(base)/(home)/i18n/en.json b/example/src/routes/(base)/(home)/i18n/en.json
+--- a/source/src/routes/(base)/(home)/i18n/en.json
++++ b/example/src/routes/(base)/(home)/i18n/en.json
+@@ -1,6 +1,6 @@
+ {
+-  "home_title": "SolidJS Boilerplate for web applications",
++  "home_title": "SolidJS Boilerplate",
+   "home_description": "Start your next project with {framework}, {toolchain} and {language}. Server-side rendering and light, dark or system theme preferences are already configured.",
+-  "home_seoTitle": "SolidJS Boilerplate | Web applications with SSR",
+-  "home_features": "You start with pages in Portuguese, English and Spanish, SEO defined per route and user interface components ready to adapt. Automated unit, component and browser tests accompany the source code, while backend calls handle errors without exposing server details."
++  "home_seoTitle": "SolidJS Boilerplate",
++  "home_features": "This application was built with Solid Base. Use the navigation links to open the about, contact and privacy pages. Each page has its own address, so you can bookmark it or share a direct link. The about page describes the project and the tools used to build it. The contact page explains what information to include when reporting a problem. The privacy page describes browser preferences and what happens when you follow an external link. Use the home link in the navigation to return to this page."
+ }
+diff --git a/source/src/routes/(base)/(home)/i18n/es.json b/example/src/routes/(base)/(home)/i18n/es.json
+--- a/source/src/routes/(base)/(home)/i18n/es.json
++++ b/example/src/routes/(base)/(home)/i18n/es.json
+@@ -1,6 +1,6 @@
+ {
+-  "home_title": "SolidJS Boilerplate para aplicaciones web",
++  "home_title": "SolidJS Boilerplate",
+   "home_description": "Empieza tu próximo proyecto con {framework}, {toolchain} y {language}. El renderizado en el servidor y las preferencias de tema claro, oscuro o del sistema ya están configurados.",
+-  "home_seoTitle": "SolidJS Boilerplate | Aplicaciones web con SSR",
+-  "home_features": "Ya cuentas con páginas en portugués, inglés y español, SEO definido por ruta y componentes de interfaz listos para adaptar. El código incluye pruebas unitarias, de componentes y de navegador, y las llamadas al backend gestionan errores sin exponer detalles del servidor."
++  "home_seoTitle": "SolidJS Boilerplate",
++  "home_features": "Esta aplicación se creó con Solid Base. Usa los enlaces de navegación para abrir las páginas de información, contacto y privacidad. Cada página tiene su propia dirección, que puedes guardar en tus favoritos o compartir con otra persona. La página de información presenta el proyecto y las herramientas utilizadas para crearlo. La página de contacto explica qué detalles incluir al comunicar un problema. La página de privacidad describe las preferencias del navegador y los enlaces externos. El enlace de inicio te permite volver a esta página."
+ }
+diff --git a/source/src/routes/(base)/(home)/i18n/pt.json b/example/src/routes/(base)/(home)/i18n/pt.json
+--- a/source/src/routes/(base)/(home)/i18n/pt.json
++++ b/example/src/routes/(base)/(home)/i18n/pt.json
+@@ -1,6 +1,6 @@
+ {
+-  "home_title": "SolidJS Boilerplate para aplicações web",
++  "home_title": "SolidJS Boilerplate",
+   "home_description": "Comece seu próximo projeto com {framework}, {toolchain} e {language}. Renderização no servidor e tema claro, escuro ou do sistema já vêm configurados.",
+-  "home_seoTitle": "SolidJS Boilerplate | Aplicações web com SSR",
+-  "home_features": "Você já parte de páginas em português, inglês e espanhol, SEO definido por rota e componentes de interface prontos para adaptar. Testes de unidade, de componentes e de navegador acompanham o código, e as chamadas ao backend tratam erros sem expor detalhes do servidor."
++  "home_seoTitle": "SolidJS Boilerplate",
++  "home_features": "Esta aplicação foi criada com Solid Base. Use os links de navegação para abrir as páginas sobre o projeto, de contato e de privacidade. Cada página tem um endereço próprio que você pode salvar nos favoritos ou compartilhar com outra pessoa. A página sobre o projeto apresenta as ferramentas usadas no desenvolvimento. A página de contato explica quais informações incluir ao relatar um problema. A página de privacidade descreve as preferências do navegador e os links externos. Use o link de início para voltar a esta página."
+ }
 diff --git a/source/src/routes/(base)/[...404]/i18n/en.json b/example/src/routes/(base)/[...404]/i18n/en.json
 --- a/source/src/routes/(base)/[...404]/i18n/en.json
 +++ b/example/src/routes/(base)/[...404]/i18n/en.json
@@ -2461,53 +2500,60 @@ diff --git a/source/src/routes/(base)/[...404]/i18n/pt.json b/example/src/routes
 diff --git a/source/src/routes/(base)/about/i18n/en.json b/example/src/routes/(base)/about/i18n/en.json
 --- a/source/src/routes/(base)/about/i18n/en.json
 +++ b/example/src/routes/(base)/about/i18n/en.json
-@@ -1,10 +1,10 @@
+@@ -1,10 +1,11 @@
  {
    "about_title": "About SolidJS Boilerplate",
 -  "about_description": "Learn about the open source project maintained by Éverton Toffanetto and its web application features.",
 -  "about_intro": "SolidJS Boilerplate is an open source project maintained by Éverton Toffanetto. It provides a foundation for building web applications with SolidJS, TypeScript and Vite+, with source code available on GitHub under the MIT license.",
 +  "about_description": "Learn about the application and its features.",
-+  "about_intro": "SolidJS Boilerplate provides localized pages and navigation.",
++  "about_intro": "This page describes SolidJS Boilerplate and the tools used to build it.",
    "about_purposeTitle": "Purpose and features",
    "about_purpose": "The project brings together the initial integrations for an application: server-side rendering, route organization, translated content, themes and automated tests. This website demonstrates the foundation in use. Its examples and documentation help explain the project choices before you adapt it for another product.",
    "about_sourceTitle": "Source code and documentation",
 -  "about_source": "The repository is the reference for installation, development commands and implementation details. Its guides cover architecture, testing, SEO and server error handling. You can freely use, modify, distribute and sell the code, including in commercial and closed-source projects.",
+-  "about_documentationLabel": "Documentation"
 +  "about_source": "The application includes guides to its architecture and development tasks.",
-   "about_documentationLabel": "Documentation"
++  "about_documentationLabel": "Documentation",
++  "about_pageTitle": "About | SolidJS Boilerplate"
  }
 diff --git a/source/src/routes/(base)/about/i18n/es.json b/example/src/routes/(base)/about/i18n/es.json
 --- a/source/src/routes/(base)/about/i18n/es.json
 +++ b/example/src/routes/(base)/about/i18n/es.json
-@@ -1,10 +1,10 @@
+@@ -1,10 +1,11 @@
  {
    "about_title": "Acerca de SolidJS Boilerplate",
 -  "about_description": "Conoce el proyecto de código abierto mantenido por Éverton Toffanetto y sus recursos para aplicaciones web.",
 -  "about_intro": "SolidJS Boilerplate es un proyecto de código abierto mantenido por Éverton Toffanetto. Ofrece una base para desarrollar aplicaciones web con SolidJS, TypeScript y Vite+, con el código disponible en GitHub bajo la licencia MIT.",
 +  "about_description": "Conoce la aplicación y sus funciones.",
-+  "about_intro": "SolidJS Boilerplate ofrece páginas y navegación en varios idiomas.",
++  "about_intro": "Esta página describe SolidJS Boilerplate y las herramientas de desarrollo que utiliza.",
    "about_purposeTitle": "Propósito y recursos",
    "about_purpose": "El proyecto reúne las integraciones iniciales de una aplicación: renderizado en el servidor, organización de rutas, traducción del contenido, temas y pruebas automatizadas. Este sitio demuestra la base en funcionamiento. Los ejemplos y la documentación ayudan a entender las decisiones del proyecto antes de adaptarlo a otro producto.",
    "about_sourceTitle": "Código y documentación",
 -  "about_source": "El repositorio es la referencia para la instalación, los comandos de desarrollo y los detalles de implementación. Sus guías explican la arquitectura, las pruebas, el SEO y el tratamiento de errores en el servidor. Puedes usar, modificar, distribuir y vender el código libremente, incluso en proyectos comerciales y de código cerrado.",
+-  "about_documentationLabel": "Documentación"
 +  "about_source": "La aplicación incluye guías sobre su arquitectura y las tareas de desarrollo.",
-   "about_documentationLabel": "Documentación"
++  "about_documentationLabel": "Documentación",
++  "about_pageTitle": "Acerca de | SolidJS Boilerplate"
  }
 diff --git a/source/src/routes/(base)/about/i18n/pt.json b/example/src/routes/(base)/about/i18n/pt.json
 --- a/source/src/routes/(base)/about/i18n/pt.json
 +++ b/example/src/routes/(base)/about/i18n/pt.json
-@@ -1,10 +1,10 @@
+@@ -1,10 +1,11 @@
  {
-   "about_title": "Sobre o SolidJS Boilerplate",
+-  "about_title": "Sobre o SolidJS Boilerplate",
 -  "about_description": "Conheça o projeto aberto mantido por Éverton Toffanetto e os recursos desta base para aplicações web.",
 -  "about_intro": "O SolidJS Boilerplate é um projeto de código aberto mantido por Éverton Toffanetto. Ele oferece uma base para desenvolver aplicações web com SolidJS, TypeScript e Vite+, com o código disponível no GitHub sob a licença MIT.",
++  "about_title": "Sobre SolidJS Boilerplate",
 +  "about_description": "Conheça a aplicação e seus recursos.",
-+  "about_intro": "SolidJS Boilerplate oferece páginas e navegação em vários idiomas.",
++  "about_intro": "Esta página apresenta SolidJS Boilerplate e as ferramentas usadas no desenvolvimento.",
    "about_purposeTitle": "Propósito e recursos",
    "about_purpose": "A proposta é reunir as integrações iniciais de um projeto: renderização no servidor, organização de rotas, tradução de conteúdo, temas e testes automatizados. Este site demonstra a base em funcionamento. Os exemplos e a documentação ajudam a entender as escolhas do projeto antes de adaptá-lo para outro produto.",
    "about_sourceTitle": "Código e documentação",
 -  "about_source": "O repositório é a referência para instalação, comandos de desenvolvimento e detalhes da implementação. Os guias descrevem arquitetura, testes, SEO e tratamento de erros no servidor. Você pode usar, modificar, distribuir e vender o código livremente, inclusive em projetos comerciais e de código fechado.",
+-  "about_documentationLabel": "Documentação"
 +  "about_source": "A aplicação inclui guias sobre sua arquitetura e as tarefas de desenvolvimento.",
-   "about_documentationLabel": "Documentação"
++  "about_documentationLabel": "Documentação",
++  "about_pageTitle": "Sobre | SolidJS Boilerplate"
  }
 diff --git a/source/src/routes/(base)/about/index.tsx b/example/src/routes/(base)/about/index.tsx
 --- a/source/src/routes/(base)/about/index.tsx
@@ -2533,6 +2579,17 @@ diff --git a/source/src/routes/(base)/about/index.tsx b/example/src/routes/(base
      ]
    }
  } satisfies SitePage
+diff --git a/source/src/routes/(base)/about/seo.ts b/example/src/routes/(base)/about/seo.ts
+--- a/source/src/routes/(base)/about/seo.ts
++++ b/example/src/routes/(base)/about/seo.ts
+@@ -2,6 +2,6 @@ import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
+ import { m } from '@paraglide/messages.js'
+ 
+ export const seo = {
+-  title: m.about_title,
++  title: m.about_pageTitle,
+   description: m.about_description
+ } satisfies SeoRouteInfo
 diff --git a/source/src/routes/(base)/contact/i18n/en.json b/example/src/routes/(base)/contact/i18n/en.json
 --- a/source/src/routes/(base)/contact/i18n/en.json
 +++ b/example/src/routes/(base)/contact/i18n/en.json
@@ -2542,12 +2599,13 @@ diff --git a/source/src/routes/(base)/contact/i18n/en.json b/example/src/routes/
 -  "contact_description": "Find the repository and public maintainer channels for SolidJS Boilerplate.",
 -  "contact_intro": "For questions about SolidJS Boilerplate, start with its public GitHub repository. It contains the source code, documentation and issue tracker for reporting problems and suggesting changes related to the project.",
 +  "contact_description": "Contact information for SolidJS Boilerplate.",
-+  "contact_intro": "This page lists the contact options available for SolidJS Boilerplate.",
++  "contact_intro": "Use this page to prepare a question or report a problem.",
    "contact_issuesTitle": "Problems and suggestions",
 -  "contact_issues": "Before opening an issue, check the README and existing discussions. To report a problem, describe the observed behavior, the expected result and the steps needed to reproduce it. Include the relevant environment and dependencies so others can investigate. Do not publish passwords, tokens, personal data or configuration files containing secrets.",
-+  "contact_issues": "When reporting a problem, describe what happened and the steps needed to reproduce it. Leave out private information.",
-   "contact_maintainerTitle": "Maintainer",
+-  "contact_maintainerTitle": "Maintainer",
 -  "contact_maintainer": "Éverton Toffanetto maintains this project. His public GitHub profile is linked on this page. Issues are public and can be read by anyone, so choose what to include with that visibility in mind. The project does not publish a response deadline or offer a contracted support channel through this demonstration.",
++  "contact_issues": "When reporting a problem, describe what happened and the steps needed to reproduce it. Leave out private information.",
++  "contact_maintainerTitle": "Details to include",
 +  "contact_maintainer": "Use the contact details listed on this page when they are available. Describe the page you visited, the language you selected and the result you expected. If you include an example, use fictional data and remove personal details from any screenshots. Keep a copy of the report so that you can add information if the problem happens again.",
    "contact_issuesLabel": "Project issues",
 -  "contact_maintainerLabel": "Maintainer profile"
@@ -2563,12 +2621,13 @@ diff --git a/source/src/routes/(base)/contact/i18n/es.json b/example/src/routes/
 -  "contact_description": "Encuentra el repositorio y los canales públicos del responsable de SolidJS Boilerplate.",
 -  "contact_intro": "Para consultas sobre SolidJS Boilerplate, empieza por el repositorio público en GitHub. Allí se encuentran el código, la documentación y el espacio de issues para informar de problemas y proponer cambios relacionados con el proyecto.",
 +  "contact_description": "Información de contacto de SolidJS Boilerplate.",
-+  "contact_intro": "Esta página reúne las opciones de contacto disponibles para SolidJS Boilerplate.",
++  "contact_intro": "Usa esta página para preparar una consulta o informar de un problema.",
    "contact_issuesTitle": "Problemas y sugerencias",
 -  "contact_issues": "Antes de abrir una issue, consulta el README y las conversaciones existentes. Para informar de un problema, describe el comportamiento observado, el resultado esperado y los pasos para reproducirlo. Incluye el entorno y las dependencias relevantes para que otras personas puedan investigarlo. No publiques contraseñas, tokens, datos personales ni archivos de configuración con secretos.",
-+  "contact_issues": "Al informar de un problema, describe qué pasó y cómo reproducirlo. Omite los datos privados.",
-   "contact_maintainerTitle": "Responsable del proyecto",
+-  "contact_maintainerTitle": "Responsable del proyecto",
 -  "contact_maintainer": "Éverton Toffanetto mantiene este proyecto. Su perfil público en GitHub aparece en los enlaces de esta página. Las issues son públicas y cualquier persona puede leerlas; elige el contenido del mensaje teniendo en cuenta esa visibilidad. El proyecto no publica un plazo de respuesta ni ofrece un canal de soporte contratado en esta demostración.",
++  "contact_issues": "Al informar de un problema, describe qué pasó y cómo reproducirlo. Omite los datos privados.",
++  "contact_maintainerTitle": "Detalles que puedes incluir",
 +  "contact_maintainer": "Utiliza los datos de contacto de esta página cuando estén disponibles. Indica qué página visitaste, qué idioma elegiste y qué resultado esperabas. Si incluyes un ejemplo, utiliza datos ficticios y elimina la información personal de las capturas de pantalla. Guarda una copia del informe para añadir detalles si el problema vuelve a ocurrir.",
    "contact_issuesLabel": "Issues del proyecto",
 -  "contact_maintainerLabel": "Perfil del responsable"
@@ -2584,12 +2643,13 @@ diff --git a/source/src/routes/(base)/contact/i18n/pt.json b/example/src/routes/
 -  "contact_description": "Encontre o repositório e os canais públicos do mantenedor do SolidJS Boilerplate.",
 -  "contact_intro": "O contato sobre o SolidJS Boilerplate começa pelo repositório público no GitHub. Ele reúne o código, a documentação e o espaço de issues para relatos de problemas e sugestões relacionadas ao projeto.",
 +  "contact_description": "Informações de contato de SolidJS Boilerplate.",
-+  "contact_intro": "Esta página reúne as opções de contato disponíveis para SolidJS Boilerplate.",
++  "contact_intro": "Use esta página para preparar uma pergunta ou relatar um problema.",
    "contact_issuesTitle": "Problemas e sugestões",
 -  "contact_issues": "Antes de abrir uma issue, consulte o README e as discussões já registradas. Para relatar um problema, descreva o comportamento observado, o resultado esperado e os passos necessários para reproduzi-lo. Informe o ambiente e as dependências relevantes para que outras pessoas consigam investigar o caso. Não publique senhas, tokens, dados pessoais ou arquivos de configuração com segredos.",
-+  "contact_issues": "Ao relatar um problema, descreva o que aconteceu e os passos para reproduzi-lo. Omita os dados privados.",
-   "contact_maintainerTitle": "Mantenedor",
+-  "contact_maintainerTitle": "Mantenedor",
 -  "contact_maintainer": "Éverton Toffanetto mantém este projeto. Seu perfil público no GitHub está disponível nos links desta página. As issues são públicas e podem ser lidas por qualquer pessoa; escolha o conteúdo da mensagem considerando essa visibilidade. O projeto não publica um prazo de resposta nem oferece um canal de suporte contratado nesta demonstração.",
++  "contact_issues": "Ao relatar um problema, descreva o que aconteceu e os passos para reproduzi-lo. Omita os dados privados.",
++  "contact_maintainerTitle": "Detalhes do relato",
 +  "contact_maintainer": "Use os dados de contato desta página quando estiverem disponíveis. Informe a página visitada, o idioma escolhido e o resultado esperado. Se incluir um exemplo, use dados fictícios e remova informações pessoais das capturas de tela. Guarde uma cópia do relato para acrescentar detalhes caso o problema volte a ocorrer.",
    "contact_issuesLabel": "Issues do projeto",
 -  "contact_maintainerLabel": "Perfil do mantenedor"
@@ -2633,7 +2693,12 @@ diff --git a/source/src/routes/(base)/contact/seo.ts b/example/src/routes/(base)
 diff --git a/source/src/routes/(base)/privacy/i18n/en.json b/example/src/routes/(base)/privacy/i18n/en.json
 --- a/source/src/routes/(base)/privacy/i18n/en.json
 +++ b/example/src/routes/(base)/privacy/i18n/en.json
-@@ -5,5 +5,6 @@
+@@ -1,9 +1,10 @@
+ {
+   "privacy_title": "Privacy",
+   "privacy_description": "Learn how this demonstration uses language and theme preferences and where to find its public channels.",
+-  "privacy_intro": "This page describes the privacy features observable in the source code of this SolidJS Boilerplate demonstration. Its public pages do not provide account registration, checkout or a form for submitting personal data.",
++  "privacy_intro": "This page describes how this application handles privacy.",
    "privacy_preferencesTitle": "Browser preferences",
    "privacy_preferences": "The interface uses cookies to remember the language and theme preference. The language also appears in the page address, such as /pt, /en or /es. These preferences keep the presentation consistent between visits. You can delete or block cookies through your browser settings; a choice may then stop persisting on your next visit.",
    "privacy_hostingTitle": "Accessing the site and external links",
@@ -2644,7 +2709,12 @@ diff --git a/source/src/routes/(base)/privacy/i18n/en.json b/example/src/routes/
 diff --git a/source/src/routes/(base)/privacy/i18n/es.json b/example/src/routes/(base)/privacy/i18n/es.json
 --- a/source/src/routes/(base)/privacy/i18n/es.json
 +++ b/example/src/routes/(base)/privacy/i18n/es.json
-@@ -5,5 +5,6 @@
+@@ -1,9 +1,10 @@
+ {
+   "privacy_title": "Privacidad",
+   "privacy_description": "Conoce cómo esta demostración usa las preferencias de idioma y tema y dónde encontrar sus canales públicos.",
+-  "privacy_intro": "Esta página describe las funciones de privacidad observables en el código de esta demostración de SolidJS Boilerplate. Sus páginas públicas no ofrecen registro de cuentas, compras ni formularios para enviar datos personales.",
++  "privacy_intro": "Esta página describe cómo se gestiona la privacidad en esta aplicación.",
    "privacy_preferencesTitle": "Preferencias en el navegador",
    "privacy_preferences": "La interfaz usa cookies para recordar el idioma y la preferencia de tema. El idioma también aparece en la dirección de la página, como /pt, /en o /es. Estas preferencias mantienen la presentación entre visitas. Puedes borrar o bloquear las cookies en los ajustes del navegador; en ese caso, una elección puede dejar de guardarse para la siguiente visita.",
    "privacy_hostingTitle": "Acceso al sitio y enlaces externos",
@@ -2655,7 +2725,12 @@ diff --git a/source/src/routes/(base)/privacy/i18n/es.json b/example/src/routes/
 diff --git a/source/src/routes/(base)/privacy/i18n/pt.json b/example/src/routes/(base)/privacy/i18n/pt.json
 --- a/source/src/routes/(base)/privacy/i18n/pt.json
 +++ b/example/src/routes/(base)/privacy/i18n/pt.json
-@@ -5,5 +5,6 @@
+@@ -1,9 +1,10 @@
+ {
+   "privacy_title": "Privacidade",
+   "privacy_description": "Saiba como esta demonstração usa preferências de idioma e tema e como acessar seus canais públicos.",
+-  "privacy_intro": "Esta página descreve os recursos de privacidade observáveis no código desta demonstração do SolidJS Boilerplate. As páginas públicas não oferecem cadastro, checkout ou formulário para enviar dados pessoais.",
++  "privacy_intro": "Esta página descreve como esta aplicação trata a privacidade.",
    "privacy_preferencesTitle": "Preferências no navegador",
    "privacy_preferences": "A interface usa cookies para lembrar o idioma e a preferência de tema. O idioma também aparece no endereço da página, como /pt, /en ou /es. Essas preferências permitem manter a apresentação entre navegações. Você pode apagar ou bloquear os cookies nas configurações do navegador; nesse caso, uma escolha pode deixar de persistir na próxima visita.",
    "privacy_hostingTitle": "Acesso ao site e links externos",
@@ -2674,9 +2749,63 @@ diff --git a/source/src/routes/(base)/privacy/seo.ts b/example/src/routes/(base)
 +  title: m.privacy_pageTitle,
    description: m.privacy_description
  } satisfies SeoRouteInfo
+diff --git a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts b/example/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
+--- a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
++++ b/example/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
+@@ -18,12 +18,7 @@ const LANGUAGES = [
+     theme: 'Selecionar tema',
+     selector: 'Selecionar idioma',
+     dark: 'Escuro',
+-    headings: [
+-      `${SITE.title} para aplicações web`,
+-      `Sobre o ${SITE.title}`,
+-      'Contato',
+-      'Privacidade'
+-    ]
++    headings: [SITE.title, `Sobre ${SITE.title}`, 'Contato', 'Privacidade']
+   },
+   {
+     locale: 'en',
+@@ -31,12 +26,7 @@ const LANGUAGES = [
+     theme: 'Select theme',
+     selector: 'Select language',
+     dark: 'Dark',
+-    headings: [
+-      `${SITE.title} for web applications`,
+-      `About ${SITE.title}`,
+-      'Contact',
+-      'Privacy'
+-    ]
++    headings: [SITE.title, `About ${SITE.title}`, 'Contact', 'Privacy']
+   },
+   {
+     locale: 'es',
+@@ -44,12 +34,7 @@ const LANGUAGES = [
+     theme: 'Seleccionar tema',
+     selector: 'Seleccionar idioma',
+     dark: 'Oscuro',
+-    headings: [
+-      `${SITE.title} para aplicaciones web`,
+-      `Acerca de ${SITE.title}`,
+-      'Contacto',
+-      'Privacidad'
+-    ]
++    headings: [SITE.title, `Acerca de ${SITE.title}`, 'Contacto', 'Privacidad']
+   }
+ ]
+ const PATHS = ['', '/about', '/contact', '/privacy']
 diff --git a/source/src/tests/pages/Home/Home.production.e2e.test.ts b/example/src/tests/pages/Home/Home.production.e2e.test.ts
 --- a/source/src/tests/pages/Home/Home.production.e2e.test.ts
 +++ b/example/src/tests/pages/Home/Home.production.e2e.test.ts
+@@ -15,7 +15,7 @@ test.describe('layout in the production tree', () => {
+     await expect(page.getByRole('banner')).toHaveCount(1)
+     await expect(
+       page.getByRole('heading', {
+-        name: `${SITE.title} para aplicações web`
++        name: SITE.title
+       })
+     ).toBeVisible()
+     const menuTriggers = page
 @@ -27,7 +27,7 @@ test.describe('layout in the production tree', () => {
      const missing = await page.goto('/pt/pagina-inexistente')
      expect(missing?.status()).toBe(HTTP_NOT_FOUND)
@@ -2689,7 +2818,17 @@ diff --git a/source/src/tests/pages/Home/Home.production.e2e.test.ts b/example/s
 diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/tests/pages/Home/Home.seo.e2e.test.ts
 --- a/source/src/tests/pages/Home/Home.seo.e2e.test.ts
 +++ b/example/src/tests/pages/Home/Home.seo.e2e.test.ts
-@@ -19,8 +19,8 @@ const ROBOTS_INDEX = 'index, follow, max-image-preview:large'
+@@ -11,16 +11,16 @@ test.use({ locale: 'pt-BR' })
+ 
+ const HTTP_OK = 200
+ const SITE_TITLE = SITE.title
+-const HOME_TITLE = `${SITE.title} | Aplicações web com SSR`
++const HOME_TITLE = SITE.title
+ const SITE_DESCRIPTION =
+   'Uma base para aplicações web com SolidJS, TypeScript e Vite+, com renderização no servidor e temas claro e escuro.'
+-const SITE_IMAGE_ALT = `Logo do SolidJS sobre o título ${SITE.title}`
++const SITE_IMAGE_ALT = 'Logo do SolidJS sobre o título SolidJS Boilerplate'
+ const ROBOTS_INDEX = 'index, follow, max-image-preview:large'
  const SOCIAL_TAGS = 'head meta[property^="og:"], head meta[name^="twitter:"]'
  // Base graph of createSeo plus the own script of the page.
  const SCRIPTS_WITH_PAGE_DATA = 2
@@ -2751,6 +2890,44 @@ diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/test
        })
      )
  
+diff --git a/source/src/tests/pages/Hydration/Hydration.e2e.test.ts b/example/src/tests/pages/Hydration/Hydration.e2e.test.ts
+--- a/source/src/tests/pages/Hydration/Hydration.e2e.test.ts
++++ b/example/src/tests/pages/Hydration/Hydration.e2e.test.ts
+@@ -9,7 +9,7 @@ const HTTP_OK = 200
+ const PAGE_URL = '/en'
+ const SCRIPTS = '**/*.js'
+ const MARKER = 'data-hydration-ended'
+-const HOME_TITLE = `${SITE.title} for web applications`
++const HOME_TITLE = SITE.title
+ const ABOUT_TITLE = `About ${SITE.title}`
+ const THEME_BUTTON = 'Select theme'
+ // The order of the attributes is not part of the plugin contract.
+diff --git a/source/src/tests/pages/Hydration/Hydration.parser.e2e.test.ts b/example/src/tests/pages/Hydration/Hydration.parser.e2e.test.ts
+--- a/source/src/tests/pages/Hydration/Hydration.parser.e2e.test.ts
++++ b/example/src/tests/pages/Hydration/Hydration.parser.e2e.test.ts
+@@ -187,9 +187,7 @@ test('does not mark before the shell when the async entry already ran', async ({
+ 
+     proxy.release()
+     await expect.poll(() => hydrationFinished(page)).toBe(true)
+-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+-      `${SITE.title} for web applications`
+-    )
++    await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
+     await page.getByRole('button', { name: 'Select theme' }).click()
+     await expect(page.getByRole('menu')).toBeVisible()
+     expect(pageErrors).toStrictEqual([])
+diff --git a/source/src/tests/pages/Hydration/Hydration.preload.e2e.test.ts b/example/src/tests/pages/Hydration/Hydration.preload.e2e.test.ts
+--- a/source/src/tests/pages/Hydration/Hydration.preload.e2e.test.ts
++++ b/example/src/tests/pages/Hydration/Hydration.preload.e2e.test.ts
+@@ -13,7 +13,7 @@ const chunkSchema = v.object({
+   file: v.string()
+ })
+ const manifestSchema = v.record(v.string(), chunkSchema)
+-const HOME_TITLE = `${SITE.title} for web applications`
++const HOME_TITLE = SITE.title
+ 
+ async function readHomeModule(request: APIRequestContext): Promise<string> {
+   const json = await readFile(
 diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pages/I18n/I18n.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.e2e.test.ts
@@ -2763,10 +2940,68 @@ diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pa
        await expect(
          page.locator('head meta[name="description"]')
        ).toHaveAttribute('content', messages.errorFallback_runtimeDescription)
+@@ -54,7 +54,7 @@ test('a server function keeps the page locale when the cookie disagrees', async
+   await page.getByRole('button', { name: 'Read server locale' }).focus()
+   await page.keyboard.press('Enter')
+   await expect(
+-    page.getByText(`${SITE.title} for web applications`, { exact: true })
++    page.getByRole('heading', { name: SITE.title, exact: true, level: 1 })
+   ).toBeVisible()
+   const actionResponse = await response
+   expect(actionResponse.headers()['content-language']).toBe('en')
 diff --git a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.production.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.production.e2e.test.ts
-@@ -193,7 +193,7 @@ for (const language of LANGUAGES) {
+@@ -17,7 +17,7 @@ const LANGUAGES = [
+   {
+     locale: 'pt',
+     tag: 'pt-BR',
+-    title: `${SITE.title} para aplicações web`,
++    title: SITE.title,
+     selector: 'Selecionar idioma',
+     missing: 'Página não encontrada',
+     home: 'Voltar ao início'
+@@ -25,7 +25,7 @@ const LANGUAGES = [
+   {
+     locale: 'en',
+     tag: 'en-US',
+-    title: `${SITE.title} for web applications`,
++    title: SITE.title,
+     selector: 'Select language',
+     missing: 'Page not found',
+     home: 'Back to home'
+@@ -33,7 +33,7 @@ const LANGUAGES = [
+   {
+     locale: 'es',
+     tag: 'es-ES',
+-    title: `${SITE.title} para aplicaciones web`,
++    title: SITE.title,
+     selector: 'Seleccionar idioma',
+     missing: 'Página no encontrada',
+     home: 'Volver al inicio'
+@@ -102,9 +102,7 @@ test('switches language and hydrates when cookie access is blocked', async ({
+     .getByRole('menuitemradio', { name: 'Español', exact: true })
+     .click()
+   await expect(page).toHaveURL('/es')
+-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+-    `${SITE.title} para aplicaciones web`
+-  )
++  await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
+   await page.getByRole('button', { name: 'Seleccionar tema' }).click()
+   await expect(page.getByRole('menu')).toBeVisible()
+   expect(pageErrors).toEqual([])
+@@ -153,9 +151,7 @@ test('loads each page body only with its route implementation', async ({
+     expect(requested.has(String(bodyModule?.file))).toBe(false)
+   }
+   await page.getByRole('link', { name: 'Voltar ao início' }).click()
+-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+-    `${SITE.title} para aplicações web`
+-  )
++  await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
+   expect(requested.has(String(homeModule))).toBe(true)
+ })
+ 
+@@ -193,7 +189,7 @@ for (const language of LANGUAGES) {
        header.evaluate(element => element === document.querySelector('header'))
      await page.getByRole('link', { name: '404', exact: true }).click()
      await expect(page).toHaveURL(`/${language.locale}/404`)
@@ -2775,6 +3010,70 @@ diff --git a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts b/example/s
      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
        'content',
        'noindex'
+@@ -221,9 +217,7 @@ test('switches language by keyboard, persists the choice and preserves query and
+     .focus()
+   await page.keyboard.press('Enter')
+   await expect(page).toHaveURL('/en?campaign=example#section')
+-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+-    `${SITE.title} for web applications`
+-  )
++  await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
+   await page.goto('/')
+   await expect(page).toHaveURL('/en')
+   await page.getByRole('button', { name: 'Select language' }).click()
+@@ -231,9 +225,7 @@ test('switches language by keyboard, persists the choice and preserves query and
+     .getByRole('menuitemradio', { name: 'Español', exact: true })
+     .click()
+   await expect(page).toHaveURL('/es')
+-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+-    `${SITE.title} para aplicaciones web`
+-  )
++  await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
+ })
+ 
+ test('negotiates only unprefixed page URLs and does not cache preference redirects', async ({
+@@ -323,6 +315,10 @@ test('isolates concurrent HTML and Markdown requests across all locales', async
+       return { language, format, body: await response.text() }
+     })
+   )
++  const { texts } = await readBodyTexts({
++    catalog: '(home)',
++    message: 'home_features'
++  })
+   for (const { language, format, body } of results) {
+     if (format === 'text/html') {
+       expect(body).toContain(`lang="${language.tag}"`)
+@@ -330,10 +326,15 @@ test('isolates concurrent HTML and Markdown requests across all locales', async
+       expect(body.split('\n')).toContain(`# ${language.title}`)
+     }
+     expect(body).toContain(language.title)
++    const active = texts[LANGUAGES.indexOf(language)]
++    if (!active) throw new Error('Missing localized home text')
++    expect(body).toContain(active)
+     for (const other of LANGUAGES.filter(
+       item => item.locale !== language.locale
+     )) {
+-      expect(body).not.toContain(other.title)
++      const text = texts[LANGUAGES.indexOf(other)]
++      if (!text) throw new Error('Missing localized home text')
++      expect(body).not.toContain(text)
+     }
+   }
+ })
+diff --git a/source/src/tests/pages/I18n/I18n.redirect.e2e.test.ts b/example/src/tests/pages/I18n/I18n.redirect.e2e.test.ts
+--- a/source/src/tests/pages/I18n/I18n.redirect.e2e.test.ts
++++ b/example/src/tests/pages/I18n/I18n.redirect.e2e.test.ts
+@@ -47,9 +47,7 @@ for (const source of ['action', 'query']) {
+     await expect(page).toHaveURL(`/es/i18n-redirect?from=${source}#target`)
+     await expect(page.locator('html')).toHaveAttribute('lang', 'es-ES')
+     await expect(page.getByTestId('locale')).toHaveText('es')
+-    await expect(page.getByTestId('message')).toHaveText(
+-      `${SITE.title} para aplicaciones web`
+-    )
++    await expect(page.getByTestId('message')).toHaveText(SITE.title)
+     await expect(page.locator('html')).not.toHaveAttribute(
+       'data-previous-document'
+     )
 diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
@@ -2811,7 +3110,18 @@ diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/examp
 diff --git a/source/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts
-@@ -74,7 +74,7 @@ test('loads the URLPattern polyfill only without the native API and keeps the lo
+@@ -28,9 +28,7 @@ async function loadHome(page: Page): Promise<LoadedPage> {
+   })
+   await page.goto('/pt')
+   await expect.poll(() => hydrationFinished(page)).toBe(true)
+-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+-    `${SITE.title} para aplicações web`
+-  )
++  await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
+   // The copy ends the collection at the same point on both pages.
+   return {
+     scripts: new Set(scripts),
+@@ -74,7 +72,7 @@ test('loads the URLPattern polyfill only without the native API and keeps the lo
  
    await page.getByRole('link', { name: '404', exact: true }).click()
    await expect(page).toHaveURL('/pt/404')
@@ -2820,6 +3130,17 @@ diff --git a/source/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts 
    await page.getByRole('link', { name: 'Voltar ao início' }).click()
    await expect(page).toHaveURL('/pt')
    await page.getByRole('button', { name: 'Selecionar idioma' }).click()
+@@ -82,9 +80,7 @@ test('loads the URLPattern polyfill only without the native API and keeps the lo
+     .getByRole('menuitemradio', { name: 'English', exact: true })
+     .click()
+   await expect(page).toHaveURL('/en')
+-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+-    `${SITE.title} for web applications`
+-  )
++  await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
+   await expect.poll(() => hydrationFinished(page)).toBe(true)
+   expect(await readUrlPatternKind(page)).toBe('polyfill')
+   expect(pageErrors).toEqual([])
 diff --git a/source/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts b/example/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts
 --- a/source/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts
 +++ b/example/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts
@@ -2832,6 +3153,53 @@ diff --git a/source/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts b/example/
      await expect(page.locator('head meta[name="description"]')).toHaveAttribute(
        'content',
        'The requested page was not found.'
+@@ -54,9 +54,7 @@ test.describe('hydrated missing page', () => {
+ 
+     await page.getByRole('link', { name: 'Back to home' }).click()
+     await expect(page).toHaveURL('/en')
+-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+-      `${SITE.title} for web applications`
+-    )
++    await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
+     expect(pageErrors).toStrictEqual([])
+   })
+ })
+diff --git a/source/src/tests/pages/OutdatedPage/OutdatedPage.e2e.test.ts b/example/src/tests/pages/OutdatedPage/OutdatedPage.e2e.test.ts
+--- a/source/src/tests/pages/OutdatedPage/OutdatedPage.e2e.test.ts
++++ b/example/src/tests/pages/OutdatedPage/OutdatedPage.e2e.test.ts
+@@ -34,7 +34,7 @@ type Refusal = {
+ const ABOUT: Destination = {
+   link: 'Go to About',
+   url: /\/pt\/about$/u,
+-  title: `Sobre o ${SITE.title}`
++  title: `Sobre ${SITE.title}`
+ }
+ // The About CSS already comes in the fixture document; the UI kit one does not.
+ const UI_KIT: Destination = {
+diff --git a/source/src/tests/pages/SeoIndexes/SeoIndexes.e2e.test.ts b/example/src/tests/pages/SeoIndexes/SeoIndexes.e2e.test.ts
+--- a/source/src/tests/pages/SeoIndexes/SeoIndexes.e2e.test.ts
++++ b/example/src/tests/pages/SeoIndexes/SeoIndexes.e2e.test.ts
+@@ -7,7 +7,7 @@ const HTTP_OK = 200
+ const HTTP_NOT_FOUND = 404
+ // Entries published by the source of `blog/[slug]`.
+ const BLOG_ENTRIES = 2
+-const HOME_TITLE = `${SITE.title} | Web applications with SSR`
++const HOME_TITLE = SITE.title
+ const SITE_DESCRIPTION =
+   'A foundation for web applications with SolidJS, TypeScript and Vite+, with server-side rendering and light and dark themes.'
+ 
+diff --git a/source/src/tests/pages/StructuredData/StructuredData.streaming.e2e.test.ts b/example/src/tests/pages/StructuredData/StructuredData.streaming.e2e.test.ts
+--- a/source/src/tests/pages/StructuredData/StructuredData.streaming.e2e.test.ts
++++ b/example/src/tests/pages/StructuredData/StructuredData.streaming.e2e.test.ts
+@@ -141,7 +141,7 @@ test('hydrates without duplicating the JSON-LD and removes it when leaving the r
+   await expect(page.locator(`body ${JSON_LD}`)).toHaveCount(0)
+ 
+   await page.getByRole('link', { name: 'Início', exact: true }).click()
+-  await expect(page).toHaveTitle(`${SITE.title} | Aplicações web com SSR`)
++  await expect(page).toHaveTitle(SITE.title)
+   await expect(page.locator(`head ${JSON_LD}`)).toHaveCount(1)
+   const remaining = await page.locator(JSON_LD).allTextContents()
+   expect(remaining.join('')).not.toContain(PRODUCT_NAME)
 diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/tooling/__tests__/patched-dependencies.test.ts
 --- a/source/tooling/__tests__/patched-dependencies.test.ts
 +++ b/example/tooling/__tests__/patched-dependencies.test.ts

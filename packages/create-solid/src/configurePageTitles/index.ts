@@ -9,6 +9,7 @@ import type { StagedContext } from '../types.ts'
 
 const indent = 2
 const titles = [
+  ['routes/(base)/about', 'about_title', 'about_pageTitle'],
   ['routes/(base)/contact', 'contact_title', 'contact_pageTitle'],
   ['routes/(base)/privacy', 'privacy_title', 'privacy_pageTitle'],
   ['routes/(base)/[...404]', 'notFound_title', 'notFound_title'],
@@ -42,10 +43,21 @@ export function configurePageTitles({ context, title }: TitleOptions): void {
       const data = parse(record(string(), string()), JSON.parse(input))
       const message = data[original]
       if (!message) throw new Error(`Missing page title: ${file} ${original}`)
-      data[key] = `${message} | ${escapeMessageText(title)}`
+      const aboutLabels: Record<string, string> = {
+        en: 'About',
+        es: 'Acerca de',
+        pt: 'Sobre'
+      }
+      const label =
+        original === 'about_title'
+          ? (aboutLabels[locale] ?? aboutLabels.en)
+          : message
+      data[key] = `${label} | ${escapeMessageText(title)}`
       write({ file, content: `${JSON.stringify(data, null, indent)}\n` })
     }
-    if (!['contact_title', 'privacy_title'].includes(original)) continue
+    if (!['about_title', 'contact_title', 'privacy_title'].includes(original)) {
+      continue
+    }
     if (profile.hasSeo === false) {
       edit({
         file: `src/${folder}/index.tsx`,

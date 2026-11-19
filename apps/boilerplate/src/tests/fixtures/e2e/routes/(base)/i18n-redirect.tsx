@@ -1,6 +1,6 @@
 import { createLocalizedNavigate } from '@evertondgn/solid-runtime/i18n/create-localized-navigate'
 import { m } from '@paraglide/messages.js'
-import { getLocale } from '@paraglide/runtime.js'
+import { baseLocale, getLocale, locales } from '@paraglide/runtime.js'
 import {
   formAction,
   query,
@@ -13,6 +13,8 @@ import { createMemo, createSignal, Loading, untrack } from 'solid-js'
 
 import { redirectLocale } from '../../i18n/redirectLocale/index.ts'
 import { redirectRelative } from '../../i18n/redirectRelative/index.ts'
+
+const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
 
 const submitRedirect = formAction(redirectLocale, 'i18n-locale-redirect-action')
 const readRedirect = query(redirectLocale, 'i18n-locale-redirect-query')
@@ -34,7 +36,7 @@ export default function I18nRedirect() {
     untrack(() => params.initial === '1')
   )
   const result = createMemo(() =>
-    isRequested() ? readRedirect({ locale: 'es', source: 'query' }) : ''
+    isRequested() ? readRedirect({ locale: alternate, source: 'query' }) : ''
   )
   return (
     <main>
@@ -43,16 +45,16 @@ export default function I18nRedirect() {
       <p data-testid="message">{m.home_title()}</p>
       <output data-testid="state">{JSON.stringify(location.state)}</output>
       <form
-        action={submitRedirect.with({ locale: 'es', source: 'action' })}
+        action={submitRedirect.with({ locale: alternate, source: 'action' })}
         method="post"
       >
-        <button type="submit">Spanish action redirect</button>
+        <button type="submit">Alternate action redirect</button>
       </form>
       <form
-        action={submitRedirect.with({ locale: 'pt', source: 'action' })}
+        action={submitRedirect.with({ locale: baseLocale, source: 'action' })}
         method="post"
       >
-        <button type="submit">Portuguese action redirect</button>
+        <button type="submit">Base action redirect</button>
       </form>
       <form action={submitRelative.with('query')} method="post">
         <button type="submit">Relative query redirect</button>
@@ -67,7 +69,7 @@ export default function I18nRedirect() {
         <button type="submit">Relative empty redirect</button>
       </form>
       <button type="button" onClick={() => setIsRequested(true)}>
-        Spanish query redirect
+        Alternate query redirect
       </button>
       <button
         type="button"
@@ -81,7 +83,7 @@ export default function I18nRedirect() {
       <button
         type="button"
         onClick={() =>
-          navigate('/pt/i18n-redirect?from=state#target', {
+          navigate(`/${baseLocale}/i18n-redirect?from=state#target`, {
             state: { marker: 'kept' }
           })
         }

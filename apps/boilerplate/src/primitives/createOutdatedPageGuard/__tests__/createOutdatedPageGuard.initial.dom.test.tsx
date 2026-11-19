@@ -1,3 +1,4 @@
+import { baseLocale } from '@paraglide/runtime.js'
 import {
   createRouter,
   memoryHistory,
@@ -27,7 +28,7 @@ describe('guard of a page that is still current', () => {
       return <output>{location.pathname}</output>
     }
     const Router = createRouter({
-      history: memoryHistory('/en/start'),
+      history: memoryHistory(`/${baseLocale}/start`),
       routes: [{ path: '*all', component: Page }]
     })
     const host = renderComponent(
@@ -41,10 +42,10 @@ describe('guard of a page that is still current', () => {
       ),
       { hasProviders: false }
     )
-    await expect.poll(() => host.textContent).toBe('/en/start')
+    await expect.poll(() => host.textContent).toBe(`/${baseLocale}/start`)
     assert(navigate)
-    navigate('/en/next')
-    await expect.poll(() => host.textContent).toBe('/en/next')
+    navigate(`/${baseLocale}/next`)
+    await expect.poll(() => host.textContent).toBe(`/${baseLocale}/next`)
     expect(assign).not.toHaveBeenCalled()
   })
 })

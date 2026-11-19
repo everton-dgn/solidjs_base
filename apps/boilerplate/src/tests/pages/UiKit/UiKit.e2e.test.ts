@@ -1,11 +1,10 @@
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
 
-const LANGUAGES = [
-  { locale: 'pt', dialog: 'Fechar diálogo', toast: 'Fechar notificação' },
-  { locale: 'en', dialog: 'Close dialog', toast: 'Dismiss notification' },
-  { locale: 'es', dialog: 'Cerrar diálogo', toast: 'Cerrar notificación' }
-]
+const LANGUAGES = testLanguages.locales.map(locale =>
+  testLanguages.labels(locale)
+)
 const MOBILE_WIDTH = 375
 
 for (const language of LANGUAGES) {
@@ -14,7 +13,7 @@ for (const language of LANGUAGES) {
     pageErrors,
     cspViolations
   }) => {
-    await page.goto(`/${language.locale}/ui-kit`)
+    await page.goto(testLanguages.path(language.locale, '/ui-kit'))
     await expect.poll(() => hydrationFinished(page)).toBe(true)
     await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Ada')
     await expect(page.getByLabel('Subscribe', { exact: true })).toBeChecked()
@@ -85,7 +84,7 @@ test.describe('without JavaScript', () => {
   test('native field values are present without JavaScript', async ({
     page
   }) => {
-    await page.goto('/en/ui-kit')
+    await page.goto(testLanguages.path(testLanguages.base, '/ui-kit'))
     await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Ada')
     await expect(page.getByLabel('Subscribe', { exact: true })).toBeChecked()
     await expect(page.getByLabel('Message', { exact: true })).toHaveValue(
@@ -100,7 +99,7 @@ test('initially open dialog hydrates modally with CSP enabled', async ({
   pageErrors,
   cspViolations
 }) => {
-  await page.goto('/en/ui-kit?open=1')
+  await page.goto(testLanguages.path(testLanguages.base, '/ui-kit?open=1'))
   const dialog = page.getByRole('dialog', { name: 'Fixture dialog' })
   await expect(dialog).toBeVisible()
   expect(await dialog.evaluate(element => element.matches(':modal'))).toBe(true)
@@ -120,7 +119,7 @@ test.describe('narrow dark viewport', () => {
   test('modal and notifications fit a narrow dark viewport', async ({
     page
   }) => {
-    await page.goto('/pt/ui-kit')
+    await page.goto(testLanguages.path(testLanguages.base, '/ui-kit'))
     await expect.poll(() => hydrationFinished(page)).toBe(true)
     await expect(page.locator('html')).toHaveClass('dark')
     await page.getByRole('button', { name: 'Open dialog' }).click()
@@ -130,9 +129,15 @@ test.describe('narrow dark viewport', () => {
     expect(
       modalBox && modalBox.x >= 0 && modalBox.x + modalBox.width <= MOBILE_WIDTH
     ).toBe(true)
-    await dialog.getByRole('button', { name: 'Fechar diálogo' }).click()
+    await dialog
+      .getByRole('button', {
+        name: testLanguages.labels(testLanguages.base).dialog
+      })
+      .click()
     await page.getByRole('button', { name: 'Show notification' }).click()
-    const notification = page.getByRole('region', { name: 'Notificações' })
+    const notification = page.getByRole('region', {
+      name: testLanguages.labels(testLanguages.base).notifications
+    })
     const toast = notification.getByRole('listitem')
     await expect(toast).toBeVisible()
     const toastBox = await toast.boundingBox()
@@ -145,7 +150,9 @@ test.describe('narrow dark viewport', () => {
       )
     ).toBe(true)
     await expect(
-      notification.getByRole('button', { name: 'Fechar notificação' })
+      notification.getByRole('button', {
+        name: testLanguages.labels(testLanguages.base).toast
+      })
     ).toBeVisible()
   })
 })
@@ -153,34 +160,52 @@ test.describe('narrow dark viewport', () => {
 test('localized navigation preserves SPA state and reloads when changing language', async ({
   page
 }) => {
-  await page.goto('/en/ui-kit')
+  await page.goto(testLanguages.path(testLanguages.base, '/ui-kit'))
   await expect.poll(() => hydrationFinished(page)).toBe(true)
   await page.evaluate(() => Reflect.set(globalThis, '__navigationProbe', true))
   await page.getByRole('link', { name: 'Localized page' }).click()
-  await expect(page).toHaveURL('/en/ui-kit?source=link#target')
+  await expect(page).toHaveURL(
+    testLanguages.path(testLanguages.base, '/ui-kit?source=link#target')
+  )
   expect(
     await page.evaluate(() => Reflect.has(globalThis, '__navigationProbe'))
   ).toBe(true)
   await page.getByRole('button', { name: 'Navigate page' }).click()
-  await expect(page).toHaveURL('/en/ui-kit?source=navigate#target')
+  await expect(page).toHaveURL(
+    testLanguages.path(testLanguages.base, '/ui-kit?source=navigate#target')
+  )
   expect(
     await page.evaluate(() => Reflect.has(globalThis, '__navigationProbe'))
   ).toBe(true)
   await page.getByRole('button', { name: 'Replace page' }).click()
-  await expect(page).toHaveURL('/en/ui-kit?source=replace')
+  await expect(page).toHaveURL(
+    testLanguages.path(testLanguages.base, '/ui-kit?source=replace')
+  )
   await page.goBack()
-  await expect(page).toHaveURL('/en/ui-kit?source=link#target')
+  await expect(page).toHaveURL(
+    testLanguages.path(testLanguages.base, '/ui-kit?source=link#target')
+  )
   await expect(page.getByRole('link', { name: 'Robots file' })).toHaveAttribute(
     'href',
     '/robots.txt'
   )
-  await page.getByRole('link', { name: 'Spanish page' }).click()
-  await expect(page).toHaveURL('/es/ui-kit?source=language#target')
-  await expect(page.locator('html')).toHaveAttribute('lang', 'es-ES')
+  await page.getByRole('link', { name: 'Alternate language page' }).click()
+  await expect(page).toHaveURL(
+    testLanguages.path(
+      testLanguages.alternate,
+      '/ui-kit?source=language#target'
+    )
+  )
+  await expect(page.locator('html')).toHaveAttribute(
+    'lang',
+    testLanguages.tag(testLanguages.alternate)
+  )
   expect(
     await page.evaluate(() => Reflect.has(globalThis, '__navigationProbe'))
   ).toBe(false)
   await expect(
-    page.getByRole('button', { name: 'Seleccionar idioma' })
+    page.getByRole('button', {
+      name: testLanguages.labels(testLanguages.alternate).selector
+    })
   ).toBeVisible()
 })

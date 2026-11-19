@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { env } from 'node:process'
 
+import { m } from '@paraglide/messages.js'
 import type { APIRequestContext } from '@playwright/test'
 
 import {
@@ -11,8 +12,9 @@ import {
 } from '@/tests/helpers/fixtureGate/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLocale } from '@/tests/helpers/testLocale/index.ts'
 
-test.use({ locale: 'pt-BR' })
+test.use({ locale: testLocale.tag(testLocale.alternate) })
 
 const HTTP_OK = 200
 const HTTP_INTERNAL_SERVER_ERROR = 500
@@ -20,11 +22,15 @@ const HTTP_INTERNAL_SERVER_ERROR = 500
 // timeout of the runner.
 const REQUEST_TIMEOUT = 15_000
 const LOADING_TEXT = 'Loading fixture...'
-// The public message follows the locale of the request. The Node fetch does not
-// ask for a supported locale and gets the base locale; the browser, with pt-BR,
-// opens the page in pt.
-const PUBLIC_MESSAGE = 'The request could not be completed.'
-const PAGE_PUBLIC_MESSAGE = 'Não foi possível concluir a solicitação.'
+// The direct request uses the base locale. The browser sends its preferred language.
+const PUBLIC_MESSAGE = m.configureServerErrors_message(
+  {},
+  { locale: testLocale.base }
+)
+const PAGE_PUBLIC_MESSAGE = m.configureServerErrors_message(
+  {},
+  { locale: testLocale.alternate }
+)
 // Messages that the browser can throw when hydrating, depending on the order
 // between the hydration and the arrival of the rejected fragment: the list
 // accepts each one without requiring it. The rejection of the async source is
@@ -65,35 +71,35 @@ const CASES: FixtureCase[] = [
     name: 'render-root',
     gate: 'none',
     status: HTTP_INTERNAL_SERVER_ERROR,
-    content: 'Algo deu errado!',
+    content: m.errorFallback_runtimeTitle({}, { locale: testLocale.alternate }),
     pageErrors: []
   },
   {
     name: 'render-stream',
     gate: 'stream',
     status: HTTP_OK,
-    content: 'Algo deu errado!',
+    content: m.errorFallback_runtimeTitle({}, { locale: testLocale.alternate }),
     pageErrors: [PAGE_PUBLIC_MESSAGE]
   },
   {
     name: 'async-ssr',
     gate: 'before',
     status: HTTP_INTERNAL_SERVER_ERROR,
-    content: 'Algo deu errado!',
+    content: m.errorFallback_runtimeTitle({}, { locale: testLocale.alternate }),
     pageErrors: [RUNTIME_MESSAGE]
   },
   {
     name: 'async-direct',
     gate: 'stream',
     status: HTTP_OK,
-    content: 'Algo deu errado!',
+    content: m.errorFallback_runtimeTitle({}, { locale: testLocale.alternate }),
     pageErrors: [RUNTIME_MESSAGE, PAGE_PUBLIC_MESSAGE]
   },
   {
     name: 'async-element',
     gate: 'stream',
     status: HTTP_OK,
-    content: 'Algo deu errado!',
+    content: m.errorFallback_runtimeTitle({}, { locale: testLocale.alternate }),
     pageErrors: [RUNTIME_MESSAGE, PAGE_PUBLIC_MESSAGE]
   }
 ]
@@ -263,8 +269,12 @@ test.describe('middleware exceptions', () => {
       expect(response.headers.get('x-content-type-options')).toBe('nosniff')
       if (hasErrorPage) {
         expect(response.headers.get('content-type')).toContain('text/html')
-        expect(response.headers.get('content-language')).toBe('en')
-        expect(body).toContain('Something went wrong!')
+        expect(response.headers.get('content-language') ?? undefined).toBe(
+          testLocale.header(testLocale.base)
+        )
+        expect(body).toContain(
+          m.errorFallback_runtimeTitle({}, { locale: testLocale.base })
+        )
       } else {
         expect(body).toBe(PUBLIC_MESSAGE)
       }
@@ -322,7 +332,9 @@ test.describe('middleware exceptions', () => {
 
     expect(response?.status()).toBe(HTTP_INTERNAL_SERVER_ERROR)
     await expect(
-      page.getByRole('link', { name: 'Recarregar página' })
+      page.getByRole('link', {
+        name: m.errorFallback_reload({}, { locale: testLocale.alternate })
+      })
     ).toBeVisible()
     await expect.poll(async () => hydrationFinished(page)).toBe(true)
     expect(await page.content()).not.toContain(marker)

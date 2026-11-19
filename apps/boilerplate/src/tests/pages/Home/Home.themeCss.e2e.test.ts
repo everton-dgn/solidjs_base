@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test'
 
-test.use({ locale: 'pt-BR' })
+import { testLocale } from '@/tests/helpers/testLocale/index.ts'
+import { themeLabels } from '@/tests/helpers/themeLabels/index.ts'
+
+test.use({ locale: testLocale.tag(testLocale.alternate) })
 
 test.describe('colors in the initial HTML', () => {
   test.use({ javaScriptEnabled: false })
@@ -59,14 +62,31 @@ test('an explicit choice changes the computed colors and wins over the system', 
 }) => {
   await page.emulateMedia({ colorScheme: 'dark' })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Selecionar tema' }).click()
-  await page.getByRole('menuitemradio', { name: 'Claro', exact: true }).click()
+  await page
+    .getByRole('button', {
+      name: themeLabels.theme
+    })
+    .click()
+  await page
+    .getByRole('menuitemradio', {
+      name: themeLabels.light,
+      exact: true
+    })
+    .click()
   await expect(page.locator('body')).toHaveCSS(
     'background-color',
     'oklch(1 0 0)'
   )
-  await page.getByRole('button', { name: 'Selecionar tema' }).click()
-  await page.getByRole('menuitemradio', { name: 'Escuro' }).click()
+  await page
+    .getByRole('button', {
+      name: themeLabels.theme
+    })
+    .click()
+  await page
+    .getByRole('menuitemradio', {
+      name: themeLabels.dark
+    })
+    .click()
   await expect(page.locator('body')).toHaveCSS(
     'background-color',
     'oklch(0.141 0.005 285.823)'
@@ -78,8 +98,15 @@ test('keeps the visible focus in the menu in high contrast', async ({
 }) => {
   await page.emulateMedia({ forcedColors: 'active' })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Selecionar tema' }).click()
-  const option = page.getByRole('menuitemradio', { name: 'Claro', exact: true })
+  await page
+    .getByRole('button', {
+      name: themeLabels.theme
+    })
+    .click()
+  const option = page.getByRole('menuitemradio', {
+    name: themeLabels.light,
+    exact: true
+  })
   await expect(option).toBeFocused()
   await expect(option).toHaveCSS('outline-style', 'solid')
   await expect(option).toHaveCSS('outline-width', '3px')

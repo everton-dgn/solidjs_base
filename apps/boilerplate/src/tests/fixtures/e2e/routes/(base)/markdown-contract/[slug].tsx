@@ -1,4 +1,4 @@
-import { getLocale } from '@paraglide/runtime.js'
+import { getLocale, localizeHref } from '@paraglide/runtime.js'
 import {
   useParams,
   useSearchParams,
@@ -38,7 +38,7 @@ function Fragment(props: FragmentProps) {
     }
     if (scenario === 'redirect') {
       httpStatus(HTTP_REDIRECT)
-      httpHeader('location', `/${getLocale()}/about`)
+      httpHeader('location', localizeHref('/about'))
     }
     return `${label}:${getLocale()}:resolved`
   })

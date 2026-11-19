@@ -1,5 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises'
 
+import { m } from '@paraglide/messages.js'
 import type { Page } from '@playwright/test'
 
 import {
@@ -9,8 +10,9 @@ import {
   waitForGate
 } from '@/tests/helpers/fixtureGate/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLocale } from '@/tests/helpers/testLocale/index.ts'
 
-test.use({ locale: 'pt-BR' })
+test.use({ locale: testLocale.tag(testLocale.alternate) })
 
 const HTTP_OK = 200
 const HTTP_FOUND = 302
@@ -18,7 +20,10 @@ const HTTP_INTERNAL_SERVER_ERROR = 500
 const ATTEMPTS_AFTER_RETRY = 2
 // The public message follows the locale of the request; the browser, with pt-BR,
 // opens the page and calls the server functions in pt.
-const PUBLIC_MESSAGE = 'Não foi possível concluir a solicitação.'
+const PUBLIC_MESSAGE = m.configureServerErrors_message(
+  {},
+  { locale: testLocale.alternate }
+)
 type ServerResponse = {
   body: string
   headers: Record<string, string>
@@ -68,11 +73,21 @@ test('a redirect thrown by a server function in the SSR still redirects', async 
   page,
   request
 }) => {
-  const response = await request.get('/pt/control-signal', { maxRedirects: 0 })
+  const response = await request.get(
+    testLocale.path(testLocale.alternate, '/control-signal'),
+    { maxRedirects: 0 }
+  )
   expect(response.status()).toBe(HTTP_FOUND)
-  expect(response.headers().location).toBe('/pt?from=control-signal')
+  expect(response.headers().location).toBe(
+    testLocale.path(testLocale.alternate, '?from=control-signal')
+  )
   await page.goto('/control-signal')
-  await expect(page).toHaveURL(/\/pt\?from=control-signal$/u)
+  await expect(page).toHaveURL(
+    new RegExp(
+      String.raw`${testLocale.path(testLocale.alternate, '')}\?from=control-signal$`,
+      'u'
+    )
+  )
 })
 
 test('an envelope returned by a server function in the SSR delivers the value', async ({
@@ -112,8 +127,12 @@ test('an envelope thrown by a server function in the SSR becomes a render failur
   const document = await response.text()
   expect(response.status()).toBe(HTTP_INTERNAL_SERVER_ERROR)
   expect(document).not.toContain(marker)
-  expect(response.headers()['content-language']).toBe('en')
-  expect(document).toContain('Something went wrong!')
+  expect(response.headers()['content-language']).toBe(
+    testLocale.header(testLocale.base)
+  )
+  expect(document).toContain(
+    m.errorFallback_runtimeTitle({}, { locale: testLocale.base })
+  )
   // Positive control: the server function read the marker before throwing.
   const after = await readBackendState({ request, id })
   expect(after.attempts).toBe(1)
@@ -145,7 +164,12 @@ for (const { phase, javaScriptEnabled } of SCENARIOS) {
       }
 
       await expect(
-        page.getByRole('heading', { name: 'Algo deu errado!' })
+        page.getByRole('heading', {
+          name: m.errorFallback_runtimeTitle(
+            {},
+            { locale: testLocale.alternate }
+          )
+        })
       ).toBeVisible()
       await expect(page.locator('header')).toHaveCount(0)
 
@@ -153,7 +177,11 @@ for (const { phase, javaScriptEnabled } of SCENARIOS) {
       const retryResponse = page.waitForResponse(candidate =>
         candidate.request().isNavigationRequest()
       )
-      await page.getByRole('link', { name: 'Recarregar página' }).click()
+      await page
+        .getByRole('link', {
+          name: m.errorFallback_reload({}, { locale: testLocale.alternate })
+        })
+        .click()
       const failedReload = await retryResponse
       expect(await failedReload.text()).not.toContain(privateMarker)
       expect(JSON.stringify(failedReload.headers())).not.toContain(
@@ -174,7 +202,12 @@ for (const { phase, javaScriptEnabled } of SCENARIOS) {
         })
         .toBe(ATTEMPTS_AFTER_RETRY)
       await expect(
-        page.getByRole('heading', { name: 'Algo deu errado!' })
+        page.getByRole('heading', {
+          name: m.errorFallback_runtimeTitle(
+            {},
+            { locale: testLocale.alternate }
+          )
+        })
       ).toBeVisible()
 
       // The public exception can repeat when hydrating the fallback, in the
@@ -193,7 +226,11 @@ for (const { phase, javaScriptEnabled } of SCENARIOS) {
       const recoveryResponse = page.waitForResponse(candidate =>
         candidate.request().isNavigationRequest()
       )
-      await page.getByRole('link', { name: 'Recarregar página' }).click()
+      await page
+        .getByRole('link', {
+          name: m.errorFallback_reload({}, { locale: testLocale.alternate })
+        })
+        .click()
       const recoveredReload = await recoveryResponse
       expect(await recoveredReload.text()).not.toContain(privateMarker)
       expect(recoveredReload.status()).toBe(HTTP_OK)
@@ -256,7 +293,12 @@ for (const phase of ['ssr', 'stream', 'action']) {
       const content =
         failure === 'success'
           ? page.getByText('Backend recovered', { exact: true })
-          : page.getByRole('heading', { name: 'Algo deu errado!' })
+          : page.getByRole('heading', {
+              name: m.errorFallback_runtimeTitle(
+                {},
+                { locale: testLocale.alternate }
+              )
+            })
       await expect(content).toBeVisible()
       expect(await page.content()).not.toContain(marker)
       if (phase === 'action') {

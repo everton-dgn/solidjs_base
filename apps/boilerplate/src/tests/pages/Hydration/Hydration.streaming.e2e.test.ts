@@ -1,12 +1,13 @@
+import { m } from '@paraglide/messages.js'
 import type { Page } from '@playwright/test'
 
-import { SITE } from '@/constants/site/title.ts'
 import {
   releaseFixtureGate,
   releaseFixtureGateQuietly
 } from '@/tests/helpers/fixtureGate/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
 
 type Stream = { page: Page; id: string; shouldReject?: boolean }
 
@@ -16,7 +17,10 @@ async function openStream({
   shouldReject = false
 }: Stream): Promise<void> {
   await page.goto(
-    `/en/hydration?id=${id}&mode=${shouldReject ? 'reject' : 'resolve'}`,
+    testLanguages.path(
+      testLanguages.base,
+      `/hydration?id=${id}&mode=${shouldReject ? 'reject' : 'resolve'}`
+    ),
     {
       waitUntil: 'commit'
     }
@@ -133,14 +137,24 @@ test('ends the phase when the navigation drops pending fragments', async ({
   try {
     await openStream({ page, id })
     await page
-      .getByRole('navigation', { name: 'Main', exact: true })
-      .getByRole('link', { name: 'About', exact: true })
+      .getByRole('navigation', {
+        name: m.topbar_navigation({}, { locale: testLanguages.base }),
+        exact: true
+      })
+      .getByRole('link', {
+        name: m.siteLinks_aboutLabel({}, { locale: testLanguages.base }),
+        exact: true
+      })
       .click()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      `About ${SITE.title}`
+      testLanguages.labels(testLanguages.base).about
     )
     await expect.poll(() => hydrationFinished(page)).toBe(true)
-    await page.getByRole('button', { name: 'Select theme' }).click()
+    await page
+      .getByRole('button', {
+        name: testLanguages.labels(testLanguages.base).theme
+      })
+      .click()
     await expect(page.getByRole('menu')).toBeVisible()
     expect(documentRequests).toBe(1)
     expect(pageErrors).toStrictEqual([])

@@ -1,3 +1,4 @@
+import { m } from '@paraglide/messages.js'
 import { render, type JSX } from '@solidjs/web'
 import { Loading } from 'solid-js'
 
@@ -149,7 +150,7 @@ describe('application error feedback', () => {
 
     await expect
       .poll(() => host.querySelector('h1')?.textContent)
-      .toBe('Something went wrong!')
+      .toBe(m.errorFallback_runtimeTitle())
     expect(host.textContent).not.toContain('Internal detail')
 
     expect(host.querySelector('header')).toBeNull()
@@ -157,7 +158,7 @@ describe('application error feedback', () => {
       '[data-error-variant="runtime"] a'
     )
     assert(reload, 'The failure must allow reloading the page')
-    expect(reload.textContent).toBe('Reload page')
+    expect(reload.textContent).toBe(m.errorFallback_reload())
     expect(reload.href).toBe(globalThis.location.href)
     expect(reload.target).toBe('_self')
     expectBoundaryReport('Internal detail that must not appear')
@@ -185,7 +186,7 @@ describe('application error feedback', () => {
     const failing = renderApp()
     await expect
       .poll(() => failing.querySelector('h1')?.textContent)
-      .toBe('Something went wrong!')
+      .toBe(m.errorFallback_runtimeTitle())
     expect(reload).toHaveBeenCalledOnce()
   })
 
@@ -237,6 +238,8 @@ describe('application error feedback', () => {
     await vi.advanceTimersByTimeAsync(BEFORE_STALL_MS)
     expect(host.textContent).toBe('')
     await vi.advanceTimersByTimeAsync(PAST_STALL_MS)
-    expect(host.querySelector('h1')?.textContent).toBe('Something went wrong!')
+    expect(host.querySelector('h1')?.textContent).toBe(
+      m.errorFallback_runtimeTitle()
+    )
   })
 })

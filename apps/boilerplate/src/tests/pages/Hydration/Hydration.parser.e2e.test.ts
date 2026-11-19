@@ -7,13 +7,13 @@ import {
   type ServerResponse
 } from 'node:http'
 
-import { SITE } from '@/constants/site/title.ts'
 import {
   releaseFixtureGate,
   releaseFixtureGateQuietly
 } from '@/tests/helpers/fixtureGate/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
 import { watchEntryLoad } from '@/tests/helpers/watchEntryLoad/index.ts'
 
 type DocumentStream = {
@@ -101,7 +101,7 @@ async function startParserProxy(target: string): Promise<ParserProxy> {
         response.statusCode ?? HTTP_BAD_GATEWAY,
         response.headers
       )
-      if (url.pathname === '/en') {
+      if (url.pathname === testLanguages.path(testLanguages.base, '')) {
         try {
           await streamHead({ response, outgoing, released: gate.promise })
         } catch {
@@ -110,7 +110,7 @@ async function startParserProxy(target: string): Promise<ParserProxy> {
         return
       }
       if (
-        url.pathname === '/en/hydration' &&
+        url.pathname === testLanguages.path(testLanguages.base, '/hydration') &&
         url.searchParams.get('cut') === 'shell'
       ) {
         truncate = () => outgoing.end()
@@ -121,7 +121,9 @@ async function startParserProxy(target: string): Promise<ParserProxy> {
         }
         return
       }
-      if (url.pathname === '/en/hydration') {
+      if (
+        url.pathname === testLanguages.path(testLanguages.base, '/hydration')
+      ) {
         truncate = () => {
           response.unpipe(outgoing)
           outgoing.end()
@@ -175,9 +177,12 @@ test('does not mark before the shell when the async entry already ran', async ({
     if (address === null || typeof address === 'string') {
       throw new Error('Missing proxy address')
     }
-    await page.goto(`http://127.0.0.1:${address.port}/en`, {
-      waitUntil: 'commit'
-    })
+    await page.goto(
+      `http://127.0.0.1:${address.port}${testLanguages.path(testLanguages.base, '')}`,
+      {
+        waitUntil: 'commit'
+      }
+    )
     await expect(page.locator('html')).toHaveAttribute(
       'data-entry-loaded',
       'loading'
@@ -188,9 +193,13 @@ test('does not mark before the shell when the async entry already ran', async ({
     proxy.release()
     await expect.poll(() => hydrationFinished(page)).toBe(true)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      `${SITE.title} for web applications`
+      testLanguages.labels(testLanguages.base).title
     )
-    await page.getByRole('button', { name: 'Select theme' }).click()
+    await page
+      .getByRole('button', {
+        name: testLanguages.labels(testLanguages.base).theme
+      })
+      .click()
     await expect(page.getByRole('menu')).toBeVisible()
     expect(pageErrors).toStrictEqual([])
     expect(cspViolations).toStrictEqual([])
@@ -226,9 +235,12 @@ test('ends the hydration and fetches the data again on the client after the stre
     if (address === null || typeof address === 'string') {
       throw new Error('Missing proxy address')
     }
-    await page.goto(`http://127.0.0.1:${address.port}/en/hydration?id=${id}`, {
-      waitUntil: 'commit'
-    })
+    await page.goto(
+      `http://127.0.0.1:${address.port}${testLanguages.path(testLanguages.base, '/hydration')}?id=${id}`,
+      {
+        waitUntil: 'commit'
+      }
+    )
     await expect(page.locator('html')).toHaveAttribute(
       'data-entry-loaded',
       'loading'
@@ -308,7 +320,7 @@ test('fetches the data again on the client when the cut comes before the end of 
       throw new Error('Missing proxy address')
     }
     await page.goto(
-      `http://127.0.0.1:${address.port}/en/hydration?id=${id}&cut=shell`,
+      `http://127.0.0.1:${address.port}${testLanguages.path(testLanguages.base, '/hydration')}?id=${id}&cut=shell`,
       { waitUntil: 'commit' }
     )
     await expect(page.locator('html')).toHaveAttribute(

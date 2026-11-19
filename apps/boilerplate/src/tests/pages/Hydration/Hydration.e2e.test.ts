@@ -1,17 +1,18 @@
+import { m } from '@paraglide/messages.js'
 import type { Page } from '@playwright/test'
 
-import { SITE } from '@/constants/site/title.ts'
 import { holdRoute } from '@/tests/helpers/holdRoute/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
 
 const HTTP_OK = 200
-const PAGE_URL = '/en'
+const PAGE_URL = testLanguages.path(testLanguages.base, '')
 const SCRIPTS = '**/*.js'
 const MARKER = 'data-hydration-ended'
-const HOME_TITLE = `${SITE.title} for web applications`
-const ABOUT_TITLE = `About ${SITE.title}`
-const THEME_BUTTON = 'Select theme'
+const HOME_TITLE = testLanguages.labels(testLanguages.base).title
+const ABOUT_TITLE = testLanguages.labels(testLanguages.base).about
+const THEME_BUTTON = testLanguages.labels(testLanguages.base).theme
 // The order of the attributes is not part of the plugin contract.
 const ENTRY_SCRIPT =
   /<script\b(?=[^>]*\btype="module")(?=[^>]*\basync\b)[^>]*>/u
@@ -19,7 +20,10 @@ const ENTRY_SCRIPT =
 async function expectServerDocument(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(HOME_TITLE)
   await expect(
-    page.getByRole('link', { name: 'Home', exact: true })
+    page.getByRole('link', {
+      name: testLanguages.labels(testLanguages.base).homeLink,
+      exact: true
+    })
   ).toHaveAttribute('aria-current', 'page')
   await expect(page.getByRole('menu')).toHaveCount(0)
   expect(await hydrationFinished(page)).toBe(false)
@@ -39,7 +43,12 @@ test('serves the document without the hydration marker', async ({
   const response = await request.get(PAGE_URL)
   const html = await response.text()
   expect(response.status()).toBe(HTTP_OK)
-  expect(html).toMatch(/<html\b[^>]*\blang="en-US"/u)
+  expect(html).toMatch(
+    new RegExp(
+      String.raw`<html\b[^>]*\blang="${testLanguages.tag(testLanguages.base)}"`,
+      'u'
+    )
+  )
   expect(html).toContain(HOME_TITLE)
   expect(html).toMatch(ENTRY_SCRIPT)
   expect(html).not.toContain(MARKER)
@@ -113,16 +122,32 @@ test('keeps the marker and interactivity across client-side navigation', async (
   await page.goto(PAGE_URL)
   await expectInteractiveDocument(page)
 
-  const navigation = page.getByRole('navigation', { name: 'Main', exact: true })
-  await navigation.getByRole('link', { name: 'About', exact: true }).click()
-  await expect(page).toHaveURL('/en/about')
+  const navigation = page.getByRole('navigation', {
+    name: m.topbar_navigation({}, { locale: testLanguages.base }),
+    exact: true
+  })
+  await navigation
+    .getByRole('link', {
+      name: m.siteLinks_aboutLabel({}, { locale: testLanguages.base }),
+      exact: true
+    })
+    .click()
+  await expect(page).toHaveURL(testLanguages.path(testLanguages.base, '/about'))
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(ABOUT_TITLE)
   await expect(
-    navigation.getByRole('link', { name: 'About', exact: true })
+    navigation.getByRole('link', {
+      name: m.siteLinks_aboutLabel({}, { locale: testLanguages.base }),
+      exact: true
+    })
   ).toHaveAttribute('aria-current', 'page')
   await expectInteractiveDocument(page)
 
-  await navigation.getByRole('link', { name: 'Home', exact: true }).click()
+  await navigation
+    .getByRole('link', {
+      name: testLanguages.labels(testLanguages.base).homeLink,
+      exact: true
+    })
+    .click()
   await expect(page).toHaveURL(PAGE_URL)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(HOME_TITLE)
   await expectInteractiveDocument(page)
@@ -139,14 +164,21 @@ test('replays a click captured before hydration after the bundle is released', a
   try {
     await page.goto(PAGE_URL, { waitUntil: 'commit' })
     await gate.requested
-    await page.getByRole('button', { name: 'Select language' }).click()
+    await page
+      .getByRole('button', {
+        name: testLanguages.labels(testLanguages.base).selector
+      })
+      .click()
     await expect(page.getByRole('menu')).toHaveCount(0)
     expect(await hydrationFinished(page)).toBe(false)
     await gate.release()
 
     await expect.poll(() => hydrationFinished(page)).toBe(true)
     await expect(
-      page.getByRole('menu', { name: 'Language', exact: true })
+      page.getByRole('menu', {
+        name: m.localeSwitcher_label({}, { locale: testLanguages.base }),
+        exact: true
+      })
     ).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page.getByRole('menu')).not.toBeVisible()

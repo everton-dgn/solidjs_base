@@ -1,4 +1,5 @@
 import { m } from '@paraglide/messages.js'
+import { baseLocale } from '@paraglide/runtime.js'
 import { createSignal, Errored } from 'solid-js'
 
 import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
@@ -78,8 +79,8 @@ describe('navigation after a failure', () => {
     })
     const home = host.querySelector<HTMLAnchorElement>('a')
     assert(home)
-    expect(home.textContent).toBe('Back to home')
-    expect(new URL(home.href).pathname).toBe('/en')
+    expect(home.textContent).toBe(m.errorFallback_home())
+    expect(new URL(home.href).pathname).toBe(`/${baseLocale}`)
   })
 
   it('replaces the icon when the variant changes and restores the previous icon', async () => {
@@ -93,7 +94,7 @@ describe('navigation after a failure', () => {
     setKind('runtime')
     await expect
       .poll(() => host.querySelector('a')?.textContent)
-      .toBe('Reload page')
+      .toBe(m.errorFallback_reload())
     const runtimeIcon = host.querySelector('a svg')?.outerHTML
     expect(runtimeIcon).toBeDefined()
     expect(runtimeIcon).not.toBe(firstIcon)

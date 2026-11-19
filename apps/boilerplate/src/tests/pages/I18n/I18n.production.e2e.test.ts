@@ -2,43 +2,20 @@ import { readdir, readFile } from 'node:fs/promises'
 
 import * as v from 'valibot'
 
-import { SITE } from '@/constants/site/title.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
+import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
 
 const HTTP_OK = 200
 const HTTP_NOT_FOUND = 404
 const HTTP_REDIRECT = 307
 const REQUESTS = 18
-const ALTERNATE_LINKS = 4
+const ALTERNATE_LINKS = testLanguages.locales.length + 1
 const CatalogSchema = v.record(v.string(), v.string())
-const LANGUAGES = [
-  {
-    locale: 'pt',
-    tag: 'pt-BR',
-    title: `${SITE.title} para aplicações web`,
-    selector: 'Selecionar idioma',
-    missing: 'Página não encontrada',
-    home: 'Voltar ao início'
-  },
-  {
-    locale: 'en',
-    tag: 'en-US',
-    title: `${SITE.title} for web applications`,
-    selector: 'Select language',
-    missing: 'Page not found',
-    home: 'Back to home'
-  },
-  {
-    locale: 'es',
-    tag: 'es-ES',
-    title: `${SITE.title} para aplicaciones web`,
-    selector: 'Seleccionar idioma',
-    missing: 'Página no encontrada',
-    home: 'Volver al inicio'
-  }
-]
+const LANGUAGES = testLanguages.locales.map(locale =>
+  testLanguages.labels(locale)
+)
 
 type PageBody = { catalog: string; message: string }
 
@@ -96,16 +73,27 @@ test('switches language and hydrates when cookie access is blocked', async ({
       }
     })
   })
-  await page.goto('/en')
-  await page.getByRole('button', { name: 'Select language' }).click()
+  await page.goto(testLanguages.path(testLanguages.base, ''))
   await page
-    .getByRole('menuitemradio', { name: 'Español', exact: true })
+    .getByRole('button', {
+      name: testLanguages.labels(testLanguages.base).selector
+    })
     .click()
-  await expect(page).toHaveURL('/es')
+  await page
+    .getByRole('menuitemradio', {
+      name: testLanguages.labels(testLanguages.third).name,
+      exact: true
+    })
+    .click()
+  await expect(page).toHaveURL(testLanguages.path(testLanguages.third, ''))
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    `${SITE.title} para aplicaciones web`
+    testLanguages.labels(testLanguages.third).title
   )
-  await page.getByRole('button', { name: 'Seleccionar tema' }).click()
+  await page
+    .getByRole('button', {
+      name: testLanguages.labels(testLanguages.third).theme
+    })
+    .click()
   await expect(page.getByRole('menu')).toBeVisible()
   expect(pageErrors).toEqual([])
 })
@@ -144,17 +132,21 @@ test('loads each page body only with its route implementation', async ({
   page.on('request', request =>
     requested.add(new URL(request.url()).pathname.split('/').pop() ?? '')
   )
-  await page.goto('/pt/404')
+  await page.goto(testLanguages.path(testLanguages.alternate, '/404'))
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Página não encontrada!'
+    testLanguages.labels(testLanguages.alternate).missingHeading
   )
   await expect.poll(() => hydrationFinished(page)).toBe(true)
   for (const bodyModule of bodyModules) {
     expect(requested.has(String(bodyModule?.file))).toBe(false)
   }
-  await page.getByRole('link', { name: 'Voltar ao início' }).click()
+  await page
+    .getByRole('link', {
+      name: testLanguages.labels(testLanguages.alternate).home
+    })
+    .click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    `${SITE.title} para aplicações web`
+    testLanguages.labels(testLanguages.alternate).title
   )
   expect(requested.has(String(homeModule))).toBe(true)
 })
@@ -165,15 +157,23 @@ for (const language of LANGUAGES) {
     request,
     pageErrors
   }) => {
-    const response = await request.get(`/${language.locale}`, {
-      headers: { 'accept-language': 'de-DE', cookie: 'locale=es' }
-    })
+    const response = await request.get(
+      testLanguages.path(language.locale, ''),
+      {
+        headers: {
+          'accept-language': 'invalid_tag',
+          cookie: `locale=${testLanguages.third}`
+        }
+      }
+    )
     expect(response.status()).toBe(HTTP_OK)
-    expect(response.headers()['content-language']).toBe(language.locale)
+    expect(response.headers()['content-language']).toBe(
+      testLanguages.header(language.locale)
+    )
     const html = await response.text()
     expect(html).toContain(`lang="${language.tag}"`)
     expect(html).toContain(language.title)
-    await page.goto(`/${language.locale}`)
+    await page.goto(testLanguages.path(language.locale, ''))
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       language.title
     )
@@ -192,7 +192,7 @@ for (const language of LANGUAGES) {
     const isSameHeader = () =>
       header.evaluate(element => element === document.querySelector('header'))
     await page.getByRole('link', { name: '404', exact: true }).click()
-    await expect(page).toHaveURL(`/${language.locale}/404`)
+    await expect(page).toHaveURL(testLanguages.path(language.locale, '/404'))
     await expect(page).toHaveTitle(language.missing)
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
       'content',
@@ -200,7 +200,7 @@ for (const language of LANGUAGES) {
     )
     expect(await isSameHeader()).toBe(true)
     await page.getByRole('link', { name: language.home }).click()
-    await expect(page).toHaveURL(`/${language.locale}`)
+    await expect(page).toHaveURL(testLanguages.path(language.locale, ''))
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
       language.title
     )
@@ -212,27 +212,43 @@ for (const language of LANGUAGES) {
 test('switches language by keyboard, persists the choice and preserves query and hash', async ({
   page
 }) => {
-  await page.goto('/pt?campaign=example#section')
-  const selector = page.getByRole('button', { name: 'Selecionar idioma' })
+  await page.goto(
+    testLanguages.path(testLanguages.alternate, '?campaign=example#section')
+  )
+  const selector = page.getByRole('button', {
+    name: testLanguages.labels(testLanguages.alternate).selector
+  })
   await selector.focus()
   await page.keyboard.press('Enter')
   await page
-    .getByRole('menuitemradio', { name: 'English', exact: true })
+    .getByRole('menuitemradio', {
+      name: testLanguages.labels(testLanguages.base).name,
+      exact: true
+    })
     .focus()
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL('/en?campaign=example#section')
+  await expect(page).toHaveURL(
+    testLanguages.path(testLanguages.base, '?campaign=example#section')
+  )
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    `${SITE.title} for web applications`
+    testLanguages.labels(testLanguages.base).title
   )
   await page.goto('/')
-  await expect(page).toHaveURL('/en')
-  await page.getByRole('button', { name: 'Select language' }).click()
+  await expect(page).toHaveURL(testLanguages.path(testLanguages.base, ''))
   await page
-    .getByRole('menuitemradio', { name: 'Español', exact: true })
+    .getByRole('button', {
+      name: testLanguages.labels(testLanguages.base).selector
+    })
     .click()
-  await expect(page).toHaveURL('/es')
+  await page
+    .getByRole('menuitemradio', {
+      name: testLanguages.labels(testLanguages.third).name,
+      exact: true
+    })
+    .click()
+  await expect(page).toHaveURL(testLanguages.path(testLanguages.third, ''))
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    `${SITE.title} para aplicaciones web`
+    testLanguages.labels(testLanguages.third).title
   )
 })
 
@@ -241,33 +257,59 @@ test('negotiates only unprefixed page URLs and does not cache preference redirec
 }) => {
   const response = await request.get('/?q=one', {
     maxRedirects: 0,
-    headers: { cookie: 'locale=es', 'accept-language': 'en-US' }
+    headers: {
+      cookie: `locale=${testLanguages.third}`,
+      'accept-language': testLanguages.tag(testLanguages.base)
+    }
   })
   expect(response.status()).toBe(HTTP_REDIRECT)
-  expect(new URL(response.headers().location ?? '').pathname).toBe('/es')
+  expect(new URL(response.headers().location ?? '').pathname).toBe(
+    testLanguages.path(testLanguages.third, '')
+  )
   expect(response.headers().location).toContain('?q=one')
   expect(response.headers()['cache-control']).toContain('no-store')
   expect(response.headers().vary).toContain('Cookie')
   const fallback = await request.get('/', {
     maxRedirects: 0,
-    headers: { cookie: 'locale=invalid', 'accept-language': 'de' }
+    headers: { cookie: 'locale=invalid', 'accept-language': 'invalid_tag' }
   })
-  expect(new URL(fallback.headers().location ?? '').pathname).toBe('/en')
+  expect(new URL(fallback.headers().location ?? '').pathname).toBe(
+    testLanguages.path(testLanguages.base, '')
+  )
   const preferred = await request.head('/', {
     maxRedirects: 0,
-    headers: { 'accept-language': 'es-AR, en;q=0.5', cookie: '' }
+    headers: {
+      'accept-language': `${testLanguages.third}, ${testLanguages.base};q=0.5`,
+      cookie: ''
+    }
   })
-  expect(new URL(preferred.headers().location ?? '').pathname).toBe('/es')
-  const missing = await request.get('/en/missing')
+  expect(new URL(preferred.headers().location ?? '').pathname).toBe(
+    testLanguages.path(testLanguages.third, '')
+  )
+  const missing = await request.get(
+    testLanguages.path(testLanguages.base, '/missing')
+  )
   expect(missing.status()).toBe(HTTP_NOT_FOUND)
 })
 
 for (const { header, locale } of [
-  { header: '', locale: 'en' },
-  { header: 'de;q=1, es;q=0', locale: 'en' },
-  { header: 'es;q=0.000, pt;q=0', locale: 'en' },
-  { header: 'ES-ar ; Q = 0, pt-BR ; q = 0.4', locale: 'pt' },
-  { header: 'es;q=NaN, pt;q=0.5', locale: 'pt' }
+  { header: '', locale: testLanguages.base },
+  {
+    header: `invalid_tag;q=1, ${testLanguages.alternate};q=0`,
+    locale: testLanguages.base
+  },
+  {
+    header: `${testLanguages.alternate};q=0.000, ${testLanguages.base};q=0`,
+    locale: testLanguages.base
+  },
+  {
+    header: `invalid_tag ; Q = 0, ${testLanguages.alternate} ; q = 0.4`,
+    locale: testLanguages.alternate
+  },
+  {
+    header: `invalid_tag;q=NaN, ${testLanguages.alternate};q=0.5`,
+    locale: testLanguages.alternate
+  }
 ]) {
   test(`negotiates and persists ${locale} for Accept-Language ${header}`, async ({
     request
@@ -278,17 +320,17 @@ for (const { header, locale } of [
     })
     expect(response.status()).toBe(HTTP_REDIRECT)
     expect(new URL(response.headers().location ?? '').pathname).toBe(
-      `/${locale}`
+      testLanguages.path(locale, '')
     )
     expect(response.headers().location).toContain('?campaign=example')
     expect(response.headers()['set-cookie']).toContain(`locale=${locale};`)
     expect(response.headers()['cache-control']).toBe('private, no-store')
     const revisit = await request.get('/', {
       maxRedirects: 0,
-      headers: { 'accept-language': 'de' }
+      headers: { 'accept-language': 'invalid_tag' }
     })
     expect(new URL(revisit.headers().location ?? '').pathname).toBe(
-      `/${locale}`
+      testLanguages.path(locale, '')
     )
     expect(revisit.headers()['set-cookie']).toBeUndefined()
   })
@@ -304,15 +346,20 @@ test('isolates concurrent HTML and Markdown requests across all locales', async 
       const format =
         formats[Math.floor(index / LANGUAGES.length) % formats.length]
       if (!language || !format) throw new Error('Missing test request')
-      const response = await request.get(`/${language.locale}`, {
-        headers: {
-          accept: format,
-          cookie: `locale=${language.locale === 'es' ? 'en' : 'es'}`
+      const response = await request.get(
+        testLanguages.path(language.locale, ''),
+        {
+          headers: {
+            accept: format,
+            cookie: `locale=${language.locale === testLanguages.third ? testLanguages.base : testLanguages.third}`
+          }
         }
-      })
+      )
       expect(response.status()).toBe(HTTP_OK)
       expect(response.headers()['content-type']).toContain(format)
-      expect(response.headers()['content-language']).toBe(language.locale)
+      expect(response.headers()['content-language']).toBe(
+        testLanguages.header(language.locale)
+      )
       expect(response.headers()['set-cookie']).toBe(
         `locale=${language.locale}; Path=/; Max-Age=34560000; SameSite=Lax`
       )
@@ -323,6 +370,10 @@ test('isolates concurrent HTML and Markdown requests across all locales', async 
       return { language, format, body: await response.text() }
     })
   )
+  const { texts } = await readBodyTexts({
+    catalog: '(home)',
+    message: 'home_features'
+  })
   for (const { language, format, body } of results) {
     if (format === 'text/html') {
       expect(body).toContain(`lang="${language.tag}"`)
@@ -330,10 +381,15 @@ test('isolates concurrent HTML and Markdown requests across all locales', async 
       expect(body.split('\n')).toContain(`# ${language.title}`)
     }
     expect(body).toContain(language.title)
+    const active = texts[LANGUAGES.indexOf(language)]
+    if (!active) throw new Error('Missing localized home text')
+    expect(body).toContain(active)
     for (const other of LANGUAGES.filter(
       item => item.locale !== language.locale
     )) {
-      expect(body).not.toContain(other.title)
+      const text = texts[LANGUAGES.indexOf(other)]
+      if (!text) throw new Error('Missing localized home text')
+      if (text !== active) expect(body).not.toContain(text)
     }
   }
 })

@@ -4,11 +4,14 @@ import nodePath from 'node:path'
 import { expect, test } from '@playwright/test'
 
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
+import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
 
-const LOCALES = ['pt', 'en', 'es']
+const LOCALES = testLanguages.locales
 const PAGE_PATHS = ['', '/about', '/contact', '/privacy']
 const EXPECTED_SITEMAP_URLS = LOCALES.flatMap(locale =>
-  PAGE_PATHS.map(path => `${readSiteOrigin()}/${locale}${path}`)
+  PAGE_PATHS.map(
+    path => `${readSiteOrigin()}${testLanguages.path(locale, path)}`
+  )
 )
 const HTTP_OK = 200
 const HTTP_NOT_FOUND = 404
@@ -138,8 +141,12 @@ test.describe('indexes in the real production tree', () => {
     const markdown = await response.text()
     expect(markdown).toMatch(/^# .+\n/u)
     const useCases = markdown.split('## When to use\n\n')[1]?.split('\n## ')[0]
-    expect(useCases).toContain(`](${readSiteOrigin()}/en/index.md): `)
-    expect(useCases).toContain(`](${readSiteOrigin()}/en/about.md): `)
+    expect(useCases).toContain(
+      `](${readSiteOrigin()}${testLanguages.path(testLanguages.base, '/index.md')}): `
+    )
+    expect(useCases).toContain(
+      `](${readSiteOrigin()}${testLanguages.path(testLanguages.base, '/about.md')}): `
+    )
     expect(useCases?.trim().split('\n')).toEqual([
       expect.stringMatching(/^- \[[^\]]+\]\([^)]+\): .{20,}$/u),
       expect.stringMatching(/^- \[[^\]]+\]\([^)]+\): .{20,}$/u)
@@ -150,10 +157,10 @@ test.describe('indexes in the real production tree', () => {
     expect(markdown).toContain('## Pages\n')
     for (const path of PAGE_PATHS) {
       expect(markdown).toContain(
-        `](${readSiteOrigin()}/en${path ? `${path}.md` : '/index.md'})`
+        `](${readSiteOrigin()}${testLanguages.path(testLanguages.base, path ? `${path}.md` : '/index.md')})`
       )
     }
-    expect(markdown).toContain('This index uses English.')
+    expect(markdown).toContain(testLanguages.indexNote)
     expect(markdown).not.toContain('/helpers/')
     expect(markdown).not.toContain('(seo)')
   })
@@ -164,13 +171,19 @@ test.describe('indexes in the real production tree', () => {
       // module published by mistake would answer without the prefix.
       const raw = await request.get(path, { maxRedirects: 0 })
       expect(raw.status()).not.toBe(HTTP_OK)
-      const localized = await request.get(`/pt${path}`, { maxRedirects: 0 })
+      const localized = await request.get(
+        testLanguages.path(testLanguages.alternate, path),
+        { maxRedirects: 0 }
+      )
       expect(localized.status()).toBe(HTTP_NOT_FOUND)
     })
   }
 
   test('does not include the E2E fixture tree', async ({ request }) => {
-    const response = await request.get('/pt/seo-public', { maxRedirects: 0 })
+    const response = await request.get(
+      testLanguages.path(testLanguages.alternate, '/seo-public'),
+      { maxRedirects: 0 }
+    )
     expect(response.status()).toBe(HTTP_NOT_FOUND)
   })
 })

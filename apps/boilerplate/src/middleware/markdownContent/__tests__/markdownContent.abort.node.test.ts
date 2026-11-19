@@ -1,4 +1,5 @@
 import { MARKDOWN_TIMEOUT_MS } from '@evertondgn/solid-runtime/server/publication-protocol'
+import { baseLocale, localizeHref } from '@paraglide/runtime.js'
 import {
   createComponent,
   createRequestEvent,
@@ -73,8 +74,10 @@ function startComposedMarkdown({
       info: { markdown: true }
     }
   ])
+  const pathname = localizeHref('/about.md', { locale: baseLocale })
+  const url = new URL(pathname, 'https://example.com')
   const event = createRequestEvent(
-    new Request('https://example.com/en/about.md', {
+    new Request(url, {
       signal: client.signal,
       headers: { accept: 'text/markdown' }
     })

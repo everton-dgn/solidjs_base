@@ -1,4 +1,5 @@
 import { createLocalizedNavigate } from '@evertondgn/solid-runtime/i18n/create-localized-navigate'
+import { baseLocale, locales } from '@paraglide/runtime.js'
 import { useSearchParams, type RouteDefinition } from '@solidjs/router'
 import { createSignal, untrack } from 'solid-js'
 
@@ -10,6 +11,8 @@ import { useToast } from '@/components/atoms/ToastProvider/useToast/index.ts'
 import { Dialog } from '@/components/molecules/Dialog/index.tsx'
 
 import S from './styles.module.css'
+
+const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
 
 export const route = {
   info: { seo: { noindex: true } }
@@ -27,8 +30,8 @@ export default function UiKit() {
       <h1>UI fixture</h1>
       <nav aria-label="Fixture navigation" class={S.actions}>
         <LocalizedLink href="?source=link#target">Localized page</LocalizedLink>
-        <LocalizedLink href="/ui-kit?source=language#target" locale="es">
-          Spanish page
+        <LocalizedLink href="/ui-kit?source=language#target" locale={alternate}>
+          Alternate language page
         </LocalizedLink>
         <LocalizedLink href="/robots.txt" shouldLocalize={false}>
           Robots file

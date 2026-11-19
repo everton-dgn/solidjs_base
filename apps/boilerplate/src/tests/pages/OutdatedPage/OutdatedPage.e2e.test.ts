@@ -1,21 +1,23 @@
 import type { Page, Route } from '@playwright/test'
 
-import { SITE } from '@/constants/site/title.ts'
 import { readBackendState } from '@/tests/helpers/fixtureGate/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
 
-test.use({ locale: 'pt-BR' })
+test.use({ locale: testLanguages.tag(testLanguages.alternate) })
 
 const HTTP_NOT_FOUND = 404
 const HTTP_CONFLICT = 409
 const FIXTURE_TITLE = 'Outdated page'
-const NOTICE_TITLE = 'O envio não foi concluído'
-const FALLBACK_NOTICE_TITLE = 'Parte da página não carregou'
+const NOTICE_TITLE = testLanguages.labels(testLanguages.alternate).noticeTitle
+const FALLBACK_NOTICE_TITLE = testLanguages.labels(
+  testLanguages.alternate
+).fallbackTitle
 const ERROR_PAGE_FLAG = 'e2e-error-page'
 const DRAFT = 'Text not saved yet'
 
-type Destination = { link: string; url: RegExp; title: string }
+type Destination = { link: string; url: string; title: string }
 // The guard switches documents with assign; the root Errored, with reload.
 type NavigationType = 'navigate' | 'reload'
 type NavigationEntry = { name: string; type: string }
@@ -33,13 +35,13 @@ type Refusal = {
 
 const ABOUT: Destination = {
   link: 'Go to About',
-  url: /\/pt\/about$/u,
-  title: `Sobre o ${SITE.title}`
+  url: testLanguages.path(testLanguages.alternate, '/about'),
+  title: testLanguages.labels(testLanguages.alternate).about
 }
 // The About CSS already comes in the fixture document; the UI kit one does not.
 const UI_KIT: Destination = {
   link: 'Go to UI kit',
-  url: /\/pt\/ui-kit$/u,
+  url: testLanguages.path(testLanguages.alternate, '/ui-kit'),
   title: 'UI fixture'
 }
 
@@ -179,7 +181,9 @@ test('hovering a link without the chunk does not reload, respects the draft and 
   await page.getByRole('link', { name: ABOUT.link }).click()
   await expect(page.getByText('Leave blocked')).toBeVisible()
   await expect(page.getByLabel('Draft')).toHaveValue(DRAFT)
-  expect(page.url()).toMatch(/\/pt\/outdated-page$/u)
+  expect(new URL(page.url()).pathname).toBe(
+    testLanguages.path(testLanguages.alternate, '/outdated-page')
+  )
   expect(documents()).toBe(0)
 
   await page.getByLabel('Draft').fill('')
@@ -240,7 +244,9 @@ for (const { status, rewrite } of REFUSALS) {
     await expect(page.getByText('Unknown function')).toBeVisible()
     await expect(
       page.getByRole('region', { name: NOTICE_TITLE })
-    ).toContainText('A página pode estar desatualizada.')
+    ).toContainText(
+      testLanguages.labels(testLanguages.alternate).noticeDescription
+    )
     const backend = await readBackendState({ request, id })
     expect(backend.attempts).toBe(0)
 
@@ -268,12 +274,18 @@ test('the read refused inside the local boundary warns without reloading and kee
   await page.getByRole('button', { name: 'Read note', exact: true }).click()
   await expect(page.getByText('Read refused')).toBeVisible()
   const notice = page.getByRole('region', { name: FALLBACK_NOTICE_TITLE })
-  await expect(notice).toContainText('Recarregue para continuar.')
+  await expect(notice).toContainText(
+    testLanguages.labels(testLanguages.alternate).fallbackDescription
+  )
   await expect(page.getByRole('region', { name: NOTICE_TITLE })).toHaveCount(0)
   await expect(page.getByLabel('Draft')).toHaveValue(DRAFT)
   expect(documents()).toBe(0)
 
-  await notice.getByRole('button', { name: 'Recarregar página' }).click()
+  await notice
+    .getByRole('button', {
+      name: testLanguages.labels(testLanguages.alternate).reload
+    })
+    .click()
   await expect.poll(documents).toBe(1)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     FIXTURE_TITLE
@@ -311,7 +323,7 @@ test('the read refused without a local boundary reloads once and shows the error
     .getByRole('button', { name: 'Read note without a local boundary' })
     .click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Algo deu errado!'
+    testLanguages.labels(testLanguages.alternate).errorHeading
   )
   expect(documents()).toBe(1)
   // The root Errored unmounts the notice: the error page shows up alone.

@@ -1,6 +1,8 @@
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLocale } from '@/tests/helpers/testLocale/index.ts'
+import { themeLabels } from '@/tests/helpers/themeLabels/index.ts'
 
-test.use({ locale: 'pt-BR' })
+test.use({ locale: testLocale.tag(testLocale.alternate) })
 
 const THEME_KEY = 'app-theme'
 
@@ -29,9 +31,15 @@ test.describe('application theme', () => {
       expect(await page.context().cookies(page.url())).not.toEqual(
         expect.arrayContaining([expect.objectContaining({ name: THEME_KEY })])
       )
-      await page.getByRole('button', { name: 'Selecionar tema' }).click()
+      await page
+        .getByRole('button', {
+          name: themeLabels.theme
+        })
+        .click()
       await expect(
-        page.getByRole('menuitemradio', { name: 'Sistema' })
+        page.getByRole('menuitemradio', {
+          name: themeLabels.system
+        })
       ).toHaveAttribute('aria-checked', 'true')
     })
   }
@@ -43,12 +51,27 @@ test.describe('application theme', () => {
     await page.goto('/')
     const other = await context.newPage()
     await other.goto('/')
-    await page.getByRole('button', { name: 'Selecionar tema' }).click()
-    await page.getByRole('menuitemradio', { name: 'Escuro' }).click()
+    await page
+      .getByRole('button', {
+        name: themeLabels.theme
+      })
+      .click()
+    await page
+      .getByRole('menuitemradio', {
+        name: themeLabels.dark
+      })
+      .click()
     await expect(other.locator('html')).toHaveClass('dark')
-    await other.getByRole('button', { name: 'Selecionar tema' }).click()
     await other
-      .getByRole('menuitemradio', { name: 'Claro', exact: true })
+      .getByRole('button', {
+        name: themeLabels.theme
+      })
+      .click()
+    await other
+      .getByRole('menuitemradio', {
+        name: themeLabels.light,
+        exact: true
+      })
       .click()
     await expect(page.locator('html')).toHaveClass('light')
     await page.reload()
@@ -60,9 +83,16 @@ test.describe('application theme', () => {
     await page.goto('/')
     await page.emulateMedia({ colorScheme: 'light' })
     await expect(page.locator('html')).toHaveClass('light')
-    await page.getByRole('button', { name: 'Selecionar tema' }).click()
     await page
-      .getByRole('menuitemradio', { name: 'Claro', exact: true })
+      .getByRole('button', {
+        name: themeLabels.theme
+      })
+      .click()
+    await page
+      .getByRole('menuitemradio', {
+        name: themeLabels.light,
+        exact: true
+      })
       .click()
     await page.evaluate(watchDarkScheme)
     await page.emulateMedia({ colorScheme: 'dark' })
@@ -84,7 +114,9 @@ test.describe('application theme', () => {
     await page.goto('/')
     await expect(page.locator('html')).toHaveClass('light')
     await expect(
-      page.getByRole('button', { name: 'Selecionar tema' })
+      page.getByRole('button', {
+        name: themeLabels.theme
+      })
     ).toBeDisabled()
   })
 
@@ -104,12 +136,22 @@ test.describe('application theme', () => {
     await other.goto('/')
     for (const tab of [page, other]) {
       await expect(
-        tab.getByRole('button', { name: 'Selecionar tema' })
+        tab.getByRole('button', {
+          name: themeLabels.theme
+        })
       ).toBeEnabled()
     }
     await expect(other.locator('html')).toHaveClass('light')
-    await page.getByRole('button', { name: 'Selecionar tema' }).click()
-    await page.getByRole('menuitemradio', { name: 'Escuro' }).click()
+    await page
+      .getByRole('button', {
+        name: themeLabels.theme
+      })
+      .click()
+    await page
+      .getByRole('menuitemradio', {
+        name: themeLabels.dark
+      })
+      .click()
     await expect(page.locator('html')).toHaveClass('dark')
     await expect(other.locator('html')).toHaveClass('light')
     expect(await context.cookies(page.url())).toEqual(
@@ -150,7 +192,9 @@ test.describe('application theme', () => {
           colorScheme === 'dark' ? '#09090b' : '#ffffff'
         )
         await expect(
-          page.getByRole('button', { name: 'Selecionar tema' })
+          page.getByRole('button', {
+            name: themeLabels.theme
+          })
         ).toBeDisabled()
         expect(pageErrors).toStrictEqual([])
       })

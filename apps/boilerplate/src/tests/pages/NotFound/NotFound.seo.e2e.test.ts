@@ -1,5 +1,5 @@
-import { SITE } from '@/constants/site/title.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
 
 const HTTP_NOT_FOUND = 404
 const SOCIAL_TAGS = 'head meta[property^="og:"], head meta[name^="twitter:"]'
@@ -12,10 +12,12 @@ test.describe('missing page', () => {
   }) => {
     await page.goto('/pagina-inexistente')
 
-    await expect(page).toHaveTitle('Page not found')
+    await expect(page).toHaveTitle(
+      testLanguages.labels(testLanguages.base).missing
+    )
     await expect(page.locator('head meta[name="description"]')).toHaveAttribute(
       'content',
-      'The requested page was not found.'
+      testLanguages.labels(testLanguages.base).missingDescription
     )
     await expect(page.locator('head meta[name="robots"]')).toHaveAttribute(
       'content',
@@ -38,7 +40,11 @@ test.describe('hydrated missing page', () => {
     expect(response?.status()).toBe(HTTP_NOT_FOUND)
 
     // The theme menu only opens with hydrated JavaScript.
-    await page.getByRole('button', { name: 'Select theme' }).click()
+    await page
+      .getByRole('button', {
+        name: testLanguages.labels(testLanguages.base).theme
+      })
+      .click()
     await expect(page.getByRole('menu')).toBeVisible()
 
     await expect(page.locator('head meta[name="robots"]')).toHaveAttribute(
@@ -52,10 +58,14 @@ test.describe('hydrated missing page', () => {
       page.locator('head script[type="application/ld+json"]')
     ).toHaveCount(0)
 
-    await page.getByRole('link', { name: 'Back to home' }).click()
-    await expect(page).toHaveURL('/en')
+    await page
+      .getByRole('link', {
+        name: testLanguages.labels(testLanguages.base).home
+      })
+      .click()
+    await expect(page).toHaveURL(testLanguages.path(testLanguages.base, ''))
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      `${SITE.title} for web applications`
+      testLanguages.labels(testLanguages.base).title
     )
     expect(pageErrors).toStrictEqual([])
   })

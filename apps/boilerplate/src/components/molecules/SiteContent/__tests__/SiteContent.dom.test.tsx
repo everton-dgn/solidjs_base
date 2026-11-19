@@ -1,3 +1,5 @@
+import { baseLocale } from '@paraglide/runtime.js'
+
 import type { SitePage } from '@/@types/site-page.ts'
 import { SITE } from '@/constants/site/index.ts'
 import { SITE_LINKS } from '@/constants/siteLinks/index.ts'
@@ -25,10 +27,10 @@ describe('content of the institutional pages', () => {
         link.getAttribute('href')
       )
     ).toStrictEqual([
-      '/en',
-      '/en/about',
-      '/en/contact',
-      '/en/privacy',
+      `/${baseLocale}`,
+      `/${baseLocale}/about`,
+      `/${baseLocale}/contact`,
+      `/${baseLocale}/privacy`,
       SITE.repositoryUrl,
       `${SITE.repositoryUrl}#readme`
     ])

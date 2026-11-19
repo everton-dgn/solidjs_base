@@ -18,7 +18,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { it, type TestContext } from 'node:test'
 
-import { parse } from 'valibot'
+import { object, parse, string } from 'valibot'
 
 import { manifestSchema } from '../src/schema.ts'
 
@@ -372,4 +372,46 @@ void it('rejects invalid titles before creating an application', async context =
     )
     assert.ok(!existsSync(dir))
   }
+})
+
+async function generatedTitle(dir: string): Promise<string> {
+  const module: unknown = await import(
+    path.join(dir, 'src/constants/site/title.ts')
+  )
+  const schema = object({ SITE: object({ title: string() }) })
+  return parse(schema, module).SITE.title
+}
+
+for (const destination of ['.', '../x/y']) {
+  void it(`derives the CLI title from the resolved destination ${destination}`, async context => {
+    const cwd = path.join(folder(context), 'My App')
+    mkdirSync(cwd)
+    const dir = path.resolve(cwd, destination)
+    execFileSync(
+      process.execPath,
+      [bin, destination, '--no-git', '--no-install'],
+      { cwd }
+    )
+    assert.equal(await generatedTitle(dir), path.basename(dir))
+  })
+}
+
+void it('uses the resolved folder for the API package name and title', async context => {
+  const dir = path.join(folder(context), 'My App')
+  mkdirSync(dir)
+  const generator = new URL('../src/generate.ts', import.meta.url).href
+  execFileSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '--eval',
+      `import { generate } from ${JSON.stringify(generator)}
+     generate({ dir: '.', pm: 'bun', shouldInstall: false, shouldInitGit: false })`
+    ],
+    { cwd: dir }
+  )
+  const json = readFileSync(path.join(dir, 'package.json'), 'utf8')
+  const manifest = parse(manifestSchema, JSON.parse(json))
+  assert.equal(manifest.name, 'my-app')
+  assert.equal(await generatedTitle(dir), 'My App')
 })

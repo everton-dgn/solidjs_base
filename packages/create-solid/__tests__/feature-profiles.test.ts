@@ -17,7 +17,7 @@ import { generate } from '../src/generate.ts'
 
 const repetitions = 15
 for (const title of [
-  String.raw`Été " ' < & {x} \\ \` #`,
+  String.raw`Été " ' < & {x} \\ \` # ~~x~~`,
   'Um título comprido '.repeat(repetitions).trim()
 ]) {
   void it(`escapes and formats a client application named ${title}`, async context => {
@@ -25,7 +25,7 @@ for (const title of [
     context.after(() => rmSync(dir, { recursive: true, force: true }))
     generate({
       dir,
-      title,
+      title: `  ${title.replaceAll(' ', '  ')}  `,
       mode: 'client',
       pm: 'bun',
       shouldInstall: false,
@@ -49,8 +49,34 @@ for (const title of [
       const pattern = catalog[key]
       assert.ok(pattern)
       assert.match(pattern, /^(?:[^\\{}]|\\[\\{}])*$/u)
-      assert.equal(pattern.replaceAll(/\\([\\{}])/gu, '$1'), expected)
+      assert.equal(
+        pattern.replaceAll(/\\(?<escaped>[\\{}])/gu, '$<escaped>'),
+        expected
+      )
     }
+    const html = readFileSync(path.join(dir, 'index.html'), 'utf8')
+    const [heading] = readFileSync(path.join(dir, 'README.md'), 'utf8').split(
+      '\n'
+    )
+    assert.ok(heading)
+    for (const value of [
+      /<title>(?<title>[^<]*)<\/title>/u.exec(html)?.groups?.title,
+      heading.slice('# '.length)
+    ]) {
+      assert.ok(value)
+      const decoded = value
+        .trim()
+        .replaceAll(/\s+/gu, ' ')
+        .replaceAll(/&#(?<digits>\d+);/gu, (_, digits: string) =>
+          String.fromCodePoint(Number(digits))
+        )
+        .replaceAll('&gt;', '>')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&amp;', '&')
+      assert.equal(decoded, title)
+    }
+    assert.ok(!html.includes('&#32;'))
+    assert.ok(!heading.includes('~~'))
     const files = readdirSync(dir)
     copyFileSync(
       'dist/formatter/vite.config.mjs',

@@ -283,7 +283,7 @@ export function configureHooks({
 export function rewriteIdentity({ pkg, profile }: GenerationContext): void {
   pkg.name =
     path
-      .basename(profile.dir)
+      .basename(path.resolve(profile.dir))
       .toLowerCase()
       .replaceAll(/[^a-z0-9-]+/gu, '-')
       .replaceAll(/^-+|-+$/gu, '')

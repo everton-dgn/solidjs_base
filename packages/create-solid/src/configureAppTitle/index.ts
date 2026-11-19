@@ -38,7 +38,7 @@ export function resolveAppTitle({
       '--title requires nonempty text on one line without control characters'
     )
   }
-  return value
+  return value.trim().replaceAll(/ +/gu, ' ')
 }
 
 export function configureAppTitle(context: StagedContext, title: string): void {
@@ -81,20 +81,26 @@ export function configureAppTitle(context: StagedContext, title: string): void {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
   if (profile.mode === 'client') {
-    // Numeric references keep whitespace and non-ASCII characters in one HTML text token.
-    const encoded = html.replaceAll(
-      /[^!-~]/gu,
-      char => `&#${char.codePointAt(0)};`
-    )
     const inlineWidth = 61
+    const contentWidth = 74
+    const lines: string[] = []
+    let line = ''
+    for (const word of html.split(' ')) {
+      if (line && line.length + word.length + 1 > contentWidth) {
+        lines.push(line)
+        line = ''
+      }
+      line += line ? ` ${word}` : word
+    }
+    lines.push(line)
     const element =
-      encoded.length <= inlineWidth
-        ? `<title>${encoded}</title>`
-        : `<title>\n      ${encoded}\n    </title>`
+      html.length <= inlineWidth
+        ? `<title>${html}</title>`
+        : `<title>\n      ${lines.join('\n      ')}\n    </title>`
     edit('index.html', [`<title>${original}</title>`, element])
   }
   const heading = html.replaceAll(
-    /[\\`*_#[\]|]/gu,
+    /[\\`*_~#[\]|]/gu,
     char => `&#${char.codePointAt(0)};`
   )
   edit('README.md', ['# Solid Base application\n', `# ${heading}\n`])

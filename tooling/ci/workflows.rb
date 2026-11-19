@@ -17,7 +17,7 @@ raise 'CI required must depend on every other job' unless ci.fetch('required').f
 end
 
 release = YAML.safe_load(File.read('.github/workflows/release.yml')).fetch('jobs')
-raise 'Publication must wait for verification and installations' unless release.fetch('publish').fetch('needs').sort == %w[release-please scenario verify]
+raise 'Publication must wait for verification and installations' unless release.fetch('publish').fetch('needs').sort == %w[release-please verified] && release.fetch('verified').fetch('needs').sort == %w[scenario verify]
 validations = release.flat_map do |name, job|
   job.fetch('steps').map { |step| name if step.fetch('run', '').lines.map(&:strip).include?('vp run validate') }.compact
 end

@@ -102,9 +102,29 @@ jobs:
           vp run build
           node packages/create-solid/tooling/scenario.ts "${{ matrix.scenario }}"
 
+  verified:
+    name: Check release jobs
+    needs: [verify, scenario]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Require all installed scenarios
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEEDS: ${{ toJSON(needs) }}
+        run: python3 tooling/ci/required.py
+
   publish:
     name: Publish ${{ matrix.path }}
-    needs: [release-please, verify, scenario]
+    needs: [release-please, verified]
     if: needs.release-please.outputs.releases-created == 'true'
     runs-on: ubuntu-latest
     # Bound the build, pack, registry wait and publication together.

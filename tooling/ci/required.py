@@ -1,6 +1,6 @@
 import json
 import os
-from changes import api
+from changes import SCENARIOS, api
 
 
 def verify(expected, needs, jobs):
@@ -18,5 +18,9 @@ def verify(expected, needs, jobs):
 
 if __name__ == '__main__':
     pages = api(f"actions/runs/{os.environ['GITHUB_RUN_ID']}/attempts/{os.environ['GITHUB_RUN_ATTEMPT']}/jobs?per_page=100", True)
-    verify(json.loads(os.environ['EXPECTED']), json.loads(os.environ['NEEDS']),
+    if os.environ.get('GITHUB_WORKFLOW') == 'Release':
+        expected = {'verify': ['Verify'], 'scenario': [f'Generated app ({name})' for name in SCENARIOS]}
+    else:
+        expected = json.loads(os.environ['EXPECTED'])
+    verify(expected, json.loads(os.environ['NEEDS']),
            [job for page in pages for job in page['jobs']])

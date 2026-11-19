@@ -48,8 +48,9 @@ function reviewManager(pm: string) {
       previous.has(line) ||
       previous.has(entry) ||
       approved.get(line)?.has(pm)
-    )
+    ) {
       return
+    }
     process.stdout.write(
       `${line}\nBefore\n${before ?? '(absent)'}\nAfter\n${after ?? '(absent)'}\n`
     )

@@ -17,6 +17,7 @@ import { configureFonts } from '../src/configureFonts/index.ts'
 import { configureSeo } from '../src/configureSeo/index.ts'
 import { configureStatic } from '../src/configureStatic/index.ts'
 import { editTemplate } from '../src/edit-template.ts'
+import { applyPreparedGuides } from '../src/prepared-guides.ts'
 import { removeFeatureFiles } from '../src/removeFeatureFiles/index.ts'
 import { removeSeoCopy } from '../src/removeSeoCopy/index.ts'
 import { removeSeoTests } from '../src/removeSeoTests/index.ts'
@@ -57,6 +58,10 @@ function fixture(t: TestContext): StagedContext {
 }
 void it('rejects a changed SEO import before rewriting the app', t => {
   const context = fixture(t)
+  context.write({
+    file: 'vite.config.ts',
+    content: readFileSync('../../apps/boilerplate/vite.config.ts', 'utf8')
+  })
   context.write({
     file: 'src/App.tsx',
     content: 'export default function App() {}'
@@ -161,4 +166,18 @@ void it('removes a shared guide when either required feature leaves', t => {
     removeFeatureFiles({ stage: context.stage, disabled: [feature] })
     assert.equal(existsSync(path.join(context.stage, file)), false)
   }
+})
+
+void it('requires the Vite configuration during SEO removal', t => {
+  const context = fixture(t)
+  assert.throws(() => configureSeo(context), /ENOENT.*vite.config.ts/u)
+})
+void it('rejects guide text outside the prepared digests', t => {
+  const { stage, write } = fixture(t)
+  write({ file: 'docs/changed.md', content: 'Unexpected guide' })
+  write({ file: 'README.md', content: 'Unexpected heading' })
+  assert.throws(
+    () => applyPreparedGuides(stage),
+    /Unprepared guide: README.md/u
+  )
 })

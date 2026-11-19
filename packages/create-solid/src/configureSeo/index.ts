@@ -1,8 +1,11 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { editTemplate } from '../edit-template.ts'
-import { removeFeatureFiles } from '../removeFeatureFiles/index.ts'
+import {
+  featureFiles,
+  removeFeatureFiles
+} from '../removeFeatureFiles/index.ts'
 import { removeSeoCopy } from '../removeSeoCopy/index.ts'
 import { removeSeoTests } from '../removeSeoTests/index.ts'
 import type { EditFile, StagedContext } from '../types.ts'
@@ -18,9 +21,13 @@ export function configureSeo(context: StagedContext): void {
   })
   delete pkg.devDependencies['schema-dts']
   delete pkg.patchedDependencies
+  const omitted = isServer
+    ? new Set<string>()
+    : featureFiles({ disabled: ['server'], group: 'serverOnly' })
+  if (context.profile.pm !== 'pnpm') omitted.add('pnpm-workspace.yaml')
   const edit: EditFile = (file, transform) => {
     const target = path.join(stage, file)
-    if (existsSync(target)) {
+    if (!omitted.has(file)) {
       write({
         file,
         content: transform(readFileSync(target, 'utf8'), (input, edits) => {

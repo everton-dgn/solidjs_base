@@ -21,16 +21,21 @@ type FileSelection = {
   disabled: string[]
   group?: 'serverOnly' | 'clientExcludes'
 }
-export function removeFeatureFiles({
-  stage,
+export function featureFiles({
   disabled,
   group
-}: FileSelection): void {
+}: Omit<FileSelection, 'stage'>): Set<string> {
   inventory ??= readInventory()
   const paths = new Set(group ? inventory[group] : [])
   for (const [file, owner] of Object.entries(inventory.files)) {
     const features = typeof owner === 'string' ? [owner] : owner
     if (features.some(feature => disabled.includes(feature))) paths.add(file)
   }
-  for (const file of paths) rmSync(path.join(stage, file), { force: true })
+  return paths
+}
+
+export function removeFeatureFiles(options: FileSelection): void {
+  for (const file of featureFiles(options)) {
+    rmSync(path.join(options.stage, file), { force: true })
+  }
 }

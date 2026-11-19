@@ -70,9 +70,9 @@ export function prepareGuides(): void {
       ],
       { cwd: process.cwd() }
     )
-    for (const [key, input] of seen) {
+    for (const key of seen.keys()) {
       const output = readFileSync(path.join(inputs, `${key}.md`), 'utf8')
-      if (input !== output) prepared[key] = output
+      prepared[key] = output
     }
     writeFileSync('dist/prepared-guides.json', JSON.stringify(prepared))
   } finally {

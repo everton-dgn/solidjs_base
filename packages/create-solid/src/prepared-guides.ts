@@ -32,6 +32,9 @@ export function applyPreparedGuides(stage: string): void {
     const content = readFileSync(target, 'utf8')
     const key = guideDigest(content)
     const prepared = guides[key]
-    if (prepared !== undefined) writeFileSync(target, prepared)
+    if (prepared === undefined) {
+      throw new Error(`Unprepared guide: ${file} (${key})`)
+    }
+    writeFileSync(target, prepared)
   }
 }

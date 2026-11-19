@@ -1,5 +1,6 @@
 import { SITE } from '@/constants/site/title.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+
 const HTTP_NOT_FOUND = 404
 const SOCIAL_TAGS = 'head meta[property^="og:"], head meta[name^="twitter:"]'
 

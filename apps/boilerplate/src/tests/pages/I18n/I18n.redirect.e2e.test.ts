@@ -1,5 +1,6 @@
 import { SITE } from '@/constants/site/title.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+
 const REDIRECT = 302
 
 for (const [kind, destination] of [

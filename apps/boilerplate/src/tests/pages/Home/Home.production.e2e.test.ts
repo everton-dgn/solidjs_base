@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { SITE } from '@/constants/site/title.ts'
+
 const HTTP_OK = 200
 const HTTP_NOT_FOUND = 404
 const MENU_TRIGGERS = 2

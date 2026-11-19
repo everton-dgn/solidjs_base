@@ -1,3 +1,14 @@
+# Installing a generated application
+
+Bun runs application tasks for every installer. Choose the installer with
+`--pm bun`, `--pm pnpm` or `--pm npm`. The default is Bun.
+
+With `--fonts` (the default), the application hosts its Inter font files.
+`--no-fonts` uses system fonts. With `--diagnostics` (the default), the
+development server exposes Solid reactivity diagnostics. Use `--no-diagnostics`
+to omit the diagnostics package. The corresponding optional fields on the
+generator profile are `fonts` and `diagnostics`.
+
 The destination must be empty. Use `--no-git` to omit Git initialization or
 `--no-install` to install dependencies later. The npm profile uses the upstream
 Markdown converter without the Bun and pnpm patch.

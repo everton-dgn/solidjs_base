@@ -943,7 +943,7 @@ diff --git a/source/package.json b/example/package.json
 +    "@evertondgn/solid-runtime": "{version}",
      "@inlang/paraglide-js": "3.2.2",
      "@solidjs/router": "2.0.0",
-     "@solidjs/web": "2.0.0",
+     "@solidjs/web": "2.0.3",
 @@ -47,15 +46,18 @@
      "valibot": "1.5.0"
    },
@@ -953,7 +953,7 @@ diff --git a/source/package.json b/example/package.json
      "@iconify-json/hugeicons": "1.2.36",
      "@inlang/plugin-message-format": "4.6.0",
      "@playwright/test": "1.65.1",
-     "@solidjs/diagnostics": "2.0.0",
+     "@solidjs/diagnostics": "2.0.3",
 -    "schema-dts": "catalog:",
 -    "vite": "catalog:",
 -    "vite-plus": "catalog:"
@@ -975,8 +975,8 @@ diff --git a/source/package.json b/example/package.json
 +  "trustedDependencies": [],
 +  "packageManager": "bun@1.4.4",
 +  "overrides": {
-+    "@solidjs/compiler": "2.0.0",
-+    "@solidjs/signals": "2.0.0",
++    "@solidjs/compiler": "2.0.2",
++    "@solidjs/signals": "2.0.3",
 +    "vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
 +    "vitest": "5.1.0"
 +  },

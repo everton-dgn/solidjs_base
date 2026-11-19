@@ -188,8 +188,25 @@ export function configureSiteIdentity(context: StagedContext): void {
   edit('README.md')({
     pattern:
       'This SolidJS application uses the Solid Base tooling and runtime.',
-    replacement:
-      'This application was created with Solid Base.\n\n## Before publishing\n\n- Fill in the site identity and public links in `src/constants/site/index.ts`.\n- Update the about and contact pages with your own information.\n- Describe your data practices on the privacy page.'
+    replacement: [
+      'This application was created with Solid Base.',
+      '',
+      '## Before publishing',
+      '',
+      '- Fill in the site identity and public links in `src/constants/site/index.ts`.',
+      '- Update the about and contact pages with your own information.',
+      '- Describe your data practices on the privacy page.',
+      '- Rewrite the home page texts for your application.',
+      '- To rename the app, update `src/constants/site/title.ts` and the page messages.',
+      ...(profile.hasSeo === false
+        ? []
+        : [
+            '- Set `VITE_SITE_URL` to your public origin in `.env`.',
+            '- Replace `public/images/og.png` and update its `site_imageAlt` text.',
+            '- Update the site description in `site_description`.',
+            '- Rewrite the `llms.txt` notes in `src/routes/(seo)/llms.txt/constants.ts`.'
+          ])
+    ].join('\n')
   })
   if ((profile.mode ?? 'server') !== 'server') return
   edit('docs/development.md')({
@@ -199,6 +216,13 @@ export function configureSiteIdentity(context: StagedContext): void {
       'Configure the deployment for your own hosting account and domain.\n\n'
   })
   if (profile.hasSeo !== false) {
+    for (const [pattern, replacement] of [
+      ['# About SolidJS Boilerplate', '# About the application'],
+      ['# SolidJS Boilerplate', '# Application title'],
+      ['[About SolidJS Boilerplate]', '[About the application]']
+    ] as const) {
+      edit('README.md')({ pattern, replacement })
+    }
     edit('README.md')({
       pattern:
         /SolidJS Boilerplate is an open source project maintained by Éverton Toffanetto\. \.\.\./u,

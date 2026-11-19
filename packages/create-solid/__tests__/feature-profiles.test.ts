@@ -104,9 +104,27 @@ for (const mode of ['server', 'static', 'client'] as const) {
           assert.ok(route.includes(`children: m.${page}_pageTitle()`))
         }
       }
-      const [heading] = readFileSync(path.join(dir, 'README.md'), 'utf8').split(
-        '\n'
+      const readme = readFileSync(path.join(dir, 'README.md'), 'utf8')
+      const [heading] = readme.split('\n')
+      const checklist = readme
+        .split('## Before publishing\n')[1]
+        ?.split('\n## ')[0]
+      assert.ok(checklist)
+      for (const field of [
+        'VITE_SITE_URL',
+        'public/images/og.png',
+        'site_imageAlt',
+        'site_description',
+        'llms.txt'
+      ]) {
+        assert.equal(checklist.includes(field), mode !== 'client')
+      }
+      assert.match(checklist, /^- Rewrite the home page texts/mu)
+      assert.match(
+        checklist,
+        /^- To rename the app, update .*title\.ts.*page messages\.$/mu
       )
+      assert.ok(!readme.includes('# About SolidJS Boilerplate'))
       assert.ok(heading)
       values.push(heading.slice('# '.length))
       for (const value of values) {

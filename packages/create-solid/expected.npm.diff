@@ -117,22 +117,28 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
 diff --git a/source/README.md b/example/README.md
 --- a/source/README.md
 +++ b/example/README.md
-@@ -1,6 +1,12 @@
+@@ -1,6 +1,18 @@
 -# Solid Base application
 +# SolidJS Boilerplate
 +
 +This application was created with Solid Base.
-+
-+## Before publishing
  
 -This SolidJS application uses the Solid Base tooling and runtime.
++## Before publishing
++
 +- Fill in the site identity and public links in `src/constants/site/index.ts`.
 +- Update the about and contact pages with your own information.
 +- Describe your data practices on the privacy page.
++- Rewrite the home page texts for your application.
++- To rename the app, update `src/constants/site/title.ts` and the page messages.
++- Set `VITE_SITE_URL` to your public origin in `.env`.
++- Replace `public/images/og.png` and update its `site_imageAlt` text.
++- Update the site description in `site_description`.
++- Rewrite the `llms.txt` notes in `src/routes/(seo)/llms.txt/constants.ts`.
  
  > [!NOTE]
  > This app pins SolidJS 2 in its [package manifest](package.json) to the version
-@@ -9,9 +15,9 @@ This SolidJS application uses the Solid Base tooling and runtime.
+@@ -9,9 +21,9 @@ This SolidJS application uses the Solid Base tooling and runtime.
  The home page, captured from the production build at 750 px wide:
  
  <picture>
@@ -145,28 +151,38 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  [See it work](#see-it-work) · [Running it](#running-it) ·
-@@ -40,7 +46,7 @@ vary: Cookie, Accept
+@@ -38,9 +50,9 @@ content-type: text/markdown; charset=utf-8
+ link: </llms.txt>; rel="describedby"
+ vary: Cookie, Accept
  
- # About SolidJS Boilerplate
+-# About SolidJS Boilerplate
++# About the application
  
 -SolidJS Boilerplate is an open source project maintained by Éverton Toffanetto. ...
 +The application provides localized pages and navigation.
  
  ## Purpose and features
  ...
-@@ -61,9 +67,9 @@ $ curl -s http://127.0.0.1:4419/llms.txt
+@@ -55,15 +67,15 @@ the HTML and the Markdown of the same URL apart.
+ 
+ ```text
+ $ curl -s http://127.0.0.1:4419/llms.txt
+-# SolidJS Boilerplate
++# Application title
+ 
+ > A foundation for web applications with SolidJS, TypeScript and Vite+, with server-side rendering and light and dark themes.
  ...
  ## When to use
  ## Pages
 -- [About SolidJS Boilerplate](https://boilerplate-solidjs.devinsights.dev/en/about.md): ...
-+- [About SolidJS Boilerplate](https://example.com/en/about.md): ...
++- [About the application](https://example.com/en/about.md): ...
  ## Optional
 -- [Full Markdown of the static pages](https://boilerplate-solidjs.devinsights.dev/llms-full.txt): ...
 +- [Full Markdown of the static pages](https://example.com/llms-full.txt): ...
  ```
  
  This excerpt keeps the title, the summary, the section headings and one link
-@@ -85,7 +91,7 @@ and `llms-full.txt` of the production build. CI does not run it
+@@ -85,7 +97,7 @@ and `llms-full.txt` of the production build. CI does not run it
  ## Running it
  
  Install the global [Vite+](https://viteplus.dev/guide/) CLI and Bun. Install
@@ -175,7 +191,7 @@ diff --git a/source/README.md b/example/README.md
  
  ```bash
  vp run test:browser:install
-@@ -107,9 +113,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
+@@ -107,9 +119,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
  ```
  
  <picture>
@@ -188,7 +204,7 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  `curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
-@@ -145,9 +151,9 @@ both suites.
+@@ -145,9 +157,9 @@ both suites.
  ### The same page in three languages
  
  <picture>
@@ -201,7 +217,7 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  Every page lives under `/pt`, `/en` or `/es`, with `lang`, the navigation and
-@@ -170,9 +176,9 @@ z-index values, counted as the custom properties declared in each file.
+@@ -170,9 +182,9 @@ z-index values, counted as the custom properties declared in each file.
  ### Outdated pages after a deploy
  
  <picture>
@@ -214,7 +230,7 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  `installOutdatedPageDetection` marks the page when a chunk of the previous build
-@@ -216,16 +222,16 @@ refuses, so it never shares a run with the other suites. See
+@@ -216,16 +228,16 @@ refuses, so it never shares a run with the other suites. See
  [publication load](docs/testing.md#publication-load).
  
  <picture>
@@ -236,7 +252,7 @@ diff --git a/source/README.md b/example/README.md
  
  ## Limits
  
-@@ -236,7 +242,7 @@ the app, a package, a fixture or the root configuration
+@@ -236,7 +248,7 @@ the app, a package, a fixture or the root configuration
    not prove production capacity. The thresholds of `PublicationLoad` are a local
    starting point and set no production SLO
    ([publication load](docs/testing.md#publication-load)).
@@ -245,7 +261,7 @@ diff --git a/source/README.md b/example/README.md
  - The interactive controls need JavaScript. The tests check the server-rendered
    HTML without JavaScript, and the app makes no promise to work without it.
  
-@@ -247,7 +253,7 @@ the app, a package, a fixture or the root configuration
+@@ -247,7 +259,7 @@ the app, a package, a fixture or the root configuration
  It takes its lint preset, lint rules, formatter settings, TypeScript configs,
  Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
  Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`. See the

@@ -1440,7 +1440,7 @@ diff --git a/source/src/routes/(base)/privacy/seo.ts b/example/src/routes/(base)
 diff --git a/source/src/tests/pages/Home/Home.production.e2e.test.ts b/example/src/tests/pages/Home/Home.production.e2e.test.ts
 --- a/source/src/tests/pages/Home/Home.production.e2e.test.ts
 +++ b/example/src/tests/pages/Home/Home.production.e2e.test.ts
-@@ -26,7 +26,7 @@ test.describe('layout in the production tree', () => {
+@@ -27,7 +27,7 @@ test.describe('layout in the production tree', () => {
      const missing = await page.goto('/pt/pagina-inexistente')
      expect(missing?.status()).toBe(HTTP_NOT_FOUND)
      await expect(page.getByRole('banner')).toHaveCount(1)
@@ -1586,7 +1586,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts 
 diff --git a/source/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts b/example/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts
 --- a/source/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts
 +++ b/example/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts
-@@ -11,7 +11,7 @@ test.describe('missing page', () => {
+@@ -12,7 +12,7 @@ test.describe('missing page', () => {
    }) => {
      await page.goto('/pagina-inexistente')
  

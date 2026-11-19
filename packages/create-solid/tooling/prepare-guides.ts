@@ -55,9 +55,14 @@ export function prepareGuides(): void {
   const prepared: Record<string, string> = {}
   const sources = new Map<string, { original: string; file: string }>()
   const formattedSource: Record<string, string> = {}
+  const readmeProfiles = new Set<string>()
+  const bunReadmes = new Set<string>()
   mkdirSync(inputs)
   try {
     for (const profile of guideProfiles()) {
+      const { pm, ...options } = profile
+      const profileKey = JSON.stringify(options)
+      if (pm !== 'bun' && !readmeProfiles.has(profileKey)) continue
       generateSource({
         input: { dir, ...profile, shouldInitGit: false, shouldInstall: false },
         prepare: {
@@ -65,6 +70,16 @@ export function prepareGuides(): void {
             for (const file of ['AGENTS.md', ...guideFiles(stage)]) {
               const content = readFileSync(path.join(stage, file), 'utf8')
               const digest = guideDigest(content)
+              // Only the README varies by installer among the prepared guides.
+              if (
+                pm === 'bun' &&
+                'hasI18n' in options &&
+                file === 'README.md' &&
+                !bunReadmes.has(digest)
+              ) {
+                bunReadmes.add(digest)
+                readmeProfiles.add(profileKey)
+              }
               if (file === 'AGENTS.md') {
                 prepared[digest] = content
                 continue

@@ -373,8 +373,8 @@ Update the image, alt text and README together whenever those numbers change.
 
 Every pull request runs Changes, Consistency and CI required. Consistency checks
 the workspace pins, the no-server guide and the workflow contracts. Generator
-runs its tests and parity checks. Ten Generated app jobs each install and build one
-generated project. The app jobs first build the tooling and icons.
+runs its tests and parity checks. Ten Generated app jobs each install and build
+one generated project. The app jobs first build the tooling and icons.
 
 | Changed files                                                                     | Additional jobs                                 |
 | --------------------------------------------------------------------------------- | ----------------------------------------------- |

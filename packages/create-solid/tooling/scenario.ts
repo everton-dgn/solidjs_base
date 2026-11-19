@@ -111,11 +111,15 @@ try {
     }
     const tasks = ['check:ci', 'build']
     if (pm === 'bun' || flags.length > 0) tasks.splice(1, 0, 'test')
-    if (pm === 'bun' && flags.length === 0) {
+    if (name === 'bun') {
       tasks.push('typecheck:node', 'test:tooling', 'dead-code')
     }
-    if (flags.length > 0) tasks.push('typecheck:node', 'dead-code')
+    if (flags.length > 0 && name !== 'bun') {
+      tasks.push('typecheck:node', 'dead-code')
+    }
     if (
+      name === 'bun' ||
+      name === 'server-without-i18n' ||
       name === 'server-without-ui-features' ||
       name === 'server-without-theme'
     ) {

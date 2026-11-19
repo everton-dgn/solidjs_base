@@ -2,7 +2,7 @@
   {
     "name": "bun",
     "pm": "bun",
-    "flags": []
+    "flags": ["--locales", "fr,ja", "--base-locale", "ja"]
   },
   {
     "name": "pnpm",
@@ -22,7 +22,7 @@
   {
     "name": "server-without-i18n",
     "pm": "bun",
-    "flags": ["--no-i18n"]
+    "flags": ["--no-i18n", "--base-locale", "es-MX"]
   },
   {
     "name": "static-seeded-locales",
@@ -37,7 +37,7 @@
   {
     "name": "server-without-theme",
     "pm": "bun",
-    "flags": ["--no-theme"]
+    "flags": ["--no-theme", "--locales", "pt-BR,es"]
   },
   {
     "name": "minimal-client",

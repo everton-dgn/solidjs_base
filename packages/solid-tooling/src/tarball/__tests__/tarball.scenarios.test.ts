@@ -28,7 +28,6 @@ import {
 } from '../font-scenarios.ts'
 import { smokeMiddleware } from '../middleware-smoke.ts'
 import {
-  assertGuidePlugin,
   checkBrowserCloseFailure,
   checkHandlerFailure,
   checkLaunchFailure,
@@ -64,11 +63,7 @@ import {
 } from '../server-errors.ts'
 import { checkStaticOutput } from '../static-output-scenario.ts'
 import { smokeTheme } from '../theme-smoke.ts'
-import {
-  checkApplicationVersions,
-  checkPackageEngines,
-  readPinned
-} from '../workspace-versions.ts'
+import { readPinned } from '../workspace-versions.ts'
 
 const ROOT = path.resolve(import.meta.dirname, '../../../../..')
 const SCENARIOS = ['client-only', 'ssr-plain', 'ssr-i18n']
@@ -534,10 +529,6 @@ function assertBuild({ app, scenario }: Target): void {
   }
 }
 
-test('the no-server guide shows the plugin of the scenario', () => {
-  const guide = path.join(ROOT, 'docs/tooling/no-server.md')
-  assertGuidePlugin(readFileSync(guide, 'utf8'))
-})
 test('the no-server server serves nothing outside dist', checkServerContainment)
 test(
   'the no-server server closes when the browser does not launch',
@@ -559,13 +550,6 @@ test(
   { timeout: CHECK_TIMEOUT },
   checkProfileFailure
 )
-
-test('the applications pin the versions of the workspace', () => {
-  checkApplicationVersions({ root: ROOT, scenarios: SCENARIOS })
-})
-test('the packages require the Node version of the workspace', () => {
-  checkPackageEngines(ROOT)
-})
 
 async function buildScenario({
   app,

@@ -18,9 +18,11 @@
     "test": "vp run --filter './packages/*' test && vp run test:release",
     "test:release": "node --test 'tooling/release/**/__tests__/*.test.ts'",
     "test:tarball": "vp run --filter './packages/*' test:tarball",
-    "validate": "vp run build && vp run check && vp run dead-code && vp run test && vp run test:tarball && vp run test:scenarios",
+    "validate": "vp run --filter './packages/*' --filter '!@evertondgn/create-solid' build && vp check && vp run --filter './packages/*' --filter '!@evertondgn/create-solid' check && vp run --filter './packages/*' --filter '!@evertondgn/create-solid' dead-code && vp run --filter './packages/*' --filter '!@evertondgn/create-solid' test && vp run test:release && vp run --filter './packages/*' --filter '!@evertondgn/create-solid' test:tarball && vp run test:consistency && node --test --test-timeout=180000 packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts",
     "test:scenarios": "node --test --test-timeout=180000 packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts && node packages/create-solid/tooling/scenario.ts",
-    "release:merge": "node tooling/release/merge-pull-request.ts"
+    "release:merge": "node tooling/release/merge-pull-request.ts",
+    "test:consistency": "node --test packages/solid-tooling/src/tarball/__tests__/workspace-consistency.test.ts",
+    "validate:generator": "vp run build && vp check && vp run --filter @evertondgn/create-solid test && vp run --filter @evertondgn/create-solid test:tarball"
   },
   "devDependencies": {
     "@evertondgn/solid-tooling": "workspace:*",

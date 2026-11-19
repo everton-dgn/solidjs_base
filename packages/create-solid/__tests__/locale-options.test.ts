@@ -232,6 +232,13 @@ void it('emits local messages, plain links and the base language without a catal
     assert.ok(!existsSync(path.join(dir, 'project.inlang')))
     assert.deepEqual(catalogFolders(dir), [])
     const read = (name: string) => readFileSync(path.join(dir, name), 'utf8')
+    if (mode === 'server') {
+      assert.ok(
+        read('src/infra/server/configureServerErrors/index.ts').includes(
+          'm.configureServerErrors_message({}, { locale })'
+        )
+      )
+    }
     assert.match(read('vite.config.ts'), /language: 'es-MX'/u)
     assert.doesNotMatch(
       read('package.json'),

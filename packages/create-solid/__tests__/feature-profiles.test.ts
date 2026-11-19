@@ -165,6 +165,11 @@ function checkGuideContent({ dir, mode, pm, hasSeo }: GuideProfile): void {
   if (mode === 'static' && hasSeo) {
     assert.match(read('docs/seo.md'), /^## Structured data per page$/mu)
     assert.match(read('docs/seo/sitemap.md'), /^### Partitioned sources$/mu)
+    assert.match(read('docs/seo/indexes.md'), /llms: false/u)
+    assert.match(
+      read('docs/seo/publication.md'),
+      /## Capacity and measurement/u
+    )
     assert.match(read('docs/seo/markdown.md'), /llms-full\.txt/u)
   }
   for (const convention of [

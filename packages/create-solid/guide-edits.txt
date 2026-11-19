@@ -201,12 +201,11 @@ configureSeo | docs/security.md | ## Content policy | ALKO4zs8MPsW3CDjHMa7psSIVI
 configureSeo | docs/security.md | ## Known limits | fvwhxPiFTbHf7xPdRyx1_U3i5BX5JBgNsiIXPohpIic
 configureSeo | docs/seo.md | # SEO and site indexes | nQLt_2xEVIJJ4bKQZDj3WfNpPqTm7mUKROZsByynUt4
 configureSeo | docs/seo.md | ## Endpoints and cache | V2Wzx9OaylcBQ5u7N_z9y_escz52c3w8DzbxGgkjeew
+configureSeo | docs/seo.md | ## Reading by agents | Gn00hzcJGk-vYrw5MAZyb7g6dHdmFzyjHegpDvEiZOk
 configureSeo | docs/seo.md | ## Reading by agents | hmTP5wG8ovXBde4Qhv-Y91kVmEcU-ZJumhsSGou8-q4
 configureSeo | docs/seo.md | ## Route metadata | 5EjsncKUiWQjdmmKUEy845RoI2hg9guGLe_rmab-W2w
 configureSeo | docs/seo.md | ## Route metadata | BSmz1KSvAgToTIGphhkTnUNer8YLbcl69B7EFn92xQo
 configureSeo | docs/seo.md | ## Selection for llms.txt | iSNLYkVqq-mgsCFoVtSrELBtKFKYHxWUwv02_O74n8Y
-configureSeo | docs/seo.md | ## Selection for llms.txt | ryVgZ7663zPAc6TivPmGSqL8Y4De1K1-iK6FFjRo9Js
-configureSeo | docs/seo.md | ## Sitemap and dynamic routes | Orw20mQ0_0Dv5C4GJDb_QtRhRuY1C9jHN-_kqhsenvA
 configureSeo | docs/seo.md | ## Sitemap and dynamic routes | _7Dx6uytXcfvlw93_uBCI9AxBFnxQ4AU7EjmLrctBB8
 configureSeo | docs/seo.md | ## Structured data per page | 4IipL4ptV0UmlacDS3Bs9wwlIEJpzHwzDezSL-vUIDY
 configureSeo | docs/seo.md | ### Capacity and measurement | a9yxKF2VxfIDGydnEgDhgxkF61oTHEm0VTsU3flOhXM
@@ -214,9 +213,10 @@ configureSeo | docs/seo.md | ### Partitioned sources | 5UopMiFJ7GB-zX9cZA7CzmOtX
 configureSeo | docs/seo.md | ### Platform artifacts and routing | mBdQfyaAeiJBsKwCChHJ-5Oz92M7oNCdi6xieZBSeUc
 configureSeo | docs/seo.md | ### Static artifacts and origin capacity | Avy8lwWmxSi0mTedsM0YEbM97u40yKHAM4uPPIDp0to
 configureSeo | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S7g80ybtigujCumXD5te-MGb-j3XGY
-configureSeo | docs/seo.md | (section order) | 9xyqO7fcK2IhY5_0y-p_ZI_JdDKpco0bQbt4sFp9ng4
+configureSeo | docs/seo.md | (section order) | AlBCescQLLkplxM5-K8Eb9xcBjUVGhA0kEPVWJfg1cY
 configureSeo | docs/seo.md | (section order) | TvzAwfn5qq15vbFq2xtANhqlbf6BprvYuEb7TGWd0Mw
 configureSeo | docs/seo/indexes.md | # Editorial indexes, endpoints and cache | kcrr6mgrmlztzkaUBkTIjmEnREFUZ6Ld-weDqXvcFuo
+configureSeo | docs/seo/indexes.md | ## Endpoints and cache | NJlpxXX3vDFWcKQqRLK0G9-k6JaA7DiZRYpRilSJByo
 configureSeo | docs/seo/indexes.md | ## Endpoints and cache | U_e73UhIZgPsRUYW28kxvQb4EPmXpWdChs0bhnua-oA
 configureSeo | docs/seo/indexes.md | ## Selection for llms.txt | njR-DoxE4hnnijsyaevY7B7QBa-PCkJdqYX5tcBIEPo
 configureSeo | docs/seo/indexes.md | (section order) | hIYnJziAcDAuOrbZLMIT8JYkTM87UAZCNwKXjtrHu_E
@@ -231,6 +231,7 @@ configureSeo | docs/seo/markdown.md | (section order) | xjX_m5an2LVGoWgCbBfT58cT
 configureSeo | docs/seo/publication.md | # Publication artifacts and capacity | XynNUZpOT_9g-tJMw5tXpopKkbV7vq6oab4scn0sWvU
 configureSeo | docs/seo/publication.md | ## Capacity and measurement | jiE2KNvJi4wVSFY0OkjKKHuhHHo6IyFXUetUi_9trDc
 configureSeo | docs/seo/publication.md | ## Static artifacts and origin capacity | VZgpXN7Gq2at4Q65rEbuGIhBYCFIyk2XPLERzzgyG6M
+configureSeo | docs/seo/publication.md | ## Static artifacts and origin capacity | eNvxYfTpDYHQXcjx5w68tq-7yba0xOXKMbmVkPD8kII
 configureSeo | docs/seo/publication.md | (section order) | HHHY_ATbL9Cmw5NYxmOwXwGevCLgroNro2Q74nT-uFQ
 configureSeo | docs/seo/sitemap.md | # Sitemap and content sources | juALSGS9URbyFYVRbNB9UttLFddfFnr8wA5TYfUooro
 configureSeo | docs/seo/sitemap.md | ## Sitemap and dynamic routes | Bt3pP3cTf5LnpT1-lChtGjKd8LOV1rz7-E_XD3zK7B4
@@ -314,21 +315,12 @@ configureStatic | docs/security.md | ## Known limits | KmQdnUpflMMBpYs3OnhaXIgqm
 configureStatic | docs/security.md | ## Nonce and render entries | BEtsVjGM1u_if5VuiH8SJ1oYHpfG9tqIbQS8jTALECI
 configureStatic | docs/security.md | ## Validation and streamed CSS | qJy4ObKM_azV5GRoIDSGOMgDGfFyrZ4s0I3fEYafgtg
 configureStatic | docs/security.md | (section order) | yarphkC9kJY3Im9ONdGsprpOT6rwLrbcY3XZjbV7V0s
-configureStatic | docs/seo.md | ## Endpoints and cache | V2Wzx9OaylcBQ5u7N_z9y_escz52c3w8DzbxGgkjeew
-configureStatic | docs/seo.md | ## Reading by agents | hmTP5wG8ovXBde4Qhv-Y91kVmEcU-ZJumhsSGou8-q4
+configureStatic | docs/seo.md | ## Reading by agents | vAdtGL8ajpCnAwXL61orjnO9vm4OUoPAz-J77W8f61o
 configureStatic | docs/seo.md | ## Route metadata | 5tb-SvqzJqVxQGapyZHYvQG7_g4Q079JhT8EAayW8WU
-configureStatic | docs/seo.md | ## Selection for llms.txt | CXlmhh5EZIzHeLipZZGCABsxXyjfINEv5NIfri5NQNI
-configureStatic | docs/seo.md | ## Sitemap and dynamic routes | HPhLdICBmTAYKG6STYKE-2quyMHMHWTU8oX23vxnzGU
-configureStatic | docs/seo.md | ### Capacity and measurement | a9yxKF2VxfIDGydnEgDhgxkF61oTHEm0VTsU3flOhXM
-configureStatic | docs/seo.md | ### Partitioned sources | 5UopMiFJ7GB-zX9cZA7CzmOtXa_VJrCOedvG-2HrJ0I
 configureStatic | docs/seo.md | ### Platform artifacts and routing | mBdQfyaAeiJBsKwCChHJ-5Oz92M7oNCdi6xieZBSeUc
-configureStatic | docs/seo.md | ### Static artifacts and origin capacity | Avy8lwWmxSi0mTedsM0YEbM97u40yKHAM4uPPIDp0to
 configureStatic | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S7g80ybtigujCumXD5te-MGb-j3XGY
-configureStatic | docs/seo.md | (section order) | 20KpYIqS9HzMs7q8Ou8IN9ZImAbjVztCguGARJznVa4
-configureStatic | docs/seo/indexes.md | # Editorial indexes, endpoints and cache | kcrr6mgrmlztzkaUBkTIjmEnREFUZ6Ld-weDqXvcFuo
-configureStatic | docs/seo/indexes.md | ## Endpoints and cache | U_e73UhIZgPsRUYW28kxvQb4EPmXpWdChs0bhnua-oA
-configureStatic | docs/seo/indexes.md | ## Selection for llms.txt | njR-DoxE4hnnijsyaevY7B7QBa-PCkJdqYX5tcBIEPo
-configureStatic | docs/seo/indexes.md | (section order) | hIYnJziAcDAuOrbZLMIT8JYkTM87UAZCNwKXjtrHu_E
+configureStatic | docs/seo.md | (section order) | rxPQzFCO1VWd-OOlk4Wf87jWTYq6K5nbQ_wAc_JCdpg
+configureStatic | docs/seo/indexes.md | ## Endpoints and cache | J6-8AKjp5aQXdwcS7VMlQtXSgzaXqBsDU9KKfKvlVds
 configureStatic | docs/seo/markdown.md | # Markdown and reading by agents | 45cZoM-2nX93FGNtO1nxNMuPyozmjSTGl55HjCND4Zg
 configureStatic | docs/seo/markdown.md | # Markdown publication | ojZS-Tp39ymwNKfODMk0wK8yM5yBA51Mm2DveThzfTI
 configureStatic | docs/seo/markdown.md | ## Package binding and optional converter patch | YNZuGckavWQvkiR50yWizExM6tHTUIR3m9wsoXAFRdg
@@ -336,10 +328,7 @@ configureStatic | docs/seo/markdown.md | ## Reading by agents | eAvBUWIfo5XEJnXR
 configureStatic | docs/seo/markdown.md | ### Platform artifacts and routing | l_ZDhPFXxOkdpUHKCkyT6FOzdu2FAa6Q1dFOUICyBes
 configureStatic | docs/seo/markdown.md | ### llms-full.txt aggregate | -v1XoXd-wu6Nuy3N-CgfUkE7edVR4csd26sfD8Npbjc
 configureStatic | docs/seo/markdown.md | (section order) | 5zlX13AQ4wjtTzYFThc9QQEFvZYIv7-SJltqzx0vSAc
-configureStatic | docs/seo/publication.md | # Publication artifacts and capacity | XynNUZpOT_9g-tJMw5tXpopKkbV7vq6oab4scn0sWvU
-configureStatic | docs/seo/publication.md | ## Capacity and measurement | jiE2KNvJi4wVSFY0OkjKKHuhHHo6IyFXUetUi_9trDc
-configureStatic | docs/seo/publication.md | ## Static artifacts and origin capacity | VZgpXN7Gq2at4Q65rEbuGIhBYCFIyk2XPLERzzgyG6M
-configureStatic | docs/seo/publication.md | (section order) | HHHY_ATbL9Cmw5NYxmOwXwGevCLgroNro2Q74nT-uFQ
+configureStatic | docs/seo/publication.md | ## Static artifacts and origin capacity | UjjgMHYa3RbZhP5E8V6QgynkL_9dzAwVPyKvkL1L4F0
 configureStatic | docs/seo/sitemap.md | ## Sitemap and dynamic routes | jVDbFjN3XLLOeQ0q-EdyiU1JaXD7hNvCpgpLQlWQR6Y
 configureStatic | docs/seo/sitemap.md | ### Partitioned sources | 3AnM9nWfpMZYRBt4PgnBsW-Zw9gx51XHFM8WTjNvWEc
 configureStatic | docs/server-errors.md | # Server errors and backend calls | HSEBFWXd5nf_55yVjTA1UO2gTGndO0Z3jOh_hE0pnU4

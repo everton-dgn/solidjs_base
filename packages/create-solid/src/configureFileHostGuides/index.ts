@@ -146,9 +146,22 @@ function configureStaticSeoGuides({ edit, write }: StaticGuideOptions): void {
   })
   edit({
     file: 'docs/seo.md',
-    pattern: /^## Selection for llms.txt[\s\S]*$/mu,
+    pattern: /^## Reading by agents[\s\S]*$/mu,
     replacement:
-      '## Selection for llms.txt\n\nSet `route.info.llms` on pages to include them in the published indexes.\nSee the [Markdown publication guide](seo/markdown.md).\n\n## Sitemap and dynamic routes\n\nSee the [sitemap guide](seo/sitemap.md), including its [partitioned sources](seo/sitemap.md#partitioned-sources).\n'
+      '## Reading by agents\n\nSee the [Markdown publication guide](seo/markdown.md).\n'
+  })
+  edit({
+    file: 'docs/seo/indexes.md',
+    pattern: /^## Endpoints and cache[\s\S]*$/mu,
+    replacement:
+      '## Endpoints and cache\n\nPublish robots.txt, sitemap.xml and both editorial indexes from the build.\nSet the cache policy on the file host. Use a new filename when updating an\nimage served with immutable caching.\n'
+  })
+  edit({
+    file: 'docs/seo/publication.md',
+    pattern:
+      /^## Static artifacts and origin capacity[\s\S]*?(?=^## Capacity and measurement)/mu,
+    replacement:
+      '## Static artifacts and origin capacity\n\nPublish the complete build directory so the sitemap parts, Markdown pages and\neditorial indexes refer to files from the same build. Size the build for the\nnumber of routes and translated pages.\n\n'
   })
   write({
     file: 'docs/seo/markdown.md',

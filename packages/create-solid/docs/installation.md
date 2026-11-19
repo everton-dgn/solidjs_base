@@ -32,3 +32,15 @@ console.log(nextSteps.join('\n'))
 `siteUrl` is optional. The build prepares the formatted template. After a pnpm
 installation the generator uses the installed application's Vite+ to format the
 workspace settings that pnpm may update.
+
+Use `--theme` or `--no-theme` to include or omit the light, dark and system
+appearance control. Use `--icons` or `--no-icons` to choose between icon
+controls and controls with visible text. Both features are enabled by default.
+
+| Mode                      | Hosting                                                                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--mode server` (default) | Deploy the SSR application to Vercel.                                                                                                                  |
+| `--mode static`           | Publish `.output/public` on a file host. Serve directory indexes and localized 404 pages, and set per-page CSP headers from `.output/csp-hashes.json`. |
+
+Static builds prerender the current locales. When enabled, the appearance
+control saves the preference in local storage.

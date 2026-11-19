@@ -1,4 +1,4 @@
-import { readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { parse, object, record, string } from 'valibot'
@@ -17,7 +17,7 @@ export function removeFeatureFiles(stage: string, name: string): void {
   const manifest = new URL('../dist/features.json', import.meta.url)
   const { files } = parse(schema, JSON.parse(readFileSync(manifest, 'utf8')))
   for (const [file, feature] of Object.entries(files)) {
-    if (feature === name) unlinkSync(path.join(stage, file))
+    if (feature === name) rmSync(path.join(stage, file), { force: true })
   }
 }
 

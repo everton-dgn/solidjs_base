@@ -16,6 +16,7 @@ function run(): void {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
+      mode: { type: 'string', default: 'server' },
       pm: { type: 'string', default: 'bun' },
       'site-url': { type: 'string', default: 'https://example.com' },
       theme: { type: 'boolean' },
@@ -32,12 +33,13 @@ function run(): void {
     }
   })
   const usage =
-    'bunx @evertondgn/create-solid@latest <dir> [--pm bun|pnpm|npm] [--site-url URL] [--theme|--no-theme] [--icons|--no-icons] [--fonts|--no-fonts] [--diagnostics|--no-diagnostics] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
+    'bunx @evertondgn/create-solid@latest <dir> [--pm bun|pnpm|npm] [--site-url URL] [--mode server|static] [--theme|--no-theme] [--icons|--no-icons] [--fonts|--no-fonts] [--diagnostics|--no-diagnostics] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
   if (values.help) {
     process.stdout.write(`${usage}\n`)
     process.exit(0)
   }
   if (
+    (values.mode !== 'server' && values.mode !== 'static') ||
     positionals.length !== 1 ||
     !positionals[0] ||
     (values.pm !== 'bun' && values.pm !== 'pnpm' && values.pm !== 'npm')
@@ -45,6 +47,7 @@ function run(): void {
     throw new UsageError(usage)
   }
   const profile = {
+    mode: values.mode,
     theme: !values['no-theme'],
     icons: !values['no-icons'],
     fonts: !values['no-fonts'],

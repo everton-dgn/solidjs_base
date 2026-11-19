@@ -1,6 +1,7 @@
 export type Profile = {
   pm: 'bun' | 'pnpm' | 'npm'
   dir: string
+  mode?: 'server' | 'static'
   theme?: boolean
   icons?: boolean
   fonts?: boolean

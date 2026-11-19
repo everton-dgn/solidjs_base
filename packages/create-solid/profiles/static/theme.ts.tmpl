@@ -1,0 +1,12 @@
+import { defineTheme } from '@evertondgn/solid-runtime/theme/define-theme'
+import { storedThemeScript } from '@evertondgn/solid-runtime/theme/stored-theme-script'
+
+const options = {
+  storage: 'local-storage',
+  storageKey: 'app-theme',
+  colors: { light: '#ffffff', dark: '#09090b' },
+  defaultTheme: 'system'
+} as const
+
+export const { createTheme, readTheme, themeColor, defaultTheme: DEFAULT_THEME, themes: THEMES } = defineTheme(options)
+export const initialThemeScript = storedThemeScript(options)

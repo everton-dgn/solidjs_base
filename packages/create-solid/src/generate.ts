@@ -21,6 +21,7 @@ import { URL } from 'node:url'
 import { parse } from 'valibot'
 
 import { configureFonts, removeFeatureFiles } from './configure-fonts.ts'
+import { configureStatic } from './configure-static.ts'
 import { addProfileBrowserTest } from './profile-browser-test.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
@@ -301,10 +302,12 @@ export function generate(profile: Profile): string[] {
       profile.pm
     )
     cpSync(installerFiles, stage, { recursive: true })
-    write('package.json', `${JSON.stringify(pkg, null, jsonIndent)}\n`)
     configureReadme(stage, profile)
+    configureStatic(stage, context)
     configureFonts(stage, profile.fonts)
+    mkdirSync(path.join(stage, 'src/tests/pages/Home'), { recursive: true })
     addProfileBrowserTest(context)
+    write('package.json', `${JSON.stringify(pkg, null, jsonIndent)}\n`)
     publishTree(stage, profile.dir)
   } catch (error) {
     rmSync(stage, { recursive: true, force: true })

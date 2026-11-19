@@ -1,0 +1,22 @@
+# Static Solid application
+
+Install the dependencies with the package manager declared in `package.json`.
+Bun is required to run the application tasks with every installer.
+
+Run `vp run dev` for development. Run `vp run check:ci`, `vp run test` and
+`vp run build` before publishing. After the build, `vp run test:e2e` opens
+the generated files in Chromium.
+
+## Publishing
+
+Publish the contents of `.output/public` to a static host with directory
+indexes enabled. Each localized URL serves its own HTML. For an unknown path,
+serve `404.html` with status 404. Under a locale prefix, serve the corresponding
+error page, such as `/pt/404.html`.
+
+The build writes `.output/csp-hashes.json` outside the public directory. Use
+the hashes in `pages` for the actual HTML file served, including error pages.
+Quote each hash in the `script-src` directive alongside `'self'`. Set
+`default-src 'self'`, `style-src 'self'`, `object-src 'none'`,
+`base-uri 'self'` and `frame-ancestors 'none'` in the same
+`Content-Security-Policy` header. Regenerate the headers on every build.

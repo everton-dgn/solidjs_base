@@ -4,6 +4,7 @@ import path from 'node:path'
 import { format } from '../src/rewrite.ts'
 import { uiProfiles } from './feature-combinations.ts'
 import { iconEdits, iconReadmeEdits } from './icon-edits.ts'
+import { staticEdits, staticThemeDocument } from './static-edits.ts'
 import { themeEdits, themeReadmeEdits } from './theme-edits.ts'
 import { themeGuideEdits, themeIconGuideEdit } from './theme-guide-edits.ts'
 
@@ -63,6 +64,41 @@ function buildReadmes(): void {
   }
 }
 
+function buildStaticProfile(): void {
+  for (const [file, edits] of Object.entries(staticEdits)) {
+    prepareFile(
+      {
+        source: path.join('template', file),
+        output: path.join('dist/static/files', file)
+      },
+      edits
+    )
+  }
+  prepareFile(
+    {
+      source: 'template/src/Document.tsx',
+      output: 'dist/static/theme/src/Document.tsx'
+    },
+    staticThemeDocument
+  )
+  const targets = {
+    'playwright.config.ts': 'files/playwright.config.ts',
+    'paraglide.config.ts': 'files/project.inlang/paraglide.config.ts',
+    'theme.ts': 'theme/src/constants/theme.ts',
+    'README.md': 'files/README.md',
+    'serve-public.ts': 'files/tooling/testing/serve-public.ts'
+  }
+  for (const [file, target] of Object.entries(targets)) {
+    prepareFile(
+      {
+        source: path.join('profiles/static', `${file}.tmpl`),
+        output: path.join('dist/static', target)
+      },
+      []
+    )
+  }
+}
+
 export function buildProfiles(): void {
   for (const [file, edits] of Object.entries(iconEdits)) {
     const name = file
@@ -95,4 +131,5 @@ export function buildProfiles(): void {
     }
   }
   buildReadmes()
+  buildStaticProfile()
 }

@@ -19,6 +19,7 @@ import { manifestSchema } from '../src/schema.ts'
 
 const jsonIndent = 2
 const seconds = 1000
+const cliOffset = 2
 const packTimeout = 60_000
 const sandbox = mkdtempSync(path.join(tmpdir(), 'full-solid-'))
 const packages = [
@@ -48,13 +49,14 @@ try {
       pm,
       flags: [] as string[]
     })),
+    { name: 'static-with-seo', pm: 'bun', flags: ['--mode', 'static'] },
     {
       name: 'server-without-ui-features',
       pm: 'npm',
       flags: ['--no-theme', '--no-fonts', '--no-icons']
     }
   ]
-  const [, , selected] = process.argv
+  const [selected] = process.argv.slice(cliOffset)
   if (selected && !scenarios.some(item => item.name === selected)) {
     throw new Error(`Unknown scenario: ${selected}`)
   }
@@ -110,7 +112,9 @@ try {
     )
     const tasks = ['check:ci', 'build']
     if (pm === 'bun' || flags.length > 0) tasks.splice(1, 0, 'test')
-    if (pm === 'bun') tasks.push('typecheck:node', 'test:tooling', 'dead-code')
+    if (pm === 'bun' && flags.length === 0) {
+      tasks.push('typecheck:node', 'test:tooling', 'dead-code')
+    }
     for (const task of tasks) {
       execFileSync('vp', ['run', task], {
         cwd,

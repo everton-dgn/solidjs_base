@@ -52,6 +52,7 @@ try {
   for (const options of profiles()) {
     const dir = path.join(sandbox, 'app')
     const profile = {
+      title: 'Solid Base application',
       ...options,
       dir,
       shouldInitGit: false,

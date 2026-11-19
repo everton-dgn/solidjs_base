@@ -348,3 +348,28 @@ void it('rejects a site origin without SEO through the CLI and API', async conte
   )
   assert.ok(!existsSync(dir))
 })
+
+void it('rejects invalid titles before creating an application', async context => {
+  const { generate } = await import('@evertondgn/create-solid')
+  const dir = path.join(folder(context), 'bad-title')
+  const usageError = 2
+  for (const title of ['', '  ', 'one\ntwo', 'one\ttwo', 'a\u007Fb']) {
+    const child = spawnSync(process.execPath, [bin, dir, '--title', title], {
+      encoding: 'utf8'
+    })
+    assert.equal(child.status, usageError)
+    assert.match(child.stderr, /--title requires/u)
+    assert.throws(
+      () =>
+        generate({
+          title,
+          dir,
+          pm: 'bun',
+          shouldInitGit: false,
+          shouldInstall: false
+        }),
+      /--title requires/u
+    )
+    assert.ok(!existsSync(dir))
+  }
+})

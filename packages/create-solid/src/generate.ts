@@ -21,6 +21,10 @@ import { URL } from 'node:url'
 import { parse } from 'valibot'
 
 import { addProfileBrowserTest } from './addProfileBrowserTest/index.ts'
+import {
+  configureAppTitle,
+  resolveAppTitle
+} from './configureAppTitle/index.ts'
 import { configureClient } from './configureClient/index.ts'
 import { configureFileHostGuides } from './configureFileHostGuides/index.ts'
 import { configureFonts } from './configureFonts/index.ts'
@@ -289,6 +293,7 @@ export function generateSource(
   prepareGuides: (stage: string) => void
 ): string[] {
   const profile = resolveProfile(input)
+  const title = resolveAppTitle(profile)
   if (profile.hasSeo === false && profile.siteUrl !== undefined) {
     throw new UsageError('--site-url requires SEO')
   }
@@ -373,6 +378,7 @@ export function generateSource(
       content: `${JSON.stringify(pkg, null, jsonIndent)}\n`
     })
     prepareGuides(stage)
+    configureAppTitle(context, title)
     removeEmptyFolders(stage)
     publishTree({ stage, destination: profile.dir })
   } catch (error) {

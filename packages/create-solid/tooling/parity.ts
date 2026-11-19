@@ -77,6 +77,8 @@ try {
       [
         'package/dist/create-solid.mjs',
         'example',
+        '--title',
+        'SolidJS Boilerplate',
         '--no-install',
         '--no-git',
         '--pm',

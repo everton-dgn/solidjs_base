@@ -247,6 +247,7 @@ for (const { mode, hasSeo } of publications) {
           const dir = mkdtempSync(path.join(tmpdir(), 'app-profile-'))
           context.after(() => rmSync(dir, { recursive: true, force: true }))
           const profile = {
+            title: 'Solid Base application',
             dir,
             pm,
             mode,
@@ -412,3 +413,45 @@ void it('requires every guide approval to describe an observed edit', () => {
     []
   )
 })
+
+const repetitions = 15
+for (const title of [
+  String.raw`Été " ' < & \ \` #`,
+  'Um título comprido '.repeat(repetitions).trim()
+]) {
+  void it(`escapes and formats a client application named ${title}`, async context => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'app-title-'))
+    context.after(() => rmSync(dir, { recursive: true, force: true }))
+    generate({
+      dir,
+      title,
+      mode: 'client',
+      pm: 'bun',
+      shouldInstall: false,
+      shouldInitGit: false
+    })
+    const module: unknown = await import(
+      path.join(dir, 'src/constants/site/title.ts')
+    )
+    const siteSchema = object({ title: string() })
+    const { SITE } = parse(object({ SITE: siteSchema }), module)
+    assert.equal(SITE.title, title)
+    const source = readFileSync(
+      path.join(dir, 'src/routes/(base)/(home)/i18n/en.json'),
+      'utf8'
+    )
+    const catalog = parse(record(string(), string()), JSON.parse(source))
+    assert.equal(catalog.home_title, `${title} for web applications`)
+    execFileSync(
+      path.resolve('../../node_modules/.bin/vp'),
+      [
+        'fmt',
+        '--check',
+        '--config',
+        path.resolve('dist/formatter/vite.config.mjs'),
+        '.'
+      ],
+      { cwd: dir }
+    )
+  })
+}

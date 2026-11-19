@@ -14,6 +14,7 @@ export type Profile = {
   hasIcons?: boolean
   hasFonts?: boolean
   hasDiagnostics?: boolean
+  title?: string
   siteUrl?: string
   shouldInitGit: boolean
   shouldInstall: boolean

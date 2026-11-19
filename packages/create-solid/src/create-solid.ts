@@ -10,7 +10,7 @@ const argumentOffset = 2
 const usageExitCode = 2
 function run(): void {
   const usage =
-    'bunx @evertondgn/create-solid@latest <dir> [--pm bun|pnpm|npm] [--site-url URL] [--mode server|static|client] [--seo|--no-seo] [--theme|--no-theme] [--icons|--no-icons] [--fonts|--no-fonts] [--diagnostics|--no-diagnostics] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
+    'bunx @evertondgn/create-solid@latest <dir> [--pm bun|pnpm|npm] [--title TEXT] [--site-url URL] [--mode server|static|client] [--seo|--no-seo] [--theme|--no-theme] [--icons|--no-icons] [--fonts|--no-fonts] [--diagnostics|--no-diagnostics] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
   const args = process.argv.slice(argumentOffset)
   const separator = args.indexOf('--')
   if (
@@ -29,6 +29,7 @@ function run(): void {
     options: {
       mode: { type: 'string', default: 'server' },
       pm: { type: 'string', default: 'bun' },
+      title: { type: 'string' },
       'site-url': { type: 'string' },
       seo: { type: 'boolean' },
       'no-seo': { type: 'boolean' },
@@ -72,6 +73,7 @@ function run(): void {
     throw new UsageError(usage)
   }
   const profile = {
+    ...(values.title === undefined ? {} : { title: values.title }),
     mode: values.mode,
     hasSeo: values.mode === 'client' ? Boolean(values.seo) : !values['no-seo'],
     hasTheme: !values['no-theme'],

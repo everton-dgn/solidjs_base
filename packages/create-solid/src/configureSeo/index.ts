@@ -149,8 +149,10 @@ import { getLocale } from '@paraglide/runtime.js'
 
 import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.ts'
 
+import { SITE as identity } from './title.ts'
+
 export const SITE = {
-  title: 'SolidJS Boilerplate',
+  title: identity.title,
   author: { url: 'https://github.com/everton-dgn' },
   repositoryUrl: 'https://github.com/everton-dgn/boilerplate_solidjs',
   get locale(): string {

@@ -350,10 +350,7 @@
     "vite.config.ts": "core"
   },
   "sharedFiles": {
-    "diagnostics": [
-      "package.json",
-      "docs/development.md"
-    ],
+    "diagnostics": ["package.json", "docs/development.md"],
     "fonts": [
       "vite.config.ts",
       "src/Document.tsx",
@@ -809,15 +806,11 @@
     "vite/client": "core"
   },
   "addedFiles": {
-    "seo": [
-      "src/tests/pages/Home/Home.profile.production.e2e.test.ts"
-    ],
+    "seo": ["src/tests/pages/Home/Home.profile.production.e2e.test.ts"],
     "static": [
       "src/tests/pages/Home/Home.profile.production.e2e.test.ts",
       "tooling/testing/serve-public.ts"
     ],
-    "client": [
-      "index.html"
-    ]
+    "client": ["index.html"]
   }
 }

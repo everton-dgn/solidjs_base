@@ -589,8 +589,8 @@ In the CI run of the 0.10.0 release pull request
 ([run 44206537981](https://github.com/everton-dgn/solidjs_base/actions/runs/44206537981)),
 the
 [Packages job](https://github.com/everton-dgn/solidjs_base/actions/runs/44206537981/job/134474054049)
-ran `vp run validate`, the same checks as the publish job. For this package, it
-executed:
+ran `vp run validate`, the checks used in release verification. For this
+package, it executed:
 
 - 1,047 Vitest tests in 104 files, all passed: 934 tests in 86 files of the
   `node` project, 111 in 17 files of `dom`, with happy-dom, and 2 in 1 file of

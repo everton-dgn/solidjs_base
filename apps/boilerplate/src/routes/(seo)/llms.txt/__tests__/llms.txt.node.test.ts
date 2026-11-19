@@ -32,7 +32,8 @@ describe('llms.txt route', () => {
     const response = await inLocaleContext(() => GET())
 
     await expect(response.text()).resolves.toBe(base)
-    expect(base).toContain(BASE_DESCRIPTION)
+    const descriptions = base.split('\n').filter(line => line.startsWith('> '))
+    expect(descriptions).toStrictEqual([`> ${BASE_DESCRIPTION}`])
     expect(response.headers.get('content-type')).toBe(
       'text/markdown; charset=utf-8'
     )

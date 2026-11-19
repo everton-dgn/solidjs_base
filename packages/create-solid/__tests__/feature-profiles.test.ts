@@ -11,9 +11,9 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { it } from 'node:test'
 
-import messageFormat from '@inlang/plugin-message-format'
 import { array, object, parse, record, string } from 'valibot'
 
+import messageFormat from '../../../apps/boilerplate/node_modules/@inlang/plugin-message-format/dist/index.js'
 import { generate } from '../src/generate.ts'
 
 const localeSettings = object({ locales: array(string()) })

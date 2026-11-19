@@ -10,6 +10,11 @@ to omit the diagnostics package. The corresponding optional fields on the
 generator profile are `hasFonts` and `hasDiagnostics`. The other feature
 switches are `hasSeo`, `hasTheme` and `hasIcons`.
 
+Set the application title with `--title "Minha aplicação"` or the API option
+`title`. It defaults to the last component of the resolved destination path. The
+package name still comes from the directory. Each page publishes its own
+translated title, including when SEO is disabled.
+
 The destination must be empty. Use `--no-git` to omit Git initialization or
 `--no-install` to install dependencies later. The npm profile uses the upstream
 Markdown converter without the Bun and pnpm patch.

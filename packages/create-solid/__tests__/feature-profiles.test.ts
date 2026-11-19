@@ -7,15 +7,29 @@ import {
   readFileSync,
   rmSync
 } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { it } from 'node:test'
 
-import { array, object, parse, record, string } from 'valibot'
+import { array, function_, object, parse, record, string } from 'valibot'
 
-import messageFormat from '../../../apps/boilerplate/node_modules/@inlang/plugin-message-format/dist/index.js'
 import { generate } from '../src/generate.ts'
 
+const appRequire = createRequire(
+  new URL('../../../apps/boilerplate/package.json', import.meta.url)
+)
+const plugin: unknown = await import(
+  appRequire.resolve('@inlang/plugin-message-format')
+)
+const messagePlugin = object({ importFiles: function_() })
+const { default: messageFormat } = parse(
+  object({ default: messagePlugin }),
+  plugin
+)
+const textNode = object({ type: string(), value: string() })
+const variant = object({ pattern: array(textNode) })
+const importedMessages = object({ variants: array(variant) })
 const localeSettings = object({ locales: array(string()) })
 const repetitions = 15
 type AppTitleCase = {
@@ -57,8 +71,7 @@ async function checkTitleMessages({
       for (const key of keys) {
         const pattern = catalog[key]
         assert.ok(pattern, `${locale}: ${key}`)
-        assert.ok(messageFormat.importFiles)
-        const { variants } = await messageFormat.importFiles({
+        const imported: unknown = await messageFormat.importFiles({
           settings: { baseLocale: locale, locales },
           files: [
             {
@@ -69,6 +82,7 @@ async function checkTitleMessages({
             }
           ]
         })
+        const { variants } = parse(importedMessages, imported)
         assert.equal(variants.length, 1)
         const nodes = variants[0]?.pattern
         assert.equal(nodes?.length, 1)

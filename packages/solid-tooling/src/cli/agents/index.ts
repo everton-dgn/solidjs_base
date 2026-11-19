@@ -93,6 +93,14 @@ export async function agents({
   const pair = markers({ original, file })
   const eol = original.includes('\r\n') ? '\r\n' : '\n'
   const block = BLOCK.join(eol)
+  // Standalone guides use the direct command when they list only package scripts.
+  const direct = block
+    .replace(
+      'Before changing code, run `vp run doctor`.',
+      'Before changing code, run the doctor command below.'
+    )
+    .replace('If the Vite config fails to load, run ', 'Run ')
+  if (pair && original.slice(pair.start, pair.end) === direct) return 'current'
   // A new block goes to the top, where no line above it can hide it.
   const top = original.startsWith('﻿') ? 1 : 0
   const updated = pair

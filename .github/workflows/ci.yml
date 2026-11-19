@@ -323,6 +323,9 @@ jobs:
       - name: Run end-to-end tests
         run: vp run test:e2e
 
+      - name: Run production end-to-end tests
+        run: vp run test:e2e:production
+
   # WHY: release-please reads the body of a merge commit as one more commit, so
   # the title of a pull request merged with the merge button becomes a changelog
   # entry. This run cannot undo the merge; it fails so the entry is removed

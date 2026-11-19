@@ -134,6 +134,15 @@ test('keeps the installed scenarios and package builds in their jobs', () => {
       'vp run --fail-if-no-match --filter @evertondgn/solid-tooling --filter @evertondgn/vite-plugin-solid-icons build'
     )
   }
+  assert.deepEqual(
+    steps(ci['app-e2e'])
+      .map(step => step.run)
+      .filter(
+        command =>
+          typeof command === 'string' && command.startsWith('vp run test:e2e')
+      ),
+    ['vp run test:e2e', 'vp run test:e2e:production']
+  )
   assert.deepEqual(record(release.publish).needs, [
     'release-please',
     'verified'

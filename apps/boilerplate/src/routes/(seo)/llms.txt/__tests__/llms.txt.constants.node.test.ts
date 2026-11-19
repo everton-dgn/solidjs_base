@@ -14,4 +14,13 @@ describe('llms.txt notes', () => {
       'Content is available in English (/en), Portuguese (/pt), and Spanish (/es). This index uses English.'
     )
   })
+
+  it('uses the language tag when Intl rejects its display name', async () => {
+    vi.resetModules()
+    vi.spyOn(Intl.DisplayNames.prototype, 'of').mockImplementationOnce(() => {
+      throw new RangeError('Unsupported locale')
+    })
+    const { LLMS_NOTES: notes } = await import('../constants.ts')
+    expect(notes[0]).toContain('This index uses en.')
+  })
 })

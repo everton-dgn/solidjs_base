@@ -64,17 +64,6 @@ export function configureLocaleUi({
       "import names from './names.json' with { type: 'json' }\n\nexport const LOCALE_NAMES: Readonly<Record<Locale, string>> = names\n"
     )
   }
-  if (profile.hasSeo !== false) {
-    edit('src/routes/(seo)/llms.txt/constants.ts')(
-      '  return LANGUAGE_NAMES.of(locale) ?? locale',
-      `  try {
-    return LANGUAGE_NAMES.of(locale) ?? locale
-  } catch (error) {
-    if (!(error instanceof RangeError)) throw error
-    return locale
-  }`
-    )
-  }
   const overrides = 'src/i18n/localeTagOverrides/index.ts'
   const input = read(overrides)
   const entries = [...input.matchAll(/^ {2}(?<locale>\w+): '(?<tag>[^']+)'/gmu)]

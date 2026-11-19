@@ -42,9 +42,6 @@
       "bin": {
         "create-solid": "./dist/create-solid.mjs",
       },
-      "dependencies": {
-        "oxfmt": "0.79.0",
-      },
       "devDependencies": {
         "@evertondgn/solid-tooling": "workspace:*",
         "oxc-parser": "0.156.0",

@@ -1,7 +1,8 @@
 export type Profile = {
   pm: 'bun' | 'pnpm' | 'npm'
   dir: string
-  mode?: 'server' | 'static'
+  mode?: 'server' | 'static' | 'client'
+  seo?: boolean
   theme?: boolean
   icons?: boolean
   fonts?: boolean

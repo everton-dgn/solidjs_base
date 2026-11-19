@@ -35,6 +35,7 @@ function references(file: string, text: string): Set<string> {
 const taskEntries = new Set([
   'env.ts',
   'src/entry-client.tsx',
+  'src/middleware/index.ts',
   'src/entry-server.tsx',
   'src/tests/fixtures/e2e/middleware/index.ts',
   'src/tests/fixtures/routes/users/[id].tsx',

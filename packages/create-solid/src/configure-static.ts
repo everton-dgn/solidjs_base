@@ -128,7 +128,7 @@ export function configureStatic(
   context: GenerationContext
 ): void {
   const { profile, write, pkg } = context
-  if (profile.mode !== 'static') return
+  if (profile.mode !== 'static' && profile.mode !== 'client') return
   removeServerFiles(stage)
   cpSync(new URL('files/', staticFiles), stage, { recursive: true })
   const edit = (file: string) => (pattern: RegExp, replacement: string) => {

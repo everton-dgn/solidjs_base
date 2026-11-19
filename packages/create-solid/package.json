@@ -36,5 +36,8 @@
     "type": "git",
     "url": "git+https://github.com/everton-dgn/solidjs_base.git",
     "directory": "packages/create-solid"
+  },
+  "dependencies": {
+    "oxfmt": "0.79.0"
   }
 }

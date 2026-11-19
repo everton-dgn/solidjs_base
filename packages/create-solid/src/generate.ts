@@ -20,8 +20,12 @@ import { URL } from 'node:url'
 
 import { parse } from 'valibot'
 
+import { configureClient } from './configure-client.ts'
 import { configureFonts, removeFeatureFiles } from './configure-fonts.ts'
+import { configureSeo } from './configure-seo.ts'
 import { configureStatic } from './configure-static.ts'
+import { configureFileHostGuides } from './file-host-guides.ts'
+import { installProfile } from './install-profile.ts'
 import { addProfileBrowserTest } from './profile-browser-test.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
@@ -175,6 +179,18 @@ function configureDiagnostics(stage: string, context: GenerationContext): void {
   )
 }
 
+function resolveProfile(profile: Profile): Profile {
+  if (profile.mode === 'client') {
+    if (profile.seo) {
+      throw new UsageError(
+        'Client rendering cannot publish SEO. Use --mode static.'
+      )
+    }
+    return { ...profile, seo: false }
+  }
+  return profile
+}
+
 export function resolveGroup(
   { settings }: GenerationContext,
   group: Versions
@@ -238,7 +254,8 @@ export function rewriteIdentity({ pkg, profile }: GenerationContext): void {
       .slice(0, maxPackageNameLength) || 'solid-app'
   pkg.description = 'SolidJS application built with Vite+.'
 }
-export function generate(profile: Profile): string[] {
+export function generate(input: Profile): string[] {
+  const profile = resolveProfile(input)
   const template = path.resolve(import.meta.dirname, '../template')
   const settingsFile = new URL('../dist/settings.json', import.meta.url)
   const settings = parse(
@@ -305,6 +322,9 @@ export function generate(profile: Profile): string[] {
     configureReadme(stage, profile)
     configureStatic(stage, context)
     configureFonts(stage, profile.fonts)
+    configureSeo(stage, context)
+    configureClient(stage, context)
+    configureFileHostGuides(stage, context)
     mkdirSync(path.join(stage, 'src/tests/pages/Home'), { recursive: true })
     addProfileBrowserTest(context)
     write('package.json', `${JSON.stringify(pkg, null, jsonIndent)}\n`)
@@ -330,33 +350,7 @@ export function generate(profile: Profile): string[] {
       )
     }
   }
-  if (profile.shouldInstall) {
-    try {
-      execFileSync(profile.pm, ['install'], {
-        cwd: profile.dir,
-        stdio: 'inherit'
-      })
-    } catch (error) {
-      throw new Error(
-        `Open ${profile.dir} and run ${profile.pm} install again.`,
-        { cause: error }
-      )
-    }
-    if (profile.pm === 'pnpm') {
-      try {
-        execFileSync(
-          path.resolve(profile.dir, 'node_modules/.bin/vp'),
-          ['fmt', 'pnpm-workspace.yaml'],
-          { cwd: profile.dir, stdio: 'inherit' }
-        )
-      } catch (error) {
-        throw new Error(
-          'pnpm installed dependencies. Run pnpm exec vp fmt pnpm-workspace.yaml in the application.',
-          { cause: error }
-        )
-      }
-    }
-  }
+  installProfile(profile)
   return nextSteps(profile)
 }
 

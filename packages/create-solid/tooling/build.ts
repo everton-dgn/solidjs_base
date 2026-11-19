@@ -162,6 +162,7 @@ writeFileSync(
   path.join(formatter, 'vite.config.mjs'),
   `export default ${JSON.stringify({ fmt })}\n`
 )
+writeFileSync(path.join(formatter, 'oxfmt.json'), JSON.stringify(fmt))
 const patchTest = 'tooling/__tests__/patched-dependencies.test.ts'
 for (const pm of ['bun', 'npm', 'pnpm'] as const) {
   const dir = path.resolve('dist/profiles', pm)

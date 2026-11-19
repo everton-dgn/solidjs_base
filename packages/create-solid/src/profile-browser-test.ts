@@ -51,9 +51,13 @@ export function addProfileBrowserTest({
 }: GenerationContext): void {
   if (
     profile.mode !== 'static' &&
-    [profile.theme, profile.fonts, profile.icons, profile.diagnostics].every(
-      flag => flag !== false
-    )
+    [
+      profile.theme,
+      profile.fonts,
+      profile.icons,
+      profile.diagnostics,
+      profile.seo
+    ].every(flag => flag !== false)
   ) {
     return
   }
@@ -73,6 +77,6 @@ test('mounts and opens a localized route directly', async ({ page }) => {
     'About SolidJS Boilerplate'
   )${profile.theme === false ? '' : themeCheck}${profile.fonts === false ? '' : fontCheck}
 })
-${profile.mode === 'static' ? staticPublication : ''}`
+${profile.mode === 'static' && profile.seo !== false ? staticPublication : ''}`
   )
 }

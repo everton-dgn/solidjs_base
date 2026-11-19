@@ -169,7 +169,9 @@ jobs:
   packages:
     name: Packages
     needs: changes
-    if: needs.changes.outputs.packages == 'true' || github.event_name == 'pull_request'
+    if:
+      needs.changes.outputs.packages == 'true' || github.event_name ==
+      'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

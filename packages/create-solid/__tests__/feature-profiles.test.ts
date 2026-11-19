@@ -14,6 +14,7 @@ import { it } from 'node:test'
 
 import { array, object, parse, record, string } from 'valibot'
 
+import { createTasks } from '../../solid-tooling/src/vite/tasks.ts'
 import { generate } from '../src/generate.ts'
 import { checkImports } from '../tooling/check-imports.ts'
 import { uiProfiles } from '../tooling/feature-combinations.ts'
@@ -70,7 +71,16 @@ function checkScriptFiles(dir: string, tree: readonly string[]): void {
   const schema = object({ scripts: record(string(), string()) })
   const manifest = readFileSync(path.join(dir, 'package.json'), 'utf8')
   const { scripts } = parse(schema, JSON.parse(manifest))
+  const tasks = createTasks({ root: dir, isCi: true, hasI18n: true })
   for (const [name, command] of Object.entries(scripts)) {
+    for (const match of command.matchAll(/\bvp run (?<task>[\w:-]+)/gu)) {
+      const target = match.groups?.task
+      assert.ok(
+        target &&
+          (Object.hasOwn(scripts, target) || Object.hasOwn(tasks, target)),
+        `${name} invokes missing task ${target}`
+      )
+    }
     for (const match of command.matchAll(
       /(?:^|\s)(?:\.\/)?(?<file>(?:src|tooling)\/[\w./-]+)(?=\s|$)/gu
     )) {

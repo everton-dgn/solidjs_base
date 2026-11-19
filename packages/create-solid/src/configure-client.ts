@@ -2,20 +2,15 @@ import { readFileSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
 import type { GenerationContext } from './generate.ts'
+import { removeModeFiles } from './remove-mode-files.ts'
 
 export function configureClient(
   stage: string,
   { profile, pkg, write }: GenerationContext
 ): void {
   if (profile.mode !== 'client') return
-  for (const file of [
-    'src/entry-server.tsx',
-    'src/Document.tsx',
-    'src/middleware',
-    'tooling/testing/serve-public.ts'
-  ]) {
-    rmSync(path.join(stage, file), { recursive: true, force: true })
-  }
+  removeModeFiles(stage, 'clientExcludes')
+  rmSync(path.join(stage, 'tooling/testing/serve-public.ts'))
   const read = (file: string) => readFileSync(path.join(stage, file), 'utf8')
   write(
     'vite.config.ts',

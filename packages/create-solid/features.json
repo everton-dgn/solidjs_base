@@ -603,6 +603,14 @@
     "src/tests/pages/StructuredData/StructuredData.streaming.e2e.test.ts",
     "src/tests/pages/UiKit/UiKit.e2e.test.ts",
     "src/tests/pages/UiKit/UiKit.fields.e2e.test.ts",
-    "tooling/testing/error-backend.ts"
+    "tooling/testing/error-backend.ts",
+    "vercel.json"
+  ],
+  "clientExcludes": [
+    "src/Document.tsx",
+    "src/entry-server.tsx",
+    "src/middleware/index.ts",
+    "src/middleware/securityHeaders/constants.ts",
+    "src/middleware/securityHeaders/index.ts"
   ]
 }

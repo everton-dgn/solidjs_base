@@ -7,21 +7,15 @@ import {
 } from 'node:fs'
 import path from 'node:path'
 
-import { array, object, parse, record, string } from 'valibot'
+import { parse, record, string } from 'valibot'
 
 import type { GenerationContext } from './generate.ts'
+import { removeModeFiles } from './remove-mode-files.ts'
 import { rewriteKnip } from './rewrite.ts'
 
 const indent = 2
 const catalogSchema = record(string(), string())
 const staticFiles = new URL('../dist/static/', import.meta.url)
-
-function removeServerFiles(stage: string): void {
-  const source = new URL('../dist/features.json', import.meta.url)
-  const spec = object({ serverOnly: array(string()) })
-  const { serverOnly } = parse(spec, JSON.parse(readFileSync(source, 'utf8')))
-  for (const file of serverOnly) rmSync(path.join(stage, file), { force: true })
-}
 
 function staticCatalogs(stage: string, theme?: boolean): void {
   const messages = {
@@ -36,7 +30,7 @@ function staticCatalogs(stage: string, theme?: boolean): void {
       home_description:
         'Start your next project with {framework}, {toolchain} and {language}.',
       about_purpose:
-        'This project demonstrates routing, translated content and automated tests for a prerendered application. You can adapt the pages and components to your own product.',
+        'This project demonstrates routing, translated content and automated tests for a web application. You can adapt the pages and components to your own product.',
       privacy_preferences:
         'The page address includes the selected language, such as /en, /pt or /es.',
       storage:
@@ -53,7 +47,7 @@ function staticCatalogs(stage: string, theme?: boolean): void {
       home_description:
         'Empieza tu proyecto con {framework}, {toolchain} y {language}.',
       about_purpose:
-        'El proyecto muestra las rutas, los textos traducidos y las pruebas de una aplicación prerenderizada. Puedes adaptar las páginas y los componentes a tu producto.',
+        'El proyecto muestra las rutas, los textos traducidos y las pruebas de una aplicación web. Puedes adaptar las páginas y los componentes a tu producto.',
       privacy_preferences:
         'La dirección de la página incluye el idioma seleccionado, como /es, /pt o /en.',
       storage:
@@ -70,7 +64,7 @@ function staticCatalogs(stage: string, theme?: boolean): void {
       home_description:
         'Comece seu projeto com {framework}, {toolchain} e {language}.',
       about_purpose:
-        'O projeto mostra rotas, conteúdo traduzido e testes de uma aplicação pré-renderizada. Você pode adaptar as páginas e os componentes ao seu produto.',
+        'O projeto mostra rotas, conteúdo traduzido e testes de uma aplicação web. Você pode adaptar as páginas e os componentes ao seu produto.',
       privacy_preferences:
         'O endereço da página inclui o idioma escolhido, como /pt, /en ou /es.',
       storage:
@@ -129,7 +123,7 @@ export function configureStatic(
 ): void {
   const { profile, write, pkg } = context
   if (profile.mode !== 'static' && profile.mode !== 'client') return
-  removeServerFiles(stage)
+  removeModeFiles(stage, 'serverOnly')
   cpSync(new URL('files/', staticFiles), stage, { recursive: true })
   const edit = (file: string) => (pattern: RegExp, replacement: string) => {
     const content = readFileSync(path.join(stage, file), 'utf8')

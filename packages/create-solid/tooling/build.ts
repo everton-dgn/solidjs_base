@@ -54,6 +54,7 @@ if (files.length !== rules.size || files.some(file => !rules.has(file))) {
 const featureSchema = object({
   version: literal(1),
   serverOnly: array(string()),
+  clientExcludes: array(string()),
   files: record(
     string(),
     picklist([
@@ -84,10 +85,10 @@ assert.deepEqual(
   templateFiles.toSorted(),
   'Review features.json for changes in the template'
 )
-for (const file of features.serverOnly) {
+for (const file of [...features.serverOnly, ...features.clientExcludes]) {
   assert.ok(
     Object.hasOwn(features.files, file),
-    `Unknown server-only file: ${file}`
+    `Unknown mode-specific file: ${file}`
   )
 }
 checkImports(app, templateFiles)

@@ -25,6 +25,22 @@ export function configureFileHostGuides(
     '# Testing\n\nRun `vp run test` for the unit and component suites. Run `vp run build`, then\n`vp run test:e2e` to open the production output in Chromium. The browser test\nopens the home page and follows a direct URL to a localized page.\n'
   )
   const read = (file: string) => readFileSync(path.join(stage, file), 'utf8')
+  const architecture = 'docs/architecture.md'
+  const layers = read(architecture)
+    .split('## Component layers')
+    .at(1)
+    ?.split('The layer lint does not replace')[0]
+    ?.trimEnd()
+  write(
+    architecture,
+    `# Architecture\n\nPage components live in \`src/routes\`. The filesystem router finds each page and\nits layout. Shared components live in \`src/components\`. Keep local styles and\ntests with their component.\n\n## Component layers${layers}\n`
+  )
+  if (staticHost && profile.seo !== false) {
+    write(
+      'docs/seo/sitemap.md',
+      '# Sitemap\n\nThe build writes the sitemap into `.output/public`. It lists the published page\nURLs for each language. Use the public origin of the deployment when building\nthe application.\n'
+    )
+  }
   const i18n = 'docs/i18n.md'
   const catalogs = read(i18n)
     .split('## Negotiation and isolation on the server')

@@ -1,22 +1,30 @@
-import { execFileSync } from 'node:child_process'
 import { accessSync, constants, readFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { message, type Language } from '../cli-language.ts'
 import type { Profile } from '../types.ts'
 
-export function installProfile(profile: Profile): void {
+export type SetupCommand = {
+  task: 'gitTask' | 'installTask'
+  executable: string
+  args: string[]
+}
+export function* installProfile(
+  profile: Profile,
+  language: Language = 'en'
+): Generator<SetupCommand, void> {
   if (!profile.shouldInstall) return
   const workspace = path.join(profile.dir, 'pnpm-workspace.yaml')
   const before =
     profile.pm === 'pnpm' ? readFileSync(workspace, 'utf8') : undefined
   try {
-    execFileSync(profile.pm, ['install'], {
-      cwd: profile.dir,
-      stdio: 'inherit'
-    })
+    yield { task: 'installTask', executable: profile.pm, args: ['install'] }
   } catch (error) {
     throw new Error(
-      `Open ${profile.dir} and run ${profile.pm} install again.`,
+      message(language, {
+        code: 'installFailure',
+        values: { dir: profile.dir, pm: profile.pm }
+      }),
       { cause: error }
     )
   }
@@ -25,18 +33,14 @@ export function installProfile(profile: Profile): void {
     accessSync(path.join(profile.dir, 'node_modules/.bin/vp'), constants.X_OK)
     const installed = readFileSync(workspace, 'utf8')
     if (installed === before) return
-    execFileSync(
-      path.join(profile.dir, 'node_modules/.bin/vp'),
-      ['fmt', 'pnpm-workspace.yaml'],
-      {
-        cwd: profile.dir,
-        stdio: 'inherit'
-      }
-    )
+    yield {
+      task: 'installTask',
+      executable: path.join(profile.dir, 'node_modules/.bin/vp'),
+      args: ['fmt', 'pnpm-workspace.yaml']
+    }
   } catch (error) {
-    throw new Error(
-      'pnpm installed dependencies. Check the local Vite+ installation and run pnpm exec vp fmt pnpm-workspace.yaml in the application.',
-      { cause: error }
-    )
+    throw new Error(message(language, { code: 'formatFailure', values: {} }), {
+      cause: error
+    })
   }
 }

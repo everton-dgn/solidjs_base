@@ -415,3 +415,133 @@ void it('uses the resolved folder for the API package name and title', async con
   assert.equal(manifest.name, 'my-app')
   assert.equal(await generatedTitle(dir), 'My App')
 })
+
+void it('requires a destination without a terminal and translates flag errors', context => {
+  const cwd = folder(context)
+  for (const flags of [
+    [],
+    ['--no-interactive'],
+    ['--name', 'app', '--mode', 'other'],
+    ['--name', 'app', '--no-theme', '--theme']
+  ]) {
+    const result = spawnSync(
+      process.execPath,
+      [bin, '--lang', 'pt-BR', ...flags],
+      { cwd, env: { ...process.env, CI: '1' }, encoding: 'utf8' }
+    )
+    const expectedUsageExit = 2
+    assert.equal(result.status, expectedUsageExit)
+    assert.match(result.stderr, /--name|--mode|--theme/u)
+    assert.deepEqual(readdirSync(cwd), [])
+  }
+})
+
+void it('accepts every default with yes and prints plain next steps', context => {
+  const cwd = folder(context)
+  for (const tool of ['git', 'bun']) {
+    writeFileSync(
+      path.join(cwd, tool),
+      `#!/bin/sh\nif read -r unexpected; then exit 9; fi\necho "$1" > "${tool}.called"\n`,
+      { mode: executable }
+    )
+  }
+  const result = spawnSync(process.execPath, [bin, '--yes', '--lang', 'es'], {
+    cwd,
+    encoding: 'utf8',
+    input: 'unexpected input\n',
+    env: { ...process.env, NO_COLOR: '1', PATH: cwd }
+  })
+  assert.equal(result.status, 0, result.stderr)
+  const dir = path.join(cwd, 'solid-app')
+  assert.equal(readFileSync(path.join(dir, 'bun.called'), 'utf8'), 'install\n')
+  assert.equal(readFileSync(path.join(dir, 'git.called'), 'utf8'), 'init\n')
+  assert.match(result.stdout, /Próximos pasos/u)
+  assert.ok(!result.stdout.includes('\u001B'))
+})
+
+void it('removes staging and owned parents when interrupted during generation', context => {
+  const root = folder(context)
+  const dir = path.join(root, 'new', 'app')
+  const signalAfterCopy = `import fs from 'node:fs'
+import {syncBuiltinESMExports} from 'node:module'
+const copy = fs.cpSync
+fs.cpSync = (...args) => {
+  fs.cpSync = copy
+  syncBuiltinESMExports()
+  process.kill(process.pid,'SIGINT')
+  return copy(...args)
+}
+syncBuiltinESMExports()`
+  const result = spawnSync(
+    process.execPath,
+    [
+      `--import=data:text/javascript,${encodeURIComponent(signalAfterCopy)}`,
+      bin,
+      dir,
+      '--no-git',
+      '--no-install'
+    ],
+    { encoding: 'utf8' }
+  )
+  const interrupted = 130
+  assert.equal(result.status, interrupted, result.stderr)
+  assert.deepEqual(readdirSync(root), [])
+})
+
+void it('preserves the published project and gives a resume command on install cancellation', context => {
+  const root = folder(context)
+  const dir = path.join(root, 'app')
+  writeFileSync(
+    path.join(root, 'bun'),
+    '#!/bin/sh\nkill -INT "$PPID"\nexec /bin/sleep 10\n',
+    { mode: executable }
+  )
+  const result = spawnSync(
+    process.execPath,
+    [bin, dir, '--lang', 'es', '--no-git'],
+    { encoding: 'utf8', timeout: 5000, env: { ...process.env, PATH: root } }
+  )
+  assert.equal(result.status, 1, result.stderr)
+  assert.match(result.stderr, /ejecuta bun install de nuevo/u)
+  assert.ok(existsSync(path.join(dir, 'package.json')))
+})
+
+void it('skips the questionnaire on terminal stdin with CI or no-interactive', context => {
+  const cwd = folder(context)
+  const terminal = "Object.defineProperty(process.stdin,'isTTY',{value:true})"
+  const preload = `--import=data:text/javascript,${encodeURIComponent(terminal)}`
+  const expectedUsageExit = 2
+  const env = { ...process.env }
+  delete env.CI
+  for (const { flags, environment } of [
+    { flags: ['--no-interactive'], environment: env },
+    { flags: [], environment: { ...env, CI: '' } }
+  ]) {
+    const child = spawnSync(process.execPath, [preload, bin, ...flags], {
+      cwd,
+      env: environment,
+      encoding: 'utf8',
+      timeout: 5000
+    })
+    assert.equal(child.status, expectedUsageExit)
+    assert.match(child.stderr, /--name/u)
+    assert.deepEqual(readdirSync(cwd), [])
+  }
+})
+
+void it('prints the Bun installation link before starting the selected installer', context => {
+  const root = folder(context)
+  writeFileSync(path.join(root, 'npm'), '#!/bin/sh\necho installer-started\n', {
+    mode: executable
+  })
+  const dir = path.join(root, 'app')
+  const result = spawnSync(
+    process.execPath,
+    [bin, dir, '--lang', 'es', '--pm', 'npm', '--no-git'],
+    { env: { ...process.env, PATH: root }, encoding: 'utf8' }
+  )
+  assert.equal(result.status, 0, result.stderr)
+  const link = result.stdout.indexOf('https://bun.sh')
+  assert.ok(link !== -1 && link < result.stdout.indexOf('installer-started'))
+  assert.ok(result.stdout.includes('Ejecuta vp run dev.'))
+})

@@ -29,6 +29,7 @@
     "test:tarball": "node tooling/parity.ts"
   },
   "devDependencies": {
+    "@clack/prompts": "1.9.0",
     "@evertondgn/solid-tooling": "workspace:*",
     "@inlang/plugin-message-format": "4.6.0",
     "oxc-parser": "0.156.0",

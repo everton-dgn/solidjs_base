@@ -1,0 +1,246 @@
+import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import {
+  lstatSync,
+  mkdtempSync,
+  readFileSync,
+  readlinkSync,
+  readdirSync,
+  rmSync
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import process from 'node:process'
+import { PassThrough } from 'node:stream'
+import { it } from 'node:test'
+
+import { messages, type Language } from '../src/cli-language.ts'
+import { generate } from '../src/generate.ts'
+import { answerProfile, type Answers } from '../src/profile-answers.ts'
+import { questionnaire } from '../src/questionnaire.ts'
+import { CanceledError } from '../src/usage-error.ts'
+
+type Line = readonly [question: string, keys: string]
+async function session(
+  lines: Line[],
+  {
+    answers = {},
+    language = 'en'
+  }: { answers?: Answers; language?: Language } = {}
+) {
+  const input = new PassThrough()
+  let index = 0
+  let transcript = ''
+  const output = new PassThrough()
+  output.on('data', chunk => {
+    const frame = String(chunk)
+    transcript += frame
+    const line = lines[index]
+    if (line && frame.includes(line[0].split('. ')[0] ?? line[0])) {
+      index += 1
+      setImmediate(() => input.write(line[1]))
+    }
+  })
+  try {
+    const result = await questionnaire({
+      answers,
+      language,
+      input,
+      output,
+      color: false
+    })
+    assert.equal(index, lines.length)
+    assert.ok(!transcript.includes('\u001B'))
+    return { result, transcript }
+  } finally {
+    input.destroy()
+  }
+}
+
+function allQuestions(language: Language): Line[] {
+  const m = messages[language]
+  return [
+    m.dir,
+    m.title,
+    m.mode,
+    m.i18n,
+    m.locales,
+    m.base,
+    m.seo,
+    m.url,
+    m.theme,
+    m.icons,
+    m.fonts,
+    m.diagnostics,
+    m.installer,
+    m.git,
+    m.install
+  ].map(label => [label, '\r'])
+}
+
+for (const language of ['pt-BR', 'en', 'es'] as const) {
+  void it(`accepts the full questionnaire in ${language}`, async () => {
+    const { result } = await session(allQuestions(language), { language })
+    assert.deepEqual(
+      answerProfile(result),
+      answerProfile({
+        name: 'solid-app',
+        title: 'solid-app',
+        mode: 'server',
+        locales: 'pt,en,es',
+        'base-locale': 'en',
+        seo: true,
+        'site-url': 'https://example.com',
+        theme: true,
+        icons: true,
+        fonts: true,
+        diagnostics: true,
+        pm: 'bun',
+        git: true,
+        install: true
+      })
+    )
+  })
+}
+
+for (const [index, [question]] of allQuestions('en').entries()) {
+  void it(`cancels at ${question}`, async () => {
+    const lines = allQuestions('en').slice(0, index)
+    await assert.rejects(
+      session([...lines, [question, '\u0003']]),
+      CanceledError
+    )
+  })
+}
+
+function tree(dir: string) {
+  const hash = createHash('sha256')
+  const entries = readdirSync(dir, {
+    recursive: true,
+    encoding: 'utf8'
+  }).toSorted()
+  for (const file of entries) {
+    const name = path.join(dir, file)
+    const stat = lstatSync(name)
+    let contents = ''
+    if (stat.isSymbolicLink()) contents = readlinkSync(name)
+    if (stat.isFile()) {
+      contents = createHash('sha256').update(readFileSync(name)).digest('hex')
+    }
+    hash.update(JSON.stringify([file, stat.mode, contents])).update('\n')
+  }
+  return hash.digest('hex')
+}
+
+void it('retries a rejected URL, skips answered questions and generates the same files as flags', async context => {
+  const root = mkdtempSync(path.join(tmpdir(), 'solid-questionnaire-'))
+  context.after(() => rmSync(root, { recursive: true, force: true }))
+  const m = messages.en
+  const answers = {
+    name: path.join(root, 'left', 'app'),
+    mode: 'static',
+    'no-git': true,
+    'no-install': true,
+    'no-i18n': true,
+    pm: 'npm'
+  }
+  const { result, transcript } = await session(
+    [
+      [m.title, '\r'],
+      [m.base, '\r'],
+      [m.seo, '\r'],
+      [m.url, '\u0015bad\r'],
+      [m.origin, '\u0015https://app.example\r'],
+      [m.theme, 'n'],
+      [m.icons, 'n'],
+      [m.fonts, 'n'],
+      [m.diagnostics, 'n']
+    ],
+    { answers }
+  )
+  assert.ok(!transcript.includes(m.locales))
+  const flags = {
+    ...answers,
+    name: path.join(root, 'right', 'app'),
+    title: 'app',
+    'base-locale': 'en',
+    'site-url': 'https://app.example',
+    'no-theme': true,
+    'no-icons': true,
+    'no-fonts': true,
+    'no-diagnostics': true
+  }
+  generate(answerProfile(result))
+  generate(answerProfile(flags))
+  assert.equal(tree(result.name ?? ''), tree(flags.name))
+})
+
+void it('materializes identical default trees after a full terminal session and flag invocation', async context => {
+  const root = mkdtempSync(path.join(tmpdir(), 'solid-full-session-'))
+  context.after(() => rmSync(root, { recursive: true, force: true }))
+  const lines = allQuestions('en')
+  const left = path.join(root, 'left', 'app')
+  lines[0] = [messages.en.dir, `\u0015${left}\r`]
+  const setupQuestions = 2
+  lines.splice(
+    -setupQuestions,
+    setupQuestions,
+    [messages.en.git, 'n'],
+    [messages.en.install, 'n']
+  )
+  const { result } = await session(lines)
+  generate(answerProfile(result))
+  const right = path.join(root, 'right', 'app')
+  execFileSync(process.execPath, [
+    path.resolve('dist/create-solid.mjs'),
+    right,
+    '--title',
+    'app',
+    '--mode',
+    'server',
+    '--locales',
+    'pt,en,es',
+    '--base-locale',
+    'en',
+    '--seo',
+    '--site-url',
+    'https://example.com',
+    '--theme',
+    '--icons',
+    '--fonts',
+    '--diagnostics',
+    '--pm',
+    'bun',
+    '--no-git',
+    '--no-install'
+  ])
+  assert.equal(tree(left), tree(right))
+})
+
+void it('infers the only base language and skips SEO on the client', async () => {
+  const { result, transcript } = await session([[messages.es.title, '\r']], {
+    language: 'es',
+    answers: {
+      name: 'portal',
+      mode: 'client',
+      locales: 'es',
+      theme: true,
+      icons: true,
+      fonts: true,
+      diagnostics: true,
+      pm: 'pnpm',
+      git: true,
+      install: true
+    }
+  })
+  assert.equal(result['base-locale'], 'es')
+  for (const label of [
+    messages.es.seo,
+    messages.es.url,
+    messages.es.base,
+    messages.es.i18n
+  ]) {
+    assert.ok(!transcript.includes(label))
+  }
+})

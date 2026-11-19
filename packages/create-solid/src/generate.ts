@@ -1,4 +1,5 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
+import { once } from 'node:events'
 import {
   existsSync,
   accessSync,
@@ -16,19 +17,17 @@ import {
 } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { setImmediate } from 'node:timers/promises'
 import { URL } from 'node:url'
 
 import { parse } from 'valibot'
 
 import { addProfileBrowserTest } from './addProfileBrowserTest/index.ts'
-import {
-  configureAppTitle,
-  resolveAppTitle
-} from './configureAppTitle/index.ts'
+import { message, type Language } from './cli-language.ts'
+import { configureAppTitle } from './configureAppTitle/index.ts'
 import { configureClient } from './configureClient/index.ts'
 import { configureFileHostGuides } from './configureFileHostGuides/index.ts'
 import { configureFonts } from './configureFonts/index.ts'
-import { readLocaleSettings } from './configureLocales/catalogs.ts'
 import { configureBrowserPaths } from './configureLocales/configure-browser-paths.ts'
 import { configureLocaleCopy } from './configureLocales/configure-locale-copy.ts'
 import { configureLocaleGuides } from './configureLocales/configure-locale-guides.ts'
@@ -43,11 +42,10 @@ import { configureSiteIdentity } from './configureSiteIdentity/index.ts'
 import { configureStandaloneGuides } from './configureStandaloneGuides/index.ts'
 import { configureStatic } from './configureStatic/index.ts'
 import { editTemplate } from './edit-template.ts'
-import { installProfile } from './installProfile/index.ts'
+import { installProfile, type SetupCommand } from './installProfile/index.ts'
 import { applyPreparedGuides } from './prepared-guides.ts'
 import { applyPreparedSource } from './prepared-source.ts'
 import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
-import { resolveLocaleOptions } from './resolve-locale-options.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
 import type {
@@ -57,7 +55,8 @@ import type {
   StagedContext,
   Versions
 } from './types.ts'
-import { UsageError } from './usage-error.ts'
+import { CanceledError } from './usage-error.ts'
+import { validateProfile } from './validate-profile.ts'
 
 const maxPackageNameLength = 214
 const jsonIndent = 2
@@ -65,17 +64,6 @@ function section(name: string, entries: Versions) {
   return `${name}:\n${Object.entries(entries)
     .map(([key, value]) => `  '${key}': '${value}'`)
     .join('\n')}\n`
-}
-
-function resolveSiteUrl(value?: string): URL {
-  const siteUrl = new URL(value ?? 'https://example.com')
-  if (
-    !['http:', 'https:'].includes(siteUrl.protocol) ||
-    siteUrl.href !== `${siteUrl.origin}/`
-  ) {
-    throw new UsageError('--site-url requires an HTTP or HTTPS origin')
-  }
-  return siteUrl
 }
 
 function resolveVersion(
@@ -121,7 +109,7 @@ function publishTree({ stage, destination }: Publication): void {
     throw error
   }
 }
-function checkTools(profile: Profile): void {
+function checkTools(profile: Profile, language: Language): void {
   const tools = [
     ...(profile.shouldInitGit ? ['git'] : []),
     ...(profile.shouldInstall ? [profile.pm] : [])
@@ -136,19 +124,23 @@ function checkTools(profile: Profile): void {
       }
     })
     if (!hasTool) {
-      throw new Error(`Install ${tool} before generating the application.`)
+      throw new Error(message(language, { code: 'tool', values: { tool } }))
     }
   }
 }
-function nextSteps(profile: Profile): string[] {
-  const next = [`Open ${profile.dir}.`]
+function nextSteps(profile: Profile, language: Language): string[] {
+  const next = [
+    message(language, { code: 'open', values: { dir: profile.dir } })
+  ]
+  const run = (command: string) =>
+    message(language, { code: 'run', values: { command } })
   if (!profile.shouldInstall) {
-    next.push(`Run ${profile.pm} install.`)
+    next.push(run(`${profile.pm} install`))
     if (profile.pm === 'pnpm') {
-      next.push('Run pnpm exec vp fmt pnpm-workspace.yaml.')
+      next.push(run('pnpm exec vp fmt pnpm-workspace.yaml'))
     }
   }
-  next.push('Run vp run dev.')
+  next.push(run('vp run dev'))
   return next
 }
 function configureReadme({ stage, profile }: StagedContext): void {
@@ -217,18 +209,6 @@ function configureDiagnostics(context: StagedContext): void {
   })
 }
 
-function resolveProfile(profile: Profile): Profile {
-  if (profile.mode === 'client') {
-    if (profile.hasSeo) {
-      throw new UsageError(
-        'Client rendering cannot publish SEO. Use --mode static.'
-      )
-    }
-    return { ...profile, hasSeo: false }
-  }
-  return profile
-}
-
 function removeEmptyFolders(folder: string): void {
   for (const entry of readdirSync(folder, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
@@ -289,8 +269,13 @@ function recordSeededCatalogs({ stage, write, seeded }: CatalogNotice): void {
 }
 
 type ReportCatalogs = { profile: Profile; seeded: string[] }
-function reportSeededCatalogs({ profile, seeded }: ReportCatalogs): string[] {
-  const notices = seeded.map(tag => `Translate the seeded messages for ${tag}.`)
+function reportSeededCatalogs(
+  { profile, seeded }: ReportCatalogs,
+  language: Language
+): string[] {
+  const notices = seeded.map(tag =>
+    message(language, { code: 'seed', values: { tag } })
+  )
   if (notices.length > 0) profile.onSeededCatalogs?.(notices)
   return profile.onSeededCatalogs ? [] : notices
 }
@@ -300,6 +285,32 @@ type Preparation = {
   source: typeof applyPreparedSource
 }
 type GenerationOptions = { input: Profile; prepare: Preparation }
+type Progress = 'creating' | SetupCommand['task']
+type Step = 'creating' | SetupCommand | undefined
+const prepared = { guides: applyPreparedGuides, source: applyPreparedSource }
+type TerminalOptions = {
+  language: Language
+  report: (progress: Progress) => void
+}
+async function executeSetup(
+  command: SetupCommand,
+  { cwd, signal }: { cwd: string; signal: AbortSignal }
+): Promise<void> {
+  const child = spawn(command.executable, command.args, {
+    cwd,
+    stdio: ['ignore', 'inherit', 'inherit']
+  })
+  const cancel = () => child.kill('SIGINT')
+  signal.addEventListener('abort', cancel, { once: true })
+  try {
+    await once(child, 'close')
+    if (child.exitCode !== 0 || signal.aborted) {
+      throw new Error(String(child.signalCode ?? child.exitCode))
+    }
+  } finally {
+    signal.removeEventListener('abort', cancel)
+  }
+}
 export function resolveGroup(
   { settings }: GenerationContext,
   group: Versions
@@ -364,18 +375,15 @@ export function rewriteIdentity({ pkg, profile }: GenerationContext): void {
       .slice(0, maxPackageNameLength) || 'solid-app'
   pkg.description = 'SolidJS application built with Vite+.'
 }
-export function generateSource({
-  input,
-  prepare
-}: GenerationOptions): string[] {
-  const profile = resolveProfile(input)
-  const title = resolveAppTitle(profile)
-  if (profile.hasSeo === false && profile.siteUrl !== undefined) {
-    throw new UsageError('--site-url requires SEO')
-  }
+export function* generation(
+  { input, prepare }: GenerationOptions,
+  language: Language
+): Generator<Step, string[]> {
+  const { problems, defaults, languages, title, siteUrl } =
+    validateProfile(input)
+  if (problems[0]) throw problems[0]
+  const profile = input.mode === 'client' ? { ...input, hasSeo: false } : input
   const template = path.resolve(import.meta.dirname, '../template')
-  const defaults = readLocaleSettings(template)
-  const languages = resolveLocaleOptions({ options: profile, defaults })
   const seeded = languages.locales.filter(
     tag => !defaults.locales.includes(tag) && profile.hasI18n !== false
   )
@@ -384,12 +392,8 @@ export function generateSource({
     settingsSchema,
     JSON.parse(readFileSync(settingsFile, 'utf8'))
   )
-  const siteUrl =
-    profile.hasSeo === false ? undefined : resolveSiteUrl(profile.siteUrl)
-  if (existsSync(profile.dir) && readdirSync(profile.dir).length > 0) {
-    throw new Error('Destination must be empty')
-  }
-  checkTools(profile)
+  checkTools(profile, language)
+  yield 'creating'
   const parent = path.dirname(path.resolve(profile.dir))
   const firstParent = mkdirSync(parent, { recursive: true })
   const stageParent = existsSync(profile.dir)
@@ -469,6 +473,7 @@ export function generateSource({
       content: `${JSON.stringify(pkg, null, jsonIndent)}\n`
     })
     removeEmptyFolders(stage)
+    yield
     publishTree({ stage, destination: profile.dir })
   } catch (error) {
     rmSync(stage, { recursive: true, force: true })
@@ -481,29 +486,77 @@ export function generateSource({
     }
     throw error
   }
-  const notices = reportSeededCatalogs({ profile, seeded })
+  const notices = reportSeededCatalogs({ profile, seeded }, language)
   if (profile.shouldInitGit) {
     try {
-      execFileSync('git', ['init'], { cwd: profile.dir, stdio: 'inherit' })
+      yield { task: 'gitTask', executable: 'git', args: ['init'] }
     } catch (error) {
       throw new Error(
-        `Git initialization failed. Open ${profile.dir} and run git init with Git installed, or continue without Git. Run ${profile.pm} install to install dependencies.`,
+        message(language, {
+          code: 'gitFailure',
+          values: { dir: profile.dir, pm: profile.pm }
+        }),
         { cause: error }
       )
     }
   }
-  installProfile(profile)
-  return [...notices, ...nextSteps(profile)]
+  yield* installProfile(profile, language)
+  return [...notices, ...nextSteps(profile, language)]
 }
 
-export function generate(input: Profile): string[] {
-  return generateSource({
-    input,
-    prepare: {
-      guides: applyPreparedGuides,
-      source: applyPreparedSource
+export function generateSource(options: GenerationOptions): string[] {
+  const steps = generation(options, 'en')
+  let current = steps.next()
+  while (!current.done) {
+    if (typeof current.value === 'object') {
+      try {
+        execFileSync(current.value.executable, current.value.args, {
+          cwd: options.input.dir,
+          stdio: 'inherit'
+        })
+      } catch (error) {
+        steps.throw(error)
+      }
     }
-  })
+    current = steps.next()
+  }
+  return current.value
 }
-
+export function generate(input: Profile): string[] {
+  return generateSource({ input, prepare: prepared })
+}
+export async function generateTerminal(
+  input: Profile,
+  { language, report }: TerminalOptions
+): Promise<string[]> {
+  const steps = generation({ input, prepare: prepared }, language)
+  const controller = new AbortController()
+  const cancel = () => controller.abort()
+  process.on('SIGINT', cancel)
+  try {
+    let current = steps.next()
+    while (!current.done) {
+      const step = current.value
+      if (step !== undefined) {
+        report(typeof step === 'string' ? step : step.task)
+      }
+      await setImmediate()
+      try {
+        controller.signal.throwIfAborted()
+        if (typeof step === 'object') {
+          await executeSetup(step, {
+            cwd: input.dir,
+            signal: controller.signal
+          })
+        }
+      } catch (error) {
+        steps.throw(controller.signal.aborted ? new CanceledError() : error)
+      }
+      current = steps.next()
+    }
+    return current.value
+  } finally {
+    process.off('SIGINT', cancel)
+  }
+}
 export type { Profile } from './types.ts'

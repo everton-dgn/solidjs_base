@@ -73,7 +73,7 @@ export default defineConfig({
       ...(toolingOverrides ?? []),
       ...(iconsOverrides ?? []),
       {
-        files: ['packages/create-solid/__tests__/*.test.ts'],
+        files: ['packages/create-solid/__tests__/*.ts'],
         rules: { 'vitest/no-import-node-test': 'off' }
       },
       // The generator and its build scripts run as single-process Node CLIs.

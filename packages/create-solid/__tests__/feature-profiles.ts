@@ -10,7 +10,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { it } from 'node:test'
+import type { it as registerTest } from 'node:test'
 
 import { array, object, parse, record, string } from 'valibot'
 
@@ -245,7 +245,11 @@ const modes = ['server', 'static', 'client'] as const
 const publications = modes.flatMap(mode =>
   [true, false].map(hasSeo => ({ mode, hasSeo }))
 )
-export function testProfiles(pm: 'bun' | 'npm' | 'pnpm') {
+const profilesPerManager = 96
+export function testProfiles(
+  pm: 'bun' | 'npm' | 'pnpm',
+  it: typeof registerTest
+): void {
   let count = 0
   for (const { mode, hasSeo } of publications) {
     for (const diagnostics of [true, false]) {
@@ -415,7 +419,7 @@ export function testProfiles(pm: 'bun' | 'npm' | 'pnpm') {
     }
   }
   void it('covers all profiles of the package manager', () => {
-    assert.equal(count, 96)
+    assert.equal(count, profilesPerManager)
   })
 
   void it('requires every guide approval to describe an observed edit', () => {

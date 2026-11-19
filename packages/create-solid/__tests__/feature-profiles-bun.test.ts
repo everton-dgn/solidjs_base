@@ -1,3 +1,5 @@
+import { describe, it } from 'node:test'
+
 import { testProfiles } from './feature-profiles.ts'
 
-testProfiles('bun')
+void describe('bun profiles', () => testProfiles('bun', it))

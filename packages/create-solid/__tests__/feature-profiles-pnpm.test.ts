@@ -1,3 +1,5 @@
+import { describe, it } from 'node:test'
+
 import { testProfiles } from './feature-profiles.ts'
 
-testProfiles('pnpm')
+void describe('pnpm profiles', () => testProfiles('pnpm', it))

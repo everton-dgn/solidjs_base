@@ -18,7 +18,8 @@ const messages = {
       'This page lists the contact options available for SolidJS Boilerplate.',
     contact_issues:
       'When reporting a problem, describe what happened and the steps needed to reproduce it. Leave out private information.',
-    contact_maintainer: 'Public contact details can be added here.'
+    contact_maintainer:
+      'Use the contact details listed on this page when they are available. Describe the page you visited, the language you selected and the result you expected. If you include an example, use fictional data and remove personal details from any screenshots. Keep a copy of the report so that you can add information if the problem happens again.'
   },
   es: {
     about_intro:
@@ -31,7 +32,8 @@ const messages = {
       'Esta página reúne las opciones de contacto disponibles para SolidJS Boilerplate.',
     contact_issues:
       'Al informar de un problema, describe qué pasó y cómo reproducirlo. Omite los datos privados.',
-    contact_maintainer: 'Aquí se pueden añadir los datos públicos de contacto.'
+    contact_maintainer:
+      'Utiliza los datos de contacto de esta página cuando estén disponibles. Indica qué página visitaste, qué idioma elegiste y qué resultado esperabas. Si incluyes un ejemplo, utiliza datos ficticios y elimina la información personal de las capturas de pantalla. Guarda una copia del informe para añadir detalles si el problema vuelve a ocurrir.'
   },
   pt: {
     about_intro:
@@ -44,7 +46,8 @@ const messages = {
       'Esta página reúne as opções de contato disponíveis para SolidJS Boilerplate.',
     contact_issues:
       'Ao relatar um problema, descreva o que aconteceu e os passos para reproduzi-lo. Omita os dados privados.',
-    contact_maintainer: 'Os dados públicos de contato podem ser incluídos aqui.'
+    contact_maintainer:
+      'Use os dados de contato desta página quando estiverem disponíveis. Informe a página visitada, o idioma escolhido e o resultado esperado. Se incluir um exemplo, use dados fictícios e remova informações pessoais das capturas de tela. Guarde uma cópia do relato para acrescentar detalhes caso o problema volte a ocorrer.'
   }
 }
 type IdentityEdit = (
@@ -104,6 +107,14 @@ function checkPublisher(edit: IdentityEdit): void {
   edit(home)(
     /,\n {6}\{\n {8}'@type': 'Organization',[\s\S]*?logo: logoNode\n {6}\}/u,
     ''
+  )
+  edit(home)(
+    /,\n {8}publisher: \{ '@id': `\$\{siteUrl\}\/#organization` \}/u,
+    ''
+  )
+  edit(home)(
+    "    expect(await readStructuredData(page)).toContainEqual(\n      expect.objectContaining({\n        '@type': 'Article',",
+    "    const graph = await readStructuredData(page)\n    const article = graph.find(node => node['@type'] === 'Article')\n    expect(article).not.toHaveProperty('publisher')\n    expect(article).not.toHaveProperty('author')\n    expect(graph).toContainEqual(\n      expect.objectContaining({\n        '@type': 'Article',"
   )
   edit('src/tests/pages/I18n/I18n.seo.production.e2e.test.ts')(
     /expect\(graph\)\.toContainEqual\(\n {6}expect\.objectContaining\(\{\n {8}'@type': 'Organization',[\s\S]*?\n {4}\)/u,

@@ -117,13 +117,22 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
 diff --git a/source/README.md b/example/README.md
 --- a/source/README.md
 +++ b/example/README.md
-@@ -1,4 +1,4 @@
+@@ -1,6 +1,12 @@
 -# Solid Base application
 +# SolidJS Boilerplate
++
++This application was created with Solid Base.
++
++## Before publishing
  
- This SolidJS application uses the Solid Base tooling and runtime.
+-This SolidJS application uses the Solid Base tooling and runtime.
++- Fill in the site identity and public links in `src/constants/site/index.ts`.
++- Update the about and contact pages with your own information.
++- Describe your data practices on the privacy page.
  
-@@ -9,9 +9,9 @@ This SolidJS application uses the Solid Base tooling and runtime.
+ > [!NOTE]
+ > This app pins SolidJS 2 in its [package manifest](package.json) to the version
+@@ -9,9 +15,9 @@ This SolidJS application uses the Solid Base tooling and runtime.
  The home page, captured from the production build at 750 px wide:
  
  <picture>
@@ -136,7 +145,28 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  [See it work](#see-it-work) · [Running it](#running-it) ·
-@@ -85,7 +85,7 @@ and `llms-full.txt` of the production build. CI does not run it
+@@ -40,7 +46,7 @@ vary: Cookie, Accept
+ 
+ # About SolidJS Boilerplate
+ 
+-SolidJS Boilerplate is an open source project maintained by Éverton Toffanetto. ...
++The application provides localized pages and navigation.
+ 
+ ## Purpose and features
+ ...
+@@ -61,9 +67,9 @@ $ curl -s http://127.0.0.1:4419/llms.txt
+ ...
+ ## When to use
+ ## Pages
+-- [About SolidJS Boilerplate](https://boilerplate-solidjs.devinsights.dev/en/about.md): ...
++- [About SolidJS Boilerplate](https://example.com/en/about.md): ...
+ ## Optional
+-- [Full Markdown of the static pages](https://boilerplate-solidjs.devinsights.dev/llms-full.txt): ...
++- [Full Markdown of the static pages](https://example.com/llms-full.txt): ...
+ ```
+ 
+ This excerpt keeps the title, the summary, the section headings and one link
+@@ -85,7 +91,7 @@ and `llms-full.txt` of the production build. CI does not run it
  ## Running it
  
  Install the global [Vite+](https://viteplus.dev/guide/) CLI and Bun. Install
@@ -145,7 +175,7 @@ diff --git a/source/README.md b/example/README.md
  
  ```bash
  vp run test:browser:install
-@@ -107,9 +107,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
+@@ -107,9 +113,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
  ```
  
  <picture>
@@ -158,7 +188,7 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  `curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
-@@ -145,9 +145,9 @@ both suites.
+@@ -145,9 +151,9 @@ both suites.
  ### The same page in three languages
  
  <picture>
@@ -171,7 +201,7 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  Every page lives under `/pt`, `/en` or `/es`, with `lang`, the navigation and
-@@ -170,9 +170,9 @@ z-index values, counted as the custom properties declared in each file.
+@@ -170,9 +176,9 @@ z-index values, counted as the custom properties declared in each file.
  ### Outdated pages after a deploy
  
  <picture>
@@ -184,7 +214,7 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  `installOutdatedPageDetection` marks the page when a chunk of the previous build
-@@ -216,16 +216,16 @@ refuses, so it never shares a run with the other suites. See
+@@ -216,16 +222,16 @@ refuses, so it never shares a run with the other suites. See
  [publication load](docs/testing.md#publication-load).
  
  <picture>
@@ -206,7 +236,7 @@ diff --git a/source/README.md b/example/README.md
  
  ## Limits
  
-@@ -236,7 +236,7 @@ the app, a package, a fixture or the root configuration
+@@ -236,7 +242,7 @@ the app, a package, a fixture or the root configuration
    not prove production capacity. The thresholds of `PublicationLoad` are a local
    starting point and set no production SLO
    ([publication load](docs/testing.md#publication-load)).
@@ -215,7 +245,7 @@ diff --git a/source/README.md b/example/README.md
  - The interactive controls need JavaScript. The tests check the server-rendered
    HTML without JavaScript, and the app makes no promise to work without it.
  
-@@ -247,7 +247,7 @@ the app, a package, a fixture or the root configuration
+@@ -247,7 +253,7 @@ the app, a package, a fixture or the root configuration
  It takes its lint preset, lint rules, formatter settings, TypeScript configs,
  Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
  Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`. See the
@@ -295,7 +325,34 @@ diff --git a/source/docs/development.md b/example/docs/development.md
  
  To install and start the project, follow [running it](../README.md#running-it).
  
-@@ -253,18 +253,18 @@ record the whole environment.
+@@ -124,25 +124,7 @@ runtime, plus the complete E2E tests.
+ 
+ ### Publication
+ 
+-> The following workflow is an example from the upstream application.
+-
+-The production deploy comes from the `deploy` job of the
+-[CI workflow](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/.github/workflows/ci.yml),
+-only on a push to `main`, and publishes with `vercel deploy --prebuilt --prod`
+-the same build the production E2E tested, without recompiling. The complete
+-flow, the credentials registered on GitHub and the configuration of the remote
+-project are in the
+-[Vercel integration](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md#integração-com-a-vercel).
+-`vercel.json` turns off the deploys through the Git integration
+-(`git.deploymentEnabled: false`) and keeps only the `Content-Type` of the `.md`
+-files generated in the build. The immutable cache of `/images/` (a replaced
+-image needs a new name, as the [SEO guide](seo.md) explains) and the `nosniff`
+-and `Cross-Origin-Resource-Policy` headers of the static files come from the
+-`publicAssets` and the Nitro `routeRules` that `defineSolidApp` builds from
+-`vite.config.ts`, as the [security](security.md) guide describes; the other
+-security headers come from the middleware. The Vercel configuration and the
+-automatic release flow are in the
+-[release guide](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md).
++Configure the deployment for your own hosting account and domain.
+ 
+ Nitro is defined in [package.json](../package.json). When updating it, check the
+ Vercel build, the local preview and the E2E tests. The generated `.output/`,
+@@ -253,18 +235,18 @@ record the whole environment.
  
  The automatic tracking records the files the type-aware lint reads, the types in
  `node_modules` included. `typecheck-node` declares its inputs explicitly,
@@ -326,13 +383,12 @@ diff --git a/source/docs/development.md b/example/docs/development.md
  
  The cache keeps `typeAware` and `typeCheck` on and tells in the output when it
  replays an earlier result. To run everything again, use `vp run --no-cache lint`
-@@ -281,194 +281,15 @@ as a document for scripts. To find out why a task missed the cache, run it with
+@@ -281,194 +263,15 @@ as a document for scripts. To find out why a task missed the cache, run it with
  included; `-vv` adds the unchanged inputs and the outputs a hit restores. The
  plan does not replace the invalidation check described above.
  
 -## Runtimes and CI
-+## Task runtimes
- 
+-
 -> The following workflow is an example from the upstream application.
 -
 -In the CI and in the release automation, `setup-vp` provides the Node and the
@@ -514,6 +570,8 @@ diff --git a/source/docs/development.md b/example/docs/development.md
 -projecting minutes per day, report the observed window and frequency; do not add
 -the savings of a faster job to the savings of waiving that same job in the same
 -run.
++## Task runtimes
++
 +Bun runs the application tasks with any supported installer. Node runs the
 +tooling tests.
  
@@ -525,7 +583,7 @@ diff --git a/source/docs/development.md b/example/docs/development.md
  
  ## Maintenance conventions
  
-@@ -496,8 +317,8 @@ The generated application installs Lefthook through its prepare script. See the
+@@ -496,8 +299,8 @@ The generated application installs Lefthook through its prepare script. See the
  - The CI, the pre-push and `vp run validate` combine `check:ci` with
    `typecheck:node`, which runs `tsrs` with `tsconfig.node.json` and checks the
    tooling without the DOM types.
@@ -903,6 +961,143 @@ diff --git a/source/package.json b/example/package.json
 +    "@mdream/js@2.1.0": "patches/@mdream%2Fjs@2.1.0.patch"
 +  }
  }
+diff --git a/source/src/Document.tsx b/example/src/Document.tsx
+--- a/source/src/Document.tsx
++++ b/example/src/Document.tsx
+@@ -27,7 +27,7 @@ export default function Document(props: ParentProps) {
+       <head>
+         <meta charset="utf-8" />
+         <title>{SITE.title}</title>
+-        <meta name="author" content={SITE.author.name} />
++        {SITE.author.name && <meta name="author" content={SITE.author.name} />}
+         <meta
+           name="viewport"
+           content="minimum-scale=1, initial-scale=1, width=device-width"
+diff --git a/source/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx b/example/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx
+--- a/source/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx
++++ b/example/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx
+@@ -1,5 +1,4 @@
+ import type { SitePage } from '@/@types/site-page.ts'
+-import { SITE } from '@/constants/site/index.ts'
+ import { SITE_LINKS } from '@/constants/siteLinks/index.ts'
+ import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
+ 
+@@ -13,8 +12,8 @@ describe('content of the institutional pages', () => {
+       sections: [],
+       links: [
+         ...SITE_LINKS.pages,
+-        { label: 'Repository', href: SITE.repositoryUrl },
+-        { label: 'Documentation', href: `${SITE.repositoryUrl}#readme` }
++        { label: 'Repository', href: 'https://example.com' },
++        { label: 'Documentation', href: 'https://example.com#readme' }
+       ]
+     }
+     const host = renderComponent(() => <SiteContent page={page} />, {
+@@ -29,8 +28,8 @@ describe('content of the institutional pages', () => {
+       '/en/about',
+       '/en/contact',
+       '/en/privacy',
+-      SITE.repositoryUrl,
+-      `${SITE.repositoryUrl}#readme`
++      'https://example.com',
++      'https://example.com#readme'
+     ])
+   })
+ })
+diff --git a/source/src/components/organisms/Topbar/index.tsx b/example/src/components/organisms/Topbar/index.tsx
+--- a/source/src/components/organisms/Topbar/index.tsx
++++ b/example/src/components/organisms/Topbar/index.tsx
+@@ -34,14 +34,16 @@ export function Topbar(props: TopbarProps) {
+ 
+       <div class={S.actions}>
+         {props.children}
+-        <a
+-          class={S.github_link}
+-          href={SITE_LINKS.repository.href}
+-          aria-label={SITE_LINKS.repository.label}
+-          title={SITE_LINKS.repository.label}
+-        >
+-          <IconGithub />
+-        </a>
++        {SITE.repositoryUrl && (
++          <a
++            class={S.github_link}
++            href={SITE_LINKS.repository.href}
++            aria-label={SITE_LINKS.repository.label}
++            title={SITE_LINKS.repository.label}
++          >
++            <IconGithub />
++          </a>
++        )}
+         <LocaleSwitcher />
+         <ThemeToggle />
+       </div>
+diff --git a/source/src/constants/site/index.ts b/example/src/constants/site/index.ts
+--- a/source/src/constants/site/index.ts
++++ b/example/src/constants/site/index.ts
+@@ -15,56 +15,24 @@ type SiteOrganization = {
+   address?: PostalAddressNode
+ }
+ 
+-const REPOSITORY_URL = 'https://github.com/everton-dgn/boilerplate_solidjs'
+-
+-const AUTHOR_PROFILES = [
+-  'https://x.com/toffanettodev',
+-  'https://www.linkedin.com/in/everton-toffanetto/',
+-  'https://www.youtube.com/@toffanettodev'
+-]
+-
+-// Fictional demo values, published in the JSON-LD of the Organization. A missing
+-// field leaves the JSON-LD.
+-const ORGANIZATION: SiteOrganization = {
+-  contactPoint: {
+-    '@type': 'ContactPoint',
+-    contactType: 'demo',
+-    email: 'contato@example.com',
+-    telephone: '0000000000',
+-    description:
+-      'Placeholder values for this boilerplate demonstration. Do not use them to contact the maintainer.'
+-  },
+-  address: {
+-    '@type': 'PostalAddress',
+-    streetAddress: 'Rua de exemplo, 123',
+-    addressLocality: 'Cidade de exemplo',
+-    addressRegion: 'Estado de exemplo',
+-    postalCode: '00000-000',
+-    addressCountry: 'BR',
+-    description: 'Placeholder address for this boilerplate demonstration.'
+-  }
+-}
++const ORGANIZATION: SiteOrganization = {}
++const AUTHOR = { name: '', url: '', twitter: '', sameAs: [] as string[] }
+ 
+ export const SITE = {
+   title: identity.title,
+   get description(): string {
+     return m.site_description()
+   },
+-  author: {
+-    name: 'Éverton Toffanetto',
+-    url: 'https://github.com/everton-dgn',
+-    twitter: '@toffanettodev',
+-    sameAs: AUTHOR_PROFILES
+-  },
+-  twitter: '@toffanettodev',
++  author: AUTHOR,
++  twitter: '',
+   // BCP 47: the `lang` of the document and the `inLanguage` of the JSON-LD;
+   // `og:locale` derives from it by replacing the hyphen with an underscore.
+   get locale(): string {
+     return localeTag(getLocale(), LOCALE_TAG_OVERRIDES)
+   },
+   url: origin,
+-  repositoryUrl: REPOSITORY_URL,
+-  socialLinks: [REPOSITORY_URL, ...AUTHOR_PROFILES],
++  repositoryUrl: '',
++  socialLinks: [] as string[],
+   organization: ORGANIZATION,
+   // Path of the publisher logo in the JSON-LD; Google asks for at least 112x112.
+   logo: '/favicon/apple-touch-icon.png',
 diff --git a/source/src/constants/site/title.ts b/example/src/constants/site/title.ts
 --- a/source/src/constants/site/title.ts
 +++ b/example/src/constants/site/title.ts
@@ -913,6 +1108,249 @@ diff --git a/source/src/constants/site/title.ts b/example/src/constants/site/tit
 +    return 'SolidJS Boilerplate'
 +  }
  }
+diff --git a/source/src/primitives/createSeo/index.ts b/example/src/primitives/createSeo/index.ts
+--- a/source/src/primitives/createSeo/index.ts
++++ b/example/src/primitives/createSeo/index.ts
+@@ -20,9 +20,15 @@ type Options =
+ 
+ export function createSeo(options: Options): void {
+   if (options.route) {
++    const { author, organization, socialLinks, ...site } = SITE
+     createRuntimeSeo({
+       ...options,
+-      site: SITE,
++      site: {
++        ...site,
++        ...(author.name && { author }),
++        ...(Object.keys(organization).length > 0 && { organization }),
++        ...(socialLinks.length > 0 && { socialLinks })
++      },
+       localeTagOverrides: LOCALE_TAG_OVERRIDES,
+       markdownHref: (
+         pathname: string,
+diff --git a/source/src/routes/(base)/about/i18n/en.json b/example/src/routes/(base)/about/i18n/en.json
+--- a/source/src/routes/(base)/about/i18n/en.json
++++ b/example/src/routes/(base)/about/i18n/en.json
+@@ -1,10 +1,10 @@
+ {
+   "about_title": "About SolidJS Boilerplate",
+-  "about_description": "Learn about the open source project maintained by Éverton Toffanetto and its web application features.",
+-  "about_intro": "SolidJS Boilerplate is an open source project maintained by Éverton Toffanetto. It provides a foundation for building web applications with SolidJS, TypeScript and Vite+, with source code available on GitHub under the MIT license.",
++  "about_description": "Learn about the application and its features.",
++  "about_intro": "SolidJS Boilerplate provides localized pages and navigation.",
+   "about_purposeTitle": "Purpose and features",
+   "about_purpose": "The project brings together the initial integrations for an application: server-side rendering, route organization, translated content, themes and automated tests. This website demonstrates the foundation in use. Its examples and documentation help explain the project choices before you adapt it for another product.",
+   "about_sourceTitle": "Source code and documentation",
+-  "about_source": "The repository is the reference for installation, development commands and implementation details. Its guides cover architecture, testing, SEO and server error handling. You can freely use, modify, distribute and sell the code, including in commercial and closed-source projects.",
++  "about_source": "The application includes guides to its architecture and development tasks.",
+   "about_documentationLabel": "Documentation"
+ }
+diff --git a/source/src/routes/(base)/about/i18n/es.json b/example/src/routes/(base)/about/i18n/es.json
+--- a/source/src/routes/(base)/about/i18n/es.json
++++ b/example/src/routes/(base)/about/i18n/es.json
+@@ -1,10 +1,10 @@
+ {
+   "about_title": "Acerca de SolidJS Boilerplate",
+-  "about_description": "Conoce el proyecto de código abierto mantenido por Éverton Toffanetto y sus recursos para aplicaciones web.",
+-  "about_intro": "SolidJS Boilerplate es un proyecto de código abierto mantenido por Éverton Toffanetto. Ofrece una base para desarrollar aplicaciones web con SolidJS, TypeScript y Vite+, con el código disponible en GitHub bajo la licencia MIT.",
++  "about_description": "Conoce la aplicación y sus funciones.",
++  "about_intro": "SolidJS Boilerplate ofrece páginas y navegación en varios idiomas.",
+   "about_purposeTitle": "Propósito y recursos",
+   "about_purpose": "El proyecto reúne las integraciones iniciales de una aplicación: renderizado en el servidor, organización de rutas, traducción del contenido, temas y pruebas automatizadas. Este sitio demuestra la base en funcionamiento. Los ejemplos y la documentación ayudan a entender las decisiones del proyecto antes de adaptarlo a otro producto.",
+   "about_sourceTitle": "Código y documentación",
+-  "about_source": "El repositorio es la referencia para la instalación, los comandos de desarrollo y los detalles de implementación. Sus guías explican la arquitectura, las pruebas, el SEO y el tratamiento de errores en el servidor. Puedes usar, modificar, distribuir y vender el código libremente, incluso en proyectos comerciales y de código cerrado.",
++  "about_source": "La aplicación incluye guías sobre su arquitectura y las tareas de desarrollo.",
+   "about_documentationLabel": "Documentación"
+ }
+diff --git a/source/src/routes/(base)/about/i18n/pt.json b/example/src/routes/(base)/about/i18n/pt.json
+--- a/source/src/routes/(base)/about/i18n/pt.json
++++ b/example/src/routes/(base)/about/i18n/pt.json
+@@ -1,10 +1,10 @@
+ {
+   "about_title": "Sobre o SolidJS Boilerplate",
+-  "about_description": "Conheça o projeto aberto mantido por Éverton Toffanetto e os recursos desta base para aplicações web.",
+-  "about_intro": "O SolidJS Boilerplate é um projeto de código aberto mantido por Éverton Toffanetto. Ele oferece uma base para desenvolver aplicações web com SolidJS, TypeScript e Vite+, com o código disponível no GitHub sob a licença MIT.",
++  "about_description": "Conheça a aplicação e seus recursos.",
++  "about_intro": "SolidJS Boilerplate oferece páginas e navegação em vários idiomas.",
+   "about_purposeTitle": "Propósito e recursos",
+   "about_purpose": "A proposta é reunir as integrações iniciais de um projeto: renderização no servidor, organização de rotas, tradução de conteúdo, temas e testes automatizados. Este site demonstra a base em funcionamento. Os exemplos e a documentação ajudam a entender as escolhas do projeto antes de adaptá-lo para outro produto.",
+   "about_sourceTitle": "Código e documentação",
+-  "about_source": "O repositório é a referência para instalação, comandos de desenvolvimento e detalhes da implementação. Os guias descrevem arquitetura, testes, SEO e tratamento de erros no servidor. Você pode usar, modificar, distribuir e vender o código livremente, inclusive em projetos comerciais e de código fechado.",
++  "about_source": "A aplicação inclui guias sobre sua arquitetura e as tarefas de desenvolvimento.",
+   "about_documentationLabel": "Documentação"
+ }
+diff --git a/source/src/routes/(base)/about/index.tsx b/example/src/routes/(base)/about/index.tsx
+--- a/source/src/routes/(base)/about/index.tsx
++++ b/example/src/routes/(base)/about/index.tsx
+@@ -30,11 +30,15 @@ const content = {
+   get links() {
+     return [
+       ...SITE_LINKS.pages,
+-      SITE_LINKS.repository,
+-      {
+-        label: m.about_documentationLabel(),
+-        href: `${SITE.repositoryUrl}#readme`
+-      }
++      ...(SITE.repositoryUrl
++        ? [
++            SITE_LINKS.repository,
++            {
++              label: m.about_documentationLabel(),
++              href: `${SITE.repositoryUrl}#readme`
++            }
++          ]
++        : [])
+     ]
+   }
+ } satisfies SitePage
+diff --git a/source/src/routes/(base)/contact/i18n/en.json b/example/src/routes/(base)/contact/i18n/en.json
+--- a/source/src/routes/(base)/contact/i18n/en.json
++++ b/example/src/routes/(base)/contact/i18n/en.json
+@@ -1,11 +1,11 @@
+ {
+   "contact_title": "Contact",
+-  "contact_description": "Find the repository and public maintainer channels for SolidJS Boilerplate.",
+-  "contact_intro": "For questions about SolidJS Boilerplate, start with its public GitHub repository. It contains the source code, documentation and issue tracker for reporting problems and suggesting changes related to the project.",
++  "contact_description": "Contact information for SolidJS Boilerplate.",
++  "contact_intro": "This page lists the contact options available for SolidJS Boilerplate.",
+   "contact_issuesTitle": "Problems and suggestions",
+-  "contact_issues": "Before opening an issue, check the README and existing discussions. To report a problem, describe the observed behavior, the expected result and the steps needed to reproduce it. Include the relevant environment and dependencies so others can investigate. Do not publish passwords, tokens, personal data or configuration files containing secrets.",
++  "contact_issues": "When reporting a problem, describe what happened and the steps needed to reproduce it. Leave out private information.",
+   "contact_maintainerTitle": "Maintainer",
+-  "contact_maintainer": "Éverton Toffanetto maintains this project. His public GitHub profile is linked on this page. Issues are public and can be read by anyone, so choose what to include with that visibility in mind. The project does not publish a response deadline or offer a contracted support channel through this demonstration.",
++  "contact_maintainer": "Public contact details can be added here.",
+   "contact_issuesLabel": "Project issues",
+   "contact_maintainerLabel": "Maintainer profile"
+ }
+diff --git a/source/src/routes/(base)/contact/i18n/es.json b/example/src/routes/(base)/contact/i18n/es.json
+--- a/source/src/routes/(base)/contact/i18n/es.json
++++ b/example/src/routes/(base)/contact/i18n/es.json
+@@ -1,11 +1,11 @@
+ {
+   "contact_title": "Contacto",
+-  "contact_description": "Encuentra el repositorio y los canales públicos del responsable de SolidJS Boilerplate.",
+-  "contact_intro": "Para consultas sobre SolidJS Boilerplate, empieza por el repositorio público en GitHub. Allí se encuentran el código, la documentación y el espacio de issues para informar de problemas y proponer cambios relacionados con el proyecto.",
++  "contact_description": "Información de contacto de SolidJS Boilerplate.",
++  "contact_intro": "Esta página reúne las opciones de contacto disponibles para SolidJS Boilerplate.",
+   "contact_issuesTitle": "Problemas y sugerencias",
+-  "contact_issues": "Antes de abrir una issue, consulta el README y las conversaciones existentes. Para informar de un problema, describe el comportamiento observado, el resultado esperado y los pasos para reproducirlo. Incluye el entorno y las dependencias relevantes para que otras personas puedan investigarlo. No publiques contraseñas, tokens, datos personales ni archivos de configuración con secretos.",
++  "contact_issues": "Al informar de un problema, describe qué pasó y cómo reproducirlo. Omite los datos privados.",
+   "contact_maintainerTitle": "Responsable del proyecto",
+-  "contact_maintainer": "Éverton Toffanetto mantiene este proyecto. Su perfil público en GitHub aparece en los enlaces de esta página. Las issues son públicas y cualquier persona puede leerlas; elige el contenido del mensaje teniendo en cuenta esa visibilidad. El proyecto no publica un plazo de respuesta ni ofrece un canal de soporte contratado en esta demostración.",
++  "contact_maintainer": "Aquí se pueden añadir los datos públicos de contacto.",
+   "contact_issuesLabel": "Issues del proyecto",
+   "contact_maintainerLabel": "Perfil del responsable"
+ }
+diff --git a/source/src/routes/(base)/contact/i18n/pt.json b/example/src/routes/(base)/contact/i18n/pt.json
+--- a/source/src/routes/(base)/contact/i18n/pt.json
++++ b/example/src/routes/(base)/contact/i18n/pt.json
+@@ -1,11 +1,11 @@
+ {
+   "contact_title": "Contato",
+-  "contact_description": "Encontre o repositório e os canais públicos do mantenedor do SolidJS Boilerplate.",
+-  "contact_intro": "O contato sobre o SolidJS Boilerplate começa pelo repositório público no GitHub. Ele reúne o código, a documentação e o espaço de issues para relatos de problemas e sugestões relacionadas ao projeto.",
++  "contact_description": "Informações de contato de SolidJS Boilerplate.",
++  "contact_intro": "Esta página reúne as opções de contato disponíveis para SolidJS Boilerplate.",
+   "contact_issuesTitle": "Problemas e sugestões",
+-  "contact_issues": "Antes de abrir uma issue, consulte o README e as discussões já registradas. Para relatar um problema, descreva o comportamento observado, o resultado esperado e os passos necessários para reproduzi-lo. Informe o ambiente e as dependências relevantes para que outras pessoas consigam investigar o caso. Não publique senhas, tokens, dados pessoais ou arquivos de configuração com segredos.",
++  "contact_issues": "Ao relatar um problema, descreva o que aconteceu e os passos para reproduzi-lo. Omita os dados privados.",
+   "contact_maintainerTitle": "Mantenedor",
+-  "contact_maintainer": "Éverton Toffanetto mantém este projeto. Seu perfil público no GitHub está disponível nos links desta página. As issues são públicas e podem ser lidas por qualquer pessoa; escolha o conteúdo da mensagem considerando essa visibilidade. O projeto não publica um prazo de resposta nem oferece um canal de suporte contratado nesta demonstração.",
++  "contact_maintainer": "Os dados públicos de contato podem ser incluídos aqui.",
+   "contact_issuesLabel": "Issues do projeto",
+   "contact_maintainerLabel": "Perfil do mantenedor"
+ }
+diff --git a/source/src/routes/(base)/contact/index.tsx b/example/src/routes/(base)/contact/index.tsx
+--- a/source/src/routes/(base)/contact/index.tsx
++++ b/example/src/routes/(base)/contact/index.tsx
+@@ -30,8 +30,17 @@ const content = {
+   get links() {
+     return [
+       ...SITE_LINKS.pages,
+-      { label: m.contact_issuesLabel(), href: `${SITE.repositoryUrl}/issues` },
+-      { label: m.contact_maintainerLabel(), href: SITE.author.url }
++      ...(SITE.repositoryUrl
++        ? [
++            {
++              label: m.contact_issuesLabel(),
++              href: `${SITE.repositoryUrl}/issues`
++            }
++          ]
++        : []),
++      ...(SITE.author.url
++        ? [{ label: m.contact_maintainerLabel(), href: SITE.author.url }]
++        : [])
+     ]
+   }
+ } satisfies SitePage
+diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/tests/pages/Home/Home.seo.e2e.test.ts
+--- a/source/src/tests/pages/Home/Home.seo.e2e.test.ts
++++ b/example/src/tests/pages/Home/Home.seo.e2e.test.ts
+@@ -19,8 +19,8 @@ const ROBOTS_INDEX = 'index, follow, max-image-preview:large'
+ const SOCIAL_TAGS = 'head meta[property^="og:"], head meta[name^="twitter:"]'
+ // Base graph of createSeo plus the own script of the page.
+ const SCRIPTS_WITH_PAGE_DATA = 2
+-// WebSite, page and Organization; the order does not matter in JSON-LD.
+-const BASE_GRAPH_NODES = 3
++// The application publishes its site and page before an organization is configured.
++const BASE_GRAPH_NODES = 2
+ 
+ // Only the fields that identify each node; the full format is covered by the
+ // unit tests of `buildStructuredData`.
+@@ -83,19 +83,9 @@ test.describe('SEO metadata', () => {
+       page.locator('head script[type="application/ld+json"]')
+     ).toHaveCount(1)
+     const graph = await readStructuredData(page)
+-    const logoNode = expect.objectContaining({
+-      url: `${siteUrl}/favicon/apple-touch-icon.png`
+-    })
+     const baseNodes = [
+       { '@type': 'WebSite', url: `${siteUrl}/`, name: SITE_TITLE },
+-      { '@type': 'WebPage', url: `${siteUrl}/pt`, name: HOME_TITLE },
+-      {
+-        '@type': 'Organization',
+-        url: `${siteUrl}/`,
+-        name: SITE_TITLE,
+-        description: SITE_DESCRIPTION,
+-        logo: logoNode
+-      }
++      { '@type': 'WebPage', url: `${siteUrl}/pt`, name: HOME_TITLE }
+     ].map(node => expect.objectContaining(node))
+     expect(graph).toHaveLength(BASE_GRAPH_NODES)
+     expect(graph).toEqual(expect.arrayContaining(baseNodes))
+diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
+--- a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
++++ b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
+@@ -120,27 +120,8 @@ for (const { locale, tag, messages } of LANGUAGES) {
+         inLanguage: LANGUAGES.map(language => language.tag)
+       })
+     )
+-    expect(graph).toContainEqual(
+-      expect.objectContaining({
+-        '@type': 'Organization',
+-        contactPoint: {
+-          '@type': 'ContactPoint',
+-          contactType: 'demo',
+-          email: 'contato@example.com',
+-          telephone: '0000000000',
+-          description:
+-            'Placeholder values for this boilerplate demonstration. Do not use them to contact the maintainer.'
+-        },
+-        address: {
+-          '@type': 'PostalAddress',
+-          streetAddress: 'Rua de exemplo, 123',
+-          addressLocality: 'Cidade de exemplo',
+-          addressRegion: 'Estado de exemplo',
+-          postalCode: '00000-000',
+-          addressCountry: 'BR',
+-          description: 'Placeholder address for this boilerplate demonstration.'
+-        }
+-      })
++    expect(graph).not.toContainEqual(
++      expect.objectContaining({ '@type': 'Organization' })
+     )
+     const missing = await page.goto(`/${locale}/missing`)
+     expect(missing?.status()).toBe(HTTP_NOT_FOUND)
 diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/tooling/__tests__/patched-dependencies.test.ts
 --- a/source/tooling/__tests__/patched-dependencies.test.ts
 +++ b/example/tooling/__tests__/patched-dependencies.test.ts

@@ -24,7 +24,7 @@ configureClient | README.md | ### Guides | ITu5RyIedZAloK1DsTwYfGZ12yCO34_E7AO0V
 configureClient | README.md | ### How it uses the packages | TBenVUx70HL7LzYy96Zn0emkdGimNr8IMucRWDsIT2s
 configureClient | README.md | ### Outdated pages after a deploy | kYGLshYeM72dPVnGJSMmWEl3DGzQBRECgJhk0sB35Dg
 configureClient | README.md | ### Playwright cases by area | ZF4tcyGXQBHLdgZ1Y5NpBFML19USO_-CBAP9UElNZ5M
-configureClient | README.md | (section order) | YM1mdYfmPL1Xck-hpADGZZuZ1s9V1gkAkRpz6X701jY
+configureClient | README.md | (section order) | wCBpCZC_7hynW1mj4QPDJNlIEJGpfTuC1AkVTCJjzeY
 configureClient | docs/architecture.md | ## Data and infrastructure | Jr4sFCJBl-qHT7mt_RzkSb1g422FmhJV7BkltTIQsDA
 configureClient | docs/architecture.md | ## Dependencies between layers | 4f3lksDUSBMaO2JISKCRw9lwO7LQvCrZ9mGfpdHQzis
 configureClient | docs/architecture.md | ## Routes and organization | RG_QULzLR8wSUTTeBApnodiQywBaWCUu5sBwOO0tafM
@@ -37,7 +37,7 @@ configureClient | docs/development.md | ## Scripts | a8WlfX33dehPELVOS1HYKFFQtbU
 configureClient | docs/development.md | ## Styles on the first load in development | lV10P5MSFMphogjsBR9FrD280BtPQrRGp3JIWHuzsxA
 configureClient | docs/development.md | ## Task runtimes | PPUVW_LT36IOE_uaWBBwEuPzB_DU0er_9BTo7MiaNqc
 configureClient | docs/development.md | ## Tool dependencies | o04VEq_jN5xfSC9YlR1Tpt3QJe0dA-NS8xfqfDNkHX4
-configureClient | docs/development.md | ### Publication | 0wfzrObl8ux0LAsZjSG1Tx35yw2pcVjkGXfEdzuI-NU
+configureClient | docs/development.md | ### Publication | DbKU9-1qvFhEeZBwZF23a_LKHAsFqX6TeqWKmO_vX5Y
 configureClient | docs/development.md | ### SSR runtime | VSrW7mabFvmAL5-G92XshqnO7Pfvqnh_CBrhDBKEXt0
 configureClient | docs/development.md | (section order) | ZMAEL1O7xDfQLSTUvfRceBzc-_SczRAKfWdgu0k-y0Y
 configureClient | docs/i18n.md | ## Catalogs and messages | ujWUHCU23Mi3us0O0meYHEpQMnv5hVMDMqZXLpLPla8
@@ -162,13 +162,13 @@ configureSeo | AGENTS.md | ## Server errors and backend calls | XprspJIMzRrynREo
 configureSeo | AGENTS.md | ## Translations | DAj-nzkhaC47tua7bdSBFLhrZHPG05n1x4t7XXXBRFw
 configureSeo | AGENTS.md | ## Translations | Eq018j1SrbsDCbs2QZmSt9auVHak00ZzV_D-93QDQM4
 configureSeo | AGENTS.md | ## TypeScript types | UTeBRGKJFS9R00RQK6EOslWXqh5Spuwg5LDYFmy7MU0
-configureSeo | README.md | # About SolidJS Boilerplate | NFnfKdpgs70v67U0Fo1bEKcCwz1Q3yJHR33v4tLV32M
+configureSeo | README.md | # About SolidJS Boilerplate | sv5JVQyOjdzlGPhO9bDpqlMoSlEIPPTlJ58cUwMdtzA
 configureSeo | README.md | # SolidJS Boilerplate | LISpNastftx9TyLjvuaHhRULVf5vJSr0JTgra526Bnc
 configureSeo | README.md | ## How it is tested | idDO-x3UTEc4XoSa-1M1zd0SOpkuJfnqG4w9VTfiKSI
 configureSeo | README.md | ## Limits | hql4mT1jpu0rux6wfdh1vbzHvgao5-RsqeVX45PpF0A
 configureSeo | README.md | ## Limits | tosMVisCWYiA7kvPPcgEUcjwBOrzJD_FPmgWz6Z2z5M
-configureSeo | README.md | ## Optional | aNicWhZlLGs_-frgapMhX0pEDsXXL_MZK8bc31EYwok
-configureSeo | README.md | ## Pages | kjfOhDBb64nJ8d0cwytdwNTVU3mIx6XSGvNAcLZDKKI
+configureSeo | README.md | ## Optional | bKHCOA9vPeHuzVsyLzrba6ji5Uy3szLWIKFwR4e0Vlg
+configureSeo | README.md | ## Pages | E5qwA1ICrCr0EhnanF4nCRz82hkGQsizy9R_uqrr6Os
 configureSeo | README.md | ## Purpose and features | XHr7_oTX7NE-r69NOkyYRSmAdGjHNvTEPj1YtOJcNFU
 configureSeo | README.md | ## Running it | Ec2ZoKU6GTI9vorXwZBUAN3rDF6Wss-HP0W_vL6EWKE
 configureSeo | README.md | ## Running it | W8-ucMlXMXwSoMnJf9fsqyHKxi8o0MGk91oz2RIuJUE
@@ -183,11 +183,10 @@ configureSeo | README.md | ### How it uses the packages | xcsDunOIJOTcLM_IKEG1Po
 configureSeo | README.md | ### Playwright cases by area | Q9Fr7_FpWKHZ7vyXgcMB8iNZhevJxbMniC2VuWJ5y3s
 configureSeo | README.md | ### The same page as Markdown and llms.txt | BnCn02_V_-c2rz5TP7aX90QxBVqXYK9OJyifUtlG7KQ
 configureSeo | README.md | ### The same page in three languages | xLGM2DAu8CoEpuxAOt74xX-qjCrWAfd29sgsyYqU5qk
-configureSeo | README.md | (section order) | rtRxI3hA_-sCV-m5H3Yw4WTiTJ6gxCArcMmxWq-Br1c
+configureSeo | README.md | (section order) | xskX1WbrdaP02spQX-dMKfB9inXeo0Ea74OAyU7SVoA
 configureSeo | docs/architecture.md | ## Data and infrastructure | azO7Y0XAV9HAE2BdUh3xCwR7mXyX1oeKeUZwAGKbwOM
 configureSeo | docs/architecture.md | ## Routes and organization | xqNDXdzTVBytrGSd-pg7YwW1-zZX-XMGOlZFCoqWG6M
 configureSeo | docs/development.md | ## Environment and preview | Eyio5PCH0kagwGyDTC9NwuA55E6fze_t9TUdtUz6-xw
-configureSeo | docs/development.md | ### Publication | A2v8teAqxTHJQxNzO6JiefO_x-o4rS_UEvXjPVPGw4s
 configureSeo | docs/i18n.md | ## Catalogs and messages | VIxtKx7N_Nkij-SPxrYootdF3nConkkM5EGVKCD8GZM
 configureSeo | docs/i18n.md | ## Catalogs and messages | auPrzRmuY-Dv-vSvGEHkl5ibfKqeHp0O8do-AmexNRI
 configureSeo | docs/i18n.md | ## Generation and validation | Mo3iIkMmqMSqNj9iLJMxOM9KJny8ZdKxT9fvB4lvKno
@@ -261,14 +260,14 @@ configureStatic | AGENTS.md | ## Security headers and CSP | t2IAB0faQIVaP0qE65E-
 configureStatic | AGENTS.md | ## Server errors and backend calls | uQnw6XXYFQY8bk5ZUWTAwoaNfH0OIP0arf63yVezzoo
 configureStatic | AGENTS.md | ## Translations | OUZdCNKd2nYHKDnc33Wmo3YtYbOQetnrRvfNxgzbGOU
 configureStatic | AGENTS.md | (section order) | S05HviPpTryH2jCN2NYcbravn4EdEr3paAhi7E60uWE
-configureStatic | README.md | # About SolidJS Boilerplate | NFnfKdpgs70v67U0Fo1bEKcCwz1Q3yJHR33v4tLV32M
+configureStatic | README.md | # About SolidJS Boilerplate | sv5JVQyOjdzlGPhO9bDpqlMoSlEIPPTlJ58cUwMdtzA
 configureStatic | README.md | # SolidJS Boilerplate | LISpNastftx9TyLjvuaHhRULVf5vJSr0JTgra526Bnc
 configureStatic | README.md | ## Host response headers | IiWL95Vqsfn3lZrAOqwVj-b5PFW_KJeGMHlSGfdeXok
 configureStatic | README.md | ## How it is tested | FBLoXL65cb1TGyanvuuvnMNnmZK_pEyvje7rFIQhjLM
 configureStatic | README.md | ## Limits | eYmw3mzTLPJs1JoG7ea9X6Slblu2pIhS3HD9ai22c4s
 configureStatic | README.md | ## Limits | gC6omwEoK1GZl-kgORmO0_AMlSx8kZuuKGmkTiWA9dI
-configureStatic | README.md | ## Optional | aNicWhZlLGs_-frgapMhX0pEDsXXL_MZK8bc31EYwok
-configureStatic | README.md | ## Pages | kjfOhDBb64nJ8d0cwytdwNTVU3mIx6XSGvNAcLZDKKI
+configureStatic | README.md | ## Optional | bKHCOA9vPeHuzVsyLzrba6ji5Uy3szLWIKFwR4e0Vlg
+configureStatic | README.md | ## Pages | E5qwA1ICrCr0EhnanF4nCRz82hkGQsizy9R_uqrr6Os
 configureStatic | README.md | ## Publishing | sy_YWmfewijO6Sa6NWgA4IE0kt_1EnHxNk0ZgKf8lMY
 configureStatic | README.md | ## Purpose and features | XHr7_oTX7NE-r69NOkyYRSmAdGjHNvTEPj1YtOJcNFU
 configureStatic | README.md | ## Running it | V1yKL0GzhnPw3oAPJiGA_S2KYJxJEztYYbMEm0BprWw
@@ -285,7 +284,7 @@ configureStatic | README.md | ### How it uses the packages | TkjCIYNw8Al3MED0ud1
 configureStatic | README.md | ### Outdated pages after a deploy | kYGLshYeM72dPVnGJSMmWEl3DGzQBRECgJhk0sB35Dg
 configureStatic | README.md | ### Playwright cases by area | ThqsCBFEhfZpzt_pn5fuqSyAcTbKRYycyuZTelFMiDc
 configureStatic | README.md | ### The same page as Markdown and llms.txt | BnCn02_V_-c2rz5TP7aX90QxBVqXYK9OJyifUtlG7KQ
-configureStatic | README.md | (section order) | miA3vdv5D55Ud7uwG2iwrsK_9ZaPggHcyRRQbVPiI-g
+configureStatic | README.md | (section order) | SBKp0Sp_9sTO5F5L6eEnWTxYhl_1oItnJZnegfe288M
 configureStatic | docs/architecture.md | ## Data and infrastructure | hUo_rU-7VgTUf7v6As6R7W8PsOy3LjUxfePsJ4OCfOo
 configureStatic | docs/architecture.md | ## Dependencies between layers | 4f3lksDUSBMaO2JISKCRw9lwO7LQvCrZ9mGfpdHQzis
 configureStatic | docs/architecture.md | ## Routes and organization | yOAqlodUR4TsVwCvJJ9WnI5ZwFSMjjiKFzo4jJ_tkJ0
@@ -298,7 +297,7 @@ configureStatic | docs/development.md | ## Scripts | DyBLoyAJErronZ9y10A1It8sZ38
 configureStatic | docs/development.md | ## Styles on the first load in development | lV10P5MSFMphogjsBR9FrD280BtPQrRGp3JIWHuzsxA
 configureStatic | docs/development.md | ## Task runtimes | PPUVW_LT36IOE_uaWBBwEuPzB_DU0er_9BTo7MiaNqc
 configureStatic | docs/development.md | ## Tool dependencies | o04VEq_jN5xfSC9YlR1Tpt3QJe0dA-NS8xfqfDNkHX4
-configureStatic | docs/development.md | ### Publication | btc2zAYWDH7aV7pcqsysFw-Mt3F482n3ymbVJDz6V14
+configureStatic | docs/development.md | ### Publication | DbKU9-1qvFhEeZBwZF23a_LKHAsFqX6TeqWKmO_vX5Y
 configureStatic | docs/development.md | ### SSR runtime | VSrW7mabFvmAL5-G92XshqnO7Pfvqnh_CBrhDBKEXt0
 configureStatic | docs/development.md | (section order) | ZMAEL1O7xDfQLSTUvfRceBzc-_SczRAKfWdgu0k-y0Y
 configureStatic | docs/i18n.md | ## Catalogs and messages | XKCq3fEsnfj6ewUsstN8Q0IHxtqy1jo6IsrJzYt8smk
@@ -390,8 +389,8 @@ configureTheme | AGENTS.md | ## TypeScript types | rZhPQzODOfP1_mRxXJbwIU_MG4ok5
 configureTheme | AGENTS.md | (section order) | 6vKMU5UgAnmvar-iF4ZITcIMWBj5iSGf6eh_Nr4YJtQ
 configureTheme | AGENTS.md | (section order) | EKzfuiEK5J4BJNe-7GdIGnoJMe2eD5UvxjCMKI_8iaY
 configureTheme | AGENTS.md | (section order) | NhHoME_UI287pdPNpyOmG8OHa9jQ5LE98V1VfEI8rm4
-configureTheme | README.md | # Solid Base application | tkLnc89cSwTuPHiXCBSrsmgxJ0z-ZTUTMpwcqwGr8e4
 configureTheme | README.md | # SolidJS Boilerplate | -2x5iBB6Cy_kSznZxWDIVzhU1D055gma8Zy5xrnJcjM
+configureTheme | README.md | ## Before publishing | D2GDmSzZoVHrC4AykIwn7dIck8ASJVCdMT7hUO2kSyQ
 configureTheme | README.md | ## How it is tested | s82nQdJk0FfjERaxt5gpkfaF4_R4UUZOHicSy0c769U
 configureTheme | README.md | ## Running it | 3U_2YUPvJ79U1wZ5EuPvDg01bFK1L0aXG8Mfc4vDJXM
 configureTheme | README.md | ## Running it | AFcs2CYwhpElq1HfPfb33vgpqz6w0Wi83qIxlmuA5tY

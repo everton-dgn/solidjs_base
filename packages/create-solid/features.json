@@ -99,7 +99,7 @@
     "src/components/molecules/OutdatedPageNotice/styles.module.css": "outdated-page",
     "src/components/molecules/PageHero/index.tsx": "core",
     "src/components/molecules/PageHero/styles.module.css": "core",
-    "src/components/molecules/Provider/context.ts": "core",
+    "src/components/molecules/Provider/context.ts": "theme",
     "src/components/molecules/Provider/index.tsx": "core",
     "src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx": "core",
     "src/components/molecules/SiteContent/i18n/en.json": "i18n",
@@ -382,6 +382,47 @@
       "src/routes/(base)/(home)/index.tsx",
       "src/routes/(base)/(home)/styles.module.css",
       "vite.config.ts"
+    ],
+    "theme": [
+      "AGENTS.md",
+      "README.md",
+      "docs/architecture.md",
+      "docs/i18n.md",
+      "docs/security.md",
+      "docs/testing.md",
+      "docs/ui.md",
+      "src/Document.tsx",
+      "src/components/molecules/Provider/index.tsx",
+      "src/components/organisms/Topbar/index.tsx",
+      "src/constants/site/i18n/en.json",
+      "src/constants/site/i18n/es.json",
+      "src/constants/site/i18n/pt.json",
+      "src/routes/(base)/(home)/i18n/en.json",
+      "src/routes/(base)/(home)/i18n/es.json",
+      "src/routes/(base)/(home)/i18n/pt.json",
+      "src/routes/(base)/about/i18n/en.json",
+      "src/routes/(base)/about/i18n/es.json",
+      "src/routes/(base)/about/i18n/pt.json",
+      "src/routes/(base)/privacy/i18n/en.json",
+      "src/routes/(base)/privacy/i18n/es.json",
+      "src/routes/(base)/privacy/i18n/pt.json",
+      "src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts",
+      "src/tests/pages/Home/Home.csp.production.e2e.test.ts",
+      "src/tests/pages/Home/Home.layout.e2e.test.ts",
+      "src/tests/pages/Home/Home.seo.e2e.test.ts",
+      "src/tests/pages/Hydration/Hydration.e2e.test.ts",
+      "src/tests/pages/Hydration/Hydration.parser.e2e.test.ts",
+      "src/tests/pages/Hydration/Hydration.preload.e2e.test.ts",
+      "src/tests/pages/Hydration/Hydration.streaming.e2e.test.ts",
+      "src/tests/pages/I18n/I18n.e2e.test.ts",
+      "src/tests/pages/I18n/I18n.hydration.e2e.test.ts",
+      "src/tests/pages/I18n/I18n.production.e2e.test.ts",
+      "src/tests/pages/I18n/I18n.redirect.e2e.test.ts",
+      "src/tests/pages/NotFound/NotFound.seo.e2e.test.ts",
+      "src/tests/pages/SeoIndexes/SeoIndexes.e2e.test.ts",
+      "src/tests/pages/StructuredData/StructuredData.security.e2e.test.ts",
+      "src/tests/pages/StructuredData/StructuredData.streaming.e2e.test.ts",
+      "src/theme/tokens/colors.css"
     ]
   },
   "forbiddenTerms": {
@@ -404,6 +445,16 @@
       "@iconify-json/hugeicons",
       "icons-generate",
       "src/icon-collections.d.ts"
+    ],
+    "theme": [
+      "ThemeToggle",
+      "themeToggle_",
+      "themeScript",
+      "app-theme",
+      "@evertondgn/solid-runtime/theme/",
+      "light and dark themes",
+      "temas claro e escuro",
+      "temas claro y oscuro"
     ]
   }
 }

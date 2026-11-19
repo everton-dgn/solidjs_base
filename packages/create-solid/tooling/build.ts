@@ -18,7 +18,7 @@ import { literal, object, parse, picklist, record, string } from 'valibot'
 
 import { rewriteDocuments, rewritePatchTest } from '../src/rewrite.ts'
 import { manifestSchema } from '../src/schema.ts'
-import { buildIconProfile } from './build-icon-profile.ts'
+import { buildProfiles } from './build-profiles.ts'
 import { checkImports } from './check-imports.ts'
 
 const root = path.resolve(import.meta.dirname, '../../..')
@@ -162,7 +162,7 @@ rewriteDocuments({
   pm: 'bun',
   version: settings.version
 })
-buildIconProfile()
+buildProfiles()
 const executableMode = 0o755
 chmodSync('dist/create-solid.mjs', executableMode)
 

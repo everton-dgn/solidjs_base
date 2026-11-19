@@ -12,14 +12,18 @@ function edit(target: string, edits: readonly (readonly [RegExp, string])[]) {
   writeFileSync(target, text)
 }
 
-export function configureFonts(stage: string, fonts?: boolean): void {
-  if (fonts !== false) return
+export function removeFeatureFiles(stage: string, name: string): void {
   const schema = object({ files: record(string(), string()) })
   const manifest = new URL('../dist/features.json', import.meta.url)
   const { files } = parse(schema, JSON.parse(readFileSync(manifest, 'utf8')))
   for (const [file, feature] of Object.entries(files)) {
-    if (feature === 'fonts') unlinkSync(path.join(stage, file))
+    if (feature === name) unlinkSync(path.join(stage, file))
   }
+}
+
+export function configureFonts(stage: string, fonts?: boolean): void {
+  if (fonts !== false) return
+  removeFeatureFiles(stage, 'fonts')
   edit(path.join(stage, 'vite.config.ts'), [
     [/^import \{ FONTS \} from '\.\/fonts\.ts'\n/mu, ''],
     [/^ {2}fonts: FONTS,\n/mu, '']

@@ -42,9 +42,27 @@ try {
   }
   assert.ok(archives['create-solid'])
   execFileSync('tar', ['xf', archives['create-solid']], { cwd: sandbox })
-  for (const pm of ['bun', 'pnpm', 'npm']) {
+  const scenarios = [
+    ...['bun', 'pnpm', 'npm'].map(pm => ({
+      name: pm,
+      pm,
+      flags: [] as string[]
+    })),
+    {
+      name: 'server-without-ui-features',
+      pm: 'npm',
+      flags: ['--no-theme', '--no-fonts', '--no-icons']
+    }
+  ]
+  const [, , selected] = process.argv
+  if (selected && !scenarios.some(item => item.name === selected)) {
+    throw new Error(`Unknown scenario: ${selected}`)
+  }
+  for (const { name, pm, flags } of scenarios.filter(
+    item => !selected || item.name === selected
+  )) {
     const start = performance.now()
-    const cwd = path.join(sandbox, pm)
+    const cwd = path.join(sandbox, name)
     execFileSync(
       process.execPath,
       [
@@ -52,7 +70,8 @@ try {
         cwd,
         '--pm',
         pm,
-        '--no-install'
+        '--no-install',
+        ...flags
       ],
       { stdio: 'inherit' }
     )
@@ -89,24 +108,34 @@ try {
       ['--test', 'tooling/__tests__/patched-dependencies.test.ts'],
       { cwd, stdio: 'inherit', timeout: 30_000 }
     )
-    for (const task of pm === 'bun'
-      ? [
-          'check:ci',
-          'test',
-          'build',
-          'typecheck:node',
-          'test:tooling',
-          'dead-code'
-        ]
-      : ['check:ci', 'build']) {
+    const tasks = ['check:ci', 'build']
+    if (pm === 'bun' || flags.length > 0) tasks.splice(1, 0, 'test')
+    if (pm === 'bun') tasks.push('typecheck:node', 'test:tooling', 'dead-code')
+    for (const task of tasks) {
       execFileSync('vp', ['run', task], {
         cwd,
         stdio: 'inherit',
         timeout: 180_000
       })
     }
+    if (flags.length > 0) {
+      execFileSync(
+        'vp',
+        ['run', 'playwright', 'test', 'Home.profile.production.e2e.test.ts'],
+        {
+          cwd,
+          stdio: 'inherit',
+          timeout: 120_000,
+          env: {
+            ...process.env,
+            TEST_PREBUILT: 'true',
+            TEST_PRODUCTION_ROUTES: 'true'
+          }
+        }
+      )
+    }
     process.stdout.write(
-      `${pm} installed scenario passed in ${Math.round(
+      `${name} installed scenario passed in ${Math.round(
         (performance.now() - start) / seconds
       )}s\n`
     )

@@ -20,7 +20,8 @@ import { URL } from 'node:url'
 
 import { parse } from 'valibot'
 
-import { configureFonts } from './configure-fonts.ts'
+import { configureFonts, removeFeatureFiles } from './configure-fonts.ts'
+import { addProfileBrowserTest } from './profile-browser-test.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
 import type { Profile } from './types.ts'
@@ -115,8 +116,14 @@ function nextSteps(profile: Profile): string[] {
   return next
 }
 function configureReadme(stage: string, profile: Profile): void {
-  if (profile.icons !== false && profile.fonts !== false) return
-  const variant = `icons-${profile.icons !== false}-fonts-${profile.fonts !== false}`
+  if (
+    profile.icons !== false &&
+    profile.fonts !== false &&
+    profile.theme !== false
+  ) {
+    return
+  }
+  const variant = `icons-${profile.icons !== false}-fonts-${profile.fonts !== false}-theme-${profile.theme !== false}`
   const source = new URL(
     `../dist/readmes/${profile.pm}/${variant}/README.md`,
     import.meta.url
@@ -124,12 +131,27 @@ function configureReadme(stage: string, profile: Profile): void {
   cpSync(source, path.join(stage, 'README.md'))
 }
 
+function configureTheme(stage: string, profile: Profile): void {
+  if (profile.theme !== false) return
+  cpSync(new URL('../dist/without-theme/files/', import.meta.url), stage, {
+    recursive: true
+  })
+  if (profile.icons === false) {
+    cpSync(
+      new URL('../dist/without-theme/without-icons/', import.meta.url),
+      stage,
+      { recursive: true }
+    )
+  }
+  removeFeatureFiles(stage, 'theme')
+}
+
 function configureIcons(stage: string, context: GenerationContext): void {
   if (context.profile.icons !== false) return
   const variants = new URL('../dist/without-icons/files/', import.meta.url)
   cpSync(variants, stage, { recursive: true })
   renameSync(path.join(stage, '_gitignore'), path.join(stage, '.gitignore'))
-  rmSync(path.join(stage, 'src/assets/images/solid.svg'))
+  removeFeatureFiles(stage, 'icons')
   delete context.pkg.devDependencies['@iconify-json/hugeicons']
 }
 
@@ -264,6 +286,7 @@ export function generate(profile: Profile): string[] {
     )
     const context = { profile, settings, pkg, write }
     configureIcons(stage, context)
+    configureTheme(stage, profile)
     rewriteVite(stage)
     configureDiagnostics(stage, context)
     rewriteIdentity(context)
@@ -281,6 +304,7 @@ export function generate(profile: Profile): string[] {
     write('package.json', `${JSON.stringify(pkg, null, jsonIndent)}\n`)
     configureReadme(stage, profile)
     configureFonts(stage, profile.fonts)
+    addProfileBrowserTest(context)
     publishTree(stage, profile.dir)
   } catch (error) {
     rmSync(stage, { recursive: true, force: true })

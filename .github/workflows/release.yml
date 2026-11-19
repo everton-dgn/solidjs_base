@@ -107,8 +107,7 @@ jobs:
     needs: [release-please, verify, scenario]
     if: needs.release-please.outputs.releases-created == 'true'
     runs-on: ubuntu-latest
-    # WHY: a test process that never exits held this job for an hour; the
-    # whole validation takes a few minutes.
+    # Bound the build, pack, registry wait and publication together.
     timeout-minutes: 30
     permissions:
       contents: read
@@ -155,8 +154,7 @@ jobs:
       # this release, and the matrix publishes the packages in no order. A
       # package published before a package it pins installs nothing until that
       # version reaches npm, or never if its job fails. The wait stops within 10
-      # minutes, which fits with the validation in timeout-minutes, so the job
-      # fails with the message of the wait.
+      # minutes and reports the missing package before the job times out.
       - name: Wait for the pinned packages
         run: |
           node tooling/release/wait-for-pinned-packages.ts "$RUNNER_TEMP"/release/*.tgz

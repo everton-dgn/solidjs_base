@@ -11,6 +11,11 @@ class Jobs(unittest.TestCase):
             ('apps/boilerplate/fonts.ts', ['app', 'generator']),
             ('packages/create-solid/docs/install.md', ['docs', 'generator']),
             ('packages/solid-runtime/src/index.ts', ['app', 'docs', 'packages', 'generator']),
+            ('apps/boilerplate/AGENTS.md', ['docs', 'app', 'generator']),
+            ('apps/boilerplate/patches/fix.patch', ['packages', 'app', 'generator']),
+            ('apps/boilerplate/package.json', ['packages', 'app', 'generator']),
+            ('packages/solid-tooling/docs/install.md', ['docs', 'packages', 'generator']),
+            ('packages/solid-tooling/CHANGELOG.md', ['docs']),
             ('bun.lock', ['app', 'docs', 'packages', 'generator']),
             ('packages/create-solid/package.json', ['app', 'docs', 'packages', 'generator']),
         ):
@@ -26,7 +31,7 @@ class Jobs(unittest.TestCase):
 
     def test_full(self):
         for event, args in [('push', dict(forced=True)), ('pull_request', dict(count=3000)),
-                            ('pull_request', dict(release=True)), ('schedule', {})]:
+                            ('pull_request', dict(branch="release-please--branches--main")), ('schedule', {})]:
             result = classify(event, [], **args)
             self.assertTrue(all(result[key] for key in ('docs', 'packages', 'generator', 'app', 'consistency')))
             self.assertEqual(len(result['expected']['scenario']), len(SCENARIOS))

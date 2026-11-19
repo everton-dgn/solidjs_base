@@ -121,7 +121,7 @@ jobs:
       - name: Install dependencies
         run: vp install --frozen-lockfile
 
-      # Same command as the publish job in release.yml.
+      # The release verification job uses the same package checks.
       - name: Validate
         run: vp run validate
 
@@ -348,8 +348,7 @@ jobs:
             exit 1
           fi
 
-  # The only check the main ruleset requires. A job skipped by its `if`
-  # reports success, so this passes when every job passed or was skipped.
+  # The ruleset requires this check. Compare each expected leg with its own result.
   required:
     name: CI required
     needs:

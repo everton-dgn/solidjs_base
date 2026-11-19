@@ -8,9 +8,9 @@ INVENTORY = Path(__file__).resolve().parents[2] / 'packages/create-solid/tooling
 SCENARIOS = [scenario['name'] for scenario in json.loads(INVENTORY.read_text())]
 
 
-def classify(event, files, *, release=False, forced=False, checked=False, count=0):
+def classify(event, files, *, branch="", forced=False, checked=False, count=0):
     push = event == 'push'
-    full = (event not in ('push', 'pull_request') or release or forced or
+    full = (event not in ('push', 'pull_request') or branch.startswith("release-please--") or forced or
             max(len(files), count) >= (300 if push else 3000))
     docs = packages = app = generator = full
     for file in files:
@@ -54,12 +54,14 @@ def main():
     files = []
     checked = False
     pr = payload.get('pull_request', {})
-    release = pr.get('head', {}).get('ref', '').startswith('release-please--')
+    branch = pr.get('head', {}).get('ref', '')
     forced = payload.get('forced', False)
     count = pr.get('changed_files', 0)
-    if pr and not release and count < 3000:
+    if pr and not branch.startswith("release-please--") and count < 3000:
         files = [file for page in api(f"pulls/{pr['number']}/files?per_page=100", True) for file in page]
-        if len(files) != count:
+        current = api(f"pulls/{pr['number']}")
+        if (len(files) != count or any(current[side]['sha'] != pr[side]['sha']
+                                       for side in ('base', 'head'))):
             count = 3000
     elif event == 'push' and not forced:
         commit = api('commits/' + payload['after'])
@@ -73,7 +75,7 @@ def main():
         if not checked:
             files = api(f"compare/{payload['before']}...{payload['after']}")['files']
     with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-        for key, value in classify(event, files, release=release, forced=forced, checked=checked, count=count).items():
+        for key, value in classify(event, files, branch=branch, forced=forced, checked=checked, count=count).items():
             print(f'{key}={json.dumps(value)}', file=output)
 
 

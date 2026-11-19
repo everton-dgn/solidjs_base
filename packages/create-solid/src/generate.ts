@@ -20,6 +20,7 @@ import { URL } from 'node:url'
 
 import { parse } from 'valibot'
 
+import { configureFonts } from './configure-fonts.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
 import type { Profile } from './types.ts'
@@ -126,8 +127,8 @@ function configureDiagnostics(stage: string, context: GenerationContext): void {
         ''
       )
       .replace(
-        '`solid-js`, `@solidjs/web` and `@solidjs/diagnostics`',
-        '`solid-js` and `@solidjs/web`'
+        '`solid-js`, `@solidjs/web` and `@solidjs/diagnostics`, respecting the\n  compatibility of the Vite plugin.',
+        '`solid-js` and `@solidjs/web`, respecting the compatibility of the Vite\n  plugin.'
       )
   )
 }
@@ -258,6 +259,7 @@ export function generate(profile: Profile): string[] {
     )
     cpSync(installerFiles, stage, { recursive: true })
     write('package.json', `${JSON.stringify(pkg, null, jsonIndent)}\n`)
+    configureFonts(stage, profile.fonts)
     publishTree(stage, profile.dir)
   } catch (error) {
     rmSync(stage, { recursive: true, force: true })

@@ -153,3 +153,33 @@ void it('removes reactivity diagnostics from the application and its guide', asy
     )
   }
 })
+
+void it('omits the font assets, head links and build option with fonts off', async context => {
+  const { existsSync, mkdtempSync, readFileSync, rmSync } =
+    await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { default: path } = await import('node:path')
+  const dir = mkdtempSync(path.join(tmpdir(), 'app-fonts-'))
+  context.after(() => rmSync(dir, { recursive: true, force: true }))
+  const { generate } = await import('../src/generate.ts')
+  generate({
+    dir,
+    pm: 'bun',
+    fonts: false,
+    shouldInstall: false,
+    shouldInitGit: false
+  })
+  assert.equal(existsSync(path.join(dir, 'fonts.ts')), false)
+  for (const file of [
+    'src/Document.tsx',
+    'vite.config.ts',
+    'AGENTS.md',
+    'docs/ui.md',
+    'README.md'
+  ]) {
+    assert.doesNotMatch(
+      readFileSync(path.join(dir, file), 'utf8'),
+      /FontLinks|fonts: FONTS|Inter subsets|## Font loading/u
+    )
+  }
+})

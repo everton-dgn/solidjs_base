@@ -6,51 +6,29 @@ import process from 'node:process'
 
 import { generate } from '../src/generate.ts'
 import { guideOwnership } from './guide-ownership.ts'
-import { uiProfiles } from './ui-profiles.ts'
+import { matrixCases } from './matrix-cases.ts'
 
-function* publications() {
-  for (const mode of ['server', 'static', 'client'] as const) {
-    for (const hasSeo of mode === 'client' ? [false] : [true, false]) {
-      yield { mode, hasSeo }
-    }
-  }
-}
-function* translationVariants<
-  T extends {
-    hasDiagnostics: boolean
-    hasFonts: boolean
-    hasTheme: boolean
-    hasIcons: boolean
-    hasSeo: boolean
-    mode: string
-  }
->(profile: T) {
-  yield profile
-  const { hasDiagnostics, hasFonts, hasTheme, hasIcons, hasSeo, mode } = profile
-  if (
-    hasDiagnostics === hasFonts &&
-    hasFonts === hasTheme &&
-    hasTheme === hasIcons &&
-    hasSeo === (mode === 'client' ? false : hasTheme)
-  ) {
-    yield { ...profile, hasI18n: false }
-  }
-}
 function* profiles() {
-  for (const publication of publications()) {
-    for (const pm of ['bun', 'npm', 'pnpm'] as const) {
-      for (const hasDiagnostics of [true, false]) {
-        for (const { hasFonts, hasTheme, hasIcons } of uiProfiles()) {
-          const profile = {
-            ...publication,
-            pm,
-            hasDiagnostics,
-            hasIcons,
-            hasFonts,
-            hasTheme
-          }
-          yield* translationVariants(profile)
-        }
+  for (const pm of ['bun', 'npm', 'pnpm'] as const) {
+    for (const {
+      mode,
+      hasSeo,
+      diagnostics,
+      fonts,
+      icons,
+      theme,
+      selection
+    } of matrixCases()) {
+      if (mode === 'client' && hasSeo) continue
+      yield {
+        pm,
+        mode,
+        hasSeo,
+        hasDiagnostics: diagnostics,
+        hasFonts: fonts,
+        hasIcons: icons,
+        hasTheme: theme,
+        ...selection
       }
     }
   }

@@ -24,7 +24,7 @@ import { guideFiles } from '../src/prepared-guides.ts'
 import { checkImports } from '../tooling/check-imports.ts'
 import { guideOwnership } from '../tooling/guide-ownership.ts'
 import { guideProblems } from '../tooling/guide-problems.ts'
-import { uiProfiles } from '../tooling/ui-profiles.ts'
+import { matrixCases } from '../tooling/matrix-cases.ts'
 
 function checkForbiddenTerms(dir: string, terms: string[]): void {
   if (terms.length === 0) return
@@ -317,49 +317,7 @@ function checkFavicons({
   }
 }
 const guideChanges = guideOwnership()
-const modes = ['server', 'static', 'client'] as const
-const publications = modes.flatMap(mode =>
-  [true, false].map(hasSeo => ({ mode, hasSeo }))
-)
-const profilesPerManager = 122
-function* matrixCases() {
-  for (const { mode, hasSeo } of publications) {
-    for (const diagnostics of [true, false]) {
-      for (const {
-        hasFonts: fonts,
-        hasIcons: icons,
-        hasTheme: theme
-      } of uiProfiles()) {
-        const selections: {
-          locales?: string[]
-          baseLocale?: string
-          hasI18n?: boolean
-        }[] = [{}]
-        if (
-          diagnostics === fonts &&
-          fonts === icons &&
-          icons === theme &&
-          hasSeo === (mode === 'client' ? false : theme)
-        ) {
-          selections.push(
-            { hasI18n: false },
-            { locales: ['es'] },
-            { locales: ['zh-Hant-TW'] },
-            ...(mode === 'client'
-              ? []
-              : [
-                  { locales: ['es', 'pt'], baseLocale: 'pt' },
-                  { locales: ['fr', 'ja'], baseLocale: 'ja' }
-                ])
-          )
-        }
-        for (const selection of selections) {
-          yield { mode, hasSeo, diagnostics, fonts, icons, theme, selection }
-        }
-      }
-    }
-  }
-}
+const profilesPerManager = 126
 export function testProfiles(
   pm: 'bun' | 'npm' | 'pnpm',
   it: typeof registerTest

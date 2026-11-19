@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { it } from 'node:test'
 
-import { array, object, parse, string } from 'valibot'
+import { array, object, parse, record, string } from 'valibot'
 
 import { generate } from '../src/generate.ts'
 import { checkImports } from '../tooling/check-imports.ts'
@@ -28,6 +28,39 @@ function checkForbiddenTerms(dir: string, terms: string[]): void {
     const content = readFileSync(target, 'utf8')
     for (const term of terms) {
       assert.ok(!content.includes(term), `${target} mentions ${term}`)
+    }
+  }
+}
+
+function checkCatalogs(dir: string, tree: readonly string[]): void {
+  const settingsFile = path.join(dir, 'project.inlang/settings.json')
+  const localeSchema = object({ locales: array(string()) })
+  const settings = parse(
+    localeSchema,
+    JSON.parse(readFileSync(settingsFile, 'utf8'))
+  )
+  const folders = new Set(
+    tree
+      .filter(file => /\/i18n\/[^/]+\.json$/u.test(file))
+      .map(file => path.dirname(file))
+  )
+  assert.ok(folders.size > 0)
+  for (const folder of folders) {
+    const jsonFiles = readdirSync(path.join(dir, folder)).filter(file =>
+      file.endsWith('.json')
+    )
+    assert.deepEqual(
+      jsonFiles.toSorted(),
+      settings.locales.map(locale => `${locale}.json`).toSorted(),
+      folder
+    )
+    let expected: string[] | undefined
+    for (const file of jsonFiles) {
+      const contents = readFileSync(path.join(dir, folder, file), 'utf8')
+      const catalog = parse(record(string(), string()), JSON.parse(contents))
+      const keys = Object.keys(catalog).toSorted()
+      expected ??= keys
+      assert.deepEqual(keys, expected, path.join(folder, file))
     }
   }
 }
@@ -79,6 +112,7 @@ for (const pm of ['bun', 'npm', 'pnpm'] as const) {
             path.relative(dir, path.join(file.parentPath, file.name))
           )
         checkImports(dir, tree)
+        checkCatalogs(dir, tree)
         const files = readdirSync(dir)
         copyFileSync(
           'dist/formatter/vite.config.mjs',

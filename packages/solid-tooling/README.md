@@ -339,7 +339,7 @@ before you update.
 
 The counts below come from the CI run of the 0.10.0 release pull request
 ([run 44206537981](https://github.com/everton-dgn/solidjs_base/actions/runs/44206537981)).
-Its Packages job ran `vp run validate`, as the publish job does
+Its Packages job ran `vp run validate`, as release verification does
 ([job 134474054049](https://github.com/everton-dgn/solidjs_base/actions/runs/44206537981/job/134474054049)).
 
 - Package tests: 368 `node --test` tests ran and passed in CI. They come from

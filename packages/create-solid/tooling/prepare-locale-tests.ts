@@ -99,7 +99,7 @@ function prepareBrowserCatalogs(): string[] {
       text,
       pattern:
         /import english[^\n]+\nimport spanish[^\n]+\nimport portuguese[^\n]+\n/u,
-      replacement: `import { readFileSync } from 'node:fs'
+      replacement: `import { readFile } from 'node:fs/promises'
 import { array, object, parse, string } from 'valibot'
 ${seo ? "import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.ts'" : ''}
 `
@@ -109,13 +109,13 @@ ${seo ? "import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.t
       text,
       pattern: /const LANGUAGES = \[[\s\S]*?\n\]/u,
       replacement: `const settingsSchema = object({baseLocale: string(), locales: array(string())})
-const settings = parse(settingsSchema, JSON.parse(readFileSync('project.inlang/settings.json', 'utf8')))
+const settings = parse(settingsSchema, JSON.parse(await readFile('project.inlang/settings.json', 'utf8')))
 const schema = object({${keys.map(key => `${key}: string()`).join(', ')}})
 ${seo ? 'const tags: Readonly<Record<string,string>> = LOCALE_TAG_OVERRIDES' : ''}
-const LANGUAGES = settings.locales.map(locale => {
-  const source = readFileSync(\`src/${folder}/i18n/\${locale}.json\`, 'utf8')
+const LANGUAGES = await Promise.all(settings.locales.map(async locale => {
+  const source = await readFile(\`src/${folder}/i18n/\${locale}.json\`, 'utf8')
   return { locale, ${seo ? 'tag: tags[locale] ?? locale,' : ''} messages: parse(schema, JSON.parse(source)) }
-})`
+}))`
     })
     if (seo) {
       text = editTemplate({

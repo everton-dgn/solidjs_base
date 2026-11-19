@@ -36,6 +36,7 @@ import {
   configureMiddlewareTests,
   middlewareTest
 } from './configureLocales/middleware-tests.ts'
+import { configureServerFixtures } from './configureLocales/server-fixtures.ts'
 import { configureLocaleUi } from './configureLocaleUi/index.ts'
 import { configurePageTitles } from './configurePageTitles/index.ts'
 import { configurePlainApp } from './configurePlainApp/index.ts'
@@ -250,7 +251,10 @@ function configureTranslationProfile(
     prepare(stage)
   } else if ((profile.mode ?? 'server') === 'server') {
     configureMiddlewareTests(context)
-    prepare(stage, [path.join(stage, middlewareTest)])
+    prepare(stage, [
+      path.join(stage, middlewareTest),
+      ...configureServerFixtures(context)
+    ])
   }
 }
 

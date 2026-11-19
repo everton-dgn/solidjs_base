@@ -2081,6 +2081,24 @@ diff --git a/source/src/middleware/__tests__/middleware.node.test.ts b/example/s
      const next = vi.fn<() => Promise<Response>>()
  
      const response = await provideRequestEvent(event, () =>
+diff --git a/source/src/middleware/markdownContent/__tests__/markdownContent.abort.node.test.ts b/example/src/middleware/markdownContent/__tests__/markdownContent.abort.node.test.ts
+--- a/source/src/middleware/markdownContent/__tests__/markdownContent.abort.node.test.ts
++++ b/example/src/middleware/markdownContent/__tests__/markdownContent.abort.node.test.ts
+@@ -1,4 +1,5 @@
+ import { MARKDOWN_TIMEOUT_MS } from '@evertondgn/solid-runtime/server/publication-protocol'
++import { baseLocale } from '@paraglide/runtime.js'
+ import {
+   createComponent,
+   createRequestEvent,
+@@ -74,7 +75,7 @@ function startComposedMarkdown({
+     }
+   ])
+   const event = createRequestEvent(
+-    new Request('https://example.com/en/about.md', {
++    new Request(`https://example.com/${baseLocale}/about.md`, {
+       signal: client.signal,
+       headers: { accept: 'text/markdown' }
+     })
 diff --git a/source/src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts b/example/src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts
 --- a/source/src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts
 +++ b/example/src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts
@@ -2745,6 +2763,103 @@ diff --git a/source/src/routes/(seo)/llms.txt/constants.ts b/example/src/routes/
  }
  
  const INDEX_LANGUAGE = languageName(baseLocale)
+diff --git a/source/src/tests/fixtures/e2e/routes/(base)/i18n-redirect.tsx b/example/src/tests/fixtures/e2e/routes/(base)/i18n-redirect.tsx
+--- a/source/src/tests/fixtures/e2e/routes/(base)/i18n-redirect.tsx
++++ b/example/src/tests/fixtures/e2e/routes/(base)/i18n-redirect.tsx
+@@ -1,6 +1,6 @@
+ import { createLocalizedNavigate } from '@evertondgn/solid-runtime/i18n/create-localized-navigate'
+ import { m } from '@paraglide/messages.js'
+-import { getLocale } from '@paraglide/runtime.js'
++import { baseLocale, getLocale, locales } from '@paraglide/runtime.js'
+ import {
+   formAction,
+   query,
+@@ -14,6 +14,8 @@ import { createMemo, createSignal, Loading, untrack } from 'solid-js'
+ import { redirectLocale } from '../../i18n/redirectLocale/index.ts'
+ import { redirectRelative } from '../../i18n/redirectRelative/index.ts'
+ 
++const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
++
+ const submitRedirect = formAction(redirectLocale, 'i18n-locale-redirect-action')
+ const readRedirect = query(redirectLocale, 'i18n-locale-redirect-query')
+ const submitRelative = formAction(
+@@ -34,7 +36,7 @@ export default function I18nRedirect() {
+     untrack(() => params.initial === '1')
+   )
+   const result = createMemo(() =>
+-    isRequested() ? readRedirect({ locale: 'es', source: 'query' }) : ''
++    isRequested() ? readRedirect({ locale: alternate, source: 'query' }) : ''
+   )
+   return (
+     <main>
+@@ -43,16 +45,16 @@ export default function I18nRedirect() {
+       <p data-testid="message">{m.home_title()}</p>
+       <output data-testid="state">{JSON.stringify(location.state)}</output>
+       <form
+-        action={submitRedirect.with({ locale: 'es', source: 'action' })}
++        action={submitRedirect.with({ locale: alternate, source: 'action' })}
+         method="post"
+       >
+-        <button type="submit">Spanish action redirect</button>
++        <button type="submit">Alternate action redirect</button>
+       </form>
+       <form
+-        action={submitRedirect.with({ locale: 'pt', source: 'action' })}
++        action={submitRedirect.with({ locale: baseLocale, source: 'action' })}
+         method="post"
+       >
+-        <button type="submit">Portuguese action redirect</button>
++        <button type="submit">Base action redirect</button>
+       </form>
+       <form action={submitRelative.with('query')} method="post">
+         <button type="submit">Relative query redirect</button>
+@@ -67,7 +69,7 @@ export default function I18nRedirect() {
+         <button type="submit">Relative empty redirect</button>
+       </form>
+       <button type="button" onClick={() => setIsRequested(true)}>
+-        Spanish query redirect
++        Alternate query redirect
+       </button>
+       <button
+         type="button"
+@@ -81,7 +83,7 @@ export default function I18nRedirect() {
+       <button
+         type="button"
+         onClick={() =>
+-          navigate('/pt/i18n-redirect?from=state#target', {
++          navigate(`/${baseLocale}/i18n-redirect?from=state#target`, {
+             state: { marker: 'kept' }
+           })
+         }
+diff --git a/source/src/tests/fixtures/e2e/routes/(base)/ui-kit/index.tsx b/example/src/tests/fixtures/e2e/routes/(base)/ui-kit/index.tsx
+--- a/source/src/tests/fixtures/e2e/routes/(base)/ui-kit/index.tsx
++++ b/example/src/tests/fixtures/e2e/routes/(base)/ui-kit/index.tsx
+@@ -1,4 +1,5 @@
+ import { createLocalizedNavigate } from '@evertondgn/solid-runtime/i18n/create-localized-navigate'
++import { baseLocale, locales } from '@paraglide/runtime.js'
+ import { useSearchParams, type RouteDefinition } from '@solidjs/router'
+ import { createSignal, untrack } from 'solid-js'
+ 
+@@ -11,6 +12,8 @@ import { Dialog } from '@/components/molecules/Dialog/index.tsx'
+ 
+ import S from './styles.module.css'
+ 
++const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
++
+ export const route = {
+   info: { seo: { noindex: true } }
+ } satisfies RouteDefinition
+@@ -27,8 +30,8 @@ export default function UiKit() {
+       <h1>UI fixture</h1>
+       <nav aria-label="Fixture navigation" class={S.actions}>
+         <LocalizedLink href="?source=link#target">Localized page</LocalizedLink>
+-        <LocalizedLink href="/ui-kit?source=language#target" locale="es">
+-          Spanish page
++        <LocalizedLink href="/ui-kit?source=language#target" locale={alternate}>
++          Alternate language page
+         </LocalizedLink>
+         <LocalizedLink href="/robots.txt" shouldLocalize={false}>
+           Robots file
 diff --git a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts b/example/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
 --- a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
 +++ b/example/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
@@ -2927,8 +3042,8 @@ diff --git a/source/src/tests/pages/Hydration/Hydration.preload.e2e.test.ts b/ex
 diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pages/I18n/I18n.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.e2e.test.ts
-@@ -1,16 +1,32 @@
-+import { readFileSync } from 'node:fs'
+@@ -1,16 +1,34 @@
++import { readFile } from 'node:fs/promises'
 +
  import { expect, test } from '@playwright/test'
 +import { array, object, parse, string } from 'valibot'
@@ -2950,7 +3065,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pa
 +})
 +const settings = parse(
 +  settingsSchema,
-+  JSON.parse(readFileSync('project.inlang/settings.json', 'utf8'))
++  JSON.parse(await readFile('project.inlang/settings.json', 'utf8'))
 +)
 +const schema = object({
 +  errorFallback_runtimeTitle: string(),
@@ -2958,17 +3073,19 @@ diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pa
 +  errorFallback_runtimePageTitle: string()
 +})
 +
-+const LANGUAGES = settings.locales.map(locale => {
-+  const source = readFileSync(
-+    `src/components/organisms/ErrorFallback/i18n/${locale}.json`,
-+    'utf8'
-+  )
-+  return { locale, messages: parse(schema, JSON.parse(source)) }
-+})
++const LANGUAGES = await Promise.all(
++  settings.locales.map(async locale => {
++    const source = await readFile(
++      `src/components/organisms/ErrorFallback/i18n/${locale}.json`,
++      'utf8'
++    )
++    return { locale, messages: parse(schema, JSON.parse(source)) }
++  })
++)
  
  test.describe('without JavaScript', () => {
    test.use({ javaScriptEnabled: false })
-@@ -23,7 +39,7 @@ test.describe('without JavaScript', () => {
+@@ -23,7 +41,7 @@ test.describe('without JavaScript', () => {
          `/${locale}/outside-error?case=render-root&id=${crypto.randomUUID()}`
        )
        expect(response?.status()).toBe(HTTP_INTERNAL_SERVER_ERROR)
@@ -2977,7 +3094,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pa
        await expect(
          page.locator('head meta[name="description"]')
        ).toHaveAttribute('content', messages.errorFallback_runtimeDescription)
-@@ -54,7 +70,7 @@ test('a server function keeps the page locale when the cookie disagrees', async
+@@ -54,7 +72,7 @@ test('a server function keeps the page locale when the cookie disagrees', async
    await page.getByRole('button', { name: 'Read server locale' }).focus()
    await page.keyboard.press('Enter')
    await expect(
@@ -3100,7 +3217,14 @@ diff --git a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts b/example/s
 diff --git a/source/src/tests/pages/I18n/I18n.redirect.e2e.test.ts b/example/src/tests/pages/I18n/I18n.redirect.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.redirect.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.redirect.e2e.test.ts
-@@ -47,9 +47,7 @@ for (const source of ['action', 'query']) {
+@@ -41,15 +41,13 @@ for (const source of ['action', 'query']) {
+         new URL(response.url()).pathname === '/es/i18n-redirect'
+     )
+     await page
+-      .getByRole('button', { name: `Spanish ${source} redirect` })
++      .getByRole('button', { name: `Alternate ${source} redirect` })
+       .click()
+     await documentResponse
      await expect(page).toHaveURL(`/es/i18n-redirect?from=${source}#target`)
      await expect(page.locator('html')).toHaveAttribute('lang', 'es-ES')
      await expect(page.getByTestId('locale')).toHaveText('es')
@@ -3111,11 +3235,20 @@ diff --git a/source/src/tests/pages/I18n/I18n.redirect.e2e.test.ts b/example/src
      await expect(page.locator('html')).not.toHaveAttribute(
        'data-previous-document'
      )
+@@ -67,7 +65,7 @@ test('same-locale action redirects preserve the document and SPA history retains
+   await page.evaluate(() => {
+     document.documentElement.dataset.sameDocument = 'kept'
+   })
+-  await page.getByRole('button', { name: 'Portuguese action redirect' }).click()
++  await page.getByRole('button', { name: 'Base action redirect' }).click()
+   await expect(page).toHaveURL('/pt/i18n-redirect?from=action#target')
+   await page.getByRole('button', { name: 'Same locale state' }).click()
+   await expect(page.getByTestId('state')).toContainText('"marker":"kept"')
 diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
-@@ -1,24 +1,38 @@
-+import { readFileSync } from 'node:fs'
+@@ -1,24 +1,43 @@
++import { readFile } from 'node:fs/promises'
 +
  import { expect, test } from '@playwright/test'
 +import { array, object, parse, string } from 'valibot'
@@ -3141,18 +3274,23 @@ diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/examp
 +})
 +const settings = parse(
 +  settingsSchema,
-+  JSON.parse(readFileSync('project.inlang/settings.json', 'utf8'))
++  JSON.parse(await readFile('project.inlang/settings.json', 'utf8'))
 +)
 +const schema = object({ site_description: string(), site_imageAlt: string() })
 +const tags: Readonly<Record<string, string>> = LOCALE_TAG_OVERRIDES
-+const LANGUAGES = settings.locales.map(locale => {
-+  const source = readFileSync(`src/constants/site/i18n/${locale}.json`, 'utf8')
-+  return {
-+    locale,
-+    tag: tags[locale] ?? locale,
-+    messages: parse(schema, JSON.parse(source))
-+  }
-+})
++const LANGUAGES = await Promise.all(
++  settings.locales.map(async locale => {
++    const source = await readFile(
++      `src/constants/site/i18n/${locale}.json`,
++      'utf8'
++    )
++    return {
++      locale,
++      tag: tags[locale] ?? locale,
++      messages: parse(schema, JSON.parse(source))
++    }
++  })
++)
  const ALTERNATES = Object.fromEntries<string>([
    ...LANGUAGES.map(
      ({ locale }) => [locale, `${readSiteOrigin()}/${locale}`] as const
@@ -3162,7 +3300,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/examp
  ])
  
  type SitemapRecord = { loc: string; alternates: Record<string, string> }
-@@ -120,27 +134,8 @@ for (const { locale, tag, messages } of LANGUAGES) {
+@@ -120,27 +139,8 @@ for (const { locale, tag, messages } of LANGUAGES) {
          inLanguage: LANGUAGES.map(language => language.tag)
        })
      )
@@ -3285,6 +3423,47 @@ diff --git a/source/src/tests/pages/StructuredData/StructuredData.streaming.e2e.
    await expect(page.locator(`head ${JSON_LD}`)).toHaveCount(1)
    const remaining = await page.locator(JSON_LD).allTextContents()
    expect(remaining.join('')).not.toContain(PRODUCT_NAME)
+diff --git a/source/src/tests/pages/UiKit/UiKit.e2e.test.ts b/example/src/tests/pages/UiKit/UiKit.e2e.test.ts
+--- a/source/src/tests/pages/UiKit/UiKit.e2e.test.ts
++++ b/example/src/tests/pages/UiKit/UiKit.e2e.test.ts
+@@ -174,7 +174,7 @@ test('localized navigation preserves SPA state and reloads when changing languag
+     'href',
+     '/robots.txt'
+   )
+-  await page.getByRole('link', { name: 'Spanish page' }).click()
++  await page.getByRole('link', { name: 'Alternate language page' }).click()
+   await expect(page).toHaveURL('/es/ui-kit?source=language#target')
+   await expect(page.locator('html')).toHaveAttribute('lang', 'es-ES')
+   expect(
+diff --git a/source/src/tests/setup/browser/__tests__/browser.browser.test.ts b/example/src/tests/setup/browser/__tests__/browser.browser.test.ts
+--- a/source/src/tests/setup/browser/__tests__/browser.browser.test.ts
++++ b/example/src/tests/setup/browser/__tests__/browser.browser.test.ts
+@@ -1,14 +1,21 @@
+-import { baseLocale, getLocale, setLocale } from '@paraglide/runtime.js'
++import {
++  baseLocale,
++  getLocale,
++  locales,
++  setLocale
++} from '@paraglide/runtime.js'
++
++const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
+ 
+ describe('locale isolation between browser tests', () => {
+-  beforeAll(() => setLocale('pt', { reload: false }))
++  beforeAll(() => setLocale(alternate, { reload: false }))
+ 
+   afterAll(() => setLocale(baseLocale, { reload: false }))
+ 
+   it('starts in the base locale even with an earlier preference', () => {
+     expect(getLocale()).toBe(baseLocale)
+-    void setLocale('es', { reload: false })
+-    expect(getLocale()).toBe('es')
++    void setLocale(alternate, { reload: false })
++    expect(getLocale()).toBe(alternate)
+   })
+ 
+   it('drops the preference written by the earlier test', () => {
 diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/tooling/__tests__/patched-dependencies.test.ts
 --- a/source/tooling/__tests__/patched-dependencies.test.ts
 +++ b/example/tooling/__tests__/patched-dependencies.test.ts

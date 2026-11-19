@@ -18,6 +18,7 @@ import {
   configureMiddlewareTests,
   middlewareTest
 } from '../src/configureLocales/middleware-tests.ts'
+import { configureServerFixtures } from '../src/configureLocales/server-fixtures.ts'
 import { configureSeo } from '../src/configureSeo/index.ts'
 import { configureStatic } from '../src/configureStatic/index.ts'
 import { editTemplate } from '../src/edit-template.ts'
@@ -77,6 +78,18 @@ void it('uses configured locales and catalog messages in middleware assertions',
   })
   assert.throws(
     () => configureMiddlewareTests(context),
+    /Missing template edit/u
+  )
+})
+
+void it('requires the locale isolation setup before adapting server fixtures', t => {
+  const context = fixture(t)
+  context.write({
+    file: 'src/tests/setup/browser/__tests__/browser.browser.test.ts',
+    content: 'export {}\n'
+  })
+  assert.throws(
+    () => configureServerFixtures(context),
     /Missing template edit/u
   )
 })

@@ -12,10 +12,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 
-import { parse } from 'valibot'
-
-import { settingsSchema } from '../src/schema.ts'
-import { normalizeDiff } from './normalize-diff.ts'
+import { normalizePackedDiff } from './normalize-diff.ts'
 
 const sourceTree = execFileSync('git', ['rev-parse', 'HEAD:apps/boilerplate'], {
   encoding: 'utf8'
@@ -64,11 +61,6 @@ try {
     ['--project', sandbox],
     { stdio: 'inherit' }
   )
-  const settingsFile = path.join(sandbox, 'package/dist/settings.json')
-  const settings = parse(
-    settingsSchema,
-    JSON.parse(readFileSync(settingsFile, 'utf8'))
-  )
   const source = path.join(sandbox, 'source')
   mkdirSync(source)
   const archive = execFileSync('git', ['archive', 'HEAD:apps/boilerplate'], {
@@ -105,7 +97,10 @@ try {
     )
     assert.equal(diff.status, 1, diff.stderr)
     // The release changes only pinned package versions and the documentation tag.
-    const snapshot = normalizeDiff(diff.stdout, settings)
+    const snapshot = normalizePackedDiff({
+      diff: diff.stdout,
+      directory: path.join(sandbox, 'package')
+    })
     if (process.argv.includes('--update')) {
       writeFileSync(expected, snapshot)
     } else assert.equal(snapshot, readFileSync(expected, 'utf8'))

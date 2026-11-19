@@ -1,7 +1,14 @@
-export function normalizeDiff(
-  diff: string,
-  settings: { version: string; versions: Record<string, string> }
-): string {
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+
+import { parse } from 'valibot'
+
+import { settingsSchema } from '../src/schema.ts'
+
+type PackedDiff = { directory: string; diff: string }
+type PackageVersions = { version: string; versions: Record<string, string> }
+
+export function normalizeDiff(diff: string, settings: PackageVersions): string {
   const { version } = settings
   return diff
     .split('\n')
@@ -21,4 +28,10 @@ export function normalizeDiff(
       return normalized
     })
     .join('\n')
+}
+
+export function normalizePackedDiff({ directory, diff }: PackedDiff): string {
+  const file = path.join(directory, 'dist/settings.json')
+  const settings = parse(settingsSchema, JSON.parse(readFileSync(file, 'utf8')))
+  return normalizeDiff(diff, settings)
 }

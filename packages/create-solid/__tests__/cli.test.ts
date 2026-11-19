@@ -321,3 +321,29 @@ syncBuiltinESMExports()`
   assert.match(result.stderr, /Internal failure/u)
   assert.equal(result.status, 1)
 })
+
+void it('rejects a site origin without SEO through the CLI and API', async context => {
+  const dir = path.join(folder(context), 'example')
+  const siteUrl = 'https://example.com'
+  const child = spawnSync(
+    process.execPath,
+    [bin, dir, '--no-seo', '--site-url', siteUrl],
+    { encoding: 'utf8' }
+  )
+  assert.equal(child.status, 2)
+  assert.match(child.stderr, /--site-url requires SEO/u)
+  const { generate } = await import('@evertondgn/create-solid')
+  assert.throws(
+    () =>
+      generate({
+        dir,
+        siteUrl,
+        pm: 'bun',
+        hasSeo: false,
+        shouldInitGit: false,
+        shouldInstall: false
+      }),
+    /--site-url requires SEO/u
+  )
+  assert.ok(!existsSync(dir))
+})

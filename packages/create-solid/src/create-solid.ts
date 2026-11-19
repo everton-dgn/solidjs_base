@@ -29,7 +29,7 @@ function run(): void {
     options: {
       mode: { type: 'string', default: 'server' },
       pm: { type: 'string', default: 'bun' },
-      'site-url': { type: 'string', default: 'https://example.com' },
+      'site-url': { type: 'string' },
       seo: { type: 'boolean' },
       'no-seo': { type: 'boolean' },
       theme: { type: 'boolean' },
@@ -78,7 +78,9 @@ function run(): void {
     hasIcons: !values['no-icons'],
     hasFonts: !values['no-fonts'],
     hasDiagnostics: !values['no-diagnostics'],
-    siteUrl: values['site-url'],
+    ...(values['site-url'] === undefined
+      ? {}
+      : { siteUrl: values['site-url'] }),
     pm: values.pm,
     dir: path.resolve(positionals[0]),
     shouldInitGit: !values['no-git'],

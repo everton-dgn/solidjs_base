@@ -284,6 +284,9 @@ export function generateSource(
   prepareGuides: (stage: string) => void
 ): string[] {
   const profile = resolveProfile(input)
+  if (profile.hasSeo === false && profile.siteUrl !== undefined) {
+    throw new UsageError('--site-url requires SEO')
+  }
   const template = path.resolve(import.meta.dirname, '../template')
   const settingsFile = new URL('../dist/settings.json', import.meta.url)
   const settings = parse(

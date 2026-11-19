@@ -57,7 +57,7 @@ applications enable these by default. Client rendering disables them. Use
 the current English, Portuguese and Spanish catalogs.
 
 Set the public origin with `--site-url https://your-domain.example` when SEO is
-enabled. With SEO disabled the generator ignores this option. Without a theme
+enabled. With SEO disabled the generator rejects this option. Without a theme
 switcher the README omits screenshots that compare the light and dark themes.
 
 The corresponding programmatic properties are `siteUrl`, `mode`, `hasSeo`,

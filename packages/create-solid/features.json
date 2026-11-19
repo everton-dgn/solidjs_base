@@ -226,6 +226,10 @@
     "src/routes/(base)/privacy/i18n/pt.json": "i18n",
     "src/routes/(base)/privacy/index.tsx": "core",
     "src/routes/(base)/privacy/seo.ts": "seo",
+    "src/routes/(seo)/llms.txt/__tests__/llms.txt.constants.node.test.ts": [
+      "i18n",
+      "seo"
+    ],
     "src/routes/(seo)/llms.txt/__tests__/llms.txt.node.test.ts": "seo",
     "src/routes/(seo)/llms.txt/constants.ts": "seo",
     "src/routes/(seo)/llms.txt/index.ts": "seo",

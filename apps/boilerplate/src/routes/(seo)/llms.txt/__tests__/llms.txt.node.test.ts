@@ -9,7 +9,6 @@ import { GET } from '../index.ts'
 const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
 
 const BASE_DESCRIPTION = m.site_description({}, { locale: baseLocale })
-const alternateDescription = m.site_description({}, { locale: alternate })
 const INDEX_LANGUAGE =
   new Intl.DisplayNames(['en'], { type: 'language' }).of(baseLocale) ??
   baseLocale
@@ -33,9 +32,6 @@ describe('llms.txt route', () => {
 
     await expect(response.text()).resolves.toBe(base)
     expect(base).toContain(BASE_DESCRIPTION)
-    expect(base.includes(alternateDescription)).toBe(
-      alternateDescription === BASE_DESCRIPTION
-    )
     expect(response.headers.get('content-type')).toBe(
       'text/markdown; charset=utf-8'
     )

@@ -166,6 +166,25 @@ function checkGuideContent({ dir, mode, pm, hasSeo }: GuideProfile): void {
     assert.match(read('docs/seo/sitemap.md'), /^### Partitioned sources$/mu)
     assert.match(read('docs/seo/markdown.md'), /llms-full\.txt/u)
   }
+  for (const convention of [
+    'File and folder names of modules',
+    'TypeScript types',
+    'Type location',
+    'Cohesion and size of modules',
+    'Function parameters',
+    'Events in JSX',
+    'Conditionals and control flow',
+    'Exports',
+    'Functions that return a Promise',
+    'Code comments',
+    'Boolean names',
+    'Signal names'
+  ]) {
+    assert.ok(
+      read('AGENTS.md').split('\n').includes(`## ${convention}`),
+      convention
+    )
+  }
   const readme = read('README.md')
   assert.ok(readme.includes(`${pm} install`))
   if (mode !== 'server') {
@@ -215,6 +234,7 @@ const guideChanges = guideOwnership()
 const approvedEdits = new Set(
   readFileSync('guide-edits.txt', 'utf8').trimEnd().split('\n')
 )
+const observedEdits = new Set<string>()
 const modes = ['server', 'static', 'client'] as const
 const publications = modes.flatMap(mode =>
   [true, false].map(hasSeo => ({ mode, hasSeo }))
@@ -247,6 +267,7 @@ for (const { mode, hasSeo } of publications) {
           const read = (file: string) =>
             readFileSync(path.join(dir, file), 'utf8')
           for (const change of guideChanges(profile)) {
+            observedEdits.add(change)
             assert.ok(
               approvedEdits.has(change),
               `Unreviewed guide edit: ${change}`
@@ -384,3 +405,10 @@ for (const { mode, hasSeo } of publications) {
     }
   }
 }
+
+void it('requires every guide approval to describe an observed edit', () => {
+  assert.deepEqual(
+    [...approvedEdits].filter(line => !observedEdits.has(line)),
+    []
+  )
+})

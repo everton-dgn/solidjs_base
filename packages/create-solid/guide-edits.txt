@@ -31,15 +31,15 @@ configureClient | docs/architecture.md | ## Routes and organization | RG_QULzLR8
 configureClient | docs/architecture.md | (section order) | THYIuTHzTTwvnbyYzl2la8cRBvJL-fX8-5I_Q_6ESyI
 configureClient | docs/development.md | ## Build and deploy | iudlkaGxSjjwGXz6iIra_ixjItr6sFeiYvhrnOJ7NfQ
 configureClient | docs/development.md | ## Environment and preview | 22QXyjOEyTN_Pyoxmn6-D8jwndS3hKMPH3qwMhQjcT4
-configureClient | docs/development.md | ## Execution and cache | R9-6CF3MUWYIbL7y2cnGjSNNTDdPYtz10Wo3zFUtECI
+configureClient | docs/development.md | ## Execution and cache | 6N_a3aNcQcIPqAqmJjyBA6uNS1h2e8fsO82VhWjS958
 configureClient | docs/development.md | ## Prerequisites | -EQSZf1ZnoWkIEtAaWa7tmeBJvMXDBzijPkZ7i9OAJ8
 configureClient | docs/development.md | ## Scripts | a8WlfX33dehPELVOS1HYKFFQtbURv3Wfi2A986h23Gk
 configureClient | docs/development.md | ## Styles on the first load in development | lV10P5MSFMphogjsBR9FrD280BtPQrRGp3JIWHuzsxA
 configureClient | docs/development.md | ## Task runtimes | PPUVW_LT36IOE_uaWBBwEuPzB_DU0er_9BTo7MiaNqc
-configureClient | docs/development.md | ## Tool dependencies | nQMsMLVPA7cKyDRl1NSWuptvZmoX0jVTl64rFgPsFv0
+configureClient | docs/development.md | ## Tool dependencies | o04VEq_jN5xfSC9YlR1Tpt3QJe0dA-NS8xfqfDNkHX4
 configureClient | docs/development.md | ### Publication | 0wfzrObl8ux0LAsZjSG1Tx35yw2pcVjkGXfEdzuI-NU
 configureClient | docs/development.md | ### SSR runtime | VSrW7mabFvmAL5-G92XshqnO7Pfvqnh_CBrhDBKEXt0
-configureClient | docs/development.md | (section order) | VSVGC7ByX4ktNiBXKlmdyPvqDeZn4iaAA5oH4qJXZLc
+configureClient | docs/development.md | (section order) | ZMAEL1O7xDfQLSTUvfRceBzc-_SczRAKfWdgu0k-y0Y
 configureClient | docs/i18n.md | ## Catalogs and messages | ujWUHCU23Mi3us0O0meYHEpQMnv5hVMDMqZXLpLPla8
 configureClient | docs/i18n.md | ## Generation and validation | m6z0zLgtoX6cDU1C38HBA_15EJTcWR4vIUz4K6rLicY
 configureClient | docs/i18n.md | ## Navigation | vbID9rsf1ybpOgrIvaFIm53YRu-q906DpCweeJ4jdBg
@@ -86,9 +86,9 @@ configureClient | docs/ui.md | ## Dropdown menus | PVpjkc7Xwld9zi5uWXwBnC-UYyWQQ
 configureClient | docs/ui.md | ## Fields, dialogs and notifications | nmYjiGhoRXoHFVujWcl3WDf9jr2mouVKgxTwbPp78jw
 configureClient | docs/ui.md | ## Fonts | 513bYBtoM0Q7evEBYQxRWE9kpQSJ63j5RiHO8XFD0pQ
 configureClient | docs/ui.md | ## Theme and persistence | TUg170-5S6BeVZ-s657txemuqw8MmXMr7W_F4FZbC8E
-configureDiagnostics | docs/development.md | ## Maintenance conventions | 2nc8yNw4eLdAo4ieNyl-J3GElpNAZQTh-Y49IH5oF-Y
+configureDiagnostics | docs/development.md | ## Maintenance conventions | 14e3pho4gZ_n1NRfQc-T7P8gqLIzGn7OKyrZQvBOHgM
 configureDiagnostics | docs/development.md | ## Reactivity diagnostics in development | kkN5uheIEVTkc1VJh8hUJwVaNo0SD-m7hfJjgSZYj78
-configureDiagnostics | docs/development.md | (section order) | 7EsfvtW3PrZ7JjTgWYG2mKKMGJZmieNSy-VpHfFdNKU
+configureDiagnostics | docs/development.md | (section order) | LM_ggCyoMAT7rtB8LexOaIFCryXI4khYCcWw1tCJJPQ
 configureDiagnostics | docs/development.md | (section order) | WI45SF82hwYeAPiiFidcVwOPlCrSvRx8wLgX7Hovrjg
 configureFonts | AGENTS.md | ## Font loading | 2XYyeZXxUp8AoycGbLpttqvgi0TXjMDb88546e8TqxI
 configureFonts | AGENTS.md | ## Font loading | Z5fnd_ETt8wdmnUzSPjDJNISRsUykbMpCNJAGChLQZY
@@ -146,6 +146,7 @@ configureIcons | README.md | ### How it uses the packages | ZoB1DC0T9WqYva2PQMUe
 configureIcons | README.md | ### How it uses the packages | frU1ZpNVd_3lnHGr5HC6PwZu1vsLCjAoR4RuFT_4Wek
 configureIcons | docs/architecture.md | ## Dependencies between layers | KlGJMhaH3CXzIhK5ZmX9Mu2rhm55ixVcTnIrT5uYpaU
 configureIcons | docs/development.md | ## Execution and cache | hNGDuHktKBPn2iQCQj1YS9fkypzoONpuLiEQHwqPV1w
+configureIcons | docs/development.md | ## Execution and cache | n_1Z-x3vZ2-oETspc5kiRpFAx5w_AGbKu0YKxSqg8k0
 configureIcons | docs/ui.md | ## CSS processing | IvIs-ExKfe74z-tXVN1qjoLovZLFvavfK-FGOX5r9eM
 configureIcons | docs/ui.md | ## CSS processing | ULEsv28Wklm5aMgql3PWyjNfPrN0UtLHO3EDEABwYRs
 configureIcons | docs/ui.md | ## CSS processing | txCyYEtPHQ28mvYDYNpWIiXzOyitmAVVhwaVRa2sRy0
@@ -155,7 +156,7 @@ configureIcons | docs/ui.md | (section order) | d0eM1jtNV-f84N2vI1Kl6RUfw1lBroUJ
 configureIcons | docs/ui.md | (section order) | uRfx4HYXqPrRQD158ZBl44Lo_v2hDo3OdwM5xR3CBDs
 configureSeo | AGENTS.md | ## JavaScript and server rendering | TQZeWqPFJYposdPWxGYp8poy4F4-otFzxF1RG2hbiyE
 configureSeo | AGENTS.md | ## Module location | GiCq_67BIlx_kocSN4iaXA1KESgyGCCmsc8QQNZ8PR8
-configureSeo | AGENTS.md | ## Page modules | NF-1gjfEhyBQQFPrP4nyCj5IaKQyHclCTizmFwEixmQ
+configureSeo | AGENTS.md | ## Page modules | rDsdxSrai0km5CvqaCMaJY8qEzdmwm6XcHxog78lfs4
 configureSeo | AGENTS.md | ## Security headers and CSP | Ur_wM1o3JXZ_hisCWpcjiRs7Cq0VgqeGTkskxtVpQM0
 configureSeo | AGENTS.md | ## Server errors and backend calls | XprspJIMzRrynREoUx-yibEAx6ui0gCu0CeXumpTomg
 configureSeo | AGENTS.md | ## Translations | DAj-nzkhaC47tua7bdSBFLhrZHPG05n1x4t7XXXBRFw
@@ -203,8 +204,10 @@ configureSeo | docs/seo.md | # SEO and site indexes | nQLt_2xEVIJJ4bKQZDj3WfNpPq
 configureSeo | docs/seo.md | ## Endpoints and cache | V2Wzx9OaylcBQ5u7N_z9y_escz52c3w8DzbxGgkjeew
 configureSeo | docs/seo.md | ## Reading by agents | hmTP5wG8ovXBde4Qhv-Y91kVmEcU-ZJumhsSGou8-q4
 configureSeo | docs/seo.md | ## Route metadata | 5EjsncKUiWQjdmmKUEy845RoI2hg9guGLe_rmab-W2w
-configureSeo | docs/seo.md | ## Route metadata | Psq8yRDWoahdON3g-5KUZaESWa9kYpcqlpxH2GXLmlc
+configureSeo | docs/seo.md | ## Route metadata | BSmz1KSvAgToTIGphhkTnUNer8YLbcl69B7EFn92xQo
 configureSeo | docs/seo.md | ## Selection for llms.txt | iSNLYkVqq-mgsCFoVtSrELBtKFKYHxWUwv02_O74n8Y
+configureSeo | docs/seo.md | ## Selection for llms.txt | ryVgZ7663zPAc6TivPmGSqL8Y4De1K1-iK6FFjRo9Js
+configureSeo | docs/seo.md | ## Sitemap and dynamic routes | Orw20mQ0_0Dv5C4GJDb_QtRhRuY1C9jHN-_kqhsenvA
 configureSeo | docs/seo.md | ## Sitemap and dynamic routes | _7Dx6uytXcfvlw93_uBCI9AxBFnxQ4AU7EjmLrctBB8
 configureSeo | docs/seo.md | ## Structured data per page | 4IipL4ptV0UmlacDS3Bs9wwlIEJpzHwzDezSL-vUIDY
 configureSeo | docs/seo.md | ### Capacity and measurement | a9yxKF2VxfIDGydnEgDhgxkF61oTHEm0VTsU3flOhXM
@@ -212,27 +215,29 @@ configureSeo | docs/seo.md | ### Partitioned sources | 5UopMiFJ7GB-zX9cZA7CzmOtX
 configureSeo | docs/seo.md | ### Platform artifacts and routing | mBdQfyaAeiJBsKwCChHJ-5Oz92M7oNCdi6xieZBSeUc
 configureSeo | docs/seo.md | ### Static artifacts and origin capacity | Avy8lwWmxSi0mTedsM0YEbM97u40yKHAM4uPPIDp0to
 configureSeo | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S7g80ybtigujCumXD5te-MGb-j3XGY
-configureSeo | docs/seo.md | (section order) | B1XLuXBntwZq94P-9hmHQN6tGzA8jdpmkUXmCDVUGIo
+configureSeo | docs/seo.md | (section order) | 9xyqO7fcK2IhY5_0y-p_ZI_JdDKpco0bQbt4sFp9ng4
 configureSeo | docs/seo.md | (section order) | TvzAwfn5qq15vbFq2xtANhqlbf6BprvYuEb7TGWd0Mw
 configureSeo | docs/seo/indexes.md | # Editorial indexes, endpoints and cache | kcrr6mgrmlztzkaUBkTIjmEnREFUZ6Ld-weDqXvcFuo
 configureSeo | docs/seo/indexes.md | ## Endpoints and cache | U_e73UhIZgPsRUYW28kxvQb4EPmXpWdChs0bhnua-oA
 configureSeo | docs/seo/indexes.md | ## Selection for llms.txt | njR-DoxE4hnnijsyaevY7B7QBa-PCkJdqYX5tcBIEPo
 configureSeo | docs/seo/indexes.md | (section order) | hIYnJziAcDAuOrbZLMIT8JYkTM87UAZCNwKXjtrHu_E
 configureSeo | docs/seo/markdown.md | # Markdown and reading by agents | 45cZoM-2nX93FGNtO1nxNMuPyozmjSTGl55HjCND4Zg
+configureSeo | docs/seo/markdown.md | # Markdown publication | LWxyknRPJvLHVnFBU-P1oYvm8GNjzevuYOgsZbAxmso
 configureSeo | docs/seo/markdown.md | ## Package binding and optional converter patch | YNZuGckavWQvkiR50yWizExM6tHTUIR3m9wsoXAFRdg
 configureSeo | docs/seo/markdown.md | ## Reading by agents | eAvBUWIfo5XEJnXRUwVOB8uYj0mxBs90z72SWyifpOo
 configureSeo | docs/seo/markdown.md | ### Platform artifacts and routing | l_ZDhPFXxOkdpUHKCkyT6FOzdu2FAa6Q1dFOUICyBes
 configureSeo | docs/seo/markdown.md | ### llms-full.txt aggregate | -v1XoXd-wu6Nuy3N-CgfUkE7edVR4csd26sfD8Npbjc
+configureSeo | docs/seo/markdown.md | (section order) | q_uY9V9C94l9d28pP5uNmexhREFwOvRN6E0zxQ5Fq6A
 configureSeo | docs/seo/markdown.md | (section order) | xjX_m5an2LVGoWgCbBfT58cT1nRovm1gZ-skOTrTutE
 configureSeo | docs/seo/publication.md | # Publication artifacts and capacity | XynNUZpOT_9g-tJMw5tXpopKkbV7vq6oab4scn0sWvU
 configureSeo | docs/seo/publication.md | ## Capacity and measurement | jiE2KNvJi4wVSFY0OkjKKHuhHHo6IyFXUetUi_9trDc
 configureSeo | docs/seo/publication.md | ## Static artifacts and origin capacity | VZgpXN7Gq2at4Q65rEbuGIhBYCFIyk2XPLERzzgyG6M
 configureSeo | docs/seo/publication.md | (section order) | HHHY_ATbL9Cmw5NYxmOwXwGevCLgroNro2Q74nT-uFQ
 configureSeo | docs/seo/sitemap.md | # Sitemap and content sources | juALSGS9URbyFYVRbNB9UttLFddfFnr8wA5TYfUooro
-configureSeo | docs/seo/sitemap.md | ## Sitemap and dynamic routes | UH6hXZBKH2Sb5iJ1-SGMwFBPnL7Y04oIDZetKq8AITs
+configureSeo | docs/seo/sitemap.md | ## Sitemap and dynamic routes | Bt3pP3cTf5LnpT1-lChtGjKd8LOV1rz7-E_XD3zK7B4
 configureSeo | docs/seo/sitemap.md | ## Sitemap and dynamic routes | sP4LSEAhwRdt940D7QV6u4zojcofYfuW4OdE_rHBJPs
+configureSeo | docs/seo/sitemap.md | ### Partitioned sources | FY3ClzTfPb10MZu1sfPg9sfrAUUiVlb1aKJoEZo1BwQ
 configureSeo | docs/seo/sitemap.md | ### Partitioned sources | dp8btjJ_pJE8wevkIUWJAWn1sgKY3XKNNqCiqCKq1Fc
-configureSeo | docs/seo/sitemap.md | (section order) | T3kF1rXiaSmKzGe4KtyIYImo-zGysqGE4e1X17EKVYM
 configureSeo | docs/seo/sitemap.md | (section order) | rvJu6MBYn3XHxiDK93tcil0k_x8FKx4EBhHGzdikQ2Q
 configureSeo | docs/server-errors.md | ## Current protection | DJUICkI1919hxNF9g39EkjxO8IcAMXXGJpm1peyhGb0
 configureSeo | docs/server-errors.md | ## Locale of the public message | h1rrEgx0K8D9uRMO0IdQnRt0MIJhf1olMwFaSoJZQ64
@@ -287,15 +292,15 @@ configureStatic | docs/architecture.md | ## Routes and organization | yOAqlodUR4
 configureStatic | docs/architecture.md | (section order) | THYIuTHzTTwvnbyYzl2la8cRBvJL-fX8-5I_Q_6ESyI
 configureStatic | docs/development.md | ## Build and deploy | O5qH2uagLRd4KnFtLE-Z54_FS9TDAnsHyE9V8eM6zAA
 configureStatic | docs/development.md | ## Environment and preview | OTu-7q_uZqAd8wC1ottR_VRxKtmLJ0M1Rvsy8ov14DM
-configureStatic | docs/development.md | ## Execution and cache | R9-6CF3MUWYIbL7y2cnGjSNNTDdPYtz10Wo3zFUtECI
+configureStatic | docs/development.md | ## Execution and cache | 6N_a3aNcQcIPqAqmJjyBA6uNS1h2e8fsO82VhWjS958
 configureStatic | docs/development.md | ## Prerequisites | -EQSZf1ZnoWkIEtAaWa7tmeBJvMXDBzijPkZ7i9OAJ8
 configureStatic | docs/development.md | ## Scripts | DyBLoyAJErronZ9y10A1It8sZ38ban00lsTxIgHgtGY
 configureStatic | docs/development.md | ## Styles on the first load in development | lV10P5MSFMphogjsBR9FrD280BtPQrRGp3JIWHuzsxA
 configureStatic | docs/development.md | ## Task runtimes | PPUVW_LT36IOE_uaWBBwEuPzB_DU0er_9BTo7MiaNqc
-configureStatic | docs/development.md | ## Tool dependencies | nQMsMLVPA7cKyDRl1NSWuptvZmoX0jVTl64rFgPsFv0
+configureStatic | docs/development.md | ## Tool dependencies | o04VEq_jN5xfSC9YlR1Tpt3QJe0dA-NS8xfqfDNkHX4
 configureStatic | docs/development.md | ### Publication | btc2zAYWDH7aV7pcqsysFw-Mt3F482n3ymbVJDz6V14
 configureStatic | docs/development.md | ### SSR runtime | VSrW7mabFvmAL5-G92XshqnO7Pfvqnh_CBrhDBKEXt0
-configureStatic | docs/development.md | (section order) | VSVGC7ByX4ktNiBXKlmdyPvqDeZn4iaAA5oH4qJXZLc
+configureStatic | docs/development.md | (section order) | ZMAEL1O7xDfQLSTUvfRceBzc-_SczRAKfWdgu0k-y0Y
 configureStatic | docs/i18n.md | ## Catalogs and messages | XKCq3fEsnfj6ewUsstN8Q0IHxtqy1jo6IsrJzYt8smk
 configureStatic | docs/i18n.md | ## Generation and validation | zXr_Ubj5er9UCr7RVpz0ZRmCzxfKhlC15VLmH4SO6sA
 configureStatic | docs/i18n.md | ## Navigation | BqPKSrAlpxUS0g81zxUzsjf5-jLpYo3M9OcTjtoq4zE
@@ -312,33 +317,32 @@ configureStatic | docs/security.md | ## Validation and streamed CSS | qJy4ObKM_a
 configureStatic | docs/security.md | (section order) | yarphkC9kJY3Im9ONdGsprpOT6rwLrbcY3XZjbV7V0s
 configureStatic | docs/seo.md | ## Endpoints and cache | V2Wzx9OaylcBQ5u7N_z9y_escz52c3w8DzbxGgkjeew
 configureStatic | docs/seo.md | ## Reading by agents | hmTP5wG8ovXBde4Qhv-Y91kVmEcU-ZJumhsSGou8-q4
-configureStatic | docs/seo.md | ## Route metadata | 67YstpRf9yMHbtDkTn2Vee5eisOkcILcXxVG5iZPLMg
-configureStatic | docs/seo.md | ## Selection for llms.txt | iSNLYkVqq-mgsCFoVtSrELBtKFKYHxWUwv02_O74n8Y
-configureStatic | docs/seo.md | ## Sitemap and dynamic routes | _7Dx6uytXcfvlw93_uBCI9AxBFnxQ4AU7EjmLrctBB8
-configureStatic | docs/seo.md | ## Structured data per page | 4IipL4ptV0UmlacDS3Bs9wwlIEJpzHwzDezSL-vUIDY
+configureStatic | docs/seo.md | ## Route metadata | 5tb-SvqzJqVxQGapyZHYvQG7_g4Q079JhT8EAayW8WU
+configureStatic | docs/seo.md | ## Selection for llms.txt | CXlmhh5EZIzHeLipZZGCABsxXyjfINEv5NIfri5NQNI
+configureStatic | docs/seo.md | ## Sitemap and dynamic routes | HPhLdICBmTAYKG6STYKE-2quyMHMHWTU8oX23vxnzGU
 configureStatic | docs/seo.md | ### Capacity and measurement | a9yxKF2VxfIDGydnEgDhgxkF61oTHEm0VTsU3flOhXM
 configureStatic | docs/seo.md | ### Partitioned sources | 5UopMiFJ7GB-zX9cZA7CzmOtXa_VJrCOedvG-2HrJ0I
 configureStatic | docs/seo.md | ### Platform artifacts and routing | mBdQfyaAeiJBsKwCChHJ-5Oz92M7oNCdi6xieZBSeUc
 configureStatic | docs/seo.md | ### Static artifacts and origin capacity | Avy8lwWmxSi0mTedsM0YEbM97u40yKHAM4uPPIDp0to
 configureStatic | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S7g80ybtigujCumXD5te-MGb-j3XGY
-configureStatic | docs/seo.md | (section order) | qFXbTOdQGSnBLW8giW_abSoLtL5W5I0m83uzIX6MTqs
+configureStatic | docs/seo.md | (section order) | 20KpYIqS9HzMs7q8Ou8IN9ZImAbjVztCguGARJznVa4
 configureStatic | docs/seo/indexes.md | # Editorial indexes, endpoints and cache | kcrr6mgrmlztzkaUBkTIjmEnREFUZ6Ld-weDqXvcFuo
 configureStatic | docs/seo/indexes.md | ## Endpoints and cache | U_e73UhIZgPsRUYW28kxvQb4EPmXpWdChs0bhnua-oA
 configureStatic | docs/seo/indexes.md | ## Selection for llms.txt | njR-DoxE4hnnijsyaevY7B7QBa-PCkJdqYX5tcBIEPo
 configureStatic | docs/seo/indexes.md | (section order) | hIYnJziAcDAuOrbZLMIT8JYkTM87UAZCNwKXjtrHu_E
 configureStatic | docs/seo/markdown.md | # Markdown and reading by agents | 45cZoM-2nX93FGNtO1nxNMuPyozmjSTGl55HjCND4Zg
+configureStatic | docs/seo/markdown.md | # Markdown publication | ojZS-Tp39ymwNKfODMk0wK8yM5yBA51Mm2DveThzfTI
 configureStatic | docs/seo/markdown.md | ## Package binding and optional converter patch | YNZuGckavWQvkiR50yWizExM6tHTUIR3m9wsoXAFRdg
 configureStatic | docs/seo/markdown.md | ## Reading by agents | eAvBUWIfo5XEJnXRUwVOB8uYj0mxBs90z72SWyifpOo
 configureStatic | docs/seo/markdown.md | ### Platform artifacts and routing | l_ZDhPFXxOkdpUHKCkyT6FOzdu2FAa6Q1dFOUICyBes
 configureStatic | docs/seo/markdown.md | ### llms-full.txt aggregate | -v1XoXd-wu6Nuy3N-CgfUkE7edVR4csd26sfD8Npbjc
-configureStatic | docs/seo/markdown.md | (section order) | xjX_m5an2LVGoWgCbBfT58cT1nRovm1gZ-skOTrTutE
+configureStatic | docs/seo/markdown.md | (section order) | 5zlX13AQ4wjtTzYFThc9QQEFvZYIv7-SJltqzx0vSAc
 configureStatic | docs/seo/publication.md | # Publication artifacts and capacity | XynNUZpOT_9g-tJMw5tXpopKkbV7vq6oab4scn0sWvU
 configureStatic | docs/seo/publication.md | ## Capacity and measurement | jiE2KNvJi4wVSFY0OkjKKHuhHHo6IyFXUetUi_9trDc
 configureStatic | docs/seo/publication.md | ## Static artifacts and origin capacity | VZgpXN7Gq2at4Q65rEbuGIhBYCFIyk2XPLERzzgyG6M
 configureStatic | docs/seo/publication.md | (section order) | HHHY_ATbL9Cmw5NYxmOwXwGevCLgroNro2Q74nT-uFQ
-configureStatic | docs/seo/sitemap.md | ## Sitemap and dynamic routes | eoFqthZyZMMg0Q39O4cLf8boBChHI4yMctwPgnGLvrM
-configureStatic | docs/seo/sitemap.md | ### Partitioned sources | dp8btjJ_pJE8wevkIUWJAWn1sgKY3XKNNqCiqCKq1Fc
-configureStatic | docs/seo/sitemap.md | (section order) | MJfYCse7XPWqfeqzBNgj35DTgrTkN_Gm4y3b52B3MU0
+configureStatic | docs/seo/sitemap.md | ## Sitemap and dynamic routes | jVDbFjN3XLLOeQ0q-EdyiU1JaXD7hNvCpgpLQlWQR6Y
+configureStatic | docs/seo/sitemap.md | ### Partitioned sources | 3AnM9nWfpMZYRBt4PgnBsW-Zw9gx51XHFM8WTjNvWEc
 configureStatic | docs/server-errors.md | # Server errors and backend calls | HSEBFWXd5nf_55yVjTA1UO2gTGndO0Z3jOh_hE0pnU4
 configureStatic | docs/server-errors.md | ## Adding a call | FvuZH7CWUDmQWN-lv6cXiFI5coXt_2x5FqeIZsk5ouE
 configureStatic | docs/server-errors.md | ## Current protection | HeckQZtq2IpcEFAUmd0mPEu8d594ZOCYSqvrSqagkSg

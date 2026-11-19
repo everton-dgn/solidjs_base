@@ -27,6 +27,36 @@ function linesOutsideFences(content: string): string[] {
   })
 }
 
+// A subsection with content also supplies content to its parent.
+function emptySections(content: string): string[] {
+  const pending: { depth: number; title: string }[] = []
+  const empty: string[] = []
+  let marker = ''
+  for (const line of content.split('\n')) {
+    const fence = fences.exec(line)?.groups?.fence
+    if (marker) {
+      if (fence?.startsWith(marker)) marker = ''
+      else if (line.trim()) pending.length = 0
+      continue
+    }
+    if (fence) {
+      marker = fence
+      continue
+    }
+    if (!heading.test(line)) {
+      if (line.trim()) pending.length = 0
+      continue
+    }
+    const depth = line.trimStart().indexOf(' ')
+    while (pending.length > 0 && (pending.at(-1)?.depth ?? 0) >= depth) {
+      const previous = pending.pop()
+      if (previous) empty.push(previous.title)
+    }
+    pending.push({ depth, title: line.trim() })
+  }
+  return [...empty, ...pending.map(section => section.title)]
+}
+
 function anchors(content: string): Set<string> {
   const slugs = new Set<string>()
   for (const line of linesOutsideFences(content)) {
@@ -95,6 +125,9 @@ export function guideProblems(dir: string): string[] {
   for (const file of ['AGENTS.md', ...guideFiles(dir)]) {
     const source = path.join(dir, file)
     const content = readFileSync(source, 'utf8')
+    for (const title of emptySections(content)) {
+      problems.add(`${file}: empty ${title}`)
+    }
     for (const match of content.matchAll(/\bvp run (?<task>[a-z][\w:-]*)/gu)) {
       const task = match.groups?.task
       if (

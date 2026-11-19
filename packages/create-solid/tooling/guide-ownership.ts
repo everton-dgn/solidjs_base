@@ -60,9 +60,9 @@ function readSections(dir: string): Sections {
       let key = `${file} | ${name}`
       while (sections.has(key)) key += ' (repeated)'
       names.push(key)
-      sections.set(key, signature(section))
+      sections.set(key, section)
     }
-    sections.set(`${file} | (section order)`, signature(JSON.stringify(names)))
+    sections.set(`${file} | (section order)`, JSON.stringify(names))
   }
   return sections
 }
@@ -79,7 +79,14 @@ function generatedParent(profile: Profile): Sections {
 
 // Each edge changes one feature. Following the parent edges reaches the full
 // server profile for the same installer, including from the client profile.
-export function guideOwnership(): (profile: Profile) => string[] {
+type ReviewChange = (change: {
+  line: string
+  before: string | undefined
+  after: string | undefined
+}) => void
+export function guideOwnership(
+  review?: ReviewChange
+): (profile: Profile) => string[] {
   const profiles = new Map<string, Sections>()
   function changed({ profile, sections }: GuideState): string[] {
     profiles.set(profileKey(profile), sections)
@@ -93,9 +100,12 @@ export function guideOwnership(): (profile: Profile) => string[] {
       const before = parent.get(section)
       const after = sections.get(section)
       if (before === after) continue
-      changes.push(
-        `${transition.owner} | ${section} | ${signature(JSON.stringify([before, after]))}`
+      const pair = [before, after].map(text =>
+        text === undefined ? null : signature(text)
       )
+      const line = `${transition.owner} | ${section} | ${signature(JSON.stringify(pair))}`
+      review?.({ line, before, after })
+      changes.push(line)
     }
     return changes
   }

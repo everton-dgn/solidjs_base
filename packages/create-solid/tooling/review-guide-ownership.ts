@@ -1,6 +1,7 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import process from 'node:process'
 
 import { generate } from '../src/generate.ts'
 import { guideOwnership } from './guide-ownership.ts'
@@ -36,8 +37,16 @@ function* profiles() {
   }
 }
 
-const transitions = guideOwnership()
+const previous = new Set(
+  readFileSync('guide-edits.txt', 'utf8').trimEnd().split('\n')
+)
 const approved = new Set<string>()
+const transitions = guideOwnership(({ line, before, after }) => {
+  if (previous.has(line) || approved.has(line)) return
+  process.stdout.write(
+    `${line}\nBefore\n${before ?? '(absent)'}\nAfter\n${after ?? '(absent)'}\n`
+  )
+})
 const sandbox = mkdtempSync(path.join(tmpdir(), 'solid-guide-approval-'))
 try {
   for (const options of profiles()) {

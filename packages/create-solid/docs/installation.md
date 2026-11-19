@@ -52,14 +52,25 @@ controls and controls with visible text. Both features are enabled by default.
 | `--mode static`           | Publish `.output/public` on a file host. Serve directory indexes and localized 404 pages, and set per-page CSP headers from `.output/csp-hashes.json`. |
 | `--mode client`           | Publish the Vite `dist` directory. Configure an HTML fallback to `index.html` for direct page URLs. JavaScript renders the application.                |
 
+Use `--locales fr,ja --base-locale ja` to choose languages. Tags must be valid
+BCP 47 identifiers. An empty list, duplicates after canonicalization and a base
+outside the list are rejected. The first tag is the default base when you pass a
+list. Server and static apps otherwise use the template's English, Spanish and
+Portuguese catalogs with English as the base. A client app defaults to its base
+language alone. Use static mode for multiple languages on a file host.
+
+When a catalog is missing, the generator copies the closest supported language
+or falls back to English. For example, `pt-BR` starts from Portuguese and
+`es-MX` from Spanish. The generator lists each seeded locale after generation so
+you can translate it before publishing.
+
 Static builds prerender the current locales. When enabled, the appearance
 control saves the preference in local storage.
 
 Use `--seo` or `--no-seo` to include or omit page metadata, JSON-LD, robots,
 sitemaps, the llms text files and Markdown pages together. Server and static
 applications enable these by default. Client rendering disables them. Use
-`--mode static --seo` to publish searchable pages on a file host. All modes keep
-the current English, Portuguese and Spanish catalogs.
+`--mode static --seo` to publish searchable pages on a file host.
 
 Set the public origin with `--site-url https://your-domain.example` when SEO is
 enabled. With SEO disabled the generator rejects this option. Without a theme

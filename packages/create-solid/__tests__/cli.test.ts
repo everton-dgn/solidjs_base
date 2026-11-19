@@ -330,7 +330,8 @@ void it('rejects a site origin without SEO through the CLI and API', async conte
     [bin, dir, '--no-seo', '--site-url', siteUrl],
     { encoding: 'utf8' }
   )
-  assert.equal(child.status, 2)
+  const usageError = 2
+  assert.equal(child.status, usageError)
   assert.match(child.stderr, /--site-url requires SEO/u)
   const { generate } = await import('@evertondgn/create-solid')
   assert.throws(

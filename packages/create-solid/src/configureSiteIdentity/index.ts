@@ -12,63 +12,60 @@ import type { StagedContext } from '../types.ts'
 
 const indent = 2
 const messages = {
-  en: {
-    home_features:
-      'This application was built with Solid Base. Use the navigation links to open the about, contact and privacy pages. Each page has its own address, so you can bookmark it or share a direct link. The about page describes the project and the tools used to build it. The contact page explains what information to include when reporting a problem. The privacy page describes browser preferences and what happens when you follow an external link. Use the home link in the navigation to return to this page.',
-    about_title: 'About SolidJS Boilerplate',
-    about_intro:
-      'This page describes SolidJS Boilerplate and the tools used to build it.',
-    about_description: 'Learn about the application and its features.',
-    about_source:
-      'The application includes guides to its architecture and development tasks.',
-    contact_description: 'Contact information for SolidJS Boilerplate.',
-    contact_intro: 'Use this page to prepare a question or report a problem.',
-    contact_maintainerTitle: 'Details to include',
-    privacy_intro: 'This page describes how this application handles privacy.',
-    contact_issues:
-      'When reporting a problem, describe what happened and the steps needed to reproduce it. Leave out private information.',
-    contact_maintainer:
-      'Use the contact details listed on this page when they are available. Describe the page you visited, the language you selected and the result you expected. If you include an example, use fictional data and remove personal details from any screenshots. Keep a copy of the report so that you can add information if the problem happens again.'
+  home_features: {
+    en: 'This application was built with Solid Base. Use the navigation links to open the about, contact and privacy pages. Each page has its own address, so you can bookmark it or share a direct link. The about page describes the project and the tools used to build it. The contact page explains what information to include when reporting a problem. The privacy page describes browser preferences and what happens when you follow an external link. Use the home link in the navigation to return to this page.',
+    es: 'Esta aplicación se creó con Solid Base. Usa los enlaces de navegación para abrir las páginas de información, contacto y privacidad. Cada página tiene su propia dirección, que puedes guardar en tus favoritos o compartir con otra persona. La página de información presenta el proyecto y las herramientas utilizadas para crearlo. La página de contacto explica qué detalles incluir al comunicar un problema. La página de privacidad describe las preferencias del navegador y los enlaces externos. El enlace de inicio te permite volver a esta página.',
+    pt: 'Esta aplicação foi criada com Solid Base. Use os links de navegação para abrir as páginas sobre o projeto, de contato e de privacidade. Cada página tem um endereço próprio que você pode salvar nos favoritos ou compartilhar com outra pessoa. A página sobre o projeto apresenta as ferramentas usadas no desenvolvimento. A página de contato explica quais informações incluir ao relatar um problema. A página de privacidade descreve as preferências do navegador e os links externos. Use o link de início para voltar a esta página.'
   },
-  es: {
-    home_features:
-      'Esta aplicación se creó con Solid Base. Usa los enlaces de navegación para abrir las páginas de información, contacto y privacidad. Cada página tiene su propia dirección, que puedes guardar en tus favoritos o compartir con otra persona. La página de información presenta el proyecto y las herramientas utilizadas para crearlo. La página de contacto explica qué detalles incluir al comunicar un problema. La página de privacidad describe las preferencias del navegador y los enlaces externos. El enlace de inicio te permite volver a esta página.',
-    about_title: 'Acerca de SolidJS Boilerplate',
-    about_intro:
-      'Esta página describe SolidJS Boilerplate y las herramientas de desarrollo que utiliza.',
-    about_description: 'Conoce la aplicación y sus funciones.',
-    about_source:
-      'La aplicación incluye guías sobre su arquitectura y las tareas de desarrollo.',
-    contact_description: 'Información de contacto de SolidJS Boilerplate.',
-    contact_intro:
-      'Usa esta página para preparar una consulta o informar de un problema.',
-    contact_maintainerTitle: 'Detalles que puedes incluir',
-    privacy_intro:
-      'Esta página describe cómo se gestiona la privacidad en esta aplicación.',
-    contact_issues:
-      'Al informar de un problema, describe qué pasó y cómo reproducirlo. Omite los datos privados.',
-    contact_maintainer:
-      'Utiliza los datos de contacto de esta página cuando estén disponibles. Indica qué página visitaste, qué idioma elegiste y qué resultado esperabas. Si incluyes un ejemplo, utiliza datos ficticios y elimina la información personal de las capturas de pantalla. Guarda una copia del informe para añadir detalles si el problema vuelve a ocurrir.'
+  about_title: {
+    en: 'About SolidJS Boilerplate',
+    es: 'Acerca de SolidJS Boilerplate',
+    pt: 'Sobre SolidJS Boilerplate'
   },
-  pt: {
-    home_features:
-      'Esta aplicação foi criada com Solid Base. Use os links de navegação para abrir as páginas sobre o projeto, de contato e de privacidade. Cada página tem um endereço próprio que você pode salvar nos favoritos ou compartilhar com outra pessoa. A página sobre o projeto apresenta as ferramentas usadas no desenvolvimento. A página de contato explica quais informações incluir ao relatar um problema. A página de privacidade descreve as preferências do navegador e os links externos. Use o link de início para voltar a esta página.',
-    about_title: 'Sobre SolidJS Boilerplate',
-    about_intro:
-      'Esta página apresenta SolidJS Boilerplate e as ferramentas usadas no desenvolvimento.',
-    about_description: 'Conheça a aplicação e seus recursos.',
-    about_source:
-      'A aplicação inclui guias sobre sua arquitetura e as tarefas de desenvolvimento.',
-    contact_description: 'Informações de contato de SolidJS Boilerplate.',
-    contact_intro:
-      'Use esta página para preparar uma pergunta ou relatar um problema.',
-    contact_maintainerTitle: 'Detalhes do relato',
-    privacy_intro:
-      'Esta página descreve como esta aplicação trata a privacidade.',
-    contact_issues:
-      'Ao relatar um problema, descreva o que aconteceu e os passos para reproduzi-lo. Omita os dados privados.',
-    contact_maintainer:
-      'Use os dados de contato desta página quando estiverem disponíveis. Informe a página visitada, o idioma escolhido e o resultado esperado. Se incluir um exemplo, use dados fictícios e remova informações pessoais das capturas de tela. Guarde uma cópia do relato para acrescentar detalhes caso o problema volte a ocorrer.'
+  about_intro: {
+    en: 'This page describes SolidJS Boilerplate and the tools used to build it.',
+    es: 'Esta página describe SolidJS Boilerplate y las herramientas de desarrollo que utiliza.',
+    pt: 'Esta página apresenta SolidJS Boilerplate e as ferramentas usadas no desenvolvimento.'
+  },
+  about_description: {
+    en: 'Learn about the application and its features.',
+    es: 'Conoce la aplicación y sus funciones.',
+    pt: 'Conheça a aplicação e seus recursos.'
+  },
+  about_source: {
+    en: 'The application includes guides to its architecture and development tasks.',
+    es: 'La aplicación incluye guías sobre su arquitectura y las tareas de desarrollo.',
+    pt: 'A aplicação inclui guias sobre sua arquitetura e as tarefas de desenvolvimento.'
+  },
+  contact_description: {
+    en: 'Contact information for SolidJS Boilerplate.',
+    es: 'Información de contacto de SolidJS Boilerplate.',
+    pt: 'Informações de contato de SolidJS Boilerplate.'
+  },
+  contact_intro: {
+    en: 'Use this page to prepare a question or report a problem.',
+    es: 'Usa esta página para preparar una consulta o informar de un problema.',
+    pt: 'Use esta página para preparar uma pergunta ou relatar um problema.'
+  },
+  contact_maintainerTitle: {
+    en: 'Details to include',
+    es: 'Detalles que puedes incluir',
+    pt: 'Detalhes do relato'
+  },
+  privacy_intro: {
+    en: 'This page describes how this application handles privacy.',
+    es: 'Esta página describe cómo se gestiona la privacidad en esta aplicación.',
+    pt: 'Esta página descreve como esta aplicação trata a privacidade.'
+  },
+  contact_issues: {
+    en: 'When reporting a problem, describe what happened and the steps needed to reproduce it. Leave out private information.',
+    es: 'Al informar de un problema, describe qué pasó y cómo reproducirlo. Omite los datos privados.',
+    pt: 'Ao relatar um problema, descreva o que aconteceu e os passos para reproduzi-lo. Omita os dados privados.'
+  },
+  contact_maintainer: {
+    en: 'Use the contact details listed on this page when they are available. Describe the page you visited, the language you selected and the result you expected. If you include an example, use fictional data and remove personal details from any screenshots. Keep a copy of the report so that you can add information if the problem happens again.',
+    es: 'Utiliza los datos de contacto de esta página cuando estén disponibles. Indica qué página visitaste, qué idioma elegiste y qué resultado esperabas. Si incluyes un ejemplo, utiliza datos ficticios y elimina la información personal de las capturas de pantalla. Guarda una copia del informe para añadir detalles si el problema vuelve a ocurrir.',
+    pt: 'Use os dados de contato desta página quando estiverem disponíveis. Informe a página visitada, o idioma escolhido e o resultado esperado. Se incluir um exemplo, use dados fictícios e remova informações pessoais das capturas de tela. Guarde uma cópia do relato para acrescentar detalhes caso o problema volte a ocorrer.'
   }
 }
 type Replacement = { pattern: RegExp | string; replacement: string }
@@ -76,15 +73,15 @@ type IdentityEdit = (file: string) => (change: Replacement) => void
 
 function neutralCopy({ stage, profile, write }: StagedContext): void {
   for (const locale of readLocaleSettings(stage).locales) {
-    const copy = messages[catalogLanguage(locale)]
+    const language = catalogLanguage(locale)
     for (const page of ['(home)', 'about', 'contact', 'privacy']) {
       const file = `src/routes/(base)/${page}/i18n/${locale}.json`
       const text = readFileSync(path.join(stage, file), 'utf8')
       const catalog = parse(record(string(), string()), JSON.parse(text))
-      for (const [key, value] of Object.entries(copy)) {
+      for (const [key, value] of Object.entries(messages)) {
         if (!key.startsWith(page === '(home)' ? 'home_' : page)) continue
         if (key.endsWith('_description') && profile.hasSeo === false) continue
-        editCatalog({ file, catalog, key, value })
+        editCatalog({ file, catalog, key, value: value[language] })
       }
       write({ file, content: `${JSON.stringify(catalog, null, indent)}\n` })
     }

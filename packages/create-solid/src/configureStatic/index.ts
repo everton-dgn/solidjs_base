@@ -21,63 +21,54 @@ type StaticCatalogOptions = Pick<StagedContext, 'stage' | 'profile'>
 
 function staticCatalogs({ stage, profile }: StaticCatalogOptions): void {
   const messages = {
-    en: {
-      clientTitle: 'SolidJS Boilerplate | Web applications',
-      site_description:
-        'A foundation for prerendered web applications with SolidJS, TypeScript and Vite+.',
-      home_seoTitle: 'SolidJS Boilerplate | Prerendered web applications',
-      about_source:
-        'The repository includes installation instructions and guides to architecture and testing. You can use, modify, distribute and sell the code, including in commercial and closed-source projects.',
-      home_features:
-        'The application includes localized pages and UI components with automated tests.',
-      home_description:
-        'Start your next project with {framework}, {toolchain} and {language}.',
-      about_purpose:
-        'This project demonstrates routing, translated content and automated tests for a web application. You can adapt the pages and components to your own product.',
-      privacy_preferences:
-        'The page address includes the selected language, such as /en, /pt or /es.',
-      storage:
-        ' The application saves your display preference in local storage on this device.'
+    clientTitle: {
+      en: 'SolidJS Boilerplate | Web applications',
+      es: 'SolidJS Boilerplate | Aplicaciones web',
+      pt: 'SolidJS Boilerplate | Aplicações web'
     },
-    es: {
-      clientTitle: 'SolidJS Boilerplate | Aplicaciones web',
-      site_description:
-        'Una base para aplicaciones web prerenderizadas con SolidJS, TypeScript y Vite+.',
-      home_seoTitle: 'SolidJS Boilerplate | Aplicaciones web prerenderizadas',
-      about_source:
-        'El repositorio incluye instrucciones de instalación y guías de arquitectura y pruebas. Puedes usar, modificar, distribuir y vender el código, incluso en proyectos comerciales y de código cerrado.',
-      home_features:
-        'La aplicación incluye páginas traducidas y componentes de interfaz con pruebas automatizadas.',
-      home_description:
-        'Empieza tu proyecto con {framework}, {toolchain} y {language}.',
-      about_purpose:
-        'El proyecto muestra las rutas, los textos traducidos y las pruebas de una aplicación web. Puedes adaptar las páginas y los componentes a tu producto.',
-      privacy_preferences:
-        'La dirección de la página incluye el idioma seleccionado, como /es, /pt o /en.',
-      storage:
-        ' La aplicación guarda tu preferencia de apariencia en el almacenamiento local de este dispositivo.'
+    site_description: {
+      en: 'A foundation for prerendered web applications with SolidJS, TypeScript and Vite+.',
+      es: 'Una base para aplicaciones web prerenderizadas con SolidJS, TypeScript y Vite+.',
+      pt: 'Uma base para aplicações web pré-renderizadas com SolidJS, TypeScript e Vite+.'
     },
-    pt: {
-      clientTitle: 'SolidJS Boilerplate | Aplicações web',
-      site_description:
-        'Uma base para aplicações web pré-renderizadas com SolidJS, TypeScript e Vite+.',
-      home_seoTitle: 'SolidJS Boilerplate | Aplicações web pré-renderizadas',
-      about_source:
-        'O repositório inclui instruções de instalação e guias de arquitetura e testes. Você pode usar, modificar, distribuir e vender o código, inclusive em projetos comerciais e de código fechado.',
-      home_features:
-        'A aplicação inclui páginas traduzidas e componentes de interface com testes automatizados.',
-      home_description:
-        'Comece seu projeto com {framework}, {toolchain} e {language}.',
-      about_purpose:
-        'O projeto mostra rotas, conteúdo traduzido e testes de uma aplicação web. Você pode adaptar as páginas e os componentes ao seu produto.',
-      privacy_preferences:
-        'O endereço da página inclui o idioma escolhido, como /pt, /en ou /es.',
-      storage:
-        ' A aplicação guarda sua preferência de aparência no armazenamento local deste dispositivo.'
+    home_seoTitle: {
+      en: 'SolidJS Boilerplate | Prerendered web applications',
+      es: 'SolidJS Boilerplate | Aplicaciones web prerenderizadas',
+      pt: 'SolidJS Boilerplate | Aplicações web pré-renderizadas'
+    },
+    about_source: {
+      en: 'The repository includes installation instructions and guides to architecture and testing. You can use, modify, distribute and sell the code, including in commercial and closed-source projects.',
+      es: 'El repositorio incluye instrucciones de instalación y guías de arquitectura y pruebas. Puedes usar, modificar, distribuir y vender el código, incluso en proyectos comerciales y de código cerrado.',
+      pt: 'O repositório inclui instruções de instalação e guias de arquitetura e testes. Você pode usar, modificar, distribuir e vender o código, inclusive em projetos comerciais e de código fechado.'
+    },
+    home_features: {
+      en: 'The application includes localized pages and UI components with automated tests.',
+      es: 'La aplicación incluye páginas traducidas y componentes de interfaz con pruebas automatizadas.',
+      pt: 'A aplicação inclui páginas traduzidas e componentes de interface com testes automatizados.'
+    },
+    home_description: {
+      en: 'Start your next project with {framework}, {toolchain} and {language}.',
+      es: 'Empieza tu proyecto con {framework}, {toolchain} y {language}.',
+      pt: 'Comece seu projeto com {framework}, {toolchain} e {language}.'
+    },
+    about_purpose: {
+      en: 'This project demonstrates routing, translated content and automated tests for a web application. You can adapt the pages and components to your own product.',
+      es: 'El proyecto muestra las rutas, los textos traducidos y las pruebas de una aplicación web. Puedes adaptar las páginas y los componentes a tu producto.',
+      pt: 'O projeto mostra rotas, conteúdo traduzido e testes de uma aplicação web. Você pode adaptar as páginas e os componentes ao seu produto.'
+    },
+    privacy_preferences: {
+      en: 'The page address includes the selected language.',
+      es: 'La dirección de la página incluye el idioma seleccionado.',
+      pt: 'O endereço da página inclui o idioma escolhido.'
+    },
+    storage: {
+      en: ' The application saves your display preference in local storage on this device.',
+      es: ' La aplicación guarda tu preferencia de apariencia en el almacenamiento local de este dispositivo.',
+      pt: ' A aplicação guarda sua preferência de aparência no armazenamento local deste dispositivo.'
     }
   }
   for (const locale of readLocaleSettings(stage).locales) {
-    const text = messages[catalogLanguage(locale)]
+    const language = catalogLanguage(locale)
     const siteFile = path.join(
       stage,
       'src/constants/site/i18n',
@@ -91,24 +82,26 @@ function staticCatalogs({ stage, profile }: StaticCatalogOptions): void {
       file: siteFile,
       catalog: site,
       key: 'site_description',
-      value: text.site_description
+      value: messages.site_description[language]
     })
     writeFileSync(siteFile, `${JSON.stringify(site, null, indent)}\n`)
     for (const [route, update] of Object.entries({
       '(home)': {
         home_seoTitle:
-          profile.mode === 'client' ? text.clientTitle : text.home_seoTitle,
-        home_features: text.home_features,
-        home_description: text.home_description
+          profile.mode === 'client'
+            ? messages.clientTitle[language]
+            : messages.home_seoTitle[language],
+        home_features: messages.home_features[language],
+        home_description: messages.home_description[language]
       },
       about: {
-        about_purpose: text.about_purpose,
-        about_source: text.about_source
+        about_purpose: messages.about_purpose[language],
+        about_source: messages.about_source[language]
       },
       privacy: {
         privacy_preferences:
-          text.privacy_preferences +
-          (profile.hasTheme === false ? '' : text.storage)
+          messages.privacy_preferences[language] +
+          (profile.hasTheme === false ? '' : messages.storage[language])
       }
     })) {
       const file = path.join(

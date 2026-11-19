@@ -11,24 +11,20 @@ import { editCatalog } from '../edit-template.ts'
 import { removeSeoConventions } from '../removeSeoConventions/index.ts'
 import { removeSeoGuideCopy } from '../removeSeoGuideCopy/index.ts'
 
-const locales = {
-  en: [
-    'Pages are available in English, Portuguese and Spanish.',
-    'The repository includes installation instructions and guides to architecture and testing.'
-  ],
-  pt: [
-    'As páginas estão disponíveis em português, inglês e espanhol.',
-    'O repositório inclui instruções de instalação e guias de arquitetura e testes.'
-  ],
-  es: [
-    'Las páginas están disponibles en español, inglés y portugués.',
-    'El repositorio incluye instrucciones de instalación y guías de arquitectura y pruebas.'
-  ]
-} as const
+const aboutSource = {
+  en: 'The repository includes installation instructions and guides to architecture and testing.',
+  pt: 'O repositório inclui instruções de instalação e guias de arquitetura e testes.',
+  es: 'El repositorio incluye instrucciones de instalación y guías de arquitectura y pruebas.'
+}
+const homeFeatures = {
+  en: 'Visit the application pages using the navigation links.',
+  pt: 'Use os links de navegação para visitar as páginas da aplicação.',
+  es: 'Usa los enlaces de navegación para visitar las páginas de la aplicación.'
+}
 const indent = 2
 export function removeSeoCopy(stage: string): void {
   for (const locale of readLocaleSettings(stage).locales) {
-    const [home, about] = locales[catalogLanguage(locale)]
+    const about = aboutSource[catalogLanguage(locale)]
     for (const page of ['(home)', 'about', 'contact', 'privacy', '[...404]']) {
       const file = path.join(
         stage,
@@ -42,7 +38,12 @@ export function removeSeoCopy(stage: string): void {
         JSON.parse(readFileSync(file, 'utf8'))
       )
       if (page === '(home)') {
-        editCatalog({ file, catalog: data, key: 'home_features', value: home })
+        editCatalog({
+          file,
+          catalog: data,
+          key: 'home_features',
+          value: homeFeatures[catalogLanguage(locale)]
+        })
       } else {
         const prefix = page === '[...404]' ? 'notFound' : page
         editCatalog({ file, catalog: data, key: `${prefix}_description` })

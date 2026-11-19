@@ -43,7 +43,7 @@ export function configureFileHostGuides(
   }
   const i18n = 'docs/i18n.md'
   const catalogs = read(i18n)
-    .split('## Negotiation and isolation on the server')
+    .split('## Generation and validation')
     .at(0)
     ?.trimEnd()
   write(
@@ -51,6 +51,19 @@ export function configureFileHostGuides(
     `${catalogs}\n\n## Navigation\n\nThe URL selects the language. Use a locale prefix when linking directly to a\npage, such as \`/pt/about\`.\n`
   )
   const agents = 'AGENTS.md'
+  if (!staticHost) {
+    const ui = 'docs/ui.md'
+    const sections = read(ui).split(/^## /mu)
+    const controls = sections.map(section =>
+      section.startsWith('CSS processing\n')
+        ? 'CSS processing\n\nVite builds component stylesheets and CSS modules for the browser.\n\n'
+        : section.replace(
+            'A modal that starts open becomes modal after the\nhydration.',
+            'A modal that starts open takes focus after the\nmount.'
+          )
+    )
+    write(ui, `${controls.join('## ').trimEnd()}\n`)
+  }
   write(
     agents,
     read(agents)

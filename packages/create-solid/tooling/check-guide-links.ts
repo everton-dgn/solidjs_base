@@ -3,6 +3,7 @@ import path from 'node:path'
 
 import { parse } from 'valibot'
 
+import { createTasks } from '../../solid-tooling/src/vite/tasks.ts'
 import { guideFiles } from '../src/prepared-guides.ts'
 import { manifestSchema } from '../src/schema.ts'
 
@@ -87,12 +88,13 @@ export function guideProblems(dir: string): string[] {
   const headings = new Map<string, Set<string>>()
   const manifest = readFileSync(path.join(dir, 'package.json'), 'utf8')
   const pkg = parse(manifestSchema, JSON.parse(manifest))
+  const tasks = createTasks({ root: dir, isCi: true, hasI18n: true })
   for (const file of ['AGENTS.md', ...guideFiles(dir)]) {
     const source = path.join(dir, file)
     const content = readFileSync(source, 'utf8')
     for (const match of content.matchAll(/\bvp run (?<task>[a-z][\w:-]*)/gu)) {
       const task = match.groups?.task
-      if (task && !Object.hasOwn(pkg.scripts, task)) {
+      if (task && !Object.hasOwn(pkg.scripts, task) && !Object.hasOwn(tasks, task)) {
         problems.add(`${file}: task ${task}`)
       }
     }

@@ -17,25 +17,7 @@ export function configureStandaloneGuides({
     writeFileSync(file, text)
   }
   const server = (profile.mode ?? 'server') === 'server'
-  change('AGENTS.md', [
-    {
-      pattern: /Before changing code, run `vp run doctor`\./u,
-      replacement: 'Before changing code, run the doctor command below.'
-    },
-    { pattern: /If the Vite config fails to load, run /u, replacement: 'Run ' }
-  ])
   change('docs/development.md', [
-    {
-      pattern:
-        /Use `vp run tsrs`, `vp run knip`, `vp run playwright`, `vp run lefthook` and\n`vp run commitlint` for the package's executables\./u,
-      replacement:
-        'The tooling package provides the type checker, Knip, Playwright and Git hook tools.'
-    },
-    {
-      pattern: /`vp run tsrs --noEmit` checks the whole program\./u,
-      replacement:
-        'The tsrs executable with `--noEmit` checks the whole program.'
-    },
     {
       pattern: /`bun\.lock` is the\n {2}only lockfile of the project\./u,
       replacement: 'Keep the lockfile of the selected package manager.'

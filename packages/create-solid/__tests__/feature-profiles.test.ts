@@ -109,6 +109,7 @@ const inventorySchema = object({
   imports: record(string(), string()),
   serverOnly: array(string()),
   forbiddenTerms: object({
+    identity: terms,
     static: terms,
     client: terms,
     fonts: terms,
@@ -369,6 +370,7 @@ for (const { mode, hasSeo } of publications) {
             assert.equal(/themeScript/iu.test(read('src/Document.tsx')), theme)
           }
           checkForbiddenTerms(dir, [
+            ...inventory.forbiddenTerms.identity,
             ...(hasSeo ? [] : inventory.forbiddenTerms.seo),
             ...(theme ? [] : inventory.forbiddenTerms.theme),
             ...(icons ? [] : inventory.forbiddenTerms.icons),

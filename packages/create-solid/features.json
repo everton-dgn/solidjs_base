@@ -351,6 +351,13 @@
     "vite.config.ts": "core"
   },
   "forbiddenTerms": {
+    "identity": [
+      "Éverton Toffanetto",
+      "Everton Toffanetto",
+      "toffanettodev",
+      "everton-toffanetto",
+      "boilerplate_solidjs"
+    ],
     "static": ["Accept: text/markdown", "Vercel CDN", "server functions"],
     "client": [
       "Accept: text/markdown",

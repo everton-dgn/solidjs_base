@@ -29,6 +29,7 @@ import { configureClient } from './configureClient/index.ts'
 import { configureFileHostGuides } from './configureFileHostGuides/index.ts'
 import { configureFonts } from './configureFonts/index.ts'
 import { configureSeo } from './configureSeo/index.ts'
+import { configureSiteIdentity } from './configureSiteIdentity/index.ts'
 import { configureStandaloneGuides } from './configureStandaloneGuides/index.ts'
 import { configureStatic } from './configureStatic/index.ts'
 import { editTemplate } from './edit-template.ts'
@@ -377,6 +378,7 @@ export function generateSource(
       file: 'package.json',
       content: `${JSON.stringify(pkg, null, jsonIndent)}\n`
     })
+    configureSiteIdentity(context)
     prepareGuides(stage)
     configureAppTitle(context, title)
     removeEmptyFolders(stage)

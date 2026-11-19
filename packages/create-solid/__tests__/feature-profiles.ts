@@ -202,7 +202,15 @@ type GuideProfile = {
 }
 function checkGuideContent({ dir, mode, pm, hasSeo }: GuideProfile): void {
   const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
+  assert.doesNotMatch(
+    read('README.md'),
+    /home page at \/en|content-language: en\n/u
+  )
   if (existsSync(path.join(dir, 'docs/i18n.md'))) {
+    assert.doesNotMatch(
+      read('docs/i18n.md'),
+      /preserve pt-BR, en-US and es-ES/u
+    )
     assert.match(
       read('docs/i18n.md'),
       /same keys and parameters in every catalog/u

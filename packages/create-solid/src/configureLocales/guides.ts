@@ -156,7 +156,14 @@ function describeConfiguredLanguages(text: string, hasI18n: boolean): string {
     .replaceAll('the three locales it', 'the languages it')
     .replaceAll('the three locales of', 'the languages of')
     .replaceAll('i18n/{pt,en,es}.json', 'i18n/{locale}.json')
-    .replaceAll(/\/pt(?=[/.`])/gu, prefix)
+    .replaceAll('home page at /en, captured', 'home page, captured')
+    .replaceAll('content-language: en\n', 'content-language: <language tag>\n')
+    .replaceAll(
+      'to preserve pt-BR, en-US and es-ES in HTML',
+      'to set language tags in HTML'
+    )
+    .replaceAll(/\/(?:pt|en|es)(?=\/)/gu, prefix)
+    .replaceAll(/\/(?:pt|en|es)(?=[.`\s]|$)/gu, prefix || '/')
 }
 
 export function configureLocaleGuides({

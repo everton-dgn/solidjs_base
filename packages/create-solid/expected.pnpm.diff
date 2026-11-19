@@ -168,11 +168,22 @@ diff --git a/source/README.md b/example/README.md
 -  <img src="../../docs/assets/readme/app-home-light.webp" alt="The boilerplate app's home page at /en, captured from its production build." width="800" />
 +  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-dark.webp" />
 +  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-light.webp" />
-+  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-light.webp" alt="The boilerplate app's home page at /en, captured from its production build." width="800" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-light.webp" alt="The boilerplate app's home page, captured from its production build." width="800" />
  </picture>
  
  [See it work](#see-it-work) · [Running it](#running-it) ·
-@@ -38,9 +50,9 @@ content-type: text/markdown; charset=utf-8
+@@ -29,18 +41,18 @@ index of the pages that opt in. This example uses a production build served on
+ port 4419.
+ 
+ ```text
+-$ curl -s -D - -H 'Accept: text/markdown' http://127.0.0.1:4419/en/about
++$ curl -s -D - -H 'Accept: text/markdown' http://127.0.0.1:4419/{locale}/about
+ HTTP/1.1 200
+ cache-control: private, no-store
+-content-language: en
++content-language: <language tag>
+ content-security-policy: default-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; script-src 'none'
+ content-type: text/markdown; charset=utf-8
  link: </llms.txt>; rel="describedby"
  vary: Cookie, Accept
  
@@ -196,7 +207,7 @@ diff --git a/source/README.md b/example/README.md
  ## When to use
  ## Pages
 -- [About SolidJS Boilerplate](https://boilerplate-solidjs.devinsights.dev/en/about.md): ...
-+- [About the application](https://example.com/en/about.md): ...
++- [About the application](https://example.com/{locale}/about.md): ...
  ## Optional
 -- [Full Markdown of the static pages](https://boilerplate-solidjs.devinsights.dev/llms-full.txt): ...
 +- [Full Markdown of the static pages](https://example.com/llms-full.txt): ...
@@ -226,7 +237,7 @@ diff --git a/source/README.md b/example/README.md
  
  ```bash
  vp run build
-@@ -107,9 +118,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
+@@ -107,15 +118,15 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
  ```
  
  <picture>
@@ -238,7 +249,17 @@ diff --git a/source/README.md b/example/README.md
 +  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/security-headers-light.webp" alt="curl -sI on the boilerplate app's production preview: eight security headers and a CSP whose script-src carries a nonce." width="800" />
  </picture>
  
- `curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
+-`curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
+-nonce that changes on every request. `/en/about.md`, or `/en/about` with
+-`Accept: text/markdown`, returns the page as Markdown, as in
+-[See it work](#see-it-work). The [scripts table](docs/development.md#scripts)
++`curl -sI http://127.0.0.1:3000/{locale}` then shows the security headers and a
++CSP nonce that changes on every request. `/{locale}/about.md`, or
++`/{locale}/about` with `Accept: text/markdown`, returns the page as Markdown, as
++in [See it work](#see-it-work). The [scripts table](docs/development.md#scripts)
+ lists every command.
+ 
+ ## What each page and feature shows
 @@ -133,7 +144,7 @@ both suites.
  | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
  | Pages             | Home, about, contact, privacy and a 404, a top bar, language and theme switchers, `LocalizedLink`, `seo.ts` metadata and an error page                                | [Home](src/tests/pages/Home) (partly production), [NotFound](src/tests/pages/NotFound)                                                                                                                              | [Architecture](docs/architecture.md)                                    |
@@ -860,7 +881,7 @@ diff --git a/source/docs/security.md b/example/docs/security.md
 diff --git a/source/docs/seo/indexes.md b/example/docs/seo/indexes.md
 --- a/source/docs/seo/indexes.md
 +++ b/example/docs/seo/indexes.md
-@@ -24,7 +24,7 @@ section and optional mark. `noindex: true` excludes the page from the sitemap
+@@ -24,13 +24,13 @@ section and optional mark. `noindex: true` excludes the page from the sitemap
  and from llms.txt, even with the flag. The filter looks at the effective setting
  of the page, including inheritance and the child index route. The resolver is
  colocated in
@@ -869,6 +890,14 @@ diff --git a/source/docs/seo/indexes.md b/example/docs/seo/indexes.md
  The index is in the base locale. Routes with a parameter stay out even with
  `llms`, and the sources of `route.info.sitemap` do not feed this index. Markdown
  publication is controlled separately by `seo.markdown` and
+ `route.info.markdown`; when enabled and the leaf declares `markdown: true` or
+-`'dynamic'`, the index link points to the `.md` (`/en/about.md`), and for the
+-others, to the HTML.
++`'dynamic'`, the index link points to the `.md` (`/{locale}/about.md`), and for
++the others, to the HTML.
+ 
+ ## Endpoints and cache
+ 
 diff --git a/source/docs/seo/markdown.md b/example/docs/seo/markdown.md
 --- a/source/docs/seo/markdown.md
 +++ b/example/docs/seo/markdown.md

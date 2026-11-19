@@ -18,7 +18,7 @@
     "test": "vp run --filter './packages/*' test && vp run test:release",
     "test:release": "node --test 'tooling/release/**/__tests__/*.test.ts'",
     "test:tarball": "vp run --filter './packages/*' test:tarball",
-    "validate": "vp run build:published && vp run check && vp run dead-code && vp run test:published && vp run test:tarball:published && vp run test:consistency && vp run test:scenarios:published",
+    "validate": "vp run build:published && vp run check && vp run dead-code && vp run test:published && vp run test:tarball:published && vp run test:consistency && vp run test:scenarios:published && vp run test:ci",
     "test:scenarios": "vp run test:scenarios:published && node packages/create-solid/tooling/scenario.ts",
     "release:merge": "node tooling/release/merge-pull-request.ts",
     "test:consistency": "node --test packages/solid-tooling/src/tarball/__tests__/tarball.workspaceConsistency.test.ts",
@@ -26,7 +26,8 @@
     "build:published": "vp run --fail-if-no-match --filter './packages/*' --filter '!@evertondgn/create-solid' build",
     "test:published": "vp run --fail-if-no-match --filter './packages/*' --filter '!@evertondgn/create-solid' test && vp run test:release",
     "test:tarball:published": "vp run --fail-if-no-match --filter './packages/*' --filter '!@evertondgn/create-solid' test:tarball",
-    "test:scenarios:published": "node --test --test-timeout=180000 packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts"
+    "test:scenarios:published": "node --test --test-timeout=180000 packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts",
+    "test:ci": "node --test 'tooling/ci/__tests__/*.test.ts'"
   },
   "devDependencies": {
     "@evertondgn/solid-tooling": "workspace:*",
@@ -34,7 +35,8 @@
     "@types/node": "26.6.6",
     "typescript": "7.0.2",
     "vite": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "yaml": "2.9.1"
   },
   "overrides": {
     "@solidjs/compiler": "2.0.0",

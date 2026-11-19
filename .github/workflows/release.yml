@@ -76,8 +76,8 @@ jobs:
           - pnpm
           - npm
           - static-with-seo
-          - static-seeded-locales
           - server-without-i18n
+          - static-seeded-locales
           - default-client
           - server-without-theme
           - minimal-client
@@ -106,7 +106,8 @@ jobs:
 
   verified:
     name: Check release jobs
-    needs: [verify, scenario]
+    needs: [release-please, verify, scenario]
+    if: always() && needs.release-please.outputs.releases-created == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -122,7 +123,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           NEEDS: ${{ toJSON(needs) }}
-        run: python3 tooling/ci/required.py
+        run: node tooling/ci/required.ts
 
   publish:
     name: Publish ${{ matrix.path }}

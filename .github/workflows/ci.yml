@@ -47,7 +47,7 @@ jobs:
         id: classify
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 tooling/ci/changes.py
+        run: node tooling/ci/changes.ts
 
   docs:
     name: Docs
@@ -153,8 +153,7 @@ jobs:
       - name: Run checks
         run: |
           vp run test:consistency
-          python3 -B -m unittest discover -s tooling/ci
-          ruby tooling/ci/workflows.rb
+          vp run test:ci
 
   generator:
     name: Generator
@@ -201,8 +200,8 @@ jobs:
           - pnpm
           - npm
           - static-with-seo
-          - static-seeded-locales
           - server-without-i18n
+          - static-seeded-locales
           - default-client
           - server-without-theme
           - minimal-client
@@ -382,4 +381,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EXPECTED: ${{ needs.changes.outputs.expected }}
           NEEDS: ${{ toJSON(needs) }}
-        run: python3 tooling/ci/required.py
+        run: node tooling/ci/required.ts

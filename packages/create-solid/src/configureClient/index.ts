@@ -13,6 +13,10 @@ export function configureClient({
   write
 }: StagedContext): void {
   if (profile.mode !== 'client') return
+  const validator = pkg.dependencies.valibot
+  if (validator && profile.hasI18n !== false) {
+    pkg.devDependencies.valibot = validator
+  }
   delete pkg.dependencies.valibot
   removeFeatureFiles({ stage, disabled: [], group: 'clientExcludes' })
   rmSync(path.join(stage, 'tooling/testing/serve-public.ts'))

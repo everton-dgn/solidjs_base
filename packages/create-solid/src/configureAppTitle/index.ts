@@ -51,7 +51,7 @@ export function configureAppTitle(context: StagedContext, title: string): void {
   }
   edit('src/constants/site/title.ts', [
     "  title: 'SolidJS Boilerplate'",
-    `  get title() {\n    return ${literal(title)}\n  }`
+    `  get title(): string {\n    return ${literal(title)}\n  }`
   ])
   for (const [folder, keys] of Object.entries(catalogs)) {
     if (folder === 'constants/site' && profile.hasSeo === false) continue

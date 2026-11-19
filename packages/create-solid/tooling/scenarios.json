@@ -20,6 +20,11 @@
     "flags": ["--mode", "static", "--seo"]
   },
   {
+    "name": "server-without-i18n",
+    "pm": "bun",
+    "flags": ["--no-i18n"]
+  },
+  {
     "name": "static-seeded-locales",
     "pm": "bun",
     "flags": ["--mode", "static", "--locales", "fr,ja", "--base-locale", "ja"]

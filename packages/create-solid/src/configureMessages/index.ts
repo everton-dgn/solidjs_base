@@ -1,0 +1,75 @@
+import { mkdirSync, readFileSync } from 'node:fs'
+import path from 'node:path'
+
+import { parse, record, string } from 'valibot'
+
+import {
+  catalogFolders,
+  readLocaleSettings
+} from '../configureLocales/catalogs.ts'
+import type { StagedContext } from '../types.ts'
+
+type MessageSource = { name: string; pattern: string }
+const special = /\\(?<escaped>[\\{}])|\{(?<parameter>[A-Za-z_]\w*)\}/gu
+const identifier = /^[A-Za-z_]\w*$/u
+const literal = (value: string) =>
+  value
+    .replaceAll('\\', String.raw`\\`)
+    .replaceAll('`', '\\`')
+    .replaceAll('${', '\\${')
+function messageMethod({ name, pattern }: MessageSource): string {
+  if (!identifier.test(name)) {
+    throw new Error(`Unsupported message key: ${name}`)
+  }
+  const params = new Set<string>()
+  let expression = ''
+  let position = 0
+  for (const match of pattern.matchAll(special)) {
+    expression += literal(pattern.slice(position, match.index))
+    position = match.index + match[0].length
+    const parameter = match.groups?.parameter
+    if (parameter) {
+      params.add(parameter)
+      expression += `\${params.${parameter}}`
+    } else expression += literal(match.groups?.escaped ?? '')
+  }
+  expression += literal(pattern.slice(position))
+  if (params.size === 0) {
+    const value = pattern.replaceAll(special, '$<escaped>')
+    const quoted = JSON.stringify(value)
+    const single = value.split("'").length
+    const double = value.split('"').length
+    const text =
+      single > double
+        ? quoted
+        : `'${quoted
+            .slice(1, -1)
+            .replaceAll(String.raw`\"`, '"')
+            .replaceAll("'", String.raw`\'`)}'`
+    return `  ${name}() {\n    return ${text}\n  }`
+  }
+  const fields = [...params].map(key => `${key}: string`).join('; ')
+  return `  ${name}(params: { ${fields} }) {\n    return \`${expression}\`\n  }`
+}
+
+export function configureMessages({
+  stage,
+  write
+}: Pick<StagedContext, 'stage' | 'write'>): void {
+  const { baseLocale } = readLocaleSettings(stage)
+  const messages = new Map<string, string>()
+  for (const folder of catalogFolders(stage)) {
+    const source = readFileSync(path.join(folder, `${baseLocale}.json`), 'utf8')
+    const catalog = parse(record(string(), string()), JSON.parse(source))
+    for (const [name, pattern] of Object.entries(catalog)) {
+      if (messages.has(name)) throw new Error(`Duplicate message key: ${name}`)
+      messages.set(name, pattern)
+    }
+  }
+  const methods = [...messages].map(([name, pattern]) =>
+    messageMethod({ name, pattern })
+  )
+  const file = 'src/constants/messages/index.ts'
+  mkdirSync(path.dirname(path.join(stage, file)), { recursive: true })
+  write({ file, content: `export const m = {\n${methods.join(',\n')}\n}\n` })
+}

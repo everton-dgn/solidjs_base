@@ -1,5 +1,10 @@
+import json
+import os
+import tempfile
 import unittest
-from changes import classify, SCENARIOS
+from pathlib import Path
+from unittest.mock import patch
+from changes import classify, main, SCENARIOS
 from required import verify
 
 
@@ -35,6 +40,28 @@ class Jobs(unittest.TestCase):
             result = classify(event, [], **args)
             self.assertTrue(all(result[key] for key in ('docs', 'packages', 'generator', 'app', 'consistency')))
             self.assertEqual(len(result['expected']['scenario']), len(SCENARIOS))
+
+    def test_full_events_need_no_file_listing(self):
+        for event, payload in (
+            ('pull_request', {'pull_request': {'head': {'ref': 'release-please--branches--main'}}}),
+            ('pull_request', {'pull_request': {'changed_files': 3000}}),
+            ('pull_request', {}),
+            ('push', {'forced': True}),
+            ('schedule', {}),
+        ):
+            with self.subTest(event=event, payload=payload), tempfile.TemporaryDirectory() as directory:
+                event_file = Path(directory) / 'event'
+                output = Path(directory) / 'output'
+                event_file.write_text(json.dumps(payload))
+                env = {'GITHUB_EVENT_NAME': event, 'GITHUB_EVENT_PATH': str(event_file),
+                       'GITHUB_OUTPUT': str(output)}
+                with patch.dict(os.environ, env), patch('changes.api') as api:
+                    main()
+                    api.assert_not_called()
+                outputs = dict(line.split('=', 1) for line in output.read_text().splitlines())
+                self.assertEqual(json.loads(outputs['expected'])['scenario'],
+                                 [f'Generated app ({name})' for name in SCENARIOS])
+                self.assertEqual(outputs['packages'], 'true')
 
     def test_required(self):
         expected = {'scenario': ['Generated app (bun)']}

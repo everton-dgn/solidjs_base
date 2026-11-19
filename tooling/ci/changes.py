@@ -56,7 +56,7 @@ def main():
     pr = payload.get('pull_request', {})
     branch = pr.get('head', {}).get('ref', '')
     forced = payload.get('forced', False)
-    count = pr.get('changed_files', 0)
+    count = pr.get('changed_files', 3000) if event == 'pull_request' else 0
     if pr and not branch.startswith("release-please--") and count < 3000:
         files = [file for page in api(f"pulls/{pr['number']}/files?per_page=100", True) for file in page]
         current = api(f"pulls/{pr['number']}")

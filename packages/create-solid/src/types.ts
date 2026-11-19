@@ -5,6 +5,8 @@ type Replacement = readonly [
 ]
 type ApplyEdits = (text: string, edits: readonly Replacement[]) => string
 
+export type LocaleSettings = { locales: string[]; baseLocale: string }
+
 export type Profile = {
   pm: 'bun' | 'pnpm' | 'npm'
   dir: string
@@ -14,6 +16,9 @@ export type Profile = {
   hasIcons?: boolean
   hasFonts?: boolean
   hasDiagnostics?: boolean
+  locales?: readonly string[]
+  baseLocale?: string
+  hasI18n?: boolean
   title?: string
   siteUrl?: string
   shouldInitGit: boolean

@@ -41,12 +41,20 @@ const previous = new Set(
   readFileSync('guide-edits.txt', 'utf8').trimEnd().split('\n')
 )
 const approved = new Set<string>()
-const transitions = guideOwnership(({ line, before, after }) => {
-  if (previous.has(line) || approved.has(line)) return
-  process.stdout.write(
-    `${line}\nBefore\n${before ?? '(absent)'}\nAfter\n${after ?? '(absent)'}\n`
-  )
-})
+function reviewManager(pm: string) {
+  return guideOwnership(({ line, before, after }) => {
+    if (previous.has(pm + ' | ' + line) || approved.has(pm + ' | ' + line))
+      return
+    process.stdout.write(
+      `${line}\nBefore\n${before ?? '(absent)'}\nAfter\n${after ?? '(absent)'}\n`
+    )
+  })
+}
+const managers = {
+  bun: reviewManager('bun'),
+  pnpm: reviewManager('pnpm'),
+  npm: reviewManager('npm')
+}
 const sandbox = mkdtempSync(path.join(tmpdir(), 'solid-guide-approval-'))
 try {
   for (const options of profiles()) {
@@ -59,7 +67,8 @@ try {
       shouldInstall: false
     }
     generate(profile)
-    for (const change of transitions(profile)) approved.add(change)
+    for (const change of managers[profile.pm](profile))
+      approved.add(profile.pm + ' | ' + change)
     rmSync(dir, { recursive: true })
   }
   writeFileSync('guide-edits.txt', `${[...approved].toSorted().join('\n')}\n`)

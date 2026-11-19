@@ -237,10 +237,6 @@ function checkFavicons({
   }
 }
 const guideChanges = guideOwnership()
-const approvedEdits = new Set(
-  readFileSync('guide-edits.txt', 'utf8').trimEnd().split('\n')
-)
-const observedEdits = new Set<string>()
 const modes = ['server', 'static', 'client'] as const
 const publications = modes.flatMap(mode =>
   [true, false].map(hasSeo => ({ mode, hasSeo }))
@@ -250,6 +246,15 @@ export function testProfiles(
   pm: 'bun' | 'npm' | 'pnpm',
   it: typeof registerTest
 ): void {
+  const prefix = pm + ' | '
+  const approvedEdits = new Set(
+    readFileSync('guide-edits.txt', 'utf8')
+      .trimEnd()
+      .split('\n')
+      .filter(line => line.startsWith(prefix))
+      .map(line => line.slice(prefix.length))
+  )
+  const observedEdits = new Set<string>()
   let count = 0
   for (const { mode, hasSeo } of publications) {
     for (const diagnostics of [true, false]) {

@@ -169,7 +169,7 @@ jobs:
   packages:
     name: Packages
     needs: changes
-    if: needs.changes.outputs.packages == 'true'
+    if: needs.changes.outputs.packages == 'true' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -192,7 +192,15 @@ jobs:
 
       # Same command as the publish job in release.yml.
       - name: Validate
+        if: needs.changes.outputs.packages == 'true'
         run: vp run validate
+
+      - name: Check generated profiles without installing applications
+        if: needs.changes.outputs.packages != 'true'
+        run: |
+          vp run build
+          cd packages/create-solid
+          node --test __tests__/feature-profiles.test.ts
 
   # The app suites run in two parallel jobs: the end-to-end tests take about
   # half of the time on their own.

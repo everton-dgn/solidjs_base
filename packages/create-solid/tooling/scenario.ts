@@ -49,7 +49,24 @@ try {
       pm,
       flags: [] as string[]
     })),
-    { name: 'static-with-seo', pm: 'bun', flags: ['--mode', 'static'] },
+    {
+      name: 'static-with-seo',
+      pm: 'bun',
+      flags: ['--mode', 'static', '--seo']
+    },
+    {
+      name: 'minimal-client',
+      pm: 'pnpm',
+      flags: [
+        '--mode',
+        'client',
+        '--no-seo',
+        '--no-theme',
+        '--no-icons',
+        '--no-fonts',
+        '--no-diagnostics'
+      ]
+    },
     {
       name: 'server-without-ui-features',
       pm: 'npm',
@@ -105,11 +122,13 @@ try {
     if (pm === 'pnpm') {
       execFileSync('vp', ['fmt', 'pnpm-workspace.yaml'], { cwd })
     }
-    execFileSync(
-      process.execPath,
-      ['--test', 'tooling/__tests__/patched-dependencies.test.ts'],
-      { cwd, stdio: 'inherit', timeout: 30_000 }
-    )
+    if (!flags.includes('--no-seo')) {
+      execFileSync(
+        process.execPath,
+        ['--test', 'tooling/__tests__/patched-dependencies.test.ts'],
+        { cwd, stdio: 'inherit', timeout: 30_000 }
+      )
+    }
     const tasks = ['check:ci', 'build']
     if (pm === 'bun' || flags.length > 0) tasks.splice(1, 0, 'test')
     if (pm === 'bun' && flags.length === 0) {

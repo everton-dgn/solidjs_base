@@ -217,3 +217,16 @@ void it('reports a local formatter failure after a successful pnpm install', con
   assert.equal(result.status, 1)
   assert.match(result.stderr, /pnpm installed dependencies.*pnpm exec vp fmt/u)
 })
+
+void it('directs a client application with SEO to static hosting before writing files', context => {
+  const dir = path.join(folder(context), 'client')
+  const result = spawnSync(
+    process.execPath,
+    [bin, dir, '--mode', 'client', '--seo', '--no-install', '--no-git'],
+    { encoding: 'utf8' }
+  )
+  const usageError = 2
+  assert.equal(result.status, usageError)
+  assert.match(result.stderr, /--mode static/u)
+  assert.equal(existsSync(dir), false)
+})

@@ -85,6 +85,7 @@ const inventorySchema = object({
   serverOnly: array(string()),
   forbiddenTerms: object({
     fonts: terms,
+    seo: terms,
     diagnostics: terms,
     icons: terms,
     theme: terms
@@ -94,36 +95,53 @@ const inventory = parse(
   inventorySchema,
   JSON.parse(readFileSync('features.json', 'utf8'))
 )
-for (const mode of ['server', 'static'] as const) {
+const modes = ['server', 'static', 'client'] as const
+const publications = modes.flatMap(mode =>
+  [true, false].map(seo => ({ mode, seo }))
+)
+for (const { mode, seo } of publications) {
   for (const pm of ['bun', 'npm', 'pnpm'] as const) {
     for (const diagnostics of [true, false]) {
       for (const { fonts, icons, theme } of uiProfiles()) {
-        void it(`generates ${mode} ${pm} with theme=${theme}, icons=${icons}, fonts=${fonts} and diagnostics=${diagnostics}`, context => {
+        void it(`generates ${mode} ${pm} with seo=${seo}, theme=${theme}, icons=${icons}, fonts=${fonts} and diagnostics=${diagnostics}`, context => {
           const dir = mkdtempSync(path.join(tmpdir(), 'app-profile-'))
           context.after(() => rmSync(dir, { recursive: true, force: true }))
-          generate({
+          const profile = {
             dir,
             pm,
             mode,
+            seo,
             theme,
             icons,
             diagnostics,
             fonts,
             shouldInstall: false,
             shouldInitGit: false
-          })
+          }
+          if (mode === 'client' && seo) {
+            assert.throws(() => generate(profile), /--mode static/u)
+            assert.deepEqual(readdirSync(dir), [])
+            return
+          }
+          generate(profile)
           const read = (file: string) =>
             readFileSync(path.join(dir, file), 'utf8')
           assert.equal(existsSync(path.join(dir, 'fonts.ts')), fonts)
           assert.equal(read('vite.config.ts').includes('fonts: FONTS'), fonts)
-          assert.equal(
-            read('src/Document.tsx').includes('<FontLinks />'),
-            fonts
-          )
+          if (mode !== 'client') {
+            assert.equal(
+              read('src/Document.tsx').includes('<FontLinks />'),
+              fonts
+            )
+          }
           assert.equal(read('docs/ui.md').includes('## Fonts'), fonts)
-          if (mode === 'server') {
+          if (mode === 'server' && seo) {
             assert.equal(read('README.md').includes('Inter subsets'), fonts)
-          } else {
+          } else if (mode === 'client') {
+            assert.match(read('vite.config.ts'), /ssr: false/u)
+            assert.ok(existsSync(path.join(dir, 'index.html')))
+            assert.ok(!existsSync(path.join(dir, 'src/entry-server.tsx')))
+          } else if (mode === 'static') {
             assert.match(read('README.md'), /csp-hashes\.json/u)
             assert.match(read('vite.config.ts'), /output: 'static'/u)
             for (const file of inventory.serverOnly) {
@@ -182,8 +200,16 @@ for (const mode of ['server', 'static'] as const) {
             read('src/theme/tokens/colors.css').includes('light-dark('),
             theme
           )
-          assert.equal(/themeScript/iu.test(read('src/Document.tsx')), theme)
+          assert.equal(
+            existsSync(path.join(dir, 'src/primitives/createSeo/index.ts')),
+            seo
+          )
+          assert.equal(read('package.json').includes('schema-dts'), seo)
+          if (mode !== 'client') {
+            assert.equal(/themeScript/iu.test(read('src/Document.tsx')), theme)
+          }
           checkForbiddenTerms(dir, [
+            ...(seo ? [] : inventory.forbiddenTerms.seo),
             ...(theme ? [] : inventory.forbiddenTerms.theme),
             ...(icons ? [] : inventory.forbiddenTerms.icons),
             ...(fonts ? [] : inventory.forbiddenTerms.fonts),

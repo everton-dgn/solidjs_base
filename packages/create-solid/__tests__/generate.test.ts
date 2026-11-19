@@ -5,13 +5,14 @@ import * as v from 'valibot'
 
 void it('exports the generator without parsing process arguments', async () => {
   const entry = import.meta.resolve('@evertondgn/create-solid')
-  assert.ok(entry.endsWith('/dist/generate.mjs'))
+  assert.ok(entry.endsWith('/dist/index.mjs'))
   const generator: unknown = await import(entry)
   assert.ok(
     typeof generator === 'object' &&
       generator !== null &&
       'generate' in generator
   )
+  assert.deepEqual(Object.keys(generator), ['generate'])
   assert.equal(typeof generator.generate, 'function')
 })
 

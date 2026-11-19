@@ -147,7 +147,7 @@ execFileSync('bun', [
   'build',
   'src/create-solid.ts',
   '--target=node',
-  'src/generate.ts',
+  'src/index.ts',
   '--outdir=dist',
   '--entry-naming=[name].mjs',
   '--splitting'

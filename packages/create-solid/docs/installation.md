@@ -14,6 +14,7 @@ The destination must be empty. Use `--no-git` to omit Git initialization or
 Markdown converter without the Bun and pnpm patch.
 
 For programmatic generation, import `generate` from `@evertondgn/create-solid`.
+TypeScript consumers can also import the `Profile` type from the same entry.
 Pass the destination, installer and the two setup switches explicitly:
 
 ```js

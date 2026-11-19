@@ -8,5 +8,5 @@
     "outDir": "dist",
     "strict": true
   },
-  "include": ["src/generate.ts"]
+  "include": ["src/index.ts"]
 }

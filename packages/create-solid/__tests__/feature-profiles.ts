@@ -175,6 +175,10 @@ function checkGuideContent({ dir, mode, pm, hasSeo }: GuideProfile): void {
     assert.match(read('docs/seo/sitemap.md'), /^### Partitioned sources$/mu)
     assert.match(read('docs/seo/indexes.md'), /llms: false/u)
     assert.match(
+      read('docs/seo/indexes.md'),
+      /Rewrite\s+the\s+notes\s+and\s+the\s+use\s+cases\s+in\s+each\s+derived\s+project/u
+    )
+    assert.match(
       read('docs/seo/publication.md'),
       /## Capacity and measurement/u
     )

@@ -150,11 +150,40 @@ function configureStaticSeoGuides({ edit, write }: StaticGuideOptions): void {
     replacement:
       '## Reading by agents\n\nSee the [Markdown publication guide](seo/markdown.md).\n'
   })
+  const indexes = 'docs/seo/indexes.md'
   edit({
-    file: 'docs/seo/indexes.md',
-    pattern: /^## Endpoints and cache[\s\S]*$/mu,
+    file: indexes,
+    pattern:
+      /`sitemap\.xml\/`, `robots\.txt\/` and `llms\.txt\/` are API routes \(`index\.ts`\)\./u,
     replacement:
-      '## Endpoints and cache\n\nPublish robots.txt, sitemap.xml and both editorial indexes from the build.\nSet the cache policy on the file host. Use a new filename when updating an\nimage served with immutable caching.\n'
+      'The build publishes sitemap.xml, robots.txt and llms.txt as files.'
+  })
+  edit({
+    file: indexes,
+    pattern:
+      /robots uses a one-line re-export of[\s\S]*?sitemap path configured in/u,
+    replacement:
+      'The generated robots.txt includes the AI training groups and sitemap path configured in'
+  })
+  edit({
+    file: indexes,
+    pattern:
+      /In production the process keeps[\s\S]*?each part reads its own batch\./u,
+    replacement:
+      'The build writes the sitemap index and its parts to the public directory.'
+  })
+  edit({
+    file: indexes,
+    pattern:
+      /Successful responses of robots[\s\S]*?the CSP or the cache of the middleware\./u,
+    replacement: 'Set cache headers on the file host.'
+  })
+  edit({
+    file: indexes,
+    pattern:
+      /with an immutable one-year cache set in\nthe `publicAssets` of `\/images\/` in `vite\.config\.ts`\. Because that cache does\nnot revalidate,/u,
+    replacement:
+      'served with the cache headers of the file host. When using immutable caching,'
   })
   edit({
     file: 'docs/seo/publication.md',

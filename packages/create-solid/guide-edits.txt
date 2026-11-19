@@ -211,8 +211,8 @@ bun | configureSeo | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S7
 bun | configureSeo | docs/seo.md | (section order) | AlBCescQLLkplxM5-K8Eb9xcBjUVGhA0kEPVWJfg1cY | ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru -> (absent)
 bun | configureSeo | docs/seo.md | (section order) | TvzAwfn5qq15vbFq2xtANhqlbf6BprvYuEb7TGWd0Mw | ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru -> (absent)
 bun | configureSeo | docs/seo/indexes.md | # Editorial indexes, endpoints and cache | kcrr6mgrmlztzkaUBkTIjmEnREFUZ6Ld-weDqXvcFuo | # Editorial indexes, endpoints and cache -> (absent)
-bun | configureSeo | docs/seo/indexes.md | ## Endpoints and cache | NJlpxXX3vDFWcKQqRLK0G9-k6JaA7DiZRYpRilSJByo | ## Endpoints and cache -> (absent)
 bun | configureSeo | docs/seo/indexes.md | ## Endpoints and cache | U_e73UhIZgPsRUYW28kxvQb4EPmXpWdChs0bhnua-oA | ## Endpoints and cache -> (absent)
+bun | configureSeo | docs/seo/indexes.md | ## Endpoints and cache | hw4weMCXg3V2IxeYWgbkoEztFXRWRiOi8urQeYNHzMY | ## Endpoints and cache -> (absent)
 bun | configureSeo | docs/seo/indexes.md | ## Selection for llms.txt | njR-DoxE4hnnijsyaevY7B7QBa-PCkJdqYX5tcBIEPo | ## Selection for llms.txt -> (absent)
 bun | configureSeo | docs/seo/indexes.md | (section order) | hIYnJziAcDAuOrbZLMIT8JYkTM87UAZCNwKXjtrHu_E | ["docs/seo/indexes.md | # Editorial indexes, endpoints and cache","docs/seo/indexes.md | ## Sele -> (absent)
 bun | configureSeo | docs/seo/markdown.md | # Markdown and reading by agents | 45cZoM-2nX93FGNtO1nxNMuPyozmjSTGl55HjCND4Zg | # Markdown and reading by agents -> (absent)
@@ -312,7 +312,7 @@ bun | configureStatic | docs/seo.md | ## Route metadata | 5tb-SvqzJqVxQGapyZHYvQ
 bun | configureStatic | docs/seo.md | ### Platform artifacts and routing | mBdQfyaAeiJBsKwCChHJ-5Oz92M7oNCdi6xieZBSeUc | ### Platform artifacts and routing -> (absent)
 bun | configureStatic | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S7g80ybtigujCumXD5te-MGb-j3XGY | ### llms-full.txt aggregate -> (absent)
 bun | configureStatic | docs/seo.md | (section order) | rxPQzFCO1VWd-OOlk4Wf87jWTYq6K5nbQ_wAc_JCdpg | ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru -> ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru
-bun | configureStatic | docs/seo/indexes.md | ## Endpoints and cache | J6-8AKjp5aQXdwcS7VMlQtXSgzaXqBsDU9KKfKvlVds | `sitemap.xml/`, `robots.txt/` and `llms.txt/` are API routes (`index.ts`). The -> Publish robots.txt, sitemap.xml and both editorial indexes from the build. Set
+bun | configureStatic | docs/seo/indexes.md | ## Endpoints and cache | uVWQSqtJEyhkNWpc0mkVp5KUaafSGqQJZ19RWtP4KEY | `sitemap.xml/`, `robots.txt/` and `llms.txt/` are API routes (`index.ts`). The -> The build publishes sitemap.xml, robots.txt and llms.txt as files. The sitemap
 bun | configureStatic | docs/seo/markdown.md | # Markdown and reading by agents | 45cZoM-2nX93FGNtO1nxNMuPyozmjSTGl55HjCND4Zg | # Markdown and reading by agents -> (absent)
 bun | configureStatic | docs/seo/markdown.md | # Markdown publication | ojZS-Tp39ymwNKfODMk0wK8yM5yBA51Mm2DveThzfTI | (absent) -> # Markdown publication
 bun | configureStatic | docs/seo/markdown.md | ## Package binding and optional converter patch | YNZuGckavWQvkiR50yWizExM6tHTUIR3m9wsoXAFRdg | ## Package binding and optional converter patch -> (absent)
@@ -622,8 +622,8 @@ npm | configureSeo | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S7
 npm | configureSeo | docs/seo.md | (section order) | AlBCescQLLkplxM5-K8Eb9xcBjUVGhA0kEPVWJfg1cY | ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru -> (absent)
 npm | configureSeo | docs/seo.md | (section order) | TvzAwfn5qq15vbFq2xtANhqlbf6BprvYuEb7TGWd0Mw | ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru -> (absent)
 npm | configureSeo | docs/seo/indexes.md | # Editorial indexes, endpoints and cache | kcrr6mgrmlztzkaUBkTIjmEnREFUZ6Ld-weDqXvcFuo | # Editorial indexes, endpoints and cache -> (absent)
-npm | configureSeo | docs/seo/indexes.md | ## Endpoints and cache | NJlpxXX3vDFWcKQqRLK0G9-k6JaA7DiZRYpRilSJByo | ## Endpoints and cache -> (absent)
 npm | configureSeo | docs/seo/indexes.md | ## Endpoints and cache | U_e73UhIZgPsRUYW28kxvQb4EPmXpWdChs0bhnua-oA | ## Endpoints and cache -> (absent)
+npm | configureSeo | docs/seo/indexes.md | ## Endpoints and cache | hw4weMCXg3V2IxeYWgbkoEztFXRWRiOi8urQeYNHzMY | ## Endpoints and cache -> (absent)
 npm | configureSeo | docs/seo/indexes.md | ## Selection for llms.txt | njR-DoxE4hnnijsyaevY7B7QBa-PCkJdqYX5tcBIEPo | ## Selection for llms.txt -> (absent)
 npm | configureSeo | docs/seo/indexes.md | (section order) | hIYnJziAcDAuOrbZLMIT8JYkTM87UAZCNwKXjtrHu_E | ["docs/seo/indexes.md | # Editorial indexes, endpoints and cache","docs/seo/indexes.md | ## Sele -> (absent)
 npm | configureSeo | docs/seo/markdown.md | # Markdown and reading by agents | 45cZoM-2nX93FGNtO1nxNMuPyozmjSTGl55HjCND4Zg | # Markdown and reading by agents -> (absent)
@@ -723,7 +723,7 @@ npm | configureStatic | docs/seo.md | ## Route metadata | 5tb-SvqzJqVxQGapyZHYvQ
 npm | configureStatic | docs/seo.md | ### Platform artifacts and routing | mBdQfyaAeiJBsKwCChHJ-5Oz92M7oNCdi6xieZBSeUc | ### Platform artifacts and routing -> (absent)
 npm | configureStatic | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S7g80ybtigujCumXD5te-MGb-j3XGY | ### llms-full.txt aggregate -> (absent)
 npm | configureStatic | docs/seo.md | (section order) | rxPQzFCO1VWd-OOlk4Wf87jWTYq6K5nbQ_wAc_JCdpg | ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru -> ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru
-npm | configureStatic | docs/seo/indexes.md | ## Endpoints and cache | J6-8AKjp5aQXdwcS7VMlQtXSgzaXqBsDU9KKfKvlVds | `sitemap.xml/`, `robots.txt/` and `llms.txt/` are API routes (`index.ts`). The -> Publish robots.txt, sitemap.xml and both editorial indexes from the build. Set
+npm | configureStatic | docs/seo/indexes.md | ## Endpoints and cache | uVWQSqtJEyhkNWpc0mkVp5KUaafSGqQJZ19RWtP4KEY | `sitemap.xml/`, `robots.txt/` and `llms.txt/` are API routes (`index.ts`). The -> The build publishes sitemap.xml, robots.txt and llms.txt as files. The sitemap
 npm | configureStatic | docs/seo/markdown.md | # Markdown and reading by agents | 45cZoM-2nX93FGNtO1nxNMuPyozmjSTGl55HjCND4Zg | # Markdown and reading by agents -> (absent)
 npm | configureStatic | docs/seo/markdown.md | # Markdown publication | ojZS-Tp39ymwNKfODMk0wK8yM5yBA51Mm2DveThzfTI | (absent) -> # Markdown publication
 npm | configureStatic | docs/seo/markdown.md | ## Package binding and optional converter patch | YNZuGckavWQvkiR50yWizExM6tHTUIR3m9wsoXAFRdg | ## Package binding and optional converter patch -> (absent)
@@ -1033,8 +1033,8 @@ pnpm | configureSeo | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S
 pnpm | configureSeo | docs/seo.md | (section order) | AlBCescQLLkplxM5-K8Eb9xcBjUVGhA0kEPVWJfg1cY | ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru -> (absent)
 pnpm | configureSeo | docs/seo.md | (section order) | TvzAwfn5qq15vbFq2xtANhqlbf6BprvYuEb7TGWd0Mw | ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru -> (absent)
 pnpm | configureSeo | docs/seo/indexes.md | # Editorial indexes, endpoints and cache | kcrr6mgrmlztzkaUBkTIjmEnREFUZ6Ld-weDqXvcFuo | # Editorial indexes, endpoints and cache -> (absent)
-pnpm | configureSeo | docs/seo/indexes.md | ## Endpoints and cache | NJlpxXX3vDFWcKQqRLK0G9-k6JaA7DiZRYpRilSJByo | ## Endpoints and cache -> (absent)
 pnpm | configureSeo | docs/seo/indexes.md | ## Endpoints and cache | U_e73UhIZgPsRUYW28kxvQb4EPmXpWdChs0bhnua-oA | ## Endpoints and cache -> (absent)
+pnpm | configureSeo | docs/seo/indexes.md | ## Endpoints and cache | hw4weMCXg3V2IxeYWgbkoEztFXRWRiOi8urQeYNHzMY | ## Endpoints and cache -> (absent)
 pnpm | configureSeo | docs/seo/indexes.md | ## Selection for llms.txt | njR-DoxE4hnnijsyaevY7B7QBa-PCkJdqYX5tcBIEPo | ## Selection for llms.txt -> (absent)
 pnpm | configureSeo | docs/seo/indexes.md | (section order) | hIYnJziAcDAuOrbZLMIT8JYkTM87UAZCNwKXjtrHu_E | ["docs/seo/indexes.md | # Editorial indexes, endpoints and cache","docs/seo/indexes.md | ## Sele -> (absent)
 pnpm | configureSeo | docs/seo/markdown.md | # Markdown and reading by agents | 45cZoM-2nX93FGNtO1nxNMuPyozmjSTGl55HjCND4Zg | # Markdown and reading by agents -> (absent)
@@ -1134,7 +1134,7 @@ pnpm | configureStatic | docs/seo.md | ## Route metadata | 5tb-SvqzJqVxQGapyZHYv
 pnpm | configureStatic | docs/seo.md | ### Platform artifacts and routing | mBdQfyaAeiJBsKwCChHJ-5Oz92M7oNCdi6xieZBSeUc | ### Platform artifacts and routing -> (absent)
 pnpm | configureStatic | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S7g80ybtigujCumXD5te-MGb-j3XGY | ### llms-full.txt aggregate -> (absent)
 pnpm | configureStatic | docs/seo.md | (section order) | rxPQzFCO1VWd-OOlk4Wf87jWTYq6K5nbQ_wAc_JCdpg | ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru -> ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru
-pnpm | configureStatic | docs/seo/indexes.md | ## Endpoints and cache | J6-8AKjp5aQXdwcS7VMlQtXSgzaXqBsDU9KKfKvlVds | `sitemap.xml/`, `robots.txt/` and `llms.txt/` are API routes (`index.ts`). The -> Publish robots.txt, sitemap.xml and both editorial indexes from the build. Set
+pnpm | configureStatic | docs/seo/indexes.md | ## Endpoints and cache | uVWQSqtJEyhkNWpc0mkVp5KUaafSGqQJZ19RWtP4KEY | `sitemap.xml/`, `robots.txt/` and `llms.txt/` are API routes (`index.ts`). The -> The build publishes sitemap.xml, robots.txt and llms.txt as files. The sitemap
 pnpm | configureStatic | docs/seo/markdown.md | # Markdown and reading by agents | 45cZoM-2nX93FGNtO1nxNMuPyozmjSTGl55HjCND4Zg | # Markdown and reading by agents -> (absent)
 pnpm | configureStatic | docs/seo/markdown.md | # Markdown publication | ojZS-Tp39ymwNKfODMk0wK8yM5yBA51Mm2DveThzfTI | (absent) -> # Markdown publication
 pnpm | configureStatic | docs/seo/markdown.md | ## Package binding and optional converter patch | YNZuGckavWQvkiR50yWizExM6tHTUIR3m9wsoXAFRdg | ## Package binding and optional converter patch -> (absent)

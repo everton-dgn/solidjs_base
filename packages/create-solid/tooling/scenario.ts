@@ -125,7 +125,11 @@ try {
       `${name} install: ${((taskStart - installStart) / seconds).toFixed(precision)}s\n`
     )
     if (pm === 'pnpm') {
-      execFileSync(path.join(cwd, 'node_modules/.bin/vp'), ['fmt', 'pnpm-workspace.yaml'], { cwd })
+      execFileSync(
+        path.join(cwd, 'node_modules/.bin/vp'),
+        ['fmt', 'pnpm-workspace.yaml'],
+        { cwd }
+      )
     }
     if (!flags.includes('--no-seo')) {
       execFileSync(

@@ -247,14 +247,12 @@ export function testProfiles(
   it: typeof registerTest
 ): void {
   const prefix = `${pm} | `
+  const entries = readFileSync('guide-edits.txt', 'utf8').trimEnd().split('\n')
+  for (const entry of entries) assert.match(entry, /^(?:bun|npm|pnpm) \| /u)
   const approvedEdits = new Set(
-    readFileSync('guide-edits.txt', 'utf8')
-      .trimEnd()
-      .split('\n')
-      .filter(
-        line => !/^(?:bun|npm|pnpm) \| /u.test(line) || line.startsWith(prefix)
-      )
-      .map(line => (line.startsWith(prefix) ? line.slice(prefix.length) : line))
+    entries
+      .filter(line => line.startsWith(prefix))
+      .map(line => line.slice(prefix.length))
   )
   const observedEdits = new Set<string>()
   let count = 0

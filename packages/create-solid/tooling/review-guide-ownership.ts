@@ -40,17 +40,11 @@ function* profiles() {
 const previous = new Set(
   readFileSync('guide-edits.txt', 'utf8').trimEnd().split('\n')
 )
-const approved = new Map<string, Set<string>>()
+const approved = new Set<string>()
 function reviewManager(pm: string) {
   return guideOwnership(({ line, before, after }) => {
     const entry = `${pm} | ${line}`
-    if (
-      previous.has(line) ||
-      previous.has(entry) ||
-      approved.get(line)?.has(pm)
-    ) {
-      return
-    }
+    if (previous.has(entry) || approved.has(entry)) return
     process.stdout.write(
       `${line}\nBefore\n${before ?? '(absent)'}\nAfter\n${after ?? '(absent)'}\n`
     )
@@ -74,18 +68,11 @@ try {
     }
     generate(profile)
     for (const change of managers[profile.pm](profile)) {
-      const seen = approved.get(change) ?? new Set<string>()
-      seen.add(profile.pm)
-      approved.set(change, seen)
+      approved.add(`${profile.pm} | ${change}`)
     }
     rmSync(dir, { recursive: true })
   }
-  const entries = [...approved].flatMap(([line, seen]) =>
-    seen.size === Object.keys(managers).length
-      ? [line]
-      : [...seen].map(pm => `${pm} | ${line}`)
-  )
-  writeFileSync('guide-edits.txt', `${entries.toSorted().join('\n')}\n`)
+  writeFileSync('guide-edits.txt', `${[...approved].toSorted().join('\n')}\n`)
 } finally {
   rmSync(sandbox, { recursive: true, force: true })
 }

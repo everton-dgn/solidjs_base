@@ -26,15 +26,6 @@ new file mode 100644
 diff --git a/source/AGENTS.md b/example/AGENTS.md
 --- a/source/AGENTS.md
 +++ b/example/AGENTS.md
-@@ -1,6 +1,6 @@
- <!--SOLID BASE START-->
--This application uses the Solid Base packages. Before changing code, run `vp run doctor`.
--If the Vite config fails to load, run `node --input-type=module -e "import '@evertondgn/solid-tooling/cli'" -- solid-tooling doctor --root .`.
-+This application uses the Solid Base packages. Before changing code, run the doctor command below.
-+Run `node --input-type=module -e "import '@evertondgn/solid-tooling/cli'" -- solid-tooling doctor --root .`.
- The report lists installed versions, skills to read, missing dependencies and validation commands.
- <!--SOLID BASE END-->
- <!--VITE PLUS START-->
 @@ -98,8 +98,7 @@ release. Add a tool name to select part of the graph. For example, run
  ## Dependency documentation
  
@@ -280,23 +271,16 @@ diff --git a/source/docs/architecture.md b/example/docs/architecture.md
 diff --git a/source/docs/development.md b/example/docs/development.md
 --- a/source/docs/development.md
 +++ b/example/docs/development.md
-@@ -34,11 +34,10 @@ Test dependencies aligned with the tooling package; Nitro comes from the tooling
- package. Keep Paraglide, message-format and the Solid libraries in the
- application, plus the root Vite/Vitest overrides.
- 
--Use `vp run tsrs`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
--`vp run commitlint` for the package's executables. Scripts such as `test:e2e`,
--`test:browser:install` and `dead-code:fix` use these tasks. The standalone
--command pattern is documented in the
+@@ -38,7 +38,7 @@ Use `vp run tsrs`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
+ `vp run commitlint` for the package's executables. Scripts such as `test:e2e`,
+ `test:browser:install` and `dead-code:fix` use these tasks. The standalone
+ command pattern is documented in the
 -[tooling guide](../../../packages/solid-tooling/docs/limits.md#packaged-commands-and-types).
-+The tooling package provides the type checker, Knip, Playwright and Git hook
-+tools. Scripts such as `test:e2e`, `test:browser:install` and `dead-code:fix`
-+use these tasks. The standalone command pattern is documented in the
 +[tooling guide](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/limits.md#packaged-commands-and-types).
  The prepare script controls hook installation.
  
  ## Environment and preview
-@@ -54,7 +53,7 @@ generated `solid-env.d.ts` types cover the virtual modules, not
+@@ -54,7 +54,7 @@ generated `solid-env.d.ts` types cover the virtual modules, not
  `import.meta.env`; keep `src/@types/env.d.ts` for the application's
  `PUBLICATION_BUILD_ID` declaration. `SITE.url` imports the runtime SEO origin.
  See the
@@ -305,7 +289,7 @@ diff --git a/source/docs/development.md b/example/docs/development.md
  
  To install and start the project, follow [running it](../README.md#running-it).
  
-@@ -253,18 +252,18 @@ record the whole environment.
+@@ -253,18 +253,18 @@ record the whole environment.
  
  The automatic tracking records the files the type-aware lint reads, the types in
  `node_modules` included. `typecheck-node` declares its inputs explicitly,
@@ -336,7 +320,7 @@ diff --git a/source/docs/development.md b/example/docs/development.md
  
  The cache keeps `typeAware` and `typeCheck` on and tells in the output when it
  replays an earlier result. To run everything again, use `vp run --no-cache lint`
-@@ -281,194 +280,15 @@ as a document for scripts. To find out why a task missed the cache, run it with
+@@ -281,194 +281,15 @@ as a document for scripts. To find out why a task missed the cache, run it with
  included; `-vv` adds the unchanged inputs and the outputs a hit restores. The
  plan does not replace the invalidation check described above.
  
@@ -535,12 +519,7 @@ diff --git a/source/docs/development.md b/example/docs/development.md
  
  ## Maintenance conventions
  
-@@ -492,12 +312,12 @@ The generated application installs Lefthook through its prepare script. See the
-   `test-d.ts` tests included, are checked by `vp run lint` and
-   `vp run check:ci`, without a separate type check. That check only reports the
-   files the lint reads: ignored files and diagnostics without a file stay out.
--  `vp run tsrs --noEmit` checks the whole program.
-+  The tsrs executable with `--noEmit` checks the whole program.
+@@ -496,8 +317,8 @@ The generated application installs Lefthook through its prepare script. See the
  - The CI, the pre-push and `vp run validate` combine `check:ci` with
    `typecheck:node`, which runs `tsrs` with `tsconfig.node.json` and checks the
    tooling without the DOM types.

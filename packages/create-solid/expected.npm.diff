@@ -2225,6 +2225,72 @@ diff --git a/source/src/components/molecules/SiteContent/__tests__/SiteContent.d
      ])
    })
  })
+diff --git a/source/src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx b/example/src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx
+--- a/source/src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx
++++ b/example/src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx
+@@ -32,7 +32,7 @@ describe('failure metadata', () => {
+       { hasProviders: false }
+     )
+     await expect.poll(() => readMeta('robots')).toBe('noindex')
+-    expect(document.title).toBe(m.errorFallback_runtimeTitle())
++    expect(document.title).toBe(m.errorFallback_runtimePageTitle())
+     expect(readMeta('description')).toBe(m.errorFallback_runtimeDescription())
+     expect(host.querySelector('h1')).toHaveTextContent(
+       m.errorFallback_runtimeTitle()
+diff --git a/source/src/components/organisms/ErrorFallback/i18n/en.json b/example/src/components/organisms/ErrorFallback/i18n/en.json
+--- a/source/src/components/organisms/ErrorFallback/i18n/en.json
++++ b/example/src/components/organisms/ErrorFallback/i18n/en.json
+@@ -5,5 +5,6 @@
+   "errorFallback_badge": "Error!",
+   "errorFallback_runtimeTitle": "Something went wrong!",
+   "errorFallback_runtimeDescription": "We could not complete your request. Please try again.",
+-  "errorFallback_reload": "Reload page"
++  "errorFallback_reload": "Reload page",
++  "errorFallback_runtimePageTitle": "Something went wrong! | SolidJS Boilerplate"
+ }
+diff --git a/source/src/components/organisms/ErrorFallback/i18n/es.json b/example/src/components/organisms/ErrorFallback/i18n/es.json
+--- a/source/src/components/organisms/ErrorFallback/i18n/es.json
++++ b/example/src/components/organisms/ErrorFallback/i18n/es.json
+@@ -5,5 +5,6 @@
+   "errorFallback_badge": "¡Error!",
+   "errorFallback_runtimeTitle": "¡Algo salió mal!",
+   "errorFallback_runtimeDescription": "No se pudo completar tu solicitud. Inténtalo de nuevo.",
+-  "errorFallback_reload": "Recargar página"
++  "errorFallback_reload": "Recargar página",
++  "errorFallback_runtimePageTitle": "¡Algo salió mal! | SolidJS Boilerplate"
+ }
+diff --git a/source/src/components/organisms/ErrorFallback/i18n/pt.json b/example/src/components/organisms/ErrorFallback/i18n/pt.json
+--- a/source/src/components/organisms/ErrorFallback/i18n/pt.json
++++ b/example/src/components/organisms/ErrorFallback/i18n/pt.json
+@@ -5,5 +5,6 @@
+   "errorFallback_badge": "Erro!",
+   "errorFallback_runtimeTitle": "Algo deu errado!",
+   "errorFallback_runtimeDescription": "Não foi possível concluir sua solicitação. Tente novamente.",
+-  "errorFallback_reload": "Recarregar página"
++  "errorFallback_reload": "Recarregar página",
++  "errorFallback_runtimePageTitle": "Algo deu errado! | SolidJS Boilerplate"
+ }
+diff --git a/source/src/components/organisms/ErrorFallback/index.tsx b/example/src/components/organisms/ErrorFallback/index.tsx
+--- a/source/src/components/organisms/ErrorFallback/index.tsx
++++ b/example/src/components/organisms/ErrorFallback/index.tsx
+@@ -1,3 +1,4 @@
++import { m } from '@paraglide/messages.js'
+ import { httpStatus, useHead } from '@solidjs/web'
+ import { createUniqueId, dynamicComponent, untrack } from 'solid-js'
+ 
+@@ -31,10 +32,11 @@ export function ErrorFallback(props: ErrorFallbackProps) {
+   const content = () => ERROR_FALLBACK_CONTENT[props.kind]
+   const Icon = dynamicComponent(() => content().icon)
+ 
++  const pageTitle = m.errorFallback_runtimePageTitle
+   useHead(() =>
+     props.kind === 'runtime'
+       ? [
+-          { tag: 'title', props: { children: content().title } },
++          { tag: 'title', props: { children: pageTitle() } },
+           {
+             tag: 'meta',
+             props: { name: 'description', content: content().description }
 diff --git a/source/src/components/organisms/Topbar/index.tsx b/example/src/components/organisms/Topbar/index.tsx
 --- a/source/src/components/organisms/Topbar/index.tsx
 +++ b/example/src/components/organisms/Topbar/index.tsx
@@ -2325,7 +2391,7 @@ diff --git a/source/src/constants/site/title.ts b/example/src/constants/site/tit
 @@ -1,3 +1,5 @@
  export const SITE = {
 -  title: 'SolidJS Boilerplate'
-+  get title() {
++  get title(): string {
 +    return 'SolidJS Boilerplate'
 +  }
  }
@@ -2349,6 +2415,33 @@ diff --git a/source/src/primitives/createSeo/index.ts b/example/src/primitives/c
        localeTagOverrides: LOCALE_TAG_OVERRIDES,
        markdownHref: (
          pathname: string,
+diff --git a/source/src/routes/(base)/[...404]/i18n/en.json b/example/src/routes/(base)/[...404]/i18n/en.json
+--- a/source/src/routes/(base)/[...404]/i18n/en.json
++++ b/example/src/routes/(base)/[...404]/i18n/en.json
+@@ -1,4 +1,4 @@
+ {
+-  "notFound_title": "Page not found",
++  "notFound_title": "Page not found | SolidJS Boilerplate",
+   "notFound_description": "The requested page was not found."
+ }
+diff --git a/source/src/routes/(base)/[...404]/i18n/es.json b/example/src/routes/(base)/[...404]/i18n/es.json
+--- a/source/src/routes/(base)/[...404]/i18n/es.json
++++ b/example/src/routes/(base)/[...404]/i18n/es.json
+@@ -1,4 +1,4 @@
+ {
+-  "notFound_title": "Página no encontrada",
++  "notFound_title": "Página no encontrada | SolidJS Boilerplate",
+   "notFound_description": "No se encontró la página solicitada."
+ }
+diff --git a/source/src/routes/(base)/[...404]/i18n/pt.json b/example/src/routes/(base)/[...404]/i18n/pt.json
+--- a/source/src/routes/(base)/[...404]/i18n/pt.json
++++ b/example/src/routes/(base)/[...404]/i18n/pt.json
+@@ -1,4 +1,4 @@
+ {
+-  "notFound_title": "Página não encontrada",
++  "notFound_title": "Página não encontrada | SolidJS Boilerplate",
+   "notFound_description": "A página solicitada não foi encontrada."
+ }
 diff --git a/source/src/routes/(base)/about/i18n/en.json b/example/src/routes/(base)/about/i18n/en.json
 --- a/source/src/routes/(base)/about/i18n/en.json
 +++ b/example/src/routes/(base)/about/i18n/en.json
@@ -2427,7 +2520,7 @@ diff --git a/source/src/routes/(base)/about/index.tsx b/example/src/routes/(base
 diff --git a/source/src/routes/(base)/contact/i18n/en.json b/example/src/routes/(base)/contact/i18n/en.json
 --- a/source/src/routes/(base)/contact/i18n/en.json
 +++ b/example/src/routes/(base)/contact/i18n/en.json
-@@ -1,11 +1,11 @@
+@@ -1,11 +1,12 @@
  {
    "contact_title": "Contact",
 -  "contact_description": "Find the repository and public maintainer channels for SolidJS Boilerplate.",
@@ -2439,14 +2532,16 @@ diff --git a/source/src/routes/(base)/contact/i18n/en.json b/example/src/routes/
 +  "contact_issues": "When reporting a problem, describe what happened and the steps needed to reproduce it. Leave out private information.",
    "contact_maintainerTitle": "Maintainer",
 -  "contact_maintainer": "Éverton Toffanetto maintains this project. His public GitHub profile is linked on this page. Issues are public and can be read by anyone, so choose what to include with that visibility in mind. The project does not publish a response deadline or offer a contracted support channel through this demonstration.",
-+  "contact_maintainer": "Public contact details can be added here.",
++  "contact_maintainer": "Use the contact details listed on this page when they are available. Describe the page you visited, the language you selected and the result you expected. If you include an example, use fictional data and remove personal details from any screenshots. Keep a copy of the report so that you can add information if the problem happens again.",
    "contact_issuesLabel": "Project issues",
-   "contact_maintainerLabel": "Maintainer profile"
+-  "contact_maintainerLabel": "Maintainer profile"
++  "contact_maintainerLabel": "Maintainer profile",
++  "contact_pageTitle": "Contact | SolidJS Boilerplate"
  }
 diff --git a/source/src/routes/(base)/contact/i18n/es.json b/example/src/routes/(base)/contact/i18n/es.json
 --- a/source/src/routes/(base)/contact/i18n/es.json
 +++ b/example/src/routes/(base)/contact/i18n/es.json
-@@ -1,11 +1,11 @@
+@@ -1,11 +1,12 @@
  {
    "contact_title": "Contacto",
 -  "contact_description": "Encuentra el repositorio y los canales públicos del responsable de SolidJS Boilerplate.",
@@ -2458,14 +2553,16 @@ diff --git a/source/src/routes/(base)/contact/i18n/es.json b/example/src/routes/
 +  "contact_issues": "Al informar de un problema, describe qué pasó y cómo reproducirlo. Omite los datos privados.",
    "contact_maintainerTitle": "Responsable del proyecto",
 -  "contact_maintainer": "Éverton Toffanetto mantiene este proyecto. Su perfil público en GitHub aparece en los enlaces de esta página. Las issues son públicas y cualquier persona puede leerlas; elige el contenido del mensaje teniendo en cuenta esa visibilidad. El proyecto no publica un plazo de respuesta ni ofrece un canal de soporte contratado en esta demostración.",
-+  "contact_maintainer": "Aquí se pueden añadir los datos públicos de contacto.",
++  "contact_maintainer": "Utiliza los datos de contacto de esta página cuando estén disponibles. Indica qué página visitaste, qué idioma elegiste y qué resultado esperabas. Si incluyes un ejemplo, utiliza datos ficticios y elimina la información personal de las capturas de pantalla. Guarda una copia del informe para añadir detalles si el problema vuelve a ocurrir.",
    "contact_issuesLabel": "Issues del proyecto",
-   "contact_maintainerLabel": "Perfil del responsable"
+-  "contact_maintainerLabel": "Perfil del responsable"
++  "contact_maintainerLabel": "Perfil del responsable",
++  "contact_pageTitle": "Contacto | SolidJS Boilerplate"
  }
 diff --git a/source/src/routes/(base)/contact/i18n/pt.json b/example/src/routes/(base)/contact/i18n/pt.json
 --- a/source/src/routes/(base)/contact/i18n/pt.json
 +++ b/example/src/routes/(base)/contact/i18n/pt.json
-@@ -1,11 +1,11 @@
+@@ -1,11 +1,12 @@
  {
    "contact_title": "Contato",
 -  "contact_description": "Encontre o repositório e os canais públicos do mantenedor do SolidJS Boilerplate.",
@@ -2477,9 +2574,11 @@ diff --git a/source/src/routes/(base)/contact/i18n/pt.json b/example/src/routes/
 +  "contact_issues": "Ao relatar um problema, descreva o que aconteceu e os passos para reproduzi-lo. Omita os dados privados.",
    "contact_maintainerTitle": "Mantenedor",
 -  "contact_maintainer": "Éverton Toffanetto mantém este projeto. Seu perfil público no GitHub está disponível nos links desta página. As issues são públicas e podem ser lidas por qualquer pessoa; escolha o conteúdo da mensagem considerando essa visibilidade. O projeto não publica um prazo de resposta nem oferece um canal de suporte contratado nesta demonstração.",
-+  "contact_maintainer": "Os dados públicos de contato podem ser incluídos aqui.",
++  "contact_maintainer": "Use os dados de contato desta página quando estiverem disponíveis. Informe a página visitada, o idioma escolhido e o resultado esperado. Se incluir um exemplo, use dados fictícios e remova informações pessoais das capturas de tela. Guarde uma cópia do relato para acrescentar detalhes caso o problema volte a ocorrer.",
    "contact_issuesLabel": "Issues do projeto",
-   "contact_maintainerLabel": "Perfil do mantenedor"
+-  "contact_maintainerLabel": "Perfil do mantenedor"
++  "contact_maintainerLabel": "Perfil do mantenedor",
++  "contact_pageTitle": "Contato | SolidJS Boilerplate"
  }
 diff --git a/source/src/routes/(base)/contact/index.tsx b/example/src/routes/(base)/contact/index.tsx
 --- a/source/src/routes/(base)/contact/index.tsx
@@ -2504,6 +2603,73 @@ diff --git a/source/src/routes/(base)/contact/index.tsx b/example/src/routes/(ba
      ]
    }
  } satisfies SitePage
+diff --git a/source/src/routes/(base)/contact/seo.ts b/example/src/routes/(base)/contact/seo.ts
+--- a/source/src/routes/(base)/contact/seo.ts
++++ b/example/src/routes/(base)/contact/seo.ts
+@@ -2,6 +2,6 @@ import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
+ import { m } from '@paraglide/messages.js'
+ 
+ export const seo = {
+-  title: m.contact_title,
++  title: m.contact_pageTitle,
+   description: m.contact_description
+ } satisfies SeoRouteInfo
+diff --git a/source/src/routes/(base)/privacy/i18n/en.json b/example/src/routes/(base)/privacy/i18n/en.json
+--- a/source/src/routes/(base)/privacy/i18n/en.json
++++ b/example/src/routes/(base)/privacy/i18n/en.json
+@@ -5,5 +5,6 @@
+   "privacy_preferencesTitle": "Browser preferences",
+   "privacy_preferences": "The interface uses cookies to remember the language and theme preference. The language also appears in the page address, such as /pt, /en or /es. These preferences keep the presentation consistent between visits. You can delete or block cookies through your browser settings; a choice may then stop persisting on your next visit.",
+   "privacy_hostingTitle": "Accessing the site and external links",
+-  "privacy_hosting": "When you access this site, your browser sends technical information needed for the HTTP connection to the hosting infrastructure. This notice does not establish a retention period for that infrastructure's logs. Links to GitHub and other services lead to websites with their own policies. Information posted in a public issue is available to other people on that service."
++  "privacy_hosting": "When you access this site, your browser sends technical information needed for the HTTP connection to the hosting infrastructure. This notice does not establish a retention period for that infrastructure's logs. Links to GitHub and other services lead to websites with their own policies. Information posted in a public issue is available to other people on that service.",
++  "privacy_pageTitle": "Privacy | SolidJS Boilerplate"
+ }
+diff --git a/source/src/routes/(base)/privacy/i18n/es.json b/example/src/routes/(base)/privacy/i18n/es.json
+--- a/source/src/routes/(base)/privacy/i18n/es.json
++++ b/example/src/routes/(base)/privacy/i18n/es.json
+@@ -5,5 +5,6 @@
+   "privacy_preferencesTitle": "Preferencias en el navegador",
+   "privacy_preferences": "La interfaz usa cookies para recordar el idioma y la preferencia de tema. El idioma también aparece en la dirección de la página, como /pt, /en o /es. Estas preferencias mantienen la presentación entre visitas. Puedes borrar o bloquear las cookies en los ajustes del navegador; en ese caso, una elección puede dejar de guardarse para la siguiente visita.",
+   "privacy_hostingTitle": "Acceso al sitio y enlaces externos",
+-  "privacy_hosting": "Al acceder al sitio, tu navegador envía la información técnica necesaria para la conexión HTTP a la infraestructura de alojamiento. Este aviso no establece un plazo de conservación para los registros de esa infraestructura. Los enlaces a GitHub y otros servicios llevan a sitios con políticas propias. Los datos publicados en una issue pública quedan disponibles para otras personas en ese servicio."
++  "privacy_hosting": "Al acceder al sitio, tu navegador envía la información técnica necesaria para la conexión HTTP a la infraestructura de alojamiento. Este aviso no establece un plazo de conservación para los registros de esa infraestructura. Los enlaces a GitHub y otros servicios llevan a sitios con políticas propias. Los datos publicados en una issue pública quedan disponibles para otras personas en ese servicio.",
++  "privacy_pageTitle": "Privacidad | SolidJS Boilerplate"
+ }
+diff --git a/source/src/routes/(base)/privacy/i18n/pt.json b/example/src/routes/(base)/privacy/i18n/pt.json
+--- a/source/src/routes/(base)/privacy/i18n/pt.json
++++ b/example/src/routes/(base)/privacy/i18n/pt.json
+@@ -5,5 +5,6 @@
+   "privacy_preferencesTitle": "Preferências no navegador",
+   "privacy_preferences": "A interface usa cookies para lembrar o idioma e a preferência de tema. O idioma também aparece no endereço da página, como /pt, /en ou /es. Essas preferências permitem manter a apresentação entre navegações. Você pode apagar ou bloquear os cookies nas configurações do navegador; nesse caso, uma escolha pode deixar de persistir na próxima visita.",
+   "privacy_hostingTitle": "Acesso ao site e links externos",
+-  "privacy_hosting": "Ao acessar o site, seu navegador envia informações técnicas necessárias à conexão HTTP para a infraestrutura de hospedagem. Este aviso não estabelece um prazo de retenção para registros dessa infraestrutura. Os links para GitHub e outros serviços levam a sites com políticas próprias. Se publicar dados em uma issue pública, eles ficam disponíveis a outras pessoas nesse serviço."
++  "privacy_hosting": "Ao acessar o site, seu navegador envia informações técnicas necessárias à conexão HTTP para a infraestrutura de hospedagem. Este aviso não estabelece um prazo de retenção para registros dessa infraestrutura. Os links para GitHub e outros serviços levam a sites com políticas próprias. Se publicar dados em uma issue pública, eles ficam disponíveis a outras pessoas nesse serviço.",
++  "privacy_pageTitle": "Privacidade | SolidJS Boilerplate"
+ }
+diff --git a/source/src/routes/(base)/privacy/seo.ts b/example/src/routes/(base)/privacy/seo.ts
+--- a/source/src/routes/(base)/privacy/seo.ts
++++ b/example/src/routes/(base)/privacy/seo.ts
+@@ -2,6 +2,6 @@ import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
+ import { m } from '@paraglide/messages.js'
+ 
+ export const seo = {
+-  title: m.privacy_title,
++  title: m.privacy_pageTitle,
+   description: m.privacy_description
+ } satisfies SeoRouteInfo
+diff --git a/source/src/tests/pages/Home/Home.production.e2e.test.ts b/example/src/tests/pages/Home/Home.production.e2e.test.ts
+--- a/source/src/tests/pages/Home/Home.production.e2e.test.ts
++++ b/example/src/tests/pages/Home/Home.production.e2e.test.ts
+@@ -26,7 +26,7 @@ test.describe('layout in the production tree', () => {
+     const missing = await page.goto('/pt/pagina-inexistente')
+     expect(missing?.status()).toBe(HTTP_NOT_FOUND)
+     await expect(page.getByRole('banner')).toHaveCount(1)
+-    await expect(page).toHaveTitle('Página não encontrada')
++    await expect(page).toHaveTitle(`Página não encontrada | ${SITE.title}`)
+     await expect(page.locator('head meta[name="robots"]')).toHaveAttribute(
+       'content',
+       'noindex'
 diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/tests/pages/Home/Home.seo.e2e.test.ts
 --- a/source/src/tests/pages/Home/Home.seo.e2e.test.ts
 +++ b/example/src/tests/pages/Home/Home.seo.e2e.test.ts
@@ -2539,6 +2705,60 @@ diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/test
      ].map(node => expect.objectContaining(node))
      expect(graph).toHaveLength(BASE_GRAPH_NODES)
      expect(graph).toEqual(expect.arrayContaining(baseNodes))
+@@ -114,7 +104,7 @@ test.describe('SEO metadata', () => {
+     await expect(
+       page.getByRole('heading', { name: 'Página não encontrada!' })
+     ).toBeVisible()
+-    await expect(page).toHaveTitle('Página não encontrada')
++    await expect(page).toHaveTitle(`Página não encontrada | ${SITE.title}`)
+     await expect(page.locator('head meta[name="description"]')).toHaveAttribute(
+       'content',
+       'A página solicitada não foi encontrada.'
+@@ -198,14 +188,17 @@ test.describe('SEO metadata', () => {
+     await expect(
+       page.locator('head meta[property="article:modified_time"]')
+     ).toHaveAttribute('content', '2026-09-21')
+-    expect(await readStructuredData(page)).toContainEqual(
++    const graph = await readStructuredData(page)
++    const article = graph.find(node => node['@type'] === 'Article')
++    expect(article).not.toHaveProperty('publisher')
++    expect(article).not.toHaveProperty('author')
++    expect(graph).toContainEqual(
+       expect.objectContaining({
+         '@type': 'Article',
+         url: `${siteUrl}/pt/seo-article`,
+         name: 'Sample article',
+         datePublished: '2026-09-01',
+-        dateModified: '2026-09-21',
+-        publisher: { '@id': `${siteUrl}/#organization` }
++        dateModified: '2026-09-21'
+       })
+     )
+ 
+diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pages/I18n/I18n.e2e.test.ts
+--- a/source/src/tests/pages/I18n/I18n.e2e.test.ts
++++ b/example/src/tests/pages/I18n/I18n.e2e.test.ts
+@@ -23,7 +23,7 @@ test.describe('without JavaScript', () => {
+         `/${locale}/outside-error?case=render-root&id=${crypto.randomUUID()}`
+       )
+       expect(response?.status()).toBe(HTTP_INTERNAL_SERVER_ERROR)
+-      await expect(page).toHaveTitle(messages.errorFallback_runtimeTitle)
++      await expect(page).toHaveTitle(messages.errorFallback_runtimePageTitle)
+       await expect(
+         page.locator('head meta[name="description"]')
+       ).toHaveAttribute('content', messages.errorFallback_runtimeDescription)
+diff --git a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.production.e2e.test.ts
+--- a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts
++++ b/example/src/tests/pages/I18n/I18n.production.e2e.test.ts
+@@ -193,7 +193,7 @@ for (const language of LANGUAGES) {
+       header.evaluate(element => element === document.querySelector('header'))
+     await page.getByRole('link', { name: '404', exact: true }).click()
+     await expect(page).toHaveURL(`/${language.locale}/404`)
+-    await expect(page).toHaveTitle(language.missing)
++    await expect(page).toHaveTitle(`${language.missing} | ${SITE.title}`)
+     await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+       'content',
+       'noindex'
 diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
@@ -2572,6 +2792,30 @@ diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/examp
      )
      const missing = await page.goto(`/${locale}/missing`)
      expect(missing?.status()).toBe(HTTP_NOT_FOUND)
+diff --git a/source/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts
+--- a/source/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts
++++ b/example/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts
+@@ -74,7 +74,7 @@ test('loads the URLPattern polyfill only without the native API and keeps the lo
+ 
+   await page.getByRole('link', { name: '404', exact: true }).click()
+   await expect(page).toHaveURL('/pt/404')
+-  await expect(page).toHaveTitle('Página não encontrada')
++  await expect(page).toHaveTitle(`Página não encontrada | ${SITE.title}`)
+   await page.getByRole('link', { name: 'Voltar ao início' }).click()
+   await expect(page).toHaveURL('/pt')
+   await page.getByRole('button', { name: 'Selecionar idioma' }).click()
+diff --git a/source/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts b/example/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts
+--- a/source/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts
++++ b/example/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts
+@@ -11,7 +11,7 @@ test.describe('missing page', () => {
+   }) => {
+     await page.goto('/pagina-inexistente')
+ 
+-    await expect(page).toHaveTitle('Page not found')
++    await expect(page).toHaveTitle(`Page not found | ${SITE.title}`)
+     await expect(page.locator('head meta[name="description"]')).toHaveAttribute(
+       'content',
+       'The requested page was not found.'
 diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/tooling/__tests__/patched-dependencies.test.ts
 --- a/source/tooling/__tests__/patched-dependencies.test.ts
 +++ b/example/tooling/__tests__/patched-dependencies.test.ts

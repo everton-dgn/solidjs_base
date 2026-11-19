@@ -143,6 +143,12 @@ test('keeps the installed scenarios and package builds in their jobs', () => {
       ),
     ['vp run test:e2e', 'vp run test:e2e:production']
   )
+  assert.equal(
+    steps(release.publish).find(
+      step => step.name === 'Build published packages'
+    )?.run,
+    'vp run build:published'
+  )
   assert.deepEqual(record(release.publish).needs, [
     'release-please',
     'verified'

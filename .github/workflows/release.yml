@@ -153,8 +153,9 @@ jobs:
       - name: Install dependencies
         run: vp install --frozen-lockfile
 
-      - name: Build packages
-        run: vp run build
+      # create-solid needs the full build when it joins the release group.
+      - name: Build published packages
+        run: vp run build:published
 
       - name: Check the npm version
         env:

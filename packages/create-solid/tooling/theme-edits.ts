@@ -17,10 +17,9 @@ const unhydrated: TextEdit = [
   /await expect\(\s*page\.getByRole\('button', \{ name: [^}]+ \}\)\s*\)\.toBeDisabled\(\)/gu,
   "await expect(page.locator('html')).not.toHaveAttribute('data-hydration-ended')"
 ]
-const neutralHome: TextEdit = [
-  /(?<end>\{language\}\.)(?: [^"\n]+)"/u,
-  '$<end>"'
-]
+function homeDescription(sentence: string): TextEdit {
+  return [/(?<end>\{language\}\.)(?: [^"\n]+)"/u, `$<end> ${sentence}"`]
+}
 export const themeEdits: FileEdits = {
   [`${pages}/UiKit/UiKit.e2e.test.ts`]: [
     [/narrow dark viewport/gu, 'narrow viewport'],
@@ -65,9 +64,21 @@ export const themeEdits: FileEdits = {
   [`${site}/en.json`]: [englishSite],
   [`${site}/pt.json`]: [portugueseSite],
   [`${site}/es.json`]: [[/ y temas claro y oscuro/u, '']],
-  [`${routes}/(home)/i18n/en.json`]: [neutralHome],
-  [`${routes}/(home)/i18n/es.json`]: [neutralHome],
-  [`${routes}/(home)/i18n/pt.json`]: [neutralHome],
+  [`${routes}/(home)/i18n/en.json`]: [
+    homeDescription(
+      'Use the language menu to read this page in another language. Each translation has its own address, so you can bookmark a page or share a direct link to the version you are reading.'
+    )
+  ],
+  [`${routes}/(home)/i18n/es.json`]: [
+    homeDescription(
+      'Usa el menú de idiomas para leer esta página en otro idioma. Cada traducción tiene su propia dirección, así que puedes guardar la página o compartir un enlace directo a la versión que estás leyendo.'
+    )
+  ],
+  [`${routes}/(home)/i18n/pt.json`]: [
+    homeDescription(
+      'Use o menu de idiomas para ler esta página em outro idioma. Cada tradução tem seu próprio endereço, que você pode salvar nos favoritos ou compartilhar para que outra pessoa leia a mesma versão.'
+    )
+  ],
   [`${routes}/about/i18n/en.json`]: [[/, themes and/u, ' and']],
   [`${routes}/about/i18n/es.json`]: [[/, temas y/u, ' y']],
   [`${routes}/about/i18n/pt.json`]: [[/, temas e/u, ' e']],

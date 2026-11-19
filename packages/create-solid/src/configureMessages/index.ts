@@ -10,6 +10,7 @@ import {
 import type { StagedContext } from '../types.ts'
 
 type MessageSource = { name: string; pattern: string }
+const lineWidth = 80
 const special = /\\(?<escaped>[\\{}])|\{(?<parameter>[A-Za-z_]\w*)\}/gu
 const identifier = /^[A-Za-z_]\w*$/u
 const literal = (value: string) =>
@@ -17,7 +18,7 @@ const literal = (value: string) =>
     .replaceAll('\\', String.raw`\\`)
     .replaceAll('`', '\\`')
     .replaceAll('${', '\\${')
-function messageMethod({ name, pattern }: MessageSource): string {
+function messageFunction({ name, pattern }: MessageSource): string {
   if (!identifier.test(name)) {
     throw new Error(`Unsupported message key: ${name}`)
   }
@@ -46,10 +47,14 @@ function messageMethod({ name, pattern }: MessageSource): string {
             .slice(1, -1)
             .replaceAll(String.raw`\"`, '"')
             .replaceAll("'", String.raw`\'`)}'`
-    return `  ${name}() {\n    return ${text}\n  }`
+    return `function ${name}(): string {\n  return ${text}\n}`
   }
-  const fields = [...params].map(key => `${key}: string`).join('; ')
-  return `  ${name}(params: { ${fields} }) {\n    return \`${expression}\`\n  }`
+  const fields = [...params].map(key => `${key}: string`)
+  const signature =
+    fields.length > 1
+      ? `params: {\n  ${fields.join('\n  ')}\n}`
+      : `params: { ${fields[0]} }`
+  return `function ${name}(${signature}): string {\n  return \`${expression}\`\n}`
 }
 
 export function configureMessages({
@@ -67,9 +72,17 @@ export function configureMessages({
     }
   }
   const methods = [...messages].map(([name, pattern]) =>
-    messageMethod({ name, pattern })
+    messageFunction({ name, pattern })
   )
   const file = 'src/constants/messages/index.ts'
   mkdirSync(path.dirname(path.join(stage, file)), { recursive: true })
-  write({ file, content: `export const m = {\n${methods.join(',\n')}\n}\n` })
+  const names = [...messages.keys()]
+  const exported =
+    names.join(', ').length + 'export const m = {  }'.length > lineWidth
+      ? `{\n  ${names.join(',\n  ')}\n}`
+      : `{ ${names.join(', ')} }`
+  write({
+    file,
+    content: `${methods.join('\n\n')}\n\nexport const m = ${exported}\n`
+  })
 }

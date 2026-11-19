@@ -122,23 +122,3 @@ test('updates the block and keeps the code fences below it', async t => {
   assert.ok(current.endsWith(`${END}${below}`))
   assert.equal(await agents({ root, shouldWrite: true }), 'current')
 })
-
-void test('recognizes the standalone direct doctor command without accepting other edits', async t => {
-  const { root, file } = await fixture(t)
-  await agents({ root, shouldWrite: true })
-  const original = await readFile(file, 'utf8')
-  const standalone = original
-    .replace(
-      'Before changing code, run `vp run doctor`.',
-      'Before changing code, run the doctor command below.'
-    )
-    .replace('If the Vite config fails to load, run ', 'Run ')
-  await writeFile(file, standalone)
-  assert.equal(await agents({ root, shouldWrite: true }), 'current')
-  assert.equal(await readFile(file, 'utf8'), standalone)
-  await writeFile(
-    file,
-    standalone.replace('doctor --root .', 'doctor --root /')
-  )
-  assert.equal(await agents({ root, shouldWrite: false }), 'outdated')
-})

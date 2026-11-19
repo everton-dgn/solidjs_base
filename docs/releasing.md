@@ -691,9 +691,10 @@ the repository does not reach it. What to do depends on where the cause is:
   then open the failed run on GitHub and choose "Re-run failed jobs". The
   publish job runs again with the output of the `Tags and GitHub Releases` job
   from the first attempt. GitHub allows this for 30 days.
-- Before any package publishes, re-run the failed verification or generated app
-  job. After a partial publication, re-run only the failed publication leg.
-  Re-running its prerequisites also restarts downstream publish jobs.
+- If verification or installation fails before publication, re-run all jobs so
+  every installed scenario has a result in the same attempt. After a partial
+  publication, re-run only the failed publication leg. Re-running its
+  prerequisites also restarts downstream publish jobs.
 - Outside the package folder, such as a workflow step or the workspace
   configuration that validation uses: open the fix as a pull request, keep it
   unmerged, and

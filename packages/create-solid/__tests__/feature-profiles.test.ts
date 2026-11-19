@@ -82,6 +82,7 @@ function checkScriptFiles(dir: string, tree: readonly string[]): void {
 
 const terms = array(string())
 const inventorySchema = object({
+  serverOnly: array(string()),
   forbiddenTerms: object({
     fonts: terms,
     diagnostics: terms,
@@ -125,6 +126,23 @@ for (const mode of ['server', 'static'] as const) {
           } else {
             assert.match(read('README.md'), /csp-hashes\.json/u)
             assert.match(read('vite.config.ts'), /output: 'static'/u)
+            for (const file of inventory.serverOnly) {
+              assert.equal(existsSync(path.join(dir, file)), false, file)
+            }
+            if (theme) {
+              assert.match(
+                read('src/constants/theme.ts'),
+                /storage: 'local-storage'/u
+              )
+              assert.match(
+                read('docs/ui.md'),
+                /reads `app-theme` from local storage/u
+              )
+            }
+            assert.doesNotMatch(
+              read('AGENTS.md'),
+              /## Server errors and backend calls/u
+            )
           }
           assert.equal(
             read('package.json').includes('"@solidjs/diagnostics"'),

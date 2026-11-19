@@ -55,6 +55,8 @@ try {
       pm: 'bun',
       flags: ['--mode', 'static', '--seo']
     },
+    { name: 'default-client', pm: 'bun', flags: ['--mode', 'client'] },
+    { name: 'server-without-theme', pm: 'bun', flags: ['--no-theme'] },
     {
       name: 'minimal-client',
       pm: 'pnpm',
@@ -131,7 +133,7 @@ try {
         { cwd }
       )
     }
-    if (!flags.includes('--no-seo')) {
+    if (!flags.includes('--no-seo') && !flags.includes('client')) {
       execFileSync(
         process.execPath,
         ['--test', 'tooling/__tests__/patched-dependencies.test.ts'],
@@ -144,7 +146,10 @@ try {
       tasks.push('typecheck:node', 'test:tooling', 'dead-code')
     }
     if (flags.length > 0) tasks.push('typecheck:node', 'dead-code')
-    if (name === 'server-without-ui-features') {
+    if (
+      name === 'server-without-ui-features' ||
+      name === 'server-without-theme'
+    ) {
       tasks.push('test:e2e', 'test:e2e:production')
     }
     const failedTasks: string[] = []

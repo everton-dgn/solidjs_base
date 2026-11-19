@@ -182,6 +182,29 @@ function checkGuideContent({ dir, mode, pm, hasSeo }: GuideProfile): void {
     assert.ok(readme.includes('text/markdown; charset=utf-8'))
   }
 }
+function checkFavicons({
+  dir,
+  mode
+}: Pick<GuideProfile, 'dir' | 'mode'>): void {
+  const source = mode === 'client' ? 'index.html' : 'src/Document.tsx'
+  const document = readFileSync(path.join(dir, source), 'utf8')
+  for (const [rel, file] of [
+    ['icon', 'favicon.ico'],
+    ['icon', 'favicon.svg'],
+    ['apple-touch-icon', 'apple-touch-icon.png']
+  ] as const) {
+    assert.ok(
+      document
+        .match(/<link\s[^>]*>/gu)
+        ?.some(
+          link =>
+            link.includes(`rel="${rel}"`) &&
+            link.includes(`href="/favicon/${file}"`)
+        ),
+      file
+    )
+  }
+}
 const guideChanges = guideOwnership()
 const approvedEdits = new Set(
   readFileSync('guide-edits.txt', 'utf8').trimEnd().split('\n')
@@ -240,6 +263,7 @@ for (const { mode, hasSeo } of publications) {
               fonts
             )
           }
+          checkFavicons({ dir, mode })
           assert.equal(read('docs/ui.md').includes('## Fonts'), fonts)
           if (mode === 'server' && hasSeo) {
             assert.equal(read('README.md').includes('Inter subsets'), fonts)

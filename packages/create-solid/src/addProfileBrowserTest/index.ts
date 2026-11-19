@@ -4,8 +4,26 @@ const themeCheck = `
   await page.getByRole('button', { name: /select theme/iu }).click()
   await page.getByRole('menuitemradio', { name: 'Dark', exact: true }).click()
   await expect(page.locator('html')).toHaveClass('dark')
-  await page.reload()
-  await expect(page.locator('html')).toHaveClass('dark')`
+  const entry = await page
+    .locator('script[type="module"][src]')
+    .first()
+    .getAttribute('src')
+  if (!entry) throw new Error('Missing application entry module')
+  const requested = Promise.withResolvers<void>()
+  const released = Promise.withResolvers<void>()
+  await page.route(new URL(entry, page.url()).href, async route => {
+    requested.resolve()
+    await released.promise
+    await route.continue()
+  })
+  try {
+    await page.reload({ waitUntil: 'commit' })
+    await requested.promise
+    await expect(page.locator('html')).toHaveClass('dark')
+  } finally {
+    released.resolve()
+    await page.unrouteAll({ behavior: 'wait' })
+  }`
 const fontCheck = `
   await expect(page.locator('link[rel="preload"][as="font"]')).toHaveCount(1)
   await expect

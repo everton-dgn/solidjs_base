@@ -13,6 +13,9 @@ import { it } from 'node:test'
 
 import { generate } from '../src/generate.ts'
 
+const isTestFile = (file: string) =>
+  file.startsWith('src/tests/') || file.includes('/__tests__/')
+
 void it('ships the reference tests for custom locales', t => {
   const sandbox = mkdtempSync(path.join(tmpdir(), 'reference-browser-tests-'))
   t.after(() => rmSync(sandbox, { recursive: true, force: true }))
@@ -30,21 +33,19 @@ void it('ships the reference tests for custom locales', t => {
     import.meta.dirname,
     '../../../apps/boilerplate'
   )
-  const isTestFile = (file: string) =>
-    file.startsWith('src/tests/') || file.includes('/__tests__/')
   const referenceTests = execFileSync('git', ['ls-files', '-z'], {
     cwd: reference,
     encoding: 'utf8'
   })
     .split('\0')
-    .filter(isTestFile)
+    .filter(file => isTestFile(file))
   const generatedTests = readdirSync(dir, {
     recursive: true,
     withFileTypes: true
   })
     .filter(entry => entry.isFile())
     .map(entry => path.relative(dir, path.join(entry.parentPath, entry.name)))
-    .filter(isTestFile)
+    .filter(file => isTestFile(file))
   assert.deepEqual(
     generatedTests.toSorted(),
     [

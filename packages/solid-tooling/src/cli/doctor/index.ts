@@ -272,8 +272,9 @@ export async function doctor({ root, preset }: DoctorInput): Promise<Report> {
     packages.push({ ...context, file: dep.file, version })
     const group = skill ? 'solid-base-version' : 'solid-family-version'
     if (skill || FAMILY.has(name)) {
-      const expected = versions.get(group) ?? version
-      versions.set(group, expected)
+      const key = name === '@solidjs/compiler' ? name : group
+      const expected = versions.get(key) ?? version
+      versions.set(key, expected)
       checks.push({
         ...context,
         id: group,
@@ -298,6 +299,33 @@ export async function doctor({ root, preset }: DoctorInput): Promise<Report> {
     }
     if (skill || name === 'solid-js' || name === '@solidjs/diagnostics') {
       await inspectSkills({ dep, skill, report })
+    }
+  }
+  function checkDeclaredVersion({
+    owner,
+    name,
+    dep,
+    peer
+  }: Dependency & { dep: Installed; peer: string | undefined }) {
+    const { version } = dep.manifest
+    const compilerRange =
+      name === '@solidjs/compiler'
+        ? owner.manifest.dependencies?.[name]
+        : undefined
+    const range = peer ?? compilerRange
+    if (range) {
+      checks.push({
+        package: name,
+        source: owner.file,
+        file: path.join(workspaceRoot, 'package.json'),
+        id: peer ? 'peer-version' : 'compiler-version',
+        status: satisfies({ version, range }) ? 'ok' : 'error',
+        expected: range,
+        observed: version,
+        fix: peer
+          ? 'Install a compatible peer version.'
+          : 'Install a compatible compiler version.'
+      })
     }
   }
   async function inspect({ owner, name }: Dependency) {
@@ -346,18 +374,7 @@ export async function doctor({ root, preset }: DoctorInput): Promise<Report> {
       }
       return
     }
-    const { version } = dep.manifest
-    if (peer) {
-      checks.push({
-        ...context,
-        file: path.join(workspaceRoot, 'package.json'),
-        id: 'peer-version',
-        status: satisfies({ version, range: peer }) ? 'ok' : 'error',
-        expected: peer,
-        observed: version,
-        fix: 'Install a compatible peer version.'
-      })
-    }
+    checkDeclaredVersion({ owner, name, dep, peer })
     await record(dep)
   }
   const declared = await readDependencies(root)

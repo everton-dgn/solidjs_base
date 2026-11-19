@@ -11,7 +11,8 @@ import path from 'node:path'
 
 import { generateSource } from '../src/generate.ts'
 import { guideDigest, guideFiles } from '../src/prepared-guides.ts'
-import { plainSourceFiles } from '../src/prepared-source.ts'
+import { plainSourceFiles, preparedSourceKey } from '../src/prepared-source.ts'
+import { prepareBrowserPaths } from './browser-test-paths.ts'
 import { uiProfiles } from './ui-profiles.ts'
 
 function* modeVariants() {
@@ -70,14 +71,17 @@ export function prepareGuides(): void {
               writeFileSync(path.join(inputs, `${digest}.md`), content)
             }
           },
-          source: (stage, files = plainSourceFiles(stage)) => {
-            for (const file of files) {
+          source: (stage, files) => {
+            for (const file of files ?? plainSourceFiles(stage)) {
               const original = readFileSync(file, 'utf8')
-              const digest = guideDigest(original)
+              const digest = preparedSourceKey(original, files !== undefined)
               if (sources.has(digest)) continue
               const target = path.join(inputs, digest, path.basename(file))
               mkdirSync(path.dirname(target))
-              writeFileSync(target, original)
+              writeFileSync(
+                target,
+                files ? prepareBrowserPaths(file, original) : original
+              )
               sources.set(digest, { original, file: target })
             }
           }

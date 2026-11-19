@@ -28,6 +28,7 @@ import {
 import { configureClient } from './configureClient/index.ts'
 import { configureFileHostGuides } from './configureFileHostGuides/index.ts'
 import { configureFonts } from './configureFonts/index.ts'
+import { configureBrowserPaths } from './configureLocales/browser-paths.ts'
 import { readLocaleSettings } from './configureLocales/catalogs.ts'
 import { configureLocaleCopy } from './configureLocales/copy.ts'
 import { configureLocaleGuides } from './configureLocales/guides.ts'
@@ -253,7 +254,8 @@ function configureTranslationProfile(
     configureMiddlewareTests(context)
     prepare(stage, [
       path.join(stage, middlewareTest),
-      ...configureServerFixtures(context)
+      ...configureServerFixtures(context),
+      ...configureBrowserPaths(context)
     ])
   }
 }

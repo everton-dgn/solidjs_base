@@ -2865,10 +2865,73 @@ diff --git a/source/src/tests/fixtures/e2e/routes/(base)/ui-kit/index.tsx b/exam
          </LocalizedLink>
          <LocalizedLink href="/robots.txt" shouldLocalize={false}>
            Robots file
+diff --git a/example/src/tests/helpers/scenarioLocales/index.ts b/example/src/tests/helpers/scenarioLocales/index.ts
+new file mode 100644
+--- /dev/null
++++ b/example/src/tests/helpers/scenarioLocales/index.ts
+@@ -0,0 +1,8 @@
++import { baseLocale, locales } from '@paraglide/runtime.js'
++
++const base = baseLocale
++const alternate = locales.find(locale => locale !== base) ?? base
++const third =
++  locales.find(locale => locale !== base && locale !== alternate) ?? alternate
++
++export const testLanguages = { alternate, base, locales, third }
+diff --git a/source/src/tests/pages/AgentReadiness/AgentReadiness.build.production.e2e.test.ts b/example/src/tests/pages/AgentReadiness/AgentReadiness.build.production.e2e.test.ts
+--- a/source/src/tests/pages/AgentReadiness/AgentReadiness.build.production.e2e.test.ts
++++ b/example/src/tests/pages/AgentReadiness/AgentReadiness.build.production.e2e.test.ts
+@@ -13,6 +13,7 @@ import { expect, test, type APIRequestContext } from '@playwright/test'
+ import * as v from 'valibot'
+ 
+ import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ type Destination = { url: URL; fragments: Set<string> }
+ type CheckOptions = {
+@@ -47,8 +48,8 @@ const STATIC_FILES = [
+   '/assets/entry.js',
+   '/images/og.png',
+   '/favicon/favicon.ico',
+-  '/pt/index.md',
+-  '/en/about.md',
++  `/${testLanguages.alternate}/index.md`,
++  `/${testLanguages.base}/about.md`,
+   '/llms.txt',
+   '/llms-full.txt',
+   '/sitemap.xml',
+@@ -425,7 +426,9 @@ test('declares the security headers of the static files in the Vercel artifact',
+   expect(headersOf('/images/og.png')).toMatchObject({
+     'cache-control': 'public, max-age=31536000, immutable'
+   })
+-  expect(headersOf('/pt/about')).not.toHaveProperty('x-content-type-options')
++  expect(headersOf(`/${testLanguages.alternate}/about`)).not.toHaveProperty(
++    'x-content-type-options'
++  )
+ })
+ 
+ test('serves every internal destination of llms.txt without redirects', async ({
+@@ -551,7 +554,7 @@ test('declares the describedby Link for static Markdown in the Vercel artifact',
+   const { paths } = await readManifest(request)
+   for (const path of paths) expect(pattern.test(path), path).toBe(true)
+   for (const page of PAGES) {
+-    expect(pattern.test(`/pt${page}`), page).toBe(false)
++    expect(pattern.test(`/${testLanguages.alternate}${page}`), page).toBe(false)
+   }
+   const hasAggregate = await hasStaticFile(LLMS_FULL_PATH)
+   expect(pattern.test(LLMS_FULL_PATH)).toBe(hasAggregate)
 diff --git a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts b/example/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
 --- a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
 +++ b/example/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
-@@ -18,12 +18,7 @@ const LANGUAGES = [
+@@ -2,6 +2,7 @@ import { SITE } from '@/constants/site/title.ts'
+ import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+ import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ // With --headed, the viewport of the per-width blocks would resize the browser window.
+ test.use({ headless: true })
+ 
+@@ -18,12 +19,7 @@ const LANGUAGES = [
      theme: 'Selecionar tema',
      selector: 'Selecionar idioma',
      dark: 'Escuro',
@@ -2882,7 +2945,7 @@ diff --git a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.produc
    },
    {
      locale: 'en',
-@@ -31,12 +26,7 @@ const LANGUAGES = [
+@@ -31,12 +27,7 @@ const LANGUAGES = [
      theme: 'Select theme',
      selector: 'Select language',
      dark: 'Dark',
@@ -2896,7 +2959,7 @@ diff --git a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.produc
    },
    {
      locale: 'es',
-@@ -44,12 +34,7 @@ const LANGUAGES = [
+@@ -44,12 +35,7 @@ const LANGUAGES = [
      theme: 'Seleccionar tema',
      selector: 'Seleccionar idioma',
      dark: 'Oscuro',
@@ -2910,10 +2973,172 @@ diff --git a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.produc
    }
  ]
  const PATHS = ['', '/about', '/contact', '/privacy']
+@@ -138,7 +124,10 @@ for (const language of LANGUAGES) {
+         }
+         await expect(
+           page.locator('head link[hreflang="x-default"]')
+-        ).toHaveAttribute('href', `${readSiteOrigin()}/en${path}`)
++        ).toHaveAttribute(
++          'href',
++          `${readSiteOrigin()}/${testLanguages.base}${path}`
++        )
+         for (const destination of PATHS) {
+           const link = page
+             .locator('header > nav')
+diff --git a/source/src/tests/pages/AgentReadiness/AgentReadiness.http.production.e2e.test.ts b/example/src/tests/pages/AgentReadiness/AgentReadiness.http.production.e2e.test.ts
+--- a/source/src/tests/pages/AgentReadiness/AgentReadiness.http.production.e2e.test.ts
++++ b/example/src/tests/pages/AgentReadiness/AgentReadiness.http.production.e2e.test.ts
+@@ -1,6 +1,8 @@
+ import { LLMS_DESCRIBEDBY_LINK } from '@evertondgn/solid-runtime/server/publication-protocol'
+ import { expect, test } from '@playwright/test'
+ 
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
++
+ const HTTP_OK = 200
+ const HTTP_REDIRECT = 307
+ const HTTP_NOT_FOUND = 404
+@@ -157,7 +159,9 @@ test('preserves language negotiation and Markdown across the root redirect', asy
+   }
+   const redirect = await request.get('/', { headers, maxRedirects: 0 })
+   expect(redirect.status()).toBe(HTTP_REDIRECT)
+-  expect(new URL(redirect.headers().location ?? '').pathname).toBe('/pt')
++  expect(new URL(redirect.headers().location ?? '').pathname).toBe(
++    `/${testLanguages.alternate}`
++  )
+   expect(redirect.headers().vary).toBe('Cookie, Accept-Language')
+   expect(redirect.headers()['cache-control']).toBe('private, no-store')
+   const markdown = await request.get('/', { headers })
+@@ -207,7 +211,9 @@ for (const page of [
+     const redirect = await request.get(page.path, { headers, maxRedirects: 0 })
+     expect(redirect.status()).toBe(HTTP_REDIRECT)
+     expect(new URL(redirect.headers().location ?? '').pathname).toBe(
+-      page.path === '/' ? '/es' : `/es${page.path}`
++      page.path === '/'
++        ? `/${testLanguages.third}`
++        : `/${testLanguages.third}${page.path}`
+     )
+     const response = await request.get(page.path, { headers })
+     expect(response.status()).toBe(page.status)
+@@ -225,7 +231,7 @@ for (const preference of [
+   { accept: '*/*', expected: 'text/html' }
+ ]) {
+   test(`honors Accept ${preference.accept}`, async ({ request }) => {
+-    const response = await request.get('/pt', {
++    const response = await request.get(`/${testLanguages.alternate}`, {
+       headers: { accept: preference.accept }
+     })
+     expect(response.status()).toBe(HTTP_OK)
+@@ -242,14 +248,18 @@ for (const accept of [
+   test(`rejects unacceptable page representations with Accept ${accept}`, async ({
+     request
+   }) => {
+-    const response = await request.get('/pt', { headers: { accept } })
++    const response = await request.get(`/${testLanguages.alternate}`, {
++      headers: { accept }
++    })
+     expect(response.status()).toBe(HTTP_NOT_ACCEPTABLE)
+     expect(response.headers().vary?.toLowerCase().split(/,\s*/u)).toContain(
+       'accept'
+     )
+     expect(response.headers()['cache-control']).toBe('private, no-store')
+     expect(await response.text()).toBe('text/html\ntext/markdown\n')
+-    const head = await request.head('/pt', { headers: { accept } })
++    const head = await request.head(`/${testLanguages.alternate}`, {
++      headers: { accept }
++    })
+     expect(head.status()).toBe(HTTP_NOT_ACCEPTABLE)
+     expect(await head.body()).toHaveLength(0)
+   })
+@@ -283,7 +293,7 @@ for (const endpoint of [
+ test('localizes an uncached Markdown 404 for unknown URLs', async ({
+   request
+ }) => {
+-  const response = await request.get('/pt/login.md', {
++  const response = await request.get(`/${testLanguages.alternate}/login.md`, {
+     maxRedirects: 0,
+     headers: {
+       accept: 'text/markdown',
+@@ -306,7 +316,7 @@ test('localizes an uncached Markdown 404 for unknown URLs', async ({
+   expect(response.headers()['x-robots-tag']).toBe('noindex')
+   expect(response.headers().location).toBeUndefined()
+   expect(await response.text()).toContain('# Página não encontrada!')
+-  const head = await request.head('/pt/login.md', {
++  const head = await request.head(`/${testLanguages.alternate}/login.md`, {
+     headers: { cookie: 'locale=pt' }
+   })
+   expect(head.status()).toBe(HTTP_NOT_FOUND)
+diff --git a/source/src/tests/pages/BackendError/BackendError.e2e.test.ts b/example/src/tests/pages/BackendError/BackendError.e2e.test.ts
+--- a/source/src/tests/pages/BackendError/BackendError.e2e.test.ts
++++ b/example/src/tests/pages/BackendError/BackendError.e2e.test.ts
+@@ -9,6 +9,7 @@ import {
+   waitForGate
+ } from '@/tests/helpers/fixtureGate/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ test.use({ locale: 'pt-BR' })
+ 
+@@ -68,11 +69,21 @@ test('a redirect thrown by a server function in the SSR still redirects', async
+   page,
+   request
+ }) => {
+-  const response = await request.get('/pt/control-signal', { maxRedirects: 0 })
++  const response = await request.get(
++    `/${testLanguages.alternate}/control-signal`,
++    { maxRedirects: 0 }
++  )
+   expect(response.status()).toBe(HTTP_FOUND)
+-  expect(response.headers().location).toBe('/pt?from=control-signal')
++  expect(response.headers().location).toBe(
++    `/${testLanguages.alternate}?from=control-signal`
++  )
+   await page.goto('/control-signal')
+-  await expect(page).toHaveURL(/\/pt\?from=control-signal$/u)
++  await expect(page).toHaveURL(
++    new RegExp(
++      String.raw`\/${testLanguages.alternate}\?from=control-signal$`,
++      'u'
++    )
++  )
+ })
+ 
+ test('an envelope returned by a server function in the SSR delivers the value', async ({
+diff --git a/source/src/tests/pages/Home/Home.layout.e2e.test.ts b/example/src/tests/pages/Home/Home.layout.e2e.test.ts
+--- a/source/src/tests/pages/Home/Home.layout.e2e.test.ts
++++ b/example/src/tests/pages/Home/Home.layout.e2e.test.ts
+@@ -1,4 +1,5 @@
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ test.use({ locale: 'pt-BR' })
+ 
+@@ -52,7 +53,7 @@ test.describe('server-rendered navigation', () => {
+   test('shows the current page indicator without hydration', async ({
+     page
+   }) => {
+-    await page.goto('/pt')
++    await page.goto(`/${testLanguages.alternate}`)
+     const home = page.getByRole('link', { name: 'Início', exact: true })
+     const missing = page.getByRole('link', { name: '404', exact: true })
+     await expect(home).toHaveAttribute('aria-current', 'page')
 diff --git a/source/src/tests/pages/Home/Home.production.e2e.test.ts b/example/src/tests/pages/Home/Home.production.e2e.test.ts
 --- a/source/src/tests/pages/Home/Home.production.e2e.test.ts
 +++ b/example/src/tests/pages/Home/Home.production.e2e.test.ts
-@@ -15,7 +15,7 @@ test.describe('layout in the production tree', () => {
+@@ -1,6 +1,7 @@
+ import { expect, test } from '@playwright/test'
+ 
+ import { SITE } from '@/constants/site/title.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const HTTP_OK = 200
+ const HTTP_NOT_FOUND = 404
+@@ -10,12 +11,12 @@ test.describe('layout in the production tree', () => {
+   test.use({ javaScriptEnabled: false })
+ 
+   test('renders Home and 404 with the bar in the SSR', async ({ page }) => {
+-    const home = await page.goto('/pt')
++    const home = await page.goto(`/${testLanguages.alternate}`)
+     expect(home?.status()).toBe(HTTP_OK)
      await expect(page.getByRole('banner')).toHaveCount(1)
      await expect(
        page.getByRole('heading', {
@@ -2922,8 +3147,14 @@ diff --git a/source/src/tests/pages/Home/Home.production.e2e.test.ts b/example/s
        })
      ).toBeVisible()
      const menuTriggers = page
-@@ -27,7 +27,7 @@ test.describe('layout in the production tree', () => {
-     const missing = await page.goto('/pt/pagina-inexistente')
+@@ -24,10 +25,12 @@ test.describe('layout in the production tree', () => {
+     await expect(menuTriggers).toHaveCount(MENU_TRIGGERS)
+     await expect(page.locator('head link[rel="canonical"]')).toHaveCount(1)
+ 
+-    const missing = await page.goto('/pt/pagina-inexistente')
++    const missing = await page.goto(
++      `/${testLanguages.alternate}/pagina-inexistente`
++    )
      expect(missing?.status()).toBe(HTTP_NOT_FOUND)
      await expect(page.getByRole('banner')).toHaveCount(1)
 -    await expect(page).toHaveTitle('Página não encontrada')
@@ -2934,7 +3165,13 @@ diff --git a/source/src/tests/pages/Home/Home.production.e2e.test.ts b/example/s
 diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/tests/pages/Home/Home.seo.e2e.test.ts
 --- a/source/src/tests/pages/Home/Home.seo.e2e.test.ts
 +++ b/example/src/tests/pages/Home/Home.seo.e2e.test.ts
-@@ -11,16 +11,16 @@ test.use({ locale: 'pt-BR' })
+@@ -6,21 +6,22 @@ import {
+   type StructuredData
+ } from '@/tests/helpers/parseStructuredData/index.ts'
+ import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ test.use({ locale: 'pt-BR' })
  
  const HTTP_OK = 200
  const SITE_TITLE = SITE.title
@@ -2955,7 +3192,25 @@ diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/test
  
  // Only the fields that identify each node; the full format is covered by the
  // unit tests of `buildStructuredData`.
-@@ -83,19 +83,9 @@ test.describe('SEO metadata', () => {
+@@ -58,12 +59,15 @@ test.describe('SEO metadata', () => {
+     ).toHaveAttribute('content', HOME_TITLE)
+ 
+     const canonical = page.locator('head link[rel="canonical"]')
+-    await expect(canonical).toHaveAttribute('href', `${siteUrl}/pt`)
++    await expect(canonical).toHaveAttribute(
++      'href',
++      `${siteUrl}/${testLanguages.alternate}`
++    )
+     const describedBy = page.locator('head link[rel="describedby"]')
+     await expect(describedBy).toHaveAttribute('href', '/llms.txt')
+     await expect(page.locator('head meta[property="og:url"]')).toHaveAttribute(
+       'content',
+-      `${siteUrl}/pt`
++      `${siteUrl}/${testLanguages.alternate}`
+     )
+     await expect(
+       page.locator('head meta[property="og:image"]')
+@@ -83,18 +87,12 @@ test.describe('SEO metadata', () => {
        page.locator('head script[type="application/ld+json"]')
      ).toHaveCount(1)
      const graph = await readStructuredData(page)
@@ -2965,18 +3220,19 @@ diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/test
      const baseNodes = [
        { '@type': 'WebSite', url: `${siteUrl}/`, name: SITE_TITLE },
 -      { '@type': 'WebPage', url: `${siteUrl}/pt`, name: HOME_TITLE },
--      {
+       {
 -        '@type': 'Organization',
 -        url: `${siteUrl}/`,
 -        name: SITE_TITLE,
 -        description: SITE_DESCRIPTION,
 -        logo: logoNode
--      }
-+      { '@type': 'WebPage', url: `${siteUrl}/pt`, name: HOME_TITLE }
++        '@type': 'WebPage',
++        url: `${siteUrl}/${testLanguages.alternate}`,
++        name: HOME_TITLE
+       }
      ].map(node => expect.objectContaining(node))
      expect(graph).toHaveLength(BASE_GRAPH_NODES)
-     expect(graph).toEqual(expect.arrayContaining(baseNodes))
-@@ -114,7 +104,7 @@ test.describe('SEO metadata', () => {
+@@ -114,7 +112,7 @@ test.describe('SEO metadata', () => {
      await expect(
        page.getByRole('heading', { name: 'Página não encontrada!' })
      ).toBeVisible()
@@ -2985,7 +3241,31 @@ diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/test
      await expect(page.locator('head meta[name="description"]')).toHaveAttribute(
        'content',
        'A página solicitada não foi encontrada.'
-@@ -198,14 +188,17 @@ test.describe('SEO metadata', () => {
+@@ -130,7 +128,10 @@ test.describe('SEO metadata', () => {
+     ).toHaveCount(0)
+ 
+     await page.getByRole('link', { name: 'Início', exact: true }).click()
+-    await expect(canonical).toHaveAttribute('href', `${siteUrl}/pt`)
++    await expect(canonical).toHaveAttribute(
++      'href',
++      `${siteUrl}/${testLanguages.alternate}`
++    )
+     await expect(page).toHaveTitle(HOME_TITLE)
+     await expect(page.locator('head meta[name="description"]')).toHaveAttribute(
+       'content',
+@@ -150,7 +151,10 @@ test.describe('SEO metadata', () => {
+       page.locator('head script[type="application/ld+json"]')
+     ).toHaveCount(1)
+     expect(await readStructuredData(page)).toContainEqual(
+-      expect.objectContaining({ '@type': 'WebPage', url: `${siteUrl}/pt` })
++      expect.objectContaining({
++        '@type': 'WebPage',
++        url: `${siteUrl}/${testLanguages.alternate}`
++      })
+     )
+   })
+ 
+@@ -198,14 +202,17 @@ test.describe('SEO metadata', () => {
      await expect(
        page.locator('head meta[property="article:modified_time"]')
      ).toHaveAttribute('content', '2026-09-21')
@@ -2997,7 +3277,8 @@ diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/test
 +    expect(graph).toContainEqual(
        expect.objectContaining({
          '@type': 'Article',
-         url: `${siteUrl}/pt/seo-article`,
+-        url: `${siteUrl}/pt/seo-article`,
++        url: `${siteUrl}/${testLanguages.alternate}/seo-article`,
          name: 'Sample article',
          datePublished: '2026-09-01',
 -        dateModified: '2026-09-21',
@@ -3009,8 +3290,15 @@ diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/test
 diff --git a/source/src/tests/pages/Hydration/Hydration.e2e.test.ts b/example/src/tests/pages/Hydration/Hydration.e2e.test.ts
 --- a/source/src/tests/pages/Hydration/Hydration.e2e.test.ts
 +++ b/example/src/tests/pages/Hydration/Hydration.e2e.test.ts
-@@ -9,7 +9,7 @@ const HTTP_OK = 200
- const PAGE_URL = '/en'
+@@ -4,12 +4,13 @@ import { SITE } from '@/constants/site/title.ts'
+ import { holdRoute } from '@/tests/helpers/holdRoute/index.ts'
+ import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const HTTP_OK = 200
+-const PAGE_URL = '/en'
++const PAGE_URL = `/${testLanguages.base}`
  const SCRIPTS = '**/*.js'
  const MARKER = 'data-hydration-ended'
 -const HOME_TITLE = `${SITE.title} for web applications`
@@ -3018,10 +3306,91 @@ diff --git a/source/src/tests/pages/Hydration/Hydration.e2e.test.ts b/example/sr
  const ABOUT_TITLE = `About ${SITE.title}`
  const THEME_BUTTON = 'Select theme'
  // The order of the attributes is not part of the plugin contract.
+@@ -115,7 +116,7 @@ test('keeps the marker and interactivity across client-side navigation', async (
+ 
+   const navigation = page.getByRole('navigation', { name: 'Main', exact: true })
+   await navigation.getByRole('link', { name: 'About', exact: true }).click()
+-  await expect(page).toHaveURL('/en/about')
++  await expect(page).toHaveURL(`/${testLanguages.base}/about`)
+   await expect(page.getByRole('heading', { level: 1 })).toHaveText(ABOUT_TITLE)
+   await expect(
+     navigation.getByRole('link', { name: 'About', exact: true })
+diff --git a/source/src/tests/pages/Hydration/Hydration.params.e2e.test.ts b/example/src/tests/pages/Hydration/Hydration.params.e2e.test.ts
+--- a/source/src/tests/pages/Hydration/Hydration.params.e2e.test.ts
++++ b/example/src/tests/pages/Hydration/Hydration.params.e2e.test.ts
+@@ -1,6 +1,7 @@
+ import { holdRoute } from '@/tests/helpers/holdRoute/index.ts'
+ import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const HTTP_OK = 200
+ const HTTP_BAD_REQUEST = 400
+@@ -18,7 +19,7 @@ for (const { encoded, decoded } of PARAMETERS) {
+     const scripts = await holdRoute({ page, url: '**/*.js' })
+ 
+     try {
+-      const path = `/en/blog/${encoded}`
++      const path = `/${testLanguages.base}/blog/${encoded}`
+       const response = await page.goto(path, { waitUntil: 'commit' })
+       expect(response?.status()).toBe(HTTP_OK)
+       await scripts.requested
+@@ -42,6 +43,6 @@ for (const { encoded, decoded } of PARAMETERS) {
+ }
+ 
+ test('rejects a URL with malformed parameter encoding', async ({ request }) => {
+-  const response = await request.get('/en/blog/%E0%A4%A')
++  const response = await request.get(`/${testLanguages.base}/blog/%E0%A4%A`)
+   expect(response.status()).toBe(HTTP_BAD_REQUEST)
+ })
 diff --git a/source/src/tests/pages/Hydration/Hydration.parser.e2e.test.ts b/example/src/tests/pages/Hydration/Hydration.parser.e2e.test.ts
 --- a/source/src/tests/pages/Hydration/Hydration.parser.e2e.test.ts
 +++ b/example/src/tests/pages/Hydration/Hydration.parser.e2e.test.ts
-@@ -187,9 +187,7 @@ test('does not mark before the shell when the async entry already ran', async ({
+@@ -14,6 +14,7 @@ import {
+ } from '@/tests/helpers/fixtureGate/index.ts'
+ import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ import { watchEntryLoad } from '@/tests/helpers/watchEntryLoad/index.ts'
+ 
+ type DocumentStream = {
+@@ -101,7 +102,7 @@ async function startParserProxy(target: string): Promise<ParserProxy> {
+         response.statusCode ?? HTTP_BAD_GATEWAY,
+         response.headers
+       )
+-      if (url.pathname === '/en') {
++      if (url.pathname === `/${testLanguages.base}`) {
+         try {
+           await streamHead({ response, outgoing, released: gate.promise })
+         } catch {
+@@ -110,7 +111,7 @@ async function startParserProxy(target: string): Promise<ParserProxy> {
+         return
+       }
+       if (
+-        url.pathname === '/en/hydration' &&
++        url.pathname === `/${testLanguages.base}/hydration` &&
+         url.searchParams.get('cut') === 'shell'
+       ) {
+         truncate = () => outgoing.end()
+@@ -121,7 +122,7 @@ async function startParserProxy(target: string): Promise<ParserProxy> {
+         }
+         return
+       }
+-      if (url.pathname === '/en/hydration') {
++      if (url.pathname === `/${testLanguages.base}/hydration`) {
+         truncate = () => {
+           response.unpipe(outgoing)
+           outgoing.end()
+@@ -175,7 +176,7 @@ test('does not mark before the shell when the async entry already ran', async ({
+     if (address === null || typeof address === 'string') {
+       throw new Error('Missing proxy address')
+     }
+-    await page.goto(`http://127.0.0.1:${address.port}/en`, {
++    await page.goto(`http://127.0.0.1:${address.port}/${testLanguages.base}`, {
+       waitUntil: 'commit'
+     })
+     await expect(page.locator('html')).toHaveAttribute(
+@@ -187,9 +188,7 @@ test('does not mark before the shell when the async entry already ran', async ({
  
      proxy.release()
      await expect.poll(() => hydrationFinished(page)).toBe(true)
@@ -3032,10 +3401,42 @@ diff --git a/source/src/tests/pages/Hydration/Hydration.parser.e2e.test.ts b/exa
      await page.getByRole('button', { name: 'Select theme' }).click()
      await expect(page.getByRole('menu')).toBeVisible()
      expect(pageErrors).toStrictEqual([])
+@@ -226,9 +225,12 @@ test('ends the hydration and fetches the data again on the client after the stre
+     if (address === null || typeof address === 'string') {
+       throw new Error('Missing proxy address')
+     }
+-    await page.goto(`http://127.0.0.1:${address.port}/en/hydration?id=${id}`, {
+-      waitUntil: 'commit'
+-    })
++    await page.goto(
++      `http://127.0.0.1:${address.port}/${testLanguages.base}/hydration?id=${id}`,
++      {
++        waitUntil: 'commit'
++      }
++    )
+     await expect(page.locator('html')).toHaveAttribute(
+       'data-entry-loaded',
+       'loading'
+@@ -308,7 +310,7 @@ test('fetches the data again on the client when the cut comes before the end of
+       throw new Error('Missing proxy address')
+     }
+     await page.goto(
+-      `http://127.0.0.1:${address.port}/en/hydration?id=${id}&cut=shell`,
++      `http://127.0.0.1:${address.port}/${testLanguages.base}/hydration?id=${id}&cut=shell`,
+       { waitUntil: 'commit' }
+     )
+     await expect(page.locator('html')).toHaveAttribute(
 diff --git a/source/src/tests/pages/Hydration/Hydration.preload.e2e.test.ts b/example/src/tests/pages/Hydration/Hydration.preload.e2e.test.ts
 --- a/source/src/tests/pages/Hydration/Hydration.preload.e2e.test.ts
 +++ b/example/src/tests/pages/Hydration/Hydration.preload.e2e.test.ts
-@@ -13,7 +13,7 @@ const chunkSchema = v.object({
+@@ -7,13 +7,14 @@ import { SITE } from '@/constants/site/title.ts'
+ import { holdRoute } from '@/tests/helpers/holdRoute/index.ts'
+ import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ import { watchEntryLoad } from '@/tests/helpers/watchEntryLoad/index.ts'
+ 
+ const chunkSchema = v.object({
    file: v.string()
  })
  const manifestSchema = v.record(v.string(), chunkSchema)
@@ -3044,10 +3445,57 @@ diff --git a/source/src/tests/pages/Hydration/Hydration.preload.e2e.test.ts b/ex
  
  async function readHomeModule(request: APIRequestContext): Promise<string> {
    const json = await readFile(
+@@ -29,7 +30,7 @@ async function readHomeModule(request: APIRequestContext): Promise<string> {
+   )
+   if (!entry) throw new Error('Missing home module in build manifest')
+   const path = `/${entry[1].file}`
+-  const response = await request.get('/en')
++  const response = await request.get(`/${testLanguages.base}`)
+   expect(await response.text()).toContain(path)
+   return path
+ }
+@@ -43,7 +44,7 @@ test('waits for the route module after the entry runs', async ({
+   await watchEntryLoad(page)
+   const homeModule = await holdRoute({ page, url: `**${path}` })
+   try {
+-    await page.goto('/en', { waitUntil: 'commit' })
++    await page.goto(`/${testLanguages.base}`, { waitUntil: 'commit' })
+     await homeModule.requested
+     await expect(page.locator('html')).toHaveAttribute('data-entry-loaded')
+     await expect(page.getByRole('heading', { level: 1 })).toHaveText(HOME_TITLE)
+@@ -71,7 +72,7 @@ test('keeps the HTML without the marker when the root preload fails', async ({
+   )
+   await watchEntryLoad(page)
+   await page.route(`**${path}`, route => route.abort('failed'))
+-  await page.goto('/en')
++  await page.goto(`/${testLanguages.base}`)
+   await failed
+   await expect(page.locator('html')).toHaveAttribute('data-entry-loaded')
+   await expect.poll(() => pageErrors.length).toBeGreaterThan(0)
+diff --git a/source/src/tests/pages/Hydration/Hydration.streaming.e2e.test.ts b/example/src/tests/pages/Hydration/Hydration.streaming.e2e.test.ts
+--- a/source/src/tests/pages/Hydration/Hydration.streaming.e2e.test.ts
++++ b/example/src/tests/pages/Hydration/Hydration.streaming.e2e.test.ts
+@@ -7,6 +7,7 @@ import {
+ } from '@/tests/helpers/fixtureGate/index.ts'
+ import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ type Stream = { page: Page; id: string; shouldReject?: boolean }
+ 
+@@ -16,7 +17,7 @@ async function openStream({
+   shouldReject = false
+ }: Stream): Promise<void> {
+   await page.goto(
+-    `/en/hydration?id=${id}&mode=${shouldReject ? 'reject' : 'resolve'}`,
++    `/${testLanguages.base}/hydration?id=${id}&mode=${shouldReject ? 'reject' : 'resolve'}`,
+     {
+       waitUntil: 'commit'
+     }
 diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pages/I18n/I18n.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.e2e.test.ts
-@@ -1,16 +1,34 @@
+@@ -1,16 +1,35 @@
 +import { readFile } from 'node:fs/promises'
 +
  import { expect, test } from '@playwright/test'
@@ -3057,6 +3505,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pa
 -import spanish from '@/components/organisms/ErrorFallback/i18n/es.json' with { type: 'json' }
 -import portuguese from '@/components/organisms/ErrorFallback/i18n/pt.json' with { type: 'json' }
  import { SITE } from '@/constants/site/title.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
  
  const HTTP_INTERNAL_SERVER_ERROR = 500
 -const LANGUAGES = [
@@ -3090,7 +3539,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pa
  
  test.describe('without JavaScript', () => {
    test.use({ javaScriptEnabled: false })
-@@ -23,7 +41,7 @@ test.describe('without JavaScript', () => {
+@@ -23,7 +42,7 @@ test.describe('without JavaScript', () => {
          `/${locale}/outside-error?case=render-root&id=${crypto.randomUUID()}`
        )
        expect(response?.status()).toBe(HTTP_INTERNAL_SERVER_ERROR)
@@ -3099,7 +3548,16 @@ diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pa
        await expect(
          page.locator('head meta[name="description"]')
        ).toHaveAttribute('content', messages.errorFallback_runtimeDescription)
-@@ -54,7 +72,7 @@ test('a server function keeps the page locale when the cookie disagrees', async
+@@ -45,7 +64,7 @@ test('a server function keeps the page locale when the cookie disagrees', async
+ }) => {
+   if (!baseURL) throw new Error('Missing test URL')
+   await context.addCookies([{ name: 'locale', value: 'es', url: baseURL }])
+-  await page.goto('/en/i18n-action')
++  await page.goto(`/${testLanguages.base}/i18n-action`)
+   await expect(page.getByRole('button', { name: 'Select theme' })).toBeEnabled()
+   await context.addCookies([{ name: 'locale', value: 'es', url: baseURL }])
+   const response = page.waitForResponse(candidate =>
+@@ -54,9 +73,9 @@ test('a server function keeps the page locale when the cookie disagrees', async
    await page.getByRole('button', { name: 'Read server locale' }).focus()
    await page.keyboard.press('Enter')
    await expect(
@@ -3108,10 +3566,114 @@ diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pa
    ).toBeVisible()
    const actionResponse = await response
    expect(actionResponse.headers()['content-language']).toBe('en')
+-  await expect(page).toHaveURL('/en/i18n-action')
++  await expect(page).toHaveURL(`/${testLanguages.base}/i18n-action`)
+ })
+diff --git a/source/src/tests/pages/I18n/I18n.hydration.e2e.test.ts b/example/src/tests/pages/I18n/I18n.hydration.e2e.test.ts
+--- a/source/src/tests/pages/I18n/I18n.hydration.e2e.test.ts
++++ b/example/src/tests/pages/I18n/I18n.hydration.e2e.test.ts
+@@ -1,6 +1,7 @@
+ import { holdRoute } from '@/tests/helpers/holdRoute/index.ts'
+ import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const LOCALES = [
+   {
+@@ -91,18 +92,27 @@ test('keeps the SSR document when history changes within its locale before hydra
+ }) => {
+   const scripts = await holdRoute({ page, url: '**/*.js' })
+   try {
+-    await page.goto('/pt/i18n-redirect', { waitUntil: 'commit' })
++    await page.goto(`/${testLanguages.alternate}/i18n-redirect`, {
++      waitUntil: 'commit'
++    })
+     await scripts.requested
+     await expect(page.getByTestId('locale')).toHaveText('pt')
+     expect(await hydrationFinished(page)).toBe(false)
+-    await page.evaluate(() => {
+-      document.documentElement.dataset.ssrDocument = 'kept'
+-      globalThis.history.pushState(
+-        { marker: 'kept' },
+-        '',
+-        '/pt/i18n-redirect?history=1#target'
+-      )
+-    })
++    await page.evaluate(
++      pageLanguages => {
++        document.documentElement.dataset.ssrDocument = 'kept'
++        globalThis.history.pushState(
++          { marker: 'kept' },
++          '',
++          `/${pageLanguages.alternate}/i18n-redirect?history=1#target`
++        )
++      },
++      {
++        base: testLanguages.base,
++        alternate: testLanguages.alternate,
++        third: testLanguages.third
++      }
++    )
+     await scripts.release()
+ 
+     await expect.poll(() => hydrationFinished(page)).toBe(true)
+@@ -110,7 +120,9 @@ test('keeps the SSR document when history changes within its locale before hydra
+       'data-ssr-document',
+       'kept'
+     )
+-    await expect(page).toHaveURL('/pt/i18n-redirect?history=1#target')
++    await expect(page).toHaveURL(
++      `/${testLanguages.alternate}/i18n-redirect?history=1#target`
++    )
+     expect(
+       await page.evaluate(() => globalThis.history.state as unknown)
+     ).toMatchObject({ marker: 'kept' })
+@@ -127,19 +139,24 @@ test('does not reload an unchanged URL when its SSR language differs', async ({
+   cspViolations
+ }) => {
+   let documentRequests = 0
+-  await page.route('**/pt/i18n-redirect', async route => {
+-    documentRequests += 1
+-    const response = await route.fetch()
+-    const html = await response.text()
+-    const body = html.replace('lang="pt-BR"', 'lang="en-US"')
+-    await route.fulfill({ response, body })
+-  })
++  await page.route(
++    `**/${testLanguages.alternate}/i18n-redirect`,
++    async route => {
++      documentRequests += 1
++      const response = await route.fetch()
++      const html = await response.text()
++      const body = html.replace('lang="pt-BR"', 'lang="en-US"')
++      await route.fulfill({ response, body })
++    }
++  )
+ 
+-  await page.goto('/pt/i18n-redirect', { waitUntil: 'commit' })
++  await page.goto(`/${testLanguages.alternate}/i18n-redirect`, {
++    waitUntil: 'commit'
++  })
+   await expect.poll(() => hydrationFinished(page)).toBe(true)
+   await page.getByRole('button', { name: 'Selecionar tema' }).click()
+   await expect(page.getByRole('menu')).toBeVisible()
+-  await expect(page).toHaveURL('/pt/i18n-redirect')
++  await expect(page).toHaveURL(`/${testLanguages.alternate}/i18n-redirect`)
+   expect(documentRequests).toBe(1)
+   expect(pageErrors).toEqual([])
+   expect(cspViolations).toEqual([])
 diff --git a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.production.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.production.e2e.test.ts
-@@ -17,7 +17,7 @@ const LANGUAGES = [
+@@ -6,6 +6,7 @@ import { SITE } from '@/constants/site/title.ts'
+ import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+ import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const HTTP_OK = 200
+ const HTTP_NOT_FOUND = 404
+@@ -17,7 +18,7 @@ const LANGUAGES = [
    {
      locale: 'pt',
      tag: 'pt-BR',
@@ -3120,7 +3682,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts b/example/s
      selector: 'Selecionar idioma',
      missing: 'Página não encontrada',
      home: 'Voltar ao início'
-@@ -25,7 +25,7 @@ const LANGUAGES = [
+@@ -25,7 +26,7 @@ const LANGUAGES = [
    {
      locale: 'en',
      tag: 'en-US',
@@ -3129,7 +3691,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts b/example/s
      selector: 'Select language',
      missing: 'Page not found',
      home: 'Back to home'
-@@ -33,7 +33,7 @@ const LANGUAGES = [
+@@ -33,7 +34,7 @@ const LANGUAGES = [
    {
      locale: 'es',
      tag: 'es-ES',
@@ -3138,18 +3700,35 @@ diff --git a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts b/example/s
      selector: 'Seleccionar idioma',
      missing: 'Página no encontrada',
      home: 'Volver al inicio'
-@@ -102,9 +102,7 @@ test('switches language and hydrates when cookie access is blocked', async ({
+@@ -96,15 +97,13 @@ test('switches language and hydrates when cookie access is blocked', async ({
+       }
+     })
+   })
+-  await page.goto('/en')
++  await page.goto(`/${testLanguages.base}`)
+   await page.getByRole('button', { name: 'Select language' }).click()
+   await page
      .getByRole('menuitemradio', { name: 'Español', exact: true })
      .click()
-   await expect(page).toHaveURL('/es')
+-  await expect(page).toHaveURL('/es')
 -  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
 -    `${SITE.title} para aplicaciones web`
 -  )
++  await expect(page).toHaveURL(`/${testLanguages.third}`)
 +  await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
    await page.getByRole('button', { name: 'Seleccionar tema' }).click()
    await expect(page.getByRole('menu')).toBeVisible()
    expect(pageErrors).toEqual([])
-@@ -153,9 +151,7 @@ test('loads each page body only with its route implementation', async ({
+@@ -144,7 +143,7 @@ test('loads each page body only with its route implementation', async ({
+   page.on('request', request =>
+     requested.add(new URL(request.url()).pathname.split('/').pop() ?? '')
+   )
+-  await page.goto('/pt/404')
++  await page.goto(`/${testLanguages.alternate}/404`)
+   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+     'Página não encontrada!'
+   )
+@@ -153,9 +152,7 @@ test('loads each page body only with its route implementation', async ({
      expect(requested.has(String(bodyModule?.file))).toBe(false)
    }
    await page.getByRole('link', { name: 'Voltar ao início' }).click()
@@ -3160,7 +3739,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts b/example/s
    expect(requested.has(String(homeModule))).toBe(true)
  })
  
-@@ -193,7 +189,7 @@ for (const language of LANGUAGES) {
+@@ -193,7 +190,7 @@ for (const language of LANGUAGES) {
        header.evaluate(element => element === document.querySelector('header'))
      await page.getByRole('link', { name: '404', exact: true }).click()
      await expect(page).toHaveURL(`/${language.locale}/404`)
@@ -3169,29 +3748,75 @@ diff --git a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts b/example/s
      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
        'content',
        'noindex'
-@@ -221,9 +217,7 @@ test('switches language by keyboard, persists the choice and preserves query and
+@@ -212,7 +209,7 @@ for (const language of LANGUAGES) {
+ test('switches language by keyboard, persists the choice and preserves query and hash', async ({
+   page
+ }) => {
+-  await page.goto('/pt?campaign=example#section')
++  await page.goto(`/${testLanguages.alternate}?campaign=example#section`)
+   const selector = page.getByRole('button', { name: 'Selecionar idioma' })
+   await selector.focus()
+   await page.keyboard.press('Enter')
+@@ -220,20 +217,18 @@ test('switches language by keyboard, persists the choice and preserves query and
+     .getByRole('menuitemradio', { name: 'English', exact: true })
      .focus()
    await page.keyboard.press('Enter')
-   await expect(page).toHaveURL('/en?campaign=example#section')
+-  await expect(page).toHaveURL('/en?campaign=example#section')
 -  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
 -    `${SITE.title} for web applications`
--  )
++  await expect(page).toHaveURL(
++    `/${testLanguages.base}?campaign=example#section`
+   )
 +  await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
    await page.goto('/')
-   await expect(page).toHaveURL('/en')
+-  await expect(page).toHaveURL('/en')
++  await expect(page).toHaveURL(`/${testLanguages.base}`)
    await page.getByRole('button', { name: 'Select language' }).click()
-@@ -231,9 +225,7 @@ test('switches language by keyboard, persists the choice and preserves query and
+   await page
      .getByRole('menuitemradio', { name: 'Español', exact: true })
      .click()
-   await expect(page).toHaveURL('/es')
+-  await expect(page).toHaveURL('/es')
 -  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
 -    `${SITE.title} para aplicaciones web`
 -  )
++  await expect(page).toHaveURL(`/${testLanguages.third}`)
 +  await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
  })
  
  test('negotiates only unprefixed page URLs and does not cache preference redirects', async ({
-@@ -323,6 +315,10 @@ test('isolates concurrent HTML and Markdown requests across all locales', async
+@@ -244,7 +239,9 @@ test('negotiates only unprefixed page URLs and does not cache preference redirec
+     headers: { cookie: 'locale=es', 'accept-language': 'en-US' }
+   })
+   expect(response.status()).toBe(HTTP_REDIRECT)
+-  expect(new URL(response.headers().location ?? '').pathname).toBe('/es')
++  expect(new URL(response.headers().location ?? '').pathname).toBe(
++    `/${testLanguages.third}`
++  )
+   expect(response.headers().location).toContain('?q=one')
+   expect(response.headers()['cache-control']).toContain('no-store')
+   expect(response.headers().vary).toContain('Cookie')
+@@ -252,13 +249,17 @@ test('negotiates only unprefixed page URLs and does not cache preference redirec
+     maxRedirects: 0,
+     headers: { cookie: 'locale=invalid', 'accept-language': 'de' }
+   })
+-  expect(new URL(fallback.headers().location ?? '').pathname).toBe('/en')
++  expect(new URL(fallback.headers().location ?? '').pathname).toBe(
++    `/${testLanguages.base}`
++  )
+   const preferred = await request.head('/', {
+     maxRedirects: 0,
+     headers: { 'accept-language': 'es-AR, en;q=0.5', cookie: '' }
+   })
+-  expect(new URL(preferred.headers().location ?? '').pathname).toBe('/es')
+-  const missing = await request.get('/en/missing')
++  expect(new URL(preferred.headers().location ?? '').pathname).toBe(
++    `/${testLanguages.third}`
++  )
++  const missing = await request.get(`/${testLanguages.base}/missing`)
+   expect(missing.status()).toBe(HTTP_NOT_FOUND)
+ })
+ 
+@@ -323,6 +324,10 @@ test('isolates concurrent HTML and Markdown requests across all locales', async
        return { language, format, body: await response.text() }
      })
    )
@@ -3202,7 +3827,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts b/example/s
    for (const { language, format, body } of results) {
      if (format === 'text/html') {
        expect(body).toContain(`lang="${language.tag}"`)
-@@ -330,10 +326,15 @@ test('isolates concurrent HTML and Markdown requests across all locales', async
+@@ -330,10 +335,15 @@ test('isolates concurrent HTML and Markdown requests across all locales', async
        expect(body.split('\n')).toContain(`# ${language.title}`)
      }
      expect(body).toContain(language.title)
@@ -3222,15 +3847,57 @@ diff --git a/source/src/tests/pages/I18n/I18n.production.e2e.test.ts b/example/s
 diff --git a/source/src/tests/pages/I18n/I18n.redirect.e2e.test.ts b/example/src/tests/pages/I18n/I18n.redirect.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.redirect.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.redirect.e2e.test.ts
-@@ -41,15 +41,13 @@ for (const source of ['action', 'query']) {
-         new URL(response.url()).pathname === '/es/i18n-redirect'
+@@ -1,18 +1,19 @@
+ import { SITE } from '@/constants/site/title.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const REDIRECT = 302
+ 
+ for (const [kind, destination] of [
+-  ['query', '/pt/i18n-redirect?saved=1'],
+-  ['parent', '/pt/next'],
+-  ['fragment', '/pt/i18n-redirect?filter=active#target'],
+-  ['empty', '/pt/i18n-redirect?filter=active']
++  ['query', `/${testLanguages.base}/i18n-redirect?saved=1`],
++  ['parent', `/${testLanguages.base}/next`],
++  ['fragment', `/${testLanguages.base}/i18n-redirect?filter=active#target`],
++  ['empty', `/${testLanguages.base}/i18n-redirect?filter=active`]
+ ] as const) {
+   test(`RPC relative ${kind} redirect resolves against the referring page`, async ({
+     page
+   }) => {
+-    await page.goto('/pt/i18n-redirect?filter=active#old')
++    await page.goto(`/${testLanguages.base}/i18n-redirect?filter=active#old`)
+     await expect(
+       page.getByRole('button', { name: 'Selecionar tema' })
+     ).toBeEnabled()
+@@ -28,7 +29,7 @@ for (const source of ['action', 'query']) {
+     page,
+     cspViolations
+   }) => {
+-    await page.goto('/pt/i18n-redirect')
++    await page.goto(`/${testLanguages.base}/i18n-redirect`)
+     await expect(
+       page.getByRole('button', { name: 'Selecionar tema' })
+     ).toBeEnabled()
+@@ -38,18 +39,19 @@ for (const source of ['action', 'query']) {
+     const documentResponse = page.waitForResponse(
+       response =>
+         response.request().isNavigationRequest() &&
+-        new URL(response.url()).pathname === '/es/i18n-redirect'
++        new URL(response.url()).pathname ===
++          `/${testLanguages.alternate}/i18n-redirect`
      )
      await page
 -      .getByRole('button', { name: `Spanish ${source} redirect` })
 +      .getByRole('button', { name: `Alternate ${source} redirect` })
        .click()
      await documentResponse
-     await expect(page).toHaveURL(`/es/i18n-redirect?from=${source}#target`)
+-    await expect(page).toHaveURL(`/es/i18n-redirect?from=${source}#target`)
++    await expect(page).toHaveURL(
++      `/${testLanguages.alternate}/i18n-redirect?from=${source}#target`
++    )
      await expect(page.locator('html')).toHaveAttribute('lang', 'es-ES')
      await expect(page.getByTestId('locale')).toHaveText('es')
 -    await expect(page.getByTestId('message')).toHaveText(
@@ -3240,19 +3907,140 @@ diff --git a/source/src/tests/pages/I18n/I18n.redirect.e2e.test.ts b/example/src
      await expect(page.locator('html')).not.toHaveAttribute(
        'data-previous-document'
      )
-@@ -67,7 +65,7 @@ test('same-locale action redirects preserve the document and SPA history retains
+@@ -60,21 +62,27 @@ for (const source of ['action', 'query']) {
+ test('same-locale action redirects preserve the document and SPA history retains state', async ({
+   page
+ }) => {
+-  await page.goto('/pt/i18n-redirect')
++  await page.goto(`/${testLanguages.base}/i18n-redirect`)
+   await expect(
+     page.getByRole('button', { name: 'Selecionar tema' })
+   ).toBeEnabled()
    await page.evaluate(() => {
      document.documentElement.dataset.sameDocument = 'kept'
    })
 -  await page.getByRole('button', { name: 'Portuguese action redirect' }).click()
+-  await expect(page).toHaveURL('/pt/i18n-redirect?from=action#target')
 +  await page.getByRole('button', { name: 'Base action redirect' }).click()
-   await expect(page).toHaveURL('/pt/i18n-redirect?from=action#target')
++  await expect(page).toHaveURL(
++    `/${testLanguages.base}/i18n-redirect?from=action#target`
++  )
    await page.getByRole('button', { name: 'Same locale state' }).click()
    await expect(page.getByTestId('state')).toContainText('"marker":"kept"')
+   await page.goBack()
+-  await expect(page).toHaveURL('/pt/i18n-redirect?from=action#target')
++  await expect(page).toHaveURL(
++    `/${testLanguages.base}/i18n-redirect?from=action#target`
++  )
+   await page.goForward()
+-  await expect(page).toHaveURL('/pt/i18n-redirect?from=state#target')
++  await expect(page).toHaveURL(
++    `/${testLanguages.base}/i18n-redirect?from=state#target`
++  )
+   await expect(page.getByTestId('state')).toContainText('"marker":"kept"')
+   await expect(page.locator('html')).toHaveAttribute(
+     'data-same-document',
+@@ -85,37 +93,48 @@ test('same-locale action redirects preserve the document and SPA history retains
+ test('back and forward across locale history entries reload the selected document', async ({
+   page
+ }) => {
+-  await page.goto('/pt/i18n-redirect')
++  await page.goto(`/${testLanguages.base}/i18n-redirect`)
+   await expect(
+     page.getByRole('button', { name: 'Selecionar tema' })
+   ).toBeEnabled()
+   // Simulates entries of an earlier integration in the history of the same document.
+-  await page.evaluate(() => {
+-    globalThis.history.pushState(
+-      { marker: 'es' },
+-      '',
+-      '/es/i18n-redirect?history=1#target'
+-    )
+-    globalThis.history.pushState(
+-      { marker: 'pt' },
+-      '',
+-      '/pt/i18n-redirect?history=2#target'
+-    )
+-  })
++  await page.evaluate(
++    pageLanguages => {
++      globalThis.history.pushState(
++        { marker: 'es' },
++        '',
++        `/${pageLanguages.alternate}/i18n-redirect?history=1#target`
++      )
++      globalThis.history.pushState(
++        { marker: 'pt' },
++        '',
++        `/${pageLanguages.base}/i18n-redirect?history=2#target`
++      )
++    },
++    {
++      base: testLanguages.base,
++      alternate: testLanguages.alternate,
++      third: testLanguages.third
++    }
++  )
+   await page.goBack()
+   await expect(page.locator('html')).toHaveAttribute('lang', 'es-ES')
+   await expect(page.getByTestId('locale')).toHaveText('es')
+-  await expect(page).toHaveURL('/es/i18n-redirect?history=1#target')
++  await expect(page).toHaveURL(
++    `/${testLanguages.alternate}/i18n-redirect?history=1#target`
++  )
+   await page.goForward()
+   await expect(page.locator('html')).toHaveAttribute('lang', 'pt-BR')
+   await expect(page.getByTestId('locale')).toHaveText('pt')
+-  await expect(page).toHaveURL('/pt/i18n-redirect?history=2#target')
++  await expect(page).toHaveURL(
++    `/${testLanguages.base}/i18n-redirect?history=2#target`
++  )
+ })
+ 
+ test('SSR query redirect decided before the shell preserves HTTP status and Location', async ({
+   request
+ }) => {
+-  const url = '/pt/i18n-redirect?initial=1'
++  const url = `/${testLanguages.base}/i18n-redirect?initial=1`
+   // On the first request of the process to the route, the redirect goes out after
+   // the shell, probably because of the module loading; that path is the one of
+   // LateRedirect. On the following ones, it resolves before the shell is sent.
+@@ -123,13 +142,13 @@ test('SSR query redirect decided before the shell preserves HTTP status and Loca
+   const response = await request.get(url, { maxRedirects: 0 })
+   expect(response.status()).toBe(REDIRECT)
+   expect(response.headers().location).toBe(
+-    '/es/i18n-redirect?from=query#target'
++    `/${testLanguages.alternate}/i18n-redirect?from=query#target`
+   )
+ })
+ test('localized fragment and empty navigation retain the page and query', async ({
+   page
+ }) => {
+-  await page.goto('/pt/i18n-redirect?filter=active#old')
++  await page.goto(`/${testLanguages.base}/i18n-redirect?filter=active#old`)
+   await expect(
+     page.getByRole('button', { name: 'Selecionar tema' })
+   ).toBeEnabled()
+@@ -137,9 +156,13 @@ test('localized fragment and empty navigation retain the page and query', async
+     document.documentElement.dataset.sameDocument = 'kept'
+   })
+   await page.getByRole('button', { name: 'Navigate fragment' }).click()
+-  await expect(page).toHaveURL('/pt/i18n-redirect?filter=active#target')
++  await expect(page).toHaveURL(
++    `/${testLanguages.base}/i18n-redirect?filter=active#target`
++  )
+   await page.getByRole('button', { name: 'Navigate empty' }).click()
+-  await expect(page).toHaveURL('/pt/i18n-redirect?filter=active')
++  await expect(page).toHaveURL(
++    `/${testLanguages.base}/i18n-redirect?filter=active`
++  )
+   await expect(page.locator('html')).toHaveAttribute(
+     'data-same-document',
+     'kept'
 diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
-@@ -1,24 +1,43 @@
+@@ -1,24 +1,44 @@
 +import { readFile } from 'node:fs/promises'
 +
  import { expect, test } from '@playwright/test'
@@ -3264,6 +4052,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/examp
 +import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.ts'
  import { parseStructuredData } from '@/tests/helpers/parseStructuredData/index.ts'
  import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
  
  const HTTP_OK = 200
  const HTTP_NOT_FOUND = 404
@@ -3305,7 +4094,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/examp
  ])
  
  type SitemapRecord = { loc: string; alternates: Record<string, string> }
-@@ -120,27 +139,8 @@ for (const { locale, tag, messages } of LANGUAGES) {
+@@ -120,27 +140,8 @@ for (const { locale, tag, messages } of LANGUAGES) {
          inLanguage: LANGUAGES.map(language => language.tag)
        })
      )
@@ -3335,12 +4124,32 @@ diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/examp
      )
      const missing = await page.goto(`/${locale}/missing`)
      expect(missing?.status()).toBe(HTTP_NOT_FOUND)
+@@ -182,7 +183,7 @@ test('sitemap alternates are reciprocal and every localized URL resolves without
+         ({ locale }) =>
+           [locale, `${readSiteOrigin()}/${locale}${path}`] as const
+       ),
+-      ['x-default', `${readSiteOrigin()}/en${path}`]
++      ['x-default', `${readSiteOrigin()}/${testLanguages.base}${path}`]
+     ])
+     return LANGUAGES.map(({ locale }) => ({
+       loc: `${readSiteOrigin()}/${locale}${path}`,
 diff --git a/source/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts
-@@ -28,9 +28,7 @@ async function loadHome(page: Page): Promise<LoadedPage> {
+@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test'
+ import { SITE } from '@/constants/site/title.ts'
+ import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ import { watchCspViolations } from '@/tests/helpers/watchCspViolations/index.ts'
+ 
+ type UrlPatternKind = 'native' | 'polyfill' | 'missing'
+@@ -26,11 +27,9 @@ async function loadHome(page: Page): Promise<LoadedPage> {
+       scripts.add(new URL(request.url()).pathname)
+     }
    })
-   await page.goto('/pt')
+-  await page.goto('/pt')
++  await page.goto(`/${testLanguages.alternate}`)
    await expect.poll(() => hydrationFinished(page)).toBe(true)
 -  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
 -    `${SITE.title} para aplicações web`
@@ -3349,30 +4158,181 @@ diff --git a/source/src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts 
    // The copy ends the collection at the same point on both pages.
    return {
      scripts: new Set(scripts),
-@@ -74,7 +72,7 @@ test('loads the URLPattern polyfill only without the native API and keeps the lo
+@@ -73,18 +72,16 @@ test('loads the URLPattern polyfill only without the native API and keeps the lo
+   }
  
    await page.getByRole('link', { name: '404', exact: true }).click()
-   await expect(page).toHaveURL('/pt/404')
+-  await expect(page).toHaveURL('/pt/404')
 -  await expect(page).toHaveTitle('Página não encontrada')
++  await expect(page).toHaveURL(`/${testLanguages.alternate}/404`)
 +  await expect(page).toHaveTitle(`Página não encontrada | ${SITE.title}`)
    await page.getByRole('link', { name: 'Voltar ao início' }).click()
-   await expect(page).toHaveURL('/pt')
+-  await expect(page).toHaveURL('/pt')
++  await expect(page).toHaveURL(`/${testLanguages.alternate}`)
    await page.getByRole('button', { name: 'Selecionar idioma' }).click()
-@@ -82,9 +80,7 @@ test('loads the URLPattern polyfill only without the native API and keeps the lo
+   await page
      .getByRole('menuitemradio', { name: 'English', exact: true })
      .click()
-   await expect(page).toHaveURL('/en')
+-  await expect(page).toHaveURL('/en')
 -  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
 -    `${SITE.title} for web applications`
 -  )
++  await expect(page).toHaveURL(`/${testLanguages.base}`)
 +  await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
    await expect.poll(() => hydrationFinished(page)).toBe(true)
    expect(await readUrlPatternKind(page)).toBe('polyfill')
    expect(pageErrors).toEqual([])
+diff --git a/source/src/tests/pages/LateRedirect/LateRedirect.e2e.test.ts b/example/src/tests/pages/LateRedirect/LateRedirect.e2e.test.ts
+--- a/source/src/tests/pages/LateRedirect/LateRedirect.e2e.test.ts
++++ b/example/src/tests/pages/LateRedirect/LateRedirect.e2e.test.ts
+@@ -3,15 +3,18 @@ import {
+   releaseFixtureGate
+ } from '@/tests/helpers/fixtureGate/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const HTTP_OK = 200
+ // A server that stops emitting bytes fails on the read, not on the generic
+ // timeout of the runner.
+ const REQUEST_TIMEOUT = 15_000
+-const PAGE_URL = '/pt/late-redirect'
++const PAGE_URL = `/${testLanguages.alternate}/late-redirect`
+ const LOADING_TEXT = 'Loading...'
+-const LATE_REDIRECT_SCRIPT =
+-  /<script nonce="(?<nonce>[^"]+)">window\.location="\/pt\?from=late-redirect"<\/script>/u
++const LATE_REDIRECT_SCRIPT = new RegExp(
++  String.raw`<script nonce="(?<nonce>[^"]+)">window\.location="\/${testLanguages.alternate}\?from=late-redirect"<\/script>`,
++  'u'
++)
+ 
+ // After the shell the status already went out, and the runtime follows the
+ // Location through a script at the end of the document. It needs the CSP nonce of
+@@ -50,7 +53,12 @@ test('the browser follows the redirect after the shell without a CSP violation',
+   await page.goto(`${PAGE_URL}?id=${id}`, { waitUntil: 'commit' })
+   await expect(page.getByText(LOADING_TEXT, { exact: true })).toBeVisible()
+   await releaseFixtureGate({ request, id })
+-  await expect(page).toHaveURL(/\/pt\?from=late-redirect$/u)
++  await expect(page).toHaveURL(
++    new RegExp(
++      String.raw`\/${testLanguages.alternate}\?from=late-redirect$`,
++      'u'
++    )
++  )
+ 
+   expect(cspViolations).toStrictEqual([])
+ })
+diff --git a/source/src/tests/pages/Markdown/Markdown.e2e.test.ts b/example/src/tests/pages/Markdown/Markdown.e2e.test.ts
+--- a/source/src/tests/pages/Markdown/Markdown.e2e.test.ts
++++ b/example/src/tests/pages/Markdown/Markdown.e2e.test.ts
+@@ -4,6 +4,7 @@ import { SITE } from '@/constants/site/title.ts'
+ import { releaseFixtureGate } from '@/tests/helpers/fixtureGate/index.ts'
+ import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+ import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const HTTP_OK = 200
+ const HTTP_REDIRECT = 307
+@@ -13,7 +14,7 @@ const HTTP_METHOD_NOT_ALLOWED = 405
+ const HTTP_NOT_ACCEPTABLE = 406
+ const HTTP_INTERNAL_SERVER_ERROR = 500
+ 
+-const PAGE = '/pt/markdown-contract/sample'
++const PAGE = `/${testLanguages.alternate}/markdown-contract/sample`
+ const LOCALES = ['pt', 'en', 'es']
+ const LOCALE_REQUESTS = 12
+ const CONCURRENT_MARKDOWN_REQUESTS = 2
+@@ -135,7 +136,9 @@ test('matches unenumerated parameter values without a Markdown producer', async
+   request
+ }) => {
+   const slug = `unlisted-${crypto.randomUUID()}`
+-  const response = await request.get(`/pt/markdown-contract/${slug}.md`)
++  const response = await request.get(
++    `/${testLanguages.alternate}/markdown-contract/${slug}.md`
++  )
+   expect(response.status()).toBe(HTTP_OK)
+   expect(await response.text()).toContain(`# HTML Markdown contract: ${slug}`)
+ })
+@@ -217,11 +220,14 @@ test('localizes explicit Markdown URLs without losing their suffix', async ({
+   })
+   expect(response.status()).toBe(HTTP_REDIRECT)
+   expect(new URL(response.headers().location ?? '', baseURL).pathname).toBe(
+-    '/es/markdown-contract/sample.md'
++    `/${testLanguages.third}/markdown-contract/sample.md`
+   )
+ })
+ 
+-for (const path of ['/pt/markdown-noindex', '/pt/markdown-optout']) {
++for (const path of [
++  `/${testLanguages.alternate}/markdown-noindex`,
++  `/${testLanguages.alternate}/markdown-optout`
++]) {
+   test(`does not publish ${path}`, async ({ request }) => {
+     const html = await request.get(path, { headers: { accept: 'text/html' } })
+     expect(html.status()).toBe(HTTP_OK)
+@@ -242,9 +248,9 @@ test('keeps unknown and invalid paths outside successful Markdown', async ({
+   request
+ }) => {
+   for (const path of [
+-    '/pt/nonexistent-contract.md',
+-    '/pt/%ZZ.md',
+-    '/pt/markdown-contract/a/b.md'
++    `/${testLanguages.alternate}/nonexistent-contract.md`,
++    `/${testLanguages.alternate}/%ZZ.md`,
++    `/${testLanguages.alternate}/markdown-contract/a/b.md`
+   ]) {
+     const response = await request.get(path, { maxRedirects: 0 })
+     expect(response.status()).toBeGreaterThanOrEqual(HTTP_BAD_REQUEST)
+diff --git a/source/src/tests/pages/Markdown/Markdown.streaming.e2e.test.ts b/example/src/tests/pages/Markdown/Markdown.streaming.e2e.test.ts
+--- a/source/src/tests/pages/Markdown/Markdown.streaming.e2e.test.ts
++++ b/example/src/tests/pages/Markdown/Markdown.streaming.e2e.test.ts
+@@ -5,12 +5,13 @@ import {
+   releaseFixtureGate,
+   waitForGate
+ } from '@/tests/helpers/fixtureGate/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const HTTP_OK = 200
+ const HTTP_REDIRECT = 307
+ const HTTP_INTERNAL_SERVER_ERROR = 500
+ 
+-const PAGE = '/pt/markdown-contract/sample'
++const PAGE = `/${testLanguages.alternate}/markdown-contract/sample`
+ const REQUEST_TIMEOUT = 15_000
+ type Gate = { request: APIRequestContext; id: string }
+ 
+@@ -134,7 +135,9 @@ test('late same-origin redirect preserves explicit Markdown intent', async ({
+   }
+   const response = await responsePromise
+   expect(response.status()).toBe(HTTP_REDIRECT)
+-  expect(response.headers().location).toBe('/pt/about.md')
++  expect(response.headers().location).toBe(
++    `/${testLanguages.alternate}/about.md`
++  )
+   expect(await response.text()).not.toContain('HTML Markdown contract: sample')
+ })
+ 
+@@ -162,7 +165,9 @@ test('a cancelled pending render does not contaminate the next request', async (
+     controller.abort()
+     await releaseGates({ request, id })
+   }
+-  const healthy = await request.get('/en/markdown-contract/sample.md')
++  const healthy = await request.get(
++    `/${testLanguages.base}/markdown-contract/sample.md`
++  )
+   expect(healthy.status()).toBe(HTTP_OK)
+   expect(await healthy.text()).toContain('first:en:resolved')
+ })
 diff --git a/source/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts b/example/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts
 --- a/source/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts
 +++ b/example/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts
-@@ -12,7 +12,7 @@ test.describe('missing page', () => {
+@@ -1,5 +1,6 @@
+ import { SITE } from '@/constants/site/title.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const HTTP_NOT_FOUND = 404
+ const SOCIAL_TAGS = 'head meta[property^="og:"], head meta[name^="twitter:"]'
+@@ -12,7 +13,7 @@ test.describe('missing page', () => {
    }) => {
      await page.goto('/pagina-inexistente')
  
@@ -3381,13 +4341,15 @@ diff --git a/source/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts b/example/
      await expect(page.locator('head meta[name="description"]')).toHaveAttribute(
        'content',
        'The requested page was not found.'
-@@ -54,9 +54,7 @@ test.describe('hydrated missing page', () => {
+@@ -53,10 +54,8 @@ test.describe('hydrated missing page', () => {
+     ).toHaveCount(0)
  
      await page.getByRole('link', { name: 'Back to home' }).click()
-     await expect(page).toHaveURL('/en')
+-    await expect(page).toHaveURL('/en')
 -    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
 -      `${SITE.title} for web applications`
 -    )
++    await expect(page).toHaveURL(`/${testLanguages.base}`)
 +    await expect(page.getByRole('heading', { level: 1 })).toHaveText(SITE.title)
      expect(pageErrors).toStrictEqual([])
    })
@@ -3395,19 +4357,156 @@ diff --git a/source/src/tests/pages/NotFound/NotFound.seo.e2e.test.ts b/example/
 diff --git a/source/src/tests/pages/OutdatedPage/OutdatedPage.e2e.test.ts b/example/src/tests/pages/OutdatedPage/OutdatedPage.e2e.test.ts
 --- a/source/src/tests/pages/OutdatedPage/OutdatedPage.e2e.test.ts
 +++ b/example/src/tests/pages/OutdatedPage/OutdatedPage.e2e.test.ts
-@@ -34,7 +34,7 @@ type Refusal = {
+@@ -4,6 +4,7 @@ import { SITE } from '@/constants/site/title.ts'
+ import { readBackendState } from '@/tests/helpers/fixtureGate/index.ts'
+ import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ test.use({ locale: 'pt-BR' })
+ 
+@@ -33,13 +34,13 @@ type Refusal = {
+ 
  const ABOUT: Destination = {
    link: 'Go to About',
-   url: /\/pt\/about$/u,
+-  url: /\/pt\/about$/u,
 -  title: `Sobre o ${SITE.title}`
++  url: new RegExp(String.raw`\/${testLanguages.alternate}\/about$`, 'u'),
 +  title: `Sobre ${SITE.title}`
  }
  // The About CSS already comes in the fixture document; the UI kit one does not.
  const UI_KIT: Destination = {
+   link: 'Go to UI kit',
+-  url: /\/pt\/ui-kit$/u,
++  url: new RegExp(String.raw`\/${testLanguages.alternate}\/ui-kit$`, 'u'),
+   title: 'UI fixture'
+ }
+ 
+@@ -179,7 +180,9 @@ test('hovering a link without the chunk does not reload, respects the draft and
+   await page.getByRole('link', { name: ABOUT.link }).click()
+   await expect(page.getByText('Leave blocked')).toBeVisible()
+   await expect(page.getByLabel('Draft')).toHaveValue(DRAFT)
+-  expect(page.url()).toMatch(/\/pt\/outdated-page$/u)
++  expect(page.url()).toMatch(
++    new RegExp(String.raw`\/${testLanguages.alternate}\/outdated-page$`, 'u')
++  )
+   expect(documents()).toBe(0)
+ 
+   await page.getByLabel('Draft').fill('')
+diff --git a/source/src/tests/pages/PublicationLoad/PublicationLoad.e2e.test.ts b/example/src/tests/pages/PublicationLoad/PublicationLoad.e2e.test.ts
+--- a/source/src/tests/pages/PublicationLoad/PublicationLoad.e2e.test.ts
++++ b/example/src/tests/pages/PublicationLoad/PublicationLoad.e2e.test.ts
+@@ -9,6 +9,7 @@ import {
+   readBackendState,
+   releaseFixtureGateQuietly
+ } from '@/tests/helpers/fixtureGate/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ type HttpResult = { status: number; headers: Headers; bytes: number }
+ type RequestState = { result?: HttpResult; error?: Error }
+@@ -69,7 +70,10 @@ async function readRequest({
+   state
+ }: ReadOptions): Promise<void> {
+   try {
+-    const url = new URL('/pt/markdown-contract/sample.md', baseURL)
++    const url = new URL(
++      `/${testLanguages.alternate}/markdown-contract/sample.md`,
++      baseURL
++    )
+     url.searchParams.set('id', id)
+     const response = await fetch(url, { signal })
+     const body = await response.arrayBuffer()
+@@ -154,7 +158,7 @@ async function timedPages({
+   const durations: number[] = []
+   for (let index = 0; index < samples; index += 1) {
+     const started = performance.now()
+-    const response = await request.get('/pt/about')
++    const response = await request.get(`/${testLanguages.alternate}/about`)
+     expect(response.status()).toBe(HTTP_OK)
+     expect(response.headers()['content-type']).toContain('text/html')
+     durations.push(performance.now() - started)
+@@ -257,7 +261,9 @@ test('rejects excess publication before SSR, preserves normal HTML and recovers'
+   expect(secondaryIdle.publication.active).toBe(0)
+   expect(secondaryIdle.publication.outputs).toBe(0)
+   expect(secondaryIdle.publication.reservedBytes).toBe(0)
+-  const healthy = await request.get('/en/markdown-contract/sample.md')
++  const healthy = await request.get(
++    `/${testLanguages.base}/markdown-contract/sample.md`
++  )
+   expect(healthy.status()).toBe(HTTP_OK)
+   expect(await healthy.text()).toContain('first:en:resolved')
+ })
+@@ -265,7 +271,9 @@ test('rejects excess publication before SSR, preserves normal HTML and recovers'
+ test('measures a large admitted conversion alongside normal SSR', async ({
+   request
+ }, testInfo) => {
+-  const warm = await request.get('/pt/publication-cpu/small.md')
++  const warm = await request.get(
++    `/${testLanguages.alternate}/publication-cpu/small.md`
++  )
+   expect(warm.status()).toBe(HTTP_OK)
+   const baselineMs = await timedPages({ request, samples: BASELINE_SAMPLES })
+   const monitor = await request.post('/publication-probe')
+@@ -279,7 +287,9 @@ test('measures a large admitted conversion alongside normal SSR', async ({
+       .toBeGreaterThan(0)
+     const before = await readProbe({ request })
+     const started = performance.now()
+-    const largePromise = request.get('/pt/publication-cpu/large.md')
++    const largePromise = request.get(
++      `/${testLanguages.alternate}/publication-cpu/large.md`
++    )
+     const loadedMsPromise = timedPages({ request, samples: LOAD_SAMPLES })
+     const [large, loadedMs] = await Promise.all([largePromise, loadedMsPromise])
+     const body = await large.body()
+@@ -366,7 +376,9 @@ test('retains output for a paused HTTP consumer and cancels it at the deadline',
+     expect(waiting.publication.active).toBe(0)
+     expect(waiting.publication.outputs).toBe(1)
+     expect(waiting.publication.reservedBytes).toBe(STREAM_RESERVATION_BYTES)
+-    const rejected = await request.get('/pt/publication-cpu/small.md')
++    const rejected = await request.get(
++      `/${testLanguages.alternate}/publication-cpu/small.md`
++    )
+     expect(rejected.status()).toBe(HTTP_UNAVAILABLE)
+     await expect
+       .poll(async () => {
+@@ -398,7 +410,7 @@ test('sitemap GET and HEAD preserve independent bodies and metadata concurrently
+   ]) {
+     expect(head.headers()[header]).toBe(get.headers()[header])
+   }
+-  expect(await get.text()).toContain('/pt/catalog/a-1')
++  expect(await get.text()).toContain(`/${testLanguages.alternate}/catalog/a-1`)
+   expect(await head.body()).toHaveLength(0)
+   const idle = await readProbe({ request })
+   expect(idle.publication).toMatchObject({
+@@ -426,12 +438,16 @@ test('sitemap tolerates removing a partition after its index and then rolling ba
+     expect(await current.text()).not.toContain('/sitemaps/catalog/a.xml')
+     const retained = await request.get('/sitemaps/catalog/b.xml')
+     expect(retained.status()).toBe(HTTP_OK)
+-    expect(await retained.text()).toContain('/pt/catalog/b-1')
++    expect(await retained.text()).toContain(
++      `/${testLanguages.alternate}/catalog/b-1`
++    )
+   } finally {
+     const restored = await request.post('/publication-source?removed=0')
+     expect(restored.status()).toBe(HTTP_NO_CONTENT)
+   }
+   const restored = await request.get('/sitemaps/catalog/a.xml')
+   expect(restored.status()).toBe(HTTP_OK)
+-  expect(await restored.text()).toContain('/pt/catalog/a-1')
++  expect(await restored.text()).toContain(
++    `/${testLanguages.alternate}/catalog/a-1`
++  )
+ })
 diff --git a/source/src/tests/pages/SeoIndexes/SeoIndexes.e2e.test.ts b/example/src/tests/pages/SeoIndexes/SeoIndexes.e2e.test.ts
 --- a/source/src/tests/pages/SeoIndexes/SeoIndexes.e2e.test.ts
 +++ b/example/src/tests/pages/SeoIndexes/SeoIndexes.e2e.test.ts
-@@ -7,7 +7,7 @@ const HTTP_OK = 200
+@@ -2,12 +2,13 @@ import { expect, test } from '@playwright/test'
+ 
+ import { SITE } from '@/constants/site/title.ts'
+ import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const HTTP_OK = 200
  const HTTP_NOT_FOUND = 404
  // Entries published by the source of `blog/[slug]`.
  const BLOG_ENTRIES = 2
@@ -3416,6 +4515,209 @@ diff --git a/source/src/tests/pages/SeoIndexes/SeoIndexes.e2e.test.ts b/example/
  const SITE_DESCRIPTION =
    'A foundation for web applications with SolidJS, TypeScript and Vite+, with server-side rendering and light and dark themes.'
  
+@@ -56,7 +57,9 @@ test.describe('indexes generated from the route manifest', () => {
+       })
+     )
+     const xml = bodies.join('\n')
+-    expect(xml).toContain(`<loc>${siteUrl}/pt/catalog/a-1</loc>`)
++    expect(xml).toContain(
++      `<loc>${siteUrl}/${testLanguages.alternate}/catalog/a-1</loc>`
++    )
+     const missingPart = await request.get('/sitemaps/catalog/removed.xml')
+     expect(missingPart.status()).toBe(HTTP_NOT_FOUND)
+     expect(missingPart.headers()['cache-control']).toBe('no-store')
+@@ -68,20 +71,28 @@ test.describe('indexes generated from the route manifest', () => {
+       headers: { 'x-nitro-prerender': '/sitemaps/static.json' }
+     })
+     expect(inventory.status()).toBe(HTTP_NOT_FOUND)
+-    expect(xml).toContain(`<loc>${siteUrl}/pt</loc>`)
+-    expect(xml).toContain(`<loc>${siteUrl}/pt/backend-error</loc>`)
+-    expect(xml).toContain(`<loc>${siteUrl}/pt/seo-public</loc>`)
+-    expect(xml).toContain(`<loc>${siteUrl}/pt/seo-sitemap-only</loc>`)
++    expect(xml).toContain(`<loc>${siteUrl}/${testLanguages.alternate}</loc>`)
++    expect(xml).toContain(
++      `<loc>${siteUrl}/${testLanguages.alternate}/backend-error</loc>`
++    )
++    expect(xml).toContain(
++      `<loc>${siteUrl}/${testLanguages.alternate}/seo-public</loc>`
++    )
++    expect(xml).toContain(
++      `<loc>${siteUrl}/${testLanguages.alternate}/seo-sitemap-only</loc>`
++    )
++    expect(xml).toContain(
++      `<url><loc>${siteUrl}/${testLanguages.alternate}/seo-article</loc><lastmod>2026-09-21</lastmod><xhtml:link`
++    )
+     expect(xml).toContain(
+-      `<url><loc>${siteUrl}/pt/seo-article</loc><lastmod>2026-09-21</lastmod><xhtml:link`
++      `<url><loc>${siteUrl}/${testLanguages.alternate}</loc><xhtml:link`
+     )
+-    expect(xml).toContain(`<url><loc>${siteUrl}/pt</loc><xhtml:link`)
+     // Source of `blog/[slug]`: normalized trailing slash and the invalid date left out.
+     expect(xml).toContain(
+-      `<url><loc>${siteUrl}/pt/blog/first-post</loc><lastmod>2026-09-10</lastmod><xhtml:link`
++      `<url><loc>${siteUrl}/${testLanguages.alternate}/blog/first-post</loc><lastmod>2026-09-10</lastmod><xhtml:link`
+     )
+     expect(xml).toContain(
+-      `<url><loc>${siteUrl}/pt/blog/second-post</loc><xhtml:link`
++      `<url><loc>${siteUrl}/${testLanguages.alternate}/blog/second-post</loc><xhtml:link`
+     )
+     expect(xml).not.toContain('yesterday')
+     expect(xml).not.toContain('/private')
+@@ -98,25 +109,25 @@ test.describe('indexes generated from the route manifest', () => {
+     const markdown = await llms.text()
+     expect(markdown.startsWith('# ')).toBe(true)
+     expect(markdown).toContain(
+-      `> ${SITE_DESCRIPTION}\n\n- Content is available in English (/en), Portuguese (/pt), and Spanish (/es). This index uses English.\n`
++      `> ${SITE_DESCRIPTION}\n\n- Content is available in English (/${testLanguages.base}), Portuguese (/${testLanguages.alternate}), and Spanish (/${testLanguages.third}). This index uses English.\n`
+     )
+     expect(markdown.indexOf('- Content is available')).toBeLessThan(
+       markdown.indexOf('## ')
+     )
+     const useCases = markdown.split('## When to use\n\n')[1]?.split('\n## ')[0]
+-    expect(useCases).toContain(`](${siteUrl}/en/index.md): `)
+-    expect(useCases).toContain(`](${siteUrl}/en/about.md): `)
++    expect(useCases).toContain(`](${siteUrl}/${testLanguages.base}/index.md): `)
++    expect(useCases).toContain(`](${siteUrl}/${testLanguages.base}/about.md): `)
+     expect(markdown.indexOf('## When to use\n')).toBeLessThan(
+       markdown.indexOf('## Pages\n')
+     )
+     expect(markdown).toContain(
+-      `- [${HOME_TITLE}](${siteUrl}/en/index.md): ${SITE_DESCRIPTION}\n`
++      `- [${HOME_TITLE}](${siteUrl}/${testLanguages.base}/index.md): ${SITE_DESCRIPTION}\n`
+     )
+     expect(markdown).toContain(
+-      `## Guides\n\n- [Public guide](${siteUrl}/en/seo-public): Public content of the guide.\n`
++      `## Guides\n\n- [Public guide](${siteUrl}/${testLanguages.base}/seo-public): Public content of the guide.\n`
+     )
+     expect(markdown).toContain(
+-      `## Optional\n\n- [Backend data](${siteUrl}/en/backend-error): Test page for the backend response states.\n`
++      `## Optional\n\n- [Backend data](${siteUrl}/${testLanguages.base}/backend-error): Test page for the backend response states.\n`
+     )
+     expect(markdown.indexOf('## Optional')).toBeGreaterThan(
+       markdown.indexOf('## Guides')
+@@ -129,28 +140,44 @@ test.describe('indexes generated from the route manifest', () => {
+       ...indexedPages.matchAll(/^- \[[^\]]+\]\((?<url>[^)]+)\)/gmu)
+     ].map(match => match.groups?.url)
+     const markdownUrls = new Map([
+-      [`${siteUrl}/en`, `${siteUrl}/en/index.md`],
+-      [`${siteUrl}/en/about`, `${siteUrl}/en/about.md`],
+-      [`${siteUrl}/en/contact`, `${siteUrl}/en/contact.md`],
+-      [`${siteUrl}/en/privacy`, `${siteUrl}/en/privacy.md`]
++      [
++        `${siteUrl}/${testLanguages.base}`,
++        `${siteUrl}/${testLanguages.base}/index.md`
++      ],
++      [
++        `${siteUrl}/${testLanguages.base}/about`,
++        `${siteUrl}/${testLanguages.base}/about.md`
++      ],
++      [
++        `${siteUrl}/${testLanguages.base}/contact`,
++        `${siteUrl}/${testLanguages.base}/contact.md`
++      ],
++      [
++        `${siteUrl}/${testLanguages.base}/privacy`,
++        `${siteUrl}/${testLanguages.base}/privacy.md`
++      ]
+     ])
+     // Indexable pages without `route.info.llms`: only in the sitemap.
+     const sitemapOnly = new Set([
+-      `${siteUrl}/en/seo-sitemap-only`,
+-      `${siteUrl}/en/seo-article`,
+-      `${siteUrl}/en/structured-data-stream`,
+-      `${siteUrl}/en/fragment-css`,
+-      `${siteUrl}/en/markdown-optout`
++      `${siteUrl}/${testLanguages.base}/seo-sitemap-only`,
++      `${siteUrl}/${testLanguages.base}/seo-article`,
++      `${siteUrl}/${testLanguages.base}/structured-data-stream`,
++      `${siteUrl}/${testLanguages.base}/fragment-css`,
++      `${siteUrl}/${testLanguages.base}/markdown-optout`
+     ])
+     expect(new Set(llmsUrls)).toStrictEqual(
+       new Set([
+         ...sitemapUrls
+           .filter(
+             url =>
+-              String(url).startsWith(`${siteUrl}/en`) &&
++              String(url).startsWith(`${siteUrl}/${testLanguages.base}`) &&
+               !sitemapOnly.has(String(url)) &&
+-              !String(url).startsWith(`${siteUrl}/en/blog/`) &&
+-              !String(url).startsWith(`${siteUrl}/en/catalog/`)
++              !String(url).startsWith(
++                `${siteUrl}/${testLanguages.base}/blog/`
++              ) &&
++              !String(url).startsWith(
++                `${siteUrl}/${testLanguages.base}/catalog/`
++              )
+           )
+           .map(url => markdownUrls.get(String(url)) ?? url),
+         `${siteUrl}/llms-full.txt`
+@@ -160,7 +187,7 @@ test.describe('indexes generated from the route manifest', () => {
+     // URLs use the public origin; the test server answers by the path.
+     const blogPaths = sitemapUrls
+       .map(url => String(url).slice(siteUrl.length))
+-      .filter(path => path.startsWith('/pt/blog/'))
++      .filter(path => path.startsWith(`/${testLanguages.alternate}/blog/`))
+     expect(blogPaths).toHaveLength(BLOG_ENTRIES)
+     for (const path of blogPaths) {
+       const page = await request.get(path)
+diff --git a/source/src/tests/pages/SeoIndexes/SeoIndexes.production.e2e.test.ts b/example/src/tests/pages/SeoIndexes/SeoIndexes.production.e2e.test.ts
+--- a/source/src/tests/pages/SeoIndexes/SeoIndexes.production.e2e.test.ts
++++ b/example/src/tests/pages/SeoIndexes/SeoIndexes.production.e2e.test.ts
+@@ -4,6 +4,7 @@ import nodePath from 'node:path'
+ import { expect, test } from '@playwright/test'
+ 
+ import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const LOCALES = ['pt', 'en', 'es']
+ const PAGE_PATHS = ['', '/about', '/contact', '/privacy']
+@@ -138,8 +139,12 @@ test.describe('indexes in the real production tree', () => {
+     const markdown = await response.text()
+     expect(markdown).toMatch(/^# .+\n/u)
+     const useCases = markdown.split('## When to use\n\n')[1]?.split('\n## ')[0]
+-    expect(useCases).toContain(`](${readSiteOrigin()}/en/index.md): `)
+-    expect(useCases).toContain(`](${readSiteOrigin()}/en/about.md): `)
++    expect(useCases).toContain(
++      `](${readSiteOrigin()}/${testLanguages.base}/index.md): `
++    )
++    expect(useCases).toContain(
++      `](${readSiteOrigin()}/${testLanguages.base}/about.md): `
++    )
+     expect(useCases?.trim().split('\n')).toEqual([
+       expect.stringMatching(/^- \[[^\]]+\]\([^)]+\): .{20,}$/u),
+       expect.stringMatching(/^- \[[^\]]+\]\([^)]+\): .{20,}$/u)
+@@ -150,7 +155,7 @@ test.describe('indexes in the real production tree', () => {
+     expect(markdown).toContain('## Pages\n')
+     for (const path of PAGE_PATHS) {
+       expect(markdown).toContain(
+-        `](${readSiteOrigin()}/en${path ? `${path}.md` : '/index.md'})`
++        `](${readSiteOrigin()}/${testLanguages.base}${path ? `${path}.md` : '/index.md'})`
+       )
+     }
+     expect(markdown).toContain('This index uses English.')
+@@ -164,13 +169,19 @@ test.describe('indexes in the real production tree', () => {
+       // module published by mistake would answer without the prefix.
+       const raw = await request.get(path, { maxRedirects: 0 })
+       expect(raw.status()).not.toBe(HTTP_OK)
+-      const localized = await request.get(`/pt${path}`, { maxRedirects: 0 })
++      const localized = await request.get(
++        `/${testLanguages.alternate}${path}`,
++        { maxRedirects: 0 }
++      )
+       expect(localized.status()).toBe(HTTP_NOT_FOUND)
+     })
+   }
+ 
+   test('does not include the E2E fixture tree', async ({ request }) => {
+-    const response = await request.get('/pt/seo-public', { maxRedirects: 0 })
++    const response = await request.get(
++      `/${testLanguages.alternate}/seo-public`,
++      { maxRedirects: 0 }
++    )
+     expect(response.status()).toBe(HTTP_NOT_FOUND)
+   })
+ })
 diff --git a/source/src/tests/pages/StructuredData/StructuredData.streaming.e2e.test.ts b/example/src/tests/pages/StructuredData/StructuredData.streaming.e2e.test.ts
 --- a/source/src/tests/pages/StructuredData/StructuredData.streaming.e2e.test.ts
 +++ b/example/src/tests/pages/StructuredData/StructuredData.streaming.e2e.test.ts
@@ -3431,15 +4733,102 @@ diff --git a/source/src/tests/pages/StructuredData/StructuredData.streaming.e2e.
 diff --git a/source/src/tests/pages/UiKit/UiKit.e2e.test.ts b/example/src/tests/pages/UiKit/UiKit.e2e.test.ts
 --- a/source/src/tests/pages/UiKit/UiKit.e2e.test.ts
 +++ b/example/src/tests/pages/UiKit/UiKit.e2e.test.ts
-@@ -174,7 +174,7 @@ test('localized navigation preserves SPA state and reloads when changing languag
+@@ -1,5 +1,6 @@
+ import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ const LANGUAGES = [
+   { locale: 'pt', dialog: 'Fechar diálogo', toast: 'Fechar notificação' },
+@@ -85,7 +86,7 @@ test.describe('without JavaScript', () => {
+   test('native field values are present without JavaScript', async ({
+     page
+   }) => {
+-    await page.goto('/en/ui-kit')
++    await page.goto(`/${testLanguages.base}/ui-kit`)
+     await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Ada')
+     await expect(page.getByLabel('Subscribe', { exact: true })).toBeChecked()
+     await expect(page.getByLabel('Message', { exact: true })).toHaveValue(
+@@ -100,7 +101,7 @@ test('initially open dialog hydrates modally with CSP enabled', async ({
+   pageErrors,
+   cspViolations
+ }) => {
+-  await page.goto('/en/ui-kit?open=1')
++  await page.goto(`/${testLanguages.base}/ui-kit?open=1`)
+   const dialog = page.getByRole('dialog', { name: 'Fixture dialog' })
+   await expect(dialog).toBeVisible()
+   expect(await dialog.evaluate(element => element.matches(':modal'))).toBe(true)
+@@ -120,7 +121,7 @@ test.describe('narrow dark viewport', () => {
+   test('modal and notifications fit a narrow dark viewport', async ({
+     page
+   }) => {
+-    await page.goto('/pt/ui-kit')
++    await page.goto(`/${testLanguages.base}/ui-kit`)
+     await expect.poll(() => hydrationFinished(page)).toBe(true)
+     await expect(page.locator('html')).toHaveClass('dark')
+     await page.getByRole('button', { name: 'Open dialog' }).click()
+@@ -153,29 +154,37 @@ test.describe('narrow dark viewport', () => {
+ test('localized navigation preserves SPA state and reloads when changing language', async ({
+   page
+ }) => {
+-  await page.goto('/en/ui-kit')
++  await page.goto(`/${testLanguages.base}/ui-kit`)
+   await expect.poll(() => hydrationFinished(page)).toBe(true)
+   await page.evaluate(() => Reflect.set(globalThis, '__navigationProbe', true))
+   await page.getByRole('link', { name: 'Localized page' }).click()
+-  await expect(page).toHaveURL('/en/ui-kit?source=link#target')
++  await expect(page).toHaveURL(
++    `/${testLanguages.base}/ui-kit?source=link#target`
++  )
+   expect(
+     await page.evaluate(() => Reflect.has(globalThis, '__navigationProbe'))
+   ).toBe(true)
+   await page.getByRole('button', { name: 'Navigate page' }).click()
+-  await expect(page).toHaveURL('/en/ui-kit?source=navigate#target')
++  await expect(page).toHaveURL(
++    `/${testLanguages.base}/ui-kit?source=navigate#target`
++  )
+   expect(
+     await page.evaluate(() => Reflect.has(globalThis, '__navigationProbe'))
+   ).toBe(true)
+   await page.getByRole('button', { name: 'Replace page' }).click()
+-  await expect(page).toHaveURL('/en/ui-kit?source=replace')
++  await expect(page).toHaveURL(`/${testLanguages.base}/ui-kit?source=replace`)
+   await page.goBack()
+-  await expect(page).toHaveURL('/en/ui-kit?source=link#target')
++  await expect(page).toHaveURL(
++    `/${testLanguages.base}/ui-kit?source=link#target`
++  )
+   await expect(page.getByRole('link', { name: 'Robots file' })).toHaveAttribute(
      'href',
      '/robots.txt'
    )
 -  await page.getByRole('link', { name: 'Spanish page' }).click()
+-  await expect(page).toHaveURL('/es/ui-kit?source=language#target')
 +  await page.getByRole('link', { name: 'Alternate language page' }).click()
-   await expect(page).toHaveURL('/es/ui-kit?source=language#target')
++  await expect(page).toHaveURL(
++    `/${testLanguages.alternate}/ui-kit?source=language#target`
++  )
    await expect(page.locator('html')).toHaveAttribute('lang', 'es-ES')
    expect(
+     await page.evaluate(() => Reflect.has(globalThis, '__navigationProbe'))
+diff --git a/source/src/tests/pages/UiKit/UiKit.fields.e2e.test.ts b/example/src/tests/pages/UiKit/UiKit.fields.e2e.test.ts
+--- a/source/src/tests/pages/UiKit/UiKit.fields.e2e.test.ts
++++ b/example/src/tests/pages/UiKit/UiKit.fields.e2e.test.ts
+@@ -1,11 +1,12 @@
+ import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
++import { testLanguages } from '@/tests/helpers/scenarioLocales/index.ts'
+ 
+ test.use({ javaScriptEnabled: false })
+ 
+ test('server HTML keeps controlled field values over defaults', async ({
+   page
+ }) => {
+-  await page.goto('/en/ui-kit/fields')
++  await page.goto(`/${testLanguages.base}/ui-kit/fields`)
+   const field = (name: string) => page.getByLabel(name, { exact: true })
+ 
+   await expect(field('Value')).toHaveValue('controlled')
 diff --git a/source/src/tests/setup/browser/__tests__/browser.browser.test.ts b/example/src/tests/setup/browser/__tests__/browser.browser.test.ts
 --- a/source/src/tests/setup/browser/__tests__/browser.browser.test.ts
 +++ b/example/src/tests/setup/browser/__tests__/browser.browser.test.ts

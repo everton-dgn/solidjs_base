@@ -21,6 +21,7 @@ class Jobs(unittest.TestCase):
             ('apps/boilerplate/package.json', ['packages', 'app', 'generator']),
             ('packages/solid-tooling/docs/install.md', ['docs', 'packages', 'generator']),
             ('packages/solid-tooling/CHANGELOG.md', ['docs']),
+            ('packages/solid-tooling/src/vite/tasks.ts', ['app', 'docs', 'packages', 'generator']),
             ('bun.lock', ['app', 'docs', 'packages', 'generator']),
             ('packages/create-solid/package.json', ['app', 'docs', 'packages', 'generator']),
         ):

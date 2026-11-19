@@ -26,6 +26,8 @@ function removeServerFiles(stage: string): void {
 function staticCatalogs(stage: string, theme?: boolean): void {
   const messages = {
     en: {
+      site_description:
+        'A foundation for prerendered web applications with SolidJS, TypeScript and Vite+.',
       home_seoTitle: 'SolidJS Boilerplate | Prerendered web applications',
       about_source:
         'The repository includes installation instructions and guides to architecture and testing. You can use, modify, distribute and sell the code, including in commercial and closed-source projects.',
@@ -41,6 +43,8 @@ function staticCatalogs(stage: string, theme?: boolean): void {
         ' The application saves your display preference in local storage on this device.'
     },
     es: {
+      site_description:
+        'Una base para aplicaciones web prerenderizadas con SolidJS, TypeScript y Vite+.',
       home_seoTitle: 'SolidJS Boilerplate | Aplicaciones web prerenderizadas',
       about_source:
         'El repositorio incluye instrucciones de instalación y guías de arquitectura y pruebas. Puedes usar, modificar, distribuir y vender el código, incluso en proyectos comerciales y de código cerrado.',
@@ -56,6 +60,8 @@ function staticCatalogs(stage: string, theme?: boolean): void {
         ' La aplicación guarda tu preferencia de apariencia en el almacenamiento local de este dispositivo.'
     },
     pt: {
+      site_description:
+        'Uma base para aplicações web pré-renderizadas com SolidJS, TypeScript e Vite+.',
       home_seoTitle: 'SolidJS Boilerplate | Aplicações web pré-renderizadas',
       about_source:
         'O repositório inclui instruções de instalação e guias de arquitetura e testes. Você pode usar, modificar, distribuir e vender o código, inclusive em projetos comerciais e de código fechado.',
@@ -72,6 +78,17 @@ function staticCatalogs(stage: string, theme?: boolean): void {
     }
   }
   for (const [locale, text] of Object.entries(messages)) {
+    const siteFile = path.join(
+      stage,
+      'src/constants/site/i18n',
+      `${locale}.json`
+    )
+    const site = parse(
+      catalogSchema,
+      JSON.parse(readFileSync(siteFile, 'utf8'))
+    )
+    site.site_description = text.site_description
+    writeFileSync(siteFile, `${JSON.stringify(site, null, indent)}\n`)
     for (const [route, update] of Object.entries({
       '(home)': {
         home_seoTitle: text.home_seoTitle,

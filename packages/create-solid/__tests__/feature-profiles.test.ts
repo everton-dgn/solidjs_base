@@ -144,8 +144,9 @@ type GuideProfile = {
   dir: string
   mode: 'server' | 'static' | 'client'
   pm: string
+  seo: boolean
 }
-function checkGuideContent({ dir, mode, pm }: GuideProfile): void {
+function checkGuideContent({ dir, mode, pm, seo }: GuideProfile): void {
   const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
   if (
     mode === 'client' &&
@@ -155,6 +156,9 @@ function checkGuideContent({ dir, mode, pm }: GuideProfile): void {
       read('src/constants/theme.ts'),
       /themeColor|DEFAULT_THEME/u
     )
+  }
+  if (mode === 'static' && !seo) {
+    assert.ok(!read('tooling/knip.ts').includes("'server-only'"))
   }
   const readme = read('README.md')
   assert.ok(readme.includes(`${pm} install`))
@@ -219,7 +223,7 @@ for (const { mode, seo } of publications) {
               `Unreviewed guide edit: ${change}`
             )
           }
-          checkGuideContent({ dir, mode, pm })
+          checkGuideContent({ dir, mode, pm, seo })
           assert.match(read('package.json'), /"test:tooling":/u)
           assert.match(read('AGENTS.md'), /^## CSS classes$/mu)
           assert.match(read('AGENTS.md'), /^## Exports$/mu)

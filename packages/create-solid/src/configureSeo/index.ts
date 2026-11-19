@@ -80,7 +80,8 @@ export function configureSeo(context: StagedContext): void {
       [
         /^ *\/\/ [^\n]*(?:robots virtual module|Public configuration and metrics API)[^\n]*\n[^\n]*\n/gmu,
         ''
-      ]
+      ],
+      ["'server-only', ", '', context.profile.mode === 'static']
     ])
   )
   edit('vercel.json', (text, apply) =>

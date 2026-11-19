@@ -2,23 +2,26 @@ import { mkdirSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 
 import type { StagedContext } from '../types.ts'
+import { configureBrowserCases } from './browser-cases.ts'
+import { browserLocaleLabels } from './browser-labels.ts'
+import { readLocaleSettings } from './catalogs.ts'
+import { configureSeoBrowserTests } from './seo-browser-tests.ts'
+import { configureSingleBrowserTests } from './single-browser-tests.ts'
+import { configureSingleMenuTests } from './single-menu-tests.ts'
 
-export function configureBrowserPaths({
-  stage,
-  write
-}: StagedContext): string[] {
+export function configureBrowserPaths(context: StagedContext): string[] {
+  const { stage, write } = context
+  configureBrowserCases(context)
+  if (context.profile.hasSeo !== false) configureSeoBrowserTests(context)
+  if (readLocaleSettings(stage).locales.length === 1) {
+    configureSingleBrowserTests(context)
+    configureSingleMenuTests(context)
+  }
   const helper = 'src/tests/helpers/scenarioLocales/index.ts'
   mkdirSync(path.dirname(path.join(stage, helper)), { recursive: true })
   write({
     file: helper,
-    content: `import { baseLocale, locales } from '@paraglide/runtime.js'
-
-const base = baseLocale
-const alternate = locales.find(locale => locale !== base) ?? base
-const third = locales.find(locale => locale !== base && locale !== alternate) ?? alternate
-
-export const testLanguages = { alternate, base, locales, third }
-`
+    content: browserLocaleLabels(context)
   })
   return [
     path.join(stage, helper),

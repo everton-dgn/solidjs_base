@@ -38,6 +38,7 @@ import {
   middlewareTest
 } from './configureLocales/middleware-tests.ts'
 import { configureServerFixtures } from './configureLocales/server-fixtures.ts'
+import { configureSingleLocaleTests } from './configureLocales/single-tests.ts'
 import { configureLocaleUi } from './configureLocaleUi/index.ts'
 import { configurePageTitles } from './configurePageTitles/index.ts'
 import { configurePlainApp } from './configurePlainApp/index.ts'
@@ -255,8 +256,11 @@ function configureTranslationProfile(
     prepare(stage, [
       path.join(stage, middlewareTest),
       ...configureServerFixtures(context),
-      ...configureBrowserPaths(context)
+      ...configureBrowserPaths(context),
+      ...configureSingleLocaleTests(context)
     ])
+  } else {
+    prepare(stage, configureSingleLocaleTests(context))
   }
 }
 

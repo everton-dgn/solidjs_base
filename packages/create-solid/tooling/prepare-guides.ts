@@ -24,6 +24,17 @@ function* modeVariants() {
 }
 
 function* guideProfiles() {
+  for (const variant of modeVariants()) {
+    for (const hasTheme of [true, false]) {
+      yield {
+        ...variant,
+        pm: 'bun' as const,
+        hasTheme,
+        hasI18n: true,
+        locales: ['es']
+      }
+    }
+  }
   for (const pm of ['bun', 'npm', 'pnpm'] as const) {
     for (const variant of modeVariants()) {
       for (const hasDiagnostics of [true, false]) {

@@ -20,9 +20,9 @@ const copy = {
     pt: 'Saiba mais sobre as preferências do navegador e os links para sites externos.'
   },
   about_purpose: {
-    en: 'Solid Base provides routing, reusable components and automated tests. You can adapt the pages and components to your project.',
-    es: 'Solid Base ofrece rutas, componentes reutilizables y pruebas automatizadas. Puedes adaptar las páginas y los componentes a tu proyecto.',
-    pt: 'Solid Base oferece rotas, componentes reutilizáveis e testes automatizados. Você pode adaptar as páginas e os componentes ao seu projeto.'
+    en: 'Solid Base provides routing, reusable components and automated tests. You can adapt the pages and components to your project. Each page has its own route, so you can share its address or open it directly. The contact page explains what to include when reporting a problem. The privacy page describes how your browser handles preferences and what happens when you follow a link to another website.',
+    es: 'Solid Base ofrece rutas, componentes reutilizables y pruebas automatizadas. Puedes adaptar las páginas y los componentes a tu proyecto. Cada página tiene su propia ruta, de modo que puedes compartir su dirección o abrirla directamente. La página de contacto explica qué información incluir al comunicar un problema. La página de privacidad describe cómo gestiona el navegador tus preferencias y qué ocurre al seguir un enlace a otro sitio.',
+    pt: 'Solid Base oferece rotas, componentes reutilizáveis e testes automatizados. Você pode adaptar as páginas e os componentes ao seu projeto. Cada página tem sua própria rota. Você pode compartilhar o endereço ou abri-lo diretamente no navegador. A página de contato explica quais informações incluir ao relatar um problema. Na página de privacidade, você encontra informações sobre as preferências do navegador e os links para outros sites.'
   },
   home_description: {
     en: 'Start your next project with {framework}, {toolchain} and {language}. Bookmark any page or share its address with someone else.',

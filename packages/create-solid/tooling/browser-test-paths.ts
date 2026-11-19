@@ -2,6 +2,8 @@ import path from 'node:path'
 
 import { parseSync, Visitor } from 'oxc-parser'
 
+import { expectedTestLabel } from './catalog-test-labels.ts'
+
 type Edit = { start: number; end: number; text: string }
 type Span = { start: number; end: number }
 
@@ -53,6 +55,11 @@ export function prepareBrowserPaths(file: string, source: string): string {
     Literal(node) {
       if (typeof node.value === 'string') {
         const { value } = node
+        const expected = expectedTestLabel(value, roles)
+        if (expected) {
+          replace(node, expected)
+          return
+        }
         if (localize(value) === value) return
         const escaped = JSON.stringify(value)
           .slice(1, -1)
@@ -61,11 +68,41 @@ export function prepareBrowserPaths(file: string, source: string): string {
         replace(node, `\`${localize(escaped)}\``)
       } else if ('regex' in node) {
         const { pattern, flags } = node.regex
-        const localized = localize(pattern)
+        const localized = localize(pattern).replaceAll(
+          /lang="(?<language>pt|es|en)-[A-Z]{2}"/gu,
+          (_match, language: string) =>
+            `lang="\${testLanguages.tag(testLanguages.${roles[language]})}"`
+        )
         if (pattern !== localized) {
           replace(node, `new RegExp(String.raw\`${localized}\`, '${flags}')`)
         }
       }
+    },
+    TemplateLiteral(node) {
+      const [first] = node.quasis
+      const [title] = node.expressions
+      if (
+        (first?.value.raw === 'Sobre ' || first?.value.raw === 'About ') &&
+        title &&
+        source.slice(title.start, title.end) === 'SITE.title'
+      ) {
+        const role = first.value.raw === 'About ' ? roles.en : roles.pt
+        replace(node, `testLanguages.labels(testLanguages.${role}).about`)
+        return
+      }
+      if (
+        node.expressions.length !== 1 ||
+        !title ||
+        !first?.value.raw.endsWith(' | ')
+      ) {
+        return
+      }
+      if (source.slice(title.start, title.end) !== 'SITE.title') return
+      const expected = expectedTestLabel(
+        first.value.raw.slice(0, -' | '.length),
+        roles
+      )
+      if (expected) replace(node, expected)
     },
     TemplateElement(node) {
       const { raw } = node.value
@@ -110,5 +147,8 @@ export function prepareBrowserPaths(file: string, source: string): string {
   )) {
     result = result.slice(0, start) + text + result.slice(end)
   }
-  return importLine + result
+  if (!result.includes('SITE.title')) {
+    result = result.replace(/^import \{ SITE \}[^\n]+\n/mu, '')
+  }
+  return result.includes(importLine.trim()) ? result : importLine + result
 }

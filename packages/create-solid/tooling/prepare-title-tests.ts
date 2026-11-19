@@ -5,7 +5,7 @@ import path from 'node:path'
 const titleEdits = {
   headingLocator: [
     'page.getByText(SITE.title, { exact: true })',
-    "page.getByRole('heading', { name: SITE.title, exact: true, level: 1 })"
+    "page.locator('main').getByText(SITE.title, { exact: true })"
   ],
   localizedContent: [
     '  for (const { language, format, body } of results)',

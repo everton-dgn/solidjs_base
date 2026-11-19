@@ -716,8 +716,10 @@ matrix and its separate checks. `SCENARIO_MUTATION=llms-budget` on
 ## Updating the generator template
 
 Review each new tracked app path in `packages/create-solid/classification.txt`.
-Stage the app changes first, then record the Git tree from the index in the same
-commit. From the repository root:
+Assign the path and its external imports in
+`packages/create-solid/features.json`. Review whole-file variants against
+`packages/create-solid/variant-sources.json`. Stage the app changes first, then
+record the Git tree from the index in the same commit. From the repository root:
 
 ```sh
 tree=$(git write-tree)

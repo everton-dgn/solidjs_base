@@ -28,7 +28,7 @@ void it('compiles only base messages and distinguishes parameters from escaped t
     path.join(folder, 'pt.json'),
     JSON.stringify({
       heading: String.raw`Título \\ \{x\}`,
-      welcome: 'Olá, {name}! {name}, entre em {place}.'
+      welcome: String.raw`Olá, {name}! {name}, entre em {place}. $\{name\}`
     })
   )
   configureMessages({
@@ -48,6 +48,6 @@ console.log(JSON.stringify([Object.keys(m).toSorted(), m.heading(), m.welcome({ 
   assert.deepEqual(JSON.parse(output), [
     ['heading', 'welcome'],
     String.raw`Título \ {x}`,
-    'Olá, Lia! Lia, entre em Casa.'
+    'Olá, Lia! Lia, entre em Casa. ${name}'
   ])
 })

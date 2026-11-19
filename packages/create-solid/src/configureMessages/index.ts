@@ -24,17 +24,20 @@ function messageFunction({ name, pattern }: MessageSource): string {
   }
   const params = new Set<string>()
   let expression = ''
+  let chunk = ''
   let position = 0
   for (const match of pattern.matchAll(special)) {
-    expression += literal(pattern.slice(position, match.index))
+    chunk += pattern.slice(position, match.index)
     position = match.index + match[0].length
     const parameter = match.groups?.parameter
     if (parameter) {
+      expression += literal(chunk)
+      chunk = ''
       params.add(parameter)
       expression += `\${params.${parameter}}`
-    } else expression += literal(match.groups?.escaped ?? '')
+    } else chunk += match.groups?.escaped ?? ''
   }
-  expression += literal(pattern.slice(position))
+  expression += literal(chunk + pattern.slice(position))
   if (params.size === 0) {
     const value = pattern.replaceAll(special, '$<escaped>')
     const quoted = JSON.stringify(value)

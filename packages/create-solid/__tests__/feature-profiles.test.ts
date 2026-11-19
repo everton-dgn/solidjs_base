@@ -160,6 +160,12 @@ function checkGuideContent({ dir, mode, pm, hasSeo }: GuideProfile): void {
   if (mode === 'static' && !hasSeo) {
     assert.ok(!read('tooling/knip.ts').includes("'server-only'"))
   }
+  assert.match(read('docs/development.md'), /^## Execution and cache$/mu)
+  if (mode === 'static' && hasSeo) {
+    assert.match(read('docs/seo.md'), /^## Structured data per page$/mu)
+    assert.match(read('docs/seo/sitemap.md'), /^### Partitioned sources$/mu)
+    assert.match(read('docs/seo/markdown.md'), /llms-full\.txt/u)
+  }
   const readme = read('README.md')
   assert.ok(readme.includes(`${pm} install`))
   if (mode !== 'server') {

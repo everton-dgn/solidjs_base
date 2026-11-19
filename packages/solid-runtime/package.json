@@ -249,23 +249,23 @@
     "test:tarball": "node --test --test-timeout=120000 tooling/tarball/__tests__/tarball.test.ts"
   },
   "peerDependencies": {
-    "@solidjs/web": "2.0.0"
+    "@solidjs/web": "2.0.3"
   },
   "devDependencies": {
-    "@solidjs/web": "2.0.0",
+    "@solidjs/web": "2.0.3",
     "@solidjs/vite-plugin": "3.0.1",
     "@types/node": "26.6.6",
     "@vitest/coverage-v8": "catalog:",
-    "knip": "6.45.1",
+    "knip": "6.46.1",
     "nitro": "3.0.261103-rc",
-    "solid-js": "2.0.0",
+    "solid-js": "2.0.3",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vitest": "catalog:",
     "@inlang/paraglide-js": "3.2.2",
     "happy-dom": "21.0.4",
-    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/jest-dom": "8.0.0",
     "@solidjs/router": "2.0.0",
     "@vitest/browser-playwright": "catalog:",
     "playwright": "1.65.1"

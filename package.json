@@ -39,8 +39,8 @@
     "yaml": "2.9.1"
   },
   "overrides": {
-    "@solidjs/compiler": "2.0.0",
-    "@solidjs/signals": "2.0.0",
+    "@solidjs/compiler": "2.0.2",
+    "@solidjs/signals": "2.0.3",
     "vite": "catalog:",
     "vitest": "catalog:"
   },

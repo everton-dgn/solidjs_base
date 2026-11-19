@@ -230,3 +230,27 @@ void it('directs a client application with SEO to static hosting before writing 
   assert.match(result.stderr, /--mode static/u)
   assert.equal(existsSync(dir), false)
 })
+
+void it('prints help before validating other arguments', () => {
+  const child = spawnSync(process.execPath, [bin, '--unknown', '--help'], {
+    encoding: 'utf8'
+  })
+  assert.equal(child.status, 0)
+  assert.match(child.stdout, /--mode server/u)
+})
+
+void it('rejects contradictory feature switches', () => {
+  for (const option of ['seo', 'theme', 'icons', 'fonts', 'diagnostics']) {
+    const child = spawnSync(
+      process.execPath,
+      [bin, '.', `--${option}`, `--no-${option}`],
+      {
+        encoding: 'utf8'
+      }
+    )
+    assert.equal(child.status, 2)
+    assert.ok(
+      child.stderr.includes(`Choose either --${option} or --no-${option}.`)
+    )
+  }
+})

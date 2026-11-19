@@ -8,6 +8,16 @@ import { UsageError } from './usage-error.ts'
 
 const usageExitCode = 2
 function run(): void {
+  const usage =
+    'bunx @evertondgn/create-solid@latest <dir> [--pm bun|pnpm|npm] [--site-url URL] [--mode server|static|client] [--seo|--no-seo] [--theme|--no-theme] [--icons|--no-icons] [--fonts|--no-fonts] [--diagnostics|--no-diagnostics] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
+  const args = process.argv.slice(2)
+  const separator = args.indexOf('--')
+  if (
+    args.slice(0, separator < 0 ? args.length : separator).includes('--help')
+  ) {
+    process.stdout.write(`${usage}\n`)
+    return
+  }
   if (process.platform === 'win32') {
     throw new Error(
       'create-solid supports macOS and Linux. Windows is unsupported.'
@@ -34,16 +44,21 @@ function run(): void {
       'no-install': { type: 'boolean' }
     }
   })
-  const usage =
-    'bunx @evertondgn/create-solid@latest <dir> [--pm bun|pnpm|npm] [--site-url URL] [--mode server|static|client] [--seo|--no-seo] [--theme|--no-theme] [--icons|--no-icons] [--fonts|--no-fonts] [--diagnostics|--no-diagnostics] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
+  for (const option of [
+    'seo',
+    'theme',
+    'icons',
+    'fonts',
+    'diagnostics'
+  ] as const) {
+    if (values[option] && values[`no-${option}`]) {
+      throw new UsageError(`Choose either --${option} or --no-${option}.`)
+    }
+  }
   if (values.mode === 'client' && values.seo) {
     throw new UsageError(
       'Client rendering cannot publish SEO. Use --mode static.'
     )
-  }
-  if (values.help) {
-    process.stdout.write(`${usage}\n`)
-    process.exit(0)
   }
   if (
     (values.mode !== 'server' &&

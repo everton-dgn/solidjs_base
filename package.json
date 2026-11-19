@@ -21,7 +21,7 @@
     "validate": "vp run --filter './packages/*' --filter '!@evertondgn/create-solid' build && vp check && vp run --filter './packages/*' --filter '!@evertondgn/create-solid' check && vp run --filter './packages/*' --filter '!@evertondgn/create-solid' dead-code && vp run --filter './packages/*' --filter '!@evertondgn/create-solid' test && vp run test:release && vp run --filter './packages/*' --filter '!@evertondgn/create-solid' test:tarball && vp run test:consistency && node --test --test-timeout=180000 packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts",
     "test:scenarios": "node --test --test-timeout=180000 packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts && node packages/create-solid/tooling/scenario.ts",
     "release:merge": "node tooling/release/merge-pull-request.ts",
-    "test:consistency": "node --test packages/solid-tooling/src/tarball/__tests__/workspace-consistency.test.ts",
+    "test:consistency": "node --test packages/solid-tooling/src/tarball/__tests__/tarball.workspaceConsistency.test.ts",
     "validate:generator": "vp run build && vp check && vp run --filter @evertondgn/create-solid test && vp run --filter @evertondgn/create-solid test:tarball"
   },
   "devDependencies": {

@@ -52,7 +52,8 @@ const conventions: ConventionEdit[] = [
   {
     name: 'page data',
     pattern: /- `seo\.ts` lives next to[\s\S]*?(?=## Function parameters)/u,
-    replacement: '- Keep the page body and its UI data in `index.tsx`.\n\n'
+    replacement:
+      '- Set the translated page title with `useHead` in the route component in `index.tsx`. Keep the page body and its UI data there.\n\n'
   },
   {
     name: 'middleware composition',

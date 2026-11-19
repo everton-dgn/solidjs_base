@@ -3,18 +3,9 @@ import type { EditFile } from '../types.ts'
 type SeoTestEdits = { edit: EditFile; isServer: boolean }
 
 export function removeSeoTests({ edit, isServer }: SeoTestEdits): void {
-  edit(
-    'src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts',
-    (text, apply) =>
-      apply(text, [
-        [
-          "toHaveTitle('Página não encontrada')",
-          "toHaveTitle('SolidJS Boilerplate')"
-        ]
-      ])
-  )
   edit('src/tests/pages/I18n/I18n.e2e.test.ts', (text, apply) =>
     apply(text, [
+      ['metadata without JavaScript', 'titles without JavaScript'],
       [
         /await expect\(\n\s*page.locator\('head meta\[name="description"\]'\)\n\s*\)\.toHaveAttribute\('content', messages.errorFallback_runtimeDescription\)/u,
         `await expect(page.locator('head meta[name="description"]')).toHaveCount(0)`
@@ -54,8 +45,7 @@ export function removeSeoTests({ edit, isServer }: SeoTestEdits): void {
         [
           /^ *await expect\(page\.locator\('head meta\[name="robots"\]'\)\)\.toHaveAttribute\(\n[^\n]*\n[^\n]*\n *\)\n/mu,
           ''
-        ],
-        [/^ *await expect\(page\)\.toHaveTitle\([^\n]*\n/mu, '']
+        ]
       ])
     )
   }
@@ -146,7 +136,7 @@ export function removeSeoTests({ edit, isServer }: SeoTestEdits): void {
           ''
         ],
         [
-          /^ *await expect\(page\)\.toHaveTitle\(language\.missing\)[\s\S]*?(?=^ *expect\(await isSameHeader)/mu,
+          /^ *await expect\(page\.locator\('meta\[name="robots"\]'\)\)[\s\S]*?(?=^ *expect\(await isSameHeader)/mu,
           ''
         ]
       ]).trimEnd()}\n`

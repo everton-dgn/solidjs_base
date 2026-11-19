@@ -23,6 +23,7 @@ const neutralHome: TextEdit = [
 ]
 export const themeEdits: FileEdits = {
   [`${pages}/UiKit/UiKit.e2e.test.ts`]: [
+    [/narrow dark viewport/gu, 'narrow viewport'],
     [/toHaveClass\('dark'\)/u, "not.toHaveClass('dark')"]
   ],
   [`${pages}/Home/Home.production.e2e.test.ts`]: [

@@ -79,10 +79,10 @@ void it('rejects a missing catalog key in the SEO copy', t => {
   })
   assert.throws(
     () => removeSeoCopy(context.stage),
-    /Missing catalog key .*home_seoTitle/u
+    /Missing catalog key .*home_features/u
   )
 })
-void it('updates the missing page title in the reduced browser suite', () => {
+void it('preserves the translated missing page title in the reduced browser suite', () => {
   let result = "toHaveTitle('Página não encontrada')"
   removeSeoTests({
     isServer: true,
@@ -97,7 +97,7 @@ void it('updates the missing page title in the reduced browser suite', () => {
       })
     }
   })
-  assert.equal(result, "toHaveTitle('SolidJS Boilerplate')")
+  assert.equal(result, "toHaveTitle('Página não encontrada')")
 })
 void it('rejects a file host security guide with a missing section boundary', t => {
   const context = fixture(t)

@@ -75,8 +75,10 @@ export function configureSeo(context: StagedContext): void {
   )
   edit('src/components/organisms/ErrorFallback/index.tsx', (text, apply) =>
     apply(text, [
-      ['httpStatus, useHead', 'httpStatus'],
-      [/^ {2}useHead\([\s\S]*?^ {2}\)\n\n/mu, '']
+      [
+        /^ {2}useHead\([\s\S]*?^ {2}\)\n\n/mu,
+        "  useHead(() =>\n    props.kind === 'runtime'\n      ? [{ tag: 'title', props: { children: content().title } }]\n      : []\n  )\n\n"
+      ]
     ])
   )
   edit('src/@types/routes.d.ts', (text, apply) =>
@@ -99,9 +101,32 @@ export function configureSeo(context: StagedContext): void {
   edit('src/Document.tsx', (text, apply) =>
     apply(text, [[/^ *<link rel="describedby"[^\n]+\n/mu, '']])
   )
-  for (const page of ['(home)', 'about', 'contact', 'privacy', '[...404]']) {
+  for (const [page, title] of Object.entries({
+    '(home)': 'home_seoTitle',
+    about: 'about_title',
+    contact: 'contact_title',
+    privacy: 'privacy_title',
+    '[...404]': 'notFound_title'
+  })) {
     edit(`src/routes/(base)/${page}/index.tsx`, (text, apply) =>
       apply(text, [
+        [
+          page === '[...404]'
+            ? 'import type { RouteDefinition }'
+            : "import { m } from '@paraglide/messages.js'",
+          page === '[...404]'
+            ? "import { m } from '@paraglide/messages.js'\nimport type { RouteDefinition }"
+            : "import { m } from '@paraglide/messages.js'\nimport { useHead } from '@solidjs/web'"
+        ],
+        [
+          'import { httpStatus }',
+          'import { httpStatus, useHead }',
+          page === '[...404]'
+        ],
+        [
+          /export default function \w+\(\) \{\n/u,
+          `$&  useHead(() => [{ tag: 'title', props: { children: m.${title}() } }])\n`
+        ],
         [/^import \{ seo \} from '\.\/seo.ts'\n\n/mu, ''],
         [
           /export const route = \{\n {2}info: \{[\s\S]*?\n\} satisfies RouteDefinition\n\n/u,

@@ -37,14 +37,10 @@ export function removeSeoCopy(stage: string): void {
         JSON.parse(readFileSync(file, 'utf8'))
       )
       if (page === '(home)') {
-        editCatalog({ file, catalog: data, key: 'home_seoTitle' })
         editCatalog({ file, catalog: data, key: 'home_features', value: home })
       } else {
         const prefix = page === '[...404]' ? 'notFound' : page
         editCatalog({ file, catalog: data, key: `${prefix}_description` })
-        if (page === '[...404]') {
-          editCatalog({ file, catalog: data, key: 'notFound_title' })
-        }
         if (page === 'about') {
           editCatalog({
             file,

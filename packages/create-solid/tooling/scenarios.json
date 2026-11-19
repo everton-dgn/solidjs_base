@@ -32,7 +32,7 @@
   {
     "name": "default-client",
     "pm": "bun",
-    "flags": ["--mode", "client"]
+    "flags": ["--mode", "client", "--title", "Demo {page} \\\\ ` ${title}"]
   },
   {
     "name": "server-without-theme",

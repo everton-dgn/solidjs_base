@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { it } from 'node:test'
 
+import messageFormat from '@inlang/plugin-message-format'
 import { array, object, parse, record, string } from 'valibot'
 
 import { generate } from '../src/generate.ts'
@@ -22,7 +23,11 @@ type AppTitleCase = {
   mode: 'server' | 'static' | 'client'
   title: string
 }
-function checkTitleMessages({ dir, mode, title }: AppTitleCase): void {
+async function checkTitleMessages({
+  dir,
+  mode,
+  title
+}: AppTitleCase): Promise<void> {
   const settingsSource = readFileSync(
     path.join(dir, 'project.inlang/settings.json'),
     'utf8'
@@ -52,11 +57,24 @@ function checkTitleMessages({ dir, mode, title }: AppTitleCase): void {
       for (const key of keys) {
         const pattern = catalog[key]
         assert.ok(pattern, `${locale}: ${key}`)
-        assert.match(pattern, /^(?:[^\\{}]|\\[\\{}])*$/u)
-        const decoded = pattern.replaceAll(
-          /\\(?<escaped>[\\{}])/gu,
-          '$<escaped>'
-        )
+        assert.ok(messageFormat.importFiles)
+        const { variants } = await messageFormat.importFiles({
+          settings: { baseLocale: locale, locales },
+          files: [
+            {
+              locale,
+              content: new TextEncoder().encode(
+                JSON.stringify({ [key]: pattern })
+              )
+            }
+          ]
+        })
+        assert.equal(variants.length, 1)
+        const nodes = variants[0]?.pattern
+        assert.equal(nodes?.length, 1)
+        const node = nodes?.[0]
+        assert.ok(node?.type === 'text')
+        const decoded = node.value
         if (key === 'site_imageAlt') {
           assert.ok(decoded.includes('SolidJS Boilerplate'))
         }
@@ -101,7 +119,7 @@ for (const mode of ['server', 'static', 'client'] as const) {
       const siteSchema = object({ title: string() })
       const { SITE } = parse(object({ SITE: siteSchema }), module)
       assert.equal(SITE.title, title)
-      checkTitleMessages({ dir, mode, title })
+      await checkTitleMessages({ dir, mode, title })
       const values = []
       if (mode === 'client') {
         const html = readFileSync(path.join(dir, 'index.html'), 'utf8')

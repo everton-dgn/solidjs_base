@@ -18,6 +18,13 @@ const catalogs = {
 }
 
 function literal(value: string): string {
+  if (value.includes('${')) {
+    const escaped = value
+      .replaceAll('\\', String.raw`\\`)
+      .replaceAll('`', '\\`')
+      .replaceAll('${', '\\${')
+    return `\`${escaped}\``
+  }
   const single = value.split("'").length
   const double = value.split('"').length
   const quote = single > double ? '"' : "'"

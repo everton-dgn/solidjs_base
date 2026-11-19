@@ -11,7 +11,7 @@ import path from 'node:path'
 
 import { generateSource } from '../src/generate.ts'
 import { guideDigest, guideFiles } from '../src/prepared-guides.ts'
-import { uiProfiles } from './feature-combinations.ts'
+import { uiProfiles } from './ui-profiles.ts'
 
 function* modeVariants() {
   for (const mode of ['server', 'static', 'client'] as const) {

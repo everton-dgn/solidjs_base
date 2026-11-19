@@ -33,7 +33,13 @@ import { applyPreparedGuides } from './prepared-guides.ts'
 import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
-import type { Profile } from './types.ts'
+import type {
+  FileWrite,
+  GenerationContext,
+  Profile,
+  StagedContext,
+  Versions
+} from './types.ts'
 import { UsageError } from './usage-error.ts'
 
 const maxPackageNameLength = 214
@@ -55,7 +61,6 @@ function resolveSiteUrl(value?: string): URL {
   return siteUrl
 }
 
-type Versions = Record<string, string>
 function resolveVersion(
   settings: GenerationContext['settings'],
   [name, spec]: [string, string]
@@ -400,30 +405,3 @@ export function generate(input: Profile): string[] {
 }
 
 export type { Profile } from './types.ts'
-export type GenerationContext = {
-  profile: Profile
-  pkg: {
-    name: string
-    description?: string
-    packageManager?: string
-    dependencies: Versions
-    devDependencies: Versions
-    scripts: Versions
-    overrides?: Versions
-    patchedDependencies?: Versions
-  }
-  settings: {
-    bunVersion: string
-    catalog: Versions
-    versions: Versions
-    overrides: Versions
-    patches: Versions
-    bunfig: string
-    lefthook: string
-  }
-  write: (output: FileWrite) => void
-}
-
-export type FileWrite = { file: string; content: string }
-
-export type StagedContext = GenerationContext & { stage: string }

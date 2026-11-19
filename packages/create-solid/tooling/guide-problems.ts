@@ -16,8 +16,11 @@ function linesOutsideFences(content: string): string[] {
   return content.split('\n').filter(line => {
     const fence = fences.exec(line)?.groups?.fence
     if (fence) {
-      if (marker === '') marker = fence
-      else if (fence.startsWith(marker)) marker = ''
+      if (marker === '') {
+        marker = fence
+        return false
+      }
+      if (fence.startsWith(marker)) marker = ''
       return false
     }
     return marker === ''

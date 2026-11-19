@@ -8,7 +8,9 @@ import { settingsSchema } from '../src/schema.ts'
 type PackedDiff = { directory: string; diff: string }
 type PackageVersions = { version: string; versions: Record<string, string> }
 
-export function normalizeDiff(diff: string, settings: PackageVersions): string {
+type DiffOptions = { diff: string; settings: PackageVersions }
+
+export function normalizeDiff({ diff, settings }: DiffOptions): string {
   const { version } = settings
   return diff
     .split('\n')
@@ -33,5 +35,5 @@ export function normalizeDiff(diff: string, settings: PackageVersions): string {
 export function normalizePackedDiff({ directory, diff }: PackedDiff): string {
   const file = path.join(directory, 'dist/settings.json')
   const settings = parse(settingsSchema, JSON.parse(readFileSync(file, 'utf8')))
-  return normalizeDiff(diff, settings)
+  return normalizeDiff({ diff, settings })
 }

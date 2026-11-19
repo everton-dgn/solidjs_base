@@ -1,4 +1,4 @@
-import type { EditFile } from '../edit-template.ts'
+import type { EditFile } from '../types.ts'
 
 type SeoTestEdits = { edit: EditFile; isServer: boolean }
 

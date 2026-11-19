@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { editTemplate } from '../edit-template.ts'
-import type { GenerationContext, StagedContext } from '../generate.ts'
 import { distribution } from '../paths.ts'
+import type { GenerationContext, StagedContext } from '../types.ts'
 
 type GuideEdit = { file: string; pattern: RegExp; replacement: string }
 type Conventions = {

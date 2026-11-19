@@ -3,7 +3,7 @@ import { it } from 'node:test'
 
 import * as v from 'valibot'
 
-import type { FileWrite } from '../src/generate.ts'
+import type { FileWrite } from '../src/types.ts'
 
 void it('exports the generator without parsing process arguments', async () => {
   const entry = import.meta.resolve('@evertondgn/create-solid')

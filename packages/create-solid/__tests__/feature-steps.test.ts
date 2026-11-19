@@ -17,10 +17,10 @@ import { configureFonts } from '../src/configureFonts/index.ts'
 import { configureSeo } from '../src/configureSeo/index.ts'
 import { configureStatic } from '../src/configureStatic/index.ts'
 import { editTemplate } from '../src/edit-template.ts'
-import type { FileWrite, StagedContext } from '../src/generate.ts'
 import { removeFeatureFiles } from '../src/removeFeatureFiles/index.ts'
 import { removeSeoCopy } from '../src/removeSeoCopy/index.ts'
 import { removeSeoTests } from '../src/removeSeoTests/index.ts'
+import type { FileWrite, StagedContext } from '../src/types.ts'
 
 function fixture(t: TestContext): StagedContext {
   const stage = mkdtempSync(path.join(tmpdir(), 'solid-feature-step-'))

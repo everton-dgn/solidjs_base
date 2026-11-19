@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { editTemplate } from '../edit-template.ts'
-import type { StagedContext } from '../generate.ts'
+import type { StagedContext } from '../types.ts'
 
 type GuideChange = { pattern: RegExp; replacement: string }
 
@@ -16,14 +16,14 @@ export function configureStandaloneGuides({
     for (const edit of changes) text = editTemplate({ file, text, ...edit })
     writeFileSync(file, text)
   }
-  const server = (profile.mode ?? 'server') === 'server'
+  const isServer = (profile.mode ?? 'server') === 'server'
   change('docs/development.md', [
     {
       pattern: /`bun\.lock` is the\n {2}only lockfile of the project\./u,
       replacement: 'Keep the lockfile of the selected package manager.'
     }
   ])
-  if (server) {
+  if (isServer) {
     change('docs/development.md', [
       {
         pattern: /TypeScript configs, `package.json`, `bun\.lock`/u,

@@ -4,16 +4,18 @@ import path from 'node:path'
 import { parse, record, string } from 'valibot'
 
 import { editCatalog, editTemplate } from '../edit-template.ts'
-import type { StagedContext } from '../generate.ts'
 import { distribution } from '../paths.ts'
 import { removeFeatureFiles } from '../removeFeatureFiles/index.ts'
 import { rewriteKnip } from '../rewrite.ts'
+import type { StagedContext } from '../types.ts'
 
 const indent = 2
 const catalogSchema = record(string(), string())
 const staticFiles = new URL('static/', distribution)
 
-function staticCatalogs(stage: string, theme?: boolean): void {
+type StaticCatalogOptions = { stage: string; hasTheme: boolean | undefined }
+
+function staticCatalogs({ stage, hasTheme }: StaticCatalogOptions): void {
   const messages = {
     en: {
       site_description:
@@ -96,7 +98,7 @@ function staticCatalogs(stage: string, theme?: boolean): void {
       },
       privacy: {
         privacy_preferences:
-          text.privacy_preferences + (theme === false ? '' : text.storage)
+          text.privacy_preferences + (hasTheme === false ? '' : text.storage)
       }
     })) {
       const file = path.join(
@@ -170,7 +172,7 @@ export function configureStatic(context: StagedContext): void {
   edit(vite)(/^ *securityHeaders: SECURITY_HEADERS,\n/mu, '')
   edit(vite)(/,\n {2}\/\/ Without fallthrough,[\s\S]*?\n\}\)/u, '\n})')
   rewriteKnip(stage)
-  staticCatalogs(stage, profile.hasTheme)
+  staticCatalogs({ stage, hasTheme: profile.hasTheme })
   pkg.scripts.start = 'node tooling/testing/serve-public.ts'
   pkg.scripts['test:e2e'] = 'vp run playwright test'
   delete pkg.scripts['test:e2e:production']

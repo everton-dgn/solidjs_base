@@ -1,4 +1,4 @@
-import type { GenerationContext } from '../generate.ts'
+import type { GenerationContext } from '../types.ts'
 
 const themeCheck = `
   await page.getByRole('button', { name: /select theme/iu }).click()

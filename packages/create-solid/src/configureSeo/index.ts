@@ -1,11 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { editTemplate, type EditFile } from '../edit-template.ts'
-import type { StagedContext } from '../generate.ts'
+import { editTemplate } from '../edit-template.ts'
 import { removeFeatureFiles } from '../removeFeatureFiles/index.ts'
 import { removeSeoCopy } from '../removeSeoCopy/index.ts'
 import { removeSeoTests } from '../removeSeoTests/index.ts'
+import type { EditFile, StagedContext } from '../types.ts'
 
 export function configureSeo(context: StagedContext): void {
   const { stage } = context

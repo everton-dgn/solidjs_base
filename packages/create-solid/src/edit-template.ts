@@ -13,17 +13,6 @@ type TextEdit = {
   missing?: string
 }
 
-type Replacement = readonly [
-  pattern: string | RegExp,
-  replacement: string,
-  shouldApply?: boolean
-]
-type ApplyEdits = (text: string, edits: readonly Replacement[]) => string
-export type EditFile = (
-  file: string,
-  transform: (text: string, apply: ApplyEdits) => string
-) => void
-
 export function editTemplate({
   file,
   text,
@@ -31,11 +20,11 @@ export function editTemplate({
   replacement,
   missing
 }: TextEdit): string {
-  const matches =
+  const hasMatch =
     typeof pattern === 'string'
       ? text.includes(pattern)
       : text.search(pattern) >= 0
-  if (!matches) {
+  if (!hasMatch) {
     throw new Error(missing ?? `Missing template edit in ${file}: ${pattern}`)
   }
   if (typeof replacement === 'string') return text.replace(pattern, replacement)

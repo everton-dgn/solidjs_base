@@ -2,9 +2,9 @@ import { cpSync, readFileSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
 import { editTemplate } from '../edit-template.ts'
-import type { StagedContext } from '../generate.ts'
 import { distribution } from '../paths.ts'
 import { removeFeatureFiles } from '../removeFeatureFiles/index.ts'
+import type { StagedContext } from '../types.ts'
 
 export function configureClient({
   stage,

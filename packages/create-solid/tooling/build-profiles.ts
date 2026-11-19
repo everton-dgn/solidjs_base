@@ -15,11 +15,11 @@ import {
   SECURITY_HEADERS
 } from '../../solid-runtime/src/middleware/securityHeaders/constants.js'
 import { editTemplate } from '../src/edit-template.ts'
-import { uiProfiles } from './feature-combinations.ts'
 import { iconEdits, iconReadmeEdits } from './icon-edits.ts'
 import { staticEdits, staticThemeDocument } from './static-edits.ts'
 import { themeEdits, themeReadmeEdits } from './theme-edits.ts'
 import { themeGuideEdits, themeIconGuideEdit } from './theme-guide-edits.ts'
+import { uiProfiles } from './ui-profiles.ts'
 
 type FileVariant = { source: string; output: string }
 

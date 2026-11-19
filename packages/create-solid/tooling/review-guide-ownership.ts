@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 import { generate } from '../src/generate.ts'
-import { uiProfiles } from './feature-combinations.ts'
 import { guideOwnership } from './guide-ownership.ts'
+import { uiProfiles } from './ui-profiles.ts'
 
 function* publications() {
   for (const mode of ['server', 'static', 'client'] as const) {

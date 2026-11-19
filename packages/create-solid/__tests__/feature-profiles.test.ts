@@ -21,10 +21,10 @@ import {
 import { createTasks } from '../../solid-tooling/src/vite/tasks.ts'
 import { generate } from '../src/generate.ts'
 import { guideFiles } from '../src/prepared-guides.ts'
-import { guideProblems } from '../tooling/check-guide-links.ts'
 import { checkImports } from '../tooling/check-imports.ts'
-import { uiProfiles } from '../tooling/feature-combinations.ts'
 import { guideOwnership } from '../tooling/guide-ownership.ts'
+import { guideProblems } from '../tooling/guide-problems.ts'
+import { uiProfiles } from '../tooling/ui-profiles.ts'
 
 function checkForbiddenTerms(dir: string, terms: string[]): void {
   if (terms.length === 0) return
@@ -123,13 +123,13 @@ const inventory = parse(
   JSON.parse(readFileSync('features.json', 'utf8'))
 )
 function importsFor(profile: {
-  seo: boolean
+  hasSeo: boolean
   theme: boolean
   icons: boolean
   fonts: boolean
 }): Set<string> {
   const disabled = new Set<string>(
-    profile.seo ? [] : ['seo', 'publication', 'sitemap', 'markdown']
+    profile.hasSeo ? [] : ['seo', 'publication', 'sitemap', 'markdown']
   )
   if (!profile.fonts) disabled.add('fonts')
   if (!profile.theme) disabled.add('theme')
@@ -144,9 +144,9 @@ type GuideProfile = {
   dir: string
   mode: 'server' | 'static' | 'client'
   pm: string
-  seo: boolean
+  hasSeo: boolean
 }
-function checkGuideContent({ dir, mode, pm, seo }: GuideProfile): void {
+function checkGuideContent({ dir, mode, pm, hasSeo }: GuideProfile): void {
   const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
   if (
     mode === 'client' &&
@@ -157,7 +157,7 @@ function checkGuideContent({ dir, mode, pm, seo }: GuideProfile): void {
       /themeColor|DEFAULT_THEME/u
     )
   }
-  if (mode === 'static' && !seo) {
+  if (mode === 'static' && !hasSeo) {
     assert.ok(!read('tooling/knip.ts').includes("'server-only'"))
   }
   const readme = read('README.md')
@@ -188,20 +188,20 @@ const approvedEdits = new Set(
 )
 const modes = ['server', 'static', 'client'] as const
 const publications = modes.flatMap(mode =>
-  [true, false].map(seo => ({ mode, seo }))
+  [true, false].map(hasSeo => ({ mode, hasSeo }))
 )
-for (const { mode, seo } of publications) {
+for (const { mode, hasSeo } of publications) {
   for (const pm of ['bun', 'npm', 'pnpm'] as const) {
     for (const diagnostics of [true, false]) {
       for (const { fonts, icons, theme } of uiProfiles()) {
-        void it(`generates ${mode} ${pm} with seo=${seo}, theme=${theme}, icons=${icons}, fonts=${fonts} and diagnostics=${diagnostics}`, context => {
+        void it(`generates ${mode} ${pm} with seo=${hasSeo}, theme=${theme}, icons=${icons}, fonts=${fonts} and diagnostics=${diagnostics}`, context => {
           const dir = mkdtempSync(path.join(tmpdir(), 'app-profile-'))
           context.after(() => rmSync(dir, { recursive: true, force: true }))
           const profile = {
             dir,
             pm,
             mode,
-            hasSeo: seo,
+            hasSeo,
             hasTheme: theme,
             hasIcons: icons,
             hasDiagnostics: diagnostics,
@@ -209,7 +209,7 @@ for (const { mode, seo } of publications) {
             shouldInstall: false,
             shouldInitGit: false
           }
-          if (mode === 'client' && seo) {
+          if (mode === 'client' && hasSeo) {
             assert.throws(() => generate(profile), /--mode static/u)
             assert.deepEqual(readdirSync(dir), [])
             return
@@ -223,12 +223,14 @@ for (const { mode, seo } of publications) {
               `Unreviewed guide edit: ${change}`
             )
           }
-          checkGuideContent({ dir, mode, pm, seo })
+          checkGuideContent({ dir, mode, pm, hasSeo })
           assert.match(read('package.json'), /"test:tooling":/u)
           assert.match(read('AGENTS.md'), /^## CSS classes$/mu)
           assert.match(read('AGENTS.md'), /^## Exports$/mu)
-          assert.equal(read('.env').includes('VITE_SITE_URL='), seo)
-          if (!seo) assert.ok(!read('vite.config.ts').includes('publicAssets:'))
+          assert.equal(read('.env').includes('VITE_SITE_URL='), hasSeo)
+          if (!hasSeo) {
+            assert.ok(!read('vite.config.ts').includes('publicAssets:'))
+          }
           if (!theme) assert.ok(!read('README.md').includes('<picture>'))
           assert.equal(existsSync(path.join(dir, 'fonts.ts')), fonts)
           assert.equal(read('vite.config.ts').includes('fonts: FONTS'), fonts)
@@ -239,13 +241,15 @@ for (const { mode, seo } of publications) {
             )
           }
           assert.equal(read('docs/ui.md').includes('## Fonts'), fonts)
-          if (mode === 'server' && seo) {
+          if (mode === 'server' && hasSeo) {
             assert.equal(read('README.md').includes('Inter subsets'), fonts)
-          } else if (mode === 'client') {
+          }
+          if (mode === 'client') {
             assert.match(read('vite.config.ts'), /ssr: false/u)
             assert.ok(existsSync(path.join(dir, 'index.html')))
             assert.ok(!existsSync(path.join(dir, 'src/entry-server.tsx')))
-          } else if (mode === 'static') {
+          }
+          if (mode === 'static') {
             assert.match(read('README.md'), /csp-hashes\.json/u)
             assert.match(read('vite.config.ts'), /output: 'static'/u)
             for (const file of inventory.serverOnly) {
@@ -306,14 +310,14 @@ for (const { mode, seo } of publications) {
           )
           assert.equal(
             existsSync(path.join(dir, 'src/primitives/createSeo/index.ts')),
-            seo
+            hasSeo
           )
-          assert.equal(read('package.json').includes('schema-dts'), seo)
+          assert.equal(read('package.json').includes('schema-dts'), hasSeo)
           if (mode !== 'client') {
             assert.equal(/themeScript/iu.test(read('src/Document.tsx')), theme)
           }
           checkForbiddenTerms(dir, [
-            ...(seo ? [] : inventory.forbiddenTerms.seo),
+            ...(hasSeo ? [] : inventory.forbiddenTerms.seo),
             ...(theme ? [] : inventory.forbiddenTerms.theme),
             ...(icons ? [] : inventory.forbiddenTerms.icons),
             ...(fonts ? [] : inventory.forbiddenTerms.fonts),
@@ -330,7 +334,7 @@ for (const { mode, seo } of publications) {
           checkImports({
             dir,
             files: tree,
-            knownImports: importsFor({ seo, theme, fonts, icons })
+            knownImports: importsFor({ hasSeo, theme, fonts, icons })
           })
           assert.deepEqual(guideProblems(dir), [])
           checkScriptFiles(dir, tree)

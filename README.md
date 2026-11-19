@@ -89,11 +89,12 @@ public assets and static paths, without forking the preset. See the
 - The packages are tested as installed packages. In the CI run of the 0.10.0
   release pull request
   ([run 44206537981](https://github.com/everton-dgn/solidjs_base/actions/runs/44206537981)),
-  the Packages job ran `vp run validate`, the checks of the publish job: 1,047
-  runtime tests, 368 tooling tests and 194 icons plugin tests passed, and the
-  three packed packages passed all 14 installed application cases with Bun's
-  `hoisted` and `isolated` linkers. In the same run, the boilerplate app passed
-  185 Vitest tests and 164 end-to-end cases against its E2E build.
+  the Packages job ran `vp run validate`, the checks used in release
+  verification: 1,047 runtime tests, 368 tooling tests and 194 icons plugin
+  tests passed, and the three packed packages passed all 14 installed
+  application cases with Bun's `hoisted` and `isolated` linkers. In the same
+  run, the boilerplate app passed 185 Vitest tests and 164 end-to-end cases
+  against its E2E build.
 - You can check where a version came from. The release workflow publishes
   through npm trusted publishing, with no stored npm token, and each version it
   publishes carries npm provenance that names the commit and the workflow run
@@ -502,7 +503,7 @@ to see the features wired together:
 
 The counts below come from the CI run of the 0.10.0 release pull request
 ([run 44206537981](https://github.com/everton-dgn/solidjs_base/actions/runs/44206537981)).
-Its Packages job ran `vp run validate`, the same checks as the publish job
+Its Packages job ran `vp run validate`, the checks used in release verification
 ([job 134474054049](https://github.com/everton-dgn/solidjs_base/actions/runs/44206537981/job/134474054049)).
 
 | Suite                             | Result                                                                                                                                                         | Details                                                                     |

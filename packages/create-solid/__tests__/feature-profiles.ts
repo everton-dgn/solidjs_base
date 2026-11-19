@@ -211,6 +211,12 @@ function checkGuideContent({ dir, mode, pm, hasSeo }: GuideProfile): void {
       /themeColor|DEFAULT_THEME/u
     )
   }
+  if (hasSeo && !existsSync(path.join(dir, 'project.inlang'))) {
+    assert.doesNotMatch(
+      read('docs/seo.md'),
+      /three available locales|publish `hreflang`/u
+    )
+  }
   if (mode === 'static' && !hasSeo) {
     assert.ok(!read('tooling/knip.ts').includes("'server-only'"))
   }

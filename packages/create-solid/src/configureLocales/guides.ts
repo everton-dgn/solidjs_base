@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { editTemplate } from '../edit-template.ts'
 import { guideFiles } from '../prepared-guides.ts'
 import type { StagedContext } from '../types.ts'
 
@@ -9,6 +10,47 @@ const messages = 'src/constants/messages/index.ts'
 
 function plainGuide(source: string): string {
   return source
+    .replaceAll(
+      'The application provides localized pages and navigation.',
+      'The application includes a home page and navigation.'
+    )
+    .replaceAll(
+      'language and theme switchers, `LocalizedLink`, ',
+      'a theme switcher, '
+    )
+    .replaceAll('a language switcher, ', '')
+    .replaceAll(', `LocalizedLink`', '')
+    .replaceAll('`LocalizedLink` and `PageBadge`', 'and `PageBadge`')
+    .replaceAll(
+      '`ThemeToggle`\n  and `LocaleSwitcher` build',
+      '`ThemeToggle` builds'
+    )
+    .replaceAll(', `SiteContent` builds on\n  `LocalizedLink`', '')
+    .replaceAll('concurrency and of the number of locales', 'concurrency')
+    .replace(
+      /- Localized texts and links[\s\S]*?Objects used by the HTML/u,
+      '- Objects used by the HTML'
+    )
+    .replaceAll('localized URLs', 'URLs')
+    .replaceAll('localized paths', 'page paths')
+    .replaceAll('localized URL', 'URL')
+    .replaceAll(
+      'initial HTML, locales, negotiation',
+      'initial HTML, negotiation'
+    )
+    .replaceAll(
+      / (?:in|across) (?:all|the|its) (?:three|configured)\s+(?:locales|languages)/gu,
+      ''
+    )
+    .replaceAll('the four real pages in each locale', 'the four real pages')
+    .replaceAll('one `.md` file per locale', 'one `.md` file per page')
+    .replaceAll('under the prefix of each locale', 'at their application paths')
+    .replaceAll('A locale group', 'An entry')
+    .replaceAll('indivisible locale groups', 'indivisible entries')
+    .replaceAll(
+      'the length of the URLs, the escapes and the\nalternates per locale',
+      'URL length and XML escaping'
+    )
     .replaceAll('@paraglide/messages.js', '@/constants/messages/index.ts')
     .replace(/^- \[Translations\]\(docs\/i18n\.md\)\n/mu, '')
     .replace(
@@ -140,7 +182,26 @@ export function configureLocaleGuides({
           : '| Languages | Configured language catalogs and routes | [I18n](src/tests/pages/I18n) | [I18n](docs/i18n.md) |\n'
       )
     }
-    if (profile.hasI18n === false) text = plainGuide(text)
+    if (profile.hasI18n === false) {
+      if (file === 'docs/seo.md') {
+        text = editTemplate({
+          file,
+          text,
+          pattern:
+            /`og:locale:alternate` lists the other locales,[\s\S]*?the three available locales\./u,
+          replacement: '`WebSite.inLanguage` declares the application language.'
+        })
+        text = editTemplate({
+          file,
+          text,
+          pattern:
+            /Indexable pages\npublish `hreflang`[\s\S]*?stays at the site root\./u,
+          replacement:
+            'The canonical URL identifies the page. The organization uses the site root.'
+        })
+      }
+      text = plainGuide(text)
+    }
     text = describeConfiguredLanguages(text, profile.hasI18n !== false)
     if (text !== input) write({ file, content: text })
   }

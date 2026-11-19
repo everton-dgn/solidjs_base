@@ -3,6 +3,60 @@
 Bun runs application tasks for every installer. Choose the installer with
 `--pm bun`, `--pm pnpm` or `--pm npm`. The default is Bun.
 
+## Terminal questionnaire
+
+Start with `bunx @evertondgn/create-solid@latest --lang en`. This session
+selects static hosting, two languages and pnpm:
+
+```text
+Solid Base
+Project directory                         portal
+Application title                         Portal
+Rendering mode                            static
+Enable translations?                      Yes
+Language tags, separated by commas        en,es
+Base language                             en
+Publish SEO metadata?                     Yes
+Public site origin                        https://portal.example
+Include theme controls?                   Yes
+Include icons?                            Yes
+Include bundled fonts?                    No
+Enable development diagnostics?           Yes
+Choose the installer                      pnpm
+Initialize Git?                           Yes
+Install dependencies?                     No
+```
+
+The equivalent command is:
+
+```sh
+bunx @evertondgn/create-solid@latest portal --title Portal --mode static \
+  --locales en,es --base-locale en --seo --site-url https://portal.example \
+  --theme --icons --no-fonts --diagnostics --pm pnpm --git --no-install \
+  --lang en --no-interactive
+```
+
+The CLI prints the settings before creating files. After this session, open
+`portal`, run `pnpm install`, `pnpm exec vp fmt pnpm-workspace.yaml` and
+`vp run dev`. Bun runs the application tasks. Server mode targets Vercel. Ctrl+C
+during the questions or generation discards the unfinished project. After
+publication, interrupting installation keeps the files and prints the command to
+resume.
+
+Use `--lang pt-BR`, `--lang en` or `--lang es` for the interface. By default,
+the CLI checks `LC_ALL`, `LC_MESSAGES`, `LANG` and the locale returned by
+`Intl`, in that order, then uses English. Project languages come from
+`--locales` and `--base-locale` or the questionnaire.
+
+`--yes` accepts the defaults printed by `--help`. It creates `solid-app` when
+the destination is omitted. Flags can override each default. Without a terminal,
+with `CI` set (including an empty value), or with `--no-interactive`, give a
+positional destination or `--name DIR` unless using `--yes`. Other omitted
+options use their documented defaults. Invalid or conflicting answers exit with
+status 2 before writing.
+
+## Project options
+
 With `--fonts` (the default), the application hosts its Inter font files.
 `--no-fonts` uses system fonts. With `--diagnostics` (the default), the
 development server exposes Solid reactivity diagnostics. Use `--no-diagnostics`
@@ -59,9 +113,10 @@ list. Server and static apps otherwise use the template's English, Spanish and
 Portuguese catalogs with English as the base. A client app defaults to its base
 language alone. Use static mode for multiple languages on a file host.
 
-Pass `--no-i18n` to use local message functions. In that profile,
-`--base-locale` selects the language of the messages and the HTML document.
-Combining `--no-i18n` with `--locales` is an error.
+Use `--i18n` to enable translations and answer the language questions. Pass
+`--no-i18n` to use local message functions. In that profile, `--base-locale`
+selects the language of the messages and the HTML document. Combining
+`--no-i18n` with `--locales` is an error.
 
 When a catalog is missing, the generator copies the closest supported language
 or falls back to English. For example, `pt-BR` starts from Portuguese and

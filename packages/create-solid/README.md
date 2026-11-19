@@ -8,6 +8,29 @@ registry release, run:
 bunx @evertondgn/create-solid@latest my-app
 ```
 
+In a terminal, flags answer their questions in advance. To choose only the title
+interactively, supply the other answers:
+
+```sh
+bunx @evertondgn/create-solid@latest portal --lang en --mode client \
+  --no-i18n --base-locale en --no-theme --no-icons --no-fonts \
+  --no-diagnostics --pm bun --no-git --no-install
+```
+
+```text
+Solid Base
+Application title
+Portal
+```
+
+Replacing the prefilled title with `Portal` gives the same project as adding
+`--title Portal`. See the
+[full questionnaire](docs/installation.md#terminal-questionnaire) for all
+choices. Use `--yes` for the full profile, including Bun, Git and installation.
+Without a destination it creates `solid-app`. With redirected stdin, a set `CI`
+variable or `--no-interactive`, provide a destination or use `--yes`. Missing
+required input or conflicting flags exit with status 2 before writing.
+
 Use `--pm bun|pnpm|npm` to choose the installer. Bun is required to run the
 application tasks for all three managers. See
 [installation](docs/installation.md).

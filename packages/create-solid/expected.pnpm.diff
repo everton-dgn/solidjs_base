@@ -274,14 +274,14 @@ diff --git a/source/README.md b/example/README.md
  | Test components   | `Button`, `Input`, `Textarea`, `Dialog`, the toasts and `DropdownMenu`, on the `/ui-kit` route of the `e2e` build                                                     | [UiKit](src/tests/pages/UiKit)                                                                                                                                                                                      | [UI](docs/ui.md)                                                        |
  
 -### The same page in three languages
--
++### Application languages
+ 
 -<picture>
 -  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/app-locales-dark.webp" />
 -  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/app-locales-light.webp" />
 -  <img src="../../docs/assets/readme/app-locales-light.webp" alt="The boilerplate app's home page at /pt, /en and /es, with the navigation, the title and the language button in each locale." width="800" />
 -</picture>
-+### Application languages
- 
+-
 -Every page lives under `/pt`, `/en` or `/es`, with `lang`, the navigation and
 -the metadata in that language. Messages sit next to the component that uses
 -them, in `i18n/{pt,en,es}.json`. `vp run i18n:generate`, which `check:ci`,
@@ -326,7 +326,7 @@ diff --git a/source/README.md b/example/README.md
  
  ## Limits
  
-@@ -236,7 +237,7 @@ the app, a package, a fixture or the root configuration
+@@ -236,18 +237,22 @@ the app, a package, a fixture or the root configuration
    not prove production capacity. The thresholds of `PublicationLoad` are a local
    starting point and set no production SLO
    ([publication load](docs/testing.md#publication-load)).
@@ -335,7 +335,14 @@ diff --git a/source/README.md b/example/README.md
  - The interactive controls need JavaScript. The tests check the server-rendered
    HTML without JavaScript, and the app makes no promise to work without it.
  
-@@ -247,7 +248,7 @@ the app, a package, a fixture or the root configuration
+ ## Reference
+ 
++Set the author, organization, social profiles and contact information in
++`src/constants/site/index.ts`. Bun runs all application tasks. npm and pnpm only
++install dependencies. Server mode deploys to Vercel.
++
+ ### How it uses the packages
+ 
  It takes its lint preset, lint rules, formatter settings, TypeScript configs,
  Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
  Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`. See the
@@ -344,7 +351,7 @@ diff --git a/source/README.md b/example/README.md
  of the tooling README for the line counts by area.
  
  The package supplies tools that the application does not import itself. Its
-@@ -338,4 +339,4 @@ examples describe the upstream workflows.
+@@ -338,4 +343,4 @@ examples describe the upstream workflows.
  | [Tests](docs/testing.md)                                        | Vitest projects, E2E suites, production checks and reports            |
  
  `AGENTS.md`, the guides in `docs/`, the code comments and the test titles are in

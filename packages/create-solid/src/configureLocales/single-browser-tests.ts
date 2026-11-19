@@ -18,7 +18,6 @@ const cases: Record<string, Edit[]> = {
     [/^const LOCALES = [\s\S]*?(?=^test\('keeps the SSR document)/mu, '']
   ],
   'I18n/I18n.redirect': [
-    [/^import \{ SITE \}[^\n]+\n/mu, ''],
     [/^for \(const source of \['action', 'query'\]\) \{[\s\S]*?^\}\n/mu, ''],
     [
       /^test\('back and forward across locale history entries[\s\S]*?^\}\)\n/mu,
@@ -27,7 +26,7 @@ const cases: Record<string, Edit[]> = {
   ],
   'UiKit/UiKit': [
     [
-      /\)\.toBe\(false\)\n {2}await expect\(\n {4}page\.getByRole\('button', \{ name: '[^']+' \}\)\n {2}\)\.toBeVisible\(\)/u,
+      /\)\.toBe\(false\)\n {2}await expect\(\n {4}page\.getByRole\('button', \{\s*name: testLanguages\.labels\(testLanguages\.alternate\)\.selector\s*\}\)\n {2}\)\.toBeVisible\(\)/u,
       ').toBe(true)'
     ]
   ],
@@ -40,6 +39,7 @@ export function configureSingleBrowserTests({
   write
 }: StagedContext): void {
   for (const [name, edits] of Object.entries(cases)) {
+    if (profile.hasI18n === false && name.startsWith('I18n/')) continue
     const file = `src/tests/pages/${name}.e2e.test.ts`
     let text = readFileSync(path.join(stage, file), 'utf8')
     for (const [pattern, value] of edits) {

@@ -1,28 +1,39 @@
 import assert from 'node:assert/strict'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { it } from 'node:test'
 
-import { prepareBrowserPaths } from '../tooling/browser-test-paths.ts'
+import { generate } from '../src/generate.ts'
 
-void it('derives literal, template and regex paths from configured locale roles', () => {
-  const text = [
-    "const path = '/en/about'",
-    `const url = \`/pt/\${slug}\``,
-    String.raw`const match = /\/es\?filter/u`,
-    "const other = '/entry'"
-  ].join('\n')
-  const result = prepareBrowserPaths('Home.e2e.test.ts', text)
-  assert.ok(result.includes(`\`/\${testLanguages.base}/about\``))
-  assert.ok(result.includes(`\`/\${testLanguages.alternate}/\${slug}\``))
-  assert.ok(result.includes('new RegExp(String.raw'))
-  assert.ok(result.includes('testLanguages.third'))
-  assert.ok(result.includes("const other = '/entry'"))
-})
-
-void it('passes locale values into Playwright callbacks executed in the browser', () => {
-  const result = prepareBrowserPaths(
-    'I18n.redirect.e2e.test.ts',
-    "await page.evaluate(() => history.pushState(null, '', '/pt/route'))"
+void it('ships the reference navigation and browser history tests for custom locales', t => {
+  const sandbox = mkdtempSync(path.join(tmpdir(), 'reference-browser-tests-'))
+  t.after(() => rmSync(sandbox, { recursive: true, force: true }))
+  const dir = path.join(sandbox, 'app')
+  generate({
+    dir,
+    pm: 'bun',
+    mode: 'server',
+    locales: ['fr', 'ja'],
+    baseLocale: 'ja',
+    shouldInitGit: false,
+    shouldInstall: false
+  })
+  const reference = path.resolve(
+    import.meta.dirname,
+    '../../../apps/boilerplate'
   )
-  assert.match(result, /page\.evaluate\(pageLanguages =>/u)
-  assert.match(result, /base: testLanguages\.base/u)
+  for (const file of [
+    'src/middleware/__tests__/middleware.node.test.ts',
+    'src/tests/setup/browser/__tests__/browser.browser.test.ts',
+    'src/tests/pages/I18n/I18n.hydration.e2e.test.ts',
+    'src/tests/pages/I18n/I18n.urlPattern.production.e2e.test.ts',
+    'src/tests/pages/Home/Home.theme.e2e.test.ts'
+  ]) {
+    assert.equal(
+      readFileSync(path.join(dir, file), 'utf8'),
+      readFileSync(path.join(reference, file), 'utf8'),
+      file
+    )
+  }
 })

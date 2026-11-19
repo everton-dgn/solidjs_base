@@ -8,7 +8,7 @@ type Edit = readonly [RegExp, string]
 const hydrated =
   "await expect(page.locator('html')).toHaveAttribute('data-hydration-ended', '')"
 const menu: Edit = [
-  /await page\.getByRole\('button', \{ name: (?:'[^']+'|LANGUAGE_BUTTON) \}\)\.click\(\)\n\s*await expect\(page\.getByRole\('menu'\)\)\.toBeVisible\(\)(?:\n\s*await page\.keyboard\.press\('Escape'\))?(?:\n\s*await expect\(page\.getByRole\('menu'\)\)\.not\.toBeVisible\(\))?/u,
+  /await page\s*\.getByRole\('button', \{\s*name: (?:testLanguages\.labels\(testLanguages\.\w+\)\.theme|LANGUAGE_BUTTON)\s*\}\)\s*\.click\(\)\n\s*await expect\(page\.getByRole\('menu'\)\)\.toBeVisible\(\)(?:\n\s*await page\.keyboard\.press\('Escape'\))?(?:\n\s*await expect\(page\.getByRole\('menu'\)\)\.not\.toBeVisible\(\))?/u,
   hydrated
 ]
 const noMenu: Edit = [
@@ -24,7 +24,7 @@ export function configureSingleMenuTests({
   const files: Record<string, Edit[]> = {
     'I18n/I18n.urlPattern.production': [
       [
-        / {2}await page\.getByRole\('button', \{ name: '[^']+' \}\)\.click\(\)\n {2}await page\n {4}\.getByRole\('menuitemradio',[\s\S]*? {2}await expect\(page\)\.toHaveURL\('[^']+'\)\n/u,
+        / {2}await page\s*\.getByRole\('button', \{\s*name: testLanguages\.labels\(testLanguages\.alternate\)\.selector\s*\}\)\s*\.click\(\)\n {2}await page\s*\.getByRole\('menuitemradio',[\s\S]*? {2}await expect\(page\)\.toHaveURL\(testLanguages\.path\(testLanguages\.base, ''\)\)\n/u,
         ''
       ]
     ],
@@ -58,7 +58,7 @@ export function configureSingleMenuTests({
     if (profile.hasSeo !== false) files['NotFound/NotFound.seo'] = [menu]
     files['Home/Home.layout'] = [
       [
-        /await page\.getByRole\('button', \{ name: '[^']+' \}\)\.waitFor\(\)/u,
+        /await page\s*\.getByRole\('button', \{\s*name: testLanguages\.labels\(testLanguages\.alternate\)\.theme\s*\}\)\s*\.waitFor\(\)/u,
         hydrated
       ],
       menu
@@ -75,6 +75,7 @@ export function configureSingleMenuTests({
     )
   }
   for (const [name, edits] of Object.entries(files)) {
+    if (profile.hasI18n === false && name.startsWith('I18n/')) continue
     const file = `src/tests/pages/${name}.e2e.test.ts`
     let text = readFileSync(path.join(stage, file), 'utf8')
     for (const [pattern, replacement] of edits) {

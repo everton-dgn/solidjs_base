@@ -12,7 +12,6 @@ import path from 'node:path'
 import { generateSource } from '../src/generate.ts'
 import { guideDigest, guideFiles } from '../src/prepared-guides.ts'
 import { plainSourceFiles, preparedSourceKey } from '../src/prepared-source.ts'
-import { prepareBrowserPaths } from './browser-test-paths.ts'
 import { uiProfiles } from './ui-profiles.ts'
 
 function* modeVariants() {
@@ -24,17 +23,7 @@ function* modeVariants() {
 }
 
 function* guideProfiles() {
-  for (const variant of modeVariants()) {
-    for (const hasTheme of [true, false]) {
-      yield {
-        ...variant,
-        pm: 'bun' as const,
-        hasTheme,
-        hasI18n: true,
-        locales: ['es']
-      }
-    }
-  }
+  yield { pm: 'bun' as const, mode: 'server' as const, locales: ['fr', 'ja'] }
   for (const pm of ['bun', 'npm', 'pnpm'] as const) {
     for (const variant of modeVariants()) {
       for (const hasDiagnostics of [true, false]) {
@@ -48,6 +37,9 @@ function* guideProfiles() {
             hasTheme
           }
           yield { ...profile, hasI18n: true }
+          yield* variant.mode === 'client'
+            ? []
+            : [{ ...profile, hasI18n: true, locales: ['es'] }]
           yield { ...profile, hasI18n: false }
         }
       }
@@ -66,9 +58,9 @@ export function prepareGuides(): void {
   mkdirSync(inputs)
   try {
     for (const profile of guideProfiles()) {
-      generateSource(
-        { dir, ...profile, shouldInitGit: false, shouldInstall: false },
-        {
+      generateSource({
+        input: { dir, ...profile, shouldInitGit: false, shouldInstall: false },
+        prepare: {
           guides: stage => {
             for (const file of ['AGENTS.md', ...guideFiles(stage)]) {
               const content = readFileSync(path.join(stage, file), 'utf8')
@@ -82,22 +74,22 @@ export function prepareGuides(): void {
               writeFileSync(path.join(inputs, `${digest}.md`), content)
             }
           },
-          source: (stage, files) => {
+          source: ({ stage, files }) => {
             for (const file of files ?? plainSourceFiles(stage)) {
               const original = readFileSync(file, 'utf8')
-              const digest = preparedSourceKey(original, files !== undefined)
+              const digest = preparedSourceKey({
+                text: original,
+                isLocalized: files !== undefined
+              })
               if (sources.has(digest)) continue
               const target = path.join(inputs, digest, path.basename(file))
               mkdirSync(path.dirname(target))
-              writeFileSync(
-                target,
-                files ? prepareBrowserPaths(file, original) : original
-              )
+              writeFileSync(target, original)
               sources.set(digest, { original, file: target })
             }
           }
         }
-      )
+      })
       rmSync(dir, { recursive: true })
     }
     execFileSync(
@@ -116,7 +108,9 @@ export function prepareGuides(): void {
     }
     for (const [digest, { file, original }] of sources) {
       const content = readFileSync(file, 'utf8')
-      if (content !== original) formattedSource[digest] = content
+      if (digest.startsWith('localized-') || content !== original) {
+        formattedSource[digest] = content
+      }
     }
     writeFileSync('dist/prepared-source.json', JSON.stringify(formattedSource))
     writeFileSync('dist/prepared-guides.json', JSON.stringify(prepared))

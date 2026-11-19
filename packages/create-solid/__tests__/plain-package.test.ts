@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { it } from 'node:test'
 
-import { removeCatalogTasks } from '../src/configurePlainApp/package.ts'
+import { removeCatalogTasks } from '../src/configurePlainApp/remove-catalog-tasks.ts'
 
 void it('removes catalog compilation and keeps the commands that follow it', () => {
   const pkg = {

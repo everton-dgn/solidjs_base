@@ -4,6 +4,7 @@ import path from 'node:path'
 import { editTemplate } from '../edit-template.ts'
 import { guideFiles } from '../prepared-guides.ts'
 import type { StagedContext } from '../types.ts'
+import { readLocaleSettings } from './catalogs.ts'
 
 const settings = 'project.inlang/settings.json'
 const messages = 'src/constants/messages/index.ts'
@@ -114,7 +115,8 @@ function plainGuide(source: string): string {
     )
 }
 
-function describeConfiguredLanguages(text: string, hasI18n: boolean): string {
+type GuideOptions = { text: string; hasI18n: boolean }
+function describeConfiguredLanguages({ text, hasI18n }: GuideOptions): string {
   const prefix = hasI18n ? '/{locale}' : ''
   return text
     .replace(
@@ -171,6 +173,7 @@ export function configureLocaleGuides({
   profile,
   write
 }: StagedContext): void {
+  const isSingleLocale = readLocaleSettings(stage).locales.length === 1
   for (const file of ['AGENTS.md', ...guideFiles(stage)]) {
     if (!existsSync(path.join(stage, file))) continue
     const input = readFileSync(path.join(stage, file), 'utf8')
@@ -198,9 +201,20 @@ export function configureLocaleGuides({
         replacement:
           'Use the same keys and parameters in every catalog. The compiler generates'
       })
-      text = text
-        .replace("{ locale: 'es' }", '{ locale: baseLocale }')
-        .replace('and finally `en`', 'and finally the base locale')
+      text = editTemplate({
+        file,
+        text,
+        pattern: "{ locale: 'es' }",
+        replacement: '{ locale: baseLocale }'
+      })
+      if ((profile.mode ?? 'server') === 'server') {
+        text = editTemplate({
+          file,
+          text,
+          pattern: 'and finally `en`',
+          replacement: 'and finally the base locale'
+        })
+      }
     }
     if (file === 'README.md') {
       text = text.replace(
@@ -215,6 +229,40 @@ export function configureLocaleGuides({
           ? ''
           : '| Languages | Configured language catalogs and routes | [I18n](src/tests/pages/I18n) | [I18n](docs/i18n.md) |\n'
       )
+    }
+    if (isSingleLocale) {
+      const edit = (pattern: string, replacement: string) => {
+        if (text.includes(pattern)) {
+          text = editTemplate({ file, text, pattern, replacement })
+        }
+      }
+      edit(
+        'The application provides localized pages and navigation.',
+        'The application includes a home page and navigation.'
+      )
+      edit('language and theme switchers', 'a theme switcher')
+      edit('a language switcher, ', '')
+      edit(
+        '`ThemeToggle`\n  and `LocaleSwitcher` build',
+        '`ThemeToggle` builds'
+      )
+      if (profile.hasTheme === false) {
+        if (file === 'docs/architecture.md') {
+          text = editTemplate({
+            file,
+            text,
+            pattern:
+              /`LocaleSwitcher`\s+builds on `Button` and `DropdownMenu`,\s+(?=`OutdatedPageNotice`)/u,
+            replacement: ''
+          })
+        }
+        edit(
+          '`DropdownMenu`, which receives\n  a ready trigger, and `ToastProvider` stay',
+          '`ToastProvider` stays'
+        )
+        edit('`DropdownMenu/constants.ts`', '`Dialog/constants.ts`')
+        edit('the toasts and `DropdownMenu`', 'and the toasts')
+      }
     }
     if (profile.hasI18n === false) {
       if (file === 'docs/seo.md') {
@@ -236,7 +284,10 @@ export function configureLocaleGuides({
       }
       text = plainGuide(text)
     }
-    text = describeConfiguredLanguages(text, profile.hasI18n !== false)
+    text = describeConfiguredLanguages({
+      text,
+      hasI18n: profile.hasI18n !== false
+    })
     if (text !== input) write({ file, content: text })
   }
 }

@@ -63,9 +63,9 @@ const messages = {
     pt: 'Ao relatar um problema, descreva o que aconteceu e os passos para reproduzi-lo. Omita os dados privados.'
   },
   contact_maintainer: {
-    en: 'Use the contact details listed on this page when they are available. Describe the page you visited, the language you selected and the result you expected. If you include an example, use fictional data and remove personal details from any screenshots. Keep a copy of the report so that you can add information if the problem happens again.',
-    es: 'Utiliza los datos de contacto de esta página cuando estén disponibles. Indica qué página visitaste, qué idioma elegiste y qué resultado esperabas. Si incluyes un ejemplo, utiliza datos ficticios y elimina la información personal de las capturas de pantalla. Guarda una copia del informe para añadir detalles si el problema vuelve a ocurrir.',
-    pt: 'Use os dados de contato desta página quando estiverem disponíveis. Informe a página visitada, o idioma escolhido e o resultado esperado. Se incluir um exemplo, use dados fictícios e remova informações pessoais das capturas de tela. Guarde uma cópia do relato para acrescentar detalhes caso o problema volte a ocorrer.'
+    en: 'Use the contact details listed on this page when they are available. Describe the page you visited and the result you expected. If you include an example, use fictional data and remove personal details from any screenshots. Keep a copy of the report so that you can add information if the problem happens again.',
+    es: 'Utiliza los datos de contacto de esta página cuando estén disponibles. Indica qué página visitaste y qué resultado esperabas. Si incluyes un ejemplo, utiliza datos ficticios y elimina la información personal de las capturas de pantalla. Guarda una copia del informe para añadir detalles si el problema vuelve a ocurrir.',
+    pt: 'Use os dados de contato desta página quando estiverem disponíveis. Informe a página visitada e o resultado esperado. Se incluir um exemplo, use dados fictícios e remova informações pessoais das capturas de tela. Guarde uma cópia do relato para acrescentar detalhes caso o problema volte a ocorrer.'
   }
 }
 type Replacement = { pattern: RegExp | string; replacement: string }

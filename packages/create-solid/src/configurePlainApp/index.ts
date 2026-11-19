@@ -1,7 +1,10 @@
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
+import { configureTestLabels } from '../configureLocales/browser-labels.ts'
 import { readLocaleSettings } from '../configureLocales/catalogs.ts'
+import { configureSingleBrowserTests } from '../configureLocales/single-browser-tests.ts'
+import { configureSingleMenuTests } from '../configureLocales/single-menu-tests.ts'
 import { configureMessages } from '../configureMessages/index.ts'
 import { editTemplate } from '../edit-template.ts'
 import {
@@ -9,13 +12,21 @@ import {
   removeFeatureFiles
 } from '../removeFeatureFiles/index.ts'
 import type { StagedContext } from '../types.ts'
-import { configurePlainTest } from './tests.ts'
+import { configurePlainTest } from './configure-plain-test.ts'
 
 const messages = '@/constants/messages/index.ts'
 const seam = '@evertondgn/solid-runtime/i18n/locale'
 const hydration =
   'const locale = prepareClientLocale()\nif (locale.shouldHydrate) {\n'
 type NamedEdit = { file: string; pattern: RegExp | string; replacement: string }
+
+function configurePlainBrowserTests(context: StagedContext): void {
+  if ((context.profile.mode ?? 'server') === 'server') {
+    configureSingleBrowserTests(context)
+    configureSingleMenuTests(context)
+    configureTestLabels(context)
+  }
+}
 
 export function configurePlainApp(context: StagedContext): void {
   const { stage, write } = context
@@ -26,6 +37,7 @@ export function configurePlainApp(context: StagedContext): void {
       file: options.file,
       content: editTemplate({ ...options, text: read(options.file) })
     })
+  configurePlainBrowserTests(context)
   configureMessages(context)
   for (const folder of localMessageFolders(stage)) {
     const catalog = path.join(folder, `${baseLocale}.json`)
@@ -92,6 +104,13 @@ export function configurePlainApp(context: StagedContext): void {
   })) {
     if (!entry.isFile() || !/\.tsx?$/u.test(entry.name)) continue
     const file = path.relative(stage, path.join(entry.parentPath, entry.name))
+    if (file === 'src/tests/helpers/testLocale/index.ts') {
+      write({
+        file,
+        content: `const language = '${baseLocale}'\n\nexport const testLocale = {\n  hasPrefix: false,\n  base: language,\n  alternate: language,\n  locales: [language],\n  header: (_locale: string): string | undefined => undefined,\n  tag: (locale: string): string => locale,\n  path: (_locale: string, suffix: string): string =>\n    suffix.startsWith('/') ? suffix : \`/\${suffix}\`\n}\n`
+      })
+      continue
+    }
     const original = read(file)
     let text = original
       .replaceAll('@paraglide/messages.js', messages)
@@ -110,7 +129,6 @@ export function configurePlainApp(context: StagedContext): void {
       .replace(/^ +createLocaleNavigationGuard\(\)\n/mu, '')
       .replace(/^import \{ LOCALE_TAG_OVERRIDES \}[^\n]+\n/mu, '')
       .replace(/^ +localeTagOverrides: LOCALE_TAG_OVERRIDES,\n/mu, '')
-      .replace('localeTag(getLocale(), LOCALE_TAG_OVERRIDES)', 'getLocale()')
       .replace(/^import \{ localeTag \}[^\n]+\n/mu, '')
     text = text
       .replace(/^import \{ delocalizePathname \}[^\n]+\n/mu, '')
@@ -130,52 +148,55 @@ export function configurePlainApp(context: StagedContext): void {
         /localizedRedirect\(\{ href: (?<href>'[^']+') \}\)/u,
         'redirect($<href>)'
       )
+    const apply = (pattern: string | RegExp, replacement: string) => {
+      text = editTemplate({ file, text, pattern, replacement })
+    }
     if (file === 'src/constants/site/index.ts') {
+      apply('localeTag(getLocale(), LOCALE_TAG_OVERRIDES)', 'getLocale()')
       const valueImport = `import { m } from '${messages}'`
-      text = text.includes(valueImport)
-        ? text.replace(
-            valueImport,
-            `import { m, type Locale } from '${messages}'`
-          )
-        : `import type { Locale } from '${messages}'\n${text}`
-      text = text.replace('get locale(): string', 'get locale(): Locale')
+      if (text.includes(valueImport)) {
+        apply(valueImport, `import { m, type Locale } from '${messages}'`)
+      } else {
+        text = `import type { Locale } from '${messages}'\n${text}`
+      }
+      apply('get locale(): string', 'get locale(): Locale')
     }
     if (file.endsWith('/ui-kit/index.tsx')) {
-      text = text
-        .replace(' locale="es"', '')
-        .replace(' shouldLocalize={false}', ' target="_self"')
-        .replace('Spanish page', 'Page link')
-        .replace('Localized page', 'Page')
-        .replace(/^import \{ createLocalizedNavigate \}[^\n]+\n/mu, '')
-        .replace(
-          'import { useSearchParams',
-          'import { useNavigate, useSearchParams'
-        )
-        .replace('createLocalizedNavigate()', 'useNavigate()')
-        .replace(
-          /navigate\(\{ href: (?<href>'[^']+') \}\)/u,
-          'navigate($<href>)'
-        )
-        .replace(
-          /navigate\(\{ href: (?<href>'[^']+'), replace: true \}\)/u,
-          'navigate($<href>, { replace: true })'
-        )
+      apply(' locale={alternate}', '')
+      apply(/^import \{ baseLocale, locales \}[^\n]+\n/mu, '')
+      apply(/^const alternate = [^\n]+\n/mu, '')
+      apply(' shouldLocalize={false}', ' target="_self"')
+      apply('Alternate language page', 'Page link')
+      apply('Localized page', 'Page')
+      apply(/^import \{ createLocalizedNavigate \}[^\n]+\n/mu, '')
+      apply('import { useSearchParams', 'import { useNavigate, useSearchParams')
+      apply('createLocalizedNavigate()', 'useNavigate()')
+      apply(/navigate\(\{ href: (?<href>'[^']+') \}\)/u, 'navigate($<href>)')
+      apply(
+        /navigate\(\{ href: (?<href>'[^']+'), replace: true \}\)/u,
+        'navigate($<href>, { replace: true })'
+      )
     }
     if (file === 'src/infra/server/configureServerErrors/index.ts') {
       text = editTemplate({
         file,
         text,
-        pattern: / {2}publicMessage: locale => \{[\s\S]*?\n {2}\}/u,
-        replacement: '  publicMessage: () => m.configureServerErrors_message()'
-      }).replace(/^import \{ isLocale \}[^\n]+\n/mu, '')
+        pattern: /^import \{ isLocale \}[^\n]+\n/mu,
+        replacement: ''
+      })
+      text = editTemplate({
+        file,
+        text,
+        pattern:
+          /publicMessage: locale => \{\n {4}if \(!isLocale\(locale\)\)[^\n]+\n {4}return (?<message>[^\n]+)\n {2}\}/u,
+        replacement: 'publicMessage: locale => $<message>'
+      })
     }
     if (file === 'src/routes/(seo)/llms.txt/constants.ts') {
-      text = text
-        .replace('baseLocale, locales, type Locale', 'baseLocale')
-        .replace(/^import \{ localizeHref \}[^\n]+\n/mu, '')
-        .replace('languageName(locale: Locale)', 'languageName(locale: string)')
-        .replace(/const AVAILABLE_LANGUAGES = [\s\S]*?\n\)\n/u, '')
-        .replace(`Content is available in \${AVAILABLE_LANGUAGES}. `, '')
+      apply('baseLocale, locales, type Locale', 'baseLocale')
+      apply('languageName(locale: Locale)', 'languageName(locale: string)')
+      apply(/const AVAILABLE_LANGUAGES = [\s\S]*?\n\)\n/u, '')
+      apply(`Content is available in \${AVAILABLE_LANGUAGES}. `, '')
     }
     text = configurePlainTest({
       file,

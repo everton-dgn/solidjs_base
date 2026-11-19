@@ -119,7 +119,8 @@ function destinations(line: string): string[] {
   return urls
 }
 
-export function guideProblems(dir: string, hasI18n = true): string[] {
+type GuideOptions = { dir: string; hasI18n: boolean }
+export function guideProblems({ dir, hasI18n }: GuideOptions): string[] {
   const problems = new Set<string>()
   const headings = new Map<string, Set<string>>()
   const manifest = readFileSync(path.join(dir, 'package.json'), 'utf8')

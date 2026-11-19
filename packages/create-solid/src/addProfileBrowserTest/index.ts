@@ -156,19 +156,11 @@ test('serves the application in its configured language', async ({ page }) => {
   const name = menu.replace('{code}', base.toUpperCase())
   await page.getByRole('button', { name, exact: true }).click()
   await expect(page.getByRole('menu')).toBeVisible()
+  const namesFile = 'src/components/molecules/LocaleSwitcher/names.json'
+  const names = parse(schema, JSON.parse(await readFile(namesFile, 'utf8')))
   for (const locale of locales) {
-    let item = locale
-    try {
-      if (Intl.DisplayNames.supportedLocalesOf(locale).length > 0) {
-        const names = new Intl.DisplayNames([locale], {
-          type: 'language',
-          fallback: 'none'
-        })
-        item = names.of(locale) ?? locale
-      }
-    } catch (error) {
-      if (!(error instanceof RangeError)) throw error
-    }
+    const item = names[locale]
+    if (!item) throw new Error(\`Missing language name: \${locale}\`)
     await expect(
       page.getByRole('menuitemradio', { name: item, exact: true })
     ).toBeVisible()

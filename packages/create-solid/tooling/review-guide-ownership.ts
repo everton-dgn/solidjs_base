@@ -13,10 +13,10 @@ function* profiles() {
     for (const {
       mode,
       hasSeo,
-      diagnostics,
-      fonts,
-      icons,
-      theme,
+      hasDiagnostics,
+      hasFonts,
+      hasIcons,
+      hasTheme,
       selection
     } of matrixCases()) {
       if (mode === 'client' && hasSeo) continue
@@ -24,10 +24,10 @@ function* profiles() {
         pm,
         mode,
         hasSeo,
-        hasDiagnostics: diagnostics,
-        hasFonts: fonts,
-        hasIcons: icons,
-        hasTheme: theme,
+        hasDiagnostics,
+        hasFonts,
+        hasIcons,
+        hasTheme,
         ...selection
       }
     }

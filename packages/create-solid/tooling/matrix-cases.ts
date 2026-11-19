@@ -5,20 +5,25 @@ const modes = ['server', 'static', 'client'] as const
 const publications = modes.flatMap(mode =>
   [true, false].map(hasSeo => ({ mode, hasSeo }))
 )
-export function* matrixCases() {
+export type MatrixCase = {
+  mode: (typeof modes)[number]
+  hasSeo: boolean
+  hasDiagnostics: boolean
+  hasTheme: boolean
+  hasIcons: boolean
+  hasFonts: boolean
+  selection: Selection
+}
+export function* matrixCases(): Generator<MatrixCase> {
   for (const { mode, hasSeo } of publications) {
-    for (const diagnostics of [true, false]) {
-      for (const {
-        hasFonts: fonts,
-        hasIcons: icons,
-        hasTheme: theme
-      } of uiProfiles()) {
+    for (const hasDiagnostics of [true, false]) {
+      for (const { hasFonts, hasIcons, hasTheme } of uiProfiles()) {
         const selections: Selection[] = [{}]
         if (
-          diagnostics === fonts &&
-          fonts === icons &&
-          icons === theme &&
-          hasSeo === (mode === 'client' ? false : theme)
+          hasDiagnostics === hasFonts &&
+          hasFonts === hasIcons &&
+          hasIcons === hasTheme &&
+          hasSeo === (mode === 'client' ? false : hasTheme)
         ) {
           selections.push(
             { hasI18n: false },
@@ -45,7 +50,15 @@ export function* matrixCases() {
           )
         }
         for (const selection of selections) {
-          yield { mode, hasSeo, diagnostics, fonts, icons, theme, selection }
+          yield {
+            mode,
+            hasSeo,
+            hasDiagnostics,
+            hasFonts,
+            hasIcons,
+            hasTheme,
+            selection
+          }
         }
       }
     }

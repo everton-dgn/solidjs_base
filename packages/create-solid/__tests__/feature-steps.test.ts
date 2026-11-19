@@ -14,11 +14,7 @@ import { it, type TestContext } from 'node:test'
 import { configureClient } from '../src/configureClient/index.ts'
 import { configureFileHostGuides } from '../src/configureFileHostGuides/index.ts'
 import { configureFonts } from '../src/configureFonts/index.ts'
-import {
-  configureMiddlewareTests,
-  middlewareTest
-} from '../src/configureLocales/middleware-tests.ts'
-import { configureServerFixtures } from '../src/configureLocales/server-fixtures.ts'
+import { configureTestLabels } from '../src/configureLocales/browser-labels.ts'
 import { configureSeo } from '../src/configureSeo/index.ts'
 import { configureStatic } from '../src/configureStatic/index.ts'
 import { editTemplate } from '../src/edit-template.ts'
@@ -61,37 +57,17 @@ function fixture(t: TestContext): StagedContext {
     }
   }
 }
-void it('uses configured locales and catalog messages in middleware assertions', t => {
+void it('rejects a locale helper missing the language menu import', t => {
   const context = fixture(t)
-  context.profile.hasSeo = true
-  const file = middlewareTest
-  const source = readFileSync(path.join('template', file), 'utf8')
-  context.write({ file, content: source })
-  configureMiddlewareTests(context)
-  const text = readFileSync(path.join(context.stage, file), 'utf8')
-  assert.match(text, /it\.each\(locales\)/u)
-  assert.match(text, /locale: alternate/u)
-  assert.doesNotMatch(text, /PUBLIC_MESSAGE_(?:EN|PT)|'\/(?:en|pt)\b/u)
   context.write({
-    file,
-    content: source.replace('const PUBLIC_MESSAGE_PT', 'const CHANGED')
+    file: 'project.inlang/settings.json',
+    content: JSON.stringify({ baseLocale: 'es', locales: ['es'] })
   })
-  assert.throws(
-    () => configureMiddlewareTests(context),
-    /Missing template edit/u
-  )
-})
-
-void it('requires the locale isolation setup before adapting server fixtures', t => {
-  const context = fixture(t)
   context.write({
-    file: 'src/tests/setup/browser/__tests__/browser.browser.test.ts',
+    file: 'src/tests/helpers/scenarioLocales/index.ts',
     content: 'export {}\n'
   })
-  assert.throws(
-    () => configureServerFixtures(context),
-    /Missing template edit/u
-  )
+  assert.throws(() => configureTestLabels(context), /Missing template edit/u)
 })
 
 void it('rejects a changed SEO import before rewriting the app', t => {

@@ -39,7 +39,7 @@ for (const locales of [['fr', 'ja'], ['zh-Hant-TW']]) {
     const markdown = read('pages/Markdown/Markdown.streaming.e2e.test.ts')
     assert.doesNotMatch(markdown, /(?:first|second):(?:en|pt|es):resolved/u)
     assert.equal(
-      helper.includes('LocaleSwitcher/names.json'),
+      helper.includes('LocaleSwitcher/constants.ts'),
       locales.length > 1
     )
   })

@@ -21,6 +21,7 @@ export type Profile = {
   hasI18n?: boolean
   title?: string
   siteUrl?: string
+  onSeededCatalogs?: (messages: string[]) => void
   shouldInitGit: boolean
   shouldInstall: boolean
 }

@@ -24,7 +24,7 @@ import { guideFiles } from '../src/prepared-guides.ts'
 import { checkImports } from '../tooling/check-imports.ts'
 import { guideOwnership } from '../tooling/guide-ownership.ts'
 import { guideProblems } from '../tooling/guide-problems.ts'
-import { matrixCases } from '../tooling/matrix-cases.ts'
+import { matrixCases, type MatrixCase } from '../tooling/matrix-cases.ts'
 
 function checkForbiddenTerms(dir: string, terms: string[]): void {
   if (terms.length === 0) return
@@ -98,15 +98,8 @@ function checkCatalogs(dir: string, tree: readonly string[]): void {
   }
 }
 
-function checkMessages({
-  dir,
-  tree,
-  hasI18n
-}: {
-  dir: string
-  tree: string[]
-  hasI18n: boolean
-}): void {
+type ProfileFiles = { dir: string; tree: readonly string[]; hasI18n: boolean }
+function checkMessages({ dir, tree, hasI18n }: ProfileFiles): void {
   const read = (name: string) => readFileSync(path.join(dir, name), 'utf8')
   if (hasI18n) checkCatalogs(dir, tree)
   else {
@@ -125,15 +118,7 @@ function checkMessages({
   }
 }
 
-function checkScriptFiles({
-  dir,
-  tree,
-  hasI18n
-}: {
-  dir: string
-  tree: readonly string[]
-  hasI18n: boolean
-}): void {
+function checkScriptFiles({ dir, tree, hasI18n }: ProfileFiles): void {
   const schema = object({ scripts: record(string(), string()) })
   const manifest = readFileSync(path.join(dir, 'package.json'), 'utf8')
   const { scripts } = parse(schema, JSON.parse(manifest))
@@ -162,6 +147,8 @@ const inventorySchema = object({
   serverOnly: array(string()),
   forbiddenTerms: object({
     identity: terms,
+    singleLocale: terms,
+    i18n: terms,
     static: terms,
     client: terms,
     fonts: terms,
@@ -175,6 +162,30 @@ const inventory = parse(
   inventorySchema,
   JSON.parse(readFileSync('features.json', 'utf8'))
 )
+function forbiddenTerms({
+  mode,
+  hasSeo,
+  hasDiagnostics,
+  hasFonts,
+  hasIcons,
+  hasTheme,
+  selection
+}: MatrixCase): string[] {
+  return [
+    ...inventory.forbiddenTerms.identity,
+    ...(selection.hasI18n === false ? inventory.forbiddenTerms.i18n : []),
+    ...(selection.hasI18n === false ||
+    selection.locales?.length === 1 ||
+    mode === 'client'
+      ? inventory.forbiddenTerms.singleLocale
+      : []),
+    ...(hasSeo ? [] : inventory.forbiddenTerms.seo),
+    ...(hasTheme ? [] : inventory.forbiddenTerms.theme),
+    ...(hasIcons ? [] : inventory.forbiddenTerms.icons),
+    ...(hasFonts ? [] : inventory.forbiddenTerms.fonts),
+    ...(hasDiagnostics ? [] : inventory.forbiddenTerms.diagnostics)
+  ]
+}
 type ImportProfile = {
   hasSeo: boolean
   hasTheme: boolean
@@ -335,14 +346,14 @@ export function testProfiles(
   for (const {
     mode,
     hasSeo,
-    diagnostics,
-    fonts,
-    icons,
-    theme,
+    hasDiagnostics,
+    hasFonts,
+    hasIcons,
+    hasTheme,
     selection
   } of matrixCases()) {
     count += 1
-    void it(`generates ${mode} ${pm} with seo=${hasSeo}, theme=${theme}, icons=${icons}, fonts=${fonts} and diagnostics=${diagnostics} ${JSON.stringify(selection)}`, context => {
+    void it(`generates ${mode} ${pm} with seo=${hasSeo}, theme=${hasTheme}, icons=${hasIcons}, fonts=${hasFonts} and diagnostics=${hasDiagnostics} ${JSON.stringify(selection)}`, context => {
       const dir = mkdtempSync(path.join(tmpdir(), 'app-profile-'))
       context.after(() => rmSync(dir, { recursive: true, force: true }))
       const profile = {
@@ -352,10 +363,10 @@ export function testProfiles(
         pm,
         mode,
         hasSeo,
-        hasTheme: theme,
-        hasIcons: icons,
-        hasDiagnostics: diagnostics,
-        hasFonts: fonts,
+        hasTheme,
+        hasIcons,
+        hasDiagnostics,
+        hasFonts,
         shouldInstall: false,
         shouldInitGit: false
       }
@@ -378,16 +389,19 @@ export function testProfiles(
       if (!hasSeo) {
         assert.ok(!read('vite.config.ts').includes('publicAssets:'))
       }
-      if (!theme) assert.ok(!read('README.md').includes('<picture>'))
-      assert.equal(existsSync(path.join(dir, 'fonts.ts')), fonts)
-      assert.equal(read('vite.config.ts').includes('fonts: FONTS'), fonts)
+      if (!hasTheme) assert.ok(!read('README.md').includes('<picture>'))
+      assert.equal(existsSync(path.join(dir, 'fonts.ts')), hasFonts)
+      assert.equal(read('vite.config.ts').includes('fonts: FONTS'), hasFonts)
       if (mode !== 'client') {
-        assert.equal(read('src/Document.tsx').includes('<FontLinks />'), fonts)
+        assert.equal(
+          read('src/Document.tsx').includes('<FontLinks />'),
+          hasFonts
+        )
       }
       checkFavicons({ dir, mode })
-      assert.equal(read('docs/ui.md').includes('## Fonts'), fonts)
+      assert.equal(read('docs/ui.md').includes('## Fonts'), hasFonts)
       if (mode === 'server' && hasSeo) {
-        assert.equal(read('README.md').includes('Inter subsets'), fonts)
+        assert.equal(read('README.md').includes('Inter subsets'), hasFonts)
       }
       if (mode === 'client') {
         assert.match(read('vite.config.ts'), /ssr: false/u)
@@ -400,7 +414,7 @@ export function testProfiles(
         for (const file of inventory.serverOnly) {
           assert.equal(existsSync(path.join(dir, file)), false, file)
         }
-        if (theme) {
+        if (hasTheme) {
           assert.match(
             read('src/constants/theme.ts'),
             /storage: 'local-storage'/u
@@ -417,21 +431,21 @@ export function testProfiles(
       }
       assert.equal(
         read('package.json').includes('"@solidjs/diagnostics"'),
-        diagnostics
+        hasDiagnostics
       )
       assert.equal(
         read('docs/development.md').includes('/__solid/diagnostics'),
-        diagnostics
+        hasDiagnostics
       )
       assert.equal(
         read('package.json').includes('@iconify-json/hugeicons'),
-        icons
+        hasIcons
       )
       assert.equal(
         existsSync(path.join(dir, 'src/assets/images/solid.svg')),
-        icons
+        hasIcons
       )
-      if (!icons) {
+      if (!hasIcons) {
         assert.match(
           read('src/components/organisms/Topbar/index.tsx'),
           />\s*\{SITE_LINKS.repository.label\}\s*<\/a>/u
@@ -445,10 +459,13 @@ export function testProfiles(
           />\s*\{m.outdatedPageNotice_dismiss\(\)\}\s*<\/Button>/u
         )
       }
-      assert.equal(existsSync(path.join(dir, 'src/constants/theme.ts')), theme)
+      assert.equal(
+        existsSync(path.join(dir, 'src/constants/theme.ts')),
+        hasTheme
+      )
       assert.equal(
         read('src/theme/tokens/colors.css').includes('light-dark('),
-        theme
+        hasTheme
       )
       assert.equal(
         existsSync(path.join(dir, 'src/primitives/createSeo/index.ts')),
@@ -456,16 +473,20 @@ export function testProfiles(
       )
       assert.equal(read('package.json').includes('schema-dts'), hasSeo)
       if (mode !== 'client') {
-        assert.equal(/themeScript/iu.test(read('src/Document.tsx')), theme)
+        assert.equal(/themeScript/iu.test(read('src/Document.tsx')), hasTheme)
       }
-      checkForbiddenTerms(dir, [
-        ...inventory.forbiddenTerms.identity,
-        ...(hasSeo ? [] : inventory.forbiddenTerms.seo),
-        ...(theme ? [] : inventory.forbiddenTerms.theme),
-        ...(icons ? [] : inventory.forbiddenTerms.icons),
-        ...(fonts ? [] : inventory.forbiddenTerms.fonts),
-        ...(diagnostics ? [] : inventory.forbiddenTerms.diagnostics)
-      ])
+      checkForbiddenTerms(
+        dir,
+        forbiddenTerms({
+          mode,
+          hasSeo,
+          hasDiagnostics,
+          hasFonts,
+          hasIcons,
+          hasTheme,
+          selection
+        })
+      )
       const tree = readdirSync(dir, {
         recursive: true,
         withFileTypes: true
@@ -478,7 +499,7 @@ export function testProfiles(
         knownImports: importsFor(profile)
       })
       const hasI18n = profile.hasI18n !== false
-      assert.deepEqual(guideProblems(dir, hasI18n), [])
+      assert.deepEqual(guideProblems({ dir, hasI18n }), [])
       checkScriptFiles({ dir, tree, hasI18n })
       checkMessages({ dir, tree, hasI18n })
       const files = readdirSync(dir)

@@ -72,7 +72,7 @@ async function checkTitleMessages({
         assert.equal(variants.length, 1)
         const nodes = variants[0]?.pattern
         assert.equal(nodes?.length, 1)
-        const node = nodes?.[0]
+        const [node] = nodes
         assert.ok(node?.type === 'text')
         const decoded = node.value
         if (key === 'site_imageAlt') {

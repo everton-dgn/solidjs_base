@@ -3,23 +3,17 @@ import type { FileEdits, TextEdit } from './profile-edits.ts'
 const pages = 'src/tests/pages'
 const site = 'src/constants/site/i18n'
 const routes = 'src/routes/(base)'
-const pt: TextEdit = [/Selecionar tema/gu, 'Selecionar idioma']
-const es: TextEdit = [/Seleccionar tema/gu, 'Seleccionar idioma']
-const en: TextEdit = [/Select theme/gu, 'Select language']
 const englishSite: TextEdit = [/ and light and dark themes/gu, '']
 const portugueseSite: TextEdit = [/ e temas claro e escuro/gu, '']
 const languageMenu: TextEdit = [/The theme menu/u, 'The language menu']
 const hydrationCheck: TextEdit = [
-  /await expect\(\s*page\.getByRole\('button', \{ name: '[^']+' \}\)\s*\)\.toBeEnabled\(\)/gu,
+  /await expect\(\s*page\.getByRole\('button', \{\s*name: testLanguages\.labels\(testLanguages\.\w+\)\.theme\s*\}\)\s*\)\.toBeEnabled\(\)/gu,
   "await expect(page.locator('html')).toHaveAttribute('data-hydration-ended', '')"
 ]
 const unhydrated: TextEdit = [
-  /await expect\(\s*page\.getByRole\('button', \{ name: [^}]+ \}\)\s*\)\.toBeDisabled\(\)/gu,
+  /await expect\(\s*page\.getByRole\('button', \{\s*name: [^}]+\s*\}\)\s*\)\.toBeDisabled\(\)/gu,
   "await expect(page.locator('html')).not.toHaveAttribute('data-hydration-ended')"
 ]
-function homeDescription(sentence: string): TextEdit {
-  return [/(?<end>\{language\}\.)(?: [^"\n]+)"/u, `$<end> ${sentence}"`]
-}
 export const themeEdits: FileEdits = {
   [`${pages}/UiKit/UiKit.e2e.test.ts`]: [
     [/narrow dark viewport/gu, 'narrow viewport'],
@@ -64,21 +58,6 @@ export const themeEdits: FileEdits = {
   [`${site}/en.json`]: [englishSite],
   [`${site}/pt.json`]: [portugueseSite],
   [`${site}/es.json`]: [[/ y temas claro y oscuro/u, '']],
-  [`${routes}/(home)/i18n/en.json`]: [
-    homeDescription(
-      'Use the language menu to read this page in another language. Each translation has its own address, so you can bookmark a page or share a direct link to the version you are reading.'
-    )
-  ],
-  [`${routes}/(home)/i18n/es.json`]: [
-    homeDescription(
-      'Usa el menú de idiomas para leer esta página en otro idioma. Cada traducción tiene su propia dirección, así que puedes guardar la página o compartir un enlace directo a la versión que estás leyendo.'
-    )
-  ],
-  [`${routes}/(home)/i18n/pt.json`]: [
-    homeDescription(
-      'Use o menu de idiomas para ler esta página em outro idioma. Cada tradução tem seu próprio endereço, que você pode salvar nos favoritos ou compartilhar para que outra pessoa leia a mesma versão.'
-    )
-  ],
   [`${routes}/about/i18n/en.json`]: [[/, themes and/u, ' and']],
   [`${routes}/about/i18n/es.json`]: [[/, temas y/u, ' y']],
   [`${routes}/about/i18n/pt.json`]: [[/, temas e/u, ' e']],
@@ -94,15 +73,6 @@ export const themeEdits: FileEdits = {
     [/idioma e tema/u, 'idioma'],
     [/o idioma e a preferência de tema/u, 'o idioma']
   ],
-  [`${pages}/SeoIndexes/SeoIndexes.e2e.test.ts`]: [englishSite],
-  [`${pages}/Home/Home.seo.e2e.test.ts`]: [portugueseSite],
-  [`${pages}/I18n/I18n.hydration.e2e.test.ts`]: [
-    pt,
-    es,
-    [/theme:/gu, 'selector:'],
-    [/language\.theme/gu, 'language.selector']
-  ],
-  [`${pages}/I18n/I18n.production.e2e.test.ts`]: [es],
   [`${pages}/I18n/I18n.redirect.e2e.test.ts`]: [hydrationCheck],
   [`${pages}/I18n/I18n.e2e.test.ts`]: [hydrationCheck],
   [`${pages}/StructuredData/StructuredData.security.e2e.test.ts`]: [
@@ -111,10 +81,8 @@ export const themeEdits: FileEdits = {
   [`${pages}/StructuredData/StructuredData.streaming.e2e.test.ts`]: [
     unhydrated
   ],
-  [`${pages}/NotFound/NotFound.seo.e2e.test.ts`]: [en, languageMenu],
-  [`${pages}/Hydration/Hydration.parser.e2e.test.ts`]: [en],
-  [`${pages}/Hydration/Hydration.streaming.e2e.test.ts`]: [en],
-  [`${pages}/Hydration/Hydration.preload.e2e.test.ts`]: [unhydrated, en],
+  [`${pages}/NotFound/NotFound.seo.e2e.test.ts`]: [languageMenu],
+  [`${pages}/Hydration/Hydration.preload.e2e.test.ts`]: [unhydrated],
   [`${pages}/Hydration/Hydration.e2e.test.ts`]: [
     [
       /await expect\(trigger\)\.toBeDisabled\(\)/u,
@@ -124,11 +92,9 @@ export const themeEdits: FileEdits = {
       /await expect\(page.getByRole\('button', \{ name: THEME_BUTTON \}\)\)\.toBeDisabled\(\)/u,
       "await page.getByRole('button', { name: LANGUAGE_BUTTON }).click()\n  await expect(page.getByRole('menu')).toHaveCount(0)"
     ],
-    en,
     [/THEME_BUTTON/gu, 'LANGUAGE_BUTTON']
   ],
   [`${pages}/Home/Home.layout.e2e.test.ts`]: [
-    pt,
     [
       /in the (?<scheme>\$\{colorScheme\}) theme/u,
       'with a $<scheme> system preference'
@@ -136,7 +102,6 @@ export const themeEdits: FileEdits = {
     [/toHaveClass\(colorScheme\)/u, "toHaveCSS('color-scheme', 'light')"]
   ],
   [`${pages}/Home/Home.csp.production.e2e.test.ts`]: [
-    pt,
     languageMenu,
     [/Inline theme script, HydrationScript/u, 'HydrationScript'],
     [/DOCUMENT_SCRIPTS = 3/u, 'DOCUMENT_SCRIPTS = 2'],
@@ -144,7 +109,6 @@ export const themeEdits: FileEdits = {
     [/\n {2}\/\/ Without 'unsafe-inline'[\s\S]*$/u, '\n})\n']
   ],
   [`${pages}/AgentReadiness/AgentReadiness.content.production.e2e.test.ts`]: [
-    [/^ *(?:theme|dark): '[^']+',\n/gmu, ''],
     [/keeps theme and locale/u, 'keeps the locale'],
     [
       /^ *await page.getByRole\('button', \{ name: language.theme \}\).click\(\)\n *await page\n *\.getByRole\('menuitemradio',[\s\S]*?\.click\(\)\n/mu,

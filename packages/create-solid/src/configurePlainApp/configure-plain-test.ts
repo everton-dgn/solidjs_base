@@ -8,8 +8,12 @@ export function configurePlainTest({
   text: source
 }: TestFile): string {
   let text = source
-  const edit = (pattern: RegExp, replacement: string) => {
+  const edit = (pattern: RegExp | string, replacement: string) => {
     text = editTemplate({ file, text, pattern, replacement })
+  }
+  if (file.endsWith('/UiKit.e2e.test.ts')) {
+    edit(/name: 'Localized page'/u, "name: 'Page', exact: true")
+    edit(/name: 'Alternate language page'/u, "name: 'Page link'")
   }
   if (file.endsWith('configureServerErrors.messages.node.test.ts')) {
     edit(
@@ -25,12 +29,8 @@ export function configurePlainTest({
   })`
     )
     edit(/\n {2}\/\/ The error hook[\s\S]*?\n {2}\}\)\n/u, '\n')
-    text = text
-      .replace(
-        'outside the Paraglide request context',
-        'in the configured language'
-      )
-      .replace('message(baseLocale)', 'm.configureServerErrors_message()')
+    edit('outside the Paraglide request context', 'in the configured language')
+    edit('message(baseLocale)', 'm.configureServerErrors_message()')
   }
   if (file.endsWith('/llms.txt.node.test.ts')) {
     edit(
@@ -53,35 +53,17 @@ export function configurePlainTest({
   }
   if (file.endsWith('/middleware.node.test.ts')) {
     edit(
-      /const PUBLIC_MESSAGE_PT = [^\n]+(?:\nconst PUBLIC_MESSAGE_EN = [^\n]+)?/u,
-      'const PUBLIC_MESSAGE = m.configureServerErrors_message()'
-    )
-    text = text.replaceAll(/PUBLIC_MESSAGE_(?:PT|EN)/gu, 'PUBLIC_MESSAGE')
-    text = `import { m } from '@/constants/messages/index.ts'\n${text}`
-    text = text.replaceAll(
-      "expect(response.headers.get('content-language')).toBe('en')",
-      "expect(response.headers.has('content-language')).toBe(false)"
-    )
-    edit(
       /^vi.mock\(import\('@evertondgn\/solid-runtime\/i18n\/locale'\)[^\n]+\n/mu,
       ''
     )
     if (hasSeo) {
       edit(/^const ERROR_PAGE_LOG =\n[^\n]+\n/mu, '')
       edit(/ {8}'content-language': locale,\n/u, '')
-      edit(/getLocale, shouldRedirect/u, 'baseLocale, getLocale')
+      edit(/getLocale, shouldRedirect/u, 'getLocale')
 
       edit(/ {2}it\('contains a localization failure[\s\S]*?\n {2}\}\)\n/u, '')
       edit(/ {2}\/\/ Without a locale prefix[\s\S]*?\n {2}\}\)\n/u, '')
-      edit(/it\.each\(\['pt', 'en', 'es'\]\)/u, 'it.each([baseLocale])')
     }
-    text = text
-      .replaceAll('/pt/pagina', '/pagina')
-      .replaceAll('/pt/about', '/about')
-      .replaceAll('/en/about', '/about')
-      .replace("path = '/pt'", "path = '/'")
-      .replaceAll("toBe('en')", 'toBe(baseLocale)')
-      .replaceAll(`\`/\${locale}/about\``, "'/about'")
   }
   if (file.endsWith('/markdownContent.protocol.node.test.ts')) {
     edit(/ {8}'content-language': alternate,\n/u, '')
@@ -94,7 +76,7 @@ export function configurePlainTest({
       /const initial = [\s\S]*?(?= {6}const response =)/u,
       "const localized = request({ path: '/', method })\n"
     )
-    text = text.replace(
+    edit(
       'localizes %s before returning an unsupported representation',
       'returns an unsupported representation for %s'
     )
@@ -103,12 +85,13 @@ export function configurePlainTest({
     file.endsWith('SiteContent.dom.test.tsx') ||
     file.endsWith('ErrorFallback.dom.test.tsx')
   ) {
-    text = text
-      .replace(/^import \{ baseLocale \}[^\n]+\n/mu, '')
-      .replaceAll(
-        /`\/\$\{baseLocale\}(?<suffix>[^`]*)`/gu,
-        (_, suffix: string) => `'${suffix || '/'}'`
-      )
+    edit(/^import \{ baseLocale \}[^\n]+\n/mu, '')
+    edit(/`\/\$\{baseLocale\}`/u, "'/'")
+    if (file.endsWith('SiteContent.dom.test.tsx')) {
+      for (const route of ['about', 'contact', 'privacy']) {
+        edit(`\`/\${baseLocale}/${route}\``, `'/${route}'`)
+      }
+    }
   }
   if (file.endsWith('/requestJson.node.test.ts')) {
     edit(/\/\/ Without the paraglide locale context[^\n]+\n/u, '')

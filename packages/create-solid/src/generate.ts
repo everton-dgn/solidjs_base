@@ -28,31 +28,26 @@ import {
 import { configureClient } from './configureClient/index.ts'
 import { configureFileHostGuides } from './configureFileHostGuides/index.ts'
 import { configureFonts } from './configureFonts/index.ts'
-import { configureBrowserPaths } from './configureLocales/browser-paths.ts'
 import { readLocaleSettings } from './configureLocales/catalogs.ts'
-import { configureLocaleCopy } from './configureLocales/copy.ts'
-import { configureLocaleGuides } from './configureLocales/guides.ts'
+import { configureBrowserPaths } from './configureLocales/configure-browser-paths.ts'
+import { configureLocaleCopy } from './configureLocales/configure-locale-copy.ts'
+import { configureLocaleGuides } from './configureLocales/configure-locale-guides.ts'
 import { configureLocales } from './configureLocales/index.ts'
-import {
-  configureMiddlewareTests,
-  middlewareTest
-} from './configureLocales/middleware-tests.ts'
-import { configureServerFixtures } from './configureLocales/server-fixtures.ts'
 import { configureSingleLocaleTests } from './configureLocales/single-tests.ts'
 import { configureLocaleUi } from './configureLocaleUi/index.ts'
 import { configurePageTitles } from './configurePageTitles/index.ts'
 import { configurePlainApp } from './configurePlainApp/index.ts'
-import { removeCatalogTasks } from './configurePlainApp/package.ts'
+import { removeCatalogTasks } from './configurePlainApp/remove-catalog-tasks.ts'
 import { configureSeo } from './configureSeo/index.ts'
 import { configureSiteIdentity } from './configureSiteIdentity/index.ts'
 import { configureStandaloneGuides } from './configureStandaloneGuides/index.ts'
 import { configureStatic } from './configureStatic/index.ts'
 import { editTemplate } from './edit-template.ts'
 import { installProfile } from './installProfile/index.ts'
-import { resolveLocaleOptions } from './locale-options.ts'
 import { applyPreparedGuides } from './prepared-guides.ts'
 import { applyPreparedSource } from './prepared-source.ts'
 import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
+import { resolveLocaleOptions } from './resolve-locale-options.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
 import type {
@@ -242,28 +237,69 @@ function removeEmptyFolders(folder: string): void {
     if (readdirSync(child).length === 0) rmdirSync(child)
   }
 }
-function configureTranslationProfile(
-  context: StagedContext,
+type TranslationOptions = {
+  context: StagedContext
   prepare: typeof applyPreparedSource
-): void {
+}
+function configureTranslationProfile({
+  context,
+  prepare
+}: TranslationOptions): void {
   const { profile, stage, pkg } = context
   if (profile.hasI18n === false) {
     removeCatalogTasks(pkg)
     configurePlainApp(context)
-    prepare(stage)
-  } else if ((profile.mode ?? 'server') === 'server') {
-    configureMiddlewareTests(context)
-    prepare(stage, [
-      path.join(stage, middlewareTest),
-      ...configureServerFixtures(context),
-      ...configureBrowserPaths(context),
-      ...configureSingleLocaleTests(context)
-    ])
+    prepare({ stage })
+    return
+  }
+  if ((profile.mode ?? 'server') === 'server') {
+    prepare({
+      stage,
+      files: [
+        ...configureBrowserPaths(context),
+        ...configureSingleLocaleTests(context)
+      ]
+    })
   } else {
-    prepare(stage, configureSingleLocaleTests(context))
+    prepare({ stage, files: configureSingleLocaleTests(context) })
   }
 }
 
+type CatalogNotice = Pick<StagedContext, 'stage' | 'write'> & {
+  seeded: string[]
+}
+function recordSeededCatalogs({ stage, write, seeded }: CatalogNotice): void {
+  if (seeded.length > 0) {
+    const file = 'README.md'
+    const text = readFileSync(path.join(stage, file), 'utf8')
+    const pattern = '## Before publishing\n\n'
+    const lines = seeded.map(
+      tag => `- Translate the seeded catalog for \`${tag}\`.`
+    )
+    write({
+      file,
+      content: editTemplate({
+        file,
+        text,
+        pattern,
+        replacement: () => `${pattern}${lines.join('\n')}\n`
+      })
+    })
+  }
+}
+
+type ReportCatalogs = { profile: Profile; seeded: string[] }
+function reportSeededCatalogs({ profile, seeded }: ReportCatalogs): string[] {
+  const notices = seeded.map(tag => `Translate the seeded messages for ${tag}.`)
+  if (notices.length > 0) profile.onSeededCatalogs?.(notices)
+  return profile.onSeededCatalogs ? [] : notices
+}
+
+type Preparation = {
+  guides: (stage: string) => void
+  source: typeof applyPreparedSource
+}
+type GenerationOptions = { input: Profile; prepare: Preparation }
 export function resolveGroup(
   { settings }: GenerationContext,
   group: Versions
@@ -328,13 +364,10 @@ export function rewriteIdentity({ pkg, profile }: GenerationContext): void {
       .slice(0, maxPackageNameLength) || 'solid-app'
   pkg.description = 'SolidJS application built with Vite+.'
 }
-export function generateSource(
-  input: Profile,
-  prepare: {
-    guides: (stage: string) => void
-    source: (stage: string, files?: string[]) => void
-  }
-): string[] {
+export function generateSource({
+  input,
+  prepare
+}: GenerationOptions): string[] {
   const profile = resolveProfile(input)
   const title = resolveAppTitle(profile)
   if (profile.hasSeo === false && profile.siteUrl !== undefined) {
@@ -343,6 +376,9 @@ export function generateSource(
   const template = path.resolve(import.meta.dirname, '../template')
   const defaults = readLocaleSettings(template)
   const languages = resolveLocaleOptions({ options: profile, defaults })
+  const seeded = languages.locales.filter(
+    tag => !defaults.locales.includes(tag) && profile.hasI18n !== false
+  )
   const settingsFile = new URL('../dist/settings.json', import.meta.url)
   const settings = parse(
     settingsSchema,
@@ -424,9 +460,10 @@ export function generateSource(
     configureLocaleCopy(context)
     configureLocaleGuides(context)
     prepare.guides(stage)
+    recordSeededCatalogs({ stage, write, seeded })
     configureAppTitle({ context, title })
     configurePageTitles({ context, title })
-    configureTranslationProfile(context, prepare.source)
+    configureTranslationProfile({ context, prepare: prepare.source })
     write({
       file: 'package.json',
       content: `${JSON.stringify(pkg, null, jsonIndent)}\n`
@@ -444,6 +481,7 @@ export function generateSource(
     }
     throw error
   }
+  const notices = reportSeededCatalogs({ profile, seeded })
   if (profile.shouldInitGit) {
     try {
       execFileSync('git', ['init'], { cwd: profile.dir, stdio: 'inherit' })
@@ -455,19 +493,16 @@ export function generateSource(
     }
   }
   installProfile(profile)
-  const seeded = languages.locales.filter(
-    tag => !defaults.locales.includes(tag)
-  )
-  return [
-    ...seeded.map(tag => `Translate the seeded messages for ${tag}.`),
-    ...nextSteps(profile)
-  ]
+  return [...notices, ...nextSteps(profile)]
 }
 
 export function generate(input: Profile): string[] {
-  return generateSource(input, {
-    guides: applyPreparedGuides,
-    source: applyPreparedSource
+  return generateSource({
+    input,
+    prepare: {
+      guides: applyPreparedGuides,
+      source: applyPreparedSource
+    }
   })
 }
 

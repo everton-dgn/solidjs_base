@@ -68,11 +68,8 @@ export const globalEditCounts: Readonly<
     '/Selecionar tema/gu': 3,
     '/theme:/gu': 2
   },
-  'src/tests/pages/I18n/I18n.production.e2e.test.ts': {
-    '/^const (?:REQUESTS|ALTERNATE_LINKS) = \\d+\\n/gmu': 2
-  },
   'src/tests/pages/I18n/I18n.redirect.e2e.test.ts': {
-    "/await expect\\(\\s*page\\.getByRole\\('button', \\{ name: '[^']+' \\}\\)\\s*\\)\\.toBeEnabled\\(\\)/gu": 5
+    "/await expect\\(\\s*page\\.getByRole\\('button', \\{\\s*name: testLanguages\\.labels\\(testLanguages\\.\\w+\\)\\.theme\\s*\\}\\)\\s*\\)\\.toBeEnabled\\(\\)/gu": 5
   },
   'src/tests/pages/UiKit/UiKit.e2e.test.ts': {
     '/narrow dark viewport/gu': 2

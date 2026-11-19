@@ -118,7 +118,10 @@ export function removeSeoTests({ edit, isServer }: SeoTestEdits): void {
       [/^import \{ (?:MAX_HTML_BYTES|isPublicError|Router) \}[^\n]*\n/gmu, ''],
       [/^import \{ getLocale, shouldRedirect \}[^\n]*\n/mu, ''],
       ['middleware, { createMiddleware }', 'middleware'],
-      [/^const PUBLIC_MESSAGE_EN[^\n]*\n/mu, ''],
+      [
+        /^const baseMessage = m\.configureServerErrors_message\([\s\S]*?^\)\n/mu,
+        ''
+      ],
       [/^const ERROR_PAGE_LOG =\n[^\n]+\n/mu, ''],
       [/^\/\/ The inner chain[^\n]+\n[^\n]+\n/mu, ''],
       [/, like sitemap.xml and\n\/\/ robots.txt,/u, ',']
@@ -130,7 +133,11 @@ export function removeSeoTests({ edit, isServer }: SeoTestEdits): void {
       `${apply(text, [
         [/^test\('isolates concurrent HTML and Markdown[\s\S]*/mu, ''],
         [/^import \{ readSiteOrigin \}[^\n]+\n/mu, ''],
-        [/^const (?:REQUESTS|ALTERNATE_LINKS) = \d+\n/gmu, ''],
+        [/^const REQUESTS = \d+\n/mu, ''],
+        [
+          /^const ALTERNATE_LINKS = testLanguages\.locales\.length \+ 1\n/mu,
+          ''
+        ],
         [
           /^ *await expect\(page\.locator\('link\[rel="canonical"[\s\S]*?(?=^ *const header)/mu,
           ''

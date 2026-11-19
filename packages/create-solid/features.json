@@ -309,6 +309,9 @@
     "src/tests/helpers/parseStructuredData/index.ts": "seo",
     "src/tests/helpers/readLog/index.ts": "core",
     "src/tests/helpers/readSiteOrigin/index.ts": "seo",
+    "src/tests/helpers/scenarioLocales/index.ts": "core",
+    "src/tests/helpers/testLocale/index.ts": "core",
+    "src/tests/helpers/themeLabels/index.ts": "theme",
     "src/tests/helpers/watchCspViolations/index.ts": "core",
     "src/tests/helpers/watchEntryLoad/index.ts": "core",
     "src/tests/pages/AgentReadiness/AgentReadiness.build.production.e2e.test.ts": "publication",
@@ -371,6 +374,8 @@
     "vite.config.ts": "core"
   },
   "forbiddenTerms": {
+    "singleLocale": ["LocaleSwitcher"],
+    "i18n": ["@paraglide", "paraglideMiddleware", "@inlang", "i18n:generate"],
     "identity": [
       "Éverton Toffanetto",
       "Everton Toffanetto",
@@ -546,6 +551,9 @@
     "src/tests/pages/Home/Home.layout.e2e.test.ts",
     "src/tests/pages/Home/Home.production.e2e.test.ts",
     "src/tests/pages/Home/Home.seo.e2e.test.ts",
+    "src/tests/helpers/scenarioLocales/index.ts",
+    "src/tests/helpers/testLocale/index.ts",
+    "src/tests/helpers/themeLabels/index.ts",
     "src/tests/pages/Home/Home.theme.e2e.test.ts",
     "src/tests/pages/Home/Home.themeCss.e2e.test.ts",
     "src/tests/pages/Home/Home.themeStorage.e2e.test.ts",

@@ -1,3 +1,4 @@
+import { editTemplate } from '../edit-template.ts'
 import type { GenerationContext } from '../types.ts'
 
 export function removeCatalogTasks(pkg: GenerationContext['pkg']): void {
@@ -6,7 +7,14 @@ export function removeCatalogTasks(pkg: GenerationContext['pkg']): void {
   }
   delete pkg.scripts['i18n:generate']
   for (const [name, command] of Object.entries(pkg.scripts)) {
-    pkg.scripts[name] = command.replace(/^vp run i18n:generate && /u, '')
+    if (command.includes('i18n:generate')) {
+      pkg.scripts[name] = editTemplate({
+        file: `package.json scripts.${name}`,
+        text: command,
+        pattern: /^vp run i18n:generate && /u,
+        replacement: ''
+      })
+    }
   }
   for (const dependencies of [pkg.dependencies, pkg.devDependencies]) {
     for (const name of Object.keys(dependencies)) {

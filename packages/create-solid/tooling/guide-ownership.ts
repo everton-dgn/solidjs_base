@@ -26,12 +26,20 @@ function signature(value: string): string {
 function profileKey(profile: Profile): string {
   return JSON.stringify([
     profile.pm,
+    profile.locales,
+    profile.baseLocale,
     profile.mode ?? 'server',
     ...switches.map(([key]) => profile[key] !== false)
   ])
 }
 
 function parentProfile(profile: Profile): Transition | undefined {
+  if (profile.locales || profile.baseLocale) {
+    const parent = { ...profile }
+    delete parent.locales
+    delete parent.baseLocale
+    return { owner: 'configureLocaleUi', parent }
+  }
   for (const [key, owner] of switches) {
     if (
       profile[key] !== false ||

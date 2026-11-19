@@ -48,6 +48,6 @@ console.log(JSON.stringify([Object.keys(m).toSorted(), m.heading(), m.welcome({ 
   assert.deepEqual(JSON.parse(output), [
     ['heading', 'welcome'],
     String.raw`Título \ {x}`,
-    'Olá, Lia! Lia, entre em Casa. ${name}'
+    `Olá, Lia! Lia, entre em Casa. \${name}`
   ])
 })

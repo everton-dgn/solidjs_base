@@ -9,7 +9,6 @@ import {
 } from '../configureLocales/catalogs.ts'
 import { editTemplate } from '../edit-template.ts'
 import { escapeMessageText } from '../escape-message-text.ts'
-import { distribution } from '../paths.ts'
 import type { StagedContext } from '../types.ts'
 
 const indent = 2
@@ -100,50 +99,6 @@ export function configurePageTitles({ context, title }: TitleOptions): void {
       change: [
         'expect(document.title).toBe(m.errorFallback_runtimeTitle())',
         'expect(document.title).toBe(m.errorFallback_runtimePageTitle())'
-      ]
-    })
-  }
-  if ((profile.mode ?? 'server') !== 'server') return
-  edit({
-    file: 'src/tests/pages/I18n/I18n.e2e.test.ts',
-    change: [
-      'toHaveTitle(messages.errorFallback_runtimeTitle)',
-      'toHaveTitle(messages.errorFallback_runtimePageTitle)'
-    ]
-  })
-  edit({
-    file: 'src/tests/pages/I18n/I18n.production.e2e.test.ts',
-    change: [
-      'toHaveTitle(language.missing)',
-      `toHaveTitle(\`\${language.missing} | \${SITE.title}\`)`
-    ]
-  })
-  for (const file of [
-    'Home/Home.production.e2e.test.ts',
-    'I18n/I18n.urlPattern.production.e2e.test.ts',
-    ...(profile.hasSeo === false
-      ? []
-      : ['Home/Home.seo.e2e.test.ts', 'NotFound/NotFound.seo.e2e.test.ts'])
-  ]) {
-    const catalogName = file.startsWith('NotFound') ? 'en' : 'pt'
-    const catalogPath = new URL(
-      `../template/src/routes/(base)/[...404]/i18n/${catalogName}.json`,
-      distribution
-    )
-    const catalogSource = readFileSync(catalogPath, 'utf8')
-    const reference = parse(
-      record(string(), string()),
-      JSON.parse(catalogSource)
-    )
-    const missing = reference.notFound_title
-    if (!missing) {
-      throw new Error('Missing reference title for the not-found page')
-    }
-    edit({
-      file: `src/tests/pages/${file}`,
-      change: [
-        `toHaveTitle('${missing}')`,
-        `toHaveTitle(\`${missing} | \${SITE.title}\`)`
       ]
     })
   }

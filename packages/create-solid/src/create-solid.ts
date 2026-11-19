@@ -101,6 +101,8 @@ function run(): void {
       : { siteUrl: values['site-url'] }),
     pm: values.pm,
     dir: path.resolve(positionals[0]),
+    onSeededCatalogs: (messages: string[]) =>
+      process.stdout.write(`${messages.join('\n')}\n`),
     shouldInitGit: !values['no-git'],
     shouldInstall: !values['no-install']
   } as const

@@ -4,17 +4,16 @@ export const staticEdits: FileEdits = {
   'src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts':
     [[/ORIGIN\}\/\$\{alternate\}/u, `ORIGIN}/\${baseLocale}`]],
   'src/tests/setup/browser/__tests__/browser.browser.test.ts': [
-    [/baseLocale, getLocale, setLocale/u, 'baseLocale, getLocale, locales'],
+    [/,\n {2}setLocale/u, ''],
     [
-      /beforeAll\(\(\) => setLocale\('pt', \{ reload: false \}\)\)/u,
-      "const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale\n  const original = location.href\n  afterEach(() => history.replaceState(null, '', original))"
+      /beforeAll\(\(\) => setLocale\(alternate, \{ reload: false \}\)\)/u,
+      "const original = location.href\n  afterEach(() => history.replaceState(null, '', original))"
     ],
     [/ {2}afterAll\([^\n]+\n\n/u, ''],
     [
-      /void setLocale\('es', \{ reload: false \}\)/u,
+      /void setLocale\(alternate, \{ reload: false \}\)/u,
       `history.replaceState(null, '', \`/\${alternate}\`)`
     ],
-    [/toBe\('es'\)/u, 'toBe(alternate)'],
     [
       /starts in the base locale even with an earlier preference/u,
       'reads the locale from the current URL'

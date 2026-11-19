@@ -16,7 +16,7 @@ import {
   catalogFolders,
   readLocaleSettings
 } from '../src/configureLocales/catalogs.ts'
-import { resolveLocaleOptions } from '../src/locale-options.ts'
+import { resolveLocaleOptions } from '../src/resolve-locale-options.ts'
 import type { Profile } from '../src/types.ts'
 
 const usageExitCode = 2
@@ -115,40 +115,51 @@ void it('generates only the requested catalogs and identifies every seed', conte
       '--mode',
       'static',
       '--locales',
-      'pt-br,fr,ja,en-x-custom',
+      'pt-br,fr,ja,en-x-custom,pt,es',
       '--base-locale',
       'ja',
       '--title',
       'Loja {x}',
-      '--no-git',
       '--no-install'
     ],
-    { encoding: 'utf8' }
+    { encoding: 'utf8', env: { ...process.env, LC_ALL: 'C' } }
   )
   assert.equal(result.status, 0, result.stderr)
-  const locales = ['pt-BR', 'fr', 'ja', 'en-x-custom']
+  const gitOutput = result.stdout.indexOf('Initialized empty Git repository')
+  assert.ok(gitOutput !== -1, result.stdout)
+  const locales = ['pt-BR', 'fr', 'ja', 'en-x-custom', 'pt', 'es']
   assert.deepEqual(readLocaleSettings(dir), { locales, baseLocale: 'ja' })
-  for (const locale of locales) {
+  for (const locale of locales.filter(tag => !['pt', 'es'].includes(tag))) {
     assert.ok(
-      result.stdout.includes(`Translate the seeded messages for ${locale}.`)
+      readFileSync(path.join(dir, 'README.md'), 'utf8')
+        .split('\n')
+        .includes(`- Translate the seeded catalog for \`${locale}\`.`)
     )
+    const notice = result.stdout.indexOf(
+      `Translate the seeded messages for ${locale}.`
+    )
+    assert.ok(notice !== -1 && notice < gitOutput, result.stdout)
   }
   const namesFile = path.join(
     dir,
     'src/components/molecules/LocaleSwitcher/names.json'
   )
   const names: unknown = JSON.parse(readFileSync(namesFile, 'utf8'))
-  assert.deepEqual(
-    names,
-    Object.fromEntries(
-      locales.map(locale => [
-        locale,
-        locale === 'en-x-custom'
-          ? locale
-          : new Intl.DisplayNames([locale], { type: 'language' }).of(locale)
-      ])
-    )
+  assert.deepEqual(names, {
+    'pt-BR': 'Português (Brasil)',
+    fr: 'Français',
+    ja: '日本語',
+    'en-x-custom': 'en-x-custom',
+    pt: 'Português',
+    es: 'Español'
+  })
+  const overrides = readFileSync(
+    path.join(dir, 'src/i18n/localeTagOverrides/index.ts'),
+    'utf8'
   )
+  assert.match(overrides, /pt: 'pt-BR'/u)
+  assert.match(overrides, /es: 'es-ES'/u)
+  assert.doesNotMatch(overrides, /en: 'en-US'/u)
   const folders = catalogFolders(dir)
   assert.ok(folders.length > 0)
   for (const folder of folders) {

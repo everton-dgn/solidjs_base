@@ -50,14 +50,22 @@ function messageFunction({ name, pattern }: MessageSource): string {
             .slice(1, -1)
             .replaceAll(String.raw`\"`, '"')
             .replaceAll("'", String.raw`\'`)}'`
-    return `function ${name}(): string {\n  return ${text}\n}`
+    const args = '_params?: EmptyParams, _options?: MessageOptions'
+    const signature = `function ${name}(${args}): string {`
+    const start =
+      signature.length <= lineWidth
+        ? signature
+        : `function ${name}(\n  _params?: EmptyParams,\n  _options?: MessageOptions\n): string {`
+    return `${start}\n  return ${text}\n}`
   }
   const fields = [...params].map(key => `${key}: string`)
-  const signature =
-    fields.length > 1
-      ? `params: {\n  ${fields.join('\n  ')}\n}`
-      : `params: { ${fields[0]} }`
-  return `function ${name}(${signature}): string {\n  return \`${expression}\`\n}`
+  const paramsType = `{ ${fields.join('; ')} }`
+  const signature = `function ${name}(params: ${paramsType}, _options?: MessageOptions): string {`
+  const start =
+    signature.length <= lineWidth
+      ? signature
+      : `function ${name}(\n  params: ${paramsType},\n  _options?: MessageOptions\n): string {`
+  return `${start}\n  return \`${expression}\`\n}`
 }
 
 export function configureMessages({
@@ -86,6 +94,6 @@ export function configureMessages({
       : `{ ${names.join(', ')} }`
   write({
     file,
-    content: `import type { getLocale } from '@evertondgn/solid-runtime/i18n/locale'\n\n${methods.join('\n\n')}\n\nexport type Locale = ReturnType<typeof getLocale>\n\nexport const m = ${exported}\n`
+    content: `import type { getLocale } from '@evertondgn/solid-runtime/i18n/locale'\n\ntype EmptyParams = Record<string, never>\ntype MessageOptions = { locale?: string }\n\n${methods.join('\n\n')}\n\nexport type Locale = ReturnType<typeof getLocale>\n\nexport const m = ${exported}\n`
   })
 }

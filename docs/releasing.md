@@ -18,9 +18,9 @@ versions from Conventional Commits. It runs only in CI, from
    the new version and the `CHANGELOG.md` of each.
 4. Merging that pull request creates one tag for each package, such as
    `solid-tooling@0.7.0` and `solid-runtime@0.7.0`, and their GitHub Releases.
-   The workflow validates published packages once and installs all eight
-   generated apps before it packs each package and publishes it once the
-   packages of this repository it pins are on npm
+   The workflow validates published packages once and installs all the generated
+   apps before it packs each package and publishes it once the packages of this
+   repository it pins are on npm
    ([The order of the publication](#the-order-of-the-publication)).
 
 The workflow runs release-please in two jobs. `Tags and GitHub Releases` uses
@@ -691,9 +691,12 @@ the repository does not reach it. What to do depends on where the cause is:
   then open the failed run on GitHub and choose "Re-run failed jobs". The
   publish job runs again with the output of the `Tags and GitHub Releases` job
   from the first attempt. GitHub allows this for 30 days.
-- If verification or installation fails before publication, re-run all jobs so
-  every installed scenario has a result in the same attempt. After a partial
-  publication, re-run only the failed publication leg. Re-running its
+- Before publication, never choose "Re-run all jobs". The tag already exists, so
+  release-please skips publication. Choose "Re-run failed jobs" or re-run the
+  verification or installation job that failed or was cancelled. If
+  `Check release jobs` still lacks a result, follow
+  [Publishing a failed version again](#publishing-a-failed-version-again). After
+  a partial publication, re-run only the failed publication leg. Re-running its
   prerequisites also restarts downstream publish jobs.
 - Outside the package folder, such as a workflow step or the workspace
   configuration that validation uses: open the fix as a pull request, keep it

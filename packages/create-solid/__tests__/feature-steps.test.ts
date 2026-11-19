@@ -181,3 +181,18 @@ void it('rejects guide text outside the prepared digests', t => {
     /Unprepared guide: README.md/u
   )
 })
+
+void it('rejects extra or missing global anchors in the theme conventions', () => {
+  const edit = {
+    file: 'template/AGENTS.md',
+    pattern: /\bTheme\b/gu,
+    replacement: 'Preference'
+  }
+  assert.equal(
+    editTemplate({ ...edit, text: 'Theme or Theme' }),
+    'Preference or Preference'
+  )
+  for (const text of ['Theme', 'Theme or Theme or Theme']) {
+    assert.throws(() => editTemplate({ ...edit, text }), /expected 2 matches/u)
+  }
+})

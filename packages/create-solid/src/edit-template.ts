@@ -1,3 +1,5 @@
+import { globalEditCounts } from './global-edit-counts.ts'
+
 type CatalogEdit = {
   file: string
   catalog: Record<string, string>
@@ -20,6 +22,20 @@ export function editTemplate({
   replacement,
   missing
 }: TextEdit): string {
+  if (pattern instanceof RegExp && pattern.global) {
+    const source = Object.keys(globalEditCounts).find(
+      key => file === key || file.endsWith(`/${key}`)
+    )
+    const expected = source
+      ? (globalEditCounts[source]?.[String(pattern)] ?? 1)
+      : 1
+    const count = [...text.matchAll(pattern)].length
+    if (count !== expected) {
+      throw new Error(
+        `Template edit in ${file}: expected ${expected} matches of ${pattern}, found ${count}`
+      )
+    }
+  }
   const hasMatch =
     typeof pattern === 'string'
       ? text.includes(pattern)

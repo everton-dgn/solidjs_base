@@ -174,11 +174,12 @@ void it('requires the Vite configuration during SEO removal', t => {
 })
 void it('rejects guide text outside the prepared digests', t => {
   const { stage, write } = fixture(t)
+  write({ file: 'AGENTS.md', content: 'Changed convention' })
   write({ file: 'docs/changed.md', content: 'Unexpected guide' })
   write({ file: 'README.md', content: 'Unexpected heading' })
   assert.throws(
     () => applyPreparedGuides(stage),
-    /Unprepared guide: README.md/u
+    /Unprepared guide: AGENTS.md/u
   )
 })
 

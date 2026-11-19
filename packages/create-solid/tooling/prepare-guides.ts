@@ -49,9 +49,13 @@ export function prepareGuides(): void {
       generateSource(
         { dir, ...profile, shouldInitGit: false, shouldInstall: false },
         stage => {
-          for (const file of guideFiles(stage)) {
+          for (const file of ['AGENTS.md', ...guideFiles(stage)]) {
             const content = readFileSync(path.join(stage, file), 'utf8')
             const digest = guideDigest(content)
+            if (file === 'AGENTS.md') {
+              prepared[digest] = content
+              continue
+            }
             if (seen.has(digest)) continue
             seen.set(digest, content)
             writeFileSync(path.join(inputs, `${digest}.md`), content)

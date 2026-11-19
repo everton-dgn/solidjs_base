@@ -27,7 +27,7 @@ export function applyPreparedGuides(stage: string): void {
     record(string(), string()),
     JSON.parse(readFileSync(source, 'utf8'))
   )
-  for (const file of guideFiles(stage)) {
+  for (const file of ['AGENTS.md', ...guideFiles(stage)]) {
     const target = path.join(stage, file)
     const content = readFileSync(target, 'utf8')
     const key = guideDigest(content)

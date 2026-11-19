@@ -26,6 +26,9 @@ function removeServerFiles(stage: string): void {
 function staticCatalogs(stage: string, theme?: boolean): void {
   const messages = {
     en: {
+      home_seoTitle: 'SolidJS Boilerplate | Prerendered web applications',
+      about_source:
+        'The repository includes installation instructions and guides to architecture and testing. You can use, modify, distribute and sell the code, including in commercial and closed-source projects.',
       home_features:
         'The application includes localized pages and UI components with automated tests.',
       home_description:
@@ -38,6 +41,9 @@ function staticCatalogs(stage: string, theme?: boolean): void {
         ' The application saves your display preference in local storage on this device.'
     },
     es: {
+      home_seoTitle: 'SolidJS Boilerplate | Aplicaciones web prerenderizadas',
+      about_source:
+        'El repositorio incluye instrucciones de instalación y guías de arquitectura y pruebas. Puedes usar, modificar, distribuir y vender el código, incluso en proyectos comerciales y de código cerrado.',
       home_features:
         'La aplicación incluye páginas traducidas y componentes de interfaz con pruebas automatizadas.',
       home_description:
@@ -50,6 +56,9 @@ function staticCatalogs(stage: string, theme?: boolean): void {
         ' La aplicación guarda tu preferencia de apariencia en el almacenamiento local de este dispositivo.'
     },
     pt: {
+      home_seoTitle: 'SolidJS Boilerplate | Aplicações web pré-renderizadas',
+      about_source:
+        'O repositório inclui instruções de instalação e guias de arquitetura e testes. Você pode usar, modificar, distribuir e vender o código, inclusive em projetos comerciais e de código fechado.',
       home_features:
         'A aplicação inclui páginas traduzidas e componentes de interface com testes automatizados.',
       home_description:
@@ -65,10 +74,14 @@ function staticCatalogs(stage: string, theme?: boolean): void {
   for (const [locale, text] of Object.entries(messages)) {
     for (const [route, update] of Object.entries({
       '(home)': {
+        home_seoTitle: text.home_seoTitle,
         home_features: text.home_features,
         home_description: text.home_description
       },
-      about: { about_purpose: text.about_purpose },
+      about: {
+        about_purpose: text.about_purpose,
+        about_source: text.about_source
+      },
       privacy: {
         privacy_preferences:
           text.privacy_preferences + (theme === false ? '' : text.storage)
@@ -109,6 +122,14 @@ export function configureStatic(
     write(file, content.replace(pattern, replacement))
   }
   if (profile.theme !== false) {
+    edit('docs/ui.md')(
+      /^## Theme and persistence\n[\s\S]*?(?=^## )/mu,
+      '## Theme and persistence\n\nThe initial script reads `app-theme` from local storage before hydration. The\nswitcher saves light, dark or system on this device. The static host serves the\nsame HTML for all three preferences.\n\n'
+    )
+    edit('AGENTS.md')(
+      /Document owns the script element and its request nonce\./u,
+      'Document owns the script element. Publish its hash in the CSP for each HTML file.'
+    )
     cpSync(new URL('theme/', staticFiles), stage, { recursive: true })
     const helper = 'src/tests/helpers/clearThemeCookie/index.ts'
     rmSync(path.join(stage, helper))
@@ -119,6 +140,10 @@ export function configureStatic(
       'src/components/molecules/ThemeToggle/__tests__/ThemeToggle.browser.test.tsx'
     )(/clearThemeCookie/gu, "() => localStorage.removeItem('app-theme')")
   }
+  edit('AGENTS.md')(
+    /^## Server errors and backend calls\n[\s\S]*?(?=^## )/mu,
+    ''
+  )
   const vite = 'vite.config.ts'
   edit(vite)(/^import \{ SECURITY_HEADERS[^\n]+\n/mu, '')
   edit(vite)(

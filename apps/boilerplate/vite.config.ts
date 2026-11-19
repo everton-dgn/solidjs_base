@@ -44,6 +44,8 @@ export default defineSolidApp({
     // its manifest holds the exports that resolve each import.
     inputs: [
       'packages/solid-tooling/dist/**',
+      'packages/solid-tooling/tsconfig*.json',
+      'packages/solid-tooling/node-env.d.ts',
       'packages/vite-plugin-solid-icons/dist/**',
       'packages/solid-runtime/package.json',
       'packages/solid-runtime/src/**'

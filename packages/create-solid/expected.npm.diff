@@ -36,7 +36,7 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
  - Document the contract, the limits and the validation commands. When updating
    dependencies, review the behavior and keep the numbers in the files that
    control the installation.
-@@ -149,13 +148,13 @@ release. Add a tool name to select part of the graph. For example, run
+@@ -149,7 +148,7 @@ release. Add a tool name to select part of the graph. For example, run
  ## Translations
  
  - Generation, catalog validation and the Vite plugin belong to
@@ -45,22 +45,6 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
    `project.inlang/settings.json`; the default application needs no local generator
    or i18n plugin. Custom pipelines can set `i18nPlugin: false`, supply a plugin
    through `extend` and replace `i18n-generate` by name through `tasks`.
-   The package tests use other locales.
- - The locales and the base locale come from `project.inlang/settings.json`. Each
--  consumer keeps colocated `i18n/{pt,en,es}.json` files. Share in `src/i18n/`
-+  consumer keeps colocated `i18n/{locale}.json` files. Share in `src/i18n/`
-   only from the second production consumer on.
- - Use global IDs prefixed with the owner and the same parameters in the three
-   locales. Import `m` from `@paraglide/messages.js` and `Locale` from
-@@ -177,7 +176,7 @@ release. Add a tool name to select part of the graph. For example, run
-   document navigation on locale change and the tolerance to blocked cookies.
- - Run `vp run i18n:generate` to check parity, duplicates and parameters.
-   Integration changes require typecheck, tooling, tests and the i18n E2E tests.
--  The split is per page and message; each module includes the three locales it
-+  The split is per page and message; each module includes the languages it
-   uses.
- 
- ## TypeScript types
 @@ -198,7 +197,7 @@ release. Add a tool name to select part of the graph. For example, run
  - Use `type` to declare object, props and contract types in code and tests. The
    lint applies `typescript/consistent-type-definitions` with `type`.
@@ -70,12 +54,7 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
    `RouteInfo` in the runtime `seo/{sitemap,markdown,llms}/router.d.ts` modules
    extend third-party interfaces. Keep
    the lint exception restricted to the files that need that behavior.
-@@ -321,11 +320,11 @@ release. Add a tool name to select part of the graph. For example, run
-   `content` of about, contact and privacy) lives in `index.tsx`, never in
-   `seo.ts`. The route manifest imports the `route` of each page in the initial
-   bundle, and everything `seo.ts` imports goes with it: a `content` exported
--  from there takes the texts of every page, in the three locales, into the
-+  from there takes the texts of every page, in the configured languages, into the
+@@ -325,7 +324,7 @@ release. Add a tool name to select part of the graph. For example, run
    initial bundle. `seo` points to the messages directly, without reading the
    page object. Do not move `content` to `seo.ts`, to a module `seo.ts`
    imports or to another one the `route` reaches. The `project/seo-module` rule
@@ -143,10 +122,10 @@ diff --git a/source/README.md b/example/README.md
 +# SolidJS Boilerplate
 +
 +This application was created with Solid Base.
++
++## Before publishing
  
 -This SolidJS application uses the Solid Base tooling and runtime.
-+## Before publishing
-+
 +- Fill in the site identity and public links in `src/constants/site/index.ts`.
 +- Update the about and contact pages with your own information.
 +- Describe your data practices on the privacy page.
@@ -168,22 +147,11 @@ diff --git a/source/README.md b/example/README.md
 -  <img src="../../docs/assets/readme/app-home-light.webp" alt="The boilerplate app's home page at /en, captured from its production build." width="800" />
 +  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-dark.webp" />
 +  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-light.webp" />
-+  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-light.webp" alt="The boilerplate app's home page, captured from its production build." width="800" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-light.webp" alt="The boilerplate app's home page at /en, captured from its production build." width="800" />
  </picture>
  
  [See it work](#see-it-work) · [Running it](#running-it) ·
-@@ -29,18 +41,18 @@ index of the pages that opt in. This example uses a production build served on
- port 4419.
- 
- ```text
--$ curl -s -D - -H 'Accept: text/markdown' http://127.0.0.1:4419/en/about
-+$ curl -s -D - -H 'Accept: text/markdown' http://127.0.0.1:4419/{locale}/about
- HTTP/1.1 200
- cache-control: private, no-store
--content-language: en
-+content-language: <language tag>
- content-security-policy: default-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; script-src 'none'
- content-type: text/markdown; charset=utf-8
+@@ -38,9 +50,9 @@ content-type: text/markdown; charset=utf-8
  link: </llms.txt>; rel="describedby"
  vary: Cookie, Accept
  
@@ -207,7 +175,7 @@ diff --git a/source/README.md b/example/README.md
  ## When to use
  ## Pages
 -- [About SolidJS Boilerplate](https://boilerplate-solidjs.devinsights.dev/en/about.md): ...
-+- [About the application](https://example.com/{locale}/about.md): ...
++- [About the application](https://example.com/en/about.md): ...
  ## Optional
 -- [Full Markdown of the static pages](https://boilerplate-solidjs.devinsights.dev/llms-full.txt): ...
 +- [Full Markdown of the static pages](https://example.com/llms-full.txt): ...
@@ -223,21 +191,7 @@ diff --git a/source/README.md b/example/README.md
  
  ```bash
  vp run test:browser:install
-@@ -96,10 +108,9 @@ vp run test:e2e
- ```
- 
- `vp run dev` serves the app at `http://127.0.0.1:3000/`, from the `HOST` and
--`PORT` of the versioned `.env`. The root redirects to a locale, such as `/en`.
--Use the language button for `/pt` or `/es`, and the theme button for light, dark
--or system. The development server does not send the CSP. To check the production
--build with its security headers:
-+`PORT` of the versioned `.env`. Open the home page and follow a link in the
-+navigation. The development server does not send the CSP. To check the
-+production build with its security headers:
- 
- ```bash
- vp run build
-@@ -107,15 +118,15 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
+@@ -107,9 +119,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
  ```
  
  <picture>
@@ -249,49 +203,21 @@ diff --git a/source/README.md b/example/README.md
 +  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/security-headers-light.webp" alt="curl -sI on the boilerplate app's production preview: eight security headers and a CSP whose script-src carries a nonce." width="800" />
  </picture>
  
--`curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
--nonce that changes on every request. `/en/about.md`, or `/en/about` with
--`Accept: text/markdown`, returns the page as Markdown, as in
--[See it work](#see-it-work). The [scripts table](docs/development.md#scripts)
-+`curl -sI http://127.0.0.1:3000/{locale}` then shows the security headers and a
-+CSP nonce that changes on every request. `/{locale}/about.md`, or
-+`/{locale}/about` with `Accept: text/markdown`, returns the page as Markdown, as
-+in [See it work](#see-it-work). The [scripts table](docs/development.md#scripts)
- lists every command.
+ `curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
+@@ -145,9 +157,9 @@ both suites.
+ ### The same page in three languages
  
- ## What each page and feature shows
-@@ -133,7 +144,7 @@ both suites.
- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
- | Pages             | Home, about, contact, privacy and a 404, a top bar, language and theme switchers, `LocalizedLink`, `seo.ts` metadata and an error page                                | [Home](src/tests/pages/Home) (partly production), [NotFound](src/tests/pages/NotFound)                                                                                                                              | [Architecture](docs/architecture.md)                                    |
- | Server rendering  | Pages rendered on the server, then hydrated: raw HTML, disabled JavaScript, a held or aborted bundle, reload, click replay and navigation                             | [Hydration](src/tests/pages/Hydration)                                                                                                                                                                              | [Tests](docs/testing.md)                                                |
--| Three languages   | Portuguese, English and Spanish from colocated catalogs, English as the base locale, the locale in the URL and redirects that keep it                                 | [I18n](src/tests/pages/I18n) (partly production)                                                                                                                                                                    | [I18n](docs/i18n.md)                                                    |
-+| Languages         | Configured language catalogs and routes                                                                                                                               | [I18n](src/tests/pages/I18n)                                                                                                                                                                                        | [I18n](docs/i18n.md)                                                    |
- | Theme             | Light, dark or system, applied before hydration and kept in sync across tabs, with tokens from `light-dark()`                                                         | [Home](src/tests/pages/Home): the `theme`, `themeCss` and `themeStorage` files                                                                                                                                      | [UI](docs/ui.md)                                                        |
- | Security headers  | Eight headers from the runtime defaults, three of them also on static files, and a nonce CSP in production that holds for scripts and styles streamed after the shell | [Home](src/tests/pages/Home): the `csp` file (production); [LateRedirect](src/tests/pages/LateRedirect), [FragmentCss](src/tests/pages/FragmentCss)                                                                 | [Security](docs/security.md)                                            |
- | Server errors     | Fresh public errors in production, one HTTP exit (`requestJson`) and wrapped SDK adapters                                                                             | [BackendError](src/tests/pages/BackendError), [OutsideError](src/tests/pages/OutsideError)                                                                                                                          | [Server errors](docs/server-errors.md)                                  |
-@@ -142,19 +153,9 @@ both suites.
- | Env, icons, fonts | Validated `env.ts`, icons from `hugeicons` and the app's own SVG folder as Solid components, and two Inter subsets with matching preloads                             | [BuildOutput](src/tests/pages/BuildOutput): the `fonts` file (production)                                                                                                                                           | [UI](docs/ui.md#fonts)                                                  |
- | Test components   | `Button`, `Input`, `Textarea`, `Dialog`, the toasts and `DropdownMenu`, on the `/ui-kit` route of the `e2e` build                                                     | [UiKit](src/tests/pages/UiKit)                                                                                                                                                                                      | [UI](docs/ui.md)                                                        |
- 
--### The same page in three languages
-+### Application languages
- 
--<picture>
+ <picture>
 -  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/app-locales-dark.webp" />
 -  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/app-locales-light.webp" />
 -  <img src="../../docs/assets/readme/app-locales-light.webp" alt="The boilerplate app's home page at /pt, /en and /es, with the navigation, the title and the language button in each locale." width="800" />
--</picture>
--
--Every page lives under `/pt`, `/en` or `/es`, with `lang`, the navigation and
--the metadata in that language. Messages sit next to the component that uses
--them, in `i18n/{pt,en,es}.json`. `vp run i18n:generate`, which `check:ci`,
--`lint` and the test scripts call first, fails on a missing translation, a
--duplicate ID or a parameter that differs between locales.
-+Configure languages in `project.inlang/settings.json`.
++  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-locales-dark.webp" />
++  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-locales-light.webp" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-locales-light.webp" alt="The boilerplate app's home page at /pt, /en and /es, with the navigation, the title and the language button in each locale." width="800" />
+ </picture>
  
- ### Components of the test app
- 
-@@ -170,9 +171,9 @@ z-index values, counted as the custom properties declared in each file.
+ Every page lives under `/pt`, `/en` or `/es`, with `lang`, the navigation and
+@@ -170,9 +182,9 @@ z-index values, counted as the custom properties declared in each file.
  ### Outdated pages after a deploy
  
  <picture>
@@ -304,7 +230,7 @@ diff --git a/source/README.md b/example/README.md
  </picture>
  
  `installOutdatedPageDetection` marks the page when a chunk of the previous build
-@@ -216,16 +217,16 @@ refuses, so it never shares a run with the other suites. See
+@@ -216,16 +228,16 @@ refuses, so it never shares a run with the other suites. See
  [publication load](docs/testing.md#publication-load).
  
  <picture>
@@ -326,7 +252,7 @@ diff --git a/source/README.md b/example/README.md
  
  ## Limits
  
-@@ -236,18 +237,22 @@ the app, a package, a fixture or the root configuration
+@@ -236,18 +248,22 @@ the app, a package, a fixture or the root configuration
    not prove production capacity. The thresholds of `PublicationLoad` are a local
    starting point and set no production SLO
    ([publication load](docs/testing.md#publication-load)).
@@ -351,12 +277,6 @@ diff --git a/source/README.md b/example/README.md
  of the tooling README for the line counts by area.
  
  The package supplies tools that the application does not import itself. Its
-@@ -338,4 +343,4 @@ examples describe the upstream workflows.
- | [Tests](docs/testing.md)                                        | Vitest projects, E2E suites, production checks and reports            |
- 
- `AGENTS.md`, the guides in `docs/`, the code comments and the test titles are in
--English. The tests check the interface in its three languages.
-+English. The tests check the interface in the configured languages.
 diff --git a/example/bunfig.toml b/example/bunfig.toml
 new file mode 100644
 --- /dev/null
@@ -370,17 +290,6 @@ new file mode 100644
 diff --git a/source/docs/architecture.md b/example/docs/architecture.md
 --- a/source/docs/architecture.md
 +++ b/example/docs/architecture.md
-@@ -17,8 +17,8 @@ The `src/routes/(base).tsx` file defines the shared layout with `Topbar` and
- renders `props.children` with `RouteSectionProps`. Its `(base)/` folder holds
- `(home)/index.tsx`, `about/index.tsx`, `contact/index.tsx`, `privacy/index.tsx`
- and `[...404]/index.tsx`. Groups in parentheses do not show up in the URL. The
--router matches on the path without the locale; the home page answers on `/pt`,
--`/en` and `/es`, and the fallback keeps the navigation bar. `App.tsx` keeps the
-+router matches on the path without the locale; the home page renders at the
-+application root, and the fallback keeps the navigation bar. `App.tsx` keeps the
- provider, the SEO and the global boundary, which also catches failures in the
- layout. The E2E fixtures have their own tree and re-export that layout for the
- pages, home and 404 included.
 @@ -85,12 +85,12 @@ CSS Module imports use the name `S`, for example,
  
  The split follows the
@@ -711,49 +620,7 @@ diff --git a/source/docs/development.md b/example/docs/development.md
 diff --git a/source/docs/i18n.md b/example/docs/i18n.md
 --- a/source/docs/i18n.md
 +++ b/example/docs/i18n.md
-@@ -4,24 +4,21 @@
- 
- ## Catalogs and messages
- 
--`project.inlang/settings.json` defines `pt`, `en` and `es`, with English as the
--base locale. Each page or component keeps `i18n/pt.json`, `i18n/en.json` and
--`i18n/es.json` next to its code. Messages with two or more production consumers
--can go to `src/i18n/`; the others stay in the consumer. The keys are global and
--use the prefix of the owner, such as `home_title` and `themeToggle_select`.
-+`project.inlang/settings.json` defines the languages and the base locale. Each
-+page or component keeps a catalog for each configured locale next to its code.
-+Messages with two or more production consumers can go to `src/i18n/`; the others
-+stay in the consumer. The keys are global and use the prefix of the owner, such
-+as `home_title` and `themeToggle_select`.
- 
- ```text
- src/routes/(base)/(home)/
-   index.tsx
-   i18n/
--    pt.json
--    en.json
--    es.json
-+    {locale}.json
- ```
- 
--Use the same set of keys and parameters in the three files. For example,
--`"home_welcome": "Olá, {name}!"`, `"Hello, {name}!"` and `"¡Hola, {name}!"`. The
--compiler generates functions and TypeScript declarations in `paraglide/`:
-+Use the same keys and parameters in every catalog. The compiler generates
-+functions and TypeScript declarations in `paraglide/`:
- 
- ```tsx
- import { m } from '@paraglide/messages.js'
-@@ -32,7 +29,7 @@ export default function Home() {
- ```
- 
- The functions check message names, the names and presence of the parameters and
--the optional locale, for example `m.home_title({}, { locale: 'es' })`. The
-+the optional locale, for example `m.home_title({}, { locale: baseLocale })`. The
- `Locale` type comes from `@paraglide/runtime.js`. Simple interpolations accept
- non-null values; validate domain data before translating it. Do not call
- messages at the top of a module: SSR shares modules between requests. Use calls
-@@ -123,7 +120,7 @@ The cost of the generation grows with the whole set: each preparation reads and
+@@ -123,7 +123,7 @@ The cost of the generation grows with the whole set: each preparation reads and
  validates again every catalog of every locale, and the Paraglide compiler loads
  all of them at once. In development, this repeats on every saved catalog. None
  of it runs on requests. The `CATALOGS_MAX_BYTES` limit, in
@@ -762,79 +629,15 @@ diff --git a/source/docs/i18n.md b/example/docs/i18n.md
  limits the sum of the catalog files: past it, the generation fails on the file
  that crossed the limit, before reading it, instead of degrading the build. In
  measurements with synthetic catalogs in three locales, 1 MiB (5,000 messages per
-@@ -176,10 +173,10 @@ stays in the adapter, with `checkBundle` from the official SDK. Paraglide keeps
- aggregates, without pointing to the colocated catalog that failed.
+@@ -218,7 +218,7 @@ isolation between the locales. The locale and the content of those files come
+ from the URL, regardless of cookies and `Accept-Language`; direct access does
+ not go through the localization of pages.
  
- The bundler removes unused messages and keeps the messages exclusive to the page
--in its lazy module. Each module holds the three locales of the messages it uses.
--The experimental per-locale split is turned off to keep the streaming and the
--CSP of the project. The i18n E2E test finds the lazy module of each page through
--the exclusive message of the body in the three locales, checks that no other
-+in its lazy module. Each module holds the languages of the messages it uses. The
-+experimental per-locale split is turned off to keep the streaming and the CSP of
-+the project. The i18n E2E test finds the lazy module of each page through the
-+exclusive message of the body in the configured languages, checks that no other
- module holds it, that the 404 downloads none of those modules and that the one
- of the home page arrives on the navigation to it.
- 
-@@ -204,21 +201,21 @@ CSP violations.
- ## Negotiation and isolation on the server
- 
- Pages without a prefix get a temporary redirect, without cache, using the
--`locale` cookie, then `Accept-Language` and finally `en`. The explicit URL takes
--priority. The detection ignores locales with `q=0` and invalid weights; if no
--accepted locale is available, it uses the base locale. The native Paraglide
--parser does that detection without changing the original request. The middleware
--isolates the locale of each SSR with `AsyncLocalStorage` and keeps
--`Content-Language`, `<html lang>`, SEO and hydration consistent. Server
--functions use the source page of the same domain, falling back to the cookie and
--the language header, keeping the request body and the Solid control signals.
--APIs, indexes and common assets stay without a prefix. The Markdown snapshots
--are localized files, such as `/pt/about.md`, generated in the build with
--isolation between the locales. The locale and the content of those files come
--from the URL, regardless of cookies and `Accept-Language`; direct access does
--not go through the localization of pages.
--
 -[`requestClassification`](../../../packages/solid-runtime/src/middleware/requestClassification)
-+`locale` cookie, then `Accept-Language` and finally the base locale. The
-+explicit URL takes priority. The detection ignores locales with `q=0` and
-+invalid weights; if no accepted locale is available, it uses the base locale.
-+The native Paraglide parser does that detection without changing the original
-+request. The middleware isolates the locale of each SSR with `AsyncLocalStorage`
-+and keeps `Content-Language`, `<html lang>`, SEO and hydration consistent.
-+Server functions use the source page of the same domain, falling back to the
-+cookie and the language header, keeping the request body and the Solid control
-+signals. APIs, indexes and common assets stay without a prefix. The Markdown
-+snapshots are localized files, such as `/{locale}/about.md`, generated in the
-+build with isolation between the locales. The locale and the content of those
-+files come from the URL, regardless of cookies and `Accept-Language`; direct
-+access does not go through the localization of pages.
-+
 +[`requestClassification`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/requestClassification)
  gathers the page criteria used by the localization and by the failure
  containment. The localization of GET and HEAD pages looks at the path,
  regardless of `Accept`, so that pages excluded from the Markdown negotiation
-@@ -307,7 +304,8 @@ and in the locale switcher.
- 
- The sitemap publishes one URL per locale, with reciprocal alternates and
- `x-default`. The count and byte limits are checked after that expansion.
--`llms.txt` uses English and `/en` URLs to keep a single, cacheable index.
-+`llms.txt` uses the base language and its URLs to keep a single, cacheable
-+index.
- 
- ## Runtime request step
- 
-@@ -329,8 +327,8 @@ locale and URL helpers from the runtime.
- `localeTag(locale, overrides?)`, from
- `@evertondgn/solid-runtime/i18n/locale-tag`, uses `Intl.Locale` instead of a
- fixed list. The application passes `LOCALE_TAG_OVERRIDES` from
--`src/i18n/localeTagOverrides/` to preserve pt-BR, en-US and es-ES in HTML, Open
--Graph and JSON-LD. Additional locales use their canonical BCP 47 tags unless the
-+`src/i18n/localeTagOverrides/` to set language tags for HTML, Open Graph and
-+JSON-LD. Additional locales use their canonical BCP 47 tags unless the
- application adds an override. Open Graph replaces hyphens with underscores after
- calling the function.
- 
 diff --git a/source/docs/security.md b/example/docs/security.md
 --- a/source/docs/security.md
 +++ b/example/docs/security.md
@@ -856,39 +659,10 @@ diff --git a/source/docs/security.md b/example/docs/security.md
  on the first access to `event.nonce`. That field belongs to the native contract
  of the Solid plugin. `securityHeaders` fills it before the render, and the
  containment also creates it when a failure happens before that middleware, so
-@@ -170,17 +170,17 @@ changing the HTML of the application.
- - Nitro compiles every `routeRules` entry, the ones the application adds
-   included, with the h3 preMerge, with no option to turn it off
-   ([nitrojs/nitro#5048](https://github.com/nitrojs/nitro/issues/5048)). Patterns
--  that overlap in part, such as `/**.md` next to `/assets/**` or `/pt/blog/**`
--  next to `/pt/**.md`, make the compilation fall back to the simple mode, with
--  the same result and a warning in development and in each build. That is why
--  the preset writes the `.md` files as `/<locale>/**.md`, with the locales of
--  `project.inlang/settings.json`, and refuses a static path of the application
--  inside the folder of a locale. This depends on the `urlPatterns` of
--  `defineParaglideConfig`, in `project.inlang/paraglide.config.ts`, prefixing
--  every locale: an application that serves a locale without a prefix needs its
--  own pattern for the `.md` files of that locale, or they go out from the CDN
--  without these headers. `AgentReadiness` checks the headers of each published
--  `.md`.
-+  that overlap in part, such as `/**.md` next to `/assets/**` or
-+  `/{locale}/blog/**` next to `/{locale}/**.md`, make the compilation fall back
-+  to the simple mode, with the same result and a warning in development and in
-+  each build. That is why the preset writes the `.md` files as
-+  `/<locale>/**.md`, with the locales of `project.inlang/settings.json`, and
-+  refuses a static path of the application inside the folder of a locale. This
-+  depends on the `urlPatterns` of `defineParaglideConfig`, in
-+  `project.inlang/paraglide.config.ts`, prefixing every locale: an application
-+  that serves a locale without a prefix needs its own pattern for the `.md`
-+  files of that locale, or they go out from the CDN without these headers.
-+  `AgentReadiness` checks the headers of each published `.md`.
- - On the Vercel CDN, the routes of `config.json` compare the path still encoded,
-   and the static file is found by the decoded path. A percent-encoded spelling
-   of a static path, such as `/%70t/index.md` or
 diff --git a/source/docs/seo/indexes.md b/example/docs/seo/indexes.md
 --- a/source/docs/seo/indexes.md
 +++ b/example/docs/seo/indexes.md
-@@ -24,13 +24,13 @@ section and optional mark. `noindex: true` excludes the page from the sitemap
+@@ -24,7 +24,7 @@ section and optional mark. `noindex: true` excludes the page from the sitemap
  and from llms.txt, even with the flag. The filter looks at the effective setting
  of the page, including inheritance and the child index route. The resolver is
  colocated in
@@ -897,52 +671,10 @@ diff --git a/source/docs/seo/indexes.md b/example/docs/seo/indexes.md
  The index is in the base locale. Routes with a parameter stay out even with
  `llms`, and the sources of `route.info.sitemap` do not feed this index. Markdown
  publication is controlled separately by `seo.markdown` and
- `route.info.markdown`; when enabled and the leaf declares `markdown: true` or
--`'dynamic'`, the index link points to the `.md` (`/en/about.md`), and for the
--others, to the HTML.
-+`'dynamic'`, the index link points to the `.md` (`/{locale}/about.md`), and for
-+the others, to the HTML.
- 
- ## Endpoints and cache
- 
 diff --git a/source/docs/seo/markdown.md b/example/docs/seo/markdown.md
 --- a/source/docs/seo/markdown.md
 +++ b/example/docs/seo/markdown.md
-@@ -14,19 +14,20 @@ still independent: it decides the inclusion in the index. Login and per-visitor
- content must not opt in to the publication. The opt-in only declares that the
- content is public and does not control access.
- 
--`/pt/index.md` represents the home page and `/pt/about.md` represents the about
--page. A page whose last segment is `index` adds `/index.md`: `/pt/index` uses
--`/pt/index/index.md`, and `/pt/docs/index` uses `/pt/docs/index/index.md`. This
--rule also covers repeated segments: `/pt/index/index` uses
--`/pt/index/index/index.md`. The middleware removes the `.md` and a trailing
--`/index` and answers 404 to any `.md` URL that is not the canonical form of the
--page: `/pt/docs/index.md` is not an alias of `/pt/docs`, and `/pt.md`, without a
--locale prefix, follows the redirect of the paths without a locale instead of
--publishing the home page. The middleware uses the native matching for parameters
--too, without a producer, a required `SitePage`, `getPaths` or an artifact
--manifest. The finite enumeration of the sitemap and of llms.txt stays separate;
--llms enumerates the known static routes. The SEO alternate follows the current
--route in client navigation too.
-+`/{locale}/index.md` represents the home page and `/{locale}/about.md`
-+represents the about page. A page whose last segment is `index` adds
-+`/index.md`: `/{locale}/index` uses `/{locale}/index/index.md`, and
-+`/{locale}/docs/index` uses `/{locale}/docs/index/index.md`. This rule also
-+covers repeated segments: `/{locale}/index/index` uses
-+`/{locale}/index/index/index.md`. The middleware removes the `.md` and a
-+trailing `/index` and answers 404 to any `.md` URL that is not the canonical
-+form of the page: `/{locale}/docs/index.md` is not an alias of `/{locale}/docs`,
-+and `/{locale}.md`, without a locale prefix, follows the redirect of the paths
-+without a locale instead of publishing the home page. The middleware uses the
-+native matching for parameters too, without a producer, a required `SitePage`,
-+`getPaths` or an artifact manifest. The finite enumeration of the sitemap and of
-+llms.txt stays separate; llms enumerates the known static routes. The SEO
-+alternate follows the current route in client navigation too.
- 
- HTML is the only authored source. Objects used by the components, such as
- `SiteArticle`, can stay as UI data; there is no manual serializer and no extra
-@@ -43,7 +44,7 @@ upgrade are in
+@@ -43,7 +43,7 @@ upgrade are in
  [server errors](../server-errors/ssr-integrity.md#ssr-integrity-for-markdown).
  
  The build prerender goes through the same adapter. The compiled
@@ -951,7 +683,7 @@ diff --git a/source/docs/seo/markdown.md b/example/docs/seo/markdown.md
  module asks the middleware for the list of static pages
  (`/_markdown/static.json`), prerenders each `.md` and publishes the list as a
  static file, together with `llms.txt`. The middleware only builds the list in
-@@ -68,7 +69,7 @@ universal minimum of characters and no ban on isolated tags. The result is in
+@@ -68,7 +68,7 @@ universal minimum of characters and no ban on isolated tags. The result is in
  ### llms-full.txt aggregate
  
  The reader of the index is in
@@ -960,122 +692,9 @@ diff --git a/source/docs/seo/markdown.md b/example/docs/seo/markdown.md
  next to the generator that uses it. Its tests use the Node runner of the
  tooling.
  
-@@ -114,11 +115,11 @@ that ends the routing on a protected page also stops the build. The headers of
- the Nitro `routeRules` go out with `continue: true` and do not end the routing;
- a custom rule in `vercel.config.routes` that reaches those pages needs the same
- `continue: true`. The module does not force the continuation, because that would
--change the priority of headers and redirects. That way, `/pt` still negotiates
--HTML or Markdown, while `/pt/index.md` keeps the static file. The tooling tests
--exercise the real preset without a previous configuration and with extra rules.
--The production E2E tests check the precedence in the final artifact, after
--`vercel build` too.
-+change the priority of headers and redirects. That way, `/{locale}` still
-+negotiates HTML or Markdown, while `/{locale}/index.md` keeps the static file.
-+The tooling tests exercise the real preset without a previous configuration and
-+with extra rules. The production E2E tests check the precedence in the final
-+artifact, after `vercel build` too.
- 
- `@mdream/js` receives the path of the document over the public origin
- (`VITE_SITE_URL`) to resolve relative links; in the prerender, the request is
-@@ -275,8 +276,8 @@ After publishing, check the final status, the headers and the body, following
- redirects:
- 
- ```sh
--curl -sS -i https://your-domain.example/pt/index.md
--curl -sS -L -i -H 'Accept: text/markdown' https://your-domain.example/pt/
-+curl -sS -i https://your-domain.example/{locale}/index.md
-+curl -sS -L -i -H 'Accept: text/markdown' https://your-domain.example/{locale}/
- curl -sS -L -i -H 'Accept: text/html' https://your-domain.example/
- curl -sS -L -i -H 'Accept: text/markdown' https://your-domain.example/missing-page
- ```
-diff --git a/source/docs/seo/publication.md b/example/docs/seo/publication.md
---- a/source/docs/seo/publication.md
-+++ b/example/docs/seo/publication.md
-@@ -158,13 +158,13 @@ come from data should prefer partitioned sources.
- 
- The later pilot, already with build artifacts, prepared 100,000 synthetic pages
- in 10.1 s and serialized and wrote their 29 parts in another 8.6 s. That was
--300,000 URLs in the three locales and 120.1 MB of XML. The first read of the
--manifest by a new reader took 0.8 ms; loading the 100,000 identities used with
--an array source took 16.2 ms, with a 3.6 MB file. Those reads happened in the
--same process that prepared the files, with a warm filesystem, and do not measure
--the cold start of the process or of the operating system. The RSS peak of the
--whole run was 720 MB, including Vitest, preparation and serialization. That peak
--sizes the build pilot, not the memory of a new function. There was no
-+300,000 URLs in the configured languages and 120.1 MB of XML. The first read of
-+the manifest by a new reader took 0.8 ms; loading the 100,000 identities used
-+with an array source took 16.2 ms, with a 3.6 MB file. Those reads happened in
-+the same process that prepared the files, with a warm filesystem, and do not
-+measure the cold start of the process or of the operating system. The RSS peak
-+of the whole run was 720 MB, including Vitest, preparation and serialization.
-+That peak sizes the build pilot, not the memory of a new function. There was no
- compilation of 100,000 route files and no HTTP load in that measurement.
- 
- With virtual catalogs of 100,000 and 1 million records, the direct read of a
-diff --git a/source/docs/seo/sitemap.md b/example/docs/seo/sitemap.md
---- a/source/docs/seo/sitemap.md
-+++ b/example/docs/seo/sitemap.md
-@@ -30,12 +30,12 @@ start with `/`, or that has a host, scheme, query, fragment or space, fails;
- trailing and repeated slashes are normalized; entries that result in the same
- published URL keep the first occurrence (the static page before the source). The
- comparison uses the localized URL that goes into the XML, so `/a/../b` and `/b`,
--`/café` and `/caf%C3%A9` or `/pt/blog/x` and `/blog/x` count as the same page. A
--`lastmod` outside W3C Datetime is left out. A failure of any source, an invalid
--entry, an exceeded deadline or a sitemap over the protocol limits (of URLs and
--of bytes, in the runtime sitemap constants) answer 503 without a body and with
--`no-store`. The expected abort and timeout of the controller are silent; real
--exceptions log the fixed `[sitemap]` line described in
-+`/café` and `/caf%C3%A9` or `/{locale}/blog/x` and `/blog/x` count as the same
-+page. A `lastmod` outside W3C Datetime is left out. A failure of any source, an
-+invalid entry, an exceeded deadline or a sitemap over the protocol limits (of
-+URLs and of bytes, in the runtime sitemap constants) answer 503 without a body
-+and with `no-store`. The expected abort and timeout of the controller are
-+silent; real exceptions log the fixed `[sitemap]` line described in
- [server errors](../server-errors/logging.md#failure-log). The crawler tries
- again, and the CDN does not keep a partial sitemap for an hour. The successful
- response carries `stale-if-error=86400`: after the cached copy expires, if the
 diff --git a/source/docs/seo.md b/example/docs/seo.md
 --- a/source/docs/seo.md
 +++ b/example/docs/seo.md
-@@ -82,7 +82,7 @@ resolves the metadata, so the text follows the locale of the request. A message
- with parameters goes in a getter, such as
- `get title() { return m.post_title({ name }) }`. Do not copy the translated
- texts into values at the top of the module. The catalogs are in
--`i18n/{pt,en,es}.json` next to those files. The data that the component renders
-+`i18n/{locale}.json` next to those files. The data that the component renders
- stays in `index.tsx`, in a non-exported constant with getters (the pages that
- use `SiteArticle` type it with `satisfies SitePage`), or in calls to `m` in the
- JSX itself. The route manifest imports the `route` of each page in the initial
-@@ -114,9 +114,9 @@ invalid property fails the type check; the image dimensions stay only in Open
- Graph. The locale of the page comes from `SITE.locale`, which also feeds the
- `lang` of `Document.tsx` and `og:locale` (with an underscore).
- `og:locale:alternate` lists the other locales, and `WebSite.inLanguage` declares
--the three available locales. The runtime applies `JSON.stringify`, then escapes
--`<`, U+2028 and U+2029 in both the graph and page-owned data before passing the
--text to `useHead` with `type: 'application/ld+json'`. Solid's server and client
-+the configured locales. The runtime applies `JSON.stringify`, then escapes `<`,
-+U+2028 and U+2029 in both the graph and page-owned data before passing the text
-+to `useHead` with `type: 'application/ld+json'`. Solid's server and client
- serializers provide the HTML and head-update transport. This contract depends on
- the JSON type and on the use of `useHead`: do not interpolate the JSON directly
- into HTML. The `createSeo` and `StructuredData` regression tests check the first
-@@ -126,11 +126,11 @@ hydration. The Twitter handles come from `SITE.twitter` (`twitter:site`, the
- account of the site) and from `SITE.author.twitter` (`twitter:creator`, the
- account of the author). LinkedIn has no meta tag of its own: it reads Open Graph
- for the preview, and the profile goes only into `sameAs`. Indexable pages
--publish `hreflang` for the three locales and `x-default` pointing to English.
--The canonical and the page URL in the JSON-LD include the locale; the identity
--of the organization stays at the site root. The error fallback publishes a
--translated title and description with `noindex`, even when the failure happens
--before the Router.
-+publish `hreflang` for the configured locales and `x-default` pointing to the
-+base locale. The canonical and the page URL in the JSON-LD include the locale;
-+the identity of the organization stays at the site root. The error fallback
-+publishes a translated title and description with `noindex`, even when the
-+failure happens before the Router.
- 
- The runtime requires explicit site title, description, URL, locale and image.
- Author, organization, logo and social fields are optional. Without an
 @@ -259,5 +259,5 @@ See
  The runtime now owns Markdown and llms services; this application retains their
  thin bindings and editorial values. `seo` in `vite.config.ts` selects the
@@ -1256,25 +875,6 @@ diff --git a/source/docs/testing.md b/example/docs/testing.md
  
  ### Publication load
  
-@@ -337,12 +338,12 @@ rules of Vercel still need a check on the published site.
- `AgentReadiness.content.production.e2e.test.ts` checks the compact presentation
- of the home page, without subheadings or a footer in `main`, and keeps the
- requirement for detailed content, with subheadings, on the inner pages. The
--initial HTML and the topbar links are inspected in the three locales. After the
--hydration, the links stay visible and named; the navigation, on narrow and wide
--screens, keeps the theme, the locale and the same header, without widening the
--document. At 375 px, the links overflow and scroll inside the bar, and the theme
--and locale buttons, outside it, stay visible. The Markdown of the home page has
--the title and no second-level section.
-+initial HTML and the topbar links are inspected in the configured languages.
-+After the hydration, the links stay visible and named; the navigation, on narrow
-+and wide screens, keeps the theme, the locale and the same header, without
-+widening the document. At 375 px, the links overflow and scroll inside the bar,
-+and the theme and locale buttons, outside it, stay visible. The Markdown of the
-+home page has the title and no second-level section.
- 
- `Home.csp.production.e2e.test.ts` checks that the CSP carries a nonce that
- changes on each request, that every `<script>` and `modulepreload` of the raw
 @@ -359,7 +360,7 @@ production routes. If an earlier `vp run test:e2e` left an E2E fixture build in
  `.vercel/output`, Playwright stops before the preview and reports
  `TEST_PREBUILT found an e2e build`; run `vp run build` in the app to replace it
@@ -1287,39 +887,7 @@ diff --git a/source/docs/testing.md b/example/docs/testing.md
 diff --git a/source/docs/ui.md b/example/docs/ui.md
 --- a/source/docs/ui.md
 +++ b/example/docs/ui.md
-@@ -50,19 +50,18 @@ toast.update({ id, message: m.save_done(), variant: 'success' })
- toast.dismiss(id)
- ```
- 
--The messages of the example must exist in the catalog of the consumer in the
--three locales. The API accepts plain text and the `info`, `success`, `warning`,
--`error` and `loading` variants. The default duration is five seconds; `loading`
--without a duration and `duration: 0` stay until they are closed. Updating the
--variant or the duration restarts the timer; updating only the text keeps the
--remaining time. Hover, focus and a hidden tab pause the timer. The queue keeps
--up to five notifications and, when that limit is exceeded, removes the oldest
--one that is not hovered or focused. The screen reader announcements are grouped
--by priority; errors use the assertive region. A notification does not move the
--focus when it appears. If the removed notification holds the focus, it moves to
--the close button of the neighbor or, without a neighbor, back to the element
--focused before entering the region. Each provider has its own state and releases
--the timers when it unmounts.
-+Define the example messages before using them. The API accepts plain text and
-+the `info`, `success`, `warning`, `error` and `loading` variants. The default
-+duration is five seconds; `loading` without a duration and `duration: 0` stay
-+until they are closed. Updating the variant or the duration restarts the timer;
-+updating only the text keeps the remaining time. Hover, focus and a hidden tab
-+pause the timer. The queue keeps up to five notifications and, when that limit
-+is exceeded, removes the oldest one that is not hovered or focused. The screen
-+reader announcements are grouped by priority; errors use the assertive region. A
-+notification does not move the focus when it appears. If the removed
-+notification holds the focus, it moves to the close button of the neighbor or,
-+without a neighbor, back to the element focused before entering the region. Each
-+provider has its own state and releases the timers when it unmounts.
- 
- ## Dropdown menus
- 
-@@ -144,10 +143,10 @@ would fall back to the system font. Check the coverage of a file with
+@@ -144,10 +144,10 @@ would fall back to the system font. Check the coverage of a file with
  `fc-query --format='%{charset}\n' <file>`.
  
  The font loading contract and complete examples are in the tooling package’s
@@ -1334,7 +902,7 @@ diff --git a/source/docs/ui.md b/example/docs/ui.md
  
  ## CSS rules
  
-@@ -273,9 +272,9 @@ command reuses that validation for every CSS file in `src/`, those without
+@@ -273,9 +273,9 @@ command reuses that validation for every CSS file in `src/`, those without
  imports in JS/TS included.
  
  The rules and the name check come from `checkCss` in `@evertondgn/solid-tooling`
@@ -2649,31 +2217,6 @@ diff --git a/source/src/Document.tsx b/example/src/Document.tsx
          <meta
            name="viewport"
            content="minimum-scale=1, initial-scale=1, width=device-width"
-diff --git a/source/src/components/molecules/LocaleSwitcher/constants.ts b/example/src/components/molecules/LocaleSwitcher/constants.ts
---- a/source/src/components/molecules/LocaleSwitcher/constants.ts
-+++ b/example/src/components/molecules/LocaleSwitcher/constants.ts
-@@ -1,8 +1,5 @@
- import type { Locale } from '@paraglide/runtime.js'
- 
--// Autonyms are not translated: each locale shows up in its own name.
--export const LOCALE_NAMES: Readonly<Record<Locale, string>> = {
--  pt: 'Português',
--  en: 'English',
--  es: 'Español'
--}
-+import names from './names.json' with { type: 'json' }
-+
-+export const LOCALE_NAMES: Readonly<Record<Locale, string>> = names
-diff --git a/example/src/components/molecules/LocaleSwitcher/names.json b/example/src/components/molecules/LocaleSwitcher/names.json
-new file mode 100644
---- /dev/null
-+++ b/example/src/components/molecules/LocaleSwitcher/names.json
-@@ -0,0 +1,5 @@
-+{
-+  "pt": "Português",
-+  "en": "English",
-+  "es": "Español"
-+}
 diff --git a/source/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx b/example/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx
 --- a/source/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx
 +++ b/example/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx
@@ -3227,23 +2770,6 @@ diff --git a/source/src/routes/(base)/privacy/seo.ts b/example/src/routes/(base)
 +  title: m.privacy_pageTitle,
    description: m.privacy_description
  } satisfies SeoRouteInfo
-diff --git a/source/src/routes/(seo)/llms.txt/constants.ts b/example/src/routes/(seo)/llms.txt/constants.ts
---- a/source/src/routes/(seo)/llms.txt/constants.ts
-+++ b/example/src/routes/(seo)/llms.txt/constants.ts
-@@ -7,7 +7,12 @@ import { baseLocale, locales, type Locale } from '@paraglide/runtime.js'
- const LANGUAGE_NAMES = new Intl.DisplayNames(['en'], { type: 'language' })
- 
- function languageName(locale: Locale): string {
--  return LANGUAGE_NAMES.of(locale) ?? locale
-+  try {
-+    return LANGUAGE_NAMES.of(locale) ?? locale
-+  } catch (error) {
-+    if (!(error instanceof RangeError)) throw error
-+    return locale
-+  }
- }
- 
- const INDEX_LANGUAGE = languageName(baseLocale)
 diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/tests/pages/Home/Home.seo.e2e.test.ts
 --- a/source/src/tests/pages/Home/Home.seo.e2e.test.ts
 +++ b/example/src/tests/pages/Home/Home.seo.e2e.test.ts
@@ -3269,7 +2795,7 @@ diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/test
        { '@type': 'WebSite', url: `${siteUrl}/`, name: SITE_TITLE },
        {
          '@type': 'WebPage',
-         url: `${siteUrl}${testLocale.path(testLocale.alternate, '')}`,
+         url: `${siteUrl}${testLanguages.path(testLanguages.alternate, '')}`,
          name: HOME_TITLE
 -      },
 -      {
@@ -3293,7 +2819,7 @@ diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/test
 +    expect(graph).toContainEqual(
        expect.objectContaining({
          '@type': 'Article',
-         url: `${siteUrl}${testLocale.path(testLocale.alternate, '/seo-article')}`,
+         url: `${siteUrl}${testLanguages.path(testLanguages.alternate, '/seo-article')}`,
          name: 'Sample article',
          datePublished: '2026-09-01',
 -        dateModified: '2026-09-21',
@@ -3305,7 +2831,7 @@ diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/test
 diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
-@@ -139,27 +139,8 @@ for (const { locale, tag, messages } of LANGUAGES) {
+@@ -122,27 +122,8 @@ for (const { locale, tag, messages } of LANGUAGES) {
          inLanguage: LANGUAGES.map(language => language.tag)
        })
      )

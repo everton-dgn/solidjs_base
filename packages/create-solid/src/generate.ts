@@ -281,8 +281,25 @@ function reportSeededCatalogs(
 }
 
 type Preparation = {
+  templateGuides?: (stage: string) => void
   guides: (stage: string) => void
   source: typeof applyPreparedSource
+}
+type GuidePreparation = {
+  context: StagedContext
+  hasTemplateLanguageSettings: boolean
+  prepare: Preparation
+}
+function prepareLocaleGuides({
+  context,
+  hasTemplateLanguageSettings,
+  prepare
+}: GuidePreparation): void {
+  if (hasTemplateLanguageSettings) prepare.templateGuides?.(context.stage)
+  if (!hasTemplateLanguageSettings || prepare.templateGuides) {
+    configureLocaleGuides(context)
+  }
+  prepare.guides(context.stage)
 }
 type GenerationOptions = { input: Profile; prepare: Preparation }
 type Progress = 'creating' | SetupCommand['task']
@@ -455,15 +472,18 @@ export function* generation(
     configureFonts({ stage, hasFonts: profile.hasFonts })
     configureSeo(context)
     configureClient(context)
-    configureLocaleUi(context)
+    const hasTemplateLocales =
+      JSON.stringify(languages.locales) === JSON.stringify(defaults.locales)
+    configureLocaleUi({ ...context, hasTemplateLocales })
     configureFileHostGuides(context)
     configureStandaloneGuides(context)
     mkdirSync(path.join(stage, 'src/tests/pages/Home'), { recursive: true })
     addProfileBrowserTest(context)
     configureSiteIdentity(context)
     configureLocaleCopy(context)
-    configureLocaleGuides(context)
-    prepare.guides(stage)
+    const hasTemplateLanguageSettings =
+      hasTemplateLocales && languages.baseLocale === defaults.baseLocale
+    prepareLocaleGuides({ context, hasTemplateLanguageSettings, prepare })
     recordSeededCatalogs({ stage, write, seeded })
     configureAppTitle({ context, title })
     configurePageTitles({ context, title })

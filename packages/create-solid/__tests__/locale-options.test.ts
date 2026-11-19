@@ -253,3 +253,27 @@ void it('emits local messages, plain links and the base language without a catal
     if (mode === 'client') assert.match(read('index.html'), /lang="es-MX"/u)
   }
 })
+
+void it('keeps the template switcher and language examples for the default server', context => {
+  const root = mkdtempSync(path.join(tmpdir(), 'solid-template-locales-'))
+  context.after(() => rmSync(root, { recursive: true, force: true }))
+  const dir = path.join(root, 'app')
+  const result = spawnSync(
+    process.execPath,
+    ['src/create-solid.ts', dir, '--no-install', '--no-git'],
+    { encoding: 'utf8' }
+  )
+  assert.equal(result.status, 0, result.stderr)
+  const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
+  const switcher = 'src/components/molecules/LocaleSwitcher/constants.ts'
+  assert.equal(
+    read(switcher),
+    readFileSync(path.join('template', switcher), 'utf8')
+  )
+  assert.match(read('docs/testing.md'), /inspected in the three locales/u)
+  assert.match(
+    read('docs/seo/publication.md'),
+    /300,000 URLs in the three locales/u
+  )
+  assert.match(read('docs/seo/sitemap.md'), /`\/pt\/blog\/x`/u)
+})

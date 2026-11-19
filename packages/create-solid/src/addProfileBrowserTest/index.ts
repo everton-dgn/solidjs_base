@@ -156,8 +156,7 @@ test('serves the application in its configured language', async ({ page }) => {
   const name = menu.replace('{code}', base.toUpperCase())
   await page.getByRole('button', { name, exact: true }).click()
   await expect(page.getByRole('menu')).toBeVisible()
-  const namesFile = 'src/components/molecules/LocaleSwitcher/names.json'
-  const names = parse(schema, JSON.parse(await readFile(namesFile, 'utf8')))
+  const names: Readonly<Record<string, string>> = LOCALE_NAMES
   for (const locale of locales) {
     const item = names[locale]
     if (!item) throw new Error(\`Missing language name: \${locale}\`)
@@ -174,7 +173,7 @@ test('serves the application in its configured language', async ({ page }) => {
 import { expect, test } from '@playwright/test'
 import { array, object, parse, record, string } from 'valibot'
 
-import { SITE } from '@/constants/site/title.ts'
+${locales.length > 1 ? "import { LOCALE_NAMES } from '@/components/molecules/LocaleSwitcher/constants.ts'\n" : ''}import { SITE } from '@/constants/site/title.ts'
 ${profile.mode === 'static' && profile.hasSeo !== false ? "import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.ts'\n" : ''}
 const settingsSchema = object({
   baseLocale: string(),

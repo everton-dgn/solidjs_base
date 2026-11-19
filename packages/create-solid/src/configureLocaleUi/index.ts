@@ -34,8 +34,9 @@ function autonym(locale: string): string {
 export function configureLocaleUi({
   stage,
   write,
-  profile
-}: StagedContext): void {
+  profile,
+  hasTemplateLocales
+}: StagedContext & { hasTemplateLocales: boolean }): void {
   const { locales, baseLocale } = readLocaleSettings(stage)
   const read = (file: string) => readFileSync(path.join(stage, file), 'utf8')
   const edit =
@@ -51,7 +52,8 @@ export function configureLocaleUi({
     const disabled = ['locale-switcher']
     if (profile.hasTheme === false) disabled.push('dropdown-menu')
     removeFeatureFiles({ stage, disabled })
-  } else {
+  }
+  if (locales.length > 1 && !hasTemplateLocales) {
     const names = Object.fromEntries(
       locales.map(locale => [locale, autonym(locale)])
     )

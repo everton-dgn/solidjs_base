@@ -210,26 +210,57 @@ type GuideProfile = {
   mode: 'server' | 'static' | 'client'
   pm: string
   hasSeo: boolean
+  hasTheme: boolean
+  hasI18n?: boolean
+  baseLocale?: string
+  locales?: string[]
 }
-function checkGuideContent({ dir, mode, pm, hasSeo }: GuideProfile): void {
+function checkGuideLanguages({
+  dir,
+  mode,
+  hasSeo,
+  hasTheme,
+  hasI18n,
+  baseLocale,
+  locales
+}: GuideProfile): void {
+  const hasTemplateLanguages =
+    mode !== 'client' && hasI18n !== false && !locales && !baseLocale
   const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
-  assert.doesNotMatch(
-    read('README.md'),
-    /home page at \/en|content-language: en\n/u
+  const readme = read('README.md')
+  assert.equal(
+    readme.includes('home page at /en'),
+    hasTemplateLanguages && hasTheme
+  )
+  assert.equal(
+    readme.includes('content-language: en\n'),
+    hasTemplateLanguages && mode === 'server' && hasSeo
   )
   if (existsSync(path.join(dir, 'docs/i18n.md'))) {
-    assert.doesNotMatch(
-      read('docs/i18n.md'),
-      /preserve pt-BR, en-US and es-ES/u
+    const guide = read('docs/i18n.md')
+    assert.equal(
+      guide.includes('preserve pt-BR, en-US and es-ES'),
+      hasTemplateLanguages
     )
     assert.match(
-      read('docs/i18n.md'),
-      /same keys and parameters in every catalog/u
+      guide,
+      hasTemplateLanguages
+        ? /same set of keys and parameters in the three files/u
+        : /same keys and parameters in every catalog/u
     )
   }
   if (hasSeo) {
-    assert.doesNotMatch(read('docs/seo.md'), /three available locales/u)
+    assert.equal(
+      read('docs/seo.md').includes('three available locales'),
+      hasTemplateLanguages
+    )
   }
+}
+function checkGuideContent(profile: GuideProfile): void {
+  checkGuideLanguages(profile)
+  const { dir, mode, pm, hasSeo } = profile
+  const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
+  const readme = read('README.md')
   if (
     mode === 'client' &&
     existsSync(path.join(dir, 'src/constants/theme.ts'))
@@ -282,7 +313,6 @@ function checkGuideContent({ dir, mode, pm, hasSeo }: GuideProfile): void {
       convention
     )
   }
-  const readme = read('README.md')
   assert.ok(readme.includes(`${pm} install`))
   if (mode !== 'server') {
     for (const file of ['AGENTS.md', ...guideFiles(dir)]) {
@@ -381,7 +411,7 @@ export function testProfiles(
         observedEdits.add(change)
         assert.ok(approvedEdits.has(change), `Unreviewed guide edit: ${change}`)
       }
-      checkGuideContent({ dir, mode, pm, hasSeo })
+      checkGuideContent(profile)
       assert.match(read('package.json'), /"test:tooling":/u)
       assert.match(read('AGENTS.md'), /^## CSS classes$/mu)
       assert.match(read('AGENTS.md'), /^## Exports$/mu)

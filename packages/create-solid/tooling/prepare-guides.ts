@@ -68,32 +68,34 @@ export function prepareGuides({
       const { pm, ...options } = profile
       const profileKey = JSON.stringify(options)
       if (!isSerial && pm !== 'bun' && !readmeProfiles.has(profileKey)) continue
+      const collectGuides = (stage: string) => {
+        for (const file of ['AGENTS.md', ...guideFiles(stage)]) {
+          const content = readFileSync(path.join(stage, file), 'utf8')
+          const digest = guideDigest(content)
+          // Only the README varies by installer among the prepared guides.
+          if (
+            pm === 'bun' &&
+            'hasI18n' in options &&
+            file === 'README.md' &&
+            !bunReadmes.has(digest)
+          ) {
+            bunReadmes.add(digest)
+            readmeProfiles.add(profileKey)
+          }
+          if (file === 'AGENTS.md') {
+            prepared[digest] = content
+            continue
+          }
+          if (seen.has(digest)) continue
+          seen.set(digest, content)
+          writeFileSync(path.join(inputs, `${digest}.md`), content)
+        }
+      }
       generateSource({
         input: { dir, ...profile, shouldInitGit: false, shouldInstall: false },
         prepare: {
-          guides: stage => {
-            for (const file of ['AGENTS.md', ...guideFiles(stage)]) {
-              const content = readFileSync(path.join(stage, file), 'utf8')
-              const digest = guideDigest(content)
-              // Only the README varies by installer among the prepared guides.
-              if (
-                pm === 'bun' &&
-                'hasI18n' in options &&
-                file === 'README.md' &&
-                !bunReadmes.has(digest)
-              ) {
-                bunReadmes.add(digest)
-                readmeProfiles.add(profileKey)
-              }
-              if (file === 'AGENTS.md') {
-                prepared[digest] = content
-                continue
-              }
-              if (seen.has(digest)) continue
-              seen.set(digest, content)
-              writeFileSync(path.join(inputs, `${digest}.md`), content)
-            }
-          },
+          templateGuides: collectGuides,
+          guides: collectGuides,
           source: ({ stage, files }) => {
             for (const file of files ?? plainSourceFiles(stage)) {
               const original = readFileSync(file, 'utf8')
@@ -123,8 +125,8 @@ export function prepareGuides({
       { cwd: process.cwd() }
     )
     for (const key of seen.keys()) {
-      const output = readFileSync(path.join(inputs, `${key}.md`), 'utf8')
-      prepared[key] = output
+      const formatted = readFileSync(path.join(inputs, `${key}.md`), 'utf8')
+      prepared[key] = formatted
     }
     for (const [digest, { file, original }] of sources) {
       const content = readFileSync(file, 'utf8')

@@ -67,9 +67,15 @@ void it('rejects a locale helper missing the language menu import', t => {
   })
   context.write({
     file: 'src/tests/helpers/testLanguages/index.ts',
-    content: 'export {}\n'
+    content: readFileSync(
+      '../../apps/boilerplate/src/tests/helpers/testLanguages/index.ts',
+      'utf8'
+    ).replace(/^import \{ LOCALE_NAMES as names \}[^\n]+\n/mu, '')
   })
-  assert.throws(() => configureTestLabels(context), /Missing template edit/u)
+  assert.throws(
+    () => configureTestLabels(context),
+    /expected 1 matches of .*LOCALE_NAMES.*found 0/u
+  )
 })
 
 void it('rejects a changed SEO import before rewriting the app', t => {

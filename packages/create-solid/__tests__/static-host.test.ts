@@ -33,7 +33,7 @@ void it('serves published files and a missing error page with the host contract'
     'logo.png': 'image/png',
     'favicon.ico': 'image/x-icon'
   }
-  for (const name of ['index.html', ...Object.keys(mime)]) {
+  for (const name of ['index.html', 'extra.html', ...Object.keys(mime)]) {
     writeFileSync(path.join(root, name), name)
   }
   const hash = 'sha256-example'
@@ -91,6 +91,12 @@ await import('./serve.ts')
       assert.equal(response.headers.get('content-type'), type)
       assert.equal(await response.text(), '')
     }
+    const extra = await fetch(new URL('extra.html', origin))
+    assert.equal(await extra.text(), 'extra.html')
+    assert.equal(
+      extra.headers.get('content-security-policy'),
+      [...CSP_DIRECTIVES, "script-src 'self'"].join('; ')
+    )
     const post = await fetch(origin, { method: 'POST' })
     assert.equal(post.status, methodNotAllowed)
     assert.equal(post.headers.get('allow'), 'GET, HEAD')

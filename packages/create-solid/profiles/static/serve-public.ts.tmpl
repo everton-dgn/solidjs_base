@@ -62,8 +62,8 @@ async function serve(request: IncomingMessage, response: ServerResponse): Promis
       }
     }
     const hashes = pages[`/${path.relative(root, target)}`]
-    if (hashes) {
-      const scripts = ["'self'", ...hashes.map(hash => `'${hash}'`)].join(' ')
+    if (path.extname(target) === '.html') {
+      const scripts = ["'self'", ...(hashes ?? []).map(hash => `'${hash}'`)].join(' ')
       response.setHeader('Content-Security-Policy', [...CSP_DIRECTIVES, `script-src ${scripts}`].join('; '))
     }
     response.setHeader('Content-Type', types[path.extname(target)] ?? 'application/octet-stream')

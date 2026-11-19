@@ -132,6 +132,20 @@ void it('generates only the requested catalogs and identifies every seed', conte
       result.stdout.includes(`Translate the seeded messages for ${locale}.`)
     )
   }
+  const namesFile = path.join(
+    dir,
+    'src/components/molecules/LocaleSwitcher/names.json'
+  )
+  const names: unknown = JSON.parse(readFileSync(namesFile, 'utf8'))
+  assert.deepEqual(
+    names,
+    Object.fromEntries(
+      locales.map(locale => [
+        locale,
+        new Intl.DisplayNames([locale], { type: 'language' }).of(locale)
+      ])
+    )
+  )
   const folders = catalogFolders(dir)
   assert.ok(folders.length > 0)
   for (const folder of folders) {
@@ -148,4 +162,34 @@ void it('generates only the requested catalogs and identifies every seed', conte
   assert.match(message('pt-BR'), /Sobre Loja/u)
   assert.match(message('ja'), /About Loja/u)
   assert.equal(message('ja'), message('fr'))
+})
+
+void it('omits the language switcher and its unused menu in a one-language client', context => {
+  const root = mkdtempSync(path.join(tmpdir(), 'solid-single-language-'))
+  context.after(() => rmSync(root, { recursive: true, force: true }))
+  const dir = path.join(root, 'app')
+  const result = spawnSync(
+    process.execPath,
+    [
+      'src/create-solid.ts',
+      dir,
+      '--mode',
+      'client',
+      '--base-locale',
+      'zh-Hant-TW',
+      '--no-theme',
+      '--no-install',
+      '--no-git'
+    ],
+    { encoding: 'utf8' }
+  )
+  assert.equal(result.status, 0, result.stderr)
+  assert.ok(
+    !existsSync(path.join(dir, 'src/components/molecules/LocaleSwitcher'))
+  )
+  assert.ok(!existsSync(path.join(dir, 'src/components/atoms/DropdownMenu')))
+  assert.match(
+    readFileSync(path.join(dir, 'index.html'), 'utf8'),
+    /<html lang="zh-Hant-TW">/u
+  )
 })

@@ -989,16 +989,164 @@ diff --git a/source/src/Document.tsx b/example/src/Document.tsx
          <meta
            name="viewport"
            content="minimum-scale=1, initial-scale=1, width=device-width"
+diff --git a/source/src/components/atoms/LocalizedLink/__tests__/LocalizedLink.dom.test.tsx b/example/src/components/atoms/LocalizedLink/__tests__/LocalizedLink.dom.test.tsx
+--- a/source/src/components/atoms/LocalizedLink/__tests__/LocalizedLink.dom.test.tsx
++++ b/example/src/components/atoms/LocalizedLink/__tests__/LocalizedLink.dom.test.tsx
+@@ -1,4 +1,4 @@
+-import { getLocale } from '@paraglide/runtime.js'
++import { baseLocale, getLocale, locales } from '@paraglide/runtime.js'
+ import { createRouter, memoryHistory } from '@solidjs/router'
+ import { createSignal } from 'solid-js'
+ 
+@@ -6,22 +6,26 @@ import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
+ 
+ import { LocalizedLink } from '../index.tsx'
+ 
++const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
++
+ describe('localizedLink contracts', () => {
+   it('works outside a Router and reacts to href and locale changes', async () => {
+     const [href, setHref] = createSignal('/docs?q=1#section')
+     const host = renderComponent(
+       () => (
+-        <LocalizedLink href={href()} locale="pt">
++        <LocalizedLink href={href()} locale={alternate}>
+           Docs
+         </LocalizedLink>
+       ),
+       { hasProviders: false }
+     )
+     const anchor = host.querySelector('a')
+-    expect(anchor?.getAttribute('href')).toBe('/pt/docs?q=1#section')
+-    expect(anchor?.target).toBe('_self')
+-    setHref('/es/next')
+-    await expect.poll(() => anchor?.getAttribute('href')).toBe('/pt/next')
++    expect(anchor?.getAttribute('href')).toBe(`/${alternate}/docs?q=1#section`)
++    expect(anchor?.target).toBe(alternate === baseLocale ? '' : '_self')
++    setHref(`/${alternate}/next`)
++    await expect
++      .poll(() => anchor?.getAttribute('href'))
++      .toBe(`/${alternate}/next`)
+   })
+ 
+   it('leaves same-locale links available for SPA navigation', () => {
+@@ -79,20 +83,20 @@ describe('localizedLink contracts', () => {
+     const anchors = host.querySelectorAll('a')
+     expect(anchors[0]?.getAttribute('href')).toBe('/api/report')
+     expect(anchors[0]?.target).toBe('_self')
+-    expect(anchors[1]?.getAttribute('href')).toBe('/en/guide.pdf')
++    expect(anchors[1]?.getAttribute('href')).toBe(`/${baseLocale}/guide.pdf`)
+     expect(anchors[1]?.target).toBe('')
+     expect(anchors[2]?.getAttribute('href')).toBe('#section')
+   })
+ 
+   it('resolves relative hrefs with Router location and accepts typed paths', async () => {
+     const Router = createRouter({
+-      history: memoryHistory('/en/docs/start'),
++      history: memoryHistory(`/${baseLocale}/docs/start`),
+       routes: [
+         {
+-          path: '/en/docs/start',
++          path: `/${baseLocale}/docs/start`,
+           component: () => (
+             <>
+-              <LocalizedLink href="../next?q=1#part" locale="es">
++              <LocalizedLink href="../next?q=1#part" locale={alternate}>
+                 Next
+               </LocalizedLink>
+               <LocalizedLink href={Router.paths}>Home</LocalizedLink>
+@@ -107,7 +111,9 @@ describe('localizedLink contracts', () => {
+     )
+     await expect
+       .poll(() => host.querySelector('a')?.getAttribute('href'))
+-      .toBe('/es/next?q=1#part')
+-    expect(host.querySelectorAll('a')[1]?.getAttribute('href')).toBe('/en')
++      .toBe(`/${alternate}/next?q=1#part`)
++    expect(host.querySelectorAll('a')[1]?.getAttribute('href')).toBe(
++      `/${baseLocale}`
++    )
+   })
+ })
+diff --git a/source/src/components/molecules/LocaleSwitcher/__tests__/LocaleSwitcher.browser.test.tsx b/example/src/components/molecules/LocaleSwitcher/__tests__/LocaleSwitcher.browser.test.tsx
+--- a/source/src/components/molecules/LocaleSwitcher/__tests__/LocaleSwitcher.browser.test.tsx
++++ b/example/src/components/molecules/LocaleSwitcher/__tests__/LocaleSwitcher.browser.test.tsx
+@@ -1,3 +1,5 @@
++import { m } from '@paraglide/messages.js'
++import { baseLocale } from '@paraglide/runtime.js'
+ import { createRouter, memoryHistory } from '@solidjs/router'
+ import { page } from 'vite-plus/test/browser/context'
+ 
+@@ -5,11 +7,12 @@ import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
+ 
+ import '@/theme/globalStyles.css'
+ 
++import { LOCALE_NAMES } from '../constants.ts'
+ import { LocaleSwitcher } from '../index.tsx'
+ 
+ function mountSwitcher() {
+   const Router = createRouter({
+-    history: memoryHistory('/en'),
++    history: memoryHistory(`/${baseLocale}`),
+     routes: [{ path: '*all', component: LocaleSwitcher }]
+   })
+   return renderComponent(() => <Router>{props => props.children}</Router>, {
+@@ -20,12 +23,15 @@ function mountSwitcher() {
+ describe('locale switcher', () => {
+   it('includes the visible locale in the accessible name of the trigger', async () => {
+     mountSwitcher()
+-    const trigger = page.getByRole('button', { name: /select language/u })
+-    await expect.element(trigger).toHaveTextContent('EN')
+-    await expect.element(trigger).toHaveAccessibleName('EN, select language')
++    const code = baseLocale.toUpperCase()
++    const name = m.localeSwitcher_select({ code }, { locale: baseLocale })
++    const trigger = page.getByRole('button', { name })
++    await expect.element(trigger).toHaveTextContent(code)
++    await expect.element(trigger).toHaveAccessibleName(name)
+     await trigger.click()
++    const itemName = LOCALE_NAMES[baseLocale]
+     await expect
+-      .element(page.getByRole('menuitemradio', { name: 'English' }))
++      .element(page.getByRole('menuitemradio', { name: itemName }))
+       .toHaveAttribute('aria-checked', 'true')
+   })
+ })
+diff --git a/source/src/components/molecules/LocaleSwitcher/constants.ts b/example/src/components/molecules/LocaleSwitcher/constants.ts
+--- a/source/src/components/molecules/LocaleSwitcher/constants.ts
++++ b/example/src/components/molecules/LocaleSwitcher/constants.ts
+@@ -1,8 +1,5 @@
+ import type { Locale } from '@paraglide/runtime.js'
+ 
+-// Autonyms are not translated: each locale shows up in its own name.
+-export const LOCALE_NAMES: Readonly<Record<Locale, string>> = {
+-  pt: 'Português',
+-  en: 'English',
+-  es: 'Español'
+-}
++import names from './names.json'
++
++export const LOCALE_NAMES: Readonly<Record<Locale, string>> = names
+diff --git a/example/src/components/molecules/LocaleSwitcher/names.json b/example/src/components/molecules/LocaleSwitcher/names.json
+new file mode 100644
+--- /dev/null
++++ b/example/src/components/molecules/LocaleSwitcher/names.json
+@@ -0,0 +1,5 @@
++{
++  "pt": "português",
++  "en": "English",
++  "es": "español"
++}
 diff --git a/source/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx b/example/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx
 --- a/source/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx
 +++ b/example/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx
-@@ -1,5 +1,4 @@
+@@ -1,5 +1,6 @@
++import { baseLocale } from '@paraglide/runtime.js'
++
  import type { SitePage } from '@/@types/site-page.ts'
 -import { SITE } from '@/constants/site/index.ts'
  import { SITE_LINKS } from '@/constants/siteLinks/index.ts'
  import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
  
-@@ -13,8 +12,8 @@ describe('content of the institutional pages', () => {
+@@ -13,8 +14,8 @@ describe('content of the institutional pages', () => {
        sections: [],
        links: [
          ...SITE_LINKS.pages,
@@ -1009,12 +1157,20 @@ diff --git a/source/src/components/molecules/SiteContent/__tests__/SiteContent.d
        ]
      }
      const host = renderComponent(() => <SiteContent page={page} />, {
-@@ -29,8 +28,8 @@ describe('content of the institutional pages', () => {
-       '/en/about',
-       '/en/contact',
-       '/en/privacy',
+@@ -25,12 +26,12 @@ describe('content of the institutional pages', () => {
+         link.getAttribute('href')
+       )
+     ).toStrictEqual([
+-      '/en',
+-      '/en/about',
+-      '/en/contact',
+-      '/en/privacy',
 -      SITE.repositoryUrl,
 -      `${SITE.repositoryUrl}#readme`
++      `/${baseLocale}`,
++      `/${baseLocale}/about`,
++      `/${baseLocale}/contact`,
++      `/${baseLocale}/privacy`,
 +      'https://example.com',
 +      'https://example.com#readme'
      ])
@@ -1023,7 +1179,13 @@ diff --git a/source/src/components/molecules/SiteContent/__tests__/SiteContent.d
 diff --git a/source/src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx b/example/src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx
 --- a/source/src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx
 +++ b/example/src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx
-@@ -32,7 +32,7 @@ describe('failure metadata', () => {
+@@ -1,4 +1,5 @@
+ import { m } from '@paraglide/messages.js'
++import { baseLocale } from '@paraglide/runtime.js'
+ import { createSignal, Errored } from 'solid-js'
+ 
+ import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
+@@ -32,7 +33,7 @@ describe('failure metadata', () => {
        { hasProviders: false }
      )
      await expect.poll(() => readMeta('robots')).toBe('noindex')
@@ -1032,6 +1194,15 @@ diff --git a/source/src/components/organisms/ErrorFallback/__tests__/ErrorFallba
      expect(readMeta('description')).toBe(m.errorFallback_runtimeDescription())
      expect(host.querySelector('h1')).toHaveTextContent(
        m.errorFallback_runtimeTitle()
+@@ -79,7 +80,7 @@ describe('navigation after a failure', () => {
+     const home = host.querySelector<HTMLAnchorElement>('a')
+     assert(home)
+     expect(home.textContent).toBe('Back to home')
+-    expect(new URL(home.href).pathname).toBe('/en')
++    expect(new URL(home.href).pathname).toBe(`/${baseLocale}`)
+   })
+ 
+   it('replaces the icon when the variant changes and restores the previous icon', async () => {
 diff --git a/source/src/components/organisms/ErrorFallback/i18n/en.json b/example/src/components/organisms/ErrorFallback/i18n/en.json
 --- a/source/src/components/organisms/ErrorFallback/i18n/en.json
 +++ b/example/src/components/organisms/ErrorFallback/i18n/en.json
@@ -1190,6 +1361,269 @@ diff --git a/source/src/constants/site/title.ts b/example/src/constants/site/tit
 +    return 'SolidJS Boilerplate'
 +  }
  }
+diff --git a/source/src/i18n/__tests__/i18n.test-d.ts b/example/src/i18n/__tests__/i18n.test-d.ts
+--- a/source/src/i18n/__tests__/i18n.test-d.ts
++++ b/example/src/i18n/__tests__/i18n.test-d.ts
+@@ -1,9 +1,9 @@
+ import { m } from '@paraglide/messages.js'
+-import type { Locale } from '@paraglide/runtime.js'
++import { baseLocale, type Locale } from '@paraglide/runtime.js'
+ 
+ describe('generated message types', () => {
+   it('checks message IDs, parameters and locales at compile time', () => {
+-    const locale: Locale = 'es'
++    const locale: Locale = baseLocale
+     m.home_description(
+       { framework: 'SolidJS', toolchain: 'Vite+', language: 'TypeScript' },
+       { locale }
+@@ -12,6 +12,6 @@ describe('generated message types', () => {
+     m.home_description({ framework: 'SolidJS' })
+     expectTypeOf<keyof typeof m>().extract<'home_missing'>().toBeNever()
+     // @ts-expect-error Only the configured locales are accepted.
+-    m.home_title({}, { locale: 'fr' })
++    m.home_title({}, { locale: 'invalid_locale' })
+   })
+ })
+diff --git a/source/src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts b/example/src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts
+--- a/source/src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts
++++ b/example/src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts
+@@ -1,3 +1,4 @@
++import { baseLocale, locales } from '@paraglide/runtime.js'
+ import { createRequestEvent } from '@solidjs/web'
+ import { provideRequestEvent } from '@solidjs/web/storage'
+ 
+@@ -13,6 +14,8 @@ const HTTP_NOT_FOUND = 404
+ const HTTP_NOT_ACCEPTABLE = 406
+ const ORIGIN = 'https://example.com'
+ 
++const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
++
+ type RequestOptions = { path: string; method?: string }
+ 
+ vi.mock(import('filesystem-routing/api'), async importOriginal => {
+@@ -31,7 +34,7 @@ function request({ path, method = 'GET' }: RequestOptions) {
+   return createRequestEvent(
+     new Request(new URL(path, ORIGIN), {
+       method,
+-      headers: { accept: 'application/json', 'accept-language': 'es' }
++      headers: { accept: 'application/json', 'accept-language': alternate }
+     })
+   )
+ }
+@@ -61,8 +64,8 @@ describe('markdown request protocol boundaries', () => {
+         middleware(initial, render)
+       )
+       expect(redirect.status).toBe(HTTP_REDIRECT)
+-      expect(redirect.headers.get('location')).toBe(`${ORIGIN}/es`)
+-      const localized = request({ path: '/es', method })
++      expect(redirect.headers.get('location')).toBe(`${ORIGIN}/${alternate}`)
++      const localized = request({ path: `/${alternate}`, method })
+       const response = await provideRequestEvent(localized, () =>
+         middleware(localized, render)
+       )
+@@ -71,7 +74,7 @@ describe('markdown request protocol boundaries', () => {
+         ...Object.fromEntries(response.headers)
+       }).toMatchObject({
+         status: HTTP_NOT_ACCEPTABLE,
+-        'content-language': 'es',
++        'content-language': alternate,
+         'cache-control': 'private, no-store'
+       })
+       await expect(response.text()).resolves.toBe(
+diff --git a/source/src/primitives/createOutdatedPageGuard/__tests__/createOutdatedPageGuard.dom.test.tsx b/example/src/primitives/createOutdatedPageGuard/__tests__/createOutdatedPageGuard.dom.test.tsx
+--- a/source/src/primitives/createOutdatedPageGuard/__tests__/createOutdatedPageGuard.dom.test.tsx
++++ b/example/src/primitives/createOutdatedPageGuard/__tests__/createOutdatedPageGuard.dom.test.tsx
+@@ -1,3 +1,4 @@
++import { baseLocale, locales } from '@paraglide/runtime.js'
+ import {
+   createRouter,
+   memoryHistory,
+@@ -64,7 +65,7 @@ function spyDocumentNavigation(): DocumentNavigation {
+ }
+ 
+ async function renderGuardedRouter({
+-  history = memoryHistory('/en/start'),
++  history = memoryHistory(`/${baseLocale}/start`),
+   shouldCancelFirst = false,
+   onPageLeave
+ }: GuardedRouterOptions = {}): Promise<GuardedRouter> {
+@@ -96,7 +97,7 @@ async function renderGuardedRouter({
+     ),
+     { hasProviders: false }
+   )
+-  await expect.poll(() => host.textContent).toBe('/en/start')
++  await expect.poll(() => host.textContent).toBe(`/${baseLocale}/start`)
+   return {
+     host,
+     navigate: () => {
+@@ -109,18 +110,20 @@ async function renderGuardedRouter({
+ // The mark lasts until the next document load and does not go back in the
+ // module. The case of the tab that is still current is in
+ // createOutdatedPageGuard.initial.dom.test.tsx, which loads the module isolated.
++const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
++
+ describe('outdated page guard', () => {
+   beforeEach(markPageOutdated)
+ 
+   it('turns into a document navigation the navigation that changes the path', async () => {
+     const { assign } = spyDocumentNavigation()
+     const { host, navigate } = await renderGuardedRouter()
+-    navigate()('/en/other?q=1#part')
++    navigate()(`/${baseLocale}/other?q=1#part`)
+     flush()
+     expect(assign).toHaveBeenCalledWith(
+-      `${globalThis.location.origin}/en/other?q=1#part`
++      `${globalThis.location.origin}/${baseLocale}/other?q=1#part`
+     )
+-    expect(host.textContent).toBe('/en/start')
++    expect(host.textContent).toBe(`/${baseLocale}/start`)
+   })
+ 
+   it('respects the cancellation of an earlier guard', async () => {
+@@ -128,9 +131,9 @@ describe('outdated page guard', () => {
+     const { host, navigate } = await renderGuardedRouter({
+       shouldCancelFirst: true
+     })
+-    navigate()('/en/other')
++    navigate()(`/${baseLocale}/other`)
+     flush()
+-    expect(host.textContent).toBe('/en/start')
++    expect(host.textContent).toBe(`/${baseLocale}/start`)
+     expect(assign).not.toHaveBeenCalled()
+     expect(replace).not.toHaveBeenCalled()
+   })
+@@ -146,8 +149,8 @@ describe('outdated page guard', () => {
+         wasPrevented = event.defaultPrevented
+       }
+     })
+-    navigate()('/en/other')
+-    await expect.poll(() => host.textContent).toBe('/en/other')
++    navigate()(`/${baseLocale}/other`)
++    await expect.poll(() => host.textContent).toBe(`/${baseLocale}/other`)
+     expect(wasPrevented).toBe(false)
+     expect(assign).not.toHaveBeenCalled()
+   })
+@@ -157,8 +160,8 @@ describe('outdated page guard', () => {
+     onTestFinished(registerUnsavedChanges(() => false))
+     onTestFinished(registerUnsavedChanges(() => true))
+     const { host, navigate } = await renderGuardedRouter()
+-    navigate()('/en/other')
+-    await expect.poll(() => host.textContent).toBe('/en/other')
++    navigate()(`/${baseLocale}/other`)
++    await expect.poll(() => host.textContent).toBe(`/${baseLocale}/other`)
+     expect(assign).not.toHaveBeenCalled()
+   })
+ 
+@@ -168,8 +171,8 @@ describe('outdated page guard', () => {
+     onTestFinished(registerUnsavedChanges(hasDraft))
+     removeFirst()
+     const { host, navigate } = await renderGuardedRouter()
+-    navigate()('/en/other')
+-    await expect.poll(() => host.textContent).toBe('/en/other')
++    navigate()(`/${baseLocale}/other`)
++    await expect.poll(() => host.textContent).toBe(`/${baseLocale}/other`)
+     expect(assign).not.toHaveBeenCalled()
+   })
+ 
+@@ -178,28 +181,32 @@ describe('outdated page guard', () => {
+     const removeCheck = registerUnsavedChanges(() => true)
+     removeCheck()
+     const { navigate } = await renderGuardedRouter()
+-    navigate()('/en/other')
++    navigate()(`/${baseLocale}/other`)
+     flush()
+     expect(assign).toHaveBeenCalledWith(
+-      `${globalThis.location.origin}/en/other`
++      `${globalThis.location.origin}/${baseLocale}/other`
+     )
+   })
+ 
+   it('keeps replace in the document navigation', async () => {
+     const { assign, replace } = spyDocumentNavigation()
+     const { navigate } = await renderGuardedRouter()
+-    navigate()('/en/other', { replace: true })
++    navigate()(`/${baseLocale}/other`, { replace: true })
+     flush()
+     expect(replace).toHaveBeenCalledWith(
+-      `${globalThis.location.origin}/en/other`
++      `${globalThis.location.origin}/${baseLocale}/other`
+     )
+     expect(assign).not.toHaveBeenCalled()
+   })
+ 
+   it.each([
+-    ['the query', '/en/start?q=1', '/en/start?q=1'],
+-    ['the hash', '/en/start#part', '/en/start'],
+-    ['the locale of the same path', '/pt/start', '/pt/start']
++    ['the query', `/${baseLocale}/start?q=1`, `/${baseLocale}/start?q=1`],
++    ['the hash', `/${baseLocale}/start#part`, `/${baseLocale}/start`],
++    [
++      'the locale of the same path',
++      `/${alternate}/start`,
++      `/${alternate}/start`
++    ]
+   ])(
+     'leaves on the client a change of only %s',
+     async (_change, href, rendered) => {
+@@ -214,12 +221,12 @@ describe('outdated page guard', () => {
+ 
+   it('leaves on the client going back between entries of the same document', async () => {
+     const { assign, replace } = spyDocumentNavigation()
+-    const history = memoryHistory('/en/start')
++    const history = memoryHistory(`/${baseLocale}/start`)
+     const { host, navigate } = await renderGuardedRouter({ history })
+-    navigate()('/en/start?q=1')
+-    await expect.poll(() => host.textContent).toBe('/en/start?q=1')
++    navigate()(`/${baseLocale}/start?q=1`)
++    await expect.poll(() => host.textContent).toBe(`/${baseLocale}/start?q=1`)
+     history.back()
+-    await expect.poll(() => host.textContent).toBe('/en/start')
++    await expect.poll(() => host.textContent).toBe(`/${baseLocale}/start`)
+     expect(assign).not.toHaveBeenCalled()
+     expect(replace).not.toHaveBeenCalled()
+   })
+@@ -228,8 +235,8 @@ describe('outdated page guard', () => {
+     vi.spyOn(globalThis.navigator, 'onLine', 'get').mockReturnValue(false)
+     const { assign } = spyDocumentNavigation()
+     const { host, navigate } = await renderGuardedRouter()
+-    navigate()('/en/next')
+-    await expect.poll(() => host.textContent).toBe('/en/next')
++    navigate()(`/${baseLocale}/next`)
++    await expect.poll(() => host.textContent).toBe(`/${baseLocale}/next`)
+     expect(assign).not.toHaveBeenCalled()
+   })
+ })
+diff --git a/source/src/primitives/createOutdatedPageGuard/__tests__/createOutdatedPageGuard.initial.dom.test.tsx b/example/src/primitives/createOutdatedPageGuard/__tests__/createOutdatedPageGuard.initial.dom.test.tsx
+--- a/source/src/primitives/createOutdatedPageGuard/__tests__/createOutdatedPageGuard.initial.dom.test.tsx
++++ b/example/src/primitives/createOutdatedPageGuard/__tests__/createOutdatedPageGuard.initial.dom.test.tsx
+@@ -1,3 +1,4 @@
++import { baseLocale } from '@paraglide/runtime.js'
+ import {
+   createRouter,
+   memoryHistory,
+@@ -27,7 +28,7 @@ describe('guard of a page that is still current', () => {
+       return <output>{location.pathname}</output>
+     }
+     const Router = createRouter({
+-      history: memoryHistory('/en/start'),
++      history: memoryHistory(`/${baseLocale}/start`),
+       routes: [{ path: '*all', component: Page }]
+     })
+     const host = renderComponent(
+@@ -41,10 +42,10 @@ describe('guard of a page that is still current', () => {
+       ),
+       { hasProviders: false }
+     )
+-    await expect.poll(() => host.textContent).toBe('/en/start')
++    await expect.poll(() => host.textContent).toBe(`/${baseLocale}/start`)
+     assert(navigate)
+-    navigate('/en/next')
+-    await expect.poll(() => host.textContent).toBe('/en/next')
++    navigate(`/${baseLocale}/next`)
++    await expect.poll(() => host.textContent).toBe(`/${baseLocale}/next`)
+     expect(assign).not.toHaveBeenCalled()
+   })
+ })
 diff --git a/source/src/primitives/createSeo/index.ts b/example/src/primitives/createSeo/index.ts
 --- a/source/src/primitives/createSeo/index.ts
 +++ b/example/src/primitives/createSeo/index.ts
@@ -1528,6 +1962,63 @@ diff --git a/source/src/routes/(base)/privacy/seo.ts b/example/src/routes/(base)
 +  title: m.privacy_pageTitle,
    description: m.privacy_description
  } satisfies SeoRouteInfo
+diff --git a/source/src/routes/(seo)/llms.txt/__tests__/llms.txt.node.test.ts b/example/src/routes/(seo)/llms.txt/__tests__/llms.txt.node.test.ts
+--- a/source/src/routes/(seo)/llms.txt/__tests__/llms.txt.node.test.ts
++++ b/example/src/routes/(seo)/llms.txt/__tests__/llms.txt.node.test.ts
+@@ -1,35 +1,41 @@
+ import { m } from '@paraglide/messages.js'
+-import { baseLocale, getLocale } from '@paraglide/runtime.js'
++import { baseLocale, getLocale, locales } from '@paraglide/runtime.js'
+ import { paraglideMiddleware } from '@paraglide/server.js'
+ 
+ import { SITE_CACHE_CONTROL } from '@/constants/cache.ts'
+ 
+ import { GET } from '../index.ts'
+ 
+-const BASE_DESCRIPTION = m.site_description({}, { locale: 'en' })
+-const PORTUGUESE_DESCRIPTION = m.site_description({}, { locale: 'pt' })
++const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale
++
++const BASE_DESCRIPTION = m.site_description({}, { locale: baseLocale })
++const alternateDescription = m.site_description({}, { locale: alternate })
+ const INDEX_LANGUAGE =
+   new Intl.DisplayNames(['en'], { type: 'language' }).of(baseLocale) ??
+   baseLocale
+ 
+-// Context of a request in Portuguese, like the one of a localized page.
+-function inPortuguese(read: () => Promise<Response>): Promise<Response> {
+-  return paraglideMiddleware(new Request('https://example.com/pt/'), () => {
+-    expect(getLocale()).toBe('pt')
+-    return read()
+-  })
++function inLocaleContext(read: () => Promise<Response>): Promise<Response> {
++  return paraglideMiddleware(
++    new Request(`https://example.com/${alternate}/`),
++    () => {
++      expect(getLocale()).toBe(alternate)
++      return read()
++    }
++  )
+ }
+ 
+ describe('llms.txt route', () => {
+-  it('publishes the same index inside and outside a Portuguese context', async () => {
++  it('publishes the same index inside and outside a localized request context', async () => {
+     const baseResponse = await GET()
+     const base = await baseResponse.text()
+ 
+-    const response = await inPortuguese(() => GET())
++    const response = await inLocaleContext(() => GET())
+ 
+     await expect(response.text()).resolves.toBe(base)
+     expect(base).toContain(BASE_DESCRIPTION)
+-    expect(base).not.toContain(PORTUGUESE_DESCRIPTION)
++    expect(base.includes(alternateDescription)).toBe(
++      alternateDescription === BASE_DESCRIPTION
++    )
+     expect(response.headers.get('content-type')).toBe(
+       'text/markdown; charset=utf-8'
+     )
 diff --git a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts b/example/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
 --- a/source/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
 +++ b/example/src/tests/pages/AgentReadiness/AgentReadiness.content.production.e2e.test.ts
@@ -1710,7 +2201,47 @@ diff --git a/source/src/tests/pages/Hydration/Hydration.preload.e2e.test.ts b/ex
 diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pages/I18n/I18n.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.e2e.test.ts
-@@ -23,7 +23,7 @@ test.describe('without JavaScript', () => {
+@@ -1,16 +1,31 @@
++import { readFileSync } from 'node:fs'
++
+ import { expect, test } from '@playwright/test'
++import { array, object, parse, string } from 'valibot'
+ 
+-import english from '@/components/organisms/ErrorFallback/i18n/en.json' with { type: 'json' }
+-import spanish from '@/components/organisms/ErrorFallback/i18n/es.json' with { type: 'json' }
+-import portuguese from '@/components/organisms/ErrorFallback/i18n/pt.json' with { type: 'json' }
+ import { SITE } from '@/constants/site/title.ts'
+ 
+ const HTTP_INTERNAL_SERVER_ERROR = 500
+-const LANGUAGES = [
+-  { locale: 'pt', messages: portuguese },
+-  { locale: 'en', messages: english },
+-  { locale: 'es', messages: spanish }
+-]
++const settingsSchema = object({
++  baseLocale: string(),
++  locales: array(string())
++})
++const settings = parse(
++  settingsSchema,
++  JSON.parse(readFileSync('project.inlang/settings.json', 'utf8'))
++)
++const schema = object({
++  errorFallback_runtimeTitle: string(),
++  errorFallback_runtimeDescription: string()
++})
++
++const LANGUAGES = settings.locales.map(locale => {
++  const source = readFileSync(
++    `src/components/organisms/ErrorFallback/i18n/${locale}.json`,
++    'utf8'
++  )
++  return { locale, messages: parse(schema, JSON.parse(source)) }
++})
+ 
+ test.describe('without JavaScript', () => {
+   test.use({ javaScriptEnabled: false })
+@@ -23,7 +38,7 @@ test.describe('without JavaScript', () => {
          `/${locale}/outside-error?case=render-root&id=${crypto.randomUUID()}`
        )
        expect(response?.status()).toBe(HTTP_INTERNAL_SERVER_ERROR)
@@ -1719,7 +2250,7 @@ diff --git a/source/src/tests/pages/I18n/I18n.e2e.test.ts b/example/src/tests/pa
        await expect(
          page.locator('head meta[name="description"]')
        ).toHaveAttribute('content', messages.errorFallback_runtimeDescription)
-@@ -54,7 +54,7 @@ test('a server function keeps the page locale when the cookie disagrees', async
+@@ -54,7 +69,7 @@ test('a server function keeps the page locale when the cookie disagrees', async
    await page.getByRole('button', { name: 'Read server locale' }).focus()
    await page.keyboard.press('Enter')
    await expect(
@@ -1856,7 +2387,55 @@ diff --git a/source/src/tests/pages/I18n/I18n.redirect.e2e.test.ts b/example/src
 diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
 --- a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
 +++ b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
-@@ -120,27 +120,8 @@ for (const { locale, tag, messages } of LANGUAGES) {
+@@ -1,24 +1,38 @@
++import { readFileSync } from 'node:fs'
++
+ import { expect, test } from '@playwright/test'
++import { array, object, parse, string } from 'valibot'
+ 
+-import english from '@/constants/site/i18n/en.json' with { type: 'json' }
+-import spanish from '@/constants/site/i18n/es.json' with { type: 'json' }
+-import portuguese from '@/constants/site/i18n/pt.json' with { type: 'json' }
++import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.ts'
+ import { parseStructuredData } from '@/tests/helpers/parseStructuredData/index.ts'
+ import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
+ 
+ const HTTP_OK = 200
+ const HTTP_NOT_FOUND = 404
+ const PAGE_PATHS = ['', '/about', '/contact', '/privacy']
+-const LANGUAGES = [
+-  { locale: 'pt', tag: 'pt-BR', messages: portuguese },
+-  { locale: 'en', tag: 'en-US', messages: english },
+-  { locale: 'es', tag: 'es-ES', messages: spanish }
+-]
++const settingsSchema = object({
++  baseLocale: string(),
++  locales: array(string())
++})
++const settings = parse(
++  settingsSchema,
++  JSON.parse(readFileSync('project.inlang/settings.json', 'utf8'))
++)
++const schema = object({ site_description: string(), site_imageAlt: string() })
++const tags: Readonly<Record<string, string>> = LOCALE_TAG_OVERRIDES
++const LANGUAGES = settings.locales.map(locale => {
++  const source = readFileSync(`src/constants/site/i18n/${locale}.json`, 'utf8')
++  return {
++    locale,
++    tag: tags[locale] ?? locale,
++    messages: parse(schema, JSON.parse(source))
++  }
++})
+ const ALTERNATES = Object.fromEntries<string>([
+   ...LANGUAGES.map(
+     ({ locale }) => [locale, `${readSiteOrigin()}/${locale}`] as const
+   ),
+-  ['x-default', `${readSiteOrigin()}/en`]
++  ['x-default', `${readSiteOrigin()}/${settings.baseLocale}`]
+ ])
+ 
+ type SitemapRecord = { loc: string; alternates: Record<string, string> }
+@@ -120,27 +134,8 @@ for (const { locale, tag, messages } of LANGUAGES) {
          inLanguage: LANGUAGES.map(language => language.tag)
        })
      )

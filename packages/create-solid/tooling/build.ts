@@ -33,6 +33,7 @@ import { manifestSchema } from '../src/schema.ts'
 import { buildProfiles } from './build-profiles.ts'
 import { checkImports } from './check-imports.ts'
 import { prepareGuides } from './prepare-guides.ts'
+import { prepareLocaleTests } from './prepare-locale-tests.ts'
 import { prepareTitleTests } from './prepare-title-tests.ts'
 
 const root = path.resolve(import.meta.dirname, '../../..')
@@ -47,6 +48,8 @@ const files = execFileSync('git', ['ls-files', '-z'], {
   .filter(Boolean)
 const feature = picklist([
   'core',
+  'dropdown-menu',
+  'locale-switcher',
   'fonts',
   'i18n',
   'icons',
@@ -170,6 +173,7 @@ writeFileSync(
   `export default ${JSON.stringify({ fmt })}\n`
 )
 prepareTitleTests()
+prepareLocaleTests()
 const patchTest = 'tooling/__tests__/patched-dependencies.test.ts'
 for (const pm of ['bun', 'npm', 'pnpm'] as const) {
   const dir = path.resolve('dist/profiles', pm)

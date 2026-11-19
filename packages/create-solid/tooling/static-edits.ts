@@ -2,18 +2,19 @@ import type { FileEdits } from './profile-edits.ts'
 
 export const staticEdits: FileEdits = {
   'src/middleware/markdownContent/__tests__/markdownContent.protocol.node.test.ts':
-    [[/\/es`/u, '/en`']],
+    [[/ORIGIN\}\/\$\{alternate\}/u, `ORIGIN}/\${baseLocale}`]],
   'src/tests/setup/browser/__tests__/browser.browser.test.ts': [
-    [/baseLocale, getLocale, setLocale/u, 'baseLocale, getLocale'],
+    [/baseLocale, getLocale, setLocale/u, 'baseLocale, getLocale, locales'],
     [
       /beforeAll\(\(\) => setLocale\('pt', \{ reload: false \}\)\)/u,
-      "const original = location.href\n  afterEach(() => history.replaceState(null, '', original))"
+      "const alternate = locales.find(locale => locale !== baseLocale) ?? baseLocale\n  const original = location.href\n  afterEach(() => history.replaceState(null, '', original))"
     ],
     [/ {2}afterAll\([^\n]+\n\n/u, ''],
     [
       /void setLocale\('es', \{ reload: false \}\)/u,
-      "history.replaceState(null, '', '/es')"
+      `history.replaceState(null, '', \`/\${alternate}\`)`
     ],
+    [/toBe\('es'\)/u, 'toBe(alternate)'],
     [
       /starts in the base locale even with an earlier preference/u,
       'reads the locale from the current URL'

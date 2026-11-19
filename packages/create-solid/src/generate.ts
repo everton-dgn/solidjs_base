@@ -30,6 +30,7 @@ import { configureFileHostGuides } from './configureFileHostGuides/index.ts'
 import { configureFonts } from './configureFonts/index.ts'
 import { readLocaleSettings } from './configureLocales/catalogs.ts'
 import { configureLocales } from './configureLocales/index.ts'
+import { configureLocaleUi } from './configureLocaleUi/index.ts'
 import { configurePageTitles } from './configurePageTitles/index.ts'
 import { configureSeo } from './configureSeo/index.ts'
 import { configureSiteIdentity } from './configureSiteIdentity/index.ts'
@@ -377,6 +378,7 @@ export function generateSource(
     configureFonts({ stage, hasFonts: profile.hasFonts })
     configureSeo(context)
     configureClient(context)
+    configureLocaleUi(context)
     configureFileHostGuides(context)
     configureStandaloneGuides(context)
     mkdirSync(path.join(stage, 'src/tests/pages/Home'), { recursive: true })

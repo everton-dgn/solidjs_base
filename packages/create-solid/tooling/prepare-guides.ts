@@ -47,7 +47,12 @@ function* guideProfiles() {
   }
 }
 
-export function prepareGuides(): void {
+type Preparation = { isSerial?: boolean; output?: string }
+
+export function prepareGuides({
+  isSerial = false,
+  output = 'dist'
+}: Preparation = {}): void {
   const sandbox = mkdtempSync(path.join(tmpdir(), 'solid-guide-variants-'))
   const dir = path.join(sandbox, 'application')
   const inputs = path.join(sandbox, 'inputs')
@@ -62,7 +67,7 @@ export function prepareGuides(): void {
     for (const profile of guideProfiles()) {
       const { pm, ...options } = profile
       const profileKey = JSON.stringify(options)
-      if (pm !== 'bun' && !readmeProfiles.has(profileKey)) continue
+      if (!isSerial && pm !== 'bun' && !readmeProfiles.has(profileKey)) continue
       generateSource({
         input: { dir, ...profile, shouldInitGit: false, shouldInstall: false },
         prepare: {
@@ -127,8 +132,14 @@ export function prepareGuides(): void {
         formattedSource[digest] = content
       }
     }
-    writeFileSync('dist/prepared-source.json', JSON.stringify(formattedSource))
-    writeFileSync('dist/prepared-guides.json', JSON.stringify(prepared))
+    writeFileSync(
+      path.join(output, 'prepared-source.json'),
+      JSON.stringify(formattedSource)
+    )
+    writeFileSync(
+      path.join(output, 'prepared-guides.json'),
+      JSON.stringify(prepared)
+    )
   } finally {
     rmSync(sandbox, { recursive: true, force: true })
   }

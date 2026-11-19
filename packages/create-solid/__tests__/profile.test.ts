@@ -3,11 +3,13 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import {
   readdirSync,
   statSync,
+  symlinkSync,
   existsSync,
   mkdtempSync,
   readFileSync,
   rmSync
 } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 import { after, before, describe, it } from 'node:test'
@@ -25,9 +27,8 @@ const source = manifest('../../apps/boilerplate/package.json')
 const tooling = manifest('../solid-tooling/package.json')
 for (const pm of ['bun', 'pnpm', 'npm']) {
   await describe(pm, () => {
-    const dir = mkdtempSync(
-      path.resolve('../../apps/boilerplate/solid-profile-')
-    )
+    const parent = mkdtempSync(path.join(tmpdir(), 'solid-profile-'))
+    const dir = path.join(parent, 'application')
     const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
     before(() => {
       execFileSync(process.execPath, [
@@ -37,9 +38,14 @@ for (const pm of ['bun', 'pnpm', 'npm']) {
         '--no-git',
         ...(pm === 'bun' ? [] : ['--pm', pm])
       ])
+      symlinkSync(
+        path.resolve('../../apps/boilerplate/node_modules'),
+        path.join(parent, 'node_modules'),
+        'dir'
+      )
     })
     after(() => {
-      rmSync(dir, { recursive: true, force: true })
+      rmSync(parent, { recursive: true, force: true })
     })
     void it('passes the pinned formatter before installation', () => {
       execFileSync(

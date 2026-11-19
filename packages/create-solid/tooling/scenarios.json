@@ -55,6 +55,13 @@
   {
     "name": "server-without-ui-features",
     "pm": "npm",
-    "flags": ["--no-seo", "--no-theme", "--no-fonts", "--no-icons"]
+    "flags": [
+      "--no-seo",
+      "--no-theme",
+      "--no-fonts",
+      "--no-icons",
+      "--locales",
+      "pt-BR"
+    ]
   }
 ]

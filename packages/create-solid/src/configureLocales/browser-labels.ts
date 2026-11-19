@@ -17,6 +17,18 @@ export function configureTestLabels({
     text = editTemplate({ file, text, pattern, replacement })
   }
   if (readLocaleSettings(stage).locales.length === 1) {
+    edit(
+      /const third =\s*locales\.find\(locale => locale !== base && locale !== alternate\) \?\? alternate/u,
+      'const third = alternate'
+    )
+    edit(
+      /const other = \(locale: Locale\) =>\s*locales\.find\(candidate => candidate !== locale\) \?\? locale/u,
+      'const other = (locale: Locale) => locale'
+    )
+    edit(
+      'const entries = [base, ...locales.filter(locale => locale !== base)]',
+      'const entries = [base]'
+    )
     edit(/^import \{ LOCALE_NAMES as names \}[^\n]+\n/mu, '')
     edit('name: names[locale]', 'name: locale')
     edit(

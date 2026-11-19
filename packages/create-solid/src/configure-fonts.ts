@@ -58,6 +58,6 @@ export function configureFonts(stage: string, fonts?: boolean): void {
   ])
   edit(path.join(stage, 'README.md'), [
     [/^\| Env, icons, fonts [^\n]*/mu, fontFreeRow(stage)],
-    [/CSS rules, icons and fonts/u, 'CSS rules and icons      ']
+    [/CSS rules, icons and fonts/u, 'CSS rules and icons       ']
   ])
 }

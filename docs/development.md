@@ -106,16 +106,17 @@ Run them from the root. Package commands select `./packages/*`. The release
 verification job runs `vp run validate`, including installed tooling fixtures.
 The full boilerplate application suites remain separate.
 
-| Command                 | What it does                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------- |
-| `vp run build`          | Compile the packages to `dist/`                                                                   |
-| `vp run check`          | Check format, lint and types at the root, then lint the runtime package in its folder             |
-| `vp run dead-code`      | Find unused files, exports and dependencies of the runtime and icons packages with Knip           |
-| `vp run test`           | Run the rule tests with `node:test`, the runtime and icons plugin tests and `vp run test:release` |
-| `vp run test:release`   | Run the tests of the release commands in `tooling/release/` with `node:test`                      |
-| `vp run test:tarball`   | Check installed tarballs and compare generated profiles with the tracked app                      |
-| `vp run test:scenarios` | Exercise installed fixtures with both Bun linkers and run generated app scenarios                 |
-| `vp run validate`       | Validate published packages, workspace consistency and installed tooling fixtures                 |
+| Command                     | What it does                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `vp run build`              | Compile the packages to `dist/`                                                                        |
+| `vp run check`              | Check format, lint and types at the root, then lint the runtime package in its folder                  |
+| `vp run dead-code`          | Find unused files, exports and dependencies of the runtime and icons packages with Knip                |
+| `vp run test`               | Run the rule tests with `node:test`, the runtime and icons plugin tests and `vp run test:release`      |
+| `vp run test:release`       | Run the tests of the release commands in `tooling/release/` with `node:test`                           |
+| `vp run test:tarball`       | Check installed tarballs and compare generated profiles with the tracked app                           |
+| `vp run test:scenarios`     | Exercise installed fixtures with both Bun linkers and run generated app scenarios                      |
+| `vp run validate`           | Validate published packages, workspace consistency and installed tooling fixtures                      |
+| `vp run validate:generator` | Build generator prerequisites, run the workspace check, test each profile and compare packed templates |
 
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so
 `vp run test` builds the package first. The runtime tests run in the Vitest of

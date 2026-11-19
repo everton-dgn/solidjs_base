@@ -94,7 +94,11 @@ export function guideProblems(dir: string): string[] {
     const content = readFileSync(source, 'utf8')
     for (const match of content.matchAll(/\bvp run (?<task>[a-z][\w:-]*)/gu)) {
       const task = match.groups?.task
-      if (task && !Object.hasOwn(pkg.scripts, task) && !Object.hasOwn(tasks, task)) {
+      if (
+        task &&
+        !Object.hasOwn(pkg.scripts, task) &&
+        !Object.hasOwn(tasks, task)
+      ) {
         problems.add(`${file}: task ${task}`)
       }
     }

@@ -348,5 +348,32 @@
     "tsconfig.node.json": "core",
     "vercel.json": "core",
     "vite.config.ts": "core"
+  },
+  "sharedFiles": {
+    "diagnostics": ["package.json", "docs/development.md"],
+    "fonts": [
+      "vite.config.ts",
+      "src/Document.tsx",
+      "src/theme/tokens/fonts.css",
+      "AGENTS.md",
+      "docs/ui.md",
+      "docs/security.md",
+      "README.md"
+    ]
+  },
+  "forbiddenTerms": {
+    "diagnostics": [
+      "@solidjs/diagnostics",
+      "/__solid/diagnostics",
+      "reactivity-diagnostics/SKILL.md"
+    ],
+    "fonts": [
+      "solid-fonts-",
+      "@fontsource-variable/inter",
+      "inter-latin",
+      "FontLinks",
+      "Inter subsets",
+      "./fonts.ts"
+    ]
   }
 }

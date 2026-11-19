@@ -12,8 +12,33 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { it } from 'node:test'
 
+import { array, object, parse, string } from 'valibot'
+
 import { generate } from '../src/generate.ts'
 
+function checkForbiddenTerms(dir: string, terms: string[]): void {
+  if (terms.length === 0) return
+  for (const file of readdirSync(dir, {
+    recursive: true,
+    withFileTypes: true
+  })) {
+    if (!file.isFile()) continue
+    const target = path.join(file.parentPath, file.name)
+    const content = readFileSync(target, 'utf8')
+    for (const term of terms) {
+      assert.ok(!content.includes(term), `${target} mentions ${term}`)
+    }
+  }
+}
+
+const terms = array(string())
+const inventorySchema = object({
+  forbiddenTerms: object({ fonts: terms, diagnostics: terms })
+})
+const inventory = parse(
+  inventorySchema,
+  JSON.parse(readFileSync('features.json', 'utf8'))
+)
 for (const pm of ['bun', 'npm', 'pnpm'] as const) {
   for (const diagnostics of [true, false]) {
     for (const fonts of [true, false]) {
@@ -43,6 +68,10 @@ for (const pm of ['bun', 'npm', 'pnpm'] as const) {
           read('docs/development.md').includes('/__solid/diagnostics'),
           diagnostics
         )
+        checkForbiddenTerms(dir, [
+          ...(fonts ? [] : inventory.forbiddenTerms.fonts),
+          ...(diagnostics ? [] : inventory.forbiddenTerms.diagnostics)
+        ])
         const files = readdirSync(dir)
         copyFileSync(
           'dist/formatter/vite.config.mjs',

@@ -153,8 +153,8 @@ import { SITE as identity } from './title.ts'
 
 export const SITE = {
   title: identity.title,
-  author: { url: 'https://github.com/everton-dgn' },
-  repositoryUrl: 'https://github.com/everton-dgn/boilerplate_solidjs',
+  author: { url: '' },
+  repositoryUrl: '',
   get locale(): string {
     return localeTag(getLocale(), LOCALE_TAG_OVERRIDES)
   }

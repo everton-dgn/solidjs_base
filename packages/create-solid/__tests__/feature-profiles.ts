@@ -42,7 +42,14 @@ function checkForbiddenTerms(dir: string, terms: string[]): void {
     const mime = mimeExamples[path.relative(dir, target)]
     const content = mime === undefined ? source : source.replace(mime, '')
     for (const term of terms) {
-      assert.ok(!content.includes(term), `${target} mentions ${term}`)
+      const searchable =
+        term === 'github.com/everton-dgn'
+          ? content.replaceAll(
+              /github\.com\/everton-dgn\/solidjs_base(?=$|[^a-zA-Z0-9_-])/gu,
+              ''
+            )
+          : content
+      assert.ok(!searchable.includes(term), `${target} mentions ${term}`)
     }
   }
 }

@@ -356,7 +356,9 @@
       "Everton Toffanetto",
       "toffanettodev",
       "everton-toffanetto",
-      "boilerplate_solidjs"
+      "boilerplate_solidjs",
+      "devinsights.dev",
+      "github.com/everton-dgn"
     ],
     "static": ["Accept: text/markdown", "Vercel CDN", "server functions"],
     "client": [

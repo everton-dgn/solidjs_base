@@ -129,12 +129,7 @@ export function configureSiteIdentity(context: StagedContext): void {
     write({ file, content: editTemplate({ file, text, pattern, replacement }) })
   }
   neutralCopy(context)
-  if (profile.hasSeo === false) {
-    edit('src/constants/site/index.ts')(
-      /author: \{ url: '[^']+' \},\n {2}repositoryUrl: '[^']+'/u,
-      "author: { name: '', url: '' },\n  twitter: '',\n  socialLinks: [] as string[],\n  organization: {},\n  repositoryUrl: ''"
-    )
-  } else {
+  if (profile.hasSeo !== false) {
     removePublisher(edit)
     if ((profile.mode ?? 'server') === 'server') checkPublisher(edit)
   }

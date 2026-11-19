@@ -16,8 +16,12 @@ Pass `--no-fonts` to use system fonts or `--no-diagnostics` to omit the Solid
 reactivity diagnostics package and its development endpoint. Use `--fonts` and
 `--diagnostics` to select those defaults explicitly.
 
-Use macOS or Linux. Set the public origin with
+Use macOS or Linux. Pass `--title "My application"` to set the display title.
+The default title is the last component of the resolved destination path.
+
+With SEO enabled, set the public origin with
 `--site-url https://your-domain.example`. The default is `https://example.com`.
+The generator rejects `--site-url` when SEO is disabled.
 
 Use `--theme` or `--no-theme` to include or omit the light, dark and system
 appearance control. Use `--icons` or `--no-icons` to choose between icon

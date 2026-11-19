@@ -442,15 +442,14 @@ for (const title of [
     )
     const catalog = parse(record(string(), string()), JSON.parse(source))
     assert.equal(catalog.home_title, `${title} for web applications`)
+    const files = readdirSync(dir)
+    copyFileSync(
+      'dist/formatter/vite.config.mjs',
+      path.join(dir, 'fmt.config.mjs')
+    )
     execFileSync(
       path.resolve('../../node_modules/.bin/vp'),
-      [
-        'fmt',
-        '--check',
-        '--config',
-        path.resolve('dist/formatter/vite.config.mjs'),
-        '.'
-      ],
+      ['fmt', '--config', 'fmt.config.mjs', '--check', ...files],
       { cwd: dir }
     )
   })

@@ -117,6 +117,12 @@ diff --git a/source/AGENTS.md b/example/AGENTS.md
 diff --git a/source/README.md b/example/README.md
 --- a/source/README.md
 +++ b/example/README.md
+@@ -1,4 +1,4 @@
+-# Solid Base application
++# SolidJS Boilerplate
+ 
+ This SolidJS application uses the Solid Base tooling and runtime.
+ 
 @@ -9,9 +9,9 @@ This SolidJS application uses the Solid Base tooling and runtime.
  The home page, captured from the production build at 750 px wide:
  
@@ -902,6 +908,16 @@ new file mode 100644
 +  '@mdream/js@2.1.0': 'patches/@mdream%2Fjs@2.1.0.patch'
 +allowBuilds:
 +  lefthook: false
+diff --git a/source/src/constants/site/title.ts b/example/src/constants/site/title.ts
+--- a/source/src/constants/site/title.ts
++++ b/example/src/constants/site/title.ts
+@@ -1,3 +1,5 @@
+ export const SITE = {
+-  title: 'SolidJS Boilerplate'
++  get title() {
++    return 'SolidJS Boilerplate'
++  }
+ }
 diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/tooling/__tests__/patched-dependencies.test.ts
 --- a/source/tooling/__tests__/patched-dependencies.test.ts
 +++ b/example/tooling/__tests__/patched-dependencies.test.ts

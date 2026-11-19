@@ -443,6 +443,7 @@ for (const title of [
       'utf8'
     )
     const catalog = parse(record(string(), string()), JSON.parse(source))
+    assert.equal(catalog.home_seoTitle, `${title} | Web applications`)
     assert.equal(catalog.home_title, `${title} for web applications`)
     const files = readdirSync(dir)
     copyFileSync(

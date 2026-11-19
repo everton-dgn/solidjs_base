@@ -13,11 +13,12 @@ const indent = 2
 const catalogSchema = record(string(), string())
 const staticFiles = new URL('static/', distribution)
 
-type StaticCatalogOptions = { stage: string; hasTheme: boolean | undefined }
+type StaticCatalogOptions = Pick<StagedContext, 'stage' | 'profile'>
 
-function staticCatalogs({ stage, hasTheme }: StaticCatalogOptions): void {
+function staticCatalogs({ stage, profile }: StaticCatalogOptions): void {
   const messages = {
     en: {
+      clientTitle: 'SolidJS Boilerplate | Web applications',
       site_description:
         'A foundation for prerendered web applications with SolidJS, TypeScript and Vite+.',
       home_seoTitle: 'SolidJS Boilerplate | Prerendered web applications',
@@ -35,6 +36,7 @@ function staticCatalogs({ stage, hasTheme }: StaticCatalogOptions): void {
         ' The application saves your display preference in local storage on this device.'
     },
     es: {
+      clientTitle: 'SolidJS Boilerplate | Aplicaciones web',
       site_description:
         'Una base para aplicaciones web prerenderizadas con SolidJS, TypeScript y Vite+.',
       home_seoTitle: 'SolidJS Boilerplate | Aplicaciones web prerenderizadas',
@@ -52,6 +54,7 @@ function staticCatalogs({ stage, hasTheme }: StaticCatalogOptions): void {
         ' La aplicación guarda tu preferencia de apariencia en el almacenamiento local de este dispositivo.'
     },
     pt: {
+      clientTitle: 'SolidJS Boilerplate | Aplicações web',
       site_description:
         'Uma base para aplicações web pré-renderizadas com SolidJS, TypeScript e Vite+.',
       home_seoTitle: 'SolidJS Boilerplate | Aplicações web pré-renderizadas',
@@ -88,7 +91,8 @@ function staticCatalogs({ stage, hasTheme }: StaticCatalogOptions): void {
     writeFileSync(siteFile, `${JSON.stringify(site, null, indent)}\n`)
     for (const [route, update] of Object.entries({
       '(home)': {
-        home_seoTitle: text.home_seoTitle,
+        home_seoTitle:
+          profile.mode === 'client' ? text.clientTitle : text.home_seoTitle,
         home_features: text.home_features,
         home_description: text.home_description
       },
@@ -98,7 +102,8 @@ function staticCatalogs({ stage, hasTheme }: StaticCatalogOptions): void {
       },
       privacy: {
         privacy_preferences:
-          text.privacy_preferences + (hasTheme === false ? '' : text.storage)
+          text.privacy_preferences +
+          (profile.hasTheme === false ? '' : text.storage)
       }
     })) {
       const file = path.join(
@@ -172,7 +177,7 @@ export function configureStatic(context: StagedContext): void {
   edit(vite)(/^ *securityHeaders: SECURITY_HEADERS,\n/mu, '')
   edit(vite)(/,\n {2}\/\/ Without fallthrough,[\s\S]*?\n\}\)/u, '\n})')
   rewriteKnip(stage)
-  staticCatalogs({ stage, hasTheme: profile.hasTheme })
+  staticCatalogs({ stage, profile })
   pkg.scripts.start = 'node tooling/testing/serve-public.ts'
   pkg.scripts['test:e2e'] = 'vp run playwright test'
   delete pkg.scripts['test:e2e:production']

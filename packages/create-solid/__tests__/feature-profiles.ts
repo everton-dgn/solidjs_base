@@ -251,8 +251,10 @@ export function testProfiles(
     readFileSync('guide-edits.txt', 'utf8')
       .trimEnd()
       .split('\n')
-      .filter(line => line.startsWith(prefix))
-      .map(line => line.slice(prefix.length))
+      .filter(
+        line => !/^(?:bun|npm|pnpm) \| /u.test(line) || line.startsWith(prefix)
+      )
+      .map(line => (line.startsWith(prefix) ? line.slice(prefix.length) : line))
   )
   const observedEdits = new Set<string>()
   let count = 0

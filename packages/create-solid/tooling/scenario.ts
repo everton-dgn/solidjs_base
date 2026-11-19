@@ -18,6 +18,7 @@ import { parse } from 'valibot'
 import { manifestSchema } from '../src/schema.ts'
 
 const jsonIndent = 2
+const precision = 2
 const seconds = 1000
 const cliOffset = 2
 const packTimeout = 60_000
@@ -70,7 +71,7 @@ try {
     {
       name: 'server-without-ui-features',
       pm: 'npm',
-      flags: ['--no-theme', '--no-fonts', '--no-icons']
+      flags: ['--no-seo', '--no-theme', '--no-fonts', '--no-icons']
     }
   ]
   const [selected] = process.argv.slice(cliOffset)
@@ -80,7 +81,6 @@ try {
   for (const { name, pm, flags } of scenarios.filter(
     item => !selected || item.name === selected
   )) {
-    const start = performance.now()
     const cwd = path.join(sandbox, name)
     execFileSync(
       process.execPath,
@@ -118,7 +118,12 @@ try {
       manifest.overrides['@evertondgn/vite-plugin-solid-icons'] = icons
     }
     writeFileSync(file, `${JSON.stringify(manifest, null, jsonIndent)}\n`)
+    const installStart = performance.now()
     execFileSync(pm, ['install'], { cwd, stdio: 'inherit', timeout: 120_000 })
+    const taskStart = performance.now()
+    process.stdout.write(
+      `${name} install: ${((taskStart - installStart) / seconds).toFixed(precision)}s\n`
+    )
     if (pm === 'pnpm') {
       execFileSync('vp', ['fmt', 'pnpm-workspace.yaml'], { cwd })
     }
@@ -134,13 +139,23 @@ try {
     if (pm === 'bun' && flags.length === 0) {
       tasks.push('typecheck:node', 'test:tooling', 'dead-code')
     }
-    for (const task of tasks) {
-      execFileSync('vp', ['run', task], {
-        cwd,
-        stdio: 'inherit',
-        timeout: 180_000
-      })
+    if (flags.length > 0) tasks.push('typecheck:node', 'dead-code')
+    if (name === 'server-without-ui-features') {
+      tasks.push('test:e2e', 'test:e2e:production')
     }
+    const failedTasks: string[] = []
+    for (const task of tasks) {
+      try {
+        execFileSync('vp', ['run', task], {
+          cwd,
+          stdio: 'inherit',
+          timeout: 180_000
+        })
+      } catch {
+        failedTasks.push(task)
+      }
+    }
+    assert.deepEqual(failedTasks, [], `Failed tasks: ${failedTasks.join(', ')}`)
     if (flags.length > 0) {
       execFileSync(
         'vp',
@@ -158,9 +173,7 @@ try {
       )
     }
     process.stdout.write(
-      `${name} installed scenario passed in ${Math.round(
-        (performance.now() - start) / seconds
-      )}s\n`
+      `${name} tasks passed in ${((performance.now() - taskStart) / seconds).toFixed(precision)}s\n`
     )
   }
 } finally {

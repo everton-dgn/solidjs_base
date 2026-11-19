@@ -71,12 +71,13 @@ docs/                               guides and architecture decision records (AD
 
 ## Checking your change
 
-| You changed             | Run from the root                                                                               |
-| ----------------------- | ----------------------------------------------------------------------------------------------- |
-| Anything in `packages/` | `vp run validate`: build, check, dead code, package tests, tarball tests and scenarios          |
-| Only a lint rule        | `vp run test` while you work, then `vp run validate`                                            |
-| `apps/boilerplate`      | The commands in [the boilerplate app section](docs/development.md#the-boilerplate-app)          |
-| Only documentation      | `vp fmt`, plus `vp fmt` inside `apps/boilerplate` for its files, which the root formatter skips |
+| You changed        | Run from the root                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| Published packages | `vp run validate`: build, check, dead code, package tests, tarball tests and scenarios          |
+| Generator          | `vp run validate:generator` and the installed generator scenarios                               |
+| Only a lint rule   | `vp run test` while you work, then `vp run validate`                                            |
+| `apps/boilerplate` | The commands in [the boilerplate app section](docs/development.md#the-boilerplate-app)          |
+| Only documentation | `vp fmt`, plus `vp fmt` inside `apps/boilerplate` for its files, which the root formatter skips |
 
 The CI runs the same commands and skips the jobs your files do not affect.
 

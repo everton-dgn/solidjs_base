@@ -29,9 +29,9 @@ manual registry release.
 
 ## Validation
 
-- Run `vp run validate` at the root. It runs the build, check, dead code,
-  package tests, tarball tests and installed application scenarios, as the
-  publish job does.
+- Run `vp run validate` for the published packages and workspace consistency.
+  Run `vp run validate:generator` for the generator. Release verification also
+  installs each generated application in its own job.
 - A change in `apps/boilerplate` also runs the commands of
   [the boilerplate app section](docs/development.md#the-boilerplate-app). The CI
   runs them for a package change too, so run them when the change reaches a

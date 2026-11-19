@@ -18,8 +18,9 @@ versions from Conventional Commits. It runs only in CI, from
    the new version and the `CHANGELOG.md` of each.
 4. Merging that pull request creates one tag for each package, such as
    `solid-tooling@0.7.0` and `solid-runtime@0.7.0`, and their GitHub Releases.
-   The workflow then validates the workspace, packs each package and publishes
-   it once the packages of this repository it pins are on npm
+   The workflow validates published packages once and installs all eight
+   generated apps before it packs each package and publishes it once the
+   packages of this repository it pins are on npm
    ([The order of the publication](#the-order-of-the-publication)).
 
 The workflow runs release-please in two jobs. `Tags and GitHub Releases` uses
@@ -83,8 +84,8 @@ read them.
 - The command reads the registry every 15 seconds, for up to 10 minutes, with
   `npm view --prefer-online`, so npm asks the registry each time instead of its
   local cache. It needs no token or permission. A read that fails, such as on a
-  network error, counts as a version not on npm yet. The limit fits with the
-  validation in the `timeout-minutes` of the job.
+  network error, counts as a version not on npm yet. The limit fits within the
+  `timeout-minutes` of the job.
 - When the next read would not start at least a second before the limit, the job
   fails at once, before `npm publish`, and its log names the version that is
   missing ([When the publish job fails](#when-the-publish-job-fails)).
@@ -483,10 +484,11 @@ history of the package.
 Keep `@evertondgn/create-solid` private and outside the release group and
 manifest until the next group release, N. Once all its pins are on npm:
 
-1. Check out that release commit in a clean worktree. Run `vp run validate`
-   while the generator is still private. For the manual pack, set the generator
-   version to N and remove its private flag in that worktree. Build and pack it
-   with the release commit's template and dependencies.
+1. Check out that release commit in a clean worktree. Run `vp run validate` and
+   `vp run validate:generator` while the generator is still private. For the
+   manual pack, set the generator version to N and remove its private flag in
+   that worktree. Build and pack it with the release commit's template and
+   dependencies.
 2. Extract the tarball and run its CLI outside the workspace. Keep the exact
    registry pins, install from npm without local overrides, and run
    `vp run check:ci` in the generated application. With `archive` set to the
@@ -689,13 +691,9 @@ the repository does not reach it. What to do depends on where the cause is:
   then open the failed run on GitHub and choose "Re-run failed jobs". The
   publish job runs again with the output of the `Tags and GitHub Releases` job
   from the first attempt. GitHub allows this for 30 days.
-- In a test outside the package folder that fails or hangs only at times, when
-  the same commit passed the validation in another publish job or in the CI of
-  the release pull request: re-run that publish job alone, from the button next
-  to it in the run summary or with `gh run rerun --job <job id>`, and fix the
-  test in a pull request before the next release. A hung job stops at its
-  `timeout-minutes`. To re-run it sooner, cancel the run, but only after the
-  other jobs of the run have finished: cancelling stops them too.
+- Before any package publishes, re-run the failed verification or generated app
+  job. After a partial publication, re-run only the failed publication leg.
+  Re-running its prerequisites also restarts downstream publish jobs.
 - Outside the package folder, such as a workflow step or the workspace
   configuration that validation uses: open the fix as a pull request, keep it
   unmerged, and
@@ -750,7 +748,7 @@ changelog that release-please had generated.
 
 5. Merge the fix. The push to `main` runs the workflow: release-please creates
    the tag on the merge commit of the release pull request and the GitHub
-   Release again, and the publish job validates and publishes the version.
+   Release again, and the verification and scenario jobs run before publication.
 
 Run steps 3 to 5 together. Any push to `main` after step 4 starts the release,
 and if the fix is not on `main` yet, the publish job fails again. release-please

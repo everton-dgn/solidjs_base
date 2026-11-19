@@ -223,10 +223,10 @@ from npm.
 | Installed application scenarios | The three apps of `fixtures/apps/` install the three tarballs with both Bun linkers, then test, lint, type check and build. SSR cases request the preview, and a disabled feature must leave no module in the bundle                                                                    | `vp run test:scenarios`                               |
 | Boilerplate application         | A complete application passes its check, Node type check, dead code, Vitest, build and end-to-end suites                                                                                                                                                                                | See [Development](development.md#the-boilerplate-app) |
 
-`vp run validate` runs the build, the checks, the dead code check, the package
-tests, the tarball tests and the scenarios, in this order. The Packages job of
-CI and the publish job run it, and a package change also runs the boilerplate
-app jobs ([CI](development.md#ci)). Each README gives its test counts and the CI
+`vp run validate` verifies the published packages, installed tooling fixtures
+and workspace consistency. Release runs it once before publication, alongside
+the generated application installations. The Generator job checks profiles and
+parity ([CI](development.md#ci)). Each README gives its test counts and the CI
 run they come from: the
 [tooling](../packages/solid-tooling/README.md#how-it-is-tested),
 [runtime](../packages/solid-runtime/README.md#how-it-is-tested),

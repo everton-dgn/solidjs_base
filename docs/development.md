@@ -102,9 +102,9 @@ run `vp run test:tarball` at the monorepo root to check the published types.
 
 ## Package commands
 
-Run them from the root. Package commands select `./packages/*`. The publish job
-runs `vp run validate`, including the minimal installed application matrix. The
-full boilerplate application suites remain separate.
+Run them from the root. Package commands select `./packages/*`. The release
+verification job runs `vp run validate`, including installed tooling fixtures.
+The full boilerplate application suites remain separate.
 
 | Command                 | What it does                                                                                      |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
@@ -115,7 +115,7 @@ full boilerplate application suites remain separate.
 | `vp run test:release`   | Run the tests of the release commands in `tooling/release/` with `node:test`                      |
 | `vp run test:tarball`   | Check installed tarballs and compare generated profiles with the tracked app                      |
 | `vp run test:scenarios` | Exercise installed fixtures with both Bun linkers and run generated app scenarios                 |
-| `vp run validate`       | Build, check, dead code, package tests, tarball tests and application scenarios, in this order    |
+| `vp run validate`       | Validate published packages, workspace consistency and installed tooling fixtures                 |
 
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so
 `vp run test` builds the package first. The runtime tests run in the Vitest of
@@ -367,48 +367,43 @@ Update the image, alt text and README together whenever those numbers change.
 
 ## CI
 
-`.github/workflows/ci.yml` runs on pull requests, on pushes to `main` and by
-hand. The `Changes` job reads the list of changed files and starts only the jobs
-those files affect. On a push to `main`, `Changes` skips Docs, Packages and both
-boilerplate jobs when the merge has the same tree as its up-to-date second
-parent and that parent passed `CI required`, because the pull request run
-checked the same tree
-([ADR 0017](ADRs/0017-main-reuses-the-pull-request-run.md)). `Merge commit body`
-and `CI required` still run on that push. Manual runs enable Docs, Packages and
-both boilerplate jobs.
+Every pull request runs Changes, Consistency and CI required. Consistency checks
+the workspace pins, the no-server guide and the workflow contracts. Generator
+runs its tests and parity checks. Eight Generated app jobs each install and
+build one generated project. The app jobs first build the tooling and icons.
 
-| Changed files                                                             | Jobs                                                 |
-| ------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `apps/boilerplate/patches/`                                               | Packages, Boilerplate app, Boilerplate app E2E       |
-| Markdown of `apps/boilerplate/`                                           | Docs, Boilerplate app, Boilerplate app E2E           |
-| Anything else in `apps/boilerplate/`                                      | Boilerplate app, Boilerplate app E2E                 |
-| Package guides and skills in `packages/*/docs/` and `packages/*/skills/`  | Docs, Packages                                       |
-| Other Markdown, `docs/`, `LICENSE`, issue templates or `.coderabbit.yaml` | Docs                                                 |
-| Anything else: packages, fixtures, root config, lockfile, workflows       | Docs, Packages, Boilerplate app, Boilerplate app E2E |
+| Changed files                                             | Additional jobs                                 |
+| --------------------------------------------------------- | ----------------------------------------------- |
+| Root docs and published package READMEs or changelogs     | Docs                                            |
+| Generator files except its manifest                       | Docs, Generator, Generated app                  |
+| Boilerplate sources                                       | Both boilerplate jobs, Generator, Generated app |
+| Boilerplate Markdown                                      | Same as boilerplate sources, plus Docs          |
+| Boilerplate patches or manifest                           | Same as boilerplate sources, plus Packages      |
+| Published package guides and skills                       | Docs, Packages, Generator, Generated app        |
+| Package code, generator manifest, root config or lockfile | All                                             |
 
-A pull request that touches more than one group runs the jobs of each. The last
-group runs the Docs job too, because a README can link any file and moving one
-breaks the link. For the same reason, removing or renaming a file of any group
-runs the Docs job, which checks the root, package and app guides, the
-`AGENTS.md` of the app included. The root `package.json` registers the patches
-of `apps/boilerplate/patches/` for the whole workspace, so a patch change also
-runs the package validation.
+Changes combines both paths of a rename and enables Docs for removals. Release
+pull requests, manual runs, the daily schedule, forced pushes and pull requests
+with at least 3,000 files run all suites. A checked merge tree reuses its pull
+request results ([ADR 0017](ADRs/0017-main-reuses-the-pull-request-run.md)).
+Pushes also check the merge commit body. CI required compares the direct
+dependencies and individual job results for its run attempt. Re-run all jobs
+when a partial rerun lacks an expected result.
 
-| Job                 | What it runs                                                                                                                                                                                                                                                                                                                               |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Docs                | `vp fmt --check`, and an offline link check (lychee) over the Markdown of the repository, anchors included; the absolute links to the `main` branch that the npm pages use are checked against the checkout. The guides of each package, in `packages/*/docs/`, are included ([ADR 0040](ADRs/0040-package-docs-ship-with-the-package.md)) |
-| Packages            | `vp run validate`, the same command as the publish job                                                                                                                                                                                                                                                                                     |
-| Boilerplate app     | `vp run build` at the root, then check, Node type check, dead code, tests with coverage and tooling tests                                                                                                                                                                                                                                  |
-| Boilerplate app E2E | `vp run build` at the root, then the application build and the end-to-end tests                                                                                                                                                                                                                                                            |
-| Merge commit body   | On a push to `main`, fails when the merge commit has a body, which release-please reads as one more commit                                                                                                                                                                                                                                 |
-| CI required         | Fails when any job above failed or was cancelled                                                                                                                                                                                                                                                                                           |
+### Measuring the first push
 
-`CI required` is the only check the `main` ruleset requires. A job skipped by
-its `if`
-[reports success](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-jobs-with-conditions),
-so a skipped job never blocks a merge, and a new job only needs to be added to
-the `needs` of `CI required`.
-[ADR 0010](ADRs/0010-ci-runs-what-a-change-affects.md) explains the choices.
+Open the CI run for the pull request and record each job's start and finish, the
+slowest installed scenario, and the elapsed time until CI required. Record queue
+time separately. Compare Changes, CI required and Merge commit body with their
+five-minute limits, Docs with ten minutes, Packages, Consistency, Generator and
+each scenario with fifteen, and each boilerplate job with twenty. On the first
+release, also time Verify and every installed scenario against fifteen minutes
+and Publish against thirty, including its ten-minute registry wait. Break down
+the slowest job by installation, build and tests. If Packages exceeds its limit,
+split installed tooling fixtures by profile with an assertion on the case count.
+If a generator or app job runs over, isolate its slow step and split independent
+suites while preserving the required-job inventory. Investigate queue time
+separately from runner limits.
 
 The browser and end-to-end tests use the Chrome installed on the GitHub runner,
 as in the original repository.
@@ -425,14 +420,14 @@ someone comments `@codex review`.
 
 ## Installed application scenarios
 
-Run `vp run build && vp run test:scenarios` from the root. The matrix is also
-the final step of `vp run validate`. It copies `fixtures/apps/` outside the
-workspace and installs freshly packed tooling and runtime packages with Bun's
-hoisted and isolated linkers. The packed tooling pins the version of the icons
-plugin of this tree, which npm may not have yet or may hold with other code, so
-an `overrides` entry installs the packed icons plugin in its place. Every case
-runs node and dom tests, the `icons-generate` task, lint, TypeScript, build and
-output checks. SSR cases also request the local preview.
+Run `vp run build && vp run test:scenarios` from the root. Published package
+validation includes the tooling fixture matrix. It copies `fixtures/apps/`
+outside the workspace and installs freshly packed tooling and runtime packages
+with Bun's hoisted and isolated linkers. The packed tooling pins the version of
+the icons plugin of this tree, which npm may not have yet or may hold with other
+code, so an `overrides` entry installs the packed icons plugin in its place.
+Every case runs node and dom tests, the `icons-generate` task, lint, TypeScript,
+build and output checks. SSR cases also request the local preview.
 
 Each fixture maps a folder of SVG files with the `icons` option, and the
 client-only one also installs an Iconify collection. A type probe imports an

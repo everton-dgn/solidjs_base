@@ -4,7 +4,7 @@
 
 ## How it was tested
 
-<!-- The commands you ran and their result, for example `vp run validate`. -->
+<!-- The commands you ran and their result, for example `vp run validate` or `vp run validate:generator`. -->
 
 ## Checklist
 

@@ -76,6 +76,7 @@ jobs:
           - pnpm
           - npm
           - static-with-seo
+          - static-seeded-locales
           - default-client
           - server-without-theme
           - minimal-client

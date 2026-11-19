@@ -9,10 +9,10 @@ const themeCheck = `
     .first()
     .getAttribute('src')
   if (!entry) throw new Error('Missing application entry module')
-  const requested = Promise.withResolvers<void>()
-  const released = Promise.withResolvers<void>()
+  const requested = Promise.withResolvers<null>()
+  const released = Promise.withResolvers<null>()
   await page.route(new URL(entry, page.url()).href, async route => {
-    requested.resolve()
+    requested.resolve(null)
     await released.promise
     await route.continue()
   })
@@ -21,7 +21,7 @@ const themeCheck = `
     await requested.promise
     await expect(page.locator('html')).toHaveClass('dark')
   } finally {
-    released.resolve()
+    released.resolve(null)
     await page.unrouteAll({ behavior: 'wait' })
   }`
 const fontCheck = `

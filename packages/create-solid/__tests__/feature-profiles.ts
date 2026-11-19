@@ -80,7 +80,17 @@ function checkCatalogs(dir: string, tree: readonly string[]): void {
     for (const file of jsonFiles) {
       const contents = readFileSync(path.join(dir, folder, file), 'utf8')
       const catalog = parse(record(string(), string()), JSON.parse(contents))
-      const keys = Object.keys(catalog).toSorted()
+      const keys = Object.entries(catalog)
+        .map(([key, message]) => {
+          const parameters = new Set<string>()
+          for (const token of message.matchAll(
+            /\\[\\{}]|\{(?<name>[A-Za-z_]\w*)\}/gu
+          )) {
+            if (token.groups?.name) parameters.add(token.groups.name)
+          }
+          return JSON.stringify([key, [...parameters].toSorted()])
+        })
+        .toSorted()
       assert.ok(keys.length > 0, path.join(folder, file))
       expected ??= keys
       assert.deepEqual(keys, expected, path.join(folder, file))
@@ -88,11 +98,19 @@ function checkCatalogs(dir: string, tree: readonly string[]): void {
   }
 }
 
-function checkScriptFiles(dir: string, tree: readonly string[]): void {
+function checkScriptFiles({
+  dir,
+  tree,
+  hasI18n
+}: {
+  dir: string
+  tree: readonly string[]
+  hasI18n: boolean
+}): void {
   const schema = object({ scripts: record(string(), string()) })
   const manifest = readFileSync(path.join(dir, 'package.json'), 'utf8')
   const { scripts } = parse(schema, JSON.parse(manifest))
-  const tasks = createTasks({ root: dir, isCi: true, hasI18n: true })
+  const tasks = createTasks({ root: dir, isCi: true, hasI18n })
   for (const [name, command] of Object.entries(scripts)) {
     for (const match of command.matchAll(/\bvp run (?<task>[\w:-]+)/gu)) {
       const target = match.groups?.task
@@ -253,7 +271,40 @@ const modes = ['server', 'static', 'client'] as const
 const publications = modes.flatMap(mode =>
   [true, false].map(hasSeo => ({ mode, hasSeo }))
 )
-const profilesPerManager = 96
+const profilesPerManager = 116
+function* matrixCases() {
+  for (const { mode, hasSeo } of publications) {
+    for (const diagnostics of [true, false]) {
+      for (const {
+        hasFonts: fonts,
+        hasIcons: icons,
+        hasTheme: theme
+      } of uiProfiles()) {
+        const selections: { locales?: string[]; baseLocale?: string }[] = [{}]
+        if (
+          diagnostics === fonts &&
+          fonts === icons &&
+          icons === theme &&
+          hasSeo === (mode === 'client' ? false : theme)
+        ) {
+          selections.push(
+            { locales: ['es'] },
+            { locales: ['zh-Hant-TW'] },
+            ...(mode === 'client'
+              ? []
+              : [
+                  { locales: ['es', 'pt'], baseLocale: 'pt' },
+                  { locales: ['fr', 'ja'], baseLocale: 'ja' }
+                ])
+          )
+        }
+        for (const selection of selections) {
+          yield { mode, hasSeo, diagnostics, fonts, icons, theme, selection }
+        }
+      }
+    }
+  }
+}
 export function testProfiles(
   pm: 'bun' | 'npm' | 'pnpm',
   it: typeof registerTest
@@ -268,176 +319,165 @@ export function testProfiles(
   )
   const observedEdits = new Set<string>()
   let count = 0
-  for (const { mode, hasSeo } of publications) {
-    for (const diagnostics of [true, false]) {
-      for (const {
-        hasFonts: fonts,
+  for (const {
+    mode,
+    hasSeo,
+    diagnostics,
+    fonts,
+    icons,
+    theme,
+    selection
+  } of matrixCases()) {
+    count += 1
+    void it(`generates ${mode} ${pm} with seo=${hasSeo}, theme=${theme}, icons=${icons}, fonts=${fonts} and diagnostics=${diagnostics} ${JSON.stringify(selection)}`, context => {
+      const dir = mkdtempSync(path.join(tmpdir(), 'app-profile-'))
+      context.after(() => rmSync(dir, { recursive: true, force: true }))
+      const profile = {
+        ...selection,
+        title: 'Solid Base application',
+        dir,
+        pm,
+        mode,
+        hasSeo,
+        hasTheme: theme,
         hasIcons: icons,
-        hasTheme: theme
-      } of uiProfiles()) {
-        count += 1
-        void it(`generates ${mode} ${pm} with seo=${hasSeo}, theme=${theme}, icons=${icons}, fonts=${fonts} and diagnostics=${diagnostics}`, context => {
-          const dir = mkdtempSync(path.join(tmpdir(), 'app-profile-'))
-          context.after(() => rmSync(dir, { recursive: true, force: true }))
-          const profile = {
-            title: 'Solid Base application',
-            dir,
-            pm,
-            mode,
-            hasSeo,
-            hasTheme: theme,
-            hasIcons: icons,
-            hasDiagnostics: diagnostics,
-            hasFonts: fonts,
-            shouldInstall: false,
-            shouldInitGit: false
-          }
-          if (mode === 'client' && hasSeo) {
-            assert.throws(() => generate(profile), /--mode static/u)
-            assert.deepEqual(readdirSync(dir), [])
-            return
-          }
-          generate(profile)
-          const read = (file: string) =>
-            readFileSync(path.join(dir, file), 'utf8')
-          for (const change of guideChanges(profile)) {
-            observedEdits.add(change)
-            assert.ok(
-              approvedEdits.has(change),
-              `Unreviewed guide edit: ${change}`
-            )
-          }
-          checkGuideContent({ dir, mode, pm, hasSeo })
-          assert.match(read('package.json'), /"test:tooling":/u)
-          assert.match(read('AGENTS.md'), /^## CSS classes$/mu)
-          assert.match(read('AGENTS.md'), /^## Exports$/mu)
-          assert.equal(read('.env').includes('VITE_SITE_URL='), hasSeo)
-          if (!hasSeo) {
-            assert.ok(!read('vite.config.ts').includes('publicAssets:'))
-          }
-          if (!theme) assert.ok(!read('README.md').includes('<picture>'))
-          assert.equal(existsSync(path.join(dir, 'fonts.ts')), fonts)
-          assert.equal(read('vite.config.ts').includes('fonts: FONTS'), fonts)
-          if (mode !== 'client') {
-            assert.equal(
-              read('src/Document.tsx').includes('<FontLinks />'),
-              fonts
-            )
-          }
-          checkFavicons({ dir, mode })
-          assert.equal(read('docs/ui.md').includes('## Fonts'), fonts)
-          if (mode === 'server' && hasSeo) {
-            assert.equal(read('README.md').includes('Inter subsets'), fonts)
-          }
-          if (mode === 'client') {
-            assert.match(read('vite.config.ts'), /ssr: false/u)
-            assert.ok(existsSync(path.join(dir, 'index.html')))
-            assert.ok(!existsSync(path.join(dir, 'src/entry-server.tsx')))
-          }
-          if (mode === 'static') {
-            assert.match(read('README.md'), /csp-hashes\.json/u)
-            assert.match(read('vite.config.ts'), /output: 'static'/u)
-            for (const file of inventory.serverOnly) {
-              assert.equal(existsSync(path.join(dir, file)), false, file)
-            }
-            if (theme) {
-              assert.match(
-                read('src/constants/theme.ts'),
-                /storage: 'local-storage'/u
-              )
-              assert.match(
-                read('docs/ui.md'),
-                /reads `app-theme` from local storage/u
-              )
-            }
-            assert.doesNotMatch(
-              read('AGENTS.md'),
-              /## Server errors and backend calls/u
-            )
-          }
-          assert.equal(
-            read('package.json').includes('"@solidjs/diagnostics"'),
-            diagnostics
-          )
-          assert.equal(
-            read('docs/development.md').includes('/__solid/diagnostics'),
-            diagnostics
-          )
-          assert.equal(
-            read('package.json').includes('@iconify-json/hugeicons'),
-            icons
-          )
-          assert.equal(
-            existsSync(path.join(dir, 'src/assets/images/solid.svg')),
-            icons
-          )
-          if (!icons) {
-            assert.match(
-              read('src/components/organisms/Topbar/index.tsx'),
-              />\s*\{SITE_LINKS.repository.label\}\s*<\/a>/u
-            )
-            assert.match(
-              read('src/components/atoms/ToastProvider/index.tsx'),
-              />\s*\{m.toast_close\(\)\}\s*<\/button>/u
-            )
-            assert.match(
-              read('src/components/molecules/OutdatedPageNotice/index.tsx'),
-              />\s*\{m.outdatedPageNotice_dismiss\(\)\}\s*<\/Button>/u
-            )
-          }
-          assert.equal(
-            existsSync(path.join(dir, 'src/constants/theme.ts')),
-            theme
-          )
-          assert.equal(
-            read('src/theme/tokens/colors.css').includes('light-dark('),
-            theme
-          )
-          assert.equal(
-            existsSync(path.join(dir, 'src/primitives/createSeo/index.ts')),
-            hasSeo
-          )
-          assert.equal(read('package.json').includes('schema-dts'), hasSeo)
-          if (mode !== 'client') {
-            assert.equal(/themeScript/iu.test(read('src/Document.tsx')), theme)
-          }
-          checkForbiddenTerms(dir, [
-            ...inventory.forbiddenTerms.identity,
-            ...(hasSeo ? [] : inventory.forbiddenTerms.seo),
-            ...(theme ? [] : inventory.forbiddenTerms.theme),
-            ...(icons ? [] : inventory.forbiddenTerms.icons),
-            ...(fonts ? [] : inventory.forbiddenTerms.fonts),
-            ...(diagnostics ? [] : inventory.forbiddenTerms.diagnostics)
-          ])
-          const tree = readdirSync(dir, {
-            recursive: true,
-            withFileTypes: true
-          })
-            .filter(file => file.isFile())
-            .map(file =>
-              path.relative(dir, path.join(file.parentPath, file.name))
-            )
-          checkImports({
-            dir,
-            files: tree,
-            knownImports: importsFor(profile)
-          })
-          assert.deepEqual(guideProblems(dir), [])
-          checkScriptFiles(dir, tree)
-          checkCatalogs(dir, tree)
-          const files = readdirSync(dir)
-          copyFileSync(
-            'dist/formatter/vite.config.mjs',
-            path.join(dir, 'fmt.config.mjs')
-          )
-          execFileSync(
-            path.resolve('../../node_modules/.bin/vp'),
-            ['fmt', '--config', 'fmt.config.mjs', '--check', ...files],
-            { cwd: dir }
-          )
-        })
+        hasDiagnostics: diagnostics,
+        hasFonts: fonts,
+        shouldInstall: false,
+        shouldInitGit: false
       }
-    }
+      if (mode === 'client' && hasSeo) {
+        assert.throws(() => generate(profile), /--mode static/u)
+        assert.deepEqual(readdirSync(dir), [])
+        return
+      }
+      generate(profile)
+      const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
+      for (const change of guideChanges(profile)) {
+        observedEdits.add(change)
+        assert.ok(approvedEdits.has(change), `Unreviewed guide edit: ${change}`)
+      }
+      checkGuideContent({ dir, mode, pm, hasSeo })
+      assert.match(read('package.json'), /"test:tooling":/u)
+      assert.match(read('AGENTS.md'), /^## CSS classes$/mu)
+      assert.match(read('AGENTS.md'), /^## Exports$/mu)
+      assert.equal(read('.env').includes('VITE_SITE_URL='), hasSeo)
+      if (!hasSeo) {
+        assert.ok(!read('vite.config.ts').includes('publicAssets:'))
+      }
+      if (!theme) assert.ok(!read('README.md').includes('<picture>'))
+      assert.equal(existsSync(path.join(dir, 'fonts.ts')), fonts)
+      assert.equal(read('vite.config.ts').includes('fonts: FONTS'), fonts)
+      if (mode !== 'client') {
+        assert.equal(read('src/Document.tsx').includes('<FontLinks />'), fonts)
+      }
+      checkFavicons({ dir, mode })
+      assert.equal(read('docs/ui.md').includes('## Fonts'), fonts)
+      if (mode === 'server' && hasSeo) {
+        assert.equal(read('README.md').includes('Inter subsets'), fonts)
+      }
+      if (mode === 'client') {
+        assert.match(read('vite.config.ts'), /ssr: false/u)
+        assert.ok(existsSync(path.join(dir, 'index.html')))
+        assert.ok(!existsSync(path.join(dir, 'src/entry-server.tsx')))
+      }
+      if (mode === 'static') {
+        assert.match(read('README.md'), /csp-hashes\.json/u)
+        assert.match(read('vite.config.ts'), /output: 'static'/u)
+        for (const file of inventory.serverOnly) {
+          assert.equal(existsSync(path.join(dir, file)), false, file)
+        }
+        if (theme) {
+          assert.match(
+            read('src/constants/theme.ts'),
+            /storage: 'local-storage'/u
+          )
+          assert.match(
+            read('docs/ui.md'),
+            /reads `app-theme` from local storage/u
+          )
+        }
+        assert.doesNotMatch(
+          read('AGENTS.md'),
+          /## Server errors and backend calls/u
+        )
+      }
+      assert.equal(
+        read('package.json').includes('"@solidjs/diagnostics"'),
+        diagnostics
+      )
+      assert.equal(
+        read('docs/development.md').includes('/__solid/diagnostics'),
+        diagnostics
+      )
+      assert.equal(
+        read('package.json').includes('@iconify-json/hugeicons'),
+        icons
+      )
+      assert.equal(
+        existsSync(path.join(dir, 'src/assets/images/solid.svg')),
+        icons
+      )
+      if (!icons) {
+        assert.match(
+          read('src/components/organisms/Topbar/index.tsx'),
+          />\s*\{SITE_LINKS.repository.label\}\s*<\/a>/u
+        )
+        assert.match(
+          read('src/components/atoms/ToastProvider/index.tsx'),
+          />\s*\{m.toast_close\(\)\}\s*<\/button>/u
+        )
+        assert.match(
+          read('src/components/molecules/OutdatedPageNotice/index.tsx'),
+          />\s*\{m.outdatedPageNotice_dismiss\(\)\}\s*<\/Button>/u
+        )
+      }
+      assert.equal(existsSync(path.join(dir, 'src/constants/theme.ts')), theme)
+      assert.equal(
+        read('src/theme/tokens/colors.css').includes('light-dark('),
+        theme
+      )
+      assert.equal(
+        existsSync(path.join(dir, 'src/primitives/createSeo/index.ts')),
+        hasSeo
+      )
+      assert.equal(read('package.json').includes('schema-dts'), hasSeo)
+      if (mode !== 'client') {
+        assert.equal(/themeScript/iu.test(read('src/Document.tsx')), theme)
+      }
+      checkForbiddenTerms(dir, [
+        ...inventory.forbiddenTerms.identity,
+        ...(hasSeo ? [] : inventory.forbiddenTerms.seo),
+        ...(theme ? [] : inventory.forbiddenTerms.theme),
+        ...(icons ? [] : inventory.forbiddenTerms.icons),
+        ...(fonts ? [] : inventory.forbiddenTerms.fonts),
+        ...(diagnostics ? [] : inventory.forbiddenTerms.diagnostics)
+      ])
+      const tree = readdirSync(dir, {
+        recursive: true,
+        withFileTypes: true
+      })
+        .filter(file => file.isFile())
+        .map(file => path.relative(dir, path.join(file.parentPath, file.name)))
+      checkImports({
+        dir,
+        files: tree,
+        knownImports: importsFor(profile)
+      })
+      assert.deepEqual(guideProblems(dir), [])
+      checkScriptFiles({ dir, tree, hasI18n: true })
+      checkCatalogs(dir, tree)
+      const files = readdirSync(dir)
+      copyFileSync(
+        'dist/formatter/vite.config.mjs',
+        path.join(dir, 'fmt.config.mjs')
+      )
+      execFileSync(
+        path.resolve('../../node_modules/.bin/vp'),
+        ['fmt', '--config', 'fmt.config.mjs', '--check', ...files],
+        { cwd: dir }
+      )
+    })
   }
   void it('covers all profiles of the package manager', () => {
     assert.equal(count, profilesPerManager)

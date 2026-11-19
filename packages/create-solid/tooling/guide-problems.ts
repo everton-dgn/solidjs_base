@@ -119,12 +119,12 @@ function destinations(line: string): string[] {
   return urls
 }
 
-export function guideProblems(dir: string): string[] {
+export function guideProblems(dir: string, hasI18n = true): string[] {
   const problems = new Set<string>()
   const headings = new Map<string, Set<string>>()
   const manifest = readFileSync(path.join(dir, 'package.json'), 'utf8')
   const pkg = parse(manifestSchema, JSON.parse(manifest))
-  const tasks = createTasks({ root: dir, isCi: true, hasI18n: true })
+  const tasks = createTasks({ root: dir, isCi: true, hasI18n })
   for (const file of ['AGENTS.md', ...guideFiles(dir)]) {
     const source = path.join(dir, file)
     const content = readFileSync(source, 'utf8')

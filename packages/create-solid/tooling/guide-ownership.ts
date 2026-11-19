@@ -84,6 +84,25 @@ type GuideChange = {
   before: string | undefined
   after: string | undefined
 }
+const excerptWidth = 96
+function changeExcerpt({
+  before,
+  after
+}: Pick<GuideChange, 'before' | 'after'>): string {
+  const left = before?.trimEnd().split('\n') ?? []
+  const right = after?.trimEnd().split('\n') ?? []
+  const offset = right.findIndex((text, index) => text !== left[index])
+  const index = offset === -1 ? right.length : offset
+  const excerpt = (lines: string[]) =>
+    lines
+      .slice(index)
+      .find(text => text.trim())
+      ?.trim()
+      .slice(0, excerptWidth)
+  return [excerpt(left), excerpt(right)]
+    .map(text => text ?? '(absent)')
+    .join(' -> ')
+}
 type ReviewChange = (change: GuideChange) => void
 export function guideOwnership(
   review?: ReviewChange
@@ -104,7 +123,7 @@ export function guideOwnership(
       const pair = [before, after].map(text =>
         text === undefined ? null : signature(text)
       )
-      const line = `${transition.owner} | ${section} | ${signature(JSON.stringify(pair))}`
+      const line = `${transition.owner} | ${section} | ${signature(JSON.stringify(pair))} | ${changeExcerpt({ before, after })}`
       review?.({ line, before, after })
       changes.push(line)
     }

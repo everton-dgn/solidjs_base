@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -37,13 +38,22 @@ const previous = new Set(
   readFileSync('guide-edits.txt', 'utf8').trimEnd().split('\n')
 )
 const approved = new Set<string>()
+const sandbox = mkdtempSync(path.join(tmpdir(), 'solid-guide-approval-'))
 function reviewManager(pm: string) {
   return guideOwnership(({ line, before, after }) => {
     const entry = `${pm} | ${line}`
     if (previous.has(entry) || approved.has(entry)) return
-    process.stdout.write(
-      `${line}\nBefore\n${before ?? '(absent)'}\nAfter\n${after ?? '(absent)'}\n`
-    )
+    const files = ['before', 'after']
+    writeFileSync(path.join(sandbox, 'before'), before ?? '')
+    writeFileSync(path.join(sandbox, 'after'), after ?? '')
+    const diff = spawnSync('diff', ['-u', ...files], {
+      cwd: sandbox,
+      encoding: 'utf8'
+    })
+    if (diff.status !== 1 && !(diff.status === 0 && before !== after)) {
+      throw diff.error ?? new Error(diff.stderr)
+    }
+    process.stdout.write(`${entry}\n${diff.stdout}`)
   })
 }
 const managers = {
@@ -51,7 +61,6 @@ const managers = {
   pnpm: reviewManager('pnpm'),
   npm: reviewManager('npm')
 }
-const sandbox = mkdtempSync(path.join(tmpdir(), 'solid-guide-approval-'))
 try {
   for (const options of profiles()) {
     const dir = path.join(sandbox, 'app')

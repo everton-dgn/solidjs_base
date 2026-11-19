@@ -788,6 +788,8 @@ To publish outside the workflow, from a clean tree:
 ```bash
 npm login
 vp run validate
+vp run validate:generator
+node packages/create-solid/tooling/scenario.ts
 vp -C packages/solid-tooling pm pack --pack-destination /tmp/solid-tooling
 npm publish /tmp/solid-tooling/evertondgn-solid-tooling-0.1.0.tgz --access public
 ```

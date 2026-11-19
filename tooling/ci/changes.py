@@ -2,8 +2,10 @@ import json
 import os
 import subprocess
 
-SCENARIOS = ('bun', 'pnpm', 'npm', 'static-with-seo', 'default-client',
-             'server-without-theme', 'minimal-client', 'server-without-ui-features')
+from pathlib import Path
+
+INVENTORY = Path(__file__).resolve().parents[2] / 'packages/create-solid/tooling/scenarios.json'
+SCENARIOS = [scenario['name'] for scenario in json.loads(INVENTORY.read_text())]
 
 
 def classify(event, files, *, release=False, forced=False, checked=False, count=0):

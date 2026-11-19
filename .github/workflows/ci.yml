@@ -154,7 +154,7 @@ jobs:
         run: |
           vp run test:consistency
           python3 -B -m unittest discover -s tooling/ci
-          bun tooling/ci/workflows.mjs
+          ruby tooling/ci/workflows.rb
 
   generator:
     name: Generator

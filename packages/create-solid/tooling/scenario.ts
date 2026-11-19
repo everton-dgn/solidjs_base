@@ -16,7 +16,7 @@ import process from 'node:process'
 import { parse } from 'valibot'
 
 import { manifestSchema } from '../src/schema.ts'
-import { scenarios } from './scenarios.ts'
+import scenarios from './scenarios.json' with { type: 'json' }
 
 const jsonIndent = 2
 const precision = 2

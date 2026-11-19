@@ -57,7 +57,12 @@ function isEntry(file: string): boolean {
   )
 }
 
-export function checkImports(dir: string, files: readonly string[]): void {
+type ImportCheck = {
+  dir: string
+  files: readonly string[]
+  knownImports?: ReadonlySet<string>
+}
+export function checkImports({ dir, files, knownImports }: ImportCheck): void {
   const paths = new Set(files)
   const graph = new Map<string, string[]>()
   for (const file of files) {
@@ -66,7 +71,12 @@ export function checkImports(dir: string, files: readonly string[]): void {
     const dependencies: string[] = []
     graph.set(file, dependencies)
     for (const source of references(file, text)) {
-      if (!source.startsWith('.') && !source.startsWith('@/')) continue
+      if (!source.startsWith('.') && !source.startsWith('@/')) {
+        if (knownImports && !knownImports.has(source)) {
+          throw new Error(`Unclassified import in ${file}: ${source}`)
+        }
+        continue
+      }
       const resolved = source.startsWith('@/')
         ? path.join('src', source.slice('@/'.length))
         : path.join(path.dirname(file), source)

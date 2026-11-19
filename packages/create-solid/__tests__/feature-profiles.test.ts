@@ -92,6 +92,7 @@ function checkScriptFiles(dir: string, tree: readonly string[]): void {
 
 const terms = array(string())
 const inventorySchema = object({
+  imports: record(string(), string()),
   serverOnly: array(string()),
   forbiddenTerms: object({
     fonts: terms,
@@ -105,6 +106,24 @@ const inventory = parse(
   inventorySchema,
   JSON.parse(readFileSync('features.json', 'utf8'))
 )
+function importsFor(profile: {
+  seo: boolean
+  theme: boolean
+  icons: boolean
+  fonts: boolean
+}): Set<string> {
+  const disabled = new Set<string>(
+    profile.seo ? [] : ['seo', 'publication', 'sitemap', 'markdown']
+  )
+  if (!profile.fonts) disabled.add('fonts')
+  if (!profile.theme) disabled.add('theme')
+  if (!profile.icons) disabled.add('icons')
+  return new Set(
+    Object.entries(inventory.imports)
+      .filter(([, owner]) => !disabled.has(owner))
+      .map(([source]) => source)
+  )
+}
 const modes = ['server', 'static', 'client'] as const
 const publications = modes.flatMap(mode =>
   [true, false].map(seo => ({ mode, seo }))
@@ -233,7 +252,7 @@ for (const { mode, seo } of publications) {
             .map(file =>
               path.relative(dir, path.join(file.parentPath, file.name))
             )
-          checkImports(dir, tree)
+          checkImports({ dir, files: tree, knownImports: importsFor(profile) })
           checkScriptFiles(dir, tree)
           checkCatalogs(dir, tree)
           const files = readdirSync(dir)

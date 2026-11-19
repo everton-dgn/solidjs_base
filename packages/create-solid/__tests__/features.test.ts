@@ -63,7 +63,7 @@ void it('rejects missing local imports, re-exports and imported types', async co
   ]) {
     writeFileSync(path.join(dir, 'entry.ts'), source)
     assert.throws(
-      () => checkImports(dir, ['entry.ts']),
+      () => checkImports({ dir, files: ['entry.ts'] }),
       /Unknown template import in entry.ts/u
     )
   }
@@ -77,9 +77,20 @@ void it('rejects a group of modules reachable only from one another', async cont
   writeFileSync(path.join(dir, 'right.ts'), "import './left.ts'")
   const files = ['env.ts', 'left.ts', 'right.ts']
   assert.throws(
-    () => checkImports(dir, files),
+    () => checkImports({ dir, files }),
     /Unreachable template module: left.ts/u
   )
   writeFileSync(path.join(dir, 'env.ts'), "import './left.ts'")
-  checkImports(dir, files)
+  checkImports({ dir, files })
+})
+
+void it('rejects unclassified external imports', async context => {
+  const { checkImports } = await import('../tooling/check-imports.ts')
+  const dir = mkdtempSync(path.join(tmpdir(), 'external-import-'))
+  context.after(() => rmSync(dir, { recursive: true, force: true }))
+  writeFileSync(path.join(dir, 'env.ts'), "import 'virtual:unknown-module'")
+  assert.throws(
+    () => checkImports({ dir, files: ['env.ts'], knownImports: new Set() }),
+    /Unclassified import in env.ts: virtual:unknown-module/u
+  )
 })

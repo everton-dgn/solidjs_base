@@ -51,27 +51,26 @@ const rules = new Map(
 if (files.length !== rules.size || files.some(file => !rules.has(file))) {
   throw new Error('Review classification.txt for changes in apps/boilerplate')
 }
+const feature = picklist([
+  'core',
+  'fonts',
+  'i18n',
+  'icons',
+  'markdown',
+  'outdated-page',
+  'publication',
+  'security-headers',
+  'seo',
+  'server-errors',
+  'sitemap',
+  'theme'
+])
 const featureSchema = object({
   version: literal(1),
+  imports: record(string(), feature),
   serverOnly: array(string()),
   clientExcludes: array(string()),
-  files: record(
-    string(),
-    picklist([
-      'core',
-      'fonts',
-      'i18n',
-      'icons',
-      'markdown',
-      'outdated-page',
-      'publication',
-      'security-headers',
-      'seo',
-      'server-errors',
-      'sitemap',
-      'theme'
-    ])
-  )
+  files: record(string(), feature)
 })
 const features = parse(
   featureSchema,
@@ -91,7 +90,11 @@ for (const file of [...features.serverOnly, ...features.clientExcludes]) {
     `Unknown mode-specific file: ${file}`
   )
 }
-checkImports(app, templateFiles)
+checkImports({
+  dir: app,
+  files: templateFiles,
+  knownImports: new Set(Object.keys(features.imports))
+})
 rmSync('template', { recursive: true, force: true })
 for (const file of files) {
   const rule = rules.get(file)

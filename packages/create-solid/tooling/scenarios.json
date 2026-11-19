@@ -2,7 +2,7 @@
   {
     "name": "bun",
     "pm": "bun",
-    "flags": ["--locales", "fr,ja", "--base-locale", "ja"]
+    "flags": []
   },
   {
     "name": "pnpm",

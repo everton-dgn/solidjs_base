@@ -16,6 +16,7 @@ import process from 'node:process'
 import { parse } from 'valibot'
 
 import { manifestSchema } from '../src/schema.ts'
+import { scenarios } from './scenarios.ts'
 
 const jsonIndent = 2
 const precision = 2
@@ -44,38 +45,6 @@ try {
   }
   assert.ok(archives['create-solid'])
   execFileSync('tar', ['xf', archives['create-solid']], { cwd: sandbox })
-  const scenarios = [
-    ...['bun', 'pnpm', 'npm'].map(pm => ({
-      name: pm,
-      pm,
-      flags: [] as string[]
-    })),
-    {
-      name: 'static-with-seo',
-      pm: 'bun',
-      flags: ['--mode', 'static', '--seo']
-    },
-    { name: 'default-client', pm: 'bun', flags: ['--mode', 'client'] },
-    { name: 'server-without-theme', pm: 'bun', flags: ['--no-theme'] },
-    {
-      name: 'minimal-client',
-      pm: 'pnpm',
-      flags: [
-        '--mode',
-        'client',
-        '--no-seo',
-        '--no-theme',
-        '--no-icons',
-        '--no-fonts',
-        '--no-diagnostics'
-      ]
-    },
-    {
-      name: 'server-without-ui-features',
-      pm: 'npm',
-      flags: ['--no-seo', '--no-theme', '--no-fonts', '--no-icons']
-    }
-  ]
   const [selected] = process.argv.slice(cliOffset)
   if (selected && !scenarios.some(item => item.name === selected)) {
     throw new Error(`Unknown scenario: ${selected}`)

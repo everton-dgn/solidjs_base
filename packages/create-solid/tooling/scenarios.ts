@@ -1,0 +1,32 @@
+export const scenarios = [
+  ...['bun', 'pnpm', 'npm'].map(pm => ({
+    name: pm,
+    pm,
+    flags: [] as string[]
+  })),
+  {
+    name: 'static-with-seo',
+    pm: 'bun',
+    flags: ['--mode', 'static', '--seo']
+  },
+  { name: 'default-client', pm: 'bun', flags: ['--mode', 'client'] },
+  { name: 'server-without-theme', pm: 'bun', flags: ['--no-theme'] },
+  {
+    name: 'minimal-client',
+    pm: 'pnpm',
+    flags: [
+      '--mode',
+      'client',
+      '--no-seo',
+      '--no-theme',
+      '--no-icons',
+      '--no-fonts',
+      '--no-diagnostics'
+    ]
+  },
+  {
+    name: 'server-without-ui-features',
+    pm: 'npm',
+    flags: ['--no-seo', '--no-theme', '--no-fonts', '--no-icons']
+  }
+]

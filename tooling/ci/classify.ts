@@ -46,11 +46,9 @@ function selectSuites({
         shouldCheckGenerator = true
         shouldCheckDocs = true
       } else if (
-        path.endsWith('.md') ||
-        path.startsWith('docs/') ||
-        path.startsWith('.github/ISSUE_TEMPLATE/') ||
-        path === 'LICENSE' ||
-        path === '.coderabbit.yaml'
+        /^(?:[^/]+\.md$|docs\/|\.github\/.*\.md$|packages\/[^/]+\/(?:README|CHANGELOG)\.md$)/u.test(
+          path
+        )
       ) {
         shouldCheckDocs = true
       } else {

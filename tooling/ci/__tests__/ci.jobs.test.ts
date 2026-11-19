@@ -27,7 +27,9 @@ const routes: [string, string[]][] = [
   ['packages/solid-tooling/docs/install.md', ['docs', 'generator', 'packages']],
   ['packages/solid-tooling/src/vite/tasks.ts', full],
   ['bun.lock', full],
-  ['packages/create-solid/package.json', full]
+  ['packages/create-solid/package.json', full],
+  ['packages/solid-runtime/src/example.md', full],
+  ['fixtures/example.md', full]
 ]
 for (const [filename, enabled] of routes) {
   test(`routes ${filename}`, () => {

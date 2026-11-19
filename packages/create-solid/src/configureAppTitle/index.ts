@@ -7,7 +7,7 @@ import { readLocaleSettings } from '../configureLocales/catalogs.ts'
 import { editTemplate } from '../edit-template.ts'
 import { escapeMessageText } from '../escape-message-text.ts'
 import type { StagedContext } from '../types.ts'
-import { UsageError } from '../usage-error.ts'
+import { ProfileProblemError } from '../usage-error.ts'
 
 const original = 'SolidJS Boilerplate'
 const indent = 2
@@ -43,9 +43,7 @@ export function resolveAppTitle({
 }: StagedContext['profile']): string {
   const value = title ?? path.basename(path.resolve(dir))
   if (!value.trim() || /[\p{Cc}\p{Zl}\p{Zp}]/u.test(value)) {
-    throw new UsageError(
-      '--title requires nonempty text on one line without control characters'
-    )
+    throw new ProfileProblemError({ field: 'title', code: 'badTitle' })
   }
   return value.trim().replaceAll(/ +/gu, ' ')
 }

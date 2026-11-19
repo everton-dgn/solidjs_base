@@ -15,6 +15,7 @@ import { it } from 'node:test'
 import { array, object, parse, string } from 'valibot'
 
 import { generate } from '../src/generate.ts'
+import { checkImports } from '../tooling/check-imports.ts'
 
 function checkForbiddenTerms(dir: string, terms: string[]): void {
   if (terms.length === 0) return
@@ -72,6 +73,12 @@ for (const pm of ['bun', 'npm', 'pnpm'] as const) {
           ...(fonts ? [] : inventory.forbiddenTerms.fonts),
           ...(diagnostics ? [] : inventory.forbiddenTerms.diagnostics)
         ])
+        const tree = readdirSync(dir, { recursive: true, withFileTypes: true })
+          .filter(file => file.isFile())
+          .map(file =>
+            path.relative(dir, path.join(file.parentPath, file.name))
+          )
+        checkImports(dir, tree)
         const files = readdirSync(dir)
         copyFileSync(
           'dist/formatter/vite.config.mjs',

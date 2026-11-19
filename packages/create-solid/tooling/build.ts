@@ -18,6 +18,7 @@ import { literal, object, parse, picklist, record, string } from 'valibot'
 
 import { rewriteDocuments, rewritePatchTest } from '../src/rewrite.ts'
 import { manifestSchema } from '../src/schema.ts'
+import { checkImports } from './check-imports.ts'
 
 const root = path.resolve(import.meta.dirname, '../../..')
 const app = path.join(root, 'apps/boilerplate')
@@ -73,6 +74,7 @@ assert.deepEqual(
   templateFiles.toSorted(),
   'Review features.json for changes in the template'
 )
+checkImports(app, templateFiles)
 rmSync('template', { recursive: true, force: true })
 for (const file of files) {
   const rule = rules.get(file)

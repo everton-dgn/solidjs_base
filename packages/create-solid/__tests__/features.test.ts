@@ -49,3 +49,22 @@ void it('rejects an unknown feature before assembling the template', context => 
   assert.equal(result.status, 1)
   assert.match(result.stderr, /unknown-feature/u)
 })
+
+void it('rejects missing local imports, re-exports and imported types', async context => {
+  const { checkImports } = await import('../tooling/check-imports.ts')
+  const dir = mkdtempSync(path.join(tmpdir(), 'unknown-import-'))
+  context.after(() => rmSync(dir, { recursive: true, force: true }))
+  for (const source of [
+    "import '@/missing.ts'",
+    "export { value } from './missing.ts'",
+    "export * from './missing.ts'",
+    "export type T = typeof import('./missing.ts')",
+    "export const load = () => import('./missing.ts')"
+  ]) {
+    writeFileSync(path.join(dir, 'entry.ts'), source)
+    assert.throws(
+      () => checkImports(dir, ['entry.ts']),
+      /Unknown template import in entry.ts/u
+    )
+  }
+})

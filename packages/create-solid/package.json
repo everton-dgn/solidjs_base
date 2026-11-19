@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@evertondgn/solid-tooling": "workspace:*",
+    "oxc-parser": "0.156.0",
     "valibot": "catalog:"
   },
   "repository": {

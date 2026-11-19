@@ -15,7 +15,6 @@ import { it } from 'node:test'
 void it('fails the build when a template file has no feature assignment', context => {
   const dir = mkdtempSync(path.join(tmpdir(), 'solid-features-'))
   context.after(() => rmSync(dir, { recursive: true, force: true }))
-  copyFileSync('classification.txt', path.join(dir, 'classification.txt'))
   const input = readFileSync('features.json', 'utf8')
   const incomplete = input.replace('    "README.md": "core",\n', '')
   assert.notEqual(input, incomplete)
@@ -35,7 +34,6 @@ void it('fails the build when a template file has no feature assignment', contex
 void it('rejects an unknown feature before assembling the template', context => {
   const dir = mkdtempSync(path.join(tmpdir(), 'unknown-feature-'))
   context.after(() => rmSync(dir, { recursive: true, force: true }))
-  copyFileSync('classification.txt', path.join(dir, 'classification.txt'))
   const input = readFileSync('features.json', 'utf8')
   writeFileSync(
     path.join(dir, 'features.json'),
@@ -98,9 +96,7 @@ void it('rejects unclassified external imports', async context => {
 void it('rejects an unreviewed source digest before assembling whole-file variants', context => {
   const dir = mkdtempSync(path.join(tmpdir(), 'solid-variant-drift-'))
   context.after(() => rmSync(dir, { recursive: true, force: true }))
-  for (const file of ['classification.txt', 'features.json']) {
-    copyFileSync(file, path.join(dir, file))
-  }
+  copyFileSync('features.json', path.join(dir, 'features.json'))
   writeFileSync(
     path.join(dir, 'variant-sources.json'),
     JSON.stringify({ 'src/entry-client.tsx': 'unreviewed' })

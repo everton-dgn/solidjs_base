@@ -44,18 +44,6 @@ const files = execFileSync('git', ['ls-files', '-z'], {
 })
   .split('\0')
   .filter(Boolean)
-const rules = new Map(
-  readFileSync('classification.txt', 'utf8')
-    .trimEnd()
-    .split('\n')
-    .map(line => [
-      line.slice(line.indexOf(' ') + 1),
-      line.slice(0, line.indexOf(' '))
-    ])
-)
-if (files.length !== rules.size || files.some(file => !rules.has(file))) {
-  throw new Error('Review classification.txt for changes in apps/boilerplate')
-}
 const feature = picklist([
   'core',
   'fonts',
@@ -84,9 +72,9 @@ const features = parse(
   featureSchema,
   JSON.parse(readFileSync('features.json', 'utf8'))
 )
-const templateFiles = files
-  .filter(file => rules.get(file) !== 'exclude')
-  .map(file => (file === '.gitignore' ? '_gitignore' : file))
+const templateFiles = files.map(file =>
+  file === '.gitignore' ? '_gitignore' : file
+)
 assert.deepEqual(
   Object.keys(features.files).toSorted(),
   templateFiles.toSorted(),
@@ -117,12 +105,6 @@ checkImports({
 })
 rmSync('template', { recursive: true, force: true })
 for (const file of files) {
-  const rule = rules.get(file)
-  if (rule === 'exclude') continue
-  assert.ok(
-    rule === 'copy' || rule === 'rewrite',
-    `Invalid classification for ${file}`
-  )
   const target = path.join(
     'template',
     file === '.gitignore' ? '_gitignore' : file

@@ -31,6 +31,9 @@ for (const pm of ['bun', 'pnpm', 'npm']) {
     const dir = path.join(parent, 'application')
     const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
     before(() => {
+      assert.ok(
+        !dir.startsWith(path.resolve('../../apps/boilerplate') + path.sep)
+      )
       execFileSync(process.execPath, [
         bin,
         dir,

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
 import {
+  existsSync,
   mkdtempSync,
   mkdirSync,
   symlinkSync,
@@ -32,6 +33,7 @@ try {
     `Packed ${packed} (${readFileSync(path.join(sandbox, packed)).length} bytes)\n`
   )
   execFileSync('tar', ['xf', packed], { cwd: sandbox })
+  assert.ok(!existsSync(path.join(sandbox, 'package/dist/formatter')))
   const scope = path.join(sandbox, 'node_modules/@evertondgn')
   mkdirSync(scope, { recursive: true })
   symlinkSync(path.join(sandbox, 'package'), path.join(scope, 'create-solid'))

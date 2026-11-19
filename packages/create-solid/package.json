@@ -17,6 +17,7 @@
   },
   "files": [
     "dist",
+    "!dist/formatter",
     "template",
     "docs",
     "README.md",

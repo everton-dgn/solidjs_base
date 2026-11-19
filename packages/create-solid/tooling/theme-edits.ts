@@ -22,6 +22,12 @@ const neutralHome: TextEdit = [
   '$<end>"'
 ]
 export const themeEdits: FileEdits = {
+  [`${pages}/UiKit/UiKit.e2e.test.ts`]: [
+    [/toHaveClass\('dark'\)/u, "not.toHaveClass('dark')"]
+  ],
+  [`${pages}/Home/Home.production.e2e.test.ts`]: [
+    [/const MENU_TRIGGERS = 2/u, 'const MENU_TRIGGERS = 1']
+  ],
   'src/Document.tsx': [
     [/import \{\n *DEFAULT_THEME,[\s\S]*?'@\/constants\/theme\.ts'\n/u, ''],
     [/^ *const cookieHeader =[\s\S]*?(?=^ *\/\/ The browser)/mu, ''],
@@ -39,6 +45,12 @@ export const themeEdits: FileEdits = {
     [
       /return \(\s*<ThemeContext[\s\S]*?<\/ThemeContext>\s*\)/u,
       'return <ToastProvider>{props.children}</ToastProvider>'
+    ]
+  ],
+  'src/theme/tokens/shadows.css': [
+    [
+      /light-dark\(\s*(?<light>color-mix\([^\n]+?transparent\)),\s*(?:transparent|color-mix\([^\n]+?transparent\))\s*\)/gu,
+      '$<light>'
     ]
   ],
   'src/theme/tokens/colors.css': [
@@ -146,6 +158,11 @@ export const themeEdits: FileEdits = {
 }
 
 export const themeReadmeEdits: readonly TextEdit[] = [
+  [
+    /The home page, captured from the production build at 750 px wide:\n\n/u,
+    ''
+  ],
+  [/<picture>[\s\S]*?<\/picture>\n\n/gu, ''],
   englishSite,
   [/, and the theme button for light, dark\nor system/u, ''],
   [/language and theme switchers/u, 'a language switcher'],

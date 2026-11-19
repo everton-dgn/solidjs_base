@@ -2,11 +2,11 @@ export type Profile = {
   pm: 'bun' | 'pnpm' | 'npm'
   dir: string
   mode?: 'server' | 'static' | 'client'
-  seo?: boolean
-  theme?: boolean
-  icons?: boolean
-  fonts?: boolean
-  diagnostics?: boolean
+  hasSeo?: boolean
+  hasTheme?: boolean
+  hasIcons?: boolean
+  hasFonts?: boolean
+  hasDiagnostics?: boolean
   siteUrl?: string
   shouldInitGit: boolean
   shouldInstall: boolean

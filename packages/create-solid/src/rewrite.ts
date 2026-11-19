@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 
+import { editTemplate } from './edit-template.ts'
 import type { Profile } from './types.ts'
 
 type PatchRewrite = Pick<Profile, 'pm' | 'dir'>
@@ -29,37 +30,46 @@ export function rewriteDocuments({ dir, pm, version }: DocumentRewrite): void {
     const source = readFileSync(target, 'utf8')
     let content = source
     if (file === 'README.md') {
-      assert.ok(content.includes('dependencies with `vp install`'))
-      content = content.replace(
-        'dependencies with `vp install`',
-        `dependencies with \`${pm} install\``
-      )
-      const policy =
-        'The installer determines whether the Markdown converter patch is applied.'
-      assert.ok(content.includes(policy))
-      content = content.replace(
-        policy,
-        pm === 'npm'
-          ? 'npm installs the upstream Markdown converter.'
-          : 'The installer applies the Markdown converter patch.'
-      )
+      content = editTemplate({
+        file,
+        text: content,
+        pattern: 'dependencies with `vp install`',
+        replacement: `dependencies with \`${pm} install\``
+      })
+      content = editTemplate({
+        file,
+        text: content,
+        pattern:
+          'The installer determines whether the Markdown converter patch is applied.',
+        replacement:
+          pm === 'npm'
+            ? 'npm installs the upstream Markdown converter.'
+            : 'The installer applies the Markdown converter patch.'
+      })
     }
-    content = content.replaceAll(
-      /(?:\]\(|(?:src|srcset)=")\.\.\/[^)"\s]+/gu,
-      match => {
-        const split = match.indexOf('..')
-        const prefix = match.slice(0, split)
-        const href = match.slice(split)
-        const location = path.posix.normalize(
-          path.posix.join('apps/boilerplate', path.dirname(file), href)
-        )
-        if (location.startsWith('apps/boilerplate/')) return match
-        const view = prefix === '](' ? 'blob' : 'raw'
-        return `${prefix}https://github.com/everton-dgn/solidjs_base/${
-          view
-        }/create-solid@${version}/${location}`
-      }
+    const references = content.matchAll(
+      /(?:\]\(|(?:src|srcset)=")\.\.\/[^)"\s]+/gu
     )
+    for (const [match] of references) {
+      const split = match.indexOf('..')
+      const prefix = match.slice(0, split)
+      const location = path.posix.normalize(
+        path.posix.join(
+          'apps/boilerplate',
+          path.dirname(file),
+          match.slice(split)
+        )
+      )
+      if (location.startsWith('apps/boilerplate/')) continue
+      const view = prefix === '](' ? 'blob' : 'raw'
+      content = editTemplate({
+        file,
+        text: content,
+        pattern: match,
+        replacement: () =>
+          `${prefix}https://github.com/everton-dgn/solidjs_base/${view}/create-solid@${version}/${location}`
+      })
+    }
     if (source !== content) {
       writeFileSync(
         target,
@@ -71,21 +81,30 @@ export function rewriteDocuments({ dir, pm, version }: DocumentRewrite): void {
 export function rewriteKnip(dir: string): void {
   const file = path.join(dir, 'tooling/knip.ts')
   const source = readFileSync(file, 'utf8')
-  const output = source.replace(
-    /,\n {2}\/\/ In the monorepo,[\s\S]*?\n\}\)/u,
-    '\n})'
-  )
-  assert.notEqual(output, source, 'Missing Knip workspace inputs')
+  const output = editTemplate({
+    file,
+    text: source,
+    pattern: /,\n {2}\/\/ In the monorepo,[\s\S]*?\n\}\)/u,
+    replacement: '\n})',
+    missing: 'Missing Knip workspace inputs'
+  })
   writeFileSync(file, output)
 }
 export function rewritePatchTest({ dir, pm }: PatchRewrite): void {
   const file = path.join(dir, 'tooling/__tests__/patched-dependencies.test.ts')
   const source = readFileSync(file, 'utf8')
-  assert.match(source, /\/\/ In the monorepo,.*\n/u)
-  assert.ok(source.includes('../../../..'))
-  let content = source
-    .replace(/\/\/ In the monorepo,.*\n/u, '')
-    .replace('../../../..', '../..')
+  let content = editTemplate({
+    file,
+    text: source,
+    pattern: /\/\/ In the monorepo,.*\n/u,
+    replacement: ''
+  })
+  content = editTemplate({
+    file,
+    text: content,
+    pattern: '../../../..',
+    replacement: '../..'
+  })
   if (pm !== 'bun') {
     assert.ok(content.includes('const patchesSchema'))
     assert.ok(content.includes("import * as v from 'valibot'\n\n"))
@@ -108,14 +127,22 @@ export function rewritePatchTest({ dir, pm }: PatchRewrite): void {
             '    await access(path.join(ROOT, file))',
             '  }'
           ]
-    content = `${content
-      .slice(0, content.indexOf('const patchesSchema'))
-      .replace(
-        "import * as v from 'valibot'\n\n",
+    const preamble = editTemplate({
+      file,
+      text: content,
+      pattern: /const patchesSchema[\s\S]*$/u,
+      replacement: ''
+    })
+    const imports = editTemplate({
+      file,
+      text: preamble,
+      pattern: "import * as v from 'valibot'\n\n",
+      replacement:
         pm === 'pnpm'
           ? "import { execFile } from 'node:child_process'\nimport { promisify } from 'node:util'\n\n"
           : ''
-      )}\nit('checks the installed Markdown converter patch policy', async () => {\n${lines.join(
+    })
+    content = `${imports}\nit('checks the installed Markdown converter patch policy', async () => {\n${lines.join(
       '\n'
     )}\n})\n`
   }
@@ -125,10 +152,12 @@ export function rewritePatchTest({ dir, pm }: PatchRewrite): void {
 export function rewriteVite(dir: string): void {
   const file = path.join(dir, 'vite.config.ts')
   const vite = readFileSync(file, 'utf8')
-  const output = vite.replace(
-    /,\n {2}\/\/ In the monorepo,[\s\S]+?\n {2}\}\n\}\)/u,
-    '\n})'
-  )
-  if (output === vite) throw new Error('Missing Vite workspace inputs')
+  const output = editTemplate({
+    file,
+    text: vite,
+    pattern: /,\n {2}\/\/ In the monorepo,[\s\S]+?\n {2}\}\n\}\)/u,
+    replacement: '\n})',
+    missing: 'Missing Vite workspace inputs'
+  })
   writeFileSync(file, output)
 }

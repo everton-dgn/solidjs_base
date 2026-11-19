@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -17,17 +19,20 @@ import { fmt } from '@evertondgn/solid-tooling/fmt'
 import {
   array,
   literal,
+  nullable,
   object,
   parse,
   picklist,
   record,
-  string
+  string,
+  union
 } from 'valibot'
 
 import { rewriteDocuments, rewritePatchTest } from '../src/rewrite.ts'
 import { manifestSchema } from '../src/schema.ts'
 import { buildProfiles } from './build-profiles.ts'
 import { checkImports } from './check-imports.ts'
+import { prepareGuides } from './prepare-guides.ts'
 
 const root = path.resolve(import.meta.dirname, '../../..')
 const app = path.join(root, 'apps/boilerplate')
@@ -59,18 +64,21 @@ const feature = picklist([
   'markdown',
   'outdated-page',
   'publication',
+  'server',
   'security-headers',
   'seo',
   'server-errors',
   'sitemap',
   'theme'
 ])
+const inventoryVersion = 2
+const fileOwners = union([feature, array(feature)])
 const featureSchema = object({
-  version: literal(1),
+  version: literal(inventoryVersion),
   imports: record(string(), feature),
   serverOnly: array(string()),
   clientExcludes: array(string()),
-  files: record(string(), feature)
+  files: record(string(), fileOwners)
 })
 const features = parse(
   featureSchema,
@@ -89,6 +97,18 @@ for (const file of [...features.serverOnly, ...features.clientExcludes]) {
     Object.hasOwn(features.files, file),
     `Unknown mode-specific file: ${file}`
   )
+}
+const digestSchema = record(string(), nullable(string()))
+const variantSources = parse(
+  digestSchema,
+  JSON.parse(readFileSync('variant-sources.json', 'utf8'))
+)
+for (const [file, digest] of Object.entries(variantSources)) {
+  const source = path.join(app, file)
+  const actual = existsSync(source)
+    ? createHash('sha256').update(readFileSync(source)).digest('hex')
+    : null
+  assert.equal(actual, digest, `Review the generated variant for ${file}`)
 }
 checkImports({
   dir: app,
@@ -166,7 +186,6 @@ writeFileSync(
   path.join(formatter, 'vite.config.mjs'),
   `export default ${JSON.stringify({ fmt })}\n`
 )
-writeFileSync(path.join(formatter, 'oxfmt.json'), JSON.stringify(fmt))
 const patchTest = 'tooling/__tests__/patched-dependencies.test.ts'
 for (const pm of ['bun', 'npm', 'pnpm'] as const) {
   const dir = path.resolve('dist/profiles', pm)
@@ -183,20 +202,34 @@ rewriteDocuments({
   version: settings.version
 })
 buildProfiles()
+prepareGuides()
 const executableMode = 0o755
 chmodSync('dist/create-solid.mjs', executableMode)
 
-// Exercise the conditional patch rewrite too, so stale template inputs fail the build.
 const probe = mkdtempSync(path.join(tmpdir(), 'check-solid-template-'))
 try {
-  execFileSync(process.execPath, [
-    'dist/create-solid.mjs',
-    probe,
-    '--pm',
-    'npm',
-    '--no-install',
-    '--no-git'
-  ])
+  for (const [name, ...flags] of [
+    ['server', '--pm', 'npm'],
+    [
+      'reduced',
+      '--no-seo',
+      '--no-theme',
+      '--no-fonts',
+      '--no-icons',
+      '--no-diagnostics'
+    ],
+    ['static', '--mode', 'static'],
+    ['client', '--mode', 'client', '--pm', 'pnpm']
+  ]) {
+    assert.ok(name)
+    execFileSync(process.execPath, [
+      'dist/create-solid.mjs',
+      path.join(probe, name),
+      '--no-install',
+      '--no-git',
+      ...flags
+    ])
+  }
 } finally {
   rmSync(probe, { recursive: true, force: true })
 }

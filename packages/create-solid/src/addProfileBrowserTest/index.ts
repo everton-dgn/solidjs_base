@@ -1,4 +1,4 @@
-import type { GenerationContext } from './generate.ts'
+import type { GenerationContext } from '../generate.ts'
 
 const themeCheck = `
   await page.getByRole('button', { name: /select theme/iu }).click()
@@ -25,6 +25,18 @@ test.describe('prerendered publication', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'pt-BR')
     await expect(page.locator('head link[rel="canonical"]')).toHaveCount(1)
     expect(response?.headers()['content-security-policy']).toContain('sha256-')
+    expect(response?.headers()['content-security-policy']).toContain(
+      "form-action 'self'"
+    )
+    expect(response?.headers()['x-content-type-options']).toBe('nosniff')
+    const markdown = await request.head('/pt/about.md')
+    expect(markdown.headers()['content-type']).toBe(
+      'text/markdown; charset=utf-8'
+    )
+    const unsupported = await request.post('/pt/about')
+    expect(unsupported.headers().allow).toBe('GET, HEAD')
+    const methodNotAllowed = 405
+    expect(unsupported.status()).toBe(methodNotAllowed)
     for (const file of [
       '/robots.txt',
       '/sitemap.xml',
@@ -52,18 +64,18 @@ export function addProfileBrowserTest({
   if (
     profile.mode !== 'static' &&
     [
-      profile.theme,
-      profile.fonts,
-      profile.icons,
-      profile.diagnostics,
-      profile.seo
+      profile.hasTheme,
+      profile.hasFonts,
+      profile.hasIcons,
+      profile.hasDiagnostics,
+      profile.hasSeo
     ].every(flag => flag !== false)
   ) {
     return
   }
-  write(
-    'src/tests/pages/Home/Home.profile.production.e2e.test.ts',
-    `import { expect, test } from '@playwright/test'
+  write({
+    file: 'src/tests/pages/Home/Home.profile.production.e2e.test.ts',
+    content: `import { expect, test } from '@playwright/test'
 
 test('mounts and opens a localized route directly', async ({ page }) => {
   await page.goto('/en')
@@ -75,8 +87,8 @@ test('mounts and opens a localized route directly', async ({ page }) => {
   await page.goto('/en/about')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'About SolidJS Boilerplate'
-  )${profile.theme === false ? '' : themeCheck}${profile.fonts === false ? '' : fontCheck}
+  )${profile.hasTheme === false ? '' : themeCheck}${profile.hasFonts === false ? '' : fontCheck}
 })
-${profile.mode === 'static' && profile.seo !== false ? staticPublication : ''}`
-  )
+${profile.mode === 'static' && profile.hasSeo !== false ? staticPublication : ''}`
+  })
 }

@@ -1,21 +1,17 @@
-import {
-  cpSync,
-  existsSync,
-  readFileSync,
-  rmSync,
-  writeFileSync
-} from 'node:fs'
+import { cpSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { parse, record, string } from 'valibot'
 
-import type { GenerationContext } from './generate.ts'
-import { removeModeFiles } from './remove-mode-files.ts'
-import { rewriteKnip } from './rewrite.ts'
+import { editCatalog, editTemplate } from '../edit-template.ts'
+import type { StagedContext } from '../generate.ts'
+import { distribution } from '../paths.ts'
+import { removeFeatureFiles } from '../removeFeatureFiles/index.ts'
+import { rewriteKnip } from '../rewrite.ts'
 
 const indent = 2
 const catalogSchema = record(string(), string())
-const staticFiles = new URL('../dist/static/', import.meta.url)
+const staticFiles = new URL('static/', distribution)
 
 function staticCatalogs(stage: string, theme?: boolean): void {
   const messages = {
@@ -81,7 +77,12 @@ function staticCatalogs(stage: string, theme?: boolean): void {
       catalogSchema,
       JSON.parse(readFileSync(siteFile, 'utf8'))
     )
-    site.site_description = text.site_description
+    editCatalog({
+      file: siteFile,
+      catalog: site,
+      key: 'site_description',
+      value: text.site_description
+    })
     writeFileSync(siteFile, `${JSON.stringify(site, null, indent)}\n`)
     for (const [route, update] of Object.entries({
       '(home)': {
@@ -109,30 +110,28 @@ function staticCatalogs(stage: string, theme?: boolean): void {
         catalogSchema,
         JSON.parse(readFileSync(file, 'utf8'))
       )
-      writeFileSync(
-        file,
-        `${JSON.stringify({ ...catalog, ...update }, null, indent)}\n`
-      )
+      for (const [key, value] of Object.entries(parse(catalogSchema, update))) {
+        editCatalog({ file, catalog, key, value })
+      }
+      writeFileSync(file, `${JSON.stringify(catalog, null, indent)}\n`)
     }
   }
 }
 
-export function configureStatic(
-  stage: string,
-  context: GenerationContext
-): void {
+export function configureStatic(context: StagedContext): void {
+  const { stage } = context
   const { profile, write, pkg } = context
   if (profile.mode !== 'static' && profile.mode !== 'client') return
-  removeModeFiles(stage, 'serverOnly')
+  removeFeatureFiles({ stage, disabled: ['server'], group: 'serverOnly' })
   cpSync(new URL('files/', staticFiles), stage, { recursive: true })
   const edit = (file: string) => (pattern: RegExp, replacement: string) => {
     const content = readFileSync(path.join(stage, file), 'utf8')
-    if (!pattern.test(content)) {
-      throw new Error(`Missing static mode edit in ${file}`)
-    }
-    write(file, content.replace(pattern, replacement))
+    write({
+      file,
+      content: editTemplate({ file, text: content, pattern, replacement })
+    })
   }
-  if (profile.theme !== false) {
+  if (profile.hasTheme !== false) {
     edit('docs/ui.md')(
       /^## Theme and persistence\n[\s\S]*?(?=^## )/mu,
       '## Theme and persistence\n\nThe initial script reads `app-theme` from local storage before hydration. The\nswitcher saves light, dark or system on this device. The static host serves the\nsame HTML for all three preferences.\n\n'
@@ -142,6 +141,13 @@ export function configureStatic(
       'Document owns the script element. Publish its hash in the CSP for each HTML file.'
     )
     cpSync(new URL('theme/', staticFiles), stage, { recursive: true })
+    const themeTest =
+      'src/components/molecules/ThemeToggle/__tests__/ThemeToggle.browser.test.tsx'
+    edit(themeTest)(/^import \{ readTheme[^\n]+\n/mu, '')
+    edit(themeTest)(
+      /await expect\.poll\(\(\) => readTheme\(\)\)\.toBe\(value\)/u,
+      "await expect.poll(() => localStorage.getItem('app-theme')).toBe(value)"
+    )
     const helper = 'src/tests/helpers/clearThemeCookie/index.ts'
     rmSync(path.join(stage, helper))
     edit(
@@ -164,15 +170,8 @@ export function configureStatic(
   edit(vite)(/^ *securityHeaders: SECURITY_HEADERS,\n/mu, '')
   edit(vite)(/,\n {2}\/\/ Without fallthrough,[\s\S]*?\n\}\)/u, '\n})')
   rewriteKnip(stage)
-  staticCatalogs(stage, profile.theme)
+  staticCatalogs(stage, profile.hasTheme)
   pkg.scripts.start = 'node tooling/testing/serve-public.ts'
   pkg.scripts['test:e2e'] = 'vp run playwright test'
   delete pkg.scripts['test:e2e:production']
-  const knip = 'tooling/knip.ts'
-  if (existsSync(path.join(stage, knip))) {
-    edit(knip)(
-      /'tooling\/css\/check.ts'/u,
-      "'tooling/testing/serve-public.ts',\n    'tooling/css/check.ts'"
-    )
-  }
 }

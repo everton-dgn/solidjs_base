@@ -5,6 +5,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { URL } from 'node:url'
 
+import { CSP_DIRECTIVES, SECURITY_HEADERS } from '@evertondgn/solid-runtime/middleware/security-headers/constants'
 import { array, object, parse, record, string } from 'valibot'
 
 const root = path.resolve('.output/public')
@@ -14,6 +15,7 @@ const manifest = await readFile('.output/csp-hashes.json', 'utf8')
 const { pages } = parse(schema, JSON.parse(manifest))
 const badRequest = 400
 const notFound = 404
+const methodNotAllowed = 405
 const types: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript',
@@ -22,12 +24,21 @@ const types: Record<string, string> = {
   '.svg': 'image/svg+xml',
   '.woff2': 'font/woff2',
   '.xml': 'application/xml',
-  '.md': 'text/markdown',
-  '.txt': 'text/plain'
+  '.png': 'image/png',
+  '.ico': 'image/x-icon',
+  '.md': 'text/markdown; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8'
 }
 
 async function serve(request: IncomingMessage, response: ServerResponse): Promise<void> {
   try {
+    for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+      response.setHeader(name, value)
+    }
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      response.writeHead(methodNotAllowed, { Allow: 'GET, HEAD' }).end()
+      return
+    }
     const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname)
     const file = path.resolve(root, `.${pathname}`)
     if (file !== root && !file.startsWith(`${root}${path.sep}`)) {
@@ -42,13 +53,18 @@ async function serve(request: IncomingMessage, response: ServerResponse): Promis
       const [, locale] = pathname.split('/')
       const localized = `/${locale}/404.html`
       target = path.join(root, Object.hasOwn(pages, localized) ? localized : '404.html')
-      data = await readFile(target)
       response.statusCode = notFound
+      try {
+        data = await readFile(target)
+      } catch {
+        response.end()
+        return
+      }
     }
     const hashes = pages[`/${path.relative(root, target)}`]
     if (hashes) {
       const scripts = ["'self'", ...hashes.map(hash => `'${hash}'`)].join(' ')
-      response.setHeader('Content-Security-Policy', `default-src 'self'; script-src ${scripts}; style-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'`)
+      response.setHeader('Content-Security-Policy', [...CSP_DIRECTIVES, `script-src ${scripts}`].join('; '))
     }
     response.setHeader('Content-Type', types[path.extname(target)] ?? 'application/octet-stream')
     response.end(data)

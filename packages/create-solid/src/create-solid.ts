@@ -6,14 +6,15 @@ import { parseArgs } from 'node:util'
 import { generate } from './generate.ts'
 import { UsageError } from './usage-error.ts'
 
+const argumentOffset = 2
 const usageExitCode = 2
 function run(): void {
   const usage =
     'bunx @evertondgn/create-solid@latest <dir> [--pm bun|pnpm|npm] [--site-url URL] [--mode server|static|client] [--seo|--no-seo] [--theme|--no-theme] [--icons|--no-icons] [--fonts|--no-fonts] [--diagnostics|--no-diagnostics] [--no-git] [--no-install]\nBun is required to run application tasks with every installer.'
-  const args = process.argv.slice(2)
+  const args = process.argv.slice(argumentOffset)
   const separator = args.indexOf('--')
   if (
-    args.slice(0, separator < 0 ? args.length : separator).includes('--help')
+    args.slice(0, separator === -1 ? args.length : separator).includes('--help')
   ) {
     process.stdout.write(`${usage}\n`)
     return
@@ -72,11 +73,11 @@ function run(): void {
   }
   const profile = {
     mode: values.mode,
-    seo: values.mode === 'client' ? Boolean(values.seo) : !values['no-seo'],
-    theme: !values['no-theme'],
-    icons: !values['no-icons'],
-    fonts: !values['no-fonts'],
-    diagnostics: !values['no-diagnostics'],
+    hasSeo: values.mode === 'client' ? Boolean(values.seo) : !values['no-seo'],
+    hasTheme: !values['no-theme'],
+    hasIcons: !values['no-icons'],
+    hasFonts: !values['no-fonts'],
+    hasDiagnostics: !values['no-diagnostics'],
     siteUrl: values['site-url'],
     pm: values.pm,
     dir: path.resolve(positionals[0]),

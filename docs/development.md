@@ -732,6 +732,12 @@ changes in `expected.<manager>.diff` before committing them. The parity test
 reads the app from the current commit and generates the comparison tree from the
 packed CLI.
 
+Each reduced profile differs from its parent by one named feature or mode. The
+fast matrix checks each changed Markdown section and section order against
+`packages/create-solid/guide-edits.txt`. After reviewing a change to the guide
+edits, run `node tooling/review-guide-ownership.ts` in the generator package and
+review the affected owners, documents and sections before committing the list.
+
 The tracked application exercises the workspace source. Run package tests at the
 root when editing lint policies in `packages/solid-tooling/src/` or runtime
 helpers in `packages/solid-runtime/src/`. Root validation also checks the

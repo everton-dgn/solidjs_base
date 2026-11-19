@@ -1,32 +1,69 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { format } from '../src/rewrite.ts'
+import {
+  CSP_DIRECTIVES,
+  SECURITY_HEADERS
+} from '../../solid-runtime/src/middleware/securityHeaders/constants.js'
+import { editTemplate } from '../src/edit-template.ts'
 import { uiProfiles } from './feature-combinations.ts'
 import { iconEdits, iconReadmeEdits } from './icon-edits.ts'
 import { staticEdits, staticThemeDocument } from './static-edits.ts'
 import { themeEdits, themeReadmeEdits } from './theme-edits.ts'
 import { themeGuideEdits, themeIconGuideEdit } from './theme-guide-edits.ts'
 
-function prepareFile(
-  input: { source: string; output: string },
-  edits: typeof iconReadmeEdits
-): void {
+type FileVariant = { source: string; output: string }
+
+const pendingFormats = new Set<string>()
+
+function formatPending(): void {
+  const sandbox = mkdtempSync(path.join(tmpdir(), 'solid-profile-format-'))
+  try {
+    const files = [...pendingFormats].map((output, index) => {
+      const folder = path.join(sandbox, String(index))
+      mkdirSync(folder)
+      const input = path.join(folder, path.basename(output))
+      cpSync(output, input)
+      return { input, output }
+    })
+    execFileSync(path.resolve('../../node_modules/.bin/vp'), [
+      'fmt',
+      '--config',
+      path.resolve('dist/formatter/vite.config.mjs'),
+      sandbox
+    ])
+    for (const { input, output } of files) cpSync(input, output)
+    pendingFormats.clear()
+  } finally {
+    rmSync(sandbox, { recursive: true, force: true })
+  }
+}
+
+function prepareFile(input: FileVariant, edits: typeof iconReadmeEdits): void {
   let content = readFileSync(input.source, 'utf8')
   for (const [pattern, replacement] of edits) {
-    if (!pattern.test(content)) {
-      throw new Error(`Missing feature edit in ${input.source}: ${pattern}`)
-    }
-    content = content.replace(pattern, replacement)
+    content = editTemplate({
+      file: input.source,
+      text: content,
+      pattern,
+      replacement
+    })
   }
   const file = path.basename(input.output)
   mkdirSync(path.dirname(input.output), { recursive: true })
-  writeFileSync(
-    input.output,
-    file === '_gitignore' || file === 'AGENTS.md'
-      ? content
-      : format(file, content)
-  )
+  writeFileSync(input.output, content)
+  if (file !== '_gitignore' && file !== 'AGENTS.md') {
+    pendingFormats.add(input.output)
+  }
 }
 
 function buildReadmes(): void {
@@ -64,6 +101,34 @@ function buildReadmes(): void {
   }
 }
 
+function buildClientTheme(): void {
+  const source = 'profiles/static/theme.ts.tmpl'
+  prepareFile(
+    { source, output: 'dist/client/theme/src/constants/theme-options.ts' },
+    [
+      [/^[\s\S]*?const options = /u, 'export const themeOptions = '],
+      [/\nexport const \{ createTheme[\s\S]*$/u, '\n']
+    ]
+  )
+  prepareFile({ source, output: 'dist/client/theme/src/constants/theme.ts' }, [
+    [/^import \{ storedThemeScript[^\n]+\n/mu, ''],
+    [
+      /const options = \{[\s\S]*?\} as const/u,
+      "import { themeOptions } from './theme-options.ts'"
+    ],
+    [/, themeColor, defaultTheme: DEFAULT_THEME/u, ''],
+    [/defineTheme\(options\)/u, 'defineTheme(themeOptions)'],
+    [/^export const initialThemeScript[^\n]+\n/mu, '']
+  ])
+  prepareFile(
+    {
+      source: 'profiles/client/stored-theme.ts.tmpl',
+      output: 'dist/client/theme/tooling/stored-theme.ts'
+    },
+    []
+  )
+}
+
 function buildStaticProfile(): void {
   for (const [file, edits] of Object.entries(staticEdits)) {
     prepareFile(
@@ -85,7 +150,7 @@ function buildStaticProfile(): void {
     'playwright.config.ts': 'files/playwright.config.ts',
     'paraglide.config.ts': 'files/project.inlang/paraglide.config.ts',
     'theme.ts': 'theme/src/constants/theme.ts',
-    'README.md': 'files/README.md',
+    'README.md': 'publishing.md',
     'serve-public.ts': 'files/tooling/testing/serve-public.ts'
   }
   for (const [file, target] of Object.entries(targets)) {
@@ -110,12 +175,13 @@ export function buildProfiles(): void {
       edits
     )
   }
+  formatPending()
   for (const [file, edits] of Object.entries({
     ...themeEdits,
     ...themeGuideEdits
   })) {
-    const shared = Object.hasOwn(iconEdits, file)
-    for (const icons of shared ? [true, false] : [true]) {
+    const isShared = Object.hasOwn(iconEdits, file)
+    for (const icons of isShared ? [true, false] : [true]) {
       const source = path.join(
         icons ? 'template' : 'dist/without-icons/files',
         file
@@ -132,4 +198,26 @@ export function buildProfiles(): void {
   }
   buildReadmes()
   buildStaticProfile()
+  buildClientTheme()
+  for (const mode of ['static', 'client']) {
+    const scripts =
+      mode === 'static'
+        ? "script-src 'self' {page-hashes}"
+        : "script-src 'self'"
+    const headers = [
+      `Content-Security-Policy: ${[...CSP_DIRECTIVES, scripts].join('; ')}`,
+      ...Object.entries(SECURITY_HEADERS).map(
+        ([name, value]) => `${name}: ${value}`
+      )
+    ]
+    const guidance =
+      mode === 'static'
+        ? 'Replace `{page-hashes}` with the quoted hashes for the HTML file served, including error pages.'
+        : 'Serve missing asset requests with status 404. Direct page URLs require a host with an HTML fallback.'
+    const content = `## Host response headers\n\n${guidance}\n\n\`\`\`http\n${headers.join('\n')}\n\`\`\`\n\nServe .md files with \`Content-Type: text/markdown; charset=utf-8\`.\n`
+    const output = path.join('dist', `headers-${mode}.md`)
+    writeFileSync(output, content)
+    pendingFormats.add(output)
+  }
+  formatPending()
 }

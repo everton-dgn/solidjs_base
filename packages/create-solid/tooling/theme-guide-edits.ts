@@ -52,6 +52,7 @@ export const themeGuideEdits: FileEdits = {
     ]
   ],
   'docs/ui.md': [
+    [/, `light-dark\(\)` and/gu, ' and'],
     [/Components, theme and styles/u, 'Components and styles'],
     [
       /The theme and locale triggers[\s\S]*?(?=## Fonts)/u,

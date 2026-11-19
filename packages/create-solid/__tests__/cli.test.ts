@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import {
   existsSync,
   cpSync,
+  chmodSync,
   symlinkSync,
   statSync,
   readdirSync,
@@ -84,7 +85,7 @@ printf 'minimumReleaseAgeExclude:\\n  - "@example/pkg"\\n' >> pnpm-workspace.yam
     { mode: executable }
   )
   const realVp = execFileSync('which', ['vp'], { encoding: 'utf8' }).trim()
-  // Use the packed formatting config before installation has provided the preset.
+  // The fake installer supplies a local vp that uses the application formatting preset.
   const formatter = path.resolve('dist/formatter')
   writeFileSync(
     path.join(parent, 'vp'),
@@ -149,6 +150,7 @@ void it('preserves the destination when a required tool is missing', context => 
       env: { ...process.env, PATH: parent }
     })
     assert.equal(result.status, 1)
+    assert.match(result.stderr.toString(), /Install git/u)
     assert.equal(existsSync(dir), isExisting)
     assert.ok(!existsSync(path.join(dir, 'package.json')))
   }
@@ -240,6 +242,7 @@ void it('prints help before validating other arguments', () => {
 })
 
 void it('rejects contradictory feature switches', () => {
+  const usageError = 2
   for (const option of ['seo', 'theme', 'icons', 'fonts', 'diagnostics']) {
     const child = spawnSync(
       process.execPath,
@@ -248,9 +251,73 @@ void it('rejects contradictory feature switches', () => {
         encoding: 'utf8'
       }
     )
-    assert.equal(child.status, 2)
+    assert.equal(child.status, usageError)
     assert.ok(
       child.stderr.includes(`Choose either --${option} or --no-${option}.`)
     )
   }
+})
+
+void it('generates inside an empty destination with a read-only parent', context => {
+  const parent = folder(context)
+  const destination = path.join(parent, 'app')
+  mkdirSync(destination)
+  const readOnly = 0o555
+  chmodSync(parent, readOnly)
+  try {
+    execFileSync(process.execPath, [
+      bin,
+      destination,
+      '--no-install',
+      '--no-git'
+    ])
+    assert.ok(existsSync(path.join(destination, 'package.json')))
+  } finally {
+    chmodSync(parent, executable)
+  }
+})
+
+void it('keeps every rename on the destination device', context => {
+  const destination = folder(context)
+  const guard = `import fs from 'node:fs'
+import { syncBuiltinESMExports } from 'node:module'
+import path from 'node:path'
+const rename = fs.renameSync
+const root = process.argv[2] + path.sep
+fs.renameSync = (source, target) => {
+  if (!source.startsWith(root) || !target.startsWith(root)) {
+    throw Object.assign(new Error('Cross-device rename'), { code: 'EXDEV' })
+  }
+  return rename(source, target)
+}
+syncBuiltinESMExports()`
+  execFileSync(process.execPath, [
+    `--import=data:text/javascript,${encodeURIComponent(guard)}`,
+    bin,
+    destination,
+    '--no-install',
+    '--no-git'
+  ])
+  assert.ok(existsSync(path.join(destination, 'package.json')))
+})
+
+void it('reports an internal TypeError as an execution failure', context => {
+  const destination = folder(context)
+  const fault = `import fs from 'node:fs'
+import { syncBuiltinESMExports } from 'node:module'
+fs.mkdtempSync = () => { throw new TypeError('Internal failure') }
+syncBuiltinESMExports()`
+  const result = spawnSync(
+    process.execPath,
+    [
+      `--import=data:text/javascript,${encodeURIComponent(fault)}`,
+      bin,
+      destination,
+      '--no-install',
+      '--no-git'
+    ],
+    { encoding: 'utf8' }
+  )
+  assert.match(result.stderr, /Internal failure/u)
+  assert.equal(result.status, 1)
 })

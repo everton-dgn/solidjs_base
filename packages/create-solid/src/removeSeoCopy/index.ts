@@ -1,7 +1,11 @@
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { parse, record, string } from 'valibot'
+
+import { editCatalog } from '../edit-template.ts'
+import { removeSeoConventions } from '../removeSeoConventions/index.ts'
+import { removeSeoGuideCopy } from '../removeSeoGuideCopy/index.ts'
 
 const locales = {
   en: [
@@ -20,7 +24,7 @@ const locales = {
 const indent = 2
 export function removeSeoCopy(stage: string): void {
   for (const [locale, [home, about]] of Object.entries(locales)) {
-    for (const page of ['(home)', 'about']) {
+    for (const page of ['(home)', 'about', 'contact', 'privacy', '[...404]']) {
       const file = path.join(
         stage,
         'src/routes/(base)',
@@ -33,36 +37,31 @@ export function removeSeoCopy(stage: string): void {
         JSON.parse(readFileSync(file, 'utf8'))
       )
       if (page === '(home)') {
-        delete data.home_seoTitle
-        data.home_features = home
+        editCatalog({ file, catalog: data, key: 'home_seoTitle' })
+        editCatalog({ file, catalog: data, key: 'home_features', value: home })
       } else {
-        data.about_source = about
+        const prefix = page === '[...404]' ? 'notFound' : page
+        editCatalog({ file, catalog: data, key: `${prefix}_description` })
+        if (page === '[...404]') {
+          editCatalog({ file, catalog: data, key: 'notFound_title' })
+        }
+        if (page === 'about') {
+          editCatalog({
+            file,
+            catalog: data,
+            key: 'about_source',
+            value: about
+          })
+        }
+      }
+      if (Object.keys(data).length === 0) {
+        rmSync(file)
+        continue
       }
       writeFileSync(file, `${JSON.stringify(data, null, indent)}\n`)
     }
   }
-  const docs = readdirSync(path.join(stage, 'docs'), {
-    recursive: true,
-    encoding: 'utf8'
-  })
-  const featureText =
-    /\b(?:seo|markdown(?:Content)?|sitemaps?|robots\.txt|llms(?:-full)?\.txt|JSON-LD|canonical|hreflang|open graph|schema-dts|mdream)\b/iu
-  for (const file of [
-    'README.md',
-    'AGENTS.md',
-    ...docs
-      .filter(name => name.endsWith('.md'))
-      .map(name => path.join('docs', name))
-  ]) {
-    const target = path.join(stage, file)
-    const blocks =
-      readFileSync(target, 'utf8')
-        .trimEnd()
-        .match(/^```[^\n]*\n[\s\S]*?^```$|[^\n]+(?:\n(?!\n|```)[^\n]+)*/gmu) ??
-      []
-    writeFileSync(
-      target,
-      `${blocks.filter(block => !featureText.test(block)).join('\n\n')}\n`
-    )
-  }
+  const agents = path.join(stage, 'AGENTS.md')
+  writeFileSync(agents, removeSeoConventions(readFileSync(agents, 'utf8')))
+  removeSeoGuideCopy(stage)
 }

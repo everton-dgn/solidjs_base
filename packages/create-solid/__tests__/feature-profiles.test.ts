@@ -14,10 +14,17 @@ import { it } from 'node:test'
 
 import { array, object, parse, record, string } from 'valibot'
 
+import {
+  CSP_DIRECTIVES,
+  SECURITY_HEADERS
+} from '../../solid-runtime/src/middleware/securityHeaders/constants.js'
 import { createTasks } from '../../solid-tooling/src/vite/tasks.ts'
 import { generate } from '../src/generate.ts'
+import { guideFiles } from '../src/prepared-guides.ts'
+import { guideProblems } from '../tooling/check-guide-links.ts'
 import { checkImports } from '../tooling/check-imports.ts'
 import { uiProfiles } from '../tooling/feature-combinations.ts'
+import { guideOwnership } from '../tooling/guide-ownership.ts'
 
 function checkForbiddenTerms(dir: string, terms: string[]): void {
   if (terms.length === 0) return
@@ -27,7 +34,13 @@ function checkForbiddenTerms(dir: string, terms: string[]): void {
   })) {
     if (!file.isFile()) continue
     const target = path.join(file.parentPath, file.name)
-    const content = readFileSync(target, 'utf8')
+    const source = readFileSync(target, 'utf8')
+    const mimeExamples: Record<string, string> = {
+      'README.md': 'Content-Type: text/markdown; charset=utf-8',
+      'tooling/testing/serve-public.ts': "'.md': 'text/markdown; charset=utf-8'"
+    }
+    const mime = mimeExamples[path.relative(dir, target)]
+    const content = mime === undefined ? source : source.replace(mime, '')
     for (const term of terms) {
       assert.ok(!content.includes(term), `${target} mentions ${term}`)
     }
@@ -61,6 +74,7 @@ function checkCatalogs(dir: string, tree: readonly string[]): void {
       const contents = readFileSync(path.join(dir, folder, file), 'utf8')
       const catalog = parse(record(string(), string()), JSON.parse(contents))
       const keys = Object.keys(catalog).toSorted()
+      assert.ok(keys.length > 0, path.join(folder, file))
       expected ??= keys
       assert.deepEqual(keys, expected, path.join(folder, file))
     }
@@ -95,6 +109,8 @@ const inventorySchema = object({
   imports: record(string(), string()),
   serverOnly: array(string()),
   forbiddenTerms: object({
+    static: terms,
+    client: terms,
     fonts: terms,
     seo: terms,
     diagnostics: terms,
@@ -124,6 +140,48 @@ function importsFor(profile: {
       .map(([source]) => source)
   )
 }
+type GuideProfile = {
+  dir: string
+  mode: 'server' | 'static' | 'client'
+  pm: string
+}
+function checkGuideContent({ dir, mode, pm }: GuideProfile): void {
+  const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
+  if (
+    mode === 'client' &&
+    existsSync(path.join(dir, 'src/constants/theme.ts'))
+  ) {
+    assert.doesNotMatch(
+      read('src/constants/theme.ts'),
+      /themeColor|DEFAULT_THEME/u
+    )
+  }
+  const readme = read('README.md')
+  assert.ok(readme.includes(`${pm} install`))
+  if (mode !== 'server') {
+    for (const file of ['AGENTS.md', ...guideFiles(dir)]) {
+      const guide = read(file).toLowerCase()
+      for (const term of inventory.forbiddenTerms[mode]) {
+        assert.ok(
+          !guide.includes(term.toLowerCase()),
+          `${file} mentions ${term}`
+        )
+      }
+    }
+    for (const directive of CSP_DIRECTIVES) {
+      assert.ok(readme.includes(directive), directive)
+    }
+    for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+      assert.ok(readme.includes(`${name}: ${value}`), name)
+    }
+    assert.equal(readme.includes('{page-hashes}'), mode === 'static')
+    assert.ok(readme.includes('text/markdown; charset=utf-8'))
+  }
+}
+const guideChanges = guideOwnership()
+const approvedEdits = new Set(
+  readFileSync('guide-edits.txt', 'utf8').trimEnd().split('\n')
+)
 const modes = ['server', 'static', 'client'] as const
 const publications = modes.flatMap(mode =>
   [true, false].map(seo => ({ mode, seo }))
@@ -139,11 +197,11 @@ for (const { mode, seo } of publications) {
             dir,
             pm,
             mode,
-            seo,
-            theme,
-            icons,
-            diagnostics,
-            fonts,
+            hasSeo: seo,
+            hasTheme: theme,
+            hasIcons: icons,
+            hasDiagnostics: diagnostics,
+            hasFonts: fonts,
             shouldInstall: false,
             shouldInitGit: false
           }
@@ -155,6 +213,19 @@ for (const { mode, seo } of publications) {
           generate(profile)
           const read = (file: string) =>
             readFileSync(path.join(dir, file), 'utf8')
+          for (const change of guideChanges(profile)) {
+            assert.ok(
+              approvedEdits.has(change),
+              `Unreviewed guide edit: ${change}`
+            )
+          }
+          checkGuideContent({ dir, mode, pm })
+          assert.match(read('package.json'), /"test:tooling":/u)
+          assert.match(read('AGENTS.md'), /^## CSS classes$/mu)
+          assert.match(read('AGENTS.md'), /^## Exports$/mu)
+          assert.equal(read('.env').includes('VITE_SITE_URL='), seo)
+          if (!seo) assert.ok(!read('vite.config.ts').includes('publicAssets:'))
+          if (!theme) assert.ok(!read('README.md').includes('<picture>'))
           assert.equal(existsSync(path.join(dir, 'fonts.ts')), fonts)
           assert.equal(read('vite.config.ts').includes('fonts: FONTS'), fonts)
           if (mode !== 'client') {
@@ -252,7 +323,12 @@ for (const { mode, seo } of publications) {
             .map(file =>
               path.relative(dir, path.join(file.parentPath, file.name))
             )
-          checkImports({ dir, files: tree, knownImports: importsFor(profile) })
+          checkImports({
+            dir,
+            files: tree,
+            knownImports: importsFor({ seo, theme, fonts, icons })
+          })
+          assert.deepEqual(guideProblems(dir), [])
           checkScriptFiles(dir, tree)
           checkCatalogs(dir, tree)
           const files = readdirSync(dir)

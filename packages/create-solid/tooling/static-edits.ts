@@ -23,10 +23,19 @@ export const staticEdits: FileEdits = {
       'restores the original URL after the earlier test'
     ]
   ],
+  'src/constants/http.ts': [[/^export const HTTP_CONFLICT = 409\n/mu, '']],
   'src/App.tsx': [
     [/getRequestEvent, isServer/u, 'isServer'],
     [/type ParentProps/u, ''],
     [/\/\/ The gate must throw[\s\S]*?(?=\/\/ A beforeunload)/u, ''],
+    [
+      /\/\/ A beforeunload of the page[\s\S]*?the blank screen\./u,
+      '// If a reload stalls, show the error page after the deadline.'
+    ],
+    [
+      /\/\/ A chunk or a server function[\s\S]*?the reload that did not solve it\./u,
+      '// A stale chunk can recover by loading the current document.'
+    ],
     [/^ *<\/?ServerFailureGate>\n/gmu, '']
   ],
   'src/entry-client/installOutdatedPageDetection/index.ts': [

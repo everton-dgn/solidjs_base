@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { accessSync, constants, readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import type { Profile } from './types.ts'
+import type { Profile } from '../types.ts'
 
 export function installProfile(profile: Profile): void {
   if (!profile.shouldInstall) return

@@ -3,6 +3,8 @@ import { it } from 'node:test'
 
 import * as v from 'valibot'
 
+import type { FileWrite } from '../src/generate.ts'
+
 void it('exports the generator without parsing process arguments', async () => {
   const entry = import.meta.resolve('@evertondgn/create-solid')
   assert.ok(entry.endsWith('/dist/index.mjs'))
@@ -46,7 +48,7 @@ void it('keeps the generator private until its first registry release', async ()
   assert.ok(!Object.hasOwn(versions, 'packages/create-solid'))
 })
 
-void it('returns instructions to API callers and exports the generation steps', async context => {
+void it('returns installation instructions to callers of generate', async context => {
   const { mkdtempSync, rmSync } = await import('node:fs')
   const { tmpdir } = await import('node:os')
   const { default: path } = await import('node:path')
@@ -81,6 +83,7 @@ const stepContext = () => {
     pkg: {
       name: '',
       scripts: {} as Record<string, string>,
+      dependencies: {},
       devDependencies: {} as Record<string, string>
     },
     settings: {
@@ -92,7 +95,7 @@ const stepContext = () => {
       bunfig: 'config',
       lefthook: '9'
     },
-    write: (file: string, content: string) => {
+    write: ({ file, content }: FileWrite) => {
       files.set(file, content)
     }
   }
@@ -143,7 +146,7 @@ void it('removes reactivity diagnostics from the application and its guide', asy
   generate({
     dir,
     pm: 'bun',
-    diagnostics: false,
+    hasDiagnostics: false,
     shouldInitGit: false,
     shouldInstall: false
   })
@@ -166,7 +169,7 @@ void it('omits the font assets, head links and build option with fonts off', asy
   generate({
     dir,
     pm: 'bun',
-    fonts: false,
+    hasFonts: false,
     shouldInstall: false,
     shouldInitGit: false
   })

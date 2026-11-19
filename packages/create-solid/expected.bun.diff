@@ -683,7 +683,7 @@ diff --git a/source/docs/development.md b/example/docs/development.md
 diff --git a/source/docs/i18n.md b/example/docs/i18n.md
 --- a/source/docs/i18n.md
 +++ b/example/docs/i18n.md
-@@ -4,11 +4,11 @@
+@@ -4,24 +4,21 @@
  
  ## Catalogs and messages
  
@@ -700,7 +700,32 @@ diff --git a/source/docs/i18n.md b/example/docs/i18n.md
  
  ```text
  src/routes/(base)/(home)/
-@@ -123,7 +123,7 @@ The cost of the generation grows with the whole set: each preparation reads and
+   index.tsx
+   i18n/
+-    pt.json
+-    en.json
+-    es.json
++    {locale}.json
+ ```
+ 
+-Use the same set of keys and parameters in the three files. For example,
+-`"home_welcome": "Olá, {name}!"`, `"Hello, {name}!"` and `"¡Hola, {name}!"`. The
+-compiler generates functions and TypeScript declarations in `paraglide/`:
++Use the same keys and parameters in every catalog. The compiler generates
++functions and TypeScript declarations in `paraglide/`:
+ 
+ ```tsx
+ import { m } from '@paraglide/messages.js'
+@@ -32,7 +29,7 @@ export default function Home() {
+ ```
+ 
+ The functions check message names, the names and presence of the parameters and
+-the optional locale, for example `m.home_title({}, { locale: 'es' })`. The
++the optional locale, for example `m.home_title({}, { locale: baseLocale })`. The
+ `Locale` type comes from `@paraglide/runtime.js`. Simple interpolations accept
+ non-null values; validate domain data before translating it. Do not call
+ messages at the top of a module: SSR shares modules between requests. Use calls
+@@ -123,7 +120,7 @@ The cost of the generation grows with the whole set: each preparation reads and
  validates again every catalog of every locale, and the Paraglide compiler loads
  all of them at once. In development, this repeats on every saved catalog. None
  of it runs on requests. The `CATALOGS_MAX_BYTES` limit, in
@@ -709,7 +734,7 @@ diff --git a/source/docs/i18n.md b/example/docs/i18n.md
  limits the sum of the catalog files: past it, the generation fails on the file
  that crossed the limit, before reading it, instead of degrading the build. In
  measurements with synthetic catalogs in three locales, 1 MiB (5,000 messages per
-@@ -176,10 +176,10 @@ stays in the adapter, with `checkBundle` from the official SDK. Paraglide keeps
+@@ -176,10 +173,10 @@ stays in the adapter, with `checkBundle` from the official SDK. Paraglide keeps
  aggregates, without pointing to the colocated catalog that failed.
  
  The bundler removes unused messages and keeps the messages exclusive to the page
@@ -724,22 +749,44 @@ diff --git a/source/docs/i18n.md b/example/docs/i18n.md
  module holds it, that the 404 downloads none of those modules and that the one
  of the home page arrives on the navigation to it.
  
-@@ -213,12 +213,12 @@ isolates the locale of each SSR with `AsyncLocalStorage` and keeps
- functions use the source page of the same domain, falling back to the cookie and
- the language header, keeping the request body and the Solid control signals.
- APIs, indexes and common assets stay without a prefix. The Markdown snapshots
--are localized files, such as `/pt/about.md`, generated in the build with
-+are localized files, such as `/{locale}/about.md`, generated in the build with
- isolation between the locales. The locale and the content of those files come
- from the URL, regardless of cookies and `Accept-Language`; direct access does
- not go through the localization of pages.
+@@ -204,21 +201,21 @@ CSP violations.
+ ## Negotiation and isolation on the server
  
+ Pages without a prefix get a temporary redirect, without cache, using the
+-`locale` cookie, then `Accept-Language` and finally `en`. The explicit URL takes
+-priority. The detection ignores locales with `q=0` and invalid weights; if no
+-accepted locale is available, it uses the base locale. The native Paraglide
+-parser does that detection without changing the original request. The middleware
+-isolates the locale of each SSR with `AsyncLocalStorage` and keeps
+-`Content-Language`, `<html lang>`, SEO and hydration consistent. Server
+-functions use the source page of the same domain, falling back to the cookie and
+-the language header, keeping the request body and the Solid control signals.
+-APIs, indexes and common assets stay without a prefix. The Markdown snapshots
+-are localized files, such as `/pt/about.md`, generated in the build with
+-isolation between the locales. The locale and the content of those files come
+-from the URL, regardless of cookies and `Accept-Language`; direct access does
+-not go through the localization of pages.
+-
 -[`requestClassification`](../../../packages/solid-runtime/src/middleware/requestClassification)
++`locale` cookie, then `Accept-Language` and finally the base locale. The
++explicit URL takes priority. The detection ignores locales with `q=0` and
++invalid weights; if no accepted locale is available, it uses the base locale.
++The native Paraglide parser does that detection without changing the original
++request. The middleware isolates the locale of each SSR with `AsyncLocalStorage`
++and keeps `Content-Language`, `<html lang>`, SEO and hydration consistent.
++Server functions use the source page of the same domain, falling back to the
++cookie and the language header, keeping the request body and the Solid control
++signals. APIs, indexes and common assets stay without a prefix. The Markdown
++snapshots are localized files, such as `/{locale}/about.md`, generated in the
++build with isolation between the locales. The locale and the content of those
++files come from the URL, regardless of cookies and `Accept-Language`; direct
++access does not go through the localization of pages.
++
 +[`requestClassification`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/requestClassification)
  gathers the page criteria used by the localization and by the failure
  containment. The localization of GET and HEAD pages looks at the path,
  regardless of `Accept`, so that pages excluded from the Markdown negotiation
-@@ -307,7 +307,8 @@ and in the locale switcher.
+@@ -307,7 +304,8 @@ and in the locale switcher.
  
  The sitemap publishes one URL per locale, with reciprocal alternates and
  `x-default`. The count and byte limits are checked after that expansion.
@@ -749,7 +796,7 @@ diff --git a/source/docs/i18n.md b/example/docs/i18n.md
  
  ## Runtime request step
  
-@@ -329,8 +330,8 @@ locale and URL helpers from the runtime.
+@@ -329,8 +327,8 @@ locale and URL helpers from the runtime.
  `localeTag(locale, overrides?)`, from
  `@evertondgn/solid-runtime/i18n/locale-tag`, uses `Intl.Locale` instead of a
  fixed list. The application passes `LOCALE_TAG_OVERRIDES` from
@@ -963,6 +1010,19 @@ diff --git a/source/docs/seo.md b/example/docs/seo.md
  stays in `index.tsx`, in a non-exported constant with getters (the pages that
  use `SiteArticle` type it with `satisfies SitePage`), or in calls to `m` in the
  JSX itself. The route manifest imports the `route` of each page in the initial
+@@ -114,9 +114,9 @@ invalid property fails the type check; the image dimensions stay only in Open
+ Graph. The locale of the page comes from `SITE.locale`, which also feeds the
+ `lang` of `Document.tsx` and `og:locale` (with an underscore).
+ `og:locale:alternate` lists the other locales, and `WebSite.inLanguage` declares
+-the three available locales. The runtime applies `JSON.stringify`, then escapes
+-`<`, U+2028 and U+2029 in both the graph and page-owned data before passing the
+-text to `useHead` with `type: 'application/ld+json'`. Solid's server and client
++the configured locales. The runtime applies `JSON.stringify`, then escapes `<`,
++U+2028 and U+2029 in both the graph and page-owned data before passing the text
++to `useHead` with `type: 'application/ld+json'`. Solid's server and client
+ serializers provide the HTML and head-update transport. This contract depends on
+ the JSON type and on the use of `useHead`: do not interpolate the JSON directly
+ into HTML. The `createSeo` and `StructuredData` regression tests check the first
 @@ -126,11 +126,11 @@ hydration. The Twitter handles come from `SITE.twitter` (`twitter:site`, the
  account of the site) and from `SITE.author.twitter` (`twitter:creator`, the
  account of the author). LinkedIn has no meta tag of its own: it reads Open Graph

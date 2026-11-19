@@ -38,10 +38,10 @@ bun | configureClient | docs/development.md | ## Tool dependencies | o04VEq_jN5x
 bun | configureClient | docs/development.md | ### Publication | DbKU9-1qvFhEeZBwZF23a_LKHAsFqX6TeqWKmO_vX5Y | ### Publication -> (absent)
 bun | configureClient | docs/development.md | ### SSR runtime | VSrW7mabFvmAL5-G92XshqnO7Pfvqnh_CBrhDBKEXt0 | ### SSR runtime -> (absent)
 bun | configureClient | docs/development.md | (section order) | ZMAEL1O7xDfQLSTUvfRceBzc-_SczRAKfWdgu0k-y0Y | ["docs/development.md | # Development and delivery","docs/development.md | ## Prerequisites","do -> ["docs/development.md | # Development and delivery","docs/development.md | ## Prerequisites","do
-bun | configureClient | docs/i18n.md | ## Catalogs and messages | K-oUfZ7gh_g2dOciVKxLKWnK6uQ3Isv4WwCLJfz9pQg | messages at the top of a module: SSR shares modules between requests. Use calls -> messages at the top of a module. Use calls in the component or getters in
+bun | configureClient | docs/i18n.md | ## Catalogs and messages | w8u3BPcxqkaM0xqcawz2drSfqE9A57EckYmT9SFtIZE | messages at the top of a module: SSR shares modules between requests. Use calls -> messages at the top of a module. Use calls in the component or getters in
 bun | configureClient | docs/i18n.md | ## Generation and validation | DQiEnW4DuN0FnzYG94WS6ascUKJyi9I2ul1pVnoWuLo | Those browsers fetch the polyfill in an extra request before `entry-client` -> Browsers without the native API load the polyfill before mounting the page.
 bun | configureClient | docs/i18n.md | ## Navigation | e3czBBlAoLquKmWPgFMUNJttlDnYf1CXHo06kGiYAFI | To navigate between pages, use `LocalizedLink`, `createLocalizedNavigate()` and -> The current URL selects the language. Use a locale prefix to link directly to a
-bun | configureClient | docs/i18n.md | ## Negotiation and isolation on the server | yHkoMu7KzFQ0P-_wlovUux_-Iz83TfG_Kw0Nm83O_9c | ## Negotiation and isolation on the server -> (absent)
+bun | configureClient | docs/i18n.md | ## Negotiation and isolation on the server | utbVt5iFXYqEoVAKS-a3c_B8O9s6RBKsCsAVxtLzRNA | ## Negotiation and isolation on the server -> (absent)
 bun | configureClient | docs/i18n.md | ## Preference and cookies | XjBGJCzL0W_X7saZIeuicwHTjewiKgENIMfvTzaGrYA | ## Preference and cookies -> (absent)
 bun | configureClient | docs/i18n.md | ## Runtime request step | SUhbfy5Nsf1KRDKHyotucBaA3HKFGWVlo9gyKDeJuIQ | ## Runtime request step -> (absent)
 bun | configureClient | docs/i18n.md | (section order) | 4QjLkX5ZfhaJF2T1NuvVmiCPP6kk4ENARfyO1UBiOMU | ["docs/i18n.md | # Internationalization","docs/i18n.md | ## Catalogs and messages","docs/i18n.md -> ["docs/i18n.md | # Internationalization","docs/i18n.md | ## Catalogs and messages","docs/i18n.md
@@ -195,11 +195,11 @@ bun | configurePlainApp | docs/development.md | ## Scripts | dve-_lhPy-ned_nNTkQ
 bun | configurePlainApp | docs/development.md | ## Tool dependencies | EqhMY9KEkIawzoPC6pEVaCtW9V0QIdCtbt3nQPSFul0 | Test dependencies aligned with the tooling package. Keep Paraglide, -> Test dependencies aligned with the tooling package. Keep the Solid libraries in
 bun | configurePlainApp | docs/development.md | ## Tool dependencies | vuhvWNSrsxMUvCHzIqaH1h5pF1ZknsPB8ZtdDZ-ZSK0 | package. Keep Paraglide, message-format and the Solid libraries in the -> package. Keep the Solid libraries in the application, plus the root Vite/Vitest
 bun | configurePlainApp | docs/i18n.md | # Internationalization | 6zCCAnVFkFdTnp9kdwhLDq2xfK9zWFHcAfECD_X3PrM | # Internationalization -> (absent)
-bun | configurePlainApp | docs/i18n.md | ## Catalogs and messages | 2-Ul-csCppuLznWWGomeRlDyOPFCDsGuq9NZUEk2mIE | ## Catalogs and messages -> (absent)
-bun | configurePlainApp | docs/i18n.md | ## Catalogs and messages | EjRlmff8GJAcqtdTAB1dXYws4smvlXJ_N2H-cUzBBQQ | ## Catalogs and messages -> (absent)
-bun | configurePlainApp | docs/i18n.md | ## Catalogs and messages | Itd7nT7THnW3gLSI3lnbLiMeQgxOZcxaySWOfE7bvfU | ## Catalogs and messages -> (absent)
-bun | configurePlainApp | docs/i18n.md | ## Catalogs and messages | gG20FeNluclT5p51gI92ym_e1zmuZiwZRzHjlQ0fcIw | ## Catalogs and messages -> (absent)
-bun | configurePlainApp | docs/i18n.md | ## Catalogs and messages | oDiQqBbJXya_OlfXqlpxKRqHmuT2ZfRQzVUNRi9PiII | ## Catalogs and messages -> (absent)
+bun | configurePlainApp | docs/i18n.md | ## Catalogs and messages | 4unogT151z0ZVp-CgZwe1YkX3ulKoYXDVNtmvu4P1QQ | ## Catalogs and messages -> (absent)
+bun | configurePlainApp | docs/i18n.md | ## Catalogs and messages | M4amNesLAY6g4vC3Ho3xl8TBRM8aYDHftJ_meDmvvYc | ## Catalogs and messages -> (absent)
+bun | configurePlainApp | docs/i18n.md | ## Catalogs and messages | Rv8TyQuX5Rp9lYvOguTdTbrK8EMmCF3Pt7YIdYpe_UY | ## Catalogs and messages -> (absent)
+bun | configurePlainApp | docs/i18n.md | ## Catalogs and messages | YUr0oK5q9w5mQcDWpUHJbG7oXmScEkDENkXBt_UxsKY | ## Catalogs and messages -> (absent)
+bun | configurePlainApp | docs/i18n.md | ## Catalogs and messages | x6ePRDz224Tir3DQTRfP6rAPtYRkbkEfw_301iiy-cA | ## Catalogs and messages -> (absent)
 bun | configurePlainApp | docs/i18n.md | ## Generation and validation | 7-mEYrXHmklYvV_Y1olcNxeKjQBIgQPCSW6sofiEDVI | ## Generation and validation -> (absent)
 bun | configurePlainApp | docs/i18n.md | ## Generation and validation | enSkYFGL1RQdU1L9CLzoSwUU_FE94k2N-57mSDS2cHk | ## Generation and validation -> (absent)
 bun | configurePlainApp | docs/i18n.md | ## Generation and validation | jv29-AqhBKuVeTcDFTakH84YCv0yrXVystdnqazLFdA | ## Generation and validation -> (absent)
@@ -207,8 +207,8 @@ bun | configurePlainApp | docs/i18n.md | ## Generation and validation | yQBLzIBS
 bun | configurePlainApp | docs/i18n.md | ## Navigation | 5UY4uHA9VZYsFjBRnF8VfSDBA3eyVRgXEIqf3al-xe8 | ## Navigation -> (absent)
 bun | configurePlainApp | docs/i18n.md | ## Navigation | j0IbbUq8mCa144z6Zv79Ea0mrkSnJ2hmo9CuaVHhPis | ## Navigation -> (absent)
 bun | configurePlainApp | docs/i18n.md | ## Navigation | tmSHgZo8uTSPoo44Qy6Fiw94MJTT0U6EqmPQxmFlYj4 | ## Navigation -> (absent)
-bun | configurePlainApp | docs/i18n.md | ## Negotiation and isolation on the server | 0JoR5jUcg_zFMgwV1m0oQB3CiLxOl4On4wJ8jxkN6Sc | ## Negotiation and isolation on the server -> (absent)
-bun | configurePlainApp | docs/i18n.md | ## Negotiation and isolation on the server | yHkoMu7KzFQ0P-_wlovUux_-Iz83TfG_Kw0Nm83O_9c | ## Negotiation and isolation on the server -> (absent)
+bun | configurePlainApp | docs/i18n.md | ## Negotiation and isolation on the server | utbVt5iFXYqEoVAKS-a3c_B8O9s6RBKsCsAVxtLzRNA | ## Negotiation and isolation on the server -> (absent)
+bun | configurePlainApp | docs/i18n.md | ## Negotiation and isolation on the server | vrOcTR8I8LDkLuSF389EYIdToriPDCHz8KVIGRrDwgY | ## Negotiation and isolation on the server -> (absent)
 bun | configurePlainApp | docs/i18n.md | ## Preference and cookies | XjBGJCzL0W_X7saZIeuicwHTjewiKgENIMfvTzaGrYA | ## Preference and cookies -> (absent)
 bun | configurePlainApp | docs/i18n.md | ## Runtime navigation and language tags | Offa3A5VSPScJj1JvzrwfWtmyJAQvclR8cUveWJ-xdc | ## Runtime navigation and language tags -> (absent)
 bun | configurePlainApp | docs/i18n.md | ## Runtime navigation and language tags | Rcla-rz12uMvAB8N0zKcKVLD5kX8LFLkGEBeGuJMQnY | ## Runtime navigation and language tags -> (absent)
@@ -220,8 +220,8 @@ bun | configurePlainApp | docs/i18n.md | (section order) | fDuU5RE5fKPuNL6x9dkyK
 bun | configurePlainApp | docs/i18n.md | (section order) | yB1E3qDyNU_tiRjo-cnEZbrBQtTKio2L94GtS0futbM | ["docs/i18n.md | # Internationalization","docs/i18n.md | ## Catalogs and messages","docs/i18n.md -> (absent)
 bun | configurePlainApp | docs/security.md | ## Known limits | DV0C30JE25x8PEDs6W_-2mTXJX-t0NWkBbRfCw03zWw | that overlap in part, such as `/**.md` next to `/assets/**` or -> that overlap in part, such as `/**.md` next to `/assets/**` or `/blog/**` next
 bun | configurePlainApp | docs/security.md | ## Known limits | GMfSlIIGe9fPXhhjOM2Z8IHZH-BCR3jyB6d_lYs9Nwc | under the prefix of each locale, `/llms.txt`, `/llms-full.txt`, -> at their application paths, `/llms.txt`, `/llms-full.txt`,
-bun | configurePlainApp | docs/seo.md | ## Route metadata | HCt1Zb0UFzpMj5wgKbUwCjRUMXWRtycgPDgAf44HWTc | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
-bun | configurePlainApp | docs/seo.md | ## Route metadata | jTywsNrotUHj6ft-V1whE9a2IZWNQSZXyYsvFvb9VWs | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
+bun | configurePlainApp | docs/seo.md | ## Route metadata | Ml7RFjlgOyL0TnZ0jAEHo49W_zYMUR2iGQqom9HHS-g | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
+bun | configurePlainApp | docs/seo.md | ## Route metadata | _ltGHFzVOuwDkxpKaJvwd8t3m80PtybUiHSydI4SLcs | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
 bun | configurePlainApp | docs/seo.md | ## Structured data per page | inlyeKo_ClGimSy4sDMUOM87UQ-Qt4z9rWjMf_MPh64 | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
 bun | configurePlainApp | docs/seo/indexes.md | ## Endpoints and cache | 3eyv9H2Ff93vddomLnoymS5AacP0tltClTl6B7853zQ | index and its parts to the public directory. llms.txt uses -> index and its parts to the public directory. The index uses the language
 bun | configurePlainApp | docs/seo/indexes.md | ## Endpoints and cache | zqSCIRBOxFdBkboD9Uf5e_LswC4ENG5x1WhB4xl-P1w | index lists the parts, and each part reads its own batch. llms.txt uses -> index lists the parts, and each part reads its own batch. The index uses the
@@ -269,12 +269,12 @@ bun | configureSeo | README.md | (section order) | 3W6OKKKePifwsoCC3Sf79D_C0ZSgi
 bun | configureSeo | docs/architecture.md | ## Data and infrastructure | azO7Y0XAV9HAE2BdUh3xCwR7mXyX1oeKeUZwAGKbwOM | The application binds the Markdown adapter in -> `data/formatters/` (formatting of dates, currencies and numbers) and
 bun | configureSeo | docs/architecture.md | ## Routes and organization | TaBPuRDbW9ASl1WAseIJabzK1XEryGPkd08rX-YbDHc | provider, the SEO and the global boundary, which also catches failures in the -> provider and the global boundary, which also catches failures in the layout. The
 bun | configureSeo | docs/development.md | ## Environment and preview | Eyio5PCH0kagwGyDTC9NwuA55E6fze_t9TUdtUz6-xw | copy enables the preset's `seo` option, which validates the required -> runtime package supplies the fragment as a production dependency; the tooling
-bun | configureSeo | docs/i18n.md | ## Catalogs and messages | 9T-E0-Yj7pyXdqMg0L5FqW-MkdAqj2UD1RhfiTQyXrA | in the component or getters in constants and in `route.info.seo`, as in the 404. -> in the component or getters in constants.
-bun | configureSeo | docs/i18n.md | ## Catalogs and messages | G_Ze0DiT0SWgKeJO2O0GGoq4cZBdyDNNPhqw9ViPyz8 | constants and in `route.info.seo`, as in the 404. -> constants.
+bun | configureSeo | docs/i18n.md | ## Catalogs and messages | ydphIs-zN2fVEqbLMU3s2-q3Vij_01hdN1AgYme_toQ | constants and in `route.info.seo`, as in the 404. -> constants.
+bun | configureSeo | docs/i18n.md | ## Catalogs and messages | zQbtTIRGuoMFXAL7dYAU9jN6_6ADisc-LEi8nWsXKP4 | in the component or getters in constants and in `route.info.seo`, as in the 404. -> in the component or getters in constants.
 bun | configureSeo | docs/i18n.md | ## Generation and validation | 2ZqiGfOZAJT-o1646TVzEzQfVlN6_UljwkxunwoT60A | Vite+ task adds a cache to the standalone command. The Markdown snapshots of the -> Vite+ task adds a cache to the standalone command.
 bun | configureSeo | docs/i18n.md | ## Generation and validation | VijC6Rv8VLMCI_yerYBcDTJSYhxlrUdUkjJI_15CJVU | Vite+ task adds a cache to the standalone command. The Markdown snapshots of the -> Vite+ task adds a cache to the standalone command.
 bun | configureSeo | docs/i18n.md | ## Navigation | rOcuG8ahekn_w8Igvm1HTl94yaAFkSlVAF2HOIpcfqQ | Router, covers the history between locales, to keep messages, document and SEO -> Router, covers the history between locales, to keep messages and document in the
-bun | configureSeo | docs/i18n.md | ## Negotiation and isolation on the server | E3d5jOspWRZf_rWVxg9GAJnlK6uMiMixc7vA7wlPIA8 | `Content-Language`, `<html lang>`, SEO and hydration consistent. Server -> `Content-Language`, `<html lang>` and hydration consistent. Server functions use
+bun | configureSeo | docs/i18n.md | ## Negotiation and isolation on the server | 7GhBFF1zQFVKp7LoGacCmm7gxoYyKqFlCZSciXVADC8 | and keeps `Content-Language`, `<html lang>`, SEO and hydration consistent. -> and keeps `Content-Language`, `<html lang>` and hydration consistent. Server
 bun | configureSeo | docs/i18n.md | ## Runtime navigation and language tags | b_qQiVDYw93IirmN42PYzpbgetfIYN6CbZy5ZxAxlvk | `src/i18n/localeTagOverrides/` to set language tags for HTML, Open Graph and -> `src/i18n/localeTagOverrides/` to preserve pt-BR, en-US and es-ES in HTML.
 bun | configureSeo | docs/i18n.md | ## Runtime request step | 18jnjoIANub4KQn5QMgXDJYjbgniCxEAFIgASeCPpas | `@evertondgn/solid-runtime/middleware/localize-request`. Markdown response -> `@evertondgn/solid-runtime/middleware/localize-request`. Locale detection,
 bun | configureSeo | docs/i18n.md | ## SEO indexes | DgT0bNnpPW958Rt-4Y7_y9YFvOxQ6EwpRiiZUMK_-jc | ## SEO indexes -> (absent)
@@ -285,8 +285,8 @@ bun | configureSeo | docs/seo.md | # SEO and site indexes | nQLt_2xEVIJJ4bKQZDj3
 bun | configureSeo | docs/seo.md | ## Endpoints and cache | V2Wzx9OaylcBQ5u7N_z9y_escz52c3w8DzbxGgkjeew | ## Endpoints and cache -> (absent)
 bun | configureSeo | docs/seo.md | ## Reading by agents | Gn00hzcJGk-vYrw5MAZyb7g6dHdmFzyjHegpDvEiZOk | ## Reading by agents -> (absent)
 bun | configureSeo | docs/seo.md | ## Reading by agents | hmTP5wG8ovXBde4Qhv-Y91kVmEcU-ZJumhsSGou8-q4 | ## Reading by agents -> (absent)
-bun | configureSeo | docs/seo.md | ## Route metadata | 4xMDpAVxtic5crnt3fxyphqvXBF6NYh4pjKVznaR_eI | ## Route metadata -> (absent)
-bun | configureSeo | docs/seo.md | ## Route metadata | _CwxpwdqDyCRNQAztcwP2oRvtHvGLcvuxsyBh9ZvGcM | ## Route metadata -> (absent)
+bun | configureSeo | docs/seo.md | ## Route metadata | 2-vmLGpIzh3uS2pu-arb1zJPBIidLW0KWJi_vb6DMu8 | ## Route metadata -> (absent)
+bun | configureSeo | docs/seo.md | ## Route metadata | U3FDUfEXHpdMef_BrGxgGos6RWMrey9l0bW1BpbB1eY | ## Route metadata -> (absent)
 bun | configureSeo | docs/seo.md | ## Selection for llms.txt | iSNLYkVqq-mgsCFoVtSrELBtKFKYHxWUwv02_O74n8Y | ## Selection for llms.txt -> (absent)
 bun | configureSeo | docs/seo.md | ## Sitemap and dynamic routes | _7Dx6uytXcfvlw93_uBCI9AxBFnxQ4AU7EjmLrctBB8 | ## Sitemap and dynamic routes -> (absent)
 bun | configureSeo | docs/seo.md | ## Structured data per page | 4IipL4ptV0UmlacDS3Bs9wwlIEJpzHwzDezSL-vUIDY | ## Structured data per page -> (absent)
@@ -380,10 +380,10 @@ bun | configureStatic | docs/development.md | ## Tool dependencies | o04VEq_jN5x
 bun | configureStatic | docs/development.md | ### Publication | DbKU9-1qvFhEeZBwZF23a_LKHAsFqX6TeqWKmO_vX5Y | ### Publication -> (absent)
 bun | configureStatic | docs/development.md | ### SSR runtime | VSrW7mabFvmAL5-G92XshqnO7Pfvqnh_CBrhDBKEXt0 | ### SSR runtime -> (absent)
 bun | configureStatic | docs/development.md | (section order) | ZMAEL1O7xDfQLSTUvfRceBzc-_SczRAKfWdgu0k-y0Y | ["docs/development.md | # Development and delivery","docs/development.md | ## Prerequisites","do -> ["docs/development.md | # Development and delivery","docs/development.md | ## Prerequisites","do
-bun | configureStatic | docs/i18n.md | ## Catalogs and messages | hH6Kge0Uyi5d5etRXfpMSZHR8jfiYHNbFJhDcXcYEI0 | messages at the top of a module: SSR shares modules between requests. Use calls -> messages at the top of a module. Use calls in the component or getters in
+bun | configureStatic | docs/i18n.md | ## Catalogs and messages | 1fAf4rKV9Jfrkh9TuEGHjnH4bfj2dyB6Cqu2sRiOzts | messages at the top of a module: SSR shares modules between requests. Use calls -> messages at the top of a module. Use calls in the component or getters in
 bun | configureStatic | docs/i18n.md | ## Generation and validation | oEGNkdLYsjD-IZPOUMBe13k8vXf7tQMLsd9g7aERAws | Those browsers fetch the polyfill in an extra request before `entry-client` -> Browsers without the native API load the polyfill before mounting the page.
 bun | configureStatic | docs/i18n.md | ## Navigation | FiCZ8--Zb83hRPc15X2GKH5dV4mGILhXhd6Lh9fIQbY | To navigate between pages, use `LocalizedLink`, `createLocalizedNavigate()` and -> The current URL selects the language. Use a locale prefix to link directly to a
-bun | configureStatic | docs/i18n.md | ## Negotiation and isolation on the server | 0JoR5jUcg_zFMgwV1m0oQB3CiLxOl4On4wJ8jxkN6Sc | ## Negotiation and isolation on the server -> (absent)
+bun | configureStatic | docs/i18n.md | ## Negotiation and isolation on the server | vrOcTR8I8LDkLuSF389EYIdToriPDCHz8KVIGRrDwgY | ## Negotiation and isolation on the server -> (absent)
 bun | configureStatic | docs/i18n.md | ## Preference and cookies | XjBGJCzL0W_X7saZIeuicwHTjewiKgENIMfvTzaGrYA | ## Preference and cookies -> (absent)
 bun | configureStatic | docs/i18n.md | ## Runtime request step | 1FIsu2uQ_EwTaUsx4SkAMAeOyO-zmGoYcAkra-09Zs4 | ## Runtime request step -> (absent)
 bun | configureStatic | docs/i18n.md | ## SEO indexes | DgT0bNnpPW958Rt-4Y7_y9YFvOxQ6EwpRiiZUMK_-jc | ## SEO indexes -> (absent)
@@ -395,7 +395,7 @@ bun | configureStatic | docs/security.md | ## Nonce and render entries | BEtsVjG
 bun | configureStatic | docs/security.md | ## Validation and streamed CSS | qJy4ObKM_azV5GRoIDSGOMgDGfFyrZ4s0I3fEYafgtg | ## Validation and streamed CSS -> (absent)
 bun | configureStatic | docs/security.md | (section order) | yarphkC9kJY3Im9ONdGsprpOT6rwLrbcY3XZjbV7V0s | ["docs/security.md | # Security headers and CSP","docs/security.md | ## Content policy","docs/se -> ["docs/security.md | # Security headers and CSP","docs/security.md | ## Content policy","docs/se
 bun | configureStatic | docs/seo.md | ## Reading by agents | vAdtGL8ajpCnAwXL61orjnO9vm4OUoPAz-J77W8f61o | See [reading by agents](seo/markdown.md#reading-by-agents). -> See the [Markdown publication guide](seo/markdown.md).
-bun | configureStatic | docs/seo.md | ## Route metadata | Gwh6MpJfvrRjmOYRNz7hcLAH0oA76bQ0AZIwmKaWIIw | applications with SSR. An indexable page publishes `robots` with -> prerendered applications. An indexable page publishes `robots` with
+bun | configureStatic | docs/seo.md | ## Route metadata | poIZSwcuXmwQLt7iwBynRIP2567pe0LKJTqwt_Ipb1I | applications with SSR. An indexable page publishes `robots` with -> prerendered applications. An indexable page publishes `robots` with
 bun | configureStatic | docs/seo.md | ### Platform artifacts and routing | mBdQfyaAeiJBsKwCChHJ-5Oz92M7oNCdi6xieZBSeUc | ### Platform artifacts and routing -> (absent)
 bun | configureStatic | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S7g80ybtigujCumXD5te-MGb-j3XGY | ### llms-full.txt aggregate -> (absent)
 bun | configureStatic | docs/seo.md | (section order) | rxPQzFCO1VWd-OOlk4Wf87jWTYq6K5nbQ_wAc_JCdpg | ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru -> ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru
@@ -472,10 +472,10 @@ bun | configureTheme | README.md | ### Outdated pages after a deploy | TEc_SGfkU
 bun | configureTheme | docs/architecture.md | ## Component layers | ZHp-UiIL2oOm9wu9ZhWl0EsPhwC1oi3JxEhCN1MD2fk | - `molecules/` put atoms together into a unit with one purpose. `ThemeToggle` -> - `molecules/` put atoms together into a unit with one purpose. `LocaleSwitcher`
 bun | configureTheme | docs/architecture.md | ## Routes and organization | kGSOUqZMHoIoJJeYWmwvGWZE1OpTGkxETaPbl8h2wB4 | reactive state, such as `makeThemeChannel`, which returns its disposal, and the -> reactive state, and the `create` prefix marks primitives with reactive state or
 bun | configureTheme | docs/architecture.md | ## Routes and organization | xv3fkJJOecXXMavTDDFElI3Ug06raexrVZjnwOIjKbo | reactive state, such as `makeThemeChannel`, which returns its disposal, and the -> reactive state, and the `create` prefix marks primitives with reactive state or
-bun | configureTheme | docs/i18n.md | ## Catalogs and messages | LfoVgIkDFb0-ugveg_bQQcdovq3sbVE-z9UtdFHZ_d4 | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
-bun | configureTheme | docs/i18n.md | ## Catalogs and messages | dmNoewIa7gCxk_6ulEk5r2lZ2LUXUNIDCvzm_jbbpMc | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
-bun | configureTheme | docs/i18n.md | ## Catalogs and messages | klLDzv23bVVoefQmsCQqaGXJMGqPiHihlInTqOFUwBM | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
-bun | configureTheme | docs/i18n.md | ## Catalogs and messages | rm31BPwnUstaQaTT4ZDmpUD8KvDJb04jPMG88Wz1d4Q | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
+bun | configureTheme | docs/i18n.md | ## Catalogs and messages | GMJFD9j6VBIx8w8g9M9JbcQkYgO9wCh2uG1pX1_CA6g | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
+bun | configureTheme | docs/i18n.md | ## Catalogs and messages | LVdzaQjEGZCZdhreCghXSbn-4I7Cs9gfVhM-LVBZ340 | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
+bun | configureTheme | docs/i18n.md | ## Catalogs and messages | iIng1itDJRvbguFH-cbhaODNTd1cKv2rtGX4u_iZ3p0 | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
+bun | configureTheme | docs/i18n.md | ## Catalogs and messages | wBJ2evEElPKw2r5ZWZe0u2legUGGr-53FEt7FddpFBU | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
 bun | configureTheme | docs/security.md | ## Content policy | 0W-eUYrb9eHVi29f8IaFMpBnLHhR506dXowFHbAgCwk | HTML is blocked. That is why `Document` applies the theme of the cookie only -> HTML is blocked.
 bun | configureTheme | docs/security.md | ## Content policy | 62-ePQCwQDGq5JcLG6bzDlv70_rSTohsavY3eRXWVCU | HTML is blocked. That is why `Document` applies the theme of the cookie only -> HTML is blocked.
 bun | configureTheme | docs/security.md | ## Nonce and render entries | zckWLX2HKrhrTX4AejRfQMfr1YGXFITw3s20H6d0oWk | - `Document` writes `nonce` in the inline theme script and in the script of the -> - `Document` writes `nonce` in the script of the client entry, which it renders
@@ -535,10 +535,10 @@ npm | configureClient | docs/development.md | ## Tool dependencies | o04VEq_jN5x
 npm | configureClient | docs/development.md | ### Publication | DbKU9-1qvFhEeZBwZF23a_LKHAsFqX6TeqWKmO_vX5Y | ### Publication -> (absent)
 npm | configureClient | docs/development.md | ### SSR runtime | VSrW7mabFvmAL5-G92XshqnO7Pfvqnh_CBrhDBKEXt0 | ### SSR runtime -> (absent)
 npm | configureClient | docs/development.md | (section order) | ZMAEL1O7xDfQLSTUvfRceBzc-_SczRAKfWdgu0k-y0Y | ["docs/development.md | # Development and delivery","docs/development.md | ## Prerequisites","do -> ["docs/development.md | # Development and delivery","docs/development.md | ## Prerequisites","do
-npm | configureClient | docs/i18n.md | ## Catalogs and messages | K-oUfZ7gh_g2dOciVKxLKWnK6uQ3Isv4WwCLJfz9pQg | messages at the top of a module: SSR shares modules between requests. Use calls -> messages at the top of a module. Use calls in the component or getters in
+npm | configureClient | docs/i18n.md | ## Catalogs and messages | w8u3BPcxqkaM0xqcawz2drSfqE9A57EckYmT9SFtIZE | messages at the top of a module: SSR shares modules between requests. Use calls -> messages at the top of a module. Use calls in the component or getters in
 npm | configureClient | docs/i18n.md | ## Generation and validation | DQiEnW4DuN0FnzYG94WS6ascUKJyi9I2ul1pVnoWuLo | Those browsers fetch the polyfill in an extra request before `entry-client` -> Browsers without the native API load the polyfill before mounting the page.
 npm | configureClient | docs/i18n.md | ## Navigation | e3czBBlAoLquKmWPgFMUNJttlDnYf1CXHo06kGiYAFI | To navigate between pages, use `LocalizedLink`, `createLocalizedNavigate()` and -> The current URL selects the language. Use a locale prefix to link directly to a
-npm | configureClient | docs/i18n.md | ## Negotiation and isolation on the server | yHkoMu7KzFQ0P-_wlovUux_-Iz83TfG_Kw0Nm83O_9c | ## Negotiation and isolation on the server -> (absent)
+npm | configureClient | docs/i18n.md | ## Negotiation and isolation on the server | utbVt5iFXYqEoVAKS-a3c_B8O9s6RBKsCsAVxtLzRNA | ## Negotiation and isolation on the server -> (absent)
 npm | configureClient | docs/i18n.md | ## Preference and cookies | XjBGJCzL0W_X7saZIeuicwHTjewiKgENIMfvTzaGrYA | ## Preference and cookies -> (absent)
 npm | configureClient | docs/i18n.md | ## Runtime request step | SUhbfy5Nsf1KRDKHyotucBaA3HKFGWVlo9gyKDeJuIQ | ## Runtime request step -> (absent)
 npm | configureClient | docs/i18n.md | (section order) | 4QjLkX5ZfhaJF2T1NuvVmiCPP6kk4ENARfyO1UBiOMU | ["docs/i18n.md | # Internationalization","docs/i18n.md | ## Catalogs and messages","docs/i18n.md -> ["docs/i18n.md | # Internationalization","docs/i18n.md | ## Catalogs and messages","docs/i18n.md
@@ -692,11 +692,11 @@ npm | configurePlainApp | docs/development.md | ## Scripts | dve-_lhPy-ned_nNTkQ
 npm | configurePlainApp | docs/development.md | ## Tool dependencies | EqhMY9KEkIawzoPC6pEVaCtW9V0QIdCtbt3nQPSFul0 | Test dependencies aligned with the tooling package. Keep Paraglide, -> Test dependencies aligned with the tooling package. Keep the Solid libraries in
 npm | configurePlainApp | docs/development.md | ## Tool dependencies | vuhvWNSrsxMUvCHzIqaH1h5pF1ZknsPB8ZtdDZ-ZSK0 | package. Keep Paraglide, message-format and the Solid libraries in the -> package. Keep the Solid libraries in the application, plus the root Vite/Vitest
 npm | configurePlainApp | docs/i18n.md | # Internationalization | 6zCCAnVFkFdTnp9kdwhLDq2xfK9zWFHcAfECD_X3PrM | # Internationalization -> (absent)
-npm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | 2-Ul-csCppuLznWWGomeRlDyOPFCDsGuq9NZUEk2mIE | ## Catalogs and messages -> (absent)
-npm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | EjRlmff8GJAcqtdTAB1dXYws4smvlXJ_N2H-cUzBBQQ | ## Catalogs and messages -> (absent)
-npm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | Itd7nT7THnW3gLSI3lnbLiMeQgxOZcxaySWOfE7bvfU | ## Catalogs and messages -> (absent)
-npm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | gG20FeNluclT5p51gI92ym_e1zmuZiwZRzHjlQ0fcIw | ## Catalogs and messages -> (absent)
-npm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | oDiQqBbJXya_OlfXqlpxKRqHmuT2ZfRQzVUNRi9PiII | ## Catalogs and messages -> (absent)
+npm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | 4unogT151z0ZVp-CgZwe1YkX3ulKoYXDVNtmvu4P1QQ | ## Catalogs and messages -> (absent)
+npm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | M4amNesLAY6g4vC3Ho3xl8TBRM8aYDHftJ_meDmvvYc | ## Catalogs and messages -> (absent)
+npm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | Rv8TyQuX5Rp9lYvOguTdTbrK8EMmCF3Pt7YIdYpe_UY | ## Catalogs and messages -> (absent)
+npm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | YUr0oK5q9w5mQcDWpUHJbG7oXmScEkDENkXBt_UxsKY | ## Catalogs and messages -> (absent)
+npm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | x6ePRDz224Tir3DQTRfP6rAPtYRkbkEfw_301iiy-cA | ## Catalogs and messages -> (absent)
 npm | configurePlainApp | docs/i18n.md | ## Generation and validation | 7-mEYrXHmklYvV_Y1olcNxeKjQBIgQPCSW6sofiEDVI | ## Generation and validation -> (absent)
 npm | configurePlainApp | docs/i18n.md | ## Generation and validation | enSkYFGL1RQdU1L9CLzoSwUU_FE94k2N-57mSDS2cHk | ## Generation and validation -> (absent)
 npm | configurePlainApp | docs/i18n.md | ## Generation and validation | jv29-AqhBKuVeTcDFTakH84YCv0yrXVystdnqazLFdA | ## Generation and validation -> (absent)
@@ -704,8 +704,8 @@ npm | configurePlainApp | docs/i18n.md | ## Generation and validation | yQBLzIBS
 npm | configurePlainApp | docs/i18n.md | ## Navigation | 5UY4uHA9VZYsFjBRnF8VfSDBA3eyVRgXEIqf3al-xe8 | ## Navigation -> (absent)
 npm | configurePlainApp | docs/i18n.md | ## Navigation | j0IbbUq8mCa144z6Zv79Ea0mrkSnJ2hmo9CuaVHhPis | ## Navigation -> (absent)
 npm | configurePlainApp | docs/i18n.md | ## Navigation | tmSHgZo8uTSPoo44Qy6Fiw94MJTT0U6EqmPQxmFlYj4 | ## Navigation -> (absent)
-npm | configurePlainApp | docs/i18n.md | ## Negotiation and isolation on the server | 0JoR5jUcg_zFMgwV1m0oQB3CiLxOl4On4wJ8jxkN6Sc | ## Negotiation and isolation on the server -> (absent)
-npm | configurePlainApp | docs/i18n.md | ## Negotiation and isolation on the server | yHkoMu7KzFQ0P-_wlovUux_-Iz83TfG_Kw0Nm83O_9c | ## Negotiation and isolation on the server -> (absent)
+npm | configurePlainApp | docs/i18n.md | ## Negotiation and isolation on the server | utbVt5iFXYqEoVAKS-a3c_B8O9s6RBKsCsAVxtLzRNA | ## Negotiation and isolation on the server -> (absent)
+npm | configurePlainApp | docs/i18n.md | ## Negotiation and isolation on the server | vrOcTR8I8LDkLuSF389EYIdToriPDCHz8KVIGRrDwgY | ## Negotiation and isolation on the server -> (absent)
 npm | configurePlainApp | docs/i18n.md | ## Preference and cookies | XjBGJCzL0W_X7saZIeuicwHTjewiKgENIMfvTzaGrYA | ## Preference and cookies -> (absent)
 npm | configurePlainApp | docs/i18n.md | ## Runtime navigation and language tags | Offa3A5VSPScJj1JvzrwfWtmyJAQvclR8cUveWJ-xdc | ## Runtime navigation and language tags -> (absent)
 npm | configurePlainApp | docs/i18n.md | ## Runtime navigation and language tags | Rcla-rz12uMvAB8N0zKcKVLD5kX8LFLkGEBeGuJMQnY | ## Runtime navigation and language tags -> (absent)
@@ -717,8 +717,8 @@ npm | configurePlainApp | docs/i18n.md | (section order) | fDuU5RE5fKPuNL6x9dkyK
 npm | configurePlainApp | docs/i18n.md | (section order) | yB1E3qDyNU_tiRjo-cnEZbrBQtTKio2L94GtS0futbM | ["docs/i18n.md | # Internationalization","docs/i18n.md | ## Catalogs and messages","docs/i18n.md -> (absent)
 npm | configurePlainApp | docs/security.md | ## Known limits | DV0C30JE25x8PEDs6W_-2mTXJX-t0NWkBbRfCw03zWw | that overlap in part, such as `/**.md` next to `/assets/**` or -> that overlap in part, such as `/**.md` next to `/assets/**` or `/blog/**` next
 npm | configurePlainApp | docs/security.md | ## Known limits | GMfSlIIGe9fPXhhjOM2Z8IHZH-BCR3jyB6d_lYs9Nwc | under the prefix of each locale, `/llms.txt`, `/llms-full.txt`, -> at their application paths, `/llms.txt`, `/llms-full.txt`,
-npm | configurePlainApp | docs/seo.md | ## Route metadata | HCt1Zb0UFzpMj5wgKbUwCjRUMXWRtycgPDgAf44HWTc | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
-npm | configurePlainApp | docs/seo.md | ## Route metadata | jTywsNrotUHj6ft-V1whE9a2IZWNQSZXyYsvFvb9VWs | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
+npm | configurePlainApp | docs/seo.md | ## Route metadata | Ml7RFjlgOyL0TnZ0jAEHo49W_zYMUR2iGQqom9HHS-g | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
+npm | configurePlainApp | docs/seo.md | ## Route metadata | _ltGHFzVOuwDkxpKaJvwd8t3m80PtybUiHSydI4SLcs | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
 npm | configurePlainApp | docs/seo.md | ## Structured data per page | inlyeKo_ClGimSy4sDMUOM87UQ-Qt4z9rWjMf_MPh64 | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
 npm | configurePlainApp | docs/seo/indexes.md | ## Endpoints and cache | 3eyv9H2Ff93vddomLnoymS5AacP0tltClTl6B7853zQ | index and its parts to the public directory. llms.txt uses -> index and its parts to the public directory. The index uses the language
 npm | configurePlainApp | docs/seo/indexes.md | ## Endpoints and cache | zqSCIRBOxFdBkboD9Uf5e_LswC4ENG5x1WhB4xl-P1w | index lists the parts, and each part reads its own batch. llms.txt uses -> index lists the parts, and each part reads its own batch. The index uses the
@@ -766,12 +766,12 @@ npm | configureSeo | README.md | (section order) | 3W6OKKKePifwsoCC3Sf79D_C0ZSgi
 npm | configureSeo | docs/architecture.md | ## Data and infrastructure | azO7Y0XAV9HAE2BdUh3xCwR7mXyX1oeKeUZwAGKbwOM | The application binds the Markdown adapter in -> `data/formatters/` (formatting of dates, currencies and numbers) and
 npm | configureSeo | docs/architecture.md | ## Routes and organization | TaBPuRDbW9ASl1WAseIJabzK1XEryGPkd08rX-YbDHc | provider, the SEO and the global boundary, which also catches failures in the -> provider and the global boundary, which also catches failures in the layout. The
 npm | configureSeo | docs/development.md | ## Environment and preview | Eyio5PCH0kagwGyDTC9NwuA55E6fze_t9TUdtUz6-xw | copy enables the preset's `seo` option, which validates the required -> runtime package supplies the fragment as a production dependency; the tooling
-npm | configureSeo | docs/i18n.md | ## Catalogs and messages | 9T-E0-Yj7pyXdqMg0L5FqW-MkdAqj2UD1RhfiTQyXrA | in the component or getters in constants and in `route.info.seo`, as in the 404. -> in the component or getters in constants.
-npm | configureSeo | docs/i18n.md | ## Catalogs and messages | G_Ze0DiT0SWgKeJO2O0GGoq4cZBdyDNNPhqw9ViPyz8 | constants and in `route.info.seo`, as in the 404. -> constants.
+npm | configureSeo | docs/i18n.md | ## Catalogs and messages | ydphIs-zN2fVEqbLMU3s2-q3Vij_01hdN1AgYme_toQ | constants and in `route.info.seo`, as in the 404. -> constants.
+npm | configureSeo | docs/i18n.md | ## Catalogs and messages | zQbtTIRGuoMFXAL7dYAU9jN6_6ADisc-LEi8nWsXKP4 | in the component or getters in constants and in `route.info.seo`, as in the 404. -> in the component or getters in constants.
 npm | configureSeo | docs/i18n.md | ## Generation and validation | 2ZqiGfOZAJT-o1646TVzEzQfVlN6_UljwkxunwoT60A | Vite+ task adds a cache to the standalone command. The Markdown snapshots of the -> Vite+ task adds a cache to the standalone command.
 npm | configureSeo | docs/i18n.md | ## Generation and validation | VijC6Rv8VLMCI_yerYBcDTJSYhxlrUdUkjJI_15CJVU | Vite+ task adds a cache to the standalone command. The Markdown snapshots of the -> Vite+ task adds a cache to the standalone command.
 npm | configureSeo | docs/i18n.md | ## Navigation | rOcuG8ahekn_w8Igvm1HTl94yaAFkSlVAF2HOIpcfqQ | Router, covers the history between locales, to keep messages, document and SEO -> Router, covers the history between locales, to keep messages and document in the
-npm | configureSeo | docs/i18n.md | ## Negotiation and isolation on the server | E3d5jOspWRZf_rWVxg9GAJnlK6uMiMixc7vA7wlPIA8 | `Content-Language`, `<html lang>`, SEO and hydration consistent. Server -> `Content-Language`, `<html lang>` and hydration consistent. Server functions use
+npm | configureSeo | docs/i18n.md | ## Negotiation and isolation on the server | 7GhBFF1zQFVKp7LoGacCmm7gxoYyKqFlCZSciXVADC8 | and keeps `Content-Language`, `<html lang>`, SEO and hydration consistent. -> and keeps `Content-Language`, `<html lang>` and hydration consistent. Server
 npm | configureSeo | docs/i18n.md | ## Runtime navigation and language tags | b_qQiVDYw93IirmN42PYzpbgetfIYN6CbZy5ZxAxlvk | `src/i18n/localeTagOverrides/` to set language tags for HTML, Open Graph and -> `src/i18n/localeTagOverrides/` to preserve pt-BR, en-US and es-ES in HTML.
 npm | configureSeo | docs/i18n.md | ## Runtime request step | 18jnjoIANub4KQn5QMgXDJYjbgniCxEAFIgASeCPpas | `@evertondgn/solid-runtime/middleware/localize-request`. Markdown response -> `@evertondgn/solid-runtime/middleware/localize-request`. Locale detection,
 npm | configureSeo | docs/i18n.md | ## SEO indexes | DgT0bNnpPW958Rt-4Y7_y9YFvOxQ6EwpRiiZUMK_-jc | ## SEO indexes -> (absent)
@@ -782,8 +782,8 @@ npm | configureSeo | docs/seo.md | # SEO and site indexes | nQLt_2xEVIJJ4bKQZDj3
 npm | configureSeo | docs/seo.md | ## Endpoints and cache | V2Wzx9OaylcBQ5u7N_z9y_escz52c3w8DzbxGgkjeew | ## Endpoints and cache -> (absent)
 npm | configureSeo | docs/seo.md | ## Reading by agents | Gn00hzcJGk-vYrw5MAZyb7g6dHdmFzyjHegpDvEiZOk | ## Reading by agents -> (absent)
 npm | configureSeo | docs/seo.md | ## Reading by agents | hmTP5wG8ovXBde4Qhv-Y91kVmEcU-ZJumhsSGou8-q4 | ## Reading by agents -> (absent)
-npm | configureSeo | docs/seo.md | ## Route metadata | 4xMDpAVxtic5crnt3fxyphqvXBF6NYh4pjKVznaR_eI | ## Route metadata -> (absent)
-npm | configureSeo | docs/seo.md | ## Route metadata | _CwxpwdqDyCRNQAztcwP2oRvtHvGLcvuxsyBh9ZvGcM | ## Route metadata -> (absent)
+npm | configureSeo | docs/seo.md | ## Route metadata | 2-vmLGpIzh3uS2pu-arb1zJPBIidLW0KWJi_vb6DMu8 | ## Route metadata -> (absent)
+npm | configureSeo | docs/seo.md | ## Route metadata | U3FDUfEXHpdMef_BrGxgGos6RWMrey9l0bW1BpbB1eY | ## Route metadata -> (absent)
 npm | configureSeo | docs/seo.md | ## Selection for llms.txt | iSNLYkVqq-mgsCFoVtSrELBtKFKYHxWUwv02_O74n8Y | ## Selection for llms.txt -> (absent)
 npm | configureSeo | docs/seo.md | ## Sitemap and dynamic routes | _7Dx6uytXcfvlw93_uBCI9AxBFnxQ4AU7EjmLrctBB8 | ## Sitemap and dynamic routes -> (absent)
 npm | configureSeo | docs/seo.md | ## Structured data per page | 4IipL4ptV0UmlacDS3Bs9wwlIEJpzHwzDezSL-vUIDY | ## Structured data per page -> (absent)
@@ -877,10 +877,10 @@ npm | configureStatic | docs/development.md | ## Tool dependencies | o04VEq_jN5x
 npm | configureStatic | docs/development.md | ### Publication | DbKU9-1qvFhEeZBwZF23a_LKHAsFqX6TeqWKmO_vX5Y | ### Publication -> (absent)
 npm | configureStatic | docs/development.md | ### SSR runtime | VSrW7mabFvmAL5-G92XshqnO7Pfvqnh_CBrhDBKEXt0 | ### SSR runtime -> (absent)
 npm | configureStatic | docs/development.md | (section order) | ZMAEL1O7xDfQLSTUvfRceBzc-_SczRAKfWdgu0k-y0Y | ["docs/development.md | # Development and delivery","docs/development.md | ## Prerequisites","do -> ["docs/development.md | # Development and delivery","docs/development.md | ## Prerequisites","do
-npm | configureStatic | docs/i18n.md | ## Catalogs and messages | hH6Kge0Uyi5d5etRXfpMSZHR8jfiYHNbFJhDcXcYEI0 | messages at the top of a module: SSR shares modules between requests. Use calls -> messages at the top of a module. Use calls in the component or getters in
+npm | configureStatic | docs/i18n.md | ## Catalogs and messages | 1fAf4rKV9Jfrkh9TuEGHjnH4bfj2dyB6Cqu2sRiOzts | messages at the top of a module: SSR shares modules between requests. Use calls -> messages at the top of a module. Use calls in the component or getters in
 npm | configureStatic | docs/i18n.md | ## Generation and validation | oEGNkdLYsjD-IZPOUMBe13k8vXf7tQMLsd9g7aERAws | Those browsers fetch the polyfill in an extra request before `entry-client` -> Browsers without the native API load the polyfill before mounting the page.
 npm | configureStatic | docs/i18n.md | ## Navigation | FiCZ8--Zb83hRPc15X2GKH5dV4mGILhXhd6Lh9fIQbY | To navigate between pages, use `LocalizedLink`, `createLocalizedNavigate()` and -> The current URL selects the language. Use a locale prefix to link directly to a
-npm | configureStatic | docs/i18n.md | ## Negotiation and isolation on the server | 0JoR5jUcg_zFMgwV1m0oQB3CiLxOl4On4wJ8jxkN6Sc | ## Negotiation and isolation on the server -> (absent)
+npm | configureStatic | docs/i18n.md | ## Negotiation and isolation on the server | vrOcTR8I8LDkLuSF389EYIdToriPDCHz8KVIGRrDwgY | ## Negotiation and isolation on the server -> (absent)
 npm | configureStatic | docs/i18n.md | ## Preference and cookies | XjBGJCzL0W_X7saZIeuicwHTjewiKgENIMfvTzaGrYA | ## Preference and cookies -> (absent)
 npm | configureStatic | docs/i18n.md | ## Runtime request step | 1FIsu2uQ_EwTaUsx4SkAMAeOyO-zmGoYcAkra-09Zs4 | ## Runtime request step -> (absent)
 npm | configureStatic | docs/i18n.md | ## SEO indexes | DgT0bNnpPW958Rt-4Y7_y9YFvOxQ6EwpRiiZUMK_-jc | ## SEO indexes -> (absent)
@@ -892,7 +892,7 @@ npm | configureStatic | docs/security.md | ## Nonce and render entries | BEtsVjG
 npm | configureStatic | docs/security.md | ## Validation and streamed CSS | qJy4ObKM_azV5GRoIDSGOMgDGfFyrZ4s0I3fEYafgtg | ## Validation and streamed CSS -> (absent)
 npm | configureStatic | docs/security.md | (section order) | yarphkC9kJY3Im9ONdGsprpOT6rwLrbcY3XZjbV7V0s | ["docs/security.md | # Security headers and CSP","docs/security.md | ## Content policy","docs/se -> ["docs/security.md | # Security headers and CSP","docs/security.md | ## Content policy","docs/se
 npm | configureStatic | docs/seo.md | ## Reading by agents | vAdtGL8ajpCnAwXL61orjnO9vm4OUoPAz-J77W8f61o | See [reading by agents](seo/markdown.md#reading-by-agents). -> See the [Markdown publication guide](seo/markdown.md).
-npm | configureStatic | docs/seo.md | ## Route metadata | Gwh6MpJfvrRjmOYRNz7hcLAH0oA76bQ0AZIwmKaWIIw | applications with SSR. An indexable page publishes `robots` with -> prerendered applications. An indexable page publishes `robots` with
+npm | configureStatic | docs/seo.md | ## Route metadata | poIZSwcuXmwQLt7iwBynRIP2567pe0LKJTqwt_Ipb1I | applications with SSR. An indexable page publishes `robots` with -> prerendered applications. An indexable page publishes `robots` with
 npm | configureStatic | docs/seo.md | ### Platform artifacts and routing | mBdQfyaAeiJBsKwCChHJ-5Oz92M7oNCdi6xieZBSeUc | ### Platform artifacts and routing -> (absent)
 npm | configureStatic | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S7g80ybtigujCumXD5te-MGb-j3XGY | ### llms-full.txt aggregate -> (absent)
 npm | configureStatic | docs/seo.md | (section order) | rxPQzFCO1VWd-OOlk4Wf87jWTYq6K5nbQ_wAc_JCdpg | ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru -> ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru
@@ -969,10 +969,10 @@ npm | configureTheme | README.md | ### Outdated pages after a deploy | TEc_SGfkU
 npm | configureTheme | docs/architecture.md | ## Component layers | ZHp-UiIL2oOm9wu9ZhWl0EsPhwC1oi3JxEhCN1MD2fk | - `molecules/` put atoms together into a unit with one purpose. `ThemeToggle` -> - `molecules/` put atoms together into a unit with one purpose. `LocaleSwitcher`
 npm | configureTheme | docs/architecture.md | ## Routes and organization | kGSOUqZMHoIoJJeYWmwvGWZE1OpTGkxETaPbl8h2wB4 | reactive state, such as `makeThemeChannel`, which returns its disposal, and the -> reactive state, and the `create` prefix marks primitives with reactive state or
 npm | configureTheme | docs/architecture.md | ## Routes and organization | xv3fkJJOecXXMavTDDFElI3Ug06raexrVZjnwOIjKbo | reactive state, such as `makeThemeChannel`, which returns its disposal, and the -> reactive state, and the `create` prefix marks primitives with reactive state or
-npm | configureTheme | docs/i18n.md | ## Catalogs and messages | LfoVgIkDFb0-ugveg_bQQcdovq3sbVE-z9UtdFHZ_d4 | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
-npm | configureTheme | docs/i18n.md | ## Catalogs and messages | dmNoewIa7gCxk_6ulEk5r2lZ2LUXUNIDCvzm_jbbpMc | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
-npm | configureTheme | docs/i18n.md | ## Catalogs and messages | klLDzv23bVVoefQmsCQqaGXJMGqPiHihlInTqOFUwBM | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
-npm | configureTheme | docs/i18n.md | ## Catalogs and messages | rm31BPwnUstaQaTT4ZDmpUD8KvDJb04jPMG88Wz1d4Q | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
+npm | configureTheme | docs/i18n.md | ## Catalogs and messages | GMJFD9j6VBIx8w8g9M9JbcQkYgO9wCh2uG1pX1_CA6g | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
+npm | configureTheme | docs/i18n.md | ## Catalogs and messages | LVdzaQjEGZCZdhreCghXSbn-4I7Cs9gfVhM-LVBZ340 | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
+npm | configureTheme | docs/i18n.md | ## Catalogs and messages | iIng1itDJRvbguFH-cbhaODNTd1cKv2rtGX4u_iZ3p0 | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
+npm | configureTheme | docs/i18n.md | ## Catalogs and messages | wBJ2evEElPKw2r5ZWZe0u2legUGGr-53FEt7FddpFBU | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
 npm | configureTheme | docs/security.md | ## Content policy | 0W-eUYrb9eHVi29f8IaFMpBnLHhR506dXowFHbAgCwk | HTML is blocked. That is why `Document` applies the theme of the cookie only -> HTML is blocked.
 npm | configureTheme | docs/security.md | ## Content policy | 62-ePQCwQDGq5JcLG6bzDlv70_rSTohsavY3eRXWVCU | HTML is blocked. That is why `Document` applies the theme of the cookie only -> HTML is blocked.
 npm | configureTheme | docs/security.md | ## Nonce and render entries | zckWLX2HKrhrTX4AejRfQMfr1YGXFITw3s20H6d0oWk | - `Document` writes `nonce` in the inline theme script and in the script of the -> - `Document` writes `nonce` in the script of the client entry, which it renders
@@ -1032,10 +1032,10 @@ pnpm | configureClient | docs/development.md | ## Tool dependencies | o04VEq_jN5
 pnpm | configureClient | docs/development.md | ### Publication | DbKU9-1qvFhEeZBwZF23a_LKHAsFqX6TeqWKmO_vX5Y | ### Publication -> (absent)
 pnpm | configureClient | docs/development.md | ### SSR runtime | VSrW7mabFvmAL5-G92XshqnO7Pfvqnh_CBrhDBKEXt0 | ### SSR runtime -> (absent)
 pnpm | configureClient | docs/development.md | (section order) | ZMAEL1O7xDfQLSTUvfRceBzc-_SczRAKfWdgu0k-y0Y | ["docs/development.md | # Development and delivery","docs/development.md | ## Prerequisites","do -> ["docs/development.md | # Development and delivery","docs/development.md | ## Prerequisites","do
-pnpm | configureClient | docs/i18n.md | ## Catalogs and messages | K-oUfZ7gh_g2dOciVKxLKWnK6uQ3Isv4WwCLJfz9pQg | messages at the top of a module: SSR shares modules between requests. Use calls -> messages at the top of a module. Use calls in the component or getters in
+pnpm | configureClient | docs/i18n.md | ## Catalogs and messages | w8u3BPcxqkaM0xqcawz2drSfqE9A57EckYmT9SFtIZE | messages at the top of a module: SSR shares modules between requests. Use calls -> messages at the top of a module. Use calls in the component or getters in
 pnpm | configureClient | docs/i18n.md | ## Generation and validation | DQiEnW4DuN0FnzYG94WS6ascUKJyi9I2ul1pVnoWuLo | Those browsers fetch the polyfill in an extra request before `entry-client` -> Browsers without the native API load the polyfill before mounting the page.
 pnpm | configureClient | docs/i18n.md | ## Navigation | e3czBBlAoLquKmWPgFMUNJttlDnYf1CXHo06kGiYAFI | To navigate between pages, use `LocalizedLink`, `createLocalizedNavigate()` and -> The current URL selects the language. Use a locale prefix to link directly to a
-pnpm | configureClient | docs/i18n.md | ## Negotiation and isolation on the server | yHkoMu7KzFQ0P-_wlovUux_-Iz83TfG_Kw0Nm83O_9c | ## Negotiation and isolation on the server -> (absent)
+pnpm | configureClient | docs/i18n.md | ## Negotiation and isolation on the server | utbVt5iFXYqEoVAKS-a3c_B8O9s6RBKsCsAVxtLzRNA | ## Negotiation and isolation on the server -> (absent)
 pnpm | configureClient | docs/i18n.md | ## Preference and cookies | XjBGJCzL0W_X7saZIeuicwHTjewiKgENIMfvTzaGrYA | ## Preference and cookies -> (absent)
 pnpm | configureClient | docs/i18n.md | ## Runtime request step | SUhbfy5Nsf1KRDKHyotucBaA3HKFGWVlo9gyKDeJuIQ | ## Runtime request step -> (absent)
 pnpm | configureClient | docs/i18n.md | (section order) | 4QjLkX5ZfhaJF2T1NuvVmiCPP6kk4ENARfyO1UBiOMU | ["docs/i18n.md | # Internationalization","docs/i18n.md | ## Catalogs and messages","docs/i18n.md -> ["docs/i18n.md | # Internationalization","docs/i18n.md | ## Catalogs and messages","docs/i18n.md
@@ -1189,11 +1189,11 @@ pnpm | configurePlainApp | docs/development.md | ## Scripts | dve-_lhPy-ned_nNTk
 pnpm | configurePlainApp | docs/development.md | ## Tool dependencies | EqhMY9KEkIawzoPC6pEVaCtW9V0QIdCtbt3nQPSFul0 | Test dependencies aligned with the tooling package. Keep Paraglide, -> Test dependencies aligned with the tooling package. Keep the Solid libraries in
 pnpm | configurePlainApp | docs/development.md | ## Tool dependencies | vuhvWNSrsxMUvCHzIqaH1h5pF1ZknsPB8ZtdDZ-ZSK0 | package. Keep Paraglide, message-format and the Solid libraries in the -> package. Keep the Solid libraries in the application, plus the root Vite/Vitest
 pnpm | configurePlainApp | docs/i18n.md | # Internationalization | 6zCCAnVFkFdTnp9kdwhLDq2xfK9zWFHcAfECD_X3PrM | # Internationalization -> (absent)
-pnpm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | 2-Ul-csCppuLznWWGomeRlDyOPFCDsGuq9NZUEk2mIE | ## Catalogs and messages -> (absent)
-pnpm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | EjRlmff8GJAcqtdTAB1dXYws4smvlXJ_N2H-cUzBBQQ | ## Catalogs and messages -> (absent)
-pnpm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | Itd7nT7THnW3gLSI3lnbLiMeQgxOZcxaySWOfE7bvfU | ## Catalogs and messages -> (absent)
-pnpm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | gG20FeNluclT5p51gI92ym_e1zmuZiwZRzHjlQ0fcIw | ## Catalogs and messages -> (absent)
-pnpm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | oDiQqBbJXya_OlfXqlpxKRqHmuT2ZfRQzVUNRi9PiII | ## Catalogs and messages -> (absent)
+pnpm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | 4unogT151z0ZVp-CgZwe1YkX3ulKoYXDVNtmvu4P1QQ | ## Catalogs and messages -> (absent)
+pnpm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | M4amNesLAY6g4vC3Ho3xl8TBRM8aYDHftJ_meDmvvYc | ## Catalogs and messages -> (absent)
+pnpm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | Rv8TyQuX5Rp9lYvOguTdTbrK8EMmCF3Pt7YIdYpe_UY | ## Catalogs and messages -> (absent)
+pnpm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | YUr0oK5q9w5mQcDWpUHJbG7oXmScEkDENkXBt_UxsKY | ## Catalogs and messages -> (absent)
+pnpm | configurePlainApp | docs/i18n.md | ## Catalogs and messages | x6ePRDz224Tir3DQTRfP6rAPtYRkbkEfw_301iiy-cA | ## Catalogs and messages -> (absent)
 pnpm | configurePlainApp | docs/i18n.md | ## Generation and validation | 7-mEYrXHmklYvV_Y1olcNxeKjQBIgQPCSW6sofiEDVI | ## Generation and validation -> (absent)
 pnpm | configurePlainApp | docs/i18n.md | ## Generation and validation | enSkYFGL1RQdU1L9CLzoSwUU_FE94k2N-57mSDS2cHk | ## Generation and validation -> (absent)
 pnpm | configurePlainApp | docs/i18n.md | ## Generation and validation | jv29-AqhBKuVeTcDFTakH84YCv0yrXVystdnqazLFdA | ## Generation and validation -> (absent)
@@ -1201,8 +1201,8 @@ pnpm | configurePlainApp | docs/i18n.md | ## Generation and validation | yQBLzIB
 pnpm | configurePlainApp | docs/i18n.md | ## Navigation | 5UY4uHA9VZYsFjBRnF8VfSDBA3eyVRgXEIqf3al-xe8 | ## Navigation -> (absent)
 pnpm | configurePlainApp | docs/i18n.md | ## Navigation | j0IbbUq8mCa144z6Zv79Ea0mrkSnJ2hmo9CuaVHhPis | ## Navigation -> (absent)
 pnpm | configurePlainApp | docs/i18n.md | ## Navigation | tmSHgZo8uTSPoo44Qy6Fiw94MJTT0U6EqmPQxmFlYj4 | ## Navigation -> (absent)
-pnpm | configurePlainApp | docs/i18n.md | ## Negotiation and isolation on the server | 0JoR5jUcg_zFMgwV1m0oQB3CiLxOl4On4wJ8jxkN6Sc | ## Negotiation and isolation on the server -> (absent)
-pnpm | configurePlainApp | docs/i18n.md | ## Negotiation and isolation on the server | yHkoMu7KzFQ0P-_wlovUux_-Iz83TfG_Kw0Nm83O_9c | ## Negotiation and isolation on the server -> (absent)
+pnpm | configurePlainApp | docs/i18n.md | ## Negotiation and isolation on the server | utbVt5iFXYqEoVAKS-a3c_B8O9s6RBKsCsAVxtLzRNA | ## Negotiation and isolation on the server -> (absent)
+pnpm | configurePlainApp | docs/i18n.md | ## Negotiation and isolation on the server | vrOcTR8I8LDkLuSF389EYIdToriPDCHz8KVIGRrDwgY | ## Negotiation and isolation on the server -> (absent)
 pnpm | configurePlainApp | docs/i18n.md | ## Preference and cookies | XjBGJCzL0W_X7saZIeuicwHTjewiKgENIMfvTzaGrYA | ## Preference and cookies -> (absent)
 pnpm | configurePlainApp | docs/i18n.md | ## Runtime navigation and language tags | Offa3A5VSPScJj1JvzrwfWtmyJAQvclR8cUveWJ-xdc | ## Runtime navigation and language tags -> (absent)
 pnpm | configurePlainApp | docs/i18n.md | ## Runtime navigation and language tags | Rcla-rz12uMvAB8N0zKcKVLD5kX8LFLkGEBeGuJMQnY | ## Runtime navigation and language tags -> (absent)
@@ -1214,8 +1214,8 @@ pnpm | configurePlainApp | docs/i18n.md | (section order) | fDuU5RE5fKPuNL6x9dky
 pnpm | configurePlainApp | docs/i18n.md | (section order) | yB1E3qDyNU_tiRjo-cnEZbrBQtTKio2L94GtS0futbM | ["docs/i18n.md | # Internationalization","docs/i18n.md | ## Catalogs and messages","docs/i18n.md -> (absent)
 pnpm | configurePlainApp | docs/security.md | ## Known limits | DV0C30JE25x8PEDs6W_-2mTXJX-t0NWkBbRfCw03zWw | that overlap in part, such as `/**.md` next to `/assets/**` or -> that overlap in part, such as `/**.md` next to `/assets/**` or `/blog/**` next
 pnpm | configurePlainApp | docs/security.md | ## Known limits | GMfSlIIGe9fPXhhjOM2Z8IHZH-BCR3jyB6d_lYs9Nwc | under the prefix of each locale, `/llms.txt`, `/llms-full.txt`, -> at their application paths, `/llms.txt`, `/llms-full.txt`,
-pnpm | configurePlainApp | docs/seo.md | ## Route metadata | HCt1Zb0UFzpMj5wgKbUwCjRUMXWRtycgPDgAf44HWTc | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
-pnpm | configurePlainApp | docs/seo.md | ## Route metadata | jTywsNrotUHj6ft-V1whE9a2IZWNQSZXyYsvFvb9VWs | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
+pnpm | configurePlainApp | docs/seo.md | ## Route metadata | Ml7RFjlgOyL0TnZ0jAEHo49W_zYMUR2iGQqom9HHS-g | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
+pnpm | configurePlainApp | docs/seo.md | ## Route metadata | _ltGHFzVOuwDkxpKaJvwd8t3m80PtybUiHSydI4SLcs | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
 pnpm | configurePlainApp | docs/seo.md | ## Structured data per page | inlyeKo_ClGimSy4sDMUOM87UQ-Qt4z9rWjMf_MPh64 | import { m } from '@paraglide/messages.js' -> import { m } from '@/constants/messages/index.ts'
 pnpm | configurePlainApp | docs/seo/indexes.md | ## Endpoints and cache | 3eyv9H2Ff93vddomLnoymS5AacP0tltClTl6B7853zQ | index and its parts to the public directory. llms.txt uses -> index and its parts to the public directory. The index uses the language
 pnpm | configurePlainApp | docs/seo/indexes.md | ## Endpoints and cache | zqSCIRBOxFdBkboD9Uf5e_LswC4ENG5x1WhB4xl-P1w | index lists the parts, and each part reads its own batch. llms.txt uses -> index lists the parts, and each part reads its own batch. The index uses the
@@ -1263,12 +1263,12 @@ pnpm | configureSeo | README.md | (section order) | 3W6OKKKePifwsoCC3Sf79D_C0ZSg
 pnpm | configureSeo | docs/architecture.md | ## Data and infrastructure | azO7Y0XAV9HAE2BdUh3xCwR7mXyX1oeKeUZwAGKbwOM | The application binds the Markdown adapter in -> `data/formatters/` (formatting of dates, currencies and numbers) and
 pnpm | configureSeo | docs/architecture.md | ## Routes and organization | TaBPuRDbW9ASl1WAseIJabzK1XEryGPkd08rX-YbDHc | provider, the SEO and the global boundary, which also catches failures in the -> provider and the global boundary, which also catches failures in the layout. The
 pnpm | configureSeo | docs/development.md | ## Environment and preview | Eyio5PCH0kagwGyDTC9NwuA55E6fze_t9TUdtUz6-xw | copy enables the preset's `seo` option, which validates the required -> runtime package supplies the fragment as a production dependency; the tooling
-pnpm | configureSeo | docs/i18n.md | ## Catalogs and messages | 9T-E0-Yj7pyXdqMg0L5FqW-MkdAqj2UD1RhfiTQyXrA | in the component or getters in constants and in `route.info.seo`, as in the 404. -> in the component or getters in constants.
-pnpm | configureSeo | docs/i18n.md | ## Catalogs and messages | G_Ze0DiT0SWgKeJO2O0GGoq4cZBdyDNNPhqw9ViPyz8 | constants and in `route.info.seo`, as in the 404. -> constants.
+pnpm | configureSeo | docs/i18n.md | ## Catalogs and messages | ydphIs-zN2fVEqbLMU3s2-q3Vij_01hdN1AgYme_toQ | constants and in `route.info.seo`, as in the 404. -> constants.
+pnpm | configureSeo | docs/i18n.md | ## Catalogs and messages | zQbtTIRGuoMFXAL7dYAU9jN6_6ADisc-LEi8nWsXKP4 | in the component or getters in constants and in `route.info.seo`, as in the 404. -> in the component or getters in constants.
 pnpm | configureSeo | docs/i18n.md | ## Generation and validation | 2ZqiGfOZAJT-o1646TVzEzQfVlN6_UljwkxunwoT60A | Vite+ task adds a cache to the standalone command. The Markdown snapshots of the -> Vite+ task adds a cache to the standalone command.
 pnpm | configureSeo | docs/i18n.md | ## Generation and validation | VijC6Rv8VLMCI_yerYBcDTJSYhxlrUdUkjJI_15CJVU | Vite+ task adds a cache to the standalone command. The Markdown snapshots of the -> Vite+ task adds a cache to the standalone command.
 pnpm | configureSeo | docs/i18n.md | ## Navigation | rOcuG8ahekn_w8Igvm1HTl94yaAFkSlVAF2HOIpcfqQ | Router, covers the history between locales, to keep messages, document and SEO -> Router, covers the history between locales, to keep messages and document in the
-pnpm | configureSeo | docs/i18n.md | ## Negotiation and isolation on the server | E3d5jOspWRZf_rWVxg9GAJnlK6uMiMixc7vA7wlPIA8 | `Content-Language`, `<html lang>`, SEO and hydration consistent. Server -> `Content-Language`, `<html lang>` and hydration consistent. Server functions use
+pnpm | configureSeo | docs/i18n.md | ## Negotiation and isolation on the server | 7GhBFF1zQFVKp7LoGacCmm7gxoYyKqFlCZSciXVADC8 | and keeps `Content-Language`, `<html lang>`, SEO and hydration consistent. -> and keeps `Content-Language`, `<html lang>` and hydration consistent. Server
 pnpm | configureSeo | docs/i18n.md | ## Runtime navigation and language tags | b_qQiVDYw93IirmN42PYzpbgetfIYN6CbZy5ZxAxlvk | `src/i18n/localeTagOverrides/` to set language tags for HTML, Open Graph and -> `src/i18n/localeTagOverrides/` to preserve pt-BR, en-US and es-ES in HTML.
 pnpm | configureSeo | docs/i18n.md | ## Runtime request step | 18jnjoIANub4KQn5QMgXDJYjbgniCxEAFIgASeCPpas | `@evertondgn/solid-runtime/middleware/localize-request`. Markdown response -> `@evertondgn/solid-runtime/middleware/localize-request`. Locale detection,
 pnpm | configureSeo | docs/i18n.md | ## SEO indexes | DgT0bNnpPW958Rt-4Y7_y9YFvOxQ6EwpRiiZUMK_-jc | ## SEO indexes -> (absent)
@@ -1279,8 +1279,8 @@ pnpm | configureSeo | docs/seo.md | # SEO and site indexes | nQLt_2xEVIJJ4bKQZDj
 pnpm | configureSeo | docs/seo.md | ## Endpoints and cache | V2Wzx9OaylcBQ5u7N_z9y_escz52c3w8DzbxGgkjeew | ## Endpoints and cache -> (absent)
 pnpm | configureSeo | docs/seo.md | ## Reading by agents | Gn00hzcJGk-vYrw5MAZyb7g6dHdmFzyjHegpDvEiZOk | ## Reading by agents -> (absent)
 pnpm | configureSeo | docs/seo.md | ## Reading by agents | hmTP5wG8ovXBde4Qhv-Y91kVmEcU-ZJumhsSGou8-q4 | ## Reading by agents -> (absent)
-pnpm | configureSeo | docs/seo.md | ## Route metadata | 4xMDpAVxtic5crnt3fxyphqvXBF6NYh4pjKVznaR_eI | ## Route metadata -> (absent)
-pnpm | configureSeo | docs/seo.md | ## Route metadata | _CwxpwdqDyCRNQAztcwP2oRvtHvGLcvuxsyBh9ZvGcM | ## Route metadata -> (absent)
+pnpm | configureSeo | docs/seo.md | ## Route metadata | 2-vmLGpIzh3uS2pu-arb1zJPBIidLW0KWJi_vb6DMu8 | ## Route metadata -> (absent)
+pnpm | configureSeo | docs/seo.md | ## Route metadata | U3FDUfEXHpdMef_BrGxgGos6RWMrey9l0bW1BpbB1eY | ## Route metadata -> (absent)
 pnpm | configureSeo | docs/seo.md | ## Selection for llms.txt | iSNLYkVqq-mgsCFoVtSrELBtKFKYHxWUwv02_O74n8Y | ## Selection for llms.txt -> (absent)
 pnpm | configureSeo | docs/seo.md | ## Sitemap and dynamic routes | _7Dx6uytXcfvlw93_uBCI9AxBFnxQ4AU7EjmLrctBB8 | ## Sitemap and dynamic routes -> (absent)
 pnpm | configureSeo | docs/seo.md | ## Structured data per page | 4IipL4ptV0UmlacDS3Bs9wwlIEJpzHwzDezSL-vUIDY | ## Structured data per page -> (absent)
@@ -1374,10 +1374,10 @@ pnpm | configureStatic | docs/development.md | ## Tool dependencies | o04VEq_jN5
 pnpm | configureStatic | docs/development.md | ### Publication | DbKU9-1qvFhEeZBwZF23a_LKHAsFqX6TeqWKmO_vX5Y | ### Publication -> (absent)
 pnpm | configureStatic | docs/development.md | ### SSR runtime | VSrW7mabFvmAL5-G92XshqnO7Pfvqnh_CBrhDBKEXt0 | ### SSR runtime -> (absent)
 pnpm | configureStatic | docs/development.md | (section order) | ZMAEL1O7xDfQLSTUvfRceBzc-_SczRAKfWdgu0k-y0Y | ["docs/development.md | # Development and delivery","docs/development.md | ## Prerequisites","do -> ["docs/development.md | # Development and delivery","docs/development.md | ## Prerequisites","do
-pnpm | configureStatic | docs/i18n.md | ## Catalogs and messages | hH6Kge0Uyi5d5etRXfpMSZHR8jfiYHNbFJhDcXcYEI0 | messages at the top of a module: SSR shares modules between requests. Use calls -> messages at the top of a module. Use calls in the component or getters in
+pnpm | configureStatic | docs/i18n.md | ## Catalogs and messages | 1fAf4rKV9Jfrkh9TuEGHjnH4bfj2dyB6Cqu2sRiOzts | messages at the top of a module: SSR shares modules between requests. Use calls -> messages at the top of a module. Use calls in the component or getters in
 pnpm | configureStatic | docs/i18n.md | ## Generation and validation | oEGNkdLYsjD-IZPOUMBe13k8vXf7tQMLsd9g7aERAws | Those browsers fetch the polyfill in an extra request before `entry-client` -> Browsers without the native API load the polyfill before mounting the page.
 pnpm | configureStatic | docs/i18n.md | ## Navigation | FiCZ8--Zb83hRPc15X2GKH5dV4mGILhXhd6Lh9fIQbY | To navigate between pages, use `LocalizedLink`, `createLocalizedNavigate()` and -> The current URL selects the language. Use a locale prefix to link directly to a
-pnpm | configureStatic | docs/i18n.md | ## Negotiation and isolation on the server | 0JoR5jUcg_zFMgwV1m0oQB3CiLxOl4On4wJ8jxkN6Sc | ## Negotiation and isolation on the server -> (absent)
+pnpm | configureStatic | docs/i18n.md | ## Negotiation and isolation on the server | vrOcTR8I8LDkLuSF389EYIdToriPDCHz8KVIGRrDwgY | ## Negotiation and isolation on the server -> (absent)
 pnpm | configureStatic | docs/i18n.md | ## Preference and cookies | XjBGJCzL0W_X7saZIeuicwHTjewiKgENIMfvTzaGrYA | ## Preference and cookies -> (absent)
 pnpm | configureStatic | docs/i18n.md | ## Runtime request step | 1FIsu2uQ_EwTaUsx4SkAMAeOyO-zmGoYcAkra-09Zs4 | ## Runtime request step -> (absent)
 pnpm | configureStatic | docs/i18n.md | ## SEO indexes | DgT0bNnpPW958Rt-4Y7_y9YFvOxQ6EwpRiiZUMK_-jc | ## SEO indexes -> (absent)
@@ -1389,7 +1389,7 @@ pnpm | configureStatic | docs/security.md | ## Nonce and render entries | BEtsVj
 pnpm | configureStatic | docs/security.md | ## Validation and streamed CSS | qJy4ObKM_azV5GRoIDSGOMgDGfFyrZ4s0I3fEYafgtg | ## Validation and streamed CSS -> (absent)
 pnpm | configureStatic | docs/security.md | (section order) | yarphkC9kJY3Im9ONdGsprpOT6rwLrbcY3XZjbV7V0s | ["docs/security.md | # Security headers and CSP","docs/security.md | ## Content policy","docs/se -> ["docs/security.md | # Security headers and CSP","docs/security.md | ## Content policy","docs/se
 pnpm | configureStatic | docs/seo.md | ## Reading by agents | vAdtGL8ajpCnAwXL61orjnO9vm4OUoPAz-J77W8f61o | See [reading by agents](seo/markdown.md#reading-by-agents). -> See the [Markdown publication guide](seo/markdown.md).
-pnpm | configureStatic | docs/seo.md | ## Route metadata | Gwh6MpJfvrRjmOYRNz7hcLAH0oA76bQ0AZIwmKaWIIw | applications with SSR. An indexable page publishes `robots` with -> prerendered applications. An indexable page publishes `robots` with
+pnpm | configureStatic | docs/seo.md | ## Route metadata | poIZSwcuXmwQLt7iwBynRIP2567pe0LKJTqwt_Ipb1I | applications with SSR. An indexable page publishes `robots` with -> prerendered applications. An indexable page publishes `robots` with
 pnpm | configureStatic | docs/seo.md | ### Platform artifacts and routing | mBdQfyaAeiJBsKwCChHJ-5Oz92M7oNCdi6xieZBSeUc | ### Platform artifacts and routing -> (absent)
 pnpm | configureStatic | docs/seo.md | ### llms-full.txt aggregate | 5y7uRGam0RDI1S7g80ybtigujCumXD5te-MGb-j3XGY | ### llms-full.txt aggregate -> (absent)
 pnpm | configureStatic | docs/seo.md | (section order) | rxPQzFCO1VWd-OOlk4Wf87jWTYq6K5nbQ_wAc_JCdpg | ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru -> ["docs/seo.md | # SEO and site indexes","docs/seo.md | ## Route metadata","docs/seo.md | ## Stru
@@ -1466,10 +1466,10 @@ pnpm | configureTheme | README.md | ### Outdated pages after a deploy | TEc_SGfk
 pnpm | configureTheme | docs/architecture.md | ## Component layers | ZHp-UiIL2oOm9wu9ZhWl0EsPhwC1oi3JxEhCN1MD2fk | - `molecules/` put atoms together into a unit with one purpose. `ThemeToggle` -> - `molecules/` put atoms together into a unit with one purpose. `LocaleSwitcher`
 pnpm | configureTheme | docs/architecture.md | ## Routes and organization | kGSOUqZMHoIoJJeYWmwvGWZE1OpTGkxETaPbl8h2wB4 | reactive state, such as `makeThemeChannel`, which returns its disposal, and the -> reactive state, and the `create` prefix marks primitives with reactive state or
 pnpm | configureTheme | docs/architecture.md | ## Routes and organization | xv3fkJJOecXXMavTDDFElI3Ug06raexrVZjnwOIjKbo | reactive state, such as `makeThemeChannel`, which returns its disposal, and the -> reactive state, and the `create` prefix marks primitives with reactive state or
-pnpm | configureTheme | docs/i18n.md | ## Catalogs and messages | LfoVgIkDFb0-ugveg_bQQcdovq3sbVE-z9UtdFHZ_d4 | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
-pnpm | configureTheme | docs/i18n.md | ## Catalogs and messages | dmNoewIa7gCxk_6ulEk5r2lZ2LUXUNIDCvzm_jbbpMc | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
-pnpm | configureTheme | docs/i18n.md | ## Catalogs and messages | klLDzv23bVVoefQmsCQqaGXJMGqPiHihlInTqOFUwBM | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
-pnpm | configureTheme | docs/i18n.md | ## Catalogs and messages | rm31BPwnUstaQaTT4ZDmpUD8KvDJb04jPMG88Wz1d4Q | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
+pnpm | configureTheme | docs/i18n.md | ## Catalogs and messages | GMJFD9j6VBIx8w8g9M9JbcQkYgO9wCh2uG1pX1_CA6g | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
+pnpm | configureTheme | docs/i18n.md | ## Catalogs and messages | LVdzaQjEGZCZdhreCghXSbn-4I7Cs9gfVhM-LVBZ340 | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
+pnpm | configureTheme | docs/i18n.md | ## Catalogs and messages | iIng1itDJRvbguFH-cbhaODNTd1cKv2rtGX4u_iZ3p0 | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
+pnpm | configureTheme | docs/i18n.md | ## Catalogs and messages | wBJ2evEElPKw2r5ZWZe0u2legUGGr-53FEt7FddpFBU | as `home_title` and `themeToggle_select`. -> as `home_title` and `localeSwitcher_select`.
 pnpm | configureTheme | docs/security.md | ## Content policy | 0W-eUYrb9eHVi29f8IaFMpBnLHhR506dXowFHbAgCwk | HTML is blocked. That is why `Document` applies the theme of the cookie only -> HTML is blocked.
 pnpm | configureTheme | docs/security.md | ## Content policy | 62-ePQCwQDGq5JcLG6bzDlv70_rSTohsavY3eRXWVCU | HTML is blocked. That is why `Document` applies the theme of the cookie only -> HTML is blocked.
 pnpm | configureTheme | docs/security.md | ## Nonce and render entries | zckWLX2HKrhrTX4AejRfQMfr1YGXFITw3s20H6d0oWk | - `Document` writes `nonce` in the inline theme script and in the script of the -> - `Document` writes `nonce` in the script of the client entry, which it renders

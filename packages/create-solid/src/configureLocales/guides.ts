@@ -168,6 +168,33 @@ export function configureLocaleGuides({
     if (!existsSync(path.join(stage, file))) continue
     const input = readFileSync(path.join(stage, file), 'utf8')
     let text = input
+    if (profile.hasI18n !== false && file === 'docs/seo.md') {
+      text = editTemplate({
+        file,
+        text,
+        pattern: 'the three available locales',
+        replacement: 'the configured locales'
+      })
+    }
+    if (file === 'docs/i18n.md' && profile.hasI18n !== false) {
+      text = editTemplate({
+        file,
+        text,
+        pattern: / {4}pt\.json\n {4}en\.json\n {4}es\.json/u,
+        replacement: '    {locale}.json'
+      })
+      text = editTemplate({
+        file,
+        text,
+        pattern:
+          /Use the same set of keys and parameters in the three files\.[\s\S]*?The\ncompiler generates/u,
+        replacement:
+          'Use the same keys and parameters in every catalog. The compiler generates'
+      })
+      text = text
+        .replace("{ locale: 'es' }", '{ locale: baseLocale }')
+        .replace('and finally `en`', 'and finally the base locale')
+    }
     if (file === 'README.md') {
       text = text.replace(
         /^### The same page in three languages\n[\s\S]*?(?=^### |^## |(?![\s\S]))/mu,

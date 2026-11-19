@@ -238,7 +238,9 @@ jobs:
       # and Vite+ loads it before any task, so no task can build them first.
       - name: Build the packages
         working-directory: .
-        run: vp run build
+        run: >-
+          vp run --fail-if-no-match --filter @evertondgn/solid-tooling
+          --filter @evertondgn/vite-plugin-solid-icons build
 
       - name: Check
         run: vp run check:ci
@@ -285,7 +287,9 @@ jobs:
 
       - name: Build the packages
         working-directory: .
-        run: vp run build
+        run: >-
+          vp run --fail-if-no-match --filter @evertondgn/solid-tooling
+          --filter @evertondgn/vite-plugin-solid-icons build
 
       - name: Build
         run: vp run build

@@ -131,6 +131,70 @@ function configureHostingReadme({
   })
 }
 
+type StaticGuideOptions = Pick<Conventions, 'edit'> &
+  Pick<GenerationContext, 'write'>
+function configureStaticSeoGuides({ edit, write }: StaticGuideOptions): void {
+  edit({
+    file: 'docs/seo.md',
+    pattern: /applications with SSR\./u,
+    replacement: 'prerendered applications.'
+  })
+  edit({
+    file: 'docs/seo.md',
+    pattern: /locale of the request/u,
+    replacement: 'active locale'
+  })
+  edit({
+    file: 'docs/seo.md',
+    pattern: /^## Selection for llms.txt[\s\S]*$/mu,
+    replacement:
+      '## Selection for llms.txt\n\nSet `route.info.llms` on pages to include them in the published indexes.\nSee the [Markdown publication guide](seo/markdown.md).\n\n## Sitemap and dynamic routes\n\nSee the [sitemap guide](seo/sitemap.md), including its [partitioned sources](seo/sitemap.md#partitioned-sources).\n'
+  })
+  write({
+    file: 'docs/seo/markdown.md',
+    content:
+      '# Markdown publication\n\nPublish the contents of `.output/public` together. The build writes localized\nMarkdown files such as `/pt/about.md`, the index `/llms.txt` and the combined\ntext `/llms-full.txt`. Serve the .md files as `text/markdown; charset=utf-8`.\nLink to their file URLs from clients that read Markdown.\n'
+  })
+  const sitemap = 'docs/seo/sitemap.md'
+  edit({
+    file: sitemap,
+    pattern: /i18n\.md#seo-indexes/u,
+    replacement: 'i18n.md'
+  })
+  edit({
+    file: sitemap,
+    pattern: /The route module goes[\s\S]*?(?=The source is ignored)/u,
+    replacement: 'Enumerate these paths at build time. '
+  })
+  edit({
+    file: sitemap,
+    pattern: / A failure of any source[\s\S]*?(?=With i18n)/u,
+    replacement: '\n\n'
+  })
+  edit({
+    file: sitemap,
+    pattern: /The four public handlers[\s\S]*?(?=### Partitioned sources)/u,
+    replacement: ''
+  })
+  edit({
+    file: sitemap,
+    pattern: /the contract, the HTTP service and a test source\./u,
+    replacement: 'the partition contract.'
+  })
+  edit({
+    file: sitemap,
+    pattern: / The server checks[\s\S]*?(?=\n\nIDs must)/u,
+    replacement: ''
+  })
+  edit({
+    file: sitemap,
+    pattern:
+      /The responses are eventually consistent\.[\s\S]*?(?=The walk through)/u,
+    replacement:
+      'Publish the index and its parts together after each build.\n\n'
+  })
+}
+
 export function configureFileHostGuides({
   stage,
   profile,
@@ -177,7 +241,7 @@ export function configureFileHostGuides({
   edit({
     file: development,
     pattern:
-      / The server\nconfiguration limits `loadEnv`[\s\S]*?record the whole environment\./u,
+      / The server\s+configuration limits `loadEnv`[\s\S]*?record the whole environment\./u,
     replacement: ''
   })
   edit({
@@ -243,65 +307,7 @@ export function configureFileHostGuides({
     replacement: ''
   })
   if (isStaticHost && profile.hasSeo !== false) {
-    edit({
-      file: 'docs/seo.md',
-      pattern: /applications with SSR\./u,
-      replacement: 'prerendered applications.'
-    })
-    edit({
-      file: 'docs/seo.md',
-      pattern: /locale of the request/u,
-      replacement: 'active locale'
-    })
-    edit({
-      file: 'docs/seo.md',
-      pattern: /^## Selection for llms.txt[\s\S]*$/mu,
-      replacement:
-        '## Selection for llms.txt\n\nSet `route.info.llms` on pages to include them in the published indexes.\nSee the [Markdown publication guide](seo/markdown.md).\n\n## Sitemap and dynamic routes\n\nSee the [sitemap guide](seo/sitemap.md), including its [partitioned sources](seo/sitemap.md#partitioned-sources).\n'
-    })
-    write({
-      file: 'docs/seo/markdown.md',
-      content:
-        '# Markdown publication\n\nPublish the contents of `.output/public` together. The build writes localized\nMarkdown files such as `/pt/about.md`, the index `/llms.txt` and the combined\ntext `/llms-full.txt`. Serve the .md files as `text/markdown; charset=utf-8`.\nLink to their file URLs from clients that read Markdown.\n'
-    })
-    const sitemap = 'docs/seo/sitemap.md'
-    edit({
-      file: sitemap,
-      pattern: /i18n\.md#seo-indexes/u,
-      replacement: 'i18n.md'
-    })
-    edit({
-      file: sitemap,
-      pattern: /The route module goes[\s\S]*?(?=The source is ignored)/u,
-      replacement: 'Enumerate these paths at build time. '
-    })
-    edit({
-      file: sitemap,
-      pattern: / A failure of any source[\s\S]*?(?=With i18n)/u,
-      replacement: '\n\n'
-    })
-    edit({
-      file: sitemap,
-      pattern: /The four public handlers[\s\S]*?(?=### Partitioned sources)/u,
-      replacement: ''
-    })
-    edit({
-      file: sitemap,
-      pattern: /the contract, the HTTP service and a test source\./u,
-      replacement: 'the partition contract.'
-    })
-    edit({
-      file: sitemap,
-      pattern: / The server checks[\s\S]*?(?=\n\nIDs must)/u,
-      replacement: ''
-    })
-    edit({
-      file: sitemap,
-      pattern:
-        /The responses are eventually consistent\.[\s\S]*?(?=The walk through)/u,
-      replacement:
-        'Publish the index and its parts together after each build.\n\n'
-    })
+    configureStaticSeoGuides({ edit, write })
   }
   const i18n = 'docs/i18n.md'
   edit({

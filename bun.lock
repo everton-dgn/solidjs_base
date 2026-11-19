@@ -21,9 +21,9 @@
         "@evertondgn/solid-runtime": "workspace:*",
         "@inlang/paraglide-js": "3.2.2",
         "@solidjs/router": "2.0.0",
-        "@solidjs/web": "2.0.0",
+        "@solidjs/web": "2.0.3",
         "filesystem-routing": "0.5.0",
-        "solid-js": "2.0.0",
+        "solid-js": "2.0.3",
         "valibot": "1.5.0",
       },
       "devDependencies": {
@@ -31,7 +31,7 @@
         "@iconify-json/hugeicons": "1.2.36",
         "@inlang/plugin-message-format": "4.6.0",
         "@playwright/test": "1.65.1",
-        "@solidjs/diagnostics": "2.0.0",
+        "@solidjs/diagnostics": "2.0.3",
         "schema-dts": "catalog:",
         "vite": "catalog:",
         "vite-plus": "catalog:",
@@ -549,7 +549,7 @@
 
     "@solidjs/compiler-win32-x64-msvc": ["@solidjs/compiler-win32-x64-msvc@2.0.2", "", { "os": "win32", "cpu": "x64" }, "sha512-5q6RRWRI9y685wzBcteezVifcVz/di9hCEKqruZrBo60qbne13Orl6FOwP8LK4Exls+Ws98UNvznFuz0NhLQTg=="],
 
-    "@solidjs/diagnostics": ["@solidjs/diagnostics@2.0.0", "", { "dependencies": { "@solidjs/signals": "^2.0.0" }, "peerDependencies": { "@solidjs/web": "^2.0.0", "solid-js": "^2.0.0", "vitest": ">=2.0.0" }, "optionalPeers": ["vitest"] }, "sha512-mjniTyT3W9Ohe+QN5anBA3h2Obl40AjEDx+vLcU+YsxteYNJ6FyoHBZ6cmf9ENLpcGEy2uk4q/9yV76/iVsfvQ=="],
+    "@solidjs/diagnostics": ["@solidjs/diagnostics@2.0.3", "", { "dependencies": { "@solidjs/signals": "^2.0.3" }, "peerDependencies": { "@solidjs/web": "^2.0.3", "solid-js": "^2.0.3", "vitest": ">=2.0.0" }, "optionalPeers": ["vitest"] }, "sha512-MnEn1gWzPhSeItEVE6ksp5SzJzOq/yTmzSEH8x03SvFc+Ydp2vVLa9xMf403GVH4mE3toflqo1XXsoXXtFvDfA=="],
 
     "@solidjs/router": ["@solidjs/router@2.0.0", "", { "peerDependencies": { "@solidjs/web": "^2.0.0", "filesystem-routing": ">=0.4.0", "solid-js": "^2.0.0" }, "optionalPeers": ["filesystem-routing"] }, "sha512-Zpa9djVKDigR1PYd6K32OFN3N90wymPk2yIWhV+Sdrz/aRPpMIIohI5dsAqwx5WIjQ3lBlECZHGBEzaPdcmpCA=="],
 
@@ -1166,10 +1166,6 @@
     "@solidjs/vite-plugin/magic-string": ["magic-string@0.30.21", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.5" } }, "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ=="],
 
     "@testing-library/dom/dom-accessibility-api": ["dom-accessibility-api@0.5.16", "", {}, "sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg=="],
-
-    "boilerplate/@solidjs/web": ["@solidjs/web@2.0.0", "", { "dependencies": { "csstype": "^3.1.0", "seroval": "^1.8.0", "seroval-plugins": "^1.8.0" }, "peerDependencies": { "solid-js": "^2.0.0" } }, "sha512-R0+JMCD6ukEXaID/sH5PVQe9bCIN9pRzJry+F6Sb6YvtlkAp9DEyVI7AeZYiV0cd6TSL98kpbCyLDiZnaAKGrA=="],
-
-    "boilerplate/solid-js": ["solid-js@2.0.0", "", { "dependencies": { "@solidjs/signals": "^2.0.0", "seroval": "^1.8.0", "seroval-plugins": "^1.8.0" } }, "sha512-9zN4uH2OQeQAYbF4BmIzoaa+L5Hb8Dp6kkP6ZXobHQ1FZVICdmzREPDVDBJY7umzdAE8D6zbFfWhxGtagkyslA=="],
 
     "cliui/string-width": ["string-width@7.2.0", "", { "dependencies": { "emoji-regex": "^10.3.0", "get-east-asian-width": "^1.0.0", "strip-ansi": "^7.1.0" } }, "sha512-tsaTIkKW9b4N+AEj+SVA+WhJzV7/zMhcSu78mLKWSk7cXMOSHsBKFWUs0fWwq8QyK3MgJBQRX6Gbi4kYbdvGkQ=="],
 

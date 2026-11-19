@@ -59,6 +59,10 @@ list. Server and static apps otherwise use the template's English, Spanish and
 Portuguese catalogs with English as the base. A client app defaults to its base
 language alone. Use static mode for multiple languages on a file host.
 
+Pass `--no-i18n` to use local message functions. In that profile,
+`--base-locale` selects the language of the messages and the HTML document.
+Combining `--no-i18n` with `--locales` is an error.
+
 When a catalog is missing, the generator copies the closest supported language
 or falls back to English. For example, `pt-BR` starts from Portuguese and
 `es-MX` from Spanish. The generator lists each seeded locale after generation so

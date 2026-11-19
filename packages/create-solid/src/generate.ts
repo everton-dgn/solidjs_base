@@ -28,6 +28,7 @@ import {
 import { configureClient } from './configureClient/index.ts'
 import { configureFileHostGuides } from './configureFileHostGuides/index.ts'
 import { configureFonts } from './configureFonts/index.ts'
+import { configurePageTitles } from './configurePageTitles/index.ts'
 import { configureSeo } from './configureSeo/index.ts'
 import { configureSiteIdentity } from './configureSiteIdentity/index.ts'
 import { configureStandaloneGuides } from './configureStandaloneGuides/index.ts'
@@ -381,6 +382,7 @@ export function generateSource(
     configureSiteIdentity(context)
     prepareGuides(stage)
     configureAppTitle(context, title)
+    configurePageTitles(context, title)
     removeEmptyFolders(stage)
     publishTree({ stage, destination: profile.dir })
   } catch (error) {

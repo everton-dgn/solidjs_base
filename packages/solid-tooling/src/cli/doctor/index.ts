@@ -51,6 +51,10 @@ type SkillInspection = {
   report: Report
 }
 type Dependency = { owner: Installed; name: string }
+type ResolvedDependency = Dependency & {
+  dep: Installed
+  peer: string | undefined
+}
 type DoctorInput = { root: string; preset?: Preset }
 type AppTasks = { app: Manifest; preset?: Preset }
 type BlockOwner = { root: string; name: string }
@@ -306,7 +310,7 @@ export async function doctor({ root, preset }: DoctorInput): Promise<Report> {
     name,
     dep,
     peer
-  }: Dependency & { dep: Installed; peer: string | undefined }) {
+  }: ResolvedDependency) {
     const { version } = dep.manifest
     const compilerRange =
       name === '@solidjs/compiler'

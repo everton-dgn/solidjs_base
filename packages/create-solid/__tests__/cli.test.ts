@@ -619,3 +619,21 @@ void it('lists each flag once with a description through both help aliases', () 
     for (const line of options) assert.match(line, /^  -\S+.*? {2,}\S/u)
   }
 })
+
+void it('preserves an occupied destination with flags and with yes', context => {
+  const dir = folder(context)
+  const marker = path.join(dir, 'notes.txt')
+  writeFileSync(marker, 'keep')
+  for (const flags of [[], ['--yes']]) {
+    const result = spawnSync(
+      process.execPath,
+      [bin, dir, '--lang', 'en', ...flags],
+      { encoding: 'utf8' }
+    )
+    const usageError = 2
+    assert.equal(result.status, usageError)
+    assert.match(result.stderr, /--name/u)
+    assert.deepEqual(readdirSync(dir), ['notes.txt'])
+    assert.equal(readFileSync(marker, 'utf8'), 'keep')
+  }
+})

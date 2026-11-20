@@ -340,3 +340,41 @@ void it('keeps cursor control with and without Solid blue', async () => {
     )
   }
 })
+
+void it('retries an occupied folder and matches the flags for a custom client app', async context => {
+  const root = mkdtempSync(path.join(tmpdir(), 'solid-client-keys-'))
+  context.after(() => rmSync(root, { recursive: true, force: true }))
+  const left = path.join(root, 'left', 'portal')
+  const right = path.join(root, 'right', 'portal')
+  const m = messages.en
+  const { result } = await session([
+    [m.dir, `${process.cwd()}\r`],
+    [fieldMessage('en', 'destination'), `\u0015${left}\r`],
+    [m.title, 'Portal\r'],
+    [m.mode, '\u001B[B\u001B[B\r'],
+    [m.setup, '\u001B[B\r'],
+    [m.features, '\r'],
+    [m.i18n, 'n'],
+    [m.appLanguage, 'es-MX\r'],
+    [m.installer, '\u001B[B\r'],
+    [m.git, 'n'],
+    [m.install, 'n']
+  ])
+  generate(answerProfile(result))
+  execFileSync(process.execPath, [
+    path.resolve('dist/create-solid.mjs'),
+    right,
+    '--title',
+    'Portal',
+    '--mode',
+    'client',
+    '--pm',
+    'pnpm',
+    '--no-i18n',
+    '--base-locale',
+    'es-MX',
+    '--no-git',
+    '--no-install'
+  ])
+  assert.equal(tree(left), tree(right))
+})

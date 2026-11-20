@@ -5,7 +5,8 @@ import { stripVTControlCharacters } from 'node:util'
 import { confirm, intro, isCancel, select, text } from '@clack/prompts'
 
 import { messages, type Language } from './cli-language.ts'
-import type { Answers } from './profile-answers.ts'
+import { installers, type Answers } from './profile-answers.ts'
+import { hasTool, missingTool } from './tools.ts'
 import { CanceledError } from './usage-error.ts'
 import { validateProfile } from './validate-profile.ts'
 
@@ -37,6 +38,22 @@ export async function questionnaire({
   const io = { input, output: color ? output : plainOutput, accessible: !color }
   const result = { ...answers }
   intro(color ? '\u001B[38;2;68;107;158mSolid Base\u001B[0m' : 'Solid Base', io)
+  const availableManagers = new Set(installers.filter(tool => hasTool(tool)))
+  function reportMissingTools() {
+    const requestedManager = installers.find(pm => pm === result.pm) ?? 'bun'
+    if (!availableManagers.has('bun')) output.write(`${labels.missingBun}\n`)
+    if (
+      requestedManager !== 'bun' &&
+      !availableManagers.has(requestedManager) &&
+      !result['no-install']
+    ) {
+      output.write(`${missingTool(requestedManager, language)}\n`)
+    }
+    if (!result['no-git'] && !hasTool('git')) {
+      output.write(`${missingTool('git', language)}\n`)
+    }
+  }
+  reportMissingTools()
   const toggle = async (message: string) =>
     answer<boolean>(
       await confirm({ ...io, message, active: labels.yes, inactive: labels.no })
@@ -147,7 +164,12 @@ export async function questionnaire({
       ...io,
       message: labels.installer,
       showInstructions: false,
-      options: ['bun', 'npm', 'pnpm'].map(value => ({ value }))
+      options: installers.map(value => ({
+        value,
+        ...(availableManagers.has(value)
+          ? {}
+          : { hint: missingTool(value, language) })
+      }))
     })
   )
   for (const key of ['git', 'install'] as const) {
@@ -155,5 +177,37 @@ export async function questionnaire({
       result[`no-${key}`] = !(await toggle(labels[key]))
     }
   }
+  async function recoverSetup() {
+    while (!result['no-git'] && !hasTool('git')) {
+      result['no-git'] = !answer<boolean>(
+        await confirm({
+          ...io,
+          message: missingTool('git', language),
+          active: labels.retry,
+          inactive: labels.no
+        })
+      )
+      if (result['no-git']) delete result.git
+    }
+    while (!result['no-install']) {
+      const manager = installers.find(pm => pm === result.pm) ?? 'bun'
+      if (hasTool(manager)) break
+      const selected = answer<string>(
+        await select({
+          ...io,
+          message: missingTool(manager, language),
+          options: [
+            ...installers.map(value => ({ value })),
+            { value: 'skip', label: labels.skipInstall }
+          ]
+        })
+      )
+      if (selected === 'skip') {
+        result['no-install'] = true
+        delete result.install
+      } else result.pm = selected
+    }
+  }
+  await recoverSetup()
   return result
 }

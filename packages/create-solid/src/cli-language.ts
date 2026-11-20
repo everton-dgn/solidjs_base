@@ -46,7 +46,9 @@ export const messages = {
     setUrl: 'Set VITE_SITE_URL before publishing.',
     seed: 'Translate the seeded messages for {tag}.',
     windows: 'create-solid supports macOS and Linux. Windows is unsupported.',
-    tool: 'Install {tool} before generating the application.',
+    tool: 'Install {tool} before generating the application. {link}',
+    retry: 'Check again',
+    skipInstall: 'Skip installation',
     gitFailure:
       'Git initialization failed. Open {dir} and run git init with Git installed, or continue without Git. Run {pm} install to install dependencies.',
     installFailure: 'Open {dir} and run {pm} install again.',
@@ -108,7 +110,9 @@ export const messages = {
     setUrl: 'Defina VITE_SITE_URL antes de publicar.',
     seed: 'Traduza as mensagens iniciais de {tag}.',
     windows: 'Use o create-solid no macOS ou no Linux.',
-    tool: 'Instale {tool} antes de gerar a aplicação.',
+    tool: 'Instale {tool} antes de gerar a aplicação. {link}',
+    retry: 'Verificar novamente',
+    skipInstall: 'Pular a instalação',
     gitFailure:
       'Falha ao inicializar o Git. Abra {dir} e execute git init. Para instalar as dependências, execute {pm} install.',
     installFailure: 'Abra {dir} e execute {pm} install novamente.',
@@ -170,7 +174,9 @@ export const messages = {
     setUrl: 'Configura VITE_SITE_URL antes de publicar.',
     seed: 'Traduce los mensajes iniciales de {tag}.',
     windows: 'Usa create-solid en macOS o Linux.',
-    tool: 'Instala {tool} antes de generar la aplicación.',
+    tool: 'Instala {tool} antes de generar la aplicación. {link}',
+    retry: 'Volver a comprobar',
+    skipInstall: 'Omitir la instalación',
     gitFailure:
       'Falló la inicialización de Git. Abre {dir} y ejecuta git init. Para instalar las dependencias, ejecuta {pm} install.',
     installFailure: 'Abre {dir} y ejecuta {pm} install de nuevo.',

@@ -2,9 +2,6 @@ import { execFileSync, spawn } from 'node:child_process'
 import { once } from 'node:events'
 import {
   existsSync,
-  accessSync,
-  constants,
-  statSync,
   mkdirSync,
   mkdtempSync,
   renameSync,
@@ -48,6 +45,7 @@ import { applyPreparedSource } from './prepared-source.ts'
 import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
+import { hasTool, missingTool } from './tools.ts'
 import type {
   FileWrite,
   GenerationContext,
@@ -109,23 +107,13 @@ function publishTree({ stage, destination }: Publication): void {
     throw error
   }
 }
-function checkTools(profile: Profile, language: Language): void {
-  const tools = [
-    ...(profile.shouldInitGit ? ['git'] : []),
-    ...(profile.shouldInstall ? [profile.pm] : [])
-  ]
-  for (const tool of tools) {
-    const hasTool = process.env.PATH?.split(path.delimiter).some(directory => {
-      try {
-        accessSync(path.join(directory, tool), constants.X_OK)
-        return statSync(path.join(directory, tool)).isFile()
-      } catch {
-        return false
-      }
-    })
-    if (!hasTool) {
-      throw new Error(message(language, { code: 'tool', values: { tool } }))
-    }
+type ToolCheck = { profile: Profile; language: Language }
+function checkTools({ profile, language }: ToolCheck): void {
+  if (profile.shouldInitGit && !hasTool('git')) {
+    throw new Error(missingTool('git', language))
+  }
+  if (profile.shouldInstall && !hasTool(profile.pm)) {
+    throw new Error(missingTool(profile.pm, language))
   }
 }
 type NextSteps = {
@@ -417,7 +405,7 @@ export function* generation(
     settingsSchema,
     JSON.parse(readFileSync(settingsFile, 'utf8'))
   )
-  checkTools(profile, language)
+  checkTools({ profile, language })
   yield 'creating'
   const parent = path.dirname(path.resolve(profile.dir))
   const firstParent = mkdirSync(parent, { recursive: true })

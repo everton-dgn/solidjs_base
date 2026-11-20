@@ -1,12 +1,11 @@
 #!/usr/bin/env node
-import { accessSync, constants } from 'node:fs'
-import path from 'node:path'
 import process from 'node:process'
 import { parseArgs } from 'node:util'
 
 import { cliLanguage, message, messages } from './cli-language.ts'
 import { generateTerminal } from './generate.ts'
 import type { Answers } from './profile-answers.ts'
+import { hasTool } from './tools.ts'
 import {
   CanceledError,
   ProfileProblemError,
@@ -59,18 +58,6 @@ async function createApplication(answers: Answers) {
       .filter(Boolean)
       .join('\n')}\n`
   )
-  if (
-    !(process.env.PATH ?? '').split(path.delimiter).some(dir => {
-      try {
-        accessSync(path.join(dir, 'bun'), constants.X_OK)
-        return true
-      } catch {
-        return false
-      }
-    })
-  ) {
-    process.stdout.write(`${labels.missingBun}\n`)
-  }
   const steps = await generateTerminal(
     {
       ...profile,
@@ -185,6 +172,8 @@ async function run(): Promise<void> {
       output: process.stdout,
       color
     })
+  } else if (!hasTool('bun')) {
+    process.stdout.write(`${messages[language].missingBun}\n`)
   }
   await createApplication(answers)
 }

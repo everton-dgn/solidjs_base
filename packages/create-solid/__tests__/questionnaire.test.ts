@@ -244,3 +244,51 @@ void it('infers the only base language and skips SEO on the client', async () =>
     assert.ok(!transcript.includes(label))
   }
 })
+
+void it('reports missing tools before the title and recovers only the setup choices', async context => {
+  const root = mkdtempSync(path.join(tmpdir(), 'solid-missing-tools-'))
+  context.after(() => rmSync(root, { recursive: true, force: true }))
+  context.mock.method(process, 'cwd', () => root)
+  const originalPath = process.env.PATH
+  process.env.PATH = root
+  try {
+    const { result, transcript } = await session(
+      [
+        [messages.en.title, '\r'],
+        ['https://git-scm.com/downloads', 'n'],
+        ['https://pnpm.io/installation', '\u001B[A\r']
+      ],
+      {
+        answers: {
+          name: 'portal',
+          mode: 'client',
+          locales: 'es',
+          theme: true,
+          icons: true,
+          fonts: true,
+          diagnostics: true,
+          pm: 'pnpm',
+          git: true,
+          install: true
+        }
+      }
+    )
+    for (const link of [
+      'https://bun.sh',
+      'https://git-scm.com/downloads',
+      'https://pnpm.io/installation'
+    ]) {
+      const position = transcript.indexOf(link)
+      assert.ok(
+        position !== -1 && position < transcript.indexOf(messages.en.title)
+      )
+    }
+    assert.equal(result.title, 'portal')
+    assert.equal(result.pm, 'pnpm')
+    assert.equal(result['no-git'], true)
+    assert.equal(result['no-install'], true)
+  } finally {
+    if (originalPath === undefined) delete process.env.PATH
+    else process.env.PATH = originalPath
+  }
+})

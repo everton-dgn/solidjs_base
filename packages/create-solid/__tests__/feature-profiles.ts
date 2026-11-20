@@ -19,6 +19,7 @@ import {
   SECURITY_HEADERS
 } from '../../solid-runtime/src/middleware/securityHeaders/constants.js'
 import { createTasks } from '../../solid-tooling/src/vite/tasks.ts'
+import { readLocaleSettings } from '../src/configureLocales/catalogs.ts'
 import { generate } from '../src/generate.ts'
 import { guideFiles } from '../src/prepared-guides.ts'
 import { checkImports } from '../tooling/check-imports.ts'
@@ -224,6 +225,9 @@ function checkGuideLanguages({
   baseLocale,
   locales
 }: GuideProfile): void {
+  if (baseLocale && locales) {
+    assert.deepEqual(readLocaleSettings(dir), { locales, baseLocale })
+  }
   const hasTemplateLanguages =
     mode !== 'client' && hasI18n !== false && !locales && !baseLocale
   const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
@@ -359,7 +363,7 @@ function checkFavicons({
   }
 }
 const guideChanges = guideOwnership()
-const profilesPerManager = 126
+const profilesPerManager = 127
 export function testProfiles(
   pm: 'bun' | 'npm' | 'pnpm',
   it: typeof registerTest

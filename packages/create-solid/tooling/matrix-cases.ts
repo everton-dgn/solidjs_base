@@ -15,6 +15,15 @@ export type MatrixCase = {
   selection: Selection
 }
 export function* matrixCases(): Generator<MatrixCase> {
+  yield {
+    mode: 'server',
+    hasSeo: true,
+    hasDiagnostics: true,
+    hasTheme: true,
+    hasFonts: true,
+    hasIcons: true,
+    selection: { locales: ['pt', 'en', 'es'], baseLocale: 'es' }
+  }
   for (const { mode, hasSeo } of publications) {
     for (const hasDiagnostics of [true, false]) {
       for (const { hasFonts, hasIcons, hasTheme } of uiProfiles()) {

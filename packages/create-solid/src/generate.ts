@@ -298,6 +298,8 @@ function prepareLocaleGuides({
   hasTemplateLanguageSettings,
   prepare
 }: GuidePreparation): void {
+  // The build records both template and rewritten guides. At runtime the prepared
+  // template already has the right wording when its language settings are unchanged.
   if (hasTemplateLanguageSettings) prepare.templateGuides?.(context.stage)
   if (!hasTemplateLanguageSettings || prepare.templateGuides) {
     configureLocaleGuides(context)

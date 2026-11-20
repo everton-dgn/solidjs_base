@@ -158,7 +158,7 @@ async function run(): Promise<void> {
   )
   const interactive =
     process.stdin.isTTY && !isCI && !values.yes && !values['no-interactive']
-  const color =
+  const hasColor =
     process.stdout.isTTY &&
     process.stdout.hasColors() &&
     process.env.NO_COLOR === undefined
@@ -178,7 +178,7 @@ async function run(): Promise<void> {
       language,
       input: process.stdin,
       output: process.stdout,
-      color
+      hasColor
     })
   } else if (!hasTool('bun')) {
     process.stdout.write(`${messages[language].missingBun}\n`)

@@ -27,8 +27,9 @@ async function session(
   lines: Line[],
   {
     answers = {},
-    language = 'en'
-  }: { answers?: Answers; language?: Language } = {}
+    language = 'en',
+    hasColor = false
+  }: { answers?: Answers; language?: Language; hasColor?: boolean } = {}
 ) {
   const input = new PassThrough()
   let index = 0
@@ -49,10 +50,10 @@ async function session(
       language,
       input,
       output,
-      color: false
+      hasColor
     })
     assert.equal(index, lines.length)
-    assert.ok(!transcript.includes('\u001B'))
+    if (!hasColor) assert.doesNotMatch(transcript, /\u001B\[[\d;:]*m/u)
     return { result, transcript }
   } finally {
     input.destroy()
@@ -314,3 +315,20 @@ for (const language of ['en', 'pt-BR', 'es'] as const) {
     assert.ok(!transcript.includes(m.features))
   })
 }
+
+void it('keeps cursor control with and without Solid blue', async () => {
+  for (const hasColor of [false, true]) {
+    const m = messages.en
+    const { transcript } = await session(
+      [
+        [m.dir, '\r'],
+        [m.title, '\r'],
+        [m.mode, '\r'],
+        [m.setup, '\r']
+      ],
+      { hasColor }
+    )
+    assert.equal(transcript.includes('\u001B[38;2;68;107;158m'), hasColor)
+    assert.match(transcript, /\u001B\[[?\d;]*[ABCDEFGHJKhl]/u)
+  }
+})

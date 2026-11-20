@@ -1,6 +1,5 @@
 import path from 'node:path'
 import { PassThrough, type Writable, type Readable } from 'node:stream'
-import { stripVTControlCharacters } from 'node:util'
 
 import {
   confirm,
@@ -28,7 +27,7 @@ type Session = {
   language: Language
   input: Readable
   output: Writable
-  color: boolean
+  hasColor: boolean
 }
 
 export async function questionnaire({
@@ -36,16 +35,23 @@ export async function questionnaire({
   language,
   input,
   output,
-  color
+  hasColor
 }: Session): Promise<Answers> {
   const labels = messages[language]
   const plainOutput = new PassThrough()
   plainOutput.on('data', chunk =>
-    output.write(stripVTControlCharacters(String(chunk)))
+    output.write(String(chunk).replaceAll(/\u001B\[[\d;:]*m/gu, ''))
   )
-  const io = { input, output: color ? output : plainOutput, accessible: !color }
+  const io = {
+    input,
+    output: hasColor ? output : plainOutput,
+    accessible: !hasColor
+  }
   const result = { ...answers }
-  intro(color ? '\u001B[38;2;68;107;158mSolid Base\u001B[0m' : 'Solid Base', io)
+  intro(
+    hasColor ? '\u001B[38;2;68;107;158mSolid Base\u001B[0m' : 'Solid Base',
+    io
+  )
   const availableManagers = new Set(installers.filter(tool => hasTool(tool)))
   function reportMissingTools() {
     const requestedManager = installers.find(pm => pm === result.pm) ?? 'bun'

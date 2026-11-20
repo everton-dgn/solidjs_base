@@ -14,6 +14,7 @@ bun | configureClient | README.md | ## Host response headers | sC8IAJtW2Xl_dRStb
 bun | configureClient | README.md | ## How it is tested | IQaHUXEebWCSasWsGQoCjWlnSVEiQyybPN7QYTiYORs | Run `vp run test` for unit and component tests and `vp run test:e2e` for the -> Run `vp run check:ci`, `vp run test` and `vp run test:e2e`.
 bun | configureClient | README.md | ## Limits | CwHCc_RGooNQCvCEWhPZ6BIZp9daFtqIHVJHpIoYih0 | Interactive controls require JavaScript. -> The interactive controls require JavaScript.
 bun | configureClient | README.md | ## Publishing | bPT66odaWhazHHVxo6vvcCaWa2vaStgtRPeTt-pm4pw | (absent) -> ## Publishing
+bun | configureClient | README.md | ## Reference | zEgZ7WIBPFIm8c7mJ8tA7cmzbpBm8BzsFc9Vy3x_qGQ | install dependencies. Server mode deploys to Vercel. -> install dependencies.
 bun | configureClient | README.md | ## Running it | iZfL6lJR7Lwaji1aulxxx16ORFQqowLI-i2RfB_2MkY | `vp run dev` serves the app at `http://127.0.0.1:3000/`, from the `HOST` and -> (absent)
 bun | configureClient | README.md | ## See it work | QhfJB3uuLdNlekt-CSBkv7vGCzP9ub9enmH4RWCYDRo | Open the home page and follow a link to a localized page. -> Open the home page and follow a navigation link to visit another page.
 bun | configureClient | README.md | ## What each page and feature shows | Riag2-QJlRXVJ0ETYO7vrvKaglbO5b1oYLDM18fjOQE | The app has five pages. The `e2e` build adds the fixture routes of -> The application includes home, about, contact, privacy and a missing-page view.
@@ -440,6 +441,7 @@ bun | configureStatic | README.md | ## Optional | bKHCOA9vPeHuzVsyLzrba6ji5Uy3sz
 bun | configureStatic | README.md | ## Pages | et85t-HfkUUHBRn8IRnxTKLVjV4xpbWklGeNBOe5xBM | ## Pages -> (absent)
 bun | configureStatic | README.md | ## Publishing | sy_YWmfewijO6Sa6NWgA4IE0kt_1EnHxNk0ZgKf8lMY | (absent) -> ## Publishing
 bun | configureStatic | README.md | ## Purpose and features | XHr7_oTX7NE-r69NOkyYRSmAdGjHNvTEPj1YtOJcNFU | ## Purpose and features -> (absent)
+bun | configureStatic | README.md | ## Reference | zEgZ7WIBPFIm8c7mJ8tA7cmzbpBm8BzsFc9Vy3x_qGQ | install dependencies. Server mode deploys to Vercel. -> install dependencies.
 bun | configureStatic | README.md | ## Running it | jLfGCn3cEDTXes2hbpRszgBUVm34wrDT-XGLB8exUmY | `vp run dev` serves the app at `http://127.0.0.1:3000/`, from the `HOST` and -> (absent)
 bun | configureStatic | README.md | ## See it work | 1kqch68ep8HA7lPedOsocRq42dz21U13iV2p-JKkjRw | (absent) -> Open the home page and follow a navigation link to visit another page.
 bun | configureStatic | README.md | ## Source code and documentation | IRmQNDlU9Cn_kSTqa37cmbJqnHl8cIL6WlX4ok3Ijow | ## Source code and documentation -> (absent)
@@ -605,6 +607,7 @@ npm | configureClient | README.md | ## Host response headers | sC8IAJtW2Xl_dRStb
 npm | configureClient | README.md | ## How it is tested | IQaHUXEebWCSasWsGQoCjWlnSVEiQyybPN7QYTiYORs | Run `vp run test` for unit and component tests and `vp run test:e2e` for the -> Run `vp run check:ci`, `vp run test` and `vp run test:e2e`.
 npm | configureClient | README.md | ## Limits | CwHCc_RGooNQCvCEWhPZ6BIZp9daFtqIHVJHpIoYih0 | Interactive controls require JavaScript. -> The interactive controls require JavaScript.
 npm | configureClient | README.md | ## Publishing | bPT66odaWhazHHVxo6vvcCaWa2vaStgtRPeTt-pm4pw | (absent) -> ## Publishing
+npm | configureClient | README.md | ## Reference | zEgZ7WIBPFIm8c7mJ8tA7cmzbpBm8BzsFc9Vy3x_qGQ | install dependencies. Server mode deploys to Vercel. -> install dependencies.
 npm | configureClient | README.md | ## Running it | ZXDltCsWl4p1g2u0YDjXKgqGgh5iXcuXMAJv-5R1Qhs | `vp run dev` serves the app at `http://127.0.0.1:3000/`, from the `HOST` and -> (absent)
 npm | configureClient | README.md | ## See it work | QhfJB3uuLdNlekt-CSBkv7vGCzP9ub9enmH4RWCYDRo | Open the home page and follow a link to a localized page. -> Open the home page and follow a navigation link to visit another page.
 npm | configureClient | README.md | ## What each page and feature shows | Riag2-QJlRXVJ0ETYO7vrvKaglbO5b1oYLDM18fjOQE | The app has five pages. The `e2e` build adds the fixture routes of -> The application includes home, about, contact, privacy and a missing-page view.
@@ -1031,6 +1034,7 @@ npm | configureStatic | README.md | ## Optional | bKHCOA9vPeHuzVsyLzrba6ji5Uy3sz
 npm | configureStatic | README.md | ## Pages | et85t-HfkUUHBRn8IRnxTKLVjV4xpbWklGeNBOe5xBM | ## Pages -> (absent)
 npm | configureStatic | README.md | ## Publishing | sy_YWmfewijO6Sa6NWgA4IE0kt_1EnHxNk0ZgKf8lMY | (absent) -> ## Publishing
 npm | configureStatic | README.md | ## Purpose and features | XHr7_oTX7NE-r69NOkyYRSmAdGjHNvTEPj1YtOJcNFU | ## Purpose and features -> (absent)
+npm | configureStatic | README.md | ## Reference | zEgZ7WIBPFIm8c7mJ8tA7cmzbpBm8BzsFc9Vy3x_qGQ | install dependencies. Server mode deploys to Vercel. -> install dependencies.
 npm | configureStatic | README.md | ## Running it | V1yKL0GzhnPw3oAPJiGA_S2KYJxJEztYYbMEm0BprWw | `vp run dev` serves the app at `http://127.0.0.1:3000/`, from the `HOST` and -> (absent)
 npm | configureStatic | README.md | ## See it work | 1kqch68ep8HA7lPedOsocRq42dz21U13iV2p-JKkjRw | (absent) -> Open the home page and follow a navigation link to visit another page.
 npm | configureStatic | README.md | ## Source code and documentation | IRmQNDlU9Cn_kSTqa37cmbJqnHl8cIL6WlX4ok3Ijow | ## Source code and documentation -> (absent)
@@ -1196,6 +1200,7 @@ pnpm | configureClient | README.md | ## Host response headers | sC8IAJtW2Xl_dRSt
 pnpm | configureClient | README.md | ## How it is tested | IQaHUXEebWCSasWsGQoCjWlnSVEiQyybPN7QYTiYORs | Run `vp run test` for unit and component tests and `vp run test:e2e` for the -> Run `vp run check:ci`, `vp run test` and `vp run test:e2e`.
 pnpm | configureClient | README.md | ## Limits | CwHCc_RGooNQCvCEWhPZ6BIZp9daFtqIHVJHpIoYih0 | Interactive controls require JavaScript. -> The interactive controls require JavaScript.
 pnpm | configureClient | README.md | ## Publishing | bPT66odaWhazHHVxo6vvcCaWa2vaStgtRPeTt-pm4pw | (absent) -> ## Publishing
+pnpm | configureClient | README.md | ## Reference | zEgZ7WIBPFIm8c7mJ8tA7cmzbpBm8BzsFc9Vy3x_qGQ | install dependencies. Server mode deploys to Vercel. -> install dependencies.
 pnpm | configureClient | README.md | ## Running it | jWq7ES92YZnEWYRwpDlXgMVLHXzMk-iyZFfu3qwNWnc | `vp run dev` serves the app at `http://127.0.0.1:3000/`, from the `HOST` and -> (absent)
 pnpm | configureClient | README.md | ## See it work | QhfJB3uuLdNlekt-CSBkv7vGCzP9ub9enmH4RWCYDRo | Open the home page and follow a link to a localized page. -> Open the home page and follow a navigation link to visit another page.
 pnpm | configureClient | README.md | ## What each page and feature shows | Riag2-QJlRXVJ0ETYO7vrvKaglbO5b1oYLDM18fjOQE | The app has five pages. The `e2e` build adds the fixture routes of -> The application includes home, about, contact, privacy and a missing-page view.
@@ -1622,6 +1627,7 @@ pnpm | configureStatic | README.md | ## Optional | bKHCOA9vPeHuzVsyLzrba6ji5Uy3s
 pnpm | configureStatic | README.md | ## Pages | et85t-HfkUUHBRn8IRnxTKLVjV4xpbWklGeNBOe5xBM | ## Pages -> (absent)
 pnpm | configureStatic | README.md | ## Publishing | sy_YWmfewijO6Sa6NWgA4IE0kt_1EnHxNk0ZgKf8lMY | (absent) -> ## Publishing
 pnpm | configureStatic | README.md | ## Purpose and features | XHr7_oTX7NE-r69NOkyYRSmAdGjHNvTEPj1YtOJcNFU | ## Purpose and features -> (absent)
+pnpm | configureStatic | README.md | ## Reference | zEgZ7WIBPFIm8c7mJ8tA7cmzbpBm8BzsFc9Vy3x_qGQ | install dependencies. Server mode deploys to Vercel. -> install dependencies.
 pnpm | configureStatic | README.md | ## Running it | wAahF5AwjlbGq08NHYzmHil1eKiIUC0wW8rruIQJvgk | `vp run dev` serves the app at `http://127.0.0.1:3000/`, from the `HOST` and -> (absent)
 pnpm | configureStatic | README.md | ## See it work | 1kqch68ep8HA7lPedOsocRq42dz21U13iV2p-JKkjRw | (absent) -> Open the home page and follow a navigation link to visit another page.
 pnpm | configureStatic | README.md | ## Source code and documentation | IRmQNDlU9Cn_kSTqa37cmbJqnHl8cIL6WlX4ok3Ijow | ## Source code and documentation -> (absent)

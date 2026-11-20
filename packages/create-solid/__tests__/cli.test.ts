@@ -638,3 +638,16 @@ void it('preserves an occupied destination with flags and with yes', context => 
     assert.equal(readFileSync(marker, 'utf8'), 'keep')
   }
 })
+
+void it('explains a missing tool before the summary in unattended setup', context => {
+  const root = folder(context)
+  const child = spawnSync(process.execPath, [bin, '--lang', 'en', '--yes'], {
+    cwd: root,
+    env: { ...process.env, PATH: root },
+    encoding: 'utf8'
+  })
+  assert.equal(child.status, 1)
+  assert.match(child.stderr, /https:\/\/git-scm.com\/downloads/u)
+  assert.doesNotMatch(child.stdout, /Project settings/u)
+  assert.deepEqual(readdirSync(root), [])
+})

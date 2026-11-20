@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util'
 import { cliLanguage, message, messages } from './cli-language.ts'
 import { generateTerminal } from './generate.ts'
 import { projectSummary } from './project-summary.ts'
-import { hasTool } from './tools.ts'
+import { checkTools, hasTool } from './tools.ts'
 import type { Answers } from './types.ts'
 import {
   CanceledError,
@@ -45,6 +45,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
   const { profile } = validated
   if (validated.problems[0]) throw validated.problems[0]
   const labels = messages[language]
+  if (!isInteractive) checkTools({ profile, language })
   const summary = projectSummary({ validated, language })
   const frame = isInteractive ? await import('./terminal-frame.ts') : undefined
   if (frame) await frame.confirmProject(summary, language)

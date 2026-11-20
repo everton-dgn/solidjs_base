@@ -15,7 +15,7 @@ import manifest from '../package.json' with { type: 'json' }
 import { messages, type Language } from './cli-language.ts'
 import { fieldMessage } from './field-messages.ts'
 import { installers } from './profile-answers.ts'
-import { hasTool, missingTool } from './tools.ts'
+import { hasTool, hasRepository, missingTool } from './tools.ts'
 import type { Answers } from './types.ts'
 import { CanceledError } from './usage-error.ts'
 import { validateProfile } from './validateProfile/index.ts'
@@ -36,7 +36,7 @@ type Session = {
 type SetupRecovery = { result: Answers; language: Language; io: CommonOptions }
 async function recoverSetup({ result, language, io }: SetupRecovery) {
   const labels = messages[language]
-  while (!result['no-git'] && !hasTool('git')) {
+  while (!result['no-git'] && !hasRepository(result.name) && !hasTool('git')) {
     result['no-git'] = !answer<boolean>(
       await confirm({
         ...io,
@@ -111,7 +111,7 @@ export async function questionnaire({
     ) {
       output.write(`${missingTool(requestedManager, language)}\n`)
     }
-    if (!result['no-git'] && !hasTool('git')) {
+    if (!result['no-git'] && !hasRepository(result.name) && !hasTool('git')) {
       output.write(`${missingTool('git', language)}\n`)
     }
   }

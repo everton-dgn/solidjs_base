@@ -1,9 +1,11 @@
-import { accessSync, constants, statSync } from 'node:fs'
+import { accessSync, constants, lstatSync, statSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 
 import { message, type Language } from './cli-language.ts'
+import type { Profile } from './types.ts'
 
+type ToolCheck = { profile: Profile; language: Language }
 const links = {
   git: 'https://git-scm.com/downloads',
   bun: 'https://bun.sh',
@@ -29,4 +31,19 @@ export function missingTool(tool: Tool, language: Language): string {
     code: 'tool',
     values: { tool: names[tool], link: links[tool] }
   })
+}
+
+export function hasRepository(dir: string | undefined): boolean {
+  if (!dir) return false
+  return (
+    lstatSync(path.join(dir, '.git'), { throwIfNoEntry: false }) !== undefined
+  )
+}
+export function checkTools({ profile, language }: ToolCheck): void {
+  if (profile.shouldInitGit && !hasRepository(profile.dir) && !hasTool('git')) {
+    throw new Error(missingTool('git', language))
+  }
+  if (profile.shouldInstall && !hasTool(profile.pm)) {
+    throw new Error(missingTool(profile.pm, language))
+  }
 }

@@ -46,7 +46,7 @@ import { applyPreparedSource } from './prepared-source.ts'
 import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
-import { hasTool, missingTool } from './tools.ts'
+import { checkTools, hasRepository } from './tools.ts'
 import type {
   FileWrite,
   GenerationContext,
@@ -107,19 +107,6 @@ function publishTree({ stage, destination }: Publication): void {
       renameSync(path.join(destination, file), path.join(stage, file))
     }
     throw error
-  }
-}
-type ToolCheck = { profile: Profile; language: Language }
-function checkTools({ profile, language }: ToolCheck): void {
-  if (
-    profile.shouldInitGit &&
-    !existsSync(path.join(profile.dir, '.git')) &&
-    !hasTool('git')
-  ) {
-    throw new Error(missingTool('git', language))
-  }
-  if (profile.shouldInstall && !hasTool(profile.pm)) {
-    throw new Error(missingTool(profile.pm, language))
   }
 }
 type NextSteps = {
@@ -519,7 +506,7 @@ export function* generation({
     throw error
   }
   const notices = reportSeededCatalogs({ profile, seeded, language })
-  if (profile.shouldInitGit && !existsSync(path.join(profile.dir, '.git'))) {
+  if (profile.shouldInitGit && !hasRepository(profile.dir)) {
     try {
       yield { task: 'gitTask', executable: 'git', args: ['init'] }
     } catch (error) {

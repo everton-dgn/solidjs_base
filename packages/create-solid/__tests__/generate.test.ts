@@ -63,10 +63,12 @@ void it('returns installation instructions to callers of generate', async contex
       shouldInitGit: false
     }),
     [
-      `Open ${dir}.`,
-      'Run pnpm install.',
-      'Run pnpm exec vp fmt pnpm-workspace.yaml.',
-      'Run vp run dev.'
+      `cd ${path.relative(process.cwd(), dir)}`,
+      'pnpm install',
+      'pnpm exec vp fmt pnpm-workspace.yaml',
+      'pnpm run dev',
+      'Set VITE_SITE_URL before publishing.',
+      'See "Before publishing" in README.md.'
     ]
   )
 })

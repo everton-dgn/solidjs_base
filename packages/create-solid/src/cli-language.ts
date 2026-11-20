@@ -42,8 +42,8 @@ export const messages = {
       'bunx @evertondgn/create-solid@latest [DIR] [--pm bun|pnpm|npm] [--title TEXT] [--i18n|--no-i18n] [--locales TAGS] [--base-locale TAG] [--site-url URL] [--mode server|static|client] [--seo|--no-seo] [--theme|--no-theme] [--icons|--no-icons] [--fonts|--no-fonts] [--diagnostics|--no-diagnostics] [--no-git] [--no-install] [--name DIR] [--git] [--install] [--yes] [--no-interactive] [--lang pt-BR|en|es]',
     automation:
       'Use --yes to accept defaults. With --no-interactive, CI or redirected input, provide a destination or use --yes.',
-    open: 'Open {dir}.',
-    run: 'Run {command}.',
+    publishList: 'See "Before publishing" in README.md.',
+    setUrl: 'Set VITE_SITE_URL before publishing.',
     seed: 'Translate the seeded messages for {tag}.',
     windows: 'create-solid supports macOS and Linux. Windows is unsupported.',
     tool: 'Install {tool} before generating the application.',
@@ -104,8 +104,8 @@ export const messages = {
       'bunx @evertondgn/create-solid@latest [PASTA] [--pm bun|pnpm|npm] [--title TEXTO] [--i18n|--no-i18n] [--locales IDIOMAS] [--base-locale TAG] [--site-url URL] [--mode server|static|client] [--seo|--no-seo] [--theme|--no-theme] [--icons|--no-icons] [--fonts|--no-fonts] [--diagnostics|--no-diagnostics] [--no-git] [--no-install] [--name PASTA] [--git] [--install] [--yes] [--no-interactive] [--lang pt-BR|en|es]',
     automation:
       'Use --yes para aceitar os padrões. Com --no-interactive, CI ou entrada redirecionada, informe o destino ou use --yes.',
-    open: 'Abra {dir}.',
-    run: 'Execute {command}.',
+    publishList: 'Consulte "Before publishing" no README.md.',
+    setUrl: 'Defina VITE_SITE_URL antes de publicar.',
     seed: 'Traduza as mensagens iniciais de {tag}.',
     windows: 'Use o create-solid no macOS ou no Linux.',
     tool: 'Instale {tool} antes de gerar a aplicação.',
@@ -166,8 +166,8 @@ export const messages = {
       'bunx @evertondgn/create-solid@latest [CARPETA] [--pm bun|pnpm|npm] [--title TEXTO] [--i18n|--no-i18n] [--locales IDIOMAS] [--base-locale TAG] [--site-url URL] [--mode server|static|client] [--seo|--no-seo] [--theme|--no-theme] [--icons|--no-icons] [--fonts|--no-fonts] [--diagnostics|--no-diagnostics] [--no-git] [--no-install] [--name CARPETA] [--git] [--install] [--yes] [--no-interactive] [--lang pt-BR|en|es]',
     automation:
       'Usa --yes para aceptar los valores predeterminados. Con --no-interactive, CI o entrada redirigida, indica el destino o usa --yes.',
-    open: 'Abre {dir}.',
-    run: 'Ejecuta {command}.',
+    publishList: 'Consulta "Before publishing" en README.md.',
+    setUrl: 'Configura VITE_SITE_URL antes de publicar.',
     seed: 'Traduce los mensajes iniciales de {tag}.',
     windows: 'Usa create-solid en macOS o Linux.',
     tool: 'Instala {tool} antes de generar la aplicación.',

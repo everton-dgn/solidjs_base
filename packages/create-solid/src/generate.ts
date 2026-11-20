@@ -23,7 +23,7 @@ import { URL } from 'node:url'
 import { parse } from 'valibot'
 
 import { addProfileBrowserTest } from './addProfileBrowserTest/index.ts'
-import { message, type Language } from './cli-language.ts'
+import { message, messages, type Language } from './cli-language.ts'
 import { configureAppTitle } from './configureAppTitle/index.ts'
 import { configureClient } from './configureClient/index.ts'
 import { configureFileHostGuides } from './configureFileHostGuides/index.ts'
@@ -128,19 +128,27 @@ function checkTools(profile: Profile, language: Language): void {
     }
   }
 }
-function nextSteps(profile: Profile, language: Language): string[] {
-  const next = [
-    message(language, { code: 'open', values: { dir: profile.dir } })
-  ]
-  const run = (command: string) =>
-    message(language, { code: 'run', values: { command } })
+type NextSteps = {
+  profile: Profile
+  language: Language
+  siteUrl: URL | undefined
+}
+function nextSteps({ profile, language, siteUrl }: NextSteps): string[] {
+  let relative = path.relative(process.cwd(), profile.dir) || '.'
+  if (relative.startsWith('-')) relative = `./${relative}`
+  const directory = /^[a-zA-Z0-9_./-]+$/u.test(relative)
+    ? relative
+    : `'${relative.replaceAll("'", String.raw`'\''`)}'`
+  const next = [`cd ${directory}`]
   if (!profile.shouldInstall) {
-    next.push(run(`${profile.pm} install`))
-    if (profile.pm === 'pnpm') {
-      next.push(run('pnpm exec vp fmt pnpm-workspace.yaml'))
-    }
+    next.push(`${profile.pm} install`)
+    if (profile.pm === 'pnpm') next.push('pnpm exec vp fmt pnpm-workspace.yaml')
   }
-  next.push(run('vp run dev'))
+  next.push(`${profile.pm} run dev`)
+  if (siteUrl?.origin === 'https://example.com') {
+    next.push(messages[language].setUrl)
+  }
+  next.push(messages[language].publishList)
   return next
 }
 function configureReadme({ stage, profile }: StagedContext): void {
@@ -521,7 +529,7 @@ export function* generation(
     }
   }
   yield* installProfile(profile, language)
-  return [...notices, ...nextSteps(profile, language)]
+  return [...notices, ...nextSteps({ profile, language, siteUrl })]
 }
 
 export function generateSource(options: GenerationOptions): string[] {

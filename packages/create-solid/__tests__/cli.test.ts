@@ -201,7 +201,7 @@ void it('generates without a formatter or installer on PATH when setup is disabl
     [bin, dir, '--no-install', '--no-git'],
     { encoding: 'utf8', env: { ...process.env, PATH: parent } }
   )
-  assert.ok(output.includes('Run bun install.'))
+  assert.ok(output.includes('│ bun install '))
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })
 
@@ -543,5 +543,5 @@ void it('prints the Bun installation link before starting the selected installer
   assert.equal(result.status, 0, result.stderr)
   const link = result.stdout.indexOf('https://bun.sh')
   assert.ok(link !== -1 && link < result.stdout.indexOf('installer-started'))
-  assert.ok(result.stdout.includes('Ejecuta vp run dev.'))
+  assert.ok(result.stdout.includes('npm run dev'))
 })

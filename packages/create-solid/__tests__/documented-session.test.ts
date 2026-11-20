@@ -41,7 +41,7 @@ void it('generates the static pnpm application from the documented questionnaire
   })
   assert.ok(existsSync(path.join(dir, '.git')))
   assert.ok(!existsSync(path.join(dir, 'node_modules')))
-  assert.ok(output.includes('Run pnpm install.'))
+  assert.ok(output.includes('│ pnpm install '))
   assert.ok(output.includes('https://portal.example'))
   assert.match(
     readFileSync(path.join(dir, 'src/constants/site/title.ts'), 'utf8'),

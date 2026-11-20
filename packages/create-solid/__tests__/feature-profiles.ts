@@ -228,6 +228,7 @@ function checkGuideLanguages({
     mode !== 'client' && hasI18n !== false && !locales && !baseLocale
   const read = (file: string) => readFileSync(path.join(dir, file), 'utf8')
   const readme = read('README.md')
+  assert.equal(/vercel/iu.test(readme), mode === 'server')
   assert.equal(
     readme.includes('home page at /en'),
     hasTemplateLanguages && hasTheme

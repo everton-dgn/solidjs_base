@@ -229,8 +229,7 @@ export function configureSiteIdentity(context: StagedContext): void {
   })
   edit('README.md')({
     pattern: '## Reference\n',
-    replacement:
-      '## Reference\n\nSet the author, organization, social profiles and contact information in `src/constants/site/index.ts`. Bun runs all application tasks. npm and pnpm only install dependencies. Server mode deploys to Vercel.\n'
+    replacement: `## Reference\n\nSet the author, organization, social profiles and contact information in \`src/constants/site/index.ts\`. Bun runs all application tasks. npm and pnpm only install dependencies.${(profile.mode ?? 'server') === 'server' ? ' Server mode deploys to Vercel.' : ''}\n`
   })
   if ((profile.mode ?? 'server') !== 'server') return
   edit('docs/development.md')({

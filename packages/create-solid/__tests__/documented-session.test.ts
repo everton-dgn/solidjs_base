@@ -30,11 +30,11 @@ void it('generates the static pnpm application from the documented questionnaire
   const readme = readFileSync(path.join(dir, 'README.md'), 'utf8')
   for (const note of [
     'author, organization, social profiles and contact information',
-    'Bun runs all application tasks',
-    'Server mode deploys to Vercel'
+    'Bun runs all application tasks'
   ]) {
     assert.ok(readme.replaceAll('\n', ' ').includes(note))
   }
+  assert.doesNotMatch(readme, /vercel/iu)
   assert.deepEqual(readLocaleSettings(dir), {
     locales: ['en', 'es'],
     baseLocale: 'en'

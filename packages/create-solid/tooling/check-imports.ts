@@ -108,3 +108,4 @@ export function checkImports({ dir, files, knownImports }: ImportCheck): void {
     }
   }
 }
+export { references }

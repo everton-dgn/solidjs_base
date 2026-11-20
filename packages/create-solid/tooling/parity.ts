@@ -9,10 +9,12 @@ import {
   writeFileSync,
   rmSync
 } from 'node:fs'
+import { isBuiltin } from 'node:module'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 
+import { references } from './check-imports.ts'
 import { normalizePackedDiff } from './normalize-diff.ts'
 
 const sourceTree = execFileSync('git', ['rev-parse', 'HEAD:apps/boilerplate'], {
@@ -34,6 +36,30 @@ try {
   )
   execFileSync('tar', ['xf', packed], { cwd: sandbox })
   assert.ok(!existsSync(path.join(sandbox, 'package/dist/formatter')))
+  const dist = path.join(sandbox, 'package/dist')
+  for (const file of readdirSync(dist, { recursive: true, encoding: 'utf8' })) {
+    if (!/\.[cm]?js$/u.test(file)) continue
+    for (const source of references(
+      file,
+      readFileSync(path.join(dist, file), 'utf8')
+    )) {
+      assert.ok(
+        source.startsWith('./') ||
+          source.startsWith('../') ||
+          isBuiltin(source),
+        `Unbundled import in ${file}: ${source}`
+      )
+    }
+  }
+  execFileSync(
+    'python3',
+    [path.resolve('tooling/packed-questionnaire.py'), process.execPath],
+    {
+      cwd: sandbox,
+      stdio: 'inherit'
+    }
+  )
+  process.stdout.write('Packed questionnaire completed in a pseudo-terminal\n')
   const scope = path.join(sandbox, 'node_modules/@evertondgn')
   mkdirSync(scope, { recursive: true })
   symlinkSync(path.join(sandbox, 'package'), path.join(scope, 'create-solid'))

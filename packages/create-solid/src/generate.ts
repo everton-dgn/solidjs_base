@@ -40,6 +40,7 @@ import { configureStandaloneGuides } from './configureStandaloneGuides/index.ts'
 import { configureStatic } from './configureStatic/index.ts'
 import { editTemplate } from './edit-template.ts'
 import { installProfile, type SetupCommand } from './installProfile/index.ts'
+import { isDestinationEntry } from './isDestinationEntry/index.ts'
 import { applyPreparedGuides } from './prepared-guides.ts'
 import { applyPreparedSource } from './prepared-source.ts'
 import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
@@ -88,7 +89,8 @@ function publishTree({ stage, destination }: Publication): void {
   }
   if (
     readdirSync(destination).some(
-      file => path.resolve(destination, file) !== stage
+      file =>
+        isDestinationEntry(file) && path.resolve(destination, file) !== stage
     )
   ) {
     throw new Error('Destination must be empty')
@@ -109,7 +111,11 @@ function publishTree({ stage, destination }: Publication): void {
 }
 type ToolCheck = { profile: Profile; language: Language }
 function checkTools({ profile, language }: ToolCheck): void {
-  if (profile.shouldInitGit && !hasTool('git')) {
+  if (
+    profile.shouldInitGit &&
+    !existsSync(path.join(profile.dir, '.git')) &&
+    !hasTool('git')
+  ) {
     throw new Error(missingTool('git', language))
   }
   if (profile.shouldInstall && !hasTool(profile.pm)) {
@@ -503,7 +509,7 @@ export function* generation(
     throw error
   }
   const notices = reportSeededCatalogs({ profile, seeded }, language)
-  if (profile.shouldInitGit) {
+  if (profile.shouldInitGit && !existsSync(path.join(profile.dir, '.git'))) {
     try {
       yield { task: 'gitTask', executable: 'git', args: ['init'] }
     } catch (error) {

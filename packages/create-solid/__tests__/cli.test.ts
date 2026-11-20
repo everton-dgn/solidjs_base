@@ -559,3 +559,19 @@ void it('rejects an unsupported explicit language before showing help', () => {
     assert.match(result.stderr, /--lang/u)
   }
 })
+
+void it('preserves desktop metadata and an existing Git directory without running Git', context => {
+  const root = folder(context)
+  const app = path.join(root, 'app')
+  mkdirSync(path.join(app, '.git'), { recursive: true })
+  for (const name of ['.DS_Store', 'Thumbs.db', '.git/HEAD']) {
+    writeFileSync(path.join(app, name), name)
+  }
+  execFileSync(process.execPath, [bin, app, '--yes', '--no-install'], {
+    env: { ...process.env, PATH: root }
+  })
+  for (const name of ['.DS_Store', 'Thumbs.db', '.git/HEAD']) {
+    assert.equal(readFileSync(path.join(app, name), 'utf8'), name)
+  }
+  assert.ok(existsSync(path.join(app, 'package.json')))
+})

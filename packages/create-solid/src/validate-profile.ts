@@ -4,6 +4,7 @@ import { URL } from 'node:url'
 
 import { resolveAppTitle } from './configureAppTitle/index.ts'
 import { readLocaleSettings } from './configureLocales/catalogs.ts'
+import { isDestinationEntry } from './isDestinationEntry/index.ts'
 import {
   answerProfile,
   modes,
@@ -64,7 +65,7 @@ export function validateProfile(input: Profile | Answers): {
     !profile.dir.trim() ||
     (existsSync(profile.dir) &&
       (!statSync(profile.dir).isDirectory() ||
-        readdirSync(profile.dir).length > 0))
+        readdirSync(profile.dir).some(name => isDestinationEntry(name))))
   ) {
     problems.push(
       new ProfileProblemError({ field: 'dir', code: 'destination' })

@@ -283,14 +283,8 @@ shared publication controller into `createMarkdownContent` from
 configures limits and enables static generation with `static: true`.
 `seo.llmsFull` requires both static Markdown and `seo.llms`.
 
-The runtime declares published `@mdream/js` as its own dependency. The optional
-converter patch also applies to that resolved copy. A derived application
-installed from tarballs gets the published converter. It preserves the space
-between nested inline wrappers. To preserve accessible link names after
-filtering as well, copy the patch from this application's `patches/` directory
-and its matching `patchedDependencies` entry from the workspace root into the
-derived application's root manifest.
-
-Keep the exact dependency version while applying the patch and retain the
-conversion regressions. It is optional and is not included in the runtime
-tarball.
+The runtime depends on the published converter. It preserves word separators
+inside nested inline wrappers. The optional patch preserves accessible names
+after filtering link content. Bun and pnpm apply the patch in generated
+applications. npm installs the published converter. The runtime tarball ships
+without the patch.

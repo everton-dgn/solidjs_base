@@ -513,7 +513,9 @@ manifest until the next group release, N. Once all its pins are on npm:
 3. The owner publishes that same tarball by hand and tags the release commit
    `create-solid@N`. Push that tag to origin before announcing the release.
 4. In a follow-up change, remove the private flag, set the package and manifest
-   versions to N, and add the component to the linked release group.
+   versions to N, and add the component to the linked release group. In the same
+   change, switch the Publish job from `vp run build:published` to
+   `vp run build` so the published generator includes its CLI and template.
 
 A version published this way has its tag and no GitHub Release, and the package
 has no `CHANGELOG.md` until its first automated release writes both, as with

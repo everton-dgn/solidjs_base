@@ -6,6 +6,7 @@ import { parse } from 'yaml'
 
 import manifest from '../../../package.json' with { type: 'json' }
 import inventory from '../../../packages/create-solid/tooling/scenarios.json' with { type: 'json' }
+import releaseConfig from '../../../release-please-config.json' with { type: 'json' }
 import { readFields } from '../../release/mergePullRequest/json.ts'
 import { classify } from '../classify.ts'
 
@@ -147,7 +148,12 @@ test('keeps the installed scenarios and package builds in their jobs', () => {
     steps(release.publish).find(
       step => step.name === 'Build published packages'
     )?.run,
-    'vp run build:published'
+    Object.hasOwn(releaseConfig.packages, 'packages/create-solid') ||
+      releaseConfig.plugins.some(plugin =>
+        plugin.components.includes('create-solid')
+      )
+      ? 'vp run build'
+      : 'vp run build:published'
   )
   assert.deepEqual(record(release.publish).needs, [
     'release-please',

@@ -64,19 +64,16 @@ function allQuestions(language: Language): Line[] {
     m.dir,
     m.title,
     m.mode,
+    m.setup,
+    m.features,
+    m.url,
     m.i18n,
     m.locales,
     m.base,
-    m.seo,
-    m.url,
-    m.theme,
-    m.icons,
-    m.fonts,
-    m.diagnostics,
     m.installer,
     m.git,
     m.install
-  ].map(label => [label, '\r'])
+  ].map(label => [label, label === m.setup ? '\u001B[B\r' : '\r'])
 }
 
 for (const language of ['pt-BR', 'en', 'es'] as const) {
@@ -148,14 +145,11 @@ void it('retries a rejected URL, skips answered questions and generates the same
   const { result, transcript } = await session(
     [
       [m.title, '\r'],
-      [m.base, '\r'],
-      [m.seo, '\r'],
+      [m.setup, '\u001B[B\r'],
+      [m.features, '\u001B[B \u001B[B \u001B[B \u001B[B \r'],
       [m.url, 'bad\r'],
       [m.origin, '\u0015https://app.example\r'],
-      [m.theme, 'n'],
-      [m.icons, 'n'],
-      [m.fonts, 'n'],
-      [m.diagnostics, 'n']
+      [m.base, '\r']
     ],
     { answers }
   )
@@ -219,21 +213,27 @@ void it('materializes identical default trees after a full terminal session and 
 })
 
 void it('infers the only base language and skips SEO on the client', async () => {
-  const { result, transcript } = await session([[messages.es.title, '\r']], {
-    language: 'es',
-    answers: {
-      name: 'portal',
-      mode: 'client',
-      locales: 'es',
-      theme: true,
-      icons: true,
-      fonts: true,
-      diagnostics: true,
-      pm: 'pnpm',
-      git: true,
-      install: true
+  const { result, transcript } = await session(
+    [
+      [messages.es.title, '\r'],
+      [messages.es.setup, '\u001B[B\r']
+    ],
+    {
+      language: 'es',
+      answers: {
+        name: 'portal',
+        mode: 'client',
+        locales: 'es',
+        theme: true,
+        icons: true,
+        fonts: true,
+        diagnostics: true,
+        pm: 'pnpm',
+        git: true,
+        install: true
+      }
     }
-  })
+  )
   assert.equal(result['base-locale'], 'es')
   for (const label of [
     messages.es.seo,
@@ -255,6 +255,7 @@ void it('reports missing tools before the title and recovers only the setup choi
     const { result, transcript } = await session(
       [
         [messages.en.title, '\r'],
+        [messages.en.setup, '\r'],
         ['https://git-scm.com/downloads', 'n'],
         ['https://pnpm.io/installation', '\u001B[A\r']
       ],
@@ -292,3 +293,23 @@ void it('reports missing tools before the title and recovers only the setup choi
     else process.env.PATH = originalPath
   }
 })
+
+for (const language of ['en', 'pt-BR', 'es'] as const) {
+  void it(`accepts the recommended defaults in ${language}`, async () => {
+    const m = messages[language]
+    const { result, transcript } = await session(
+      [
+        [m.dir, '\r'],
+        [m.title, '\r'],
+        [m.mode, '\r'],
+        [m.setup, '\r']
+      ],
+      { language }
+    )
+    assert.deepEqual(
+      answerProfile(result),
+      answerProfile({ name: 'solid-app', title: 'solid-app', mode: 'server' })
+    )
+    assert.ok(!transcript.includes(m.features))
+  })
+}

@@ -37,6 +37,10 @@ export function cliLanguage({
 
 export const messages = {
   en: {
+    setup: 'Setup',
+    recommended: 'Recommended',
+    custom: 'Customize',
+    features: 'Features (Space to toggle, Enter to continue)',
     languages: 'Languages',
     manager: 'Installer',
     usage:
@@ -101,6 +105,10 @@ export const messages = {
     invalid: 'Invalid option: {flag}'
   },
   'pt-BR': {
+    setup: 'Configuração',
+    recommended: 'Recomendada',
+    custom: 'Personalizar',
+    features: 'Recursos (Espaço para marcar, Enter para continuar)',
     languages: 'Idiomas',
     manager: 'Instalador',
     usage:
@@ -165,6 +173,10 @@ export const messages = {
     invalid: 'Opção inválida: {flag}'
   },
   es: {
+    setup: 'Configuración',
+    recommended: 'Recomendada',
+    custom: 'Personalizar',
+    features: 'Funcionalidades (Espacio para marcar, Intro para continuar)',
     languages: 'Idiomas',
     manager: 'Instalador',
     usage:

@@ -2,7 +2,14 @@ import path from 'node:path'
 import { PassThrough, type Writable, type Readable } from 'node:stream'
 import { stripVTControlCharacters } from 'node:util'
 
-import { confirm, intro, isCancel, select, text } from '@clack/prompts'
+import {
+  confirm,
+  intro,
+  isCancel,
+  multiselect,
+  select,
+  text
+} from '@clack/prompts'
 
 import { messages, type Language } from './cli-language.ts'
 import { installers, type Answers } from './profile-answers.ts'
@@ -10,7 +17,7 @@ import { hasTool, missingTool } from './tools.ts'
 import { CanceledError } from './usage-error.ts'
 import { validateProfile } from './validate-profile.ts'
 
-function answer<T extends string | boolean>(value: T | symbol): T {
+function answer<T extends string | boolean | string[]>(value: T | symbol): T {
   if (isCancel(value) || typeof value === 'symbol') throw new CanceledError()
   return value
 }
@@ -79,7 +86,7 @@ export async function questionnaire({
         validate(value) {
           const problem = validateProfile({
             ...result,
-            [key]: value || initialValue
+            [key]: value === '' ? initialValue : (value ?? initialValue)
           }).problems.find(
             item =>
               item.field.replace(/^--/u, '') ===
@@ -139,45 +146,68 @@ export async function questionnaire({
         : (result.locales?.split(',')[0] ?? defaults.baseLocale)
     )
   }
-  await chooseMode()
-  await chooseLanguages()
-  for (const key of [
-    'seo',
-    'theme',
-    'icons',
-    'fonts',
-    'diagnostics'
-  ] as const) {
-    if (key === 'seo' && result.mode === 'client') continue
-    if (
-      !result[key] &&
-      !result[`no-${key}`] &&
-      !(key === 'seo' && result['site-url'] !== undefined)
-    ) {
-      result[`no-${key}`] = !(await toggle(labels[key]))
+  async function chooseFeatures() {
+    const keys = (
+      ['seo', 'theme', 'icons', 'fonts', 'diagnostics'] as const
+    ).filter(
+      key =>
+        result[key] === undefined &&
+        result[`no-${key}`] === undefined &&
+        (key !== 'seo' ||
+          (result.mode !== 'client' && result['site-url'] === undefined))
+    )
+    if (keys.length > 0) {
+      const chosen = answer<string[]>(
+        await multiselect({
+          ...io,
+          message: labels.features,
+          required: false,
+          showInstructions: false,
+          initialValues: keys,
+          options: keys.map(value => ({ value, label: labels[value] }))
+        })
+      )
+      for (const key of keys) result[`no-${key}`] = !chosen.includes(key)
     }
-    if (key === 'seo' && !result['no-seo']) {
+    if (result.mode !== 'client' && !result['no-seo']) {
       await field('site-url', 'https://example.com')
     }
   }
-  result.pm ??= answer<string>(
-    await select({
-      ...io,
-      message: labels.installer,
-      showInstructions: false,
-      options: installers.map(value => ({
-        value,
-        ...(availableManagers.has(value)
-          ? {}
-          : { hint: missingTool(value, language) })
-      }))
-    })
-  )
-  for (const key of ['git', 'install'] as const) {
-    if (!result[key] && !result[`no-${key}`]) {
-      result[`no-${key}`] = !(await toggle(labels[key]))
+  async function customize() {
+    await chooseFeatures()
+    await chooseLanguages()
+    result.pm ??= answer<string>(
+      await select({
+        ...io,
+        message: labels.installer,
+        showInstructions: false,
+        options: installers.map(value => ({
+          value,
+          ...(availableManagers.has(value)
+            ? {}
+            : { hint: missingTool(value, language) })
+        }))
+      })
+    )
+    for (const key of ['git', 'install'] as const) {
+      if (!result[key] && !result[`no-${key}`]) {
+        result[`no-${key}`] = !(await toggle(labels[key]))
+      }
     }
   }
+  await chooseMode()
+  const setup = answer(
+    await select({
+      ...io,
+      message: labels.setup,
+      showInstructions: false,
+      options: [
+        { value: 'recommended', label: labels.recommended },
+        { value: 'custom', label: labels.custom }
+      ]
+    })
+  )
+  if (setup === 'custom') await customize()
   async function recoverSetup() {
     while (!result['no-git'] && !hasTool('git')) {
       result['no-git'] = !answer<boolean>(

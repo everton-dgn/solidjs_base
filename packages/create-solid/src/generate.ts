@@ -518,6 +518,7 @@ export function* generation(
     try {
       yield { task: 'gitTask', executable: 'git', args: ['init'] }
     } catch (error) {
+      if (error instanceof CanceledError) throw error
       throw new Error(
         message(language, {
           code: 'gitFailure',
@@ -559,7 +560,8 @@ export async function generateTerminal(
   const steps = generation({ input, prepare: prepared }, language)
   const controller = new AbortController()
   const cancel = () => controller.abort()
-  process.on('SIGINT', cancel)
+  const signals = ['SIGINT', 'SIGHUP', 'SIGTERM'] as const
+  for (const signal of signals) process.on(signal, cancel)
   try {
     let current = steps.next()
     while (!current.done) {
@@ -584,7 +586,7 @@ export async function generateTerminal(
     }
     return current.value
   } finally {
-    process.off('SIGINT', cancel)
+    for (const signal of signals) process.off(signal, cancel)
   }
 }
 export type { Profile } from './types.ts'

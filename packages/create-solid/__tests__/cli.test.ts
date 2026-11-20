@@ -459,34 +459,36 @@ void it('accepts every default with yes and prints plain next steps', context =>
   assert.ok(!result.stdout.includes('\u001B'))
 })
 
-void it('removes staging and owned parents when interrupted during generation', context => {
-  const root = folder(context)
-  const dir = path.join(root, 'new', 'app')
-  const signalAfterCopy = `import fs from 'node:fs'
+for (const signal of ['SIGINT', 'SIGHUP', 'SIGTERM']) {
+  void it(`removes staging and owned parents on ${signal} during generation`, context => {
+    const root = folder(context)
+    const dir = path.join(root, 'new', 'app')
+    const signalAfterCopy = `import fs from 'node:fs'
 import {syncBuiltinESMExports} from 'node:module'
 const copy = fs.cpSync
 fs.cpSync = (...args) => {
   fs.cpSync = copy
   syncBuiltinESMExports()
-  process.kill(process.pid,'SIGINT')
+  process.kill(process.pid,'${signal}')
   return copy(...args)
 }
 syncBuiltinESMExports()`
-  const result = spawnSync(
-    process.execPath,
-    [
-      `--import=data:text/javascript,${encodeURIComponent(signalAfterCopy)}`,
-      bin,
-      dir,
-      '--no-git',
-      '--no-install'
-    ],
-    { encoding: 'utf8' }
-  )
-  const interrupted = 130
-  assert.equal(result.status, interrupted, result.stderr)
-  assert.deepEqual(readdirSync(root), [])
-})
+    const result = spawnSync(
+      process.execPath,
+      [
+        `--import=data:text/javascript,${encodeURIComponent(signalAfterCopy)}`,
+        bin,
+        dir,
+        '--no-git',
+        '--no-install'
+      ],
+      { encoding: 'utf8' }
+    )
+    const interrupted = 130
+    assert.equal(result.status, interrupted, result.stderr)
+    assert.deepEqual(readdirSync(root), [])
+  })
+}
 
 void it('preserves the published project and gives a resume command on install cancellation', context => {
   const root = folder(context)
@@ -501,7 +503,8 @@ void it('preserves the published project and gives a resume command on install c
     [bin, dir, '--lang', 'es', '--no-git'],
     { encoding: 'utf8', timeout: 5000, env: { ...process.env, PATH: root } }
   )
-  assert.equal(result.status, 1, result.stderr)
+  const canceled = 130
+  assert.equal(result.status, canceled, result.stderr)
   assert.match(result.stderr, /ejecuta bun install de nuevo/u)
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })
@@ -574,4 +577,28 @@ void it('preserves desktop metadata and an existing Git directory without runnin
     assert.equal(readFileSync(path.join(app, name), 'utf8'), name)
   }
   assert.ok(existsSync(path.join(app, 'package.json')))
+})
+
+void it('reports cancellation during Git setup after publishing the tree', context => {
+  const root = folder(context)
+  const dir = path.join(root, 'app')
+  writeFileSync(
+    path.join(root, 'git'),
+    '#!/bin/sh\nkill -INT "$PPID"\nexec /bin/sleep 10\n',
+    { mode: executable }
+  )
+  const result = spawnSync(
+    process.execPath,
+    [bin, dir, '--lang', 'en', '--no-install'],
+    {
+      encoding: 'utf8',
+      timeout: 5000,
+      env: { ...process.env, PATH: root }
+    }
+  )
+  const canceled = 130
+  assert.equal(result.status, canceled)
+  assert.match(result.stderr, /Creation canceled/u)
+  assert.doesNotMatch(result.stderr, /Git initialization failed/u)
+  assert.ok(existsSync(path.join(dir, 'package.json')))
 })

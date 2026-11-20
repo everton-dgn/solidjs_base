@@ -205,7 +205,10 @@ try {
       values: { flag: /--?[\w-]+/u.exec(error.message)?.[0] ?? error.message }
     })
   }
-  if (error instanceof CanceledError) reason = messages[language].cancel
+  if (error instanceof CanceledError)
+    reason = [messages[language].cancel, error.message]
+      .filter(Boolean)
+      .join('\n')
   process.stderr.write(`${reason}\n`)
   const isArgumentError =
     error instanceof UsageError ||

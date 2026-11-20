@@ -3,6 +3,7 @@ import path from 'node:path'
 
 import { message, type Language } from '../cli-language.ts'
 import type { Profile } from '../types.ts'
+import { CanceledError } from '../usage-error.ts'
 
 export type SetupCommand = {
   task: 'gitTask' | 'installTask'
@@ -20,13 +21,13 @@ export function* installProfile(
   try {
     yield { task: 'installTask', executable: profile.pm, args: ['install'] }
   } catch (error) {
-    throw new Error(
-      message(language, {
-        code: 'installFailure',
-        values: { dir: profile.dir, pm: profile.pm }
-      }),
-      { cause: error }
-    )
+    const resume = message(language, {
+      code: 'installFailure',
+      values: { dir: profile.dir, pm: profile.pm }
+    })
+    if (error instanceof CanceledError)
+      throw new CanceledError(resume, { cause: error })
+    throw new Error(resume, { cause: error })
   }
   if (before === undefined) return
   try {

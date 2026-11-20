@@ -26,6 +26,7 @@
   "scripts": {
     "build": "node tooling/build.ts",
     "test": "node --test __tests__/*.test.ts",
+    "test:validated": "node --test __tests__/*.test.ts __tests__/prepared-artifacts.validation.ts",
     "test:tarball": "node tooling/parity.ts"
   },
   "devDependencies": {

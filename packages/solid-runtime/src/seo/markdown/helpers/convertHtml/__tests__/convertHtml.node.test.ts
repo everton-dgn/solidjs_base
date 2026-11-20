@@ -84,7 +84,9 @@ describe('markdown conversion filters', () => {
     ]) {
       expect(markdown).toContain(`[${text}](#)`)
     }
-    expect(markdown).toContain('[Spaced link](<https://example.com/en/ ')
+    expect(markdown).toContain(
+      '[Spaced link](<https://example.com/en/java\tscript:alert(1)>)'
+    )
     expect(markdown).not.toMatch(/^<h3>/mu)
     expect(markdown).toContain('[About](https://example.com/about)')
   })
@@ -401,6 +403,10 @@ describe('preserves visible link text and spaces around accessible labels', () =
     [
       '<p>Go <a href="/c" aria-label="Item"><svg></svg> <svg></svg></a>Next</p>',
       'Go [Item](https://example.com/c)Next'
+    ],
+    [
+      '<kbd><a href="/f" title="Lima "></a><figcaption><a href="/f" title="Lima "><br></a></figcaption></kbd>',
+      '`[Lima ](https://example.com/f "Lima ") [ Lima ](https://example.com/f "Lima ")`'
     ],
     [
       '<p>Go <a href="/c" aria-label="A"><svg></svg> <!-- c --></a>Next</p>',

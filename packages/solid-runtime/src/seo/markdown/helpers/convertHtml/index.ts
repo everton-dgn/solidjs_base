@@ -25,7 +25,7 @@ const RAW_HTML_REGIONS = new Set([
   'summary'
 ])
 
-// Removing an image is safe in these containers. The optional mdream patch also
+// Removing an image is safe in these containers. The converter
 // moves emphasis whitespace outside its delimiters. Other ancestors can leave
 // empty links or move raw HTML to the beginning of a line.
 const PLAIN_CONTAINERS = new Set([

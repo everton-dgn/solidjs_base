@@ -95,16 +95,11 @@ The runtime depends on published `@mdream/js` through `catalog:` and does not
 vendor it or require converter injection. The monorepo root applies the copy's
 optional patch, so its existing conversion regressions continue to exercise the
 patched dependency resolved by the runtime. Installed tarballs use the published
-package. Across the 67 conversion fixtures, the patch passes all cases while
-published `@mdream/js@2.1.0` differs in 29. Differences include word separators
-inside nested inline wrappers, whitespace around links and emphasis, accessible
-names after filtering link content, and link titles entering visible text. For
-example, `<p>a<span> <span>b</span></span></p>` becomes `ab` in the published
-converter and `a b` with the patch, without any icons. The installed HTTP matrix
-asserts the published `ab` result explicitly. Removing an icon can also leave a
-leading space inside emphasis or an empty link despite an accessible label. See
-the [copy's Markdown guide](../../apps/boilerplate/docs/seo/markdown.md) for
-patch installation and removal criteria.
+package. Both versions preserve word separators inside nested inline wrappers.
+The patch preserves accessible names after filtering link content and prevents
+fallback titles from duplicating visible text. See the
+[copy's Markdown guide](../../apps/boilerplate/docs/seo/markdown.md) for patch
+installation and removal criteria.
 
 ## Consequences and validation
 

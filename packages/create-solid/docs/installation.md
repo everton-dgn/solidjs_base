@@ -6,25 +6,81 @@ Bun runs application tasks for every installer. Choose the installer with
 ## Terminal questionnaire
 
 Start with `bunx @evertondgn/create-solid@latest --lang en`. This session
-selects static hosting, two languages and pnpm:
+selects the custom setup, static hosting, two languages and pnpm:
 
 ```text
-Solid Base
-Project directory                         portal
-Application title                         Portal
-Rendering mode                            static
-Enable translations?                      Yes
-Language tags, separated by commas        en,es
-Base language                             en
-Publish SEO metadata?                     Yes
-Public site origin                        https://portal.example
-Include theme controls?                   Yes
-Include icons?                            Yes
-Include bundled fonts?                    No
-Enable development diagnostics?           Yes
-Choose the installer                      pnpm
-Initialize Git?                           Yes
-Install dependencies?                     No
+┌  Solid Base v0.10.0
+│  Create a standalone Solid application.
+│
+◇  Project directory
+│  portal
+│
+◇  Application title
+│  Portal
+│
+◇  Rendering mode
+│  Static HTML
+│
+◇  Setup
+│  Customize
+│
+◇  Features (Space to toggle, Enter to continue)
+│  SEO metadata, Light and dark theme switcher, Icons, Solid reactivity
+│  diagnostics in development
+│
+◇  Public site URL
+│  https://portal.example
+│
+◇  Enable translations?
+│  Yes
+│
+◇  Language tags, separated by commas
+│  en, es
+│
+◇  Base language
+│  en
+│
+◇  Package manager
+│  pnpm
+│
+◇  Create a Git repository?
+│  Yes
+│
+◇  Install dependencies?
+│  No
+│
+◇  Project settings ────────────────────────────────────────────────────────────────────────────╮
+│                                                                                               │
+│  Project directory: portal                                                                    │
+│  Application title: Portal                                                                    │
+│  Rendering mode: Static HTML                                                                  │
+│  Languages: en (Base language), es                                                            │
+│  Public site URL: https://portal.example                                                      │
+│  Features: Light and dark theme switcher, Icons, Solid reactivity diagnostics in development  │
+│  Package manager: pnpm                                                                        │
+│  Git: Yes                                                                                     │
+│  Installation: No                                                                             │
+│                                                                                               │
+├───────────────────────────────────────────────────────────────────────────────────────────────╯
+│
+◇  Create the project?
+│  Yes
+│
+◇  Creating application files
+│
+◇  Initializing Git
+│
+◇  Next steps ────────────────────────────╮
+│                                         │
+│  cd portal                              │
+│  pnpm install                           │
+│  pnpm exec vp fmt pnpm-workspace.yaml   │
+│  pnpm run dev                           │
+│  See "Before publishing" in README.md.  │
+│                                         │
+├─────────────────────────────────────────╯
+│
+└  Project created.
 ```
 
 The equivalent command is:
@@ -38,8 +94,8 @@ bunx @evertondgn/create-solid@latest portal --title Portal --mode static \
 
 The CLI prints the settings before creating files. After this session, open
 `portal`, run `pnpm install`, `pnpm exec vp fmt pnpm-workspace.yaml` and
-`vp run dev`. Bun runs the application tasks. Server mode targets Vercel. Ctrl+C
-during the questions or generation discards the unfinished project. After
+`pnpm run dev`. Bun runs the application tasks. Server mode targets Vercel.
+Ctrl+C during the questions or generation discards the unfinished project. After
 publication, interrupting installation keeps the files and prints the command to
 resume.
 
@@ -50,10 +106,10 @@ the CLI checks `LC_ALL`, `LC_MESSAGES`, `LANG` and the locale returned by
 
 `--yes` accepts the defaults printed by `--help`. It creates `solid-app` when
 the destination is omitted. Flags can override each default. Without a terminal,
-with `CI` set (including an empty value), or with `--no-interactive`, give a
-positional destination or `--name DIR` unless using `--yes`. Other omitted
-options use their documented defaults. Invalid or conflicting answers exit with
-status 2 before writing.
+with an active `CI` value (anything except empty, `0` or `false`), or with
+`--no-interactive`, give a positional destination or `--name DIR` unless using
+`--yes`. Other omitted options use their documented defaults. Invalid or
+conflicting answers exit with status 2 before writing.
 
 ## Project options
 

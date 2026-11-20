@@ -6,6 +6,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { it } from 'node:test'
 
+import { messages } from '../src/cli-language.ts'
 import { readLocaleSettings } from '../src/configureLocales/catalogs.ts'
 
 void it('generates the static pnpm application from the documented questionnaire command', context => {
@@ -47,4 +48,39 @@ void it('generates the static pnpm application from the documented questionnaire
     readFileSync(path.join(dir, 'src/constants/site/title.ts'), 'utf8'),
     /Portal/u
   )
+})
+
+void it('keeps the guide transcript in the order of the English questionnaire', () => {
+  const guide = readFileSync('docs/installation.md', 'utf8')
+  const transcript = guide.split('```text\n')[1]?.split('```')[0]
+  assert.ok(transcript)
+  const m = messages.en
+  let last = -1
+  for (const label of [
+    m.dir,
+    m.title,
+    m.mode,
+    m.setup,
+    m.features,
+    m.url,
+    m.i18n,
+    m.locales,
+    m.base,
+    m.installer,
+    m.git,
+    m.install,
+    m.summary,
+    m.create,
+    m.creating,
+    m.gitTask,
+    m.next,
+    m.ready
+  ]) {
+    const index = transcript.indexOf(label, last + 1)
+    assert.ok(index > last, label)
+    last = index
+  }
+  for (const command of ['cd portal', 'pnpm install', 'pnpm run dev']) {
+    assert.ok(transcript.includes(command))
+  }
 })

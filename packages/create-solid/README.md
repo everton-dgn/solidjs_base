@@ -1,35 +1,36 @@
 # @evertondgn/create-solid
 
-Generate a Solid Base application. All features are enabled by default. Use the
-global Vite+ CLI to run tasks in the generated application. After the first
-registry release, run:
+Start the questionnaire in your terminal after the first registry release:
 
 ```sh
-bunx @evertondgn/create-solid@latest my-app
-```
-
-In a terminal, flags answer their questions in advance. To choose only the title
-interactively, supply the other answers:
-
-```sh
-bunx @evertondgn/create-solid@latest portal --lang en --mode client \
-  --no-i18n --base-locale en --no-theme --no-icons --no-fonts \
-  --no-diagnostics --pm bun --no-git --no-install
+bunx @evertondgn/create-solid@latest
 ```
 
 ```text
-Solid Base
-Application title
-Portal
+┌  Solid Base v0.10.0
+│  Create a standalone Solid application.
+│
+◇  Project directory
+│  solid-app
+│
+◇  Application title
+│  solid-app
+│
+◇  Rendering mode
+│  Server (SSR)
+│
+◇  Setup
+│  Recommended
 ```
 
-Replacing the prefilled title with `Portal` gives the same project as adding
-`--title Portal`. See the
-[full questionnaire](docs/installation.md#terminal-questionnaire) for all
-choices. Use `--yes` for the full profile, including Bun, Git and installation.
-Without a destination it creates `solid-app`. With redirected stdin, a set `CI`
-variable or `--no-interactive`, provide a destination or use `--yes`. Missing
-required input or conflicting flags exit with status 2 before writing.
+The recommended setup enables all features supported by your rendering mode,
+initializes Git and installs dependencies with Bun. Choose Customize to select
+features, languages and an installer. Review the summary before confirming. See
+the [full terminal session](docs/installation.md#terminal-questionnaire).
+
+Use `--yes` to accept the defaults and skip confirmation. With redirected stdin,
+an active `CI` value or `--no-interactive`, provide a destination or use
+`--yes`. Invalid settings exit with status 2 before writing.
 
 Use `--pm bun|pnpm|npm` to choose the installer. Bun is required to run the
 application tasks for all three managers. See

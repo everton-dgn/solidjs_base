@@ -125,7 +125,8 @@ void it('generates only the requested catalogs and identifies every seed', conte
     { encoding: 'utf8', env: { ...process.env, LC_ALL: 'C' } }
   )
   assert.equal(result.status, 0, result.stderr)
-  const gitOutput = result.stdout.indexOf('Initialized empty Git repository')
+  assert.doesNotMatch(result.stdout, /Initialized empty Git repository/u)
+  const gitOutput = result.stdout.indexOf('Initializing Git')
   assert.ok(gitOutput !== -1, result.stdout)
   const locales = ['pt-BR', 'fr', 'ja', 'en-x-custom', 'pt', 'es']
   assert.deepEqual(readLocaleSettings(dir), { locales, baseLocale: 'ja' })

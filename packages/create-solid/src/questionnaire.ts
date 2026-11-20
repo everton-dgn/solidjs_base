@@ -12,6 +12,7 @@ import {
 } from '@clack/prompts'
 
 import { messages, type Language } from './cli-language.ts'
+import { fieldMessage } from './field-messages.ts'
 import { installers, type Answers } from './profile-answers.ts'
 import { hasTool, missingTool } from './tools.ts'
 import { CanceledError } from './usage-error.ts'
@@ -93,7 +94,7 @@ export async function questionnaire({
                 (key === 'name' ? 'dir' : key) ||
               (key === 'locales' && item.code === 'membership')
           )
-          return problem?.describe(language)
+          return problem && fieldMessage(language, problem.code)
         }
       })
     )

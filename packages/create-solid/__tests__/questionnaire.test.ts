@@ -16,6 +16,7 @@ import { PassThrough } from 'node:stream'
 import { it } from 'node:test'
 
 import { messages, type Language } from '../src/cli-language.ts'
+import { fieldMessage } from '../src/field-messages.ts'
 import { generate } from '../src/generate.ts'
 import { answerProfile, type Answers } from '../src/profile-answers.ts'
 import { questionnaire } from '../src/questionnaire.ts'
@@ -148,7 +149,7 @@ void it('retries a rejected URL, skips answered questions and generates the same
       [m.setup, '\u001B[B\r'],
       [m.features, '\u001B[B \u001B[B \u001B[B \u001B[B \r'],
       [m.url, 'bad\r'],
-      [m.origin, '\u0015https://app.example\r'],
+      [fieldMessage('en', 'origin'), '\u0015https://app.example\r'],
       [m.base, '\r']
     ],
     { answers }

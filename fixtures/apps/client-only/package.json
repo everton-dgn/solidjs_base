@@ -15,7 +15,7 @@
   "dependencies": {
     "@solidjs/web": "2.0.3",
     "solid-js": "2.0.3",
-    "@solidjs/router": "2.0.0",
+    "@solidjs/router": "2.0.1",
     "@iconify-json/hugeicons": "1.2.36",
     "vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
     "vite-plus": "1.7.0"

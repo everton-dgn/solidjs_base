@@ -94,10 +94,8 @@ export async function smokePublication({
       signal: AbortSignal.timeout(REQUEST_TIMEOUT)
     })
     assert.equal(converted.status, HTTP_OK)
-    // Published mdream 2.1.0 loses the separator inside nested inline wrappers.
-    // The monorepo's optional patch produces "a b" for this same icon-free HTML.
     const convertedBody = await converted.text()
-    assert.equal(convertedBody.trim(), 'ab')
+    assert.equal(convertedBody.trim(), 'a b')
   }
   for (const method of ['GET', 'HEAD']) {
     for (const page of ['/index.md', '/about.md']) {

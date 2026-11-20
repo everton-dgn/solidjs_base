@@ -103,13 +103,13 @@ async function run(): Promise<void> {
   const separator = args.indexOf('--')
   const options = args.slice(0, separator === -1 ? args.length : separator)
   language = detectLanguage(options)
-  if (options.includes('--help')) {
+  if (options.some(option => option === '--help' || option === '-h')) {
     const labels = messages[language]
     process.stdout.write(
       [
         labels.usage,
         labels.defaults,
-        labels.installer,
+        labels.installHint,
         labels.automation,
         ''
       ].join('\n')

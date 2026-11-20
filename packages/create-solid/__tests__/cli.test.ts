@@ -602,3 +602,20 @@ void it('reports cancellation during Git setup after publishing the tree', conte
   assert.doesNotMatch(result.stderr, /Git initialization failed/u)
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })
+
+void it('lists each flag once with a description through both help aliases', () => {
+  for (const language of ['en', 'pt-BR', 'es']) {
+    const read = (flag: string) =>
+      execFileSync(process.execPath, [bin, '--lang', language, flag], {
+        encoding: 'utf8'
+      })
+    const help = read('-h')
+    assert.equal(help, read('--help'))
+    const options = help.split('\n').filter(line => line.startsWith('  -'))
+    const flags = options.map(line => line.trim().split(/\s+/u)[0])
+    assert.equal(new Set(flags).size, flags.length)
+    for (const flag of ['--mode', '--no-icons', '--install', '--yes', '-h'])
+      assert.ok(flags.includes(flag))
+    for (const line of options) assert.match(line, /^  -\S+.*? {2,}\S/u)
+  }
+})

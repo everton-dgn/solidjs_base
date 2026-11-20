@@ -1656,7 +1656,7 @@ diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/too
 diff --git a/source/tooling/knip.ts b/example/tooling/knip.ts
 --- a/source/tooling/knip.ts
 +++ b/example/tooling/knip.ts
-@@ -33,9 +33,5 @@ export default defineKnipConfig({
+@@ -30,9 +30,5 @@ export default defineKnipConfig({
    ignoreBinaries: ['kingfisher', 'vp!'],
    // server-only is virtual. Inlang loads the message-format plugin by its
    // node_modules path in settings.json, outside Knip's import graph.

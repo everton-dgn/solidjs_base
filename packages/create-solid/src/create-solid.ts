@@ -24,10 +24,18 @@ function detectLanguage(options: string[]) {
     options[index] === '--lang'
       ? options[index + 1]
       : options[index]?.slice('--lang='.length)
+  const environment = process.env
+  const intlLocale = Intl.DateTimeFormat().resolvedOptions().locale
+  const fallback = cliLanguage({ environment, intlLocale })
+  if (requested !== undefined && !Object.hasOwn(messages, requested)) {
+    throw new UsageError(
+      message(fallback, { code: 'invalid', values: { flag: '--lang' } })
+    )
+  }
   return cliLanguage({
     ...(requested ? { requested } : {}),
-    environment: process.env,
-    intlLocale: Intl.DateTimeFormat().resolvedOptions().locale
+    environment,
+    intlLocale
   })
 }
 async function createApplication(answers: Answers) {
@@ -145,11 +153,11 @@ async function run(): Promise<void> {
   const name =
     positionals[0] ?? values.name ?? (values.yes ? 'solid-app' : undefined)
   let answers = { ...values, ...(name === undefined ? {} : { name }) }
+  const isCI = !['', '0', 'false'].includes(
+    process.env.CI?.trim().toLowerCase() ?? ''
+  )
   const interactive =
-    process.stdin.isTTY &&
-    process.env.CI === undefined &&
-    !values.yes &&
-    !values['no-interactive']
+    process.stdin.isTTY && !isCI && !values.yes && !values['no-interactive']
   const color =
     process.stdout.isTTY &&
     process.stdout.hasColors() &&

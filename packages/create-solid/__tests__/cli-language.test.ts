@@ -14,13 +14,15 @@ void it('selects the interface language independently of the project', () => {
     'pt-BR'
   )
   assert.equal(cliLanguage({ environment, intlLocale: 'en' }), 'es')
-  assert.equal(
-    cliLanguage({
-      environment: { ...environment, LC_ALL: 'C' },
-      intlLocale: 'en'
-    }),
-    'pt-BR'
-  )
+  for (const LC_ALL of ['C', 'POSIX', 'C.UTF-8']) {
+    assert.equal(
+      cliLanguage({
+        environment: { ...environment, LC_ALL },
+        intlLocale: 'es'
+      }),
+      'en'
+    )
+  }
   assert.equal(
     cliLanguage({ environment: { LANG: 'es' }, intlLocale: 'pt' }),
     'es'

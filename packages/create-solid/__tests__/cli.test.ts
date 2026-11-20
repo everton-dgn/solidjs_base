@@ -515,7 +515,7 @@ void it('skips the questionnaire on terminal stdin with CI or no-interactive', c
   delete env.CI
   for (const { flags, environment } of [
     { flags: ['--no-interactive'], environment: env },
-    { flags: [], environment: { ...env, CI: '' } }
+    { flags: [], environment: { ...env, CI: 'true' } }
   ]) {
     const child = spawnSync(process.execPath, [preload, bin, ...flags], {
       cwd,
@@ -544,4 +544,18 @@ void it('prints the Bun installation link before starting the selected installer
   const link = result.stdout.indexOf('https://bun.sh')
   assert.ok(link !== -1 && link < result.stdout.indexOf('installer-started'))
   assert.ok(result.stdout.includes('npm run dev'))
+})
+
+void it('rejects an unsupported explicit language before showing help', () => {
+  for (const flags of [
+    ['--lang', 'fr'],
+    ['--lang=fr', '--help']
+  ]) {
+    const result = spawnSync(process.execPath, [bin, ...flags], {
+      encoding: 'utf8'
+    })
+    const usageError = 2
+    assert.equal(result.status, usageError)
+    assert.match(result.stderr, /--lang/u)
+  }
 })

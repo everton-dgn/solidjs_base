@@ -12,9 +12,13 @@ import time
 root = pathlib.Path.cwd()
 master, slave = pty.openpty()
 environment = dict(os.environ, NO_COLOR="1", TERM="xterm")
-environment.pop("CI", None)
+if len(sys.argv) > 2:
+    environment["CI"] = sys.argv[2]
+else:
+    environment.pop("CI", None)
+project = "interactive-" + environment.get("CI", "unset")
 args = [
-    sys.argv[1], "package/dist/create-solid.mjs", "interactive", "--lang", "en",
+    sys.argv[1], "package/dist/create-solid.mjs", project, "--lang", "en",
     "--mode", "server", "--pm", "bun", "--no-i18n", "--base-locale", "en",
     "--no-seo", "--theme", "--fonts", "--icons", "--diagnostics",
     "--no-git", "--no-install",
@@ -44,7 +48,7 @@ try:
             if child.poll() is None:
                 child.kill()
         output = transcript.decode(errors="replace")
-        if child.returncode or "Solid Base" not in output or not (root / "interactive/package.json").is_file():
+        if child.returncode or "Solid Base" not in output or not (root / project / "package.json").is_file():
             raise RuntimeError(output)
 finally:
     os.close(master)

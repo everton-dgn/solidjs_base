@@ -14,8 +14,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 
-import { references } from './check-imports.ts'
 import { normalizePackedDiff } from './normalize-diff.ts'
+import { references } from './references/index.ts'
 
 const sourceTree = execFileSync('git', ['rev-parse', 'HEAD:apps/boilerplate'], {
   encoding: 'utf8'
@@ -51,14 +51,16 @@ try {
       )
     }
   }
-  execFileSync(
-    'python3',
-    [path.resolve('tooling/packed-questionnaire.py'), process.execPath],
-    {
-      cwd: sandbox,
-      stdio: 'inherit'
-    }
-  )
+  for (const ci of ['', 'false', '0']) {
+    execFileSync(
+      'python3',
+      [path.resolve('tooling/packed-questionnaire.py'), process.execPath, ci],
+      {
+        cwd: sandbox,
+        stdio: 'inherit'
+      }
+    )
+  }
   process.stdout.write('Packed questionnaire completed in a pseudo-terminal\n')
   const scope = path.join(sandbox, 'node_modules/@evertondgn')
   mkdirSync(scope, { recursive: true })

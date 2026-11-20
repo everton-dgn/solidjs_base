@@ -19,6 +19,7 @@ export function cliLanguage({
     if (!candidate) continue
     const tag = candidate.split('.')[0]?.replaceAll('_', '-')
     if (!tag) continue
+    if (tag === 'C' || tag === 'POSIX') return 'en'
     try {
       const locale = new Intl.Locale(tag)
       if (locale.baseName === 'pt-BR' || locale.language === 'pt') {

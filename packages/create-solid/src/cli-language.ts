@@ -118,7 +118,7 @@ Automation
     client: 'Client only (SPA)',
     i18n: 'Enable translations?',
     locales: 'Language tags, separated by commas',
-    appLanguage: 'Application language',
+    appLanguage: 'Language of the application',
     base: 'Base language',
     seo: 'SEO metadata',
     url: 'Public site URL',

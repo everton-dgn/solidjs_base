@@ -150,7 +150,7 @@ void it('retries a rejected URL, skips answered questions and generates the same
       [m.features, '\u001B[B \u001B[B \u001B[B \u001B[B \r'],
       [m.url, 'bad\r'],
       [fieldMessage('en', 'origin'), '\u0015https://app.example\r'],
-      [m.base, '\r']
+      [m.appLanguage, '\r']
     ],
     { answers }
   )

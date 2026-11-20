@@ -74,7 +74,7 @@ export async function questionnaire({
       name: labels.dir,
       title: labels.title,
       locales: labels.locales,
-      'base-locale': labels.base,
+      'base-locale': result['no-i18n'] ? labels.appLanguage : labels.base,
       'site-url': labels.url
     }
     if (result[key] !== undefined) return
@@ -139,13 +139,23 @@ export async function questionnaire({
         result['base-locale'] ??= result.locales
       }
     }
-    await field(
-      'base-locale',
-      answers.locales === undefined &&
-        result.locales === defaults.locales.join(',')
-        ? defaults.baseLocale
-        : (result.locales?.split(',')[0] ?? defaults.baseLocale)
-    )
+    if (result['no-i18n']) {
+      await field('base-locale', defaults.baseLocale)
+    } else if (!result['base-locale']) {
+      const { locales, baseLocale } = validateProfile(result).languages
+      result['base-locale'] = answer<string>(
+        await select({
+          ...io,
+          message: labels.base,
+          showInstructions: false,
+          initialValue:
+            result.locales === defaults.locales.join(',')
+              ? defaults.baseLocale
+              : baseLocale,
+          options: locales.map(value => ({ value }))
+        })
+      )
+    }
   }
   async function chooseFeatures() {
     const keys = (

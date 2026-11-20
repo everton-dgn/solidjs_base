@@ -1,3 +1,4 @@
+type MessageInput = { code: MessageKey; values: Record<string, string> }
 type LanguageInput = {
   requested?: string
   environment: Partial<Record<'LC_ALL' | 'LC_MESSAGES' | 'LANG', string>>
@@ -391,7 +392,7 @@ export type Language = keyof typeof messages
 export type MessageKey = keyof typeof messages.en
 export function message(
   language: Language,
-  { code, values }: { code: MessageKey; values: Record<string, string> }
+  { code, values }: MessageInput
 ): string {
   return messages[language][code].replaceAll(
     /\{\w+\}/gu,

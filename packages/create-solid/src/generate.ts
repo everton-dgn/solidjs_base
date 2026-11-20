@@ -55,7 +55,7 @@ import type {
   Versions
 } from './types.ts'
 import { CanceledError } from './usage-error.ts'
-import { validateProfile } from './validate-profile.ts'
+import { validateProfile } from './validateProfile/index.ts'
 
 const maxPackageNameLength = 214
 const jsonIndent = 2
@@ -270,11 +270,12 @@ function recordSeededCatalogs({ stage, write, seeded }: CatalogNotice): void {
   }
 }
 
-type ReportCatalogs = { profile: Profile; seeded: string[] }
-function reportSeededCatalogs(
-  { profile, seeded }: ReportCatalogs,
-  language: Language
-): string[] {
+type ReportCatalogs = { profile: Profile; seeded: string[]; language: Language }
+function reportSeededCatalogs({
+  profile,
+  seeded,
+  language
+}: ReportCatalogs): string[] {
   const notices = seeded.map(tag =>
     message(language, { code: 'seed', values: { tag } })
   )
@@ -304,6 +305,7 @@ function prepareLocaleGuides({
   prepare.guides(context.stage)
 }
 type GenerationOptions = { input: Profile; prepare: Preparation }
+type Generation = GenerationOptions & { language: Language }
 type Progress = 'creating' | SetupCommand['task']
 type Step = 'creating' | SetupCommand | undefined
 const prepared = { guides: applyPreparedGuides, source: applyPreparedSource }
@@ -399,10 +401,11 @@ export function rewriteIdentity({ pkg, profile }: GenerationContext): void {
       .slice(0, maxPackageNameLength) || 'solid-app'
   pkg.description = 'SolidJS application built with Vite+.'
 }
-export function* generation(
-  { input, prepare }: GenerationOptions,
-  language: Language
-): Generator<Step, string[]> {
+export function* generation({
+  input,
+  prepare,
+  language
+}: Generation): Generator<Step, string[]> {
   const { problems, defaults, languages, title, siteUrl } =
     validateProfile(input)
   if (problems[0]) throw problems[0]
@@ -513,7 +516,7 @@ export function* generation(
     }
     throw error
   }
-  const notices = reportSeededCatalogs({ profile, seeded }, language)
+  const notices = reportSeededCatalogs({ profile, seeded, language })
   if (profile.shouldInitGit && !existsSync(path.join(profile.dir, '.git'))) {
     try {
       yield { task: 'gitTask', executable: 'git', args: ['init'] }
@@ -528,12 +531,12 @@ export function* generation(
       )
     }
   }
-  yield* installProfile(profile, language)
+  yield* installProfile({ profile, language })
   return [...notices, ...nextSteps({ profile, language, siteUrl })]
 }
 
 export function generateSource(options: GenerationOptions): string[] {
-  const steps = generation(options, 'en')
+  const steps = generation({ ...options, language: 'en' })
   let current = steps.next()
   while (!current.done) {
     if (typeof current.value === 'object') {
@@ -557,7 +560,7 @@ export async function generateTerminal(
   input: Profile,
   { language, report, isInteractive = false }: TerminalOptions
 ): Promise<string[]> {
-  const steps = generation({ input, prepare: prepared }, language)
+  const steps = generation({ input, prepare: prepared, language })
   const controller = new AbortController()
   const cancel = () => controller.abort()
   const signals = ['SIGINT', 'SIGHUP', 'SIGTERM'] as const

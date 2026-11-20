@@ -614,9 +614,10 @@ void it('lists each flag once with a description through both help aliases', () 
     const options = help.split('\n').filter(line => line.startsWith('  -'))
     const flags = options.map(line => line.trim().split(/\s+/u)[0])
     assert.equal(new Set(flags).size, flags.length)
-    for (const flag of ['--mode', '--no-icons', '--install', '--yes', '-h'])
+    for (const flag of ['--mode', '--no-icons', '--install', '--yes', '-h']) {
       assert.ok(flags.includes(flag))
-    for (const line of options) assert.match(line, /^  -\S+.*? {2,}\S/u)
+    }
+    for (const line of options) assert.match(line, /^ {2}-\S+.*? {2,}\S/u)
   }
 })
 

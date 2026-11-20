@@ -1,6 +1,6 @@
 import path from 'node:path'
 
-import type { Profile } from './types.ts'
+import type { Answers, Profile } from './types.ts'
 
 export const modes = ['server', 'static', 'client'] as const
 export const installers = ['bun', 'pnpm', 'npm'] as const
@@ -14,19 +14,6 @@ export const switches = [
   'git',
   'install'
 ] as const
-
-export type Answers = Partial<
-  Record<
-    (typeof switches)[number] | `no-${(typeof switches)[number]}` | 'no-i18n',
-    boolean
-  >
-> &
-  Partial<
-    Record<
-      'name' | 'title' | 'locales' | 'base-locale' | 'site-url' | 'pm' | 'mode',
-      string
-    >
-  >
 
 export function answerProfile(answers: Answers): Profile {
   const mode = modes.find(value => value === answers.mode) ?? 'server'

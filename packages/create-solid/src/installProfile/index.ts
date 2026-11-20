@@ -5,15 +5,16 @@ import { message, type Language } from '../cli-language.ts'
 import type { Profile } from '../types.ts'
 import { CanceledError } from '../usage-error.ts'
 
+type InstallOptions = { profile: Profile; language: Language }
 export type SetupCommand = {
   task: 'gitTask' | 'installTask'
   executable: string
   args: string[]
 }
-export function* installProfile(
-  profile: Profile,
-  language: Language = 'en'
-): Generator<SetupCommand, void> {
+export function* installProfile({
+  profile,
+  language
+}: InstallOptions): Generator<SetupCommand, void> {
   if (!profile.shouldInstall) return
   const workspace = path.join(profile.dir, 'pnpm-workspace.yaml')
   const before =
@@ -25,8 +26,9 @@ export function* installProfile(
       code: 'installFailure',
       values: { dir: profile.dir, pm: profile.pm }
     })
-    if (error instanceof CanceledError)
+    if (error instanceof CanceledError) {
       throw new CanceledError(resume, { cause: error })
+    }
     throw new Error(resume, { cause: error })
   }
   if (before === undefined) return

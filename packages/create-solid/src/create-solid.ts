@@ -4,15 +4,15 @@ import { parseArgs } from 'node:util'
 
 import { cliLanguage, message, messages } from './cli-language.ts'
 import { generateTerminal } from './generate.ts'
-import type { Answers } from './profile-answers.ts'
 import { projectSummary } from './project-summary.ts'
 import { hasTool } from './tools.ts'
+import type { Answers } from './types.ts'
 import {
   CanceledError,
   ProfileProblemError,
   UsageError
 } from './usage-error.ts'
-import { validateProfile } from './validate-profile.ts'
+import { validateProfile } from './validateProfile/index.ts'
 
 const argumentOffset = 2
 const usageExitCode = 2
@@ -205,10 +205,11 @@ try {
       values: { flag: /--?[\w-]+/u.exec(error.message)?.[0] ?? error.message }
     })
   }
-  if (error instanceof CanceledError)
+  if (error instanceof CanceledError) {
     reason = [messages[language].cancel, error.message]
       .filter(Boolean)
       .join('\n')
+  }
   process.stderr.write(`${reason}\n`)
   const isArgumentError =
     error instanceof UsageError ||

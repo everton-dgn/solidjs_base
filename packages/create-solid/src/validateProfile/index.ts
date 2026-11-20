@@ -1,20 +1,19 @@
 import { existsSync, readdirSync, statSync } from 'node:fs'
-import path from 'node:path'
-import { URL } from 'node:url'
+import { fileURLToPath, URL } from 'node:url'
 
-import { resolveAppTitle } from './configureAppTitle/index.ts'
-import { readLocaleSettings } from './configureLocales/catalogs.ts'
-import { isDestinationEntry } from './isDestinationEntry/index.ts'
+import { resolveAppTitle } from '../configureAppTitle/index.ts'
+import { readLocaleSettings } from '../configureLocales/catalogs.ts'
+import { isDestinationEntry } from '../isDestinationEntry/index.ts'
+import { distribution } from '../paths.ts'
 import {
   answerProfile,
   modes,
   installers,
-  switches,
-  type Answers
-} from './profile-answers.ts'
-import { resolveLocaleOptions } from './resolve-locale-options.ts'
-import type { Profile, LocaleSettings } from './types.ts'
-import { ProfileProblemError } from './usage-error.ts'
+  switches
+} from '../profile-answers.ts'
+import { resolveLocaleOptions } from '../resolve-locale-options.ts'
+import type { Answers, Profile, LocaleSettings } from '../types.ts'
+import { ProfileProblemError } from '../usage-error.ts'
 
 function choiceProblems(input: Answers | Profile) {
   const problems: ProfileProblemError[] = []
@@ -51,14 +50,15 @@ function choiceProblems(input: Answers | Profile) {
   return problems
 }
 
-export function validateProfile(input: Profile | Answers): {
+type ValidatedProfile = {
   profile: Profile
   problems: ProfileProblemError[]
   title: string
   defaults: LocaleSettings
   languages: LocaleSettings
   siteUrl: URL | undefined
-} {
+}
+export function validateProfile(input: Profile | Answers): ValidatedProfile {
   const profile = 'dir' in input ? input : answerProfile(input)
   const problems = choiceProblems(input)
   if (
@@ -100,7 +100,7 @@ export function validateProfile(input: Profile | Answers): {
     )
   }
   const defaults = readLocaleSettings(
-    path.resolve(import.meta.dirname, '../template')
+    fileURLToPath(new URL('../template/', distribution))
   )
   const languages = resolveLocaleOptions(
     { options: profile, defaults },

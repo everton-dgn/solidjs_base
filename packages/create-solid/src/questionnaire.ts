@@ -14,10 +14,11 @@ import {
 import manifest from '../package.json' with { type: 'json' }
 import { messages, type Language } from './cli-language.ts'
 import { fieldMessage } from './field-messages.ts'
-import { installers, type Answers } from './profile-answers.ts'
+import { installers } from './profile-answers.ts'
 import { hasTool, missingTool } from './tools.ts'
+import type { Answers } from './types.ts'
 import { CanceledError } from './usage-error.ts'
-import { validateProfile } from './validate-profile.ts'
+import { validateProfile } from './validateProfile/index.ts'
 
 function answer<T extends string | boolean | string[]>(value: T | symbol): T {
   if (isCancel(value) || typeof value === 'symbol') throw new CanceledError()

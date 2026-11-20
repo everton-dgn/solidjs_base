@@ -1,3 +1,5 @@
+import type { switches } from './profile-answers.ts'
+
 type Replacement = readonly [
   pattern: string | RegExp,
   replacement: string,
@@ -59,3 +61,16 @@ export type EditFile = (
   file: string,
   transform: (text: string, apply: ApplyEdits) => string
 ) => void
+
+export type Answers = Partial<
+  Record<
+    (typeof switches)[number] | `no-${(typeof switches)[number]}` | 'no-i18n',
+    boolean
+  >
+> &
+  Partial<
+    Record<
+      'name' | 'title' | 'locales' | 'base-locale' | 'site-url' | 'pm' | 'mode',
+      string
+    >
+  >

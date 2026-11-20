@@ -18,18 +18,20 @@ import { it } from 'node:test'
 import { messages, type Language } from '../src/cli-language.ts'
 import { fieldMessage } from '../src/field-messages.ts'
 import { generate } from '../src/generate.ts'
-import { answerProfile, type Answers } from '../src/profile-answers.ts'
+import { answerProfile } from '../src/profile-answers.ts'
 import { questionnaire } from '../src/questionnaire.ts'
+import type { Answers } from '../src/types.ts'
 import { CanceledError } from '../src/usage-error.ts'
 
 type Line = readonly [question: string, keys: string]
+type SessionOptions = {
+  answers?: Answers
+  language?: Language
+  hasColor?: boolean
+}
 async function session(
   lines: Line[],
-  {
-    answers = {},
-    language = 'en',
-    hasColor = false
-  }: { answers?: Answers; language?: Language; hasColor?: boolean } = {}
+  { answers = {}, language = 'en', hasColor = false }: SessionOptions = {}
 ) {
   const input = new PassThrough()
   let index = 0

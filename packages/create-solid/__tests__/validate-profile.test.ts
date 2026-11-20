@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { it } from 'node:test'
 
-import { validateProfile } from '../src/validate-profile.ts'
+import { validateProfile } from '../src/validateProfile/index.ts'
 
 void it('returns field codes and interpolation values before generation', () => {
   const { problems } = validateProfile({

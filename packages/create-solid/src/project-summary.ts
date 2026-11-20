@@ -2,7 +2,7 @@ import path from 'node:path'
 import process from 'node:process'
 
 import { messages, type Language } from './cli-language.ts'
-import type { validateProfile } from './validate-profile.ts'
+import type { validateProfile } from './validateProfile/index.ts'
 
 type Summary = {
   validated: ReturnType<typeof validateProfile>

@@ -46,7 +46,7 @@
     "env.ts": "core",
     "fonts.ts": "fonts",
     "package.json": "core",
-    "patches/@mdream%2Fjs@2.1.0.patch": "markdown",
+    "patches/@mdream%2Fjs@2.2.0.patch": "markdown",
     "playwright.config.ts": "core",
     "project.inlang/paraglide.config.ts": "i18n",
     "project.inlang/settings.json": "i18n",

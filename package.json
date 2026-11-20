@@ -65,10 +65,10 @@
     "vitest": "5.1.0",
     "tsrs": "7.1.0-beta.tsrs2",
     "schema-dts": "2.1.0",
-    "@mdream/js": "2.1.0"
+    "@mdream/js": "2.2.0"
   },
   "patchedDependencies": {
-    "@mdream/js@2.1.0": "apps/boilerplate/patches/@mdream%2Fjs@2.1.0.patch"
+    "@mdream/js@2.2.0": "apps/boilerplate/patches/@mdream%2Fjs@2.2.0.patch"
   },
   "trustedDependencies": []
 }

@@ -1,0 +1,433 @@
+diff --git a/dist/_chunks/markdown-processor.mjs b/dist/_chunks/markdown-processor.mjs
+index 2f5bc04c0113ca0372e6d57317ee269c4d769ec9..acd5727a79e11bf92dfaa91853942c92160b1e19 100644
+--- a/dist/_chunks/markdown-processor.mjs
++++ b/dist/_chunks/markdown-processor.mjs
+@@ -1,5 +1,5 @@
+ import { BLOCKQUOTE_SPACING, DEFAULT_BLOCK_SPACING, LIST_ITEM_SPACING, NO_SPACING, TABLE_ROW_SPACING, isInsideRawHtmlBlock } from "./const.mjs";
+-import { blockOpenPrefix, dropSourceLead, endsAtHardBreak, figcaptionOwnsBlockSpacing, getLanguageFromAttributes, hasNonWhitespace, isBlockChildOfOpenVoid, isCharacterReferenceTail, isDataUrl, isEmptyLinkHref, isInsideHeading, isInsideTableCell, isOpenVoidTag, lastOutputChar, listMarkerLineStart, markRenderedChildContent, needsSpacing, noteBufferRewrite, orderedItemNumber, outputLeadLength, parseUnsignedInteger, parserTagHandlers, pendingMarkerIndent, resolveUrl, safeAnchorOutput, suppressesFormattingInPre, traverseUpToFirstBlockNode, trimOutputStart, trimTextAtLineStart } from "./url.mjs";
++import { blockOpenPrefix, dropSourceLead, endsAtHardBreak, figcaptionOwnsBlockSpacing, getLanguageFromAttributes, hasNonWhitespace, isBlankLinkText, isBlockChildOfOpenVoid, isCharacterReferenceTail, isDataUrl, isEmptyLinkHref, isInsideHeading, isInsideTableCell, isOpenVoidTag, lastOutputChar, listMarkerLineStart, markRenderedChildContent, needsSpacing, noteBufferRewrite, orderedItemNumber, outputLeadLength, parseUnsignedInteger, parserTagHandlers, pendingMarkerIndent, resolveUrl, safeAnchorOutput, suppressesFormattingInPre, traverseUpToFirstBlockNode, trimOutputStart, trimTextAtLineStart } from "./url.mjs";
+ function serializeMarkdownDestination(destination) {
+ 	if (!/[\t\n\f\r ()\\<>]/.test(destination)) return destination;
+ 	return `<${/[\\<>]/.test(destination) ? destination.replace(/[\\<>]/g, "\\$&") : destination}>`;
+@@ -503,6 +503,7 @@ const tagHandlers = {
+ 					return "";
+ 				}
+ 			}
++			if (!node.childTextNodeIndex && !state.depthMap?.[34]) markRenderedChildContent(node);
+ 			return `]${serializeMarkdownResource(href, title)}`;
+ 		},
+ 		collapsesInnerWhiteSpace: true,
+@@ -1527,6 +1528,30 @@ function resetRetractedCaptionFrames(frames, count, fragment) {
+ 		}
+ 	}
+ }
++function dropBlankLinkText(state, openFragment, label, trailingBlank, captionOwnsSpace) {
++	const buffer = state.buffer;
++	const bracket = openFragment < 0 ? void 0 : buffer[openFragment];
++	if (!bracket || bracket.charCodeAt(bracket.length - 1) !== 91 || !hasNonWhitespace(label)) return false;
++	let text = "";
++	for (let index = openFragment + 1; index < buffer.length; index++) {
++		const fragment = buffer[index];
++		if (!isBlankLinkText(fragment)) return false;
++		text += fragment;
++	}
++	const hardBreak = text.lastIndexOf("  \n");
++	let keep = hardBreak < 0 ? 0 : hardBreak + 3;
++	const indent = state.listIndent;
++	if (hardBreak >= 0 && indent && text.startsWith(indent, keep)) keep += indent.length;
++	const kept = text.slice(0, keep);
++	if (kept.length === text.length && (hardBreak >= 0 || !(state.pendingInlineWhitespace && !captionOwnsSpace) && !trailingBlank)) return false;
++	const replacement = kept ? [kept] : [];
++	state.outputPositions?.replace(openFragment + 1, buffer.length, replacement);
++	buffer.length = openFragment + 1;
++	if (kept) buffer.push(kept);
++	noteBufferRewrite(state);
++	if (!captionOwnsSpace) state.pendingInlineWhitespace = false;
++	return true;
++}
+ function dropEmptyLinkText(buffer, openFragment, positions) {
+ 	for (let index = openFragment + 1; index < buffer.length; index++) if (hasNonWhitespace(buffer[index])) return false;
+ 	positions?.replace(openFragment, buffer.length, []);
+@@ -2654,6 +2679,7 @@ function createMarkdownProcessor(options = {}, createStream) {
+ 				} else if (consumePendingPreChild(state, node, eventType, preparePendingPreFence)) return;
+ 			} else if (consumePendingPreChild(state, node, eventType, preparePendingPreFence)) return;
+ 		}
++		const movesBlankPastLink = node.type === 2 && !gfmLifecycle.openCodeSpans.length && node.isLinkLabel === true && dropBlankLinkText(state, openLinkFragment < -1 ? -openLinkFragment - 2 : openLinkFragment, node.value, node.parent?.trailingBlankAt !== void 0 && node.parent.trailingBlankAt === node.parent.currentWalkIndex, captionNeedsPreparation());
+ 		let lastBuffEntry = buff.at(-1);
+ 		let lastChar = lastBuffEntry?.charAt(lastBuffEntry.length - 1) || "";
+ 		if (!lastChar && buff.length > 1) {
+@@ -2662,6 +2688,7 @@ function createMarkdownProcessor(options = {}, createStream) {
+ 		}
+ 		if (node.type === 2 && eventType === 0) {
+ 			processTextNode(node, lastNode, lastChar);
++			if (movesBlankPastLink) state.pendingInlineWhitespace = true;
+ 			return;
+ 		}
+ 		if (node.type !== 1) return;
+@@ -2824,7 +2851,7 @@ function createMarkdownProcessor(options = {}, createStream) {
+ 				openLinkFragment = -1;
+ 				return;
+ 			}
+-			if (eventType === 1 && tagId === 26 && openLinkFragment !== -1 && !handler.literalExit && !insideRawHtmlRegion && !gfmLifecycle.openCodeSpans.length && lastChar === " ") {
++			if (eventType === 1 && tagId === 26 && openLinkFragment !== -1 && handler.exit === tagHandlers[26].exit && !handler.literalExit && !insideRawHtmlRegion && !gfmLifecycle.openCodeSpans.length && lastOutputChar(buff) === 32) {
+ 				const bracket = openLinkFragment < -1 ? -openLinkFragment - 2 : openLinkFragment;
+ 				let removed = 0;
+ 				for (let index = buff.length - 1; index > bracket; index--) {
+@@ -2833,7 +2860,8 @@ function createMarkdownProcessor(options = {}, createStream) {
+ 					while (end > 0 && fragment.charCodeAt(end - 1) === 32) end--;
+ 					removed += fragment.length - end;
+ 					if (end === 0) continue;
+-					if (removed && !isAsciiWhitespace(fragment.charCodeAt(end - 1))) {
++					const code = fragment.charCodeAt(end - 1);
++					if (removed && (code < 9 || code === 11 || code > 13)) {
+ 						trimTrailingSpaces(buff);
+ 						const cache = state.lastContentCache;
+ 						if (cache) state.lastContentCache = cache.slice(0, Math.max(0, cache.length - removed));
+diff --git a/dist/_chunks/output-runner.mjs b/dist/_chunks/output-runner.mjs
+index 4a70a66cb6a6d2093b509c3b10d0ca10323605b5..85e8926efa1e26c5bf2119ec27711cffad7b1dba 100644
+--- a/dist/_chunks/output-runner.mjs
++++ b/dist/_chunks/output-runner.mjs
+@@ -5,6 +5,7 @@ function createParseState(processor, options) {
+ 		depthMap: processor.state.depthMap,
+ 		depth: 0,
+ 		resolvedPlugins: options.plugins,
++		outputEvent: processor.processEvent,
+ 		tagHandlers: options.tagHandlers,
+ 		tagOverrideHandlers: options.tagOverrideHandlers,
+ 		plainText: options.plainText,
+diff --git a/dist/_chunks/parse.mjs b/dist/_chunks/parse.mjs
+index 2f700711a8706cd652397c82aeef03d80d882ca2..30818fe9a7a5411d03089098fbfba57a422e0aba 100644
+--- a/dist/_chunks/parse.mjs
++++ b/dist/_chunks/parse.mjs
+@@ -1,5 +1,5 @@
+ import { NO_SPACING, TagIdMap, isInsideRawHtmlBlock } from "./const.mjs";
+-import { decodeHTMLEntities, hasNonWhitespace, leadingWhitespaceLength, parserTagHandlers, resolveUrl, traverseUpToFirstBlockNode } from "./url.mjs";
++import { countContentInEnclosingLink, decodeHTMLEntities, hasNonWhitespace, isBlankLinkText, isBlankLinkTextIn, leadingWhitespaceLength, parserTagHandlers, resolveUrl, traverseUpToFirstBlockNode } from "./url.mjs";
+ const HTTP_BASE_RE = /^https?:\/\/(?:[^/?#]*@)?(?![^/?#]*@)[^:/?#]/i;
+ const MAX_BASE_HREF_LENGTH = 2048;
+ const MAX_ELEMENT_DEPTH = 512;
+@@ -353,7 +353,10 @@ var ParsedElementNode = class {
+ 	tagHandler;
+ 	currentWalkIndex;
+ 	childTextNodeIndex;
+-	containsWhitespace;
++	linkContentCounted;
++	enterSkipped;
++	hiddenTextNodes;
++	trailingBlankAt;
+ 	pluginOutput;
+ 	context;
+ 	cachedDepthMap;
+@@ -507,7 +510,8 @@ function parseHtml(html, options = {}) {
+ 		depthMap: /* @__PURE__ */ new Uint16Array(113),
+ 		depth: 0,
+ 		resolvedPlugins: options.resolvedPlugins || [],
+-		tagHandlers: options.tagHandlers
++		tagHandlers: options.tagHandlers,
++		outputEvent: (event) => events.push(event)
+ 	};
+ 	let remainingHtml = parseHtmlInternal(html, state, (event) => {
+ 		events.push(event);
+@@ -944,7 +948,8 @@ function processTextBuffer(textBuffer, state, handleEvent) {
+ 	}
+ 	const excludesTextNodes = (state.flattenedOpaqueDepth || 0) > 0 || state.flattenedRawExcludesText || state.currentNode?.tagHandler?.excludesTextNodes || state.currentNode?.excludedFromMarkdown;
+ 	const inPreTag = (state.depthMap[34] || 0) > 0;
+-	const isLeadingBlank = !inPreTag && !containsNonWhitespace && !state.currentNode.childTextNodeIndex;
++	const isLeadingBlank = !inPreTag && !containsNonWhitespace && (!state.currentNode.childTextNodeIndex || linkHasOnlyNestedContent(state.currentNode));
++	if (isLeadingBlank && state.currentNode.tagId === 26 && state.currentNode.currentWalkIndex) state.currentNode.trailingBlankAt = state.currentNode.currentWalkIndex;
+ 	if (isLeadingBlank && (state.plainText && !state.keepLeadingBlanks || !keepsLeadingBlank(state.currentNode))) return;
+ 	let text = textBuffer;
+ 	if (text.length === 0) return;
+@@ -1006,12 +1011,43 @@ function processTextBuffer(textBuffer, state, handleEvent) {
+ 	if (sourceLead !== 0) textNode.sourceLead = sourceLead;
+ 	state.endTagClosedNothing = false;
+ 	for (const parent of parentsToIncrement) parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
++	let hasText = false;
++	let wasBlank = false;
++	if (state.depthMap[26]) {
++		hasText = !isBlankLinkTextIn(textNode.value, state.currentNode);
++		wasBlank = !hasText && !inPreTag;
++	}
+ 	handleEvent({
+ 		type: 0,
+ 		node: textNode
+ 	});
++	if (state.depthMap[26]) {
++		const isBlank = textNode.rewrittenBlank ?? wasBlank;
++		if (isBlank && !textNode.excludedFromMarkdown && state.currentNode.tagId === 26 && state.currentNode.hiddenTextNodes) state.currentNode.trailingBlankAt = state.currentNode.currentWalkIndex;
++		const hidden = textNode.excludedFromMarkdown || isBlank && !wasBlank;
++		if (hidden || isBlank) countHiddenLinkText(parentsToIncrement, hidden);
++		else if ((hasText || textNode.rewrittenBlank === false) && (state.depthMap[26] > 1 || !hasAnchorParent(parentsToIncrement))) countContentInEnclosingLink(firstBlockParent);
++	}
+ 	state.lastTextNode = textNode;
+ }
++function linkHasOnlyNestedContent(node) {
++	return node.tagId === 26 && node.childTextNodeIndex === 1 && node.linkContentCounted === true;
++}
++function hasAnchorParent(parents) {
++	for (let i = 0; i < parents.length; i++) if (parents[i].tagId === 26) return true;
++	return false;
++}
++function countHiddenLinkText(parents, excluded) {
++	for (const parent of parents) {
++		if (parent.tagId !== 26 || parent.excludedFromMarkdown || parent.enterSkipped) continue;
++		const hidden = parent.hiddenTextNodes || 0;
++		if (excluded || hidden + 1 === parent.childTextNodeIndex) parent.hiddenTextNodes = hidden + 1;
++	}
++}
++function linkLabelTarget(node, state, handleEvent) {
++	if (!node.childTextNodeIndex) return handleEvent;
++	if (node.childTextNodeIndex === node.hiddenTextNodes && !node.excludedFromMarkdown && !node.enterSkipped) return state.outputEvent;
++}
+ function processClosingTag(htmlChunk, position, state, handleEvent) {
+ 	let i = position + 2;
+ 	const tagNameStart = i;
+@@ -1148,21 +1184,27 @@ function processClosingTag(htmlChunk, position, state, handleEvent) {
+ }
+ function closeNode(node, state, handleEvent) {
+ 	if (!node) return;
+-	if (node.tagId === 26 && !node.childTextNodeIndex) {
++	const emitLabel = node.tagId === 26 ? linkLabelTarget(node, state, handleEvent) : void 0;
++	if (emitLabel) {
+ 		const prefix = node.attributes?.title || node.attributes?.["aria-label"] || "";
+-		if (prefix) {
++		if (prefix && (!node.childTextNodeIndex || !isBlankLinkText(prefix))) {
+ 			node.childTextNodeIndex = 1;
+-			handleEvent({
++			const textNode = {
++				type: 2,
++				value: prefix,
++				parent: node,
++				index: 0,
++				depth: node.depth + 1,
++				isLinkLabel: true
++			};
++			if (state.endTagClosedNothing) textNode.joinsPrevious = true;
++			emitLabel({
+ 				type: 0,
+-				node: {
+-					type: 2,
+-					value: prefix,
+-					parent: node,
+-					index: 0,
+-					depth: node.depth + 1
+-				}
++				node: textNode
+ 			});
+-			for (const parent of traverseUpToFirstBlockNode(node)) parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
++			const parents = traverseUpToFirstBlockNode(node);
++			for (const parent of parents) parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
++			if (state.depthMap[26] > 1 && !node.excludedFromMarkdown && !node.enterSkipped) countContentInEnclosingLink(parents.at(-1));
+ 		}
+ 	}
+ 	const tagId = node.tagId;
+diff --git a/dist/_chunks/src.mjs b/dist/_chunks/src.mjs
+index 78b4b8cf9f71f3aefaddcda86f429c957a8d6d81..55b4f17b7c18e8b788278fee8809413a72e562ee 100644
+--- a/dist/_chunks/src.mjs
++++ b/dist/_chunks/src.mjs
+@@ -263,6 +263,7 @@ async function* streamHtmlToMarkdown$1(htmlStream, options = {}, resolvedPlugins
+ 		depthMap: processor.state.depthMap,
+ 		depth: 0,
+ 		resolvedPlugins,
++		outputEvent: processor.processEvent,
+ 		tagHandlers,
+ 		tagOverrideHandlers,
+ 		plainText: false,
+@@ -305,6 +306,7 @@ function htmlToMarkdown(html, options = {}) {
+ 		depthMap: processor.state.depthMap,
+ 		depth: 0,
+ 		resolvedPlugins: plugins,
++		outputEvent: processor.processEvent,
+ 		tagHandlers,
+ 		tagOverrideHandlers,
+ 		plainText: false,
+diff --git a/dist/_chunks/tag-overrides.mjs b/dist/_chunks/tag-overrides.mjs
+index d5a5c95c560f30c4589a1114c07b9a6794dfd0a1..1a603a3c054d6473523432a864a45196a84a29d5 100644
+--- a/dist/_chunks/tag-overrides.mjs
++++ b/dist/_chunks/tag-overrides.mjs
+@@ -1,4 +1,5 @@
+ import { TagIdMap } from "./const.mjs";
++import { countContentInEnclosingLink, isBlankLinkText, isBlankLinkTextIn } from "./url.mjs";
+ function checkClean(options) {
+ 	const clean = options.clean;
+ 	if (clean && typeof clean.apply !== "function") throw new TypeError("The clean option needs cleanup rules from clean(). Import it from '@mdream/js/clean'.");
+@@ -51,9 +52,14 @@ function assertEngineOptions(options, entry = "converter") {
+ 	const plugins = options.plugins;
+ 	if (plugins != null && !Array.isArray(plugins)) throw new TypeError("@mdream/js takes `plugins` as an array, such as { plugins: [frontmatterPlugin()] } with frontmatterPlugin from '@mdream/js/plugins'.");
+ }
++function isBlankText(value, inPreTag) {
++	if (!value) return true;
++	return !inPreTag && isBlankLinkText(value);
++}
+ function processPluginsForEvent(event, plugins, state, processEvent, onSkipped) {
+ 	state.depth = event.node.depth;
+ 	if (plugins?.length) {
++		const text = event.node.type === 2 ? event.node.value : void 0;
+ 		if (event.node.type === 1 && event.type === 0) {
+ 			const element = event.node;
+ 			let hasCheckedAttributes = false;
+@@ -78,6 +84,8 @@ function processPluginsForEvent(event, plugins, state, processEvent, onSkipped)
+ 		}
+ 		if (shouldSkip) {
+ 			onSkipped?.(event);
++			if (event.node.type === 2) event.node.excludedFromMarkdown = true;
++			else if (event.type === 0 && event.node.tagId === 26) event.node.enterSkipped = true;
+ 			return true;
+ 		}
+ 		if (event.node.type === 1) {
+@@ -92,7 +100,10 @@ function processPluginsForEvent(event, plugins, state, processEvent, onSkipped)
+ 					if (result) (pluginOutputs ??= []).push(result);
+ 				}
+ 			}
+-			if (pluginOutputs) element.pluginOutput = element.pluginOutput ? element.pluginOutput.concat(pluginOutputs) : pluginOutputs;
++			if (pluginOutputs) {
++				element.pluginOutput = element.pluginOutput ? element.pluginOutput.concat(pluginOutputs) : pluginOutputs;
++				if (state.depthMap?.[26] && pluginOutputs.some((output) => !isBlankText(output, (state.depthMap?.[34] || 0) > 0))) countContentInEnclosingLink(element.tagId === 26 ? element.parent : element);
++			}
+ 		} else if (event.node.type === 2 && event.type === 0) {
+ 			const textNode = event.node;
+ 			for (let index = 0; index < plugins.length; index++) {
+@@ -109,6 +120,7 @@ function processPluginsForEvent(event, plugins, state, processEvent, onSkipped)
+ 					}
+ 				}
+ 			}
++			if (state.depthMap?.[26] && textNode.value !== text) textNode.rewrittenBlank = !textNode.value || !state.depthMap[34] && isBlankLinkTextIn(textNode.value, textNode.parent);
+ 		}
+ 	}
+ 	processEvent(event);
+diff --git a/dist/_chunks/text.mjs b/dist/_chunks/text.mjs
+index 4bd843b3640a57cbb590572018c5b4b6db2fb98e..2a725d40e57de631b9849218fbb9a3d6a47156d9 100644
+--- a/dist/_chunks/text.mjs
++++ b/dist/_chunks/text.mjs
+@@ -236,7 +236,7 @@ function appendOutput(state, element, eventType, output, hasVisiblePluginOutput
+ 		const firstOutput = output?.[0] || "";
+ 		const owed = !!state.pendingDecodedBlank && !(eventType === 0 && element.tagId === 22);
+ 		if (eventType === 0) {
+-			if (!isInline && !owed || element.tagId === 6 || missingNewlines > 0 || firstOutput === "\n" || firstOutput === "\r") state.pendingInlineWhitespace = false;
++			if (!isInline && (element.tagId !== 36 || firstOutput) && !owed || element.tagId === 6 || missingNewlines > 0 || firstOutput === "\n" || firstOutput === "\r") state.pendingInlineWhitespace = false;
+ 			else if (firstOutput) {
+ 				const last = charOf(lastOutputChar(buffer));
+ 				if (last && !" \n	\r".includes(last) && !" \n	\r".includes(firstOutput) && !afterLiteralOpener) buffer.push(" ");
+diff --git a/dist/_chunks/types.d.mts b/dist/_chunks/types.d.mts
+index 33c0ae8fb7f57faa9aa0744183539fc9e4dabf37..82a88c4ecfd7e12311c8c15f64ef5f9e3df66bff 100644
+--- a/dist/_chunks/types.d.mts
++++ b/dist/_chunks/types.d.mts
+@@ -197,6 +197,14 @@ export interface ElementNode extends Node {
+   pluginOutput?: string[];
+   /** Whether this element's enter event wrote an inline wrapper. */
+   hasEnterOutput?: boolean;
++  /** Content below this node already counts for the nearest link at or above it. */
++  linkContentCounted?: boolean;
++  /** A plugin skipped this link's start, so it takes no title or aria-label text. */
++  enterSkipped?: boolean;
++  /** Text counted in this link that never shows: excluded text and the blank text after it. */
++  hiddenTextNodes?: number;
++  /** The child count when this link dropped a blank after other content, as the space in `<a><svg></svg> </a>`. */
++  trailingBlankAt?: number;
+ }
+ export interface TextNode extends Node {
+   /** Text content (for TEXT_NODE) */
+@@ -226,6 +234,10 @@ export interface TextNode extends Node {
+    * decoded from a character reference is content and is not counted.
+    */
+   sourceLead?: number;
++  /** Set when a hook changed this text inside a link: whether the new value shows nothing. */
++  rewrittenBlank?: boolean;
++  /** The title or aria-label written for a link with no visible text. */
++  isLinkLabel?: boolean;
+ }
+ /**
+  * Base DOM node interface
+diff --git a/dist/_chunks/url.mjs b/dist/_chunks/url.mjs
+index 2ae5786214856746c9952a36b3eca880d8ded950..78a5aed9c4aa029b5ef2d0d410f17bfe9bbcea0c 100644
+--- a/dist/_chunks/url.mjs
++++ b/dist/_chunks/url.mjs
+@@ -318,6 +318,19 @@ function getLanguageFromDataAttribute(value) {
+ function getLanguageFromAttributes(attributes) {
+ 	return getLanguageFromClass(attributes?.class) || getLanguageFromDataAttribute(attributes?.["data-language"]) || getLanguageFromDataAttribute(attributes?.["data-lang"]);
+ }
++function isBlankLinkText(value) {
++	for (let i = 0; i < value.length; i++) {
++		const c = value.charCodeAt(i);
++		if (c <= 32 ? c !== 32 && (c < 9 || c > 13) : c !== 133 && c !== 160 && c !== 5760 && (c < 8192 || c > 8202) && c !== 8232 && c !== 8233 && c !== 8239 && c !== 8287 && c !== 12288) return false;
++	}
++	return true;
++}
++function isBlankLinkTextIn(value, parent) {
++	if (!hasNonWhitespace(value)) return true;
++	if (!isBlankLinkText(value)) return false;
++	for (let node = parent; node && node.tagId !== 26; node = node.parent) if (isInlineNode(node)) return false;
++	return true;
++}
+ function hasNonWhitespace(value) {
+ 	for (let i = 0; i < value.length; i++) {
+ 		const c = value.charCodeAt(i);
+@@ -581,23 +594,27 @@ function traverseUpToFirstBlockNode(node) {
+ }
+ function markRenderedChildContent(node) {
+ 	let parent = node.parent;
+-	let anchorInScope = false;
+ 	while (parent) {
+ 		parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+-		if (parent.tagId === 26) anchorInScope = true;
+ 		if (!isInlineNode(parent)) break;
+ 		parent = parent.parent;
+ 	}
+-	if (anchorInScope) return;
+-	let anchorFound = false;
+-	while (parent?.parent) {
+-		parent = parent.parent;
+-		if (!anchorFound) {
+-			if (parent.tagId !== 26) continue;
+-			anchorFound = true;
++	countContentInEnclosingLink(parent);
++}
++function countContentInEnclosingLink(block) {
++	let parent = block;
++	while (parent && !parent.linkContentCounted) {
++		parent.linkContentCounted = true;
++		if (parent.tagId !== 26) {
++			parent = parent.parent;
++			continue;
++		}
++		while (isInlineNode(parent)) {
++			parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
++			if (!parent.parent) return;
++			parent = parent.parent;
+ 		}
+ 		parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+-		if (!isInlineNode(parent)) return;
+ 	}
+ }
+ const URL_SCHEME_RE = /^[A-Z][\dA-Z+.-]*:/i;
+@@ -688,4 +705,4 @@ function safeAnchorOutput(node, options, entering, protectMarkdown = false) {
+ 	if (!entering) return "</a>";
+ 	return `<a href="${escapeHtml(resolved, true, protectMarkdown)}"${node.attributes?.title === void 0 ? "" : ` title="${escapeHtml(node.attributes.title, true, protectMarkdown)}"`}>`;
+ }
+-export { blockOpenPrefix, decodeHTMLEntities, dropSourceLead, endsAtHardBreak, escapeHtml, figcaptionOwnsBlockSpacing, getLanguageFromAttributes, hasNonWhitespace, isBlockChildOfOpenVoid, isCharacterReferenceTail, isDataUrl, isEmptyLinkHref, isInsideHeading, isInsideTableCell, isOpenVoidTag, isSafeHtmlUrl, lastOutputChar, leadingWhitespaceLength, listMarkerLineStart, markRenderedChildContent, needsSpacing, noteBufferRewrite, orderedItemNumber, outputLeadLength, parseUnsignedInteger, parserTagHandlers, pendingMarkerIndent, resolveUrl, safeAnchorOutput, suppressesFormattingInPre, traverseUpToFirstBlockNode, trimOutputStart, trimTextAtLineStart, trimUrl };
++export { blockOpenPrefix, countContentInEnclosingLink, decodeHTMLEntities, dropSourceLead, endsAtHardBreak, escapeHtml, figcaptionOwnsBlockSpacing, getLanguageFromAttributes, hasNonWhitespace, isBlankLinkText, isBlankLinkTextIn, isBlockChildOfOpenVoid, isCharacterReferenceTail, isDataUrl, isEmptyLinkHref, isInsideHeading, isInsideTableCell, isOpenVoidTag, isSafeHtmlUrl, lastOutputChar, leadingWhitespaceLength, listMarkerLineStart, markRenderedChildContent, needsSpacing, noteBufferRewrite, orderedItemNumber, outputLeadLength, parseUnsignedInteger, parserTagHandlers, pendingMarkerIndent, resolveUrl, safeAnchorOutput, suppressesFormattingInPre, traverseUpToFirstBlockNode, trimOutputStart, trimTextAtLineStart, trimUrl };
+diff --git a/dist/parse.d.mts b/dist/parse.d.mts
+index 4738e6d006d318e779427beac26b183a03b62269..006bef3cb2724dff9dea8c5730cf72c50e90c01b 100644
+--- a/dist/parse.d.mts
++++ b/dist/parse.d.mts
+@@ -63,6 +63,8 @@ export interface ParseState {
+   lastTextNode?: Node;
+   /** Resolved plugin instances for event processing */
+   resolvedPlugins?: TransformPlugin[];
++  /** Hands an event to the output past plugins and the splitter, as Rust writes a link label. */
++  outputEvent?: (event: NodeEvent) => void;
+   /** Output-specific tag behavior. Parsing metadata is used when absent. */
+   tagHandlers?: Record<number, TagHandler>;
+   /** Tag override handlers built from declarative tagOverrides config */
+diff --git a/dist/splitter.mjs b/dist/splitter.mjs
+index f1996e236d4c27a22d3739dca663a65896c88da3..02f6b310a8b8a707e888af4745a8a712187146ff 100644
+--- a/dist/splitter.mjs
++++ b/dist/splitter.mjs
+@@ -263,6 +263,7 @@ function* htmlToMarkdownSplitChunksStream(html, options = {}) {
+ 		depthMap: processor.state.depthMap,
+ 		depth: 0,
+ 		resolvedPlugins: opts.resolvedPlugins,
++		outputEvent: processor.processEvent,
+ 		tagHandlers,
+ 		tagOverrideHandlers: opts.tagOverrideHandlers,
+ 		urlBaseTarget: processor.state

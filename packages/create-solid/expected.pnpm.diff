@@ -692,6 +692,22 @@ diff --git a/source/docs/seo/markdown.md b/example/docs/seo/markdown.md
  next to the generator that uses it. Its tests use the Node runner of the
  tooling.
  
+@@ -285,10 +285,11 @@ configures limits and enables static generation with `static: true`.
+ 
+ The runtime declares published `@mdream/js` as its own dependency. The optional
+ converter patch also applies to that resolved copy. A derived application
+-installed from tarballs gets the published converter. It preserves the space between nested inline wrappers.
+-To preserve accessible link names after filtering as well, copy the patch from
+-this application's `patches/` directory and its matching `patchedDependencies`
+-entry from the workspace root into the derived application's root manifest.
++installed from tarballs gets the published converter. It preserves the space
++between nested inline wrappers. To preserve accessible link names after
++filtering as well, copy the patch from this application's `patches/` directory
++and its matching `patchedDependencies` entry from the workspace root into the
++derived application's root manifest.
+ 
+ Keep the exact dependency version while applying the patch and retain the
+ conversion regressions. It is optional and is not included in the runtime
 diff --git a/source/docs/seo.md b/example/docs/seo.md
 --- a/source/docs/seo.md
 +++ b/example/docs/seo.md
@@ -942,7 +958,7 @@ diff --git a/source/package.json b/example/package.json
 -    "@evertondgn/solid-runtime": "workspace:*",
 +    "@evertondgn/solid-runtime": "{version}",
      "@inlang/paraglide-js": "3.2.2",
-     "@solidjs/router": "2.0.0",
+     "@solidjs/router": "2.0.1",
      "@solidjs/web": "2.0.3",
 @@ -47,15 +46,18 @@
      "valibot": "1.5.0"
@@ -986,7 +1002,7 @@ new file mode 100644
 +  'vite': 'npm:@voidzero-dev/vite-plus-core@8.3.8000'
 +  'vitest': '5.1.0'
 +patchedDependencies:
-+  '@mdream/js@2.1.0': 'patches/@mdream%2Fjs@2.1.0.patch'
++  '@mdream/js@2.2.0': 'patches/@mdream%2Fjs@2.2.0.patch'
 +allowBuilds:
 +  lefthook: false
 diff --git a/source/src/Document.tsx b/example/src/Document.tsx

@@ -114,7 +114,8 @@ export async function questionnaire({
           showInstructions: false,
           options: modes.map(value => ({
             value,
-            label: `${value} (${labels[value]})`
+            label: labels[value],
+            hint: labels[`${value}Hint`]
           }))
         })
       )
@@ -194,9 +195,11 @@ export async function questionnaire({
         showInstructions: false,
         options: installers.map(value => ({
           value,
-          ...(availableManagers.has(value)
-            ? {}
-            : { hint: missingTool(value, language) })
+          hint: availableManagers.has(value)
+            ? value === 'bun'
+              ? labels.bunHint
+              : labels.installHint
+            : missingTool(value, language)
         }))
       })
     )

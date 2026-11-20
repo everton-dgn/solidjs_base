@@ -30,3 +30,28 @@ void it('installs the default Bun server and both reduced language profiles', ()
     'ja'
   ])
 })
+
+void it('runs both browser suites for the full app and reduced server profiles', () => {
+  const browserProfiles = scenarios.filter(({ tasks }) =>
+    tasks.includes('test:e2e')
+  )
+  assert.deepEqual(
+    browserProfiles.map(({ name }) => name),
+    [
+      'bun',
+      'server-without-i18n',
+      'server-without-theme',
+      'server-without-ui-features'
+    ]
+  )
+  for (const { tasks } of browserProfiles) {
+    assert.ok(tasks.includes('test:e2e:production'))
+  }
+  for (const { tasks } of scenarios) {
+    assert.ok(tasks.includes('check:ci'))
+    assert.ok(tasks.includes('build'))
+  }
+  assert.ok(
+    scenarios.find(({ name }) => name === 'bun')?.tasks.includes('test:tooling')
+  )
+})

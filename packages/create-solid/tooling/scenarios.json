@@ -2,42 +2,75 @@
   {
     "name": "bun",
     "pm": "bun",
-    "flags": []
+    "flags": [],
+    "tasks": [
+      "check:ci",
+      "test",
+      "build",
+      "typecheck:node",
+      "test:tooling",
+      "dead-code",
+      "test:e2e",
+      "test:e2e:production"
+    ]
   },
   {
     "name": "pnpm",
     "pm": "pnpm",
-    "flags": []
+    "flags": [],
+    "tasks": ["check:ci", "build"]
   },
   {
     "name": "npm",
     "pm": "npm",
-    "flags": []
+    "flags": [],
+    "tasks": ["check:ci", "build"]
   },
   {
     "name": "static-with-seo",
     "pm": "bun",
-    "flags": ["--mode", "static", "--seo"]
+    "flags": ["--mode", "static", "--seo"],
+    "tasks": ["check:ci", "test", "build", "typecheck:node", "dead-code"]
   },
   {
     "name": "server-without-i18n",
     "pm": "bun",
-    "flags": ["--no-i18n", "--base-locale", "es-MX"]
+    "flags": ["--no-i18n", "--base-locale", "es-MX"],
+    "tasks": [
+      "check:ci",
+      "test",
+      "build",
+      "typecheck:node",
+      "dead-code",
+      "test:e2e",
+      "test:e2e:production"
+    ]
   },
   {
     "name": "static-seeded-locales",
     "pm": "bun",
-    "flags": ["--mode", "static", "--locales", "fr,ja", "--base-locale", "ja"]
+    "flags": ["--mode", "static", "--locales", "fr,ja", "--base-locale", "ja"],
+    "tasks": ["check:ci", "test", "build", "typecheck:node", "dead-code"]
   },
   {
     "name": "default-client",
     "pm": "bun",
-    "flags": ["--mode", "client", "--title", "Demo {page} \\\\ ` ${title}"]
+    "flags": ["--mode", "client", "--title", "Demo {page} \\\\ ` ${title}"],
+    "tasks": ["check:ci", "test", "build", "typecheck:node", "dead-code"]
   },
   {
     "name": "server-without-theme",
     "pm": "bun",
-    "flags": ["--no-theme", "--locales", "pt-BR,es"]
+    "flags": ["--no-theme", "--locales", "pt-BR,es"],
+    "tasks": [
+      "check:ci",
+      "test",
+      "build",
+      "typecheck:node",
+      "dead-code",
+      "test:e2e",
+      "test:e2e:production"
+    ]
   },
   {
     "name": "minimal-client",
@@ -50,7 +83,8 @@
       "--no-icons",
       "--no-fonts",
       "--no-diagnostics"
-    ]
+    ],
+    "tasks": ["check:ci", "test", "build", "typecheck:node", "dead-code"]
   },
   {
     "name": "server-without-ui-features",
@@ -62,6 +96,15 @@
       "--no-icons",
       "--locales",
       "pt-BR"
+    ],
+    "tasks": [
+      "check:ci",
+      "test",
+      "build",
+      "typecheck:node",
+      "dead-code",
+      "test:e2e",
+      "test:e2e:production"
     ]
   }
 ]

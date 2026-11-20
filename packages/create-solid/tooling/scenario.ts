@@ -49,7 +49,7 @@ try {
   if (selected && !scenarios.some(item => item.name === selected)) {
     throw new Error(`Unknown scenario: ${selected}`)
   }
-  for (const { name, pm, flags } of scenarios.filter(
+  for (const { name, pm, flags, tasks } of scenarios.filter(
     item => !selected || item.name === selected
   )) {
     const cwd = path.join(sandbox, name)
@@ -108,22 +108,6 @@ try {
         ['--test', 'tooling/__tests__/patched-dependencies.test.ts'],
         { cwd, stdio: 'inherit', timeout: 30_000 }
       )
-    }
-    const tasks = ['check:ci', 'build']
-    if (pm === 'bun' || flags.length > 0) tasks.splice(1, 0, 'test')
-    if (name === 'bun') {
-      tasks.push('typecheck:node', 'test:tooling', 'dead-code')
-    }
-    if (flags.length > 0 && name !== 'bun') {
-      tasks.push('typecheck:node', 'dead-code')
-    }
-    if (
-      name === 'bun' ||
-      name === 'server-without-i18n' ||
-      name === 'server-without-ui-features' ||
-      name === 'server-without-theme'
-    ) {
-      tasks.push('test:e2e', 'test:e2e:production')
     }
     const failedTasks: string[] = []
     for (const task of tasks) {

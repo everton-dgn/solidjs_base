@@ -285,10 +285,11 @@ configures limits and enables static generation with `static: true`.
 
 The runtime declares published `@mdream/js` as its own dependency. The optional
 converter patch also applies to that resolved copy. A derived application
-installed from tarballs gets the published converter. It preserves the space between nested inline wrappers.
-To preserve accessible link names after filtering as well, copy the patch from
-this application's `patches/` directory and its matching `patchedDependencies`
-entry from the workspace root into the derived application's root manifest.
+installed from tarballs gets the published converter. It preserves the space
+between nested inline wrappers. To preserve accessible link names after
+filtering as well, copy the patch from this application's `patches/` directory
+and its matching `patchedDependencies` entry from the workspace root into the
+derived application's root manifest.
 
 Keep the exact dependency version while applying the patch and retain the
 conversion regressions. It is optional and is not included in the runtime

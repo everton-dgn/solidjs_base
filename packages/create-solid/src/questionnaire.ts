@@ -74,11 +74,12 @@ export async function questionnaire({
       await text({
         ...io,
         message: names[key],
-        initialValue,
+        placeholder: initialValue,
+        defaultValue: initialValue,
         validate(value) {
           const problem = validateProfile({
             ...result,
-            [key]: value ?? ''
+            [key]: value || initialValue
           }).problems.find(
             item =>
               item.field.replace(/^--/u, '') ===

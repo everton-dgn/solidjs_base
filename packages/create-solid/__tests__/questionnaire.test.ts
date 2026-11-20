@@ -150,7 +150,7 @@ void it('retries a rejected URL, skips answered questions and generates the same
       [m.title, '\r'],
       [m.base, '\r'],
       [m.seo, '\r'],
-      [m.url, '\u0015bad\r'],
+      [m.url, 'bad\r'],
       [m.origin, '\u0015https://app.example\r'],
       [m.theme, 'n'],
       [m.icons, 'n'],
@@ -181,7 +181,7 @@ void it('materializes identical default trees after a full terminal session and 
   context.after(() => rmSync(root, { recursive: true, force: true }))
   const lines = allQuestions('en')
   const left = path.join(root, 'left', 'app')
-  lines[0] = [messages.en.dir, `\u0015${left}\r`]
+  lines[0] = [messages.en.dir, `${left}\r`]
   const setupQuestions = 2
   lines.splice(
     -setupQuestions,

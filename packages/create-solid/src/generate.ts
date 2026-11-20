@@ -308,16 +308,21 @@ type Progress = 'creating' | SetupCommand['task']
 type Step = 'creating' | SetupCommand | undefined
 const prepared = { guides: applyPreparedGuides, source: applyPreparedSource }
 type TerminalOptions = {
+  isInteractive?: boolean
   language: Language
   report: (progress: Progress) => void
 }
+type SetupOptions = { cwd: string; signal: AbortSignal; isInteractive: boolean }
 async function executeSetup(
   command: SetupCommand,
-  { cwd, signal }: { cwd: string; signal: AbortSignal }
+  { cwd, signal, isInteractive }: SetupOptions
 ): Promise<void> {
   const child = spawn(command.executable, command.args, {
     cwd,
-    stdio: ['ignore', 'inherit', 'inherit']
+    stdio:
+      command.task === 'gitTask' || isInteractive
+        ? 'ignore'
+        : ['ignore', 'inherit', 'inherit']
   })
   const cancel = () => child.kill('SIGINT')
   signal.addEventListener('abort', cancel, { once: true })
@@ -549,7 +554,7 @@ export function generate(input: Profile): string[] {
 }
 export async function generateTerminal(
   input: Profile,
-  { language, report }: TerminalOptions
+  { language, report, isInteractive = false }: TerminalOptions
 ): Promise<string[]> {
   const steps = generation({ input, prepare: prepared }, language)
   const controller = new AbortController()
@@ -567,6 +572,7 @@ export async function generateTerminal(
         controller.signal.throwIfAborted()
         if (typeof step === 'object') {
           await executeSetup(step, {
+            isInteractive,
             cwd: input.dir,
             signal: controller.signal
           })

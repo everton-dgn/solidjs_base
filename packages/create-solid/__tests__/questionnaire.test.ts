@@ -53,7 +53,12 @@ async function session(
       hasColor
     })
     assert.equal(index, lines.length)
-    if (!hasColor) assert.doesNotMatch(transcript, /\u001B\[[\d;:]*m/u)
+    if (!hasColor) {
+      assert.doesNotMatch(
+        transcript.split('\u001B').join('<ESC>'),
+        /<ESC>\[[\d;:]*m/u
+      )
+    }
     return { result, transcript }
   } finally {
     input.destroy()
@@ -329,6 +334,9 @@ void it('keeps cursor control with and without Solid blue', async () => {
       { hasColor }
     )
     assert.equal(transcript.includes('\u001B[38;2;68;107;158m'), hasColor)
-    assert.match(transcript, /\u001B\[[?\d;]*[ABCDEFGHJKhl]/u)
+    assert.match(
+      transcript.split('\u001B').join('<ESC>'),
+      /<ESC>\[[?\d;]*[ABCDEFGHJKhl]/u
+    )
   }
 })

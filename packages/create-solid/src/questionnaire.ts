@@ -2,6 +2,7 @@ import path from 'node:path'
 import { PassThrough, type Writable, type Readable } from 'node:stream'
 
 import {
+  type CommonOptions,
   confirm,
   intro,
   isCancel,
@@ -10,6 +11,7 @@ import {
   text
 } from '@clack/prompts'
 
+import manifest from '../package.json' with { type: 'json' }
 import { messages, type Language } from './cli-language.ts'
 import { fieldMessage } from './field-messages.ts'
 import { installers, type Answers } from './profile-answers.ts'
@@ -30,6 +32,58 @@ type Session = {
   hasColor: boolean
 }
 
+type SetupRecovery = { result: Answers; language: Language; io: CommonOptions }
+async function recoverSetup({ result, language, io }: SetupRecovery) {
+  const labels = messages[language]
+  while (!result['no-git'] && !hasTool('git')) {
+    result['no-git'] = !answer<boolean>(
+      await confirm({
+        ...io,
+        message: missingTool('git', language),
+        active: labels.retry,
+        inactive: labels.no
+      })
+    )
+    if (result['no-git']) delete result.git
+  }
+  while (!result['no-install']) {
+    const manager = installers.find(pm => pm === result.pm) ?? 'bun'
+    if (hasTool(manager)) break
+    const selected = answer<string>(
+      await select({
+        ...io,
+        message: missingTool(manager, language),
+        options: [
+          ...installers.map(value => ({ value })),
+          { value: 'skip', label: labels.skipInstall }
+        ]
+      })
+    )
+    if (selected === 'skip') {
+      result['no-install'] = true
+      delete result.install
+    } else result.pm = selected
+  }
+}
+
+function promptStreams({
+  input,
+  output,
+  hasColor
+}: Pick<Session, 'input' | 'output' | 'hasColor'>) {
+  // SGR selects colors and styles. Cursor movement must reach the terminal.
+  // oxlint-disable-next-line no-control-regex
+  const sgr = /\u001B\[[\d;:]*m/gu
+  const plainOutput = new PassThrough()
+  plainOutput.on('data', chunk =>
+    output.write(String(chunk).replaceAll(sgr, ''))
+  )
+  return {
+    input,
+    output: hasColor ? output : plainOutput,
+    accessible: !hasColor
+  }
+}
 export async function questionnaire({
   answers,
   language,
@@ -38,20 +92,13 @@ export async function questionnaire({
   hasColor
 }: Session): Promise<Answers> {
   const labels = messages[language]
-  const plainOutput = new PassThrough()
-  plainOutput.on('data', chunk =>
-    output.write(String(chunk).replaceAll(/\u001B\[[\d;:]*m/gu, ''))
-  )
-  const io = {
-    input,
-    output: hasColor ? output : plainOutput,
-    accessible: !hasColor
-  }
+  const io = promptStreams({ input, output, hasColor })
   const result = { ...answers }
   intro(
-    hasColor ? '\u001B[38;2;68;107;158mSolid Base\u001B[0m' : 'Solid Base',
+    `${hasColor ? '\u001B[38;2;68;107;158mSolid Base\u001B[0m' : 'Solid Base'} v${manifest.version}`,
     io
   )
+  io.output.write(`│  ${labels.tagline}\n`)
   const availableManagers = new Set(installers.filter(tool => hasTool(tool)))
   function reportMissingTools() {
     const requestedManager = installers.find(pm => pm === result.pm) ?? 'bun'
@@ -199,14 +246,15 @@ export async function questionnaire({
         ...io,
         message: labels.installer,
         showInstructions: false,
-        options: installers.map(value => ({
-          value,
-          hint: availableManagers.has(value)
-            ? value === 'bun'
-              ? labels.bunHint
-              : labels.installHint
-            : missingTool(value, language)
-        }))
+        options: installers.map(value => {
+          const hint = value === 'bun' ? labels.bunHint : labels.installHint
+          return {
+            value,
+            hint: availableManagers.has(value)
+              ? hint
+              : missingTool(value, language)
+          }
+        })
       })
     )
     for (const key of ['git', 'install'] as const) {
@@ -228,37 +276,6 @@ export async function questionnaire({
     })
   )
   if (setup === 'custom') await customize()
-  async function recoverSetup() {
-    while (!result['no-git'] && !hasTool('git')) {
-      result['no-git'] = !answer<boolean>(
-        await confirm({
-          ...io,
-          message: missingTool('git', language),
-          active: labels.retry,
-          inactive: labels.no
-        })
-      )
-      if (result['no-git']) delete result.git
-    }
-    while (!result['no-install']) {
-      const manager = installers.find(pm => pm === result.pm) ?? 'bun'
-      if (hasTool(manager)) break
-      const selected = answer<string>(
-        await select({
-          ...io,
-          message: missingTool(manager, language),
-          options: [
-            ...installers.map(value => ({ value })),
-            { value: 'skip', label: labels.skipInstall }
-          ]
-        })
-      )
-      if (selected === 'skip') {
-        result['no-install'] = true
-        delete result.install
-      } else result.pm = selected
-    }
-  }
-  await recoverSetup()
+  await recoverSetup({ result, language, io })
   return result
 }

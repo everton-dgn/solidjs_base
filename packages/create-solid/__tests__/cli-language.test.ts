@@ -51,18 +51,17 @@ void it('keeps message keys and interpolation parameters in sync', () => {
   }
 })
 
+const tokens = (text: string) =>
+  text
+    .match(
+      /--[\w{}-]+|git init|\{pm\} install|pnpm exec vp fmt pnpm-workspace\.yaml|bunx @evertondgn\/create-solid@latest/gu
+    )
+    ?.toSorted() ?? []
 void it('mentions the same flags and commands in each translation', () => {
-  const tokens = (text: string) =>
-    text
-      .match(
-        /--[\w{}-]+|git init|\{pm\} install|pnpm exec vp fmt pnpm-workspace\.yaml|bunx @evertondgn\/create-solid@latest/gu
-      )
-      ?.toSorted() ?? []
   for (const catalog of Object.values(messages)) {
-    for (const key of Object.keys(
-      messages.en
-    ) as (keyof typeof messages.en)[]) {
-      assert.deepEqual(tokens(catalog[key]), tokens(messages.en[key]), key)
+    const translations = new Map(Object.entries(catalog))
+    for (const [key, value] of Object.entries(messages.en)) {
+      assert.deepEqual(tokens(translations.get(key) ?? ''), tokens(value), key)
     }
   }
 })

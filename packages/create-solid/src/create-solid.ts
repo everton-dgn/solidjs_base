@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util'
 import { cliLanguage, message, messages } from './cli-language.ts'
 import { generateTerminal } from './generate.ts'
 import type { Answers } from './profile-answers.ts'
+import { projectSummary } from './project-summary.ts'
 import { hasTool } from './tools.ts'
 import {
   CanceledError,
@@ -38,48 +39,48 @@ function detectLanguage(options: string[]) {
     intlLocale
   })
 }
-async function createApplication(answers: Answers) {
+type Creation = { answers: Answers; isInteractive: boolean }
+async function createApplication({ answers, isInteractive }: Creation) {
   const validated = validateProfile(answers)
   const { profile } = validated
   if (validated.problems[0]) throw validated.problems[0]
   const labels = messages[language]
-  const enabled = (value?: boolean) => (value ? labels.yes : labels.no)
-  process.stdout.write(
-    `${[
-      labels.summary,
-      `${labels.dir} · ${profile.dir}`,
-      `${labels.title} · ${validated.title}`,
-      `${labels.mode} · ${labels[profile.mode ?? 'server']}`,
-      `${labels.languages} · ${validated.languages.locales.join(', ')}`,
-      `${labels.base} ${validated.languages.baseLocale}`,
-      `${labels.i18n} ${enabled(profile.hasI18n)}`,
-      `${labels.seo} ${enabled(profile.hasSeo)}`,
-      validated.siteUrl?.origin,
-      `${labels.theme} ${enabled(profile.hasTheme)}`,
-      `${labels.icons} ${enabled(profile.hasIcons)}`,
-      `${labels.fonts} ${enabled(profile.hasFonts)}`,
-      `${labels.diagnostics} ${enabled(profile.hasDiagnostics)}`,
-      `${labels.manager} · ${profile.pm}`,
-      `${labels.git} ${enabled(profile.shouldInitGit)}`,
-      `${labels.install} ${enabled(profile.shouldInstall)}`
-    ]
-      .filter(Boolean)
-      .join('\n')}\n`
-  )
-  const steps = await generateTerminal(
-    {
-      ...profile,
-      onSeededCatalogs: notices =>
-        process.stdout.write(`${notices.join('\n')}\n`)
-    },
-    {
-      language,
-      report: code =>
-        process.stdout.write(
-          `◇ ${message(language, { code, values: { pm: profile.pm } })}\n`
-        )
-    }
-  )
+  const summary = projectSummary({ validated, language })
+  const frame = isInteractive ? await import('./terminal-frame.ts') : undefined
+  if (frame) await frame.confirmProject(summary, language)
+  else process.stdout.write(`${labels.summary}\n${summary}\n`)
+  const progress = frame?.generationProgress(language)
+  let steps
+  try {
+    steps = await generateTerminal(
+      {
+        ...profile,
+        ...(frame
+          ? {}
+          : {
+              onSeededCatalogs: (notices: string[]) =>
+                process.stdout.write(`${notices.join('\n')}\n`)
+            })
+      },
+      {
+        language,
+        isInteractive,
+        report: code => {
+          const title = message(language, { code, values: { pm: profile.pm } })
+          if (progress) progress.start(title)
+          else process.stdout.write(`◇ ${title}\n`)
+        }
+      }
+    )
+    progress?.finish()
+  } catch (error) {
+    progress?.fail()
+    throw error
+  }
+  if (frame) {
+    frame.finishProject(steps, language)
+    return
+  }
   const width = Math.max(labels.next.length, ...steps.map(step => step.length))
   const border = '─'.repeat(width)
   process.stdout.write(
@@ -90,6 +91,12 @@ async function createApplication(answers: Answers) {
       ''
     ].join('\n')
   )
+}
+function hasInteractiveInput() {
+  const isCI = !['', '0', 'false'].includes(
+    process.env.CI?.trim().toLowerCase() ?? ''
+  )
+  return process.stdin.isTTY && !isCI
 }
 async function run(): Promise<void> {
   const args = process.argv.slice(argumentOffset)
@@ -153,11 +160,8 @@ async function run(): Promise<void> {
   const name =
     positionals[0] ?? values.name ?? (values.yes ? 'solid-app' : undefined)
   let answers = { ...values, ...(name === undefined ? {} : { name }) }
-  const isCI = !['', '0', 'false'].includes(
-    process.env.CI?.trim().toLowerCase() ?? ''
-  )
-  const interactive =
-    process.stdin.isTTY && !isCI && !values.yes && !values['no-interactive']
+  const isInteractive =
+    hasInteractiveInput() && !values.yes && !values['no-interactive']
   const hasColor =
     process.stdout.isTTY &&
     process.stdout.hasColors() &&
@@ -165,13 +169,13 @@ async function run(): Promise<void> {
   const initial = validateProfile(answers).problems.find(
     issue =>
       !(
-        interactive &&
+        isInteractive &&
         ((issue.field === 'dir' && name === undefined) ||
           (issue.code === 'membership' && values.locales === undefined))
       )
   )
   if (initial) throw initial
-  if (interactive) {
+  if (isInteractive) {
     const { questionnaire } = await import('./questionnaire.ts')
     answers = await questionnaire({
       answers,
@@ -183,7 +187,7 @@ async function run(): Promise<void> {
   } else if (!hasTool('bun')) {
     process.stdout.write(`${messages[language].missingBun}\n`)
   }
-  await createApplication(answers)
+  await createApplication({ answers, isInteractive })
 }
 
 try {

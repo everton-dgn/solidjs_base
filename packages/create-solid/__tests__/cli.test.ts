@@ -150,7 +150,7 @@ void it('preserves the destination when a required tool is missing', context => 
       env: { ...process.env, PATH: parent }
     })
     assert.equal(result.status, 1)
-    assert.match(result.stderr.toString(), /Install git/u)
+    assert.match(result.stderr.toString(), /Install Git.*git-scm\.com/u)
     assert.equal(existsSync(dir), isExisting)
     assert.ok(!existsSync(path.join(dir, 'package.json')))
   }

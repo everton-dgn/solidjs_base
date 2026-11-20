@@ -230,7 +230,11 @@ export async function questionnaire({
           required: false,
           showInstructions: false,
           initialValues: keys,
-          options: keys.map(value => ({ value, label: labels[value] }))
+          options: keys.map(value => ({
+            value,
+            label: labels[value],
+            ...(value === 'fonts' ? { hint: labels.fontHint } : {})
+          }))
         })
       )
       for (const key of keys) result[`no-${key}`] = !chosen.includes(key)

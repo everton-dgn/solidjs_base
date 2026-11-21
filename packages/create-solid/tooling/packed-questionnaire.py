@@ -12,6 +12,7 @@ import select
 import subprocess
 import sys
 import time
+from urllib.parse import quote
 
 root = pathlib.Path.cwd()
 master, slave = pty.openpty()
@@ -33,7 +34,23 @@ args = [
     "--no-seo", "--theme", "--fonts", "--icons", "--diagnostics",
     "--no-git", "--no-install",
 ]
+if should_cancel:
+    # A delayed confirmation exposes any Enter sent while the terminal is quiet.
+    delay = """
+const write = process.stdout.write.bind(process.stdout);
+process.stdout.write = (...args) => {
+  if (String(args[0]).includes('Create the project?')) {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 700);
+  }
+  return write(...args);
+};
+"""
+    args.insert(1, "--import=data:text/javascript," + quote(delay))
 transcript = bytearray()
+prompts = iter([(b"Application title", b"\r"), (b"Setup", b"\r"),
+                (b"Create the project?", b"n" if should_cancel else b"\r")])
+pending = next(prompts)
+offset = 0
 try:
     with subprocess.Popen(args, stdin=slave, stdout=slave, stderr=slave,
                           env=environment) as child:
@@ -51,9 +68,10 @@ try:
                     if not block:
                         break
                     transcript.extend(block)
-                elif child.poll() is None and transcript:
-                    key = b"n" if should_cancel and b"Create the project?" in transcript else b"\r"
-                    os.write(master, key)
+                    if pending and pending[0] in transcript[offset:]:
+                        offset = len(transcript)
+                        os.write(master, pending[1])
+                        pending = next(prompts, None)
             child.wait(timeout=1)
         finally:
             if child.poll() is None:

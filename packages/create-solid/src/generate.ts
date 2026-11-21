@@ -311,6 +311,7 @@ type TerminalOptions = {
   fail?: () => void
   report: (progress: Progress) => void
 }
+const childInterruptDeadlineMs = 750
 type SetupOptions = { cwd: string; signal: AbortSignal; isInteractive: boolean }
 async function executeSetup(
   command: SetupCommand,
@@ -333,17 +334,32 @@ async function executeSetup(
   child.stderr?.setEncoding('utf8').on('data', (chunk: string) => {
     diagnostic = (diagnostic + chunk).slice(-tailLimit)
   })
-  const cancel = () => child.kill('SIGINT')
+  let deadline: ReturnType<typeof setTimeout> | undefined
+  const force = () => child.kill('SIGKILL')
+  const cancel = () => {
+    child.kill('SIGINT')
+    deadline = setTimeout(force, childInterruptDeadlineMs)
+    for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+      process.on(signalName, force)
+    }
+  }
   signal.addEventListener('abort', cancel, { once: true })
   try {
     await once(child, 'close')
-    if (child.exitCode !== 0 || signal.aborted) {
+    if (signal.aborted || child.signalCode === 'SIGINT') {
+      throw new CanceledError()
+    }
+    if (child.exitCode !== 0) {
       throw new Error(
         diagnostic.trimEnd().split('\n').slice(-diagnosticLines).join('\n'),
         { cause: child.signalCode ?? child.exitCode }
       )
     }
   } finally {
+    clearTimeout(deadline)
+    for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+      process.off(signalName, force)
+    }
     signal.removeEventListener('abort', cancel)
   }
 }

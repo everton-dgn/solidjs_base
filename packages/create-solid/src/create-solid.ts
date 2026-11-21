@@ -46,6 +46,23 @@ function detectLanguage(options: string[]) {
 }
 const writeStep = (title: string) => process.stdout.write(`◇ ${title}\n`)
 type Creation = { answers: Answers; isInteractive: boolean }
+const interruptedExitCode = 130
+function cancelPrompt() {
+  process.stdout.write('\u001B[?25h')
+  process.stdin.setRawMode(false)
+  process.stdout.write(`\n└  ${messages[language].cancel}\n`)
+  process.exit(interruptedExitCode)
+}
+async function withPromptSignals<T>(prompt: () => Promise<T>): Promise<T> {
+  process.on('SIGTERM', cancelPrompt)
+  process.on('SIGHUP', cancelPrompt)
+  try {
+    return await prompt()
+  } finally {
+    process.off('SIGTERM', cancelPrompt)
+    process.off('SIGHUP', cancelPrompt)
+  }
+}
 async function createApplication({ answers, isInteractive }: Creation) {
   if (answers.locales === undefined && answers['base-locale'] === undefined) {
     answers['base-locale'] = questionnaireBase(
@@ -60,8 +77,9 @@ async function createApplication({ answers, isInteractive }: Creation) {
   if (!isInteractive) checkTools({ profile, language })
   const summary = projectSummary({ validated, language })
   const frame = isInteractive ? await import('./terminal-frame.ts') : undefined
-  if (frame) await frame.confirmProject({ summary, language })
-  else process.stdout.write(`${labels.summary}\n${summary}\n`)
+  if (frame) {
+    await withPromptSignals(() => frame.confirmProject({ summary, language }))
+  } else process.stdout.write(`${labels.summary}\n${summary}\n`)
   const progress = frame?.progress
   const finish = progress?.finish ?? writeStep
   let completed = ''
@@ -201,13 +219,15 @@ async function run(): Promise<void> {
   if (isInteractive) {
     terminal.framed = true
     const { questionnaire } = await import('./questionnaire.ts')
-    answers = await questionnaire({
-      answers,
-      language,
-      input: process.stdin,
-      output: process.stdout,
-      hasColor
-    })
+    answers = await withPromptSignals(() =>
+      questionnaire({
+        answers,
+        language,
+        input: process.stdin,
+        output: process.stdout,
+        hasColor
+      })
+    )
   }
   if (!isInteractive && !hasTool('bun')) {
     process.stdout.write(`${messages[language].missingBun}\n`)
@@ -247,5 +267,5 @@ try {
       (error.code.startsWith('ERR_PARSE_ARGS_') ||
         error.code === 'ERR_INVALID_URL'))
   process.exitCode = isArgumentError ? usageExitCode : 1
-  if (error instanceof CanceledError) process.exitCode = 130
+  if (error instanceof CanceledError) process.exitCode = interruptedExitCode
 }

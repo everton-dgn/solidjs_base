@@ -208,7 +208,10 @@ void it('completes a successful pnpm install without invoking a formatter', cont
     'Installing dependencies with pnpm',
     'Dependencies installed with pnpm'
   ]) {
-    assert.equal(result.stdout.split(`◇ ${line}\n`).length, 2)
+    const occurrences = result.stdout
+      .split('\n')
+      .filter(value => value === `◇ ${line}`)
+    assert.equal(occurrences.length, 1)
   }
 })
 

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { it } from 'node:test'
 
-import { projectSummary } from '../src/project-summary.ts'
+import { projectSummary } from '../src/projectSummary/index.ts'
 import { validateProfile } from '../src/validateProfile/index.ts'
 
 void it('lists selected features in order and fits the default note in 80 columns', () => {

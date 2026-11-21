@@ -74,3 +74,18 @@ export type Answers = Partial<
       string
     >
   >
+
+export type ValidationCode =
+  | 'destination'
+  | 'badTitle'
+  | 'origin'
+  | 'needsSeo'
+  | 'clientSeo'
+  | 'tag'
+  | 'list'
+  | 'noTranslations'
+  | 'membership'
+  | 'clientLanguages'
+  | 'conflict'
+  | 'invalid'
+  | 'occupied'

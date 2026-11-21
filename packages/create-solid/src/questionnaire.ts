@@ -14,7 +14,7 @@ import {
 
 import manifest from '../package.json' with { type: 'json' }
 import { messages, type Language } from './cli-language.ts'
-import { fieldMessage } from './field-messages.ts'
+import { fieldMessage } from './fieldMessage/index.ts'
 import { installers } from './profile-answers.ts'
 import { hasTool, hasRepository, missingTool } from './tools.ts'
 import type { Answers } from './types.ts'
@@ -41,7 +41,7 @@ async function recoverSetup({ result, language, io }: SetupRecovery) {
     result['no-git'] = !answer<boolean>(
       await confirm({
         ...io,
-        message: missingTool('git', language),
+        message: missingTool({ tool: 'git', language }),
         active: labels.retry,
         inactive: labels.withoutGit
       })
@@ -54,7 +54,7 @@ async function recoverSetup({ result, language, io }: SetupRecovery) {
     const selected = answer<string>(
       await select({
         ...io,
-        message: missingTool(manager, language),
+        message: missingTool({ tool: manager, language }),
         options: [
           ...installers.map(value => ({
             value,
@@ -71,6 +71,37 @@ async function recoverSetup({ result, language, io }: SetupRecovery) {
   }
 }
 
+function openQuestionnaire({
+  output,
+  input,
+  hasColor,
+  language
+}: Omit<Session, 'answers'>) {
+  const trueColorCount = 16_777_216
+  const solidBlue = output.hasColors?.(trueColorCount)
+    ? '\u001B[38;2;68;107;158m'
+    : '\u001B[38;5;67m'
+  const name = hasColor ? `${solidBlue}Solid Base\u001B[0m` : 'Solid Base'
+  intro(`${name} v${manifest.version}`, { output, input })
+  output.write(`│  ${messages[language].tagline}\n`)
+}
+function reportMissingTools({ result, language, io }: SetupRecovery) {
+  const labels = messages[language]
+  const availableManagers = new Set(installers.filter(tool => hasTool(tool)))
+  const requestedManager = installers.find(pm => pm === result.pm) ?? 'bun'
+  if (!availableManagers.has('bun')) log.warn(labels.missingBun, io)
+  if (
+    requestedManager !== 'bun' &&
+    !availableManagers.has(requestedManager) &&
+    !result['no-install']
+  ) {
+    log.warn(missingTool({ tool: requestedManager, language }), io)
+  }
+  if (!result['no-git'] && !hasRepository(result.name) && !hasTool('git')) {
+    log.warn(missingTool({ tool: 'git', language }), io)
+  }
+  return availableManagers
+}
 export async function questionnaire({
   answers,
   language,
@@ -81,38 +112,19 @@ export async function questionnaire({
   const labels = messages[language]
   const io = { input, output }
   const result = { ...answers }
-  const solidBlue = output.hasColors?.(2 ** 24)
-    ? '\u001B[38;2;68;107;158m'
-    : '\u001B[38;5;67m'
-  intro(
-    `${hasColor ? `${solidBlue}Solid Base\u001B[0m` : 'Solid Base'} v${manifest.version}`,
-    io
-  )
-  io.output.write(`│  ${labels.tagline}\n`)
-  const availableManagers = new Set(installers.filter(tool => hasTool(tool)))
-  function reportMissingTools() {
-    const requestedManager = installers.find(pm => pm === result.pm) ?? 'bun'
-    if (!availableManagers.has('bun')) log.warn(labels.missingBun, io)
-    if (
-      requestedManager !== 'bun' &&
-      !availableManagers.has(requestedManager) &&
-      !result['no-install']
-    ) {
-      log.warn(missingTool(requestedManager, language), io)
-    }
-    if (!result['no-git'] && !hasRepository(result.name) && !hasTool('git')) {
-      log.warn(missingTool('git', language), io)
-    }
-  }
-  reportMissingTools()
+  openQuestionnaire({ output, input, hasColor, language })
+  const availableManagers = reportMissingTools({ result, language, io })
   const toggle = async (message: string) =>
     answer<boolean>(
       await confirm({ ...io, message, active: labels.yes, inactive: labels.no })
     )
-  const field = async (
-    key: 'name' | 'title' | 'locales' | 'base-locale' | 'site-url',
+  const field = async ({
+    key,
+    initialValue
+  }: {
+    key: 'name' | 'title' | 'locales' | 'base-locale' | 'site-url'
     initialValue: string
-  ) => {
+  }) => {
     const names = {
       name: labels.dir,
       title: labels.title,
@@ -137,13 +149,23 @@ export async function questionnaire({
                 (key === 'name' ? 'dir' : key) ||
               (key === 'locales' && item.code === 'membership')
           )
-          return problem && fieldMessage(language, problem.code, problem.values)
+          return (
+            problem &&
+            fieldMessage({
+              language,
+              code: problem.code,
+              values: problem.values
+            })
+          )
         }
       })
     )
   }
-  await field('name', 'solid-app')
-  await field('title', path.basename(path.resolve(result.name ?? 'solid-app')))
+  await field({ key: 'name', initialValue: 'solid-app' })
+  await field({
+    key: 'title',
+    initialValue: path.basename(path.resolve(result.name ?? 'solid-app'))
+  })
   async function chooseMode() {
     if (result.mode === undefined) {
       const modes =
@@ -171,22 +193,25 @@ export async function questionnaire({
     const { defaults } = validateProfile(result)
     if (result.mode === 'client') {
       const key = result['no-i18n'] ? 'base-locale' : 'locales'
-      if (key === 'locales' && result['base-locale'])
+      if (key === 'locales' && result['base-locale']) {
         result.locales ??= result['base-locale']
+      }
       if (!result[key]) io.output.write(`│  ${labels.singleLanguage}\n`)
-      await field(key, defaults.baseLocale)
+      await field({ key, initialValue: defaults.baseLocale })
       if (result.locales) result['base-locale'] ??= result.locales
       return
     }
     if (!result['no-i18n']) {
-      await field('locales', defaults.locales.join(','))
+      await field({ key: 'locales', initialValue: defaults.locales.join(',') })
       if (result.locales && !result.locales.includes(',')) {
         result['base-locale'] ??= result.locales
       }
     }
     if (result['no-i18n']) {
-      await field('base-locale', defaults.baseLocale)
-    } else if (!result['base-locale']) {
+      await field({ key: 'base-locale', initialValue: defaults.baseLocale })
+      return
+    }
+    if (!result['base-locale']) {
       const { locales, baseLocale } = validateProfile(result).languages
       result['base-locale'] = answer<string>(
         await select({
@@ -231,7 +256,7 @@ export async function questionnaire({
       for (const key of keys) result[`no-${key}`] = !chosen.includes(key)
     }
     if (result.mode !== 'client' && !result['no-seo']) {
-      await field('site-url', 'https://example.com')
+      await field({ key: 'site-url', initialValue: 'https://example.com' })
     }
   }
   async function customize() {

@@ -16,7 +16,7 @@ import { PassThrough } from 'node:stream'
 import { it } from 'node:test'
 
 import { messages, type Language } from '../src/cli-language.ts'
-import { fieldMessage } from '../src/field-messages.ts'
+import { fieldMessage } from '../src/fieldMessage/index.ts'
 import { generate } from '../src/generate.ts'
 import { answerProfile } from '../src/profile-answers.ts'
 import { questionnaire } from '../src/questionnaire.ts'
@@ -42,8 +42,9 @@ async function session(
   const input = new PassThrough()
   let index = 0
   let transcript = ''
+  const trueColorCount = 16_777_216
   const output = Object.assign(new PassThrough(), {
-    hasColors: (count: number) => trueColor && count === 2 ** 24
+    hasColors: (count: number) => trueColor && count === trueColorCount
   })
   output.on('data', chunk => {
     const frame = String(chunk)
@@ -170,7 +171,10 @@ void it('retries a rejected URL, skips answered questions and generates the same
       [m.setup, '\u001B[B\r'],
       [m.features, '\u001B[B \u001B[B \u001B[B \u001B[B \r'],
       [m.url, 'bad\r'],
-      [fieldMessage('en', 'origin'), '\u0015https://app.example\r'],
+      [
+        fieldMessage({ language: 'en', code: 'origin' }),
+        '\u0015https://app.example\r'
+      ],
       [m.appLanguage, '\r']
     ],
     { answers }
@@ -371,7 +375,14 @@ void it('retries an occupied folder and matches the flags for a custom client ap
   const m = messages.en
   const { result } = await session([
     [m.dir, `${process.cwd()}\r`],
-    [fieldMessage('en', 'occupied', { dir: '' }).trimEnd(), `\u0015${left}\r`],
+    [
+      fieldMessage({
+        language: 'en',
+        code: 'occupied',
+        values: { dir: '' }
+      }).trimEnd(),
+      `\u0015${left}\r`
+    ],
     [m.title, 'Portal\r'],
     [m.mode, '\u001B[B\u001B[B\r'],
     [m.setup, '\u001B[B\r'],

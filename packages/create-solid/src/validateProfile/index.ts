@@ -61,24 +61,23 @@ type ValidatedProfile = {
 export function validateProfile(input: Profile | Answers): ValidatedProfile {
   const profile = 'dir' in input ? input : answerProfile(input)
   const problems = choiceProblems(input)
-  if (
-    !profile.dir.trim() ||
-    (existsSync(profile.dir) &&
-      (!statSync(profile.dir).isDirectory() ||
-        readdirSync(profile.dir).some(name => isDestinationEntry(name))))
-  ) {
+  if (!profile.dir.trim()) {
     problems.push(
-      new ProfileProblemError(
-        profile.dir.trim()
-          ? {
-              field: 'dir',
-              code: 'occupied',
-              values: {
-                dir: 'name' in input ? (input.name ?? profile.dir) : profile.dir
-              }
-            }
-          : { field: 'dir', code: 'destination' }
-      )
+      new ProfileProblemError({ field: 'dir', code: 'destination' })
+    )
+  }
+  if (
+    existsSync(profile.dir) &&
+    (!statSync(profile.dir).isDirectory() ||
+      readdirSync(profile.dir).some(name => isDestinationEntry(name)))
+  ) {
+    const dir = 'dir' in input ? input.dir : (input.name ?? profile.dir)
+    problems.push(
+      new ProfileProblemError({
+        field: 'dir',
+        code: 'occupied',
+        values: { dir }
+      })
     )
   }
   let title = ''

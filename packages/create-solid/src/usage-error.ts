@@ -1,5 +1,5 @@
 import { message, type Language } from './cli-language.ts'
-import type { ValidationCode } from './field-messages.ts'
+import type { ValidationCode } from './types.ts'
 
 type Problem = {
   field: string

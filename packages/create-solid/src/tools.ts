@@ -26,7 +26,13 @@ export function hasTool(tool: Tool): boolean {
     }
   })
 }
-export function missingTool(tool: Tool, language: Language): string {
+export function missingTool({
+  tool,
+  language
+}: {
+  tool: Tool
+  language: Language
+}): string {
   return message(language, {
     code: 'tool',
     values: { tool: toolNames[tool], link: links[tool] }
@@ -41,9 +47,9 @@ export function hasRepository(dir: string | undefined): boolean {
 }
 export function checkTools({ profile, language }: ToolCheck): void {
   if (profile.shouldInitGit && !hasRepository(profile.dir) && !hasTool('git')) {
-    throw new Error(missingTool('git', language))
+    throw new Error(missingTool({ tool: 'git', language }))
   }
   if (profile.shouldInstall && !hasTool(profile.pm)) {
-    throw new Error(missingTool(profile.pm, language))
+    throw new Error(missingTool({ tool: profile.pm, language }))
   }
 }

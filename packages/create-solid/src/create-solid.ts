@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util'
 
 import { cliLanguage, message, messages } from './cli-language.ts'
 import { generateTerminal } from './generate.ts'
-import { projectSummary } from './project-summary.ts'
+import { projectSummary } from './projectSummary/index.ts'
 import { checkTools, hasTool, toolNames } from './tools.ts'
 import type { Answers } from './types.ts'
 import {
@@ -16,7 +16,7 @@ import { validateProfile } from './validateProfile/index.ts'
 
 const argumentOffset = 2
 const usageExitCode = 2
-let framed = false
+const terminal = { framed: false }
 let language: ReturnType<typeof cliLanguage> = 'en'
 function detectLanguage(options: string[]) {
   const index = options.findLastIndex(
@@ -43,6 +43,7 @@ function detectLanguage(options: string[]) {
     intlLocale
   })
 }
+const writeStep = (title: string) => process.stdout.write(`◇ ${title}\n`)
 type Creation = { answers: Answers; isInteractive: boolean }
 async function createApplication({ answers, isInteractive }: Creation) {
   const validated = validateProfile(answers)
@@ -52,9 +53,8 @@ async function createApplication({ answers, isInteractive }: Creation) {
   if (!isInteractive) checkTools({ profile, language })
   const summary = projectSummary({ validated, language })
   const frame = isInteractive ? await import('./terminal-frame.ts') : undefined
-  if (frame) await frame.confirmProject(summary, language)
+  if (frame) await frame.confirmProject({ summary, language })
   else process.stdout.write(`${labels.summary}\n${summary}\n`)
-  const writeStep = (title: string) => process.stdout.write(`◇ ${title}\n`)
   const progress = frame?.progress ?? { start: writeStep, finish: writeStep }
   let completed = ''
   const steps = await generateTerminal(
@@ -86,7 +86,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
   )
   if (completed) progress.finish(completed)
   if (frame) {
-    frame.finishProject(steps, language)
+    frame.finishProject({ steps, language })
     return
   }
   const width = Math.max(labels.next.length, ...steps.map(step => step.length))
@@ -184,7 +184,7 @@ async function run(): Promise<void> {
   )
   if (initial) throw initial
   if (isInteractive) {
-    framed = true
+    terminal.framed = true
     const { questionnaire } = await import('./questionnaire.ts')
     answers = await questionnaire({
       answers,
@@ -193,7 +193,8 @@ async function run(): Promise<void> {
       output: process.stdout,
       hasColor
     })
-  } else if (!hasTool('bun')) {
+  }
+  if (!isInteractive && !hasTool('bun')) {
     process.stdout.write(`${messages[language].missingBun}\n`)
   }
   await createApplication({ answers, isInteractive })
@@ -219,7 +220,7 @@ try {
       .filter(Boolean)
       .join('\n')
   }
-  if (framed && error instanceof CanceledError) {
+  if (terminal.framed && error instanceof CanceledError) {
     const { outro } = await import('@clack/prompts')
     outro(reason)
   } else process.stderr.write(`${reason}\n`)

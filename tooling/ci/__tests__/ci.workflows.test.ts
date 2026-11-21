@@ -5,6 +5,7 @@ import { test } from 'node:test'
 import { parse } from 'yaml'
 
 import manifest from '../../../package.json' with { type: 'json' }
+import generator from '../../../packages/create-solid/package.json' with { type: 'json' }
 import inventory from '../../../packages/create-solid/tooling/scenarios.json' with { type: 'json' }
 import releaseConfig from '../../../release-please-config.json' with { type: 'json' }
 import { readFields } from '../../release/mergePullRequest/json.ts'
@@ -150,7 +151,7 @@ test('keeps the installed scenarios and package builds in their jobs', () => {
     )?.run,
     Object.hasOwn(releaseConfig.packages, 'packages/create-solid') ||
       releaseConfig.plugins.some(plugin =>
-        plugin.components.includes('create-solid')
+        plugin.components?.includes('create-solid')
       )
       ? 'vp run build'
       : 'vp run build:published'
@@ -196,5 +197,20 @@ test('keeps the installed scenarios and package builds in their jobs', () => {
   assert.equal(
     manifest.scripts['test:scenarios:published'],
     'node --test --test-timeout=180000 packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts'
+  )
+})
+
+test('runs prepared artifact validation in the generator gate', () => {
+  assert.ok(
+    generator.scripts['test:validated']
+      .split(' ')
+      .includes('__tests__/prepared-artifacts.validation.ts')
+  )
+  assert.ok(
+    manifest.scripts['validate:generator']
+      .split(' && ')
+      .includes(
+        'vp run --fail-if-no-match --filter @evertondgn/create-solid test:validated'
+      )
   )
 })

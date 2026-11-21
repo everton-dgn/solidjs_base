@@ -13,10 +13,11 @@ export function projectSummary({ validated, language }: Summary): string {
   const { profile, title, languages, siteUrl } = validated
   const m = messages[language]
   const features = [
-    profile.hasTheme && m.theme,
+    profile.hasSeo && 'SEO',
+    profile.hasTheme && m.summaryTheme,
     profile.hasIcons && m.icons,
-    profile.hasFonts && m.fonts,
-    profile.hasDiagnostics && m.diagnostics
+    profile.hasFonts && m.summaryFonts,
+    profile.hasDiagnostics && m.summaryDiagnostics
   ].filter(Boolean)
   const locales = languages.locales.map(tag =>
     tag === languages.baseLocale && languages.locales.length > 1

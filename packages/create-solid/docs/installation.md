@@ -56,7 +56,7 @@ selects the custom setup, static hosting, two languages and pnpm:
 │  Rendering mode: Static HTML                                                                  │
 │  Languages: en (Base language), es                                                            │
 │  Public site URL: https://portal.example                                                      │
-│  Features: Light and dark theme switcher, Icons, Solid reactivity diagnostics in development  │
+│  Features: SEO, Theme, Icons, Solid diagnostics                                               │
 │  Package manager: pnpm                                                                        │
 │  Git: Yes                                                                                     │
 │  Installation: No                                                                             │

@@ -89,21 +89,16 @@ try {
       manifest.overrides['@evertondgn/vite-plugin-solid-icons'] = icons
     }
     writeFileSync(file, `${JSON.stringify(manifest, null, jsonIndent)}\n`)
-    const workspace = path.join(cwd, 'pnpm-workspace.yaml')
-    const original = pm === 'pnpm' ? readFileSync(workspace, 'utf8') : undefined
     const installStart = performance.now()
     execFileSync(pm, ['install'], { cwd, stdio: 'inherit', timeout: 120_000 })
     const taskStart = performance.now()
     process.stdout.write(
       `${name} install: ${((taskStart - installStart) / seconds).toFixed(precision)}s\n`
     )
-    if (original !== undefined) {
-      assert.equal(readFileSync(workspace, 'utf8'), original)
-      execFileSync(
-        path.join(cwd, 'node_modules/.bin/vp'),
-        ['fmt', '--check', 'pnpm-workspace.yaml'],
-        { cwd }
-      )
+    if (pm === 'pnpm') {
+      execFileSync(path.join(cwd, 'node_modules/.bin/vp'), ['fmt', '--check'], {
+        cwd
+      })
     }
     if (!flags.includes('--no-seo') && !flags.includes('client')) {
       execFileSync(

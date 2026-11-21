@@ -152,8 +152,8 @@ console.log(nextSteps.join('\n'))
 ```
 
 `siteUrl` is optional. The build prepares the formatted template. Feature
-selection copies or edits preformatted files. The generated pnpm workspace
-includes the release-age exception for the tooling dependency.
+selection copies or edits preformatted files. The formatter ignores the
+workspace settings that pnpm rewrites during installation.
 
 Use `--theme` or `--no-theme` to include or omit the light, dark and system
 appearance control. Use `--icons` or `--no-icons` to choose between icon

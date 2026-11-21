@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
 import {
+  appendFileSync,
   existsSync,
   cpSync,
   chmodSync,
@@ -84,12 +85,17 @@ void it('declares the workspace settings needed by pnpm before installation', co
     '--pm',
     'pnpm'
   ])
-  const workspace = readFileSync(path.join(dir, 'pnpm-workspace.yaml'), 'utf8')
-  assert.ok(
-    workspace.includes(
-      'minimumReleaseAgeExclude:\n  - eslint-plugin-solid@0.20.1\n'
-    )
+  const workspace = path.join(dir, 'pnpm-workspace.yaml')
+  assert.doesNotMatch(readFileSync(workspace, 'utf8'), /minimumReleaseAge/u)
+  appendFileSync(workspace, 'minimumReleaseAgeExclude:\n  - "@example/pkg"\n')
+  symlinkSync(
+    path.resolve('../../apps/boilerplate/node_modules'),
+    path.join(dir, 'node_modules'),
+    'dir'
   )
+  execFileSync(path.join(dir, 'node_modules/.bin/vp'), ['fmt', '--check'], {
+    cwd: dir
+  })
 })
 
 void it('shows the versioned package invocation in help', () => {

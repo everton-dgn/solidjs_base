@@ -363,7 +363,7 @@ export function configureInstaller(context: GenerationContext): void {
       content: `${
         section('overrides', overrides) +
         section('patchedDependencies', settings.patches)
-      }allowBuilds:\n  lefthook: false\nminimumReleaseAgeExclude:\n  - eslint-plugin-solid@0.20.1\n`
+      }allowBuilds:\n  lefthook: false\n`
     })
   } else pkg.overrides = overrides
   if (pm === 'bun') {

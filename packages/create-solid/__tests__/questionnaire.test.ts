@@ -307,6 +307,7 @@ void it('reports missing tools before the title and recovers only the setup choi
         }
       }
     )
+    assert.doesNotMatch(transcript, /to navigate/u)
     assert.ok(transcript.includes('pnpm · not found'))
     assert.match(transcript, /▲ {2}Install Bun/u)
     for (const link of [

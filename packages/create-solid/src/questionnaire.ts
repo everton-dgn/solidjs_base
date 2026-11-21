@@ -59,6 +59,7 @@ async function recoverSetup({ result, language, io }: SetupRecovery) {
       await select({
         ...io,
         message: missingTool({ tool: manager, language }),
+        showInstructions: false,
         options: [
           ...installers.map(value => ({
             value,

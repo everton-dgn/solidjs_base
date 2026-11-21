@@ -12,6 +12,8 @@ import {
   symbol,
   symbolBar,
   formatInstructionFooter,
+  limitOptions,
+  S_CHECKBOX_ACTIVE,
   S_BAR,
   S_CHECKBOX_SELECTED,
   S_CHECKBOX_INACTIVE,
@@ -98,40 +100,63 @@ function renderFeatures({
 }: Pick<Session, 'output' | 'language'>) {
   const labels = messages[language]
   return function render(this: MultiSelectPrompt<FeatureOption>) {
-    const heading = `${symbol(this.state)}  ${labels.features}`
-    const bar = symbolBar(this.state) ?? styleText('gray', S_BAR)
+    const grayBar = styleText('gray', S_BAR)
+    const bar = `${symbolBar(this.state) ?? grayBar}  `
+    const heading = wrapTextWithPrefix(
+      output,
+      labels.features,
+      bar,
+      `${symbol(this.state)}  `
+    )
     const selected = this.value ?? []
     if (this.state === 'submit' || this.state === 'cancel') {
+      const isCanceled = this.state === 'cancel'
       const list = this.options
         .filter(item => selected.includes(item.value))
-        .map(item => item.label)
-        .join(', ')
-      return [
-        styleText('gray', S_BAR),
-        heading,
-        this.state === 'cancel' && !list
-          ? styleText('gray', S_BAR)
-          : wrapTextWithPrefix(
-              output,
-              styleText('dim', list),
-              `${styleText('gray', S_BAR)}  `
-            ),
-        ...(this.state === 'cancel' && list ? [styleText('gray', S_BAR)] : [])
-      ].join('\n')
+        .map(item =>
+          isCanceled
+            ? styleText(['strikethrough', 'dim'], item.label)
+            : styleText('dim', item.label)
+        )
+        .join(styleText('dim', ', '))
+      const lines = [grayBar, heading]
+      if (list || !isCanceled) {
+        const summary = list || styleText('dim', labels.none.toLowerCase())
+        lines.push(wrapTextWithPrefix(output, summary, `${grayBar}  `))
+      }
+      if (isCanceled) lines.push(grayBar)
+      return lines.join('\n')
     }
-    const rows = this.options.map((item, index) => {
-      const mark = selected.includes(item.value)
-        ? S_CHECKBOX_SELECTED
-        : S_CHECKBOX_INACTIVE
-      const cursor = index === this.cursor ? '>' : ' '
-      const hint = item.hint ? ` (${item.hint})` : ''
-      return `${bar} ${cursor}${mark} ${item.label}${hint}`
+    const footer = formatInstructionFooter(output, [labels.featureKeys], true)
+    const guideRows = 3
+    const rows = limitOptions({
+      output,
+      options: this.options,
+      cursor: this.cursor,
+      columnPadding: bar.length,
+      rowPadding: heading.split('\n').length + footer.length + guideRows,
+      style(item, isActive) {
+        const isSelected = selected.includes(item.value)
+        const unchecked = isActive
+          ? styleText('cyan', S_CHECKBOX_ACTIVE)
+          : styleText('dim', S_CHECKBOX_INACTIVE)
+        const mark = isSelected
+          ? styleText('green', S_CHECKBOX_SELECTED)
+          : unchecked
+        const label = isActive ? item.label : styleText('dim', item.label)
+        const hint =
+          item.hint && (isActive || isSelected)
+            ? ` ${styleText('dim', `(${item.hint})`)}`
+            : ''
+        return `${mark} ${label}${hint}`
+      }
     })
     return [
-      styleText('gray', S_BAR),
+      grayBar,
       heading,
-      ...rows,
-      ...formatInstructionFooter(output, [labels.featureKeys], true)
+      ...rows.map(row => bar + row),
+      ...footer,
+      ''
     ].join('\n')
   }
 }

@@ -42,13 +42,13 @@ def install_screen(transcript, columns):
     return ["".join(row) for row in rows]
 
 
-def question_session(directory, language, prompts, before_answer=None):
+def question_session(directory, language, prompts, before_answer=None, color=False):
     master, slave = pty.openpty()
     try:
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
         with subprocess.Popen([node, cli, "app", "--lang", language, "--mode", "server",
                                "--no-git", "--no-install"], cwd=directory,
-                              env=dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm"),
+                              env=dict(os.environ, CI="false", NO_COLOR="" if color else "1", FORCE_COLOR="1" if color else "0", TERM="xterm"),
                               stdin=slave, stdout=slave, stderr=slave) as child:
             os.close(slave)
             slave = None
@@ -374,6 +374,23 @@ class Cancellation(unittest.TestCase):
                         if terminal:
                             os.close(master)
                             os.close(slave)
+
+    def test_feature_colors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, status = question_session(directory, "en", [
+                ("Application title", b"\r"), ("Setup", b"\x1b[B\r"),
+                ("Features", b" "), ("SEO metadata", b"\x1b[B"), ("Light and dark theme switcher", b"\x03")], color=True)
+            self.assertEqual(status, 130)
+            self.assertIn("\x1b[32m◼", output)
+            self.assertIn("\x1b[36m◻", output)
+            self.assertIn("\x1b[2m◻", output)
+            self.assertIn("\x1b[2m(uncheck to use system fonts)", output)
+            canceled = output.rsplit("\x1b[J", 1)[-1]
+            self.assertIn("\x1b[9m", canceled)
+            plain = re.sub(r"\x1b\[[0-9;?]*[mhl]", "", canceled)
+            self.assertIn("Light and dark theme switcher", plain)
+            self.assertNotIn("SEO metadata", plain)
+            self.assertEqual(plain.rstrip().splitlines()[-2:], ["│", "└  Creation canceled."])
 
     def test_question_cancel(self):
         for language, title, setup, create, no, closing in [

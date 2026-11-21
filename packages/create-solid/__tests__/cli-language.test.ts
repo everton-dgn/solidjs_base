@@ -83,7 +83,12 @@ void it('introduces the included Solid 2 tooling in every language', () => {
 
 void it('fits focused options with their hints in 80 columns', () => {
   for (const m of Object.values(messages)) {
+    const width = 80
+    for (const label of [m.seo, m.theme, m.icons, m.diagnostics]) {
+      assert.ok(`│ >◼ ${label}`.length <= width)
+    }
     for (const [label, hint] of [
+      [m.fonts, m.fontHint],
       [m.server, m.serverHint],
       [m.static, m.staticHint],
       [m.client, m.clientHint],

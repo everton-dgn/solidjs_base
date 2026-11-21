@@ -34,7 +34,7 @@ selects the custom setup, static hosting, two languages and pnpm:
 ◇  Enable translations?
 │  Yes
 │
-◇  Language tags, separated by commas
+◇  Languages, separated by commas
 │  en,es
 │
 ◇  Base language

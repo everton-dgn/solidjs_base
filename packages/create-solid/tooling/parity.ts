@@ -51,6 +51,14 @@ try {
       )
     }
   }
+  execFileSync(
+    'python3',
+    [
+      path.resolve('tooling/cancel-questionnaire.py'),
+      path.join(sandbox, 'package/dist/create-solid.mjs')
+    ],
+    { cwd: sandbox, stdio: 'inherit' }
+  )
   for (const ci of ['', 'false', '0']) {
     execFileSync(
       'python3',

@@ -25,7 +25,10 @@ export async function confirmProject(
   }
 }
 export function generationProgress(language: Language): Progress {
-  const progress = spinner({ cancelMessage: messages[language].cancel })
+  const progress = spinner({
+    accessible: true,
+    cancelMessage: messages[language].cancel
+  })
   let current = ''
   return {
     start(title: string) {

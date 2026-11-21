@@ -509,14 +509,13 @@ export function* generation({
     try {
       yield { task: 'gitTask', executable: 'git', args: ['init'] }
     } catch (error) {
-      if (error instanceof CanceledError) throw error
-      throw new Error(
-        message(language, {
-          code: 'gitFailure',
-          values: { dir: profile.dir, pm: profile.pm }
-        }),
-        { cause: error }
-      )
+      const resume = message(language, {
+        code: 'gitFailure',
+        values: { dir: path.relative(process.cwd(), profile.dir) || '.' }
+      })
+      if (error instanceof CanceledError)
+        throw new CanceledError(resume, { cause: error })
+      throw new Error(resume, { cause: error })
     }
   }
   yield* installProfile({ profile, language })

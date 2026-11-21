@@ -107,7 +107,7 @@ Automation
     retry: 'Check again',
     skipInstall: 'Skip installation',
     gitFailure:
-      'Git initialization failed. Open {dir} and run git init with Git installed, or continue without Git. Run {pm} install to install dependencies.',
+      'Your project is in {dir}. Run git init there to create the repository.',
     installFailure: 'Open {dir} and run {pm} install again.',
     creating: 'Creating application files',
     gitTask: 'Initializing Git',
@@ -227,7 +227,7 @@ Automação
     retry: 'Verificar novamente',
     skipInstall: 'Pular a instalação',
     gitFailure:
-      'Falha ao criar o repositório. Abra {dir} e execute git init com o Git instalado, ou continue sem Git. Execute {pm} install para instalar as dependências.',
+      'Seu projeto está em {dir}. Execute git init nessa pasta para criar o repositório.',
     installFailure: 'Abra {dir} e execute {pm} install novamente.',
     creating: 'Criando os arquivos da aplicação',
     gitTask: 'Inicializando o Git',
@@ -347,7 +347,7 @@ Automatización
     retry: 'Volver a comprobar',
     skipInstall: 'Omitir la instalación',
     gitFailure:
-      'No se pudo crear el repositorio. Abre {dir} y ejecuta git init con Git instalado o continúa sin Git. Ejecuta {pm} install para instalar las dependencias.',
+      'Tu proyecto está en {dir}. Ejecuta git init allí para crear el repositorio.',
     installFailure: 'Abre {dir} y ejecuta {pm} install de nuevo.',
     creating: 'Creando los archivos de la aplicación',
     gitTask: 'Inicializando Git',

@@ -107,8 +107,12 @@ void it('explains how to continue after Git initialization fails', context => {
     env: { ...process.env, PATH: `${parent}:${process.env.PATH}` }
   })
   assert.equal(result.status, 1)
-  assert.ok(result.stderr.includes(`Open ${dir} and run git init`))
-  assert.ok(result.stderr.includes('bun install'))
+  assert.ok(
+    result.stderr.includes(
+      `Your project is in ${path.relative(process.cwd(), dir)}. Run git init`
+    )
+  )
+  assert.doesNotMatch(result.stderr, /bun install/u)
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })
 
@@ -574,6 +578,11 @@ void it('reports cancellation during Git setup after publishing the tree', conte
   assert.equal(result.status, canceled)
   assert.match(result.stderr, /Creation canceled/u)
   assert.doesNotMatch(result.stderr, /Git initialization failed/u)
+  assert.ok(
+    result.stderr.includes(
+      `Your project is in ${path.relative(process.cwd(), dir)}. Run git init`
+    )
+  )
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })
 

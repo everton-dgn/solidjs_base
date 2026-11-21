@@ -44,3 +44,27 @@ void it('draws the Clack status colors and indicator for each terminal', () => {
   assert.doesNotMatch(redirected, /\r/u)
   assert.match(redirected, /done/u)
 })
+
+void it('redraws in a single column and clips only the Git warning title', () => {
+  const script = `
+    Object.defineProperty(process.stdout, 'isTTY', {value: true})
+    Object.defineProperty(process.stdout, 'columns', {value: 1, configurable: true})
+    const { progress } = await import('./src/terminal-frame.ts')
+    progress.start('files')
+    progress.finish('done')
+    Object.defineProperty(process.stdout, 'columns', {value: 12})
+    progress.warn('Git repository not created\\ndenied by configuration')
+  `
+  const output = execFileSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, FORCE_COLOR: '0', TERM: 'xterm' }
+    }
+  )
+  assert.equal(
+    output,
+    '\r◒\r\u001B[2K◇\n▲  Git repo…\n│  denied by configuration\n'
+  )
+})

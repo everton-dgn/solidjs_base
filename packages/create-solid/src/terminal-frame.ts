@@ -64,9 +64,9 @@ export const progress = {
     if (!process.stdout.isTTY) return
     let index = 0
     const draw = () => {
-      process.stdout.write(
-        `\r${styleText('magenta', frames[index] ?? '')}  ${stepTitle(title)}`
-      )
+      const mark = styleText('magenta', frames[index] ?? '')
+      const label = stepTitle(title)
+      process.stdout.write(label ? `\r${mark}  ${label}` : `\r${mark}`)
       index = (index + 1) % frames.length
     }
     draw()
@@ -76,9 +76,10 @@ export const progress = {
     clearIndicator()
     log.step(stepTitle(title), { spacing: 0 })
   },
-  warn(title: string): void {
+  warn(message: string): void {
     clearIndicator()
-    log.warn(title, { spacing: 0 })
+    const [title = '', ...diagnostic] = message.split('\n')
+    log.warn([stepTitle(title), ...diagnostic].join('\n'), { spacing: 0 })
   },
   error(title: string): void {
     clearIndicator()

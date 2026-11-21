@@ -78,7 +78,7 @@ try:
                 child.kill()
         output = transcript.decode(errors="replace")
         plain = re.sub(r"\x1b\[[0-9;:]*m", "", output)
-        assert ("\x1b[38;2;68;107;158m" in output) == has_color, output
+        assert any(color in output for color in ["\x1b[38;2;68;107;158m", "\x1b[38;5;67m"]) == has_color, output
         assert has_color or plain == output, output
         assert re.search(r"\x1b\[[?0-9;]*[ABCDEFGHJKhl]", output), output
         labels = ["Solid Base v", "Start a Solid 2 application with Vite+, TypeScript and tests set up.",

@@ -91,7 +91,8 @@ void it('fits focused options with their hints in 80 columns', () => {
       [`bun · ${m.unavailable}`, m.bunHint]
     ] as const) {
       assert.doesNotMatch(hint, /[()]|\.$/u)
-      assert.ok(`│  ● ${label} (${hint})`.length <= 80)
+      const terminalWidth = 80
+      assert.ok(`│  ● ${label} (${hint})`.length <= terminalWidth)
     }
   }
 })

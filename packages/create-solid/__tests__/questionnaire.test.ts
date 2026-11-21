@@ -28,15 +28,23 @@ type SessionOptions = {
   answers?: Answers
   language?: Language
   hasColor?: boolean
+  trueColor?: boolean
 }
 async function session(
   lines: Line[],
-  { answers = {}, language = 'en', hasColor = false }: SessionOptions = {}
+  {
+    answers = {},
+    language = 'en',
+    hasColor = false,
+    trueColor = false
+  }: SessionOptions = {}
 ) {
   const input = new PassThrough()
   let index = 0
   let transcript = ''
-  const output = new PassThrough()
+  const output = Object.assign(new PassThrough(), {
+    hasColors: (count: number) => trueColor && count === 2 ** 24
+  })
   output.on('data', chunk => {
     const frame = String(chunk)
     transcript += frame
@@ -331,7 +339,11 @@ for (const language of ['en', 'pt-BR', 'es'] as const) {
 }
 
 void it('keeps cursor control with and without Solid blue', async () => {
-  for (const hasColor of [false, true]) {
+  for (const [hasColor, trueColor] of [
+    [false, false],
+    [true, false],
+    [true, true]
+  ] as const) {
     const m = messages.en
     const { transcript } = await session(
       [
@@ -340,9 +352,10 @@ void it('keeps cursor control with and without Solid blue', async () => {
         [m.mode, '\r'],
         [m.setup, '\r']
       ],
-      { hasColor }
+      { hasColor, trueColor }
     )
-    assert.equal(transcript.includes('\u001B[38;2;68;107;158m'), hasColor)
+    assert.equal(transcript.includes('\u001B[38;2;68;107;158m'), trueColor)
+    assert.equal(transcript.includes('\u001B[38;5;67m'), hasColor && !trueColor)
     assert.match(
       transcript.split('\u001B').join('<ESC>'),
       /<ESC>\[[?\d;]*[ABCDEFGHJKhl]/u

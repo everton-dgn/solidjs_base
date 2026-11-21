@@ -30,7 +30,7 @@ type Session = {
   answers: Answers
   language: Language
   input: Readable
-  output: Writable
+  output: Writable & { hasColors?: (count: number) => boolean }
   hasColor: boolean
 }
 
@@ -81,8 +81,11 @@ export async function questionnaire({
   const labels = messages[language]
   const io = { input, output }
   const result = { ...answers }
+  const solidBlue = output.hasColors?.(2 ** 24)
+    ? '\u001B[38;2;68;107;158m'
+    : '\u001B[38;5;67m'
   intro(
-    `${hasColor ? '\u001B[38;2;68;107;158mSolid Base\u001B[0m' : 'Solid Base'} v${manifest.version}`,
+    `${hasColor ? `${solidBlue}Solid Base\u001B[0m` : 'Solid Base'} v${manifest.version}`,
     io
   )
   io.output.write(`│  ${labels.tagline}\n`)

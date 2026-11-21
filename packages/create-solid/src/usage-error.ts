@@ -28,3 +28,7 @@ export class ProfileProblemError extends UsageError {
 export class CanceledError extends Error {
   public override name = 'CanceledError'
 }
+
+export class ReportedInstallError extends Error {
+  public override name = 'ReportedInstallError'
+}

@@ -1,7 +1,7 @@
 import { message, type Language } from '../cli-language.ts'
 import { shellDirectory } from '../shellDirectory/index.ts'
 import type { Profile } from '../types.ts'
-import { CanceledError } from '../usage-error.ts'
+import { CanceledError, ReportedInstallError } from '../usage-error.ts'
 
 type InstallOptions = {
   profile: Profile
@@ -40,7 +40,12 @@ export function* installProfile({
       throw new CanceledError(resume, { cause: error })
     }
     throw new Error(
-      [error instanceof Error ? error.message : '', resume]
+      [
+        error instanceof Error && !(error instanceof ReportedInstallError)
+          ? error.message
+          : '',
+        resume
+      ]
         .filter(Boolean)
         .join('\n\n'),
       { cause: error }

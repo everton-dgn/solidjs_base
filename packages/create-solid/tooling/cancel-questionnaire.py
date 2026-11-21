@@ -1,6 +1,7 @@
 """Check Ctrl+C with the CLI in the foreground of a controlling terminal."""
 
 import fcntl
+import subprocess
 import struct
 import os
 import pathlib
@@ -59,7 +60,7 @@ class Cancellation(unittest.TestCase):
             if git_warning:
                 bun.write_text("#!/bin/sh\necho denied >&2\nexit 1\n")
                 installer = root / "bun"
-                installer.write_text("#!/bin/sh\nexit 0\n")
+                installer.write_text("#!/bin/sh\nprintf 'first\\nsecond\\nthird\\n' >&2\nexit 0\n")
                 installer.chmod(0o755)
             if files_failure:
                 dist = root / "package/dist"
@@ -125,6 +126,8 @@ class Cancellation(unittest.TestCase):
                     transcript.extend(block)
                 if git_warning:
                     screen = install_screen(transcript, columns)
+                    for diagnostic in (b"first", b"second", b"third"):
+                        self.assertNotIn(diagnostic, transcript)
                     warning = screen.index("▲  Git repository not created")
                     self.assertEqual(screen[warning:warning + 3], [
                         "▲  Git repository not created", "│  denied", "◇  Dependencies installed with Bun"])
@@ -266,6 +269,58 @@ class Cancellation(unittest.TestCase):
 
     def test_files(self):
         self.exercise(False)
+
+    def test_plain_installer_stderr(self):
+        for terminal in (False, True):
+            for status in (0, 1):
+                with self.subTest(terminal=terminal, status=status), tempfile.TemporaryDirectory() as directory:
+                    root = pathlib.Path(directory)
+                    installer = root / "bun"
+                    installer.write_text("#!/bin/sh\nprintf 'first\\nsecond\\nthird\\n' >&2\n"
+                                         'while [ ! -f "$RELEASE" ]; do sleep .02; done\n'
+                                         f"exit {status}\n")
+                    installer.chmod(0o755)
+                    release = root / "release"
+                    env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm",
+                               PATH=str(root) + ":" + os.environ["PATH"], RELEASE=str(release))
+                    master, slave = pty.openpty() if terminal else (None, None)
+                    try:
+                        with subprocess.Popen([node, cli, "app", "--yes", "--lang", "en", "--no-git"],
+                                              cwd=root, env=env, stdin=slave or subprocess.DEVNULL,
+                                              stdout=slave or subprocess.PIPE, stderr=slave or subprocess.PIPE) as child:
+                            stream = master if terminal else child.stderr.fileno()
+                            data = bytearray()
+                            deadline = time.monotonic() + 10
+                            try:
+                                while b"third" not in data:
+                                    self.assertTrue(select.select([stream], [], [], max(0, deadline-time.monotonic()))[0], data)
+                                    block = os.read(stream, 65536)
+                                    self.assertTrue(block, data)
+                                    data.extend(block)
+                            finally:
+                                release.touch()
+                                stdout, stderr = child.communicate(timeout=5)
+                            if terminal:
+                                while select.select([master], [], [], 0)[0]:
+                                    data.extend(os.read(master, 65536))
+                            else:
+                                data.extend(stderr)
+                            lines = data.decode().splitlines()
+                            start = lines.index("first")
+                            self.assertEqual(lines[start:start + 3], ["first", "second", "third"])
+                            for line in ("first", "second", "third"):
+                                self.assertEqual(lines.count(line), 1)
+                            self.assertEqual(child.returncode, status)
+                            if status:
+                                self.assertEqual(lines[start + 3:], ["▲ Could not install dependencies with Bun",
+                                    "Your project is in app. To finish, run:", "cd app", "bun install", "", "Creation stopped."])
+                            else:
+                                closing = "\n".join(lines[start + 3:]) if terminal else stdout.decode()
+                                self.assertIn("Dependencies installed with Bun", closing)
+                    finally:
+                        if terminal:
+                            os.close(master)
+                            os.close(slave)
 
     def test_git_warning(self):
         self.exercise(True, git=True, git_warning=True)

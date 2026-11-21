@@ -60,7 +60,7 @@ import type {
   StagedContext,
   Versions
 } from './types.ts'
-import { CanceledError } from './usage-error.ts'
+import { CanceledError, ReportedInstallError } from './usage-error.ts'
 import { validateProfile } from './validateProfile/index.ts'
 
 const maxPackageNameLength = 214
@@ -328,8 +328,10 @@ async function executeSetup(
   })
   const tailLimit = 8192
   const diagnosticLines = 6
+  const shouldForward = command.task === 'installTask' && !isInteractive
   let diagnostic = ''
   child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
+    if (shouldForward) process.stderr.write(chunk)
     diagnostic = (diagnostic + chunk).slice(-tailLimit)
   })
   let deadline: ReturnType<typeof setTimeout> | undefined
@@ -359,10 +361,15 @@ async function executeSetup(
       throw new CanceledError()
     }
     if (child.exitCode !== 0) {
-      throw new Error(
-        diagnostic.trimEnd().split('\n').slice(-diagnosticLines).join('\n'),
-        { cause: child.signalCode ?? child.exitCode }
-      )
+      const tail = diagnostic
+        .trimEnd()
+        .split('\n')
+        .slice(-diagnosticLines)
+        .join('\n')
+      const Failure = shouldForward ? ReportedInstallError : Error
+      throw new Failure(tail, {
+        cause: child.signalCode ?? child.exitCode
+      })
     }
   } finally {
     clearTimeout(deadline)

@@ -62,7 +62,8 @@ async function createApplication({ answers, isInteractive }: Creation) {
   const frame = isInteractive ? await import('./terminal-frame.ts') : undefined
   if (frame) await frame.confirmProject({ summary, language })
   else process.stdout.write(`${labels.summary}\n${summary}\n`)
-  const progress = frame?.progress ?? { start: writeStep, finish: writeStep }
+  const progress = frame?.progress
+  const finish = progress?.finish ?? writeStep
   let completed = ''
   const steps = await generateTerminal(
     {
@@ -85,13 +86,13 @@ async function createApplication({ answers, isInteractive }: Creation) {
           gitTask: 'gitDone',
           installTask: 'installDone'
         } as const
-        if (completed) progress.finish(completed)
-        progress.start(title)
+        if (completed) finish(completed)
+        progress?.start(title)
         completed = message(language, { code: done[code], values })
       }
     }
   )
-  if (completed) progress.finish(completed)
+  if (completed) finish(completed)
   if (frame) {
     frame.finishProject({ steps, language })
     return
@@ -227,9 +228,9 @@ try {
       .filter(Boolean)
       .join('\n')
   }
-  if (terminal.framed && error instanceof CanceledError) {
-    const { outro } = await import('@clack/prompts')
-    outro(reason)
+  if (terminal.framed) {
+    const { closeFrame } = await import('./terminal-frame.ts')
+    closeFrame(reason)
   } else process.stderr.write(`${reason}\n`)
   const isArgumentError =
     error instanceof UsageError ||

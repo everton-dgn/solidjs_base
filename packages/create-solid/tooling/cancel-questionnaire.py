@@ -71,6 +71,9 @@ class Cancellation(unittest.TestCase):
                 self.assertTrue(waited)
                 if failure:
                     self.assertEqual(os.waitstatus_to_exitcode(status), 1)
+                    self.assertIn("■  Installing".encode(), transcript)
+                    self.assertIn("│  Open parent/app".encode(), transcript)
+                    self.assertIn("└".encode(), transcript.split(b"registry-failure")[-1])
                     self.assertIn(b"registry-failure", transcript)
                     self.assertNotIn(b"discarded-line", transcript)
                     self.assertIn(b"Open parent/app and run bun install again.", transcript)

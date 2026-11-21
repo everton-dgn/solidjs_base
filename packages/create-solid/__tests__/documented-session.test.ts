@@ -71,8 +71,8 @@ void it('keeps the guide transcript in the order of the English questionnaire', 
     m.install,
     m.summary,
     m.create,
-    m.creating,
-    m.gitTask,
+    m.created,
+    m.gitDone,
     m.next,
     m.ready
   ]) {

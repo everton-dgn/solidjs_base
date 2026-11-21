@@ -91,6 +91,9 @@ try:
             found = plain.find(label, previous + 1)
             assert found > previous, (label, plain)
             previous = found
+        if not should_cancel:
+            assert "\r\x1b[2K◇  Files created" in plain, plain
+            assert "◆  Files created" not in plain, plain
         if should_cancel:
             assert plain.count("Creation canceled.") == 1, plain
             assert child.returncode == 130 and not (root / project).exists(), output

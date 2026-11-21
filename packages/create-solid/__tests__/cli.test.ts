@@ -217,7 +217,10 @@ void it('completes a successful pnpm install without invoking a formatter', cont
     const occurrences = result.stdout
       .split('\n')
       .filter(value => value === `◇ ${line}`)
-    assert.equal(occurrences.length, 1)
+    assert.equal(
+      occurrences.length,
+      line.startsWith('Creating') || line.startsWith('Installing') ? 0 : 1
+    )
   }
 })
 

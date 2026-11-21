@@ -67,13 +67,8 @@ selects the custom setup, static hosting, two languages and pnpm:
 ◇  Create the project?
 │  Yes
 │
-◇  Creating the files
-│
-◆  Files created
-│
-◇  Creating the Git repository
-│
-◆  Git repository created
+◇  Files created
+◇  Git repository created
 │
 ◇  Next steps ────────────────────────────╮
 │                                         │

@@ -39,6 +39,8 @@ async function session(
     hasTrueColor = false
   }: SessionOptions = {}
 ) {
+  const previousTerm = process.env.TERM
+  process.env.TERM = 'xterm'
   const input = new PassThrough()
   let index = 0
   let transcript = ''
@@ -72,6 +74,8 @@ async function session(
     }
     return { result, transcript }
   } finally {
+    if (previousTerm === undefined) delete process.env.TERM
+    else process.env.TERM = previousTerm
     input.destroy()
   }
 }

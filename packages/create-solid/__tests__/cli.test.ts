@@ -95,6 +95,14 @@ void it('declares the workspace settings needed by pnpm before installation', co
     path.join(dir, 'node_modules'),
     'dir'
   )
+  const readPreset = [
+    "import config from './vite.config.ts'",
+    "import assert from 'node:assert/strict'",
+    "assert.ok(config({ mode: 'production', command: 'build' }).fmt.ignorePatterns.includes('pnpm-workspace.yaml'))"
+  ].join('\n')
+  execFileSync(process.execPath, ['--input-type=module', '-e', readPreset], {
+    cwd: dir
+  })
   execFileSync(path.join(dir, 'node_modules/.bin/vp'), ['fmt', '--check'], {
     cwd: dir
   })

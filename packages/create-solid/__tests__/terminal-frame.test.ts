@@ -97,3 +97,20 @@ void it('wraps the installer tail and long resume path inside the guide', () => 
     '└  end'
   ])
 })
+
+void it('uses ASCII dots when clipping an ASCII step', () => {
+  const script = `
+    Object.defineProperty(process.stdout, 'columns', {value: 12})
+    const { progress } = await import('./src/terminal-frame.ts')
+    progress.finish('Dependencies installed')
+  `
+  const output = execFileSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, FORCE_COLOR: '0', TERM: 'linux' }
+    }
+  )
+  assert.match(output, / {2}Depend\.\.\.\n$/u)
+})

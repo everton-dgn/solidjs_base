@@ -5,6 +5,7 @@ import {
   S_BAR,
   S_STEP_ERROR,
   S_BAR_END,
+  unicode,
   confirm,
   isCancel,
   note,
@@ -36,7 +37,8 @@ function stepTitle(title: string, columns = process.stdout.columns): string {
   if (!Number.isFinite(columns)) return title
   const width = Math.max(0, columns - prefixWidth)
   if (title.length <= width) return title
-  return width === 0 ? '' : `${title.slice(0, width - 1)}…`
+  const ellipsis = (unicode ? '…' : '...').slice(0, width)
+  return title.slice(0, width - ellipsis.length) + ellipsis
 }
 function clearIndicator() {
   if (!active) return

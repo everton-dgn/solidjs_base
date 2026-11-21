@@ -3,21 +3,21 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import process from 'node:process'
 import { it } from 'node:test'
 
-type Terminal = { isTTY: boolean; term: string; statuses?: boolean }
-function draw({ isTTY, term, statuses = false }: Terminal): string {
+type Terminal = { isTTY: boolean; term: string; shouldDrawStatuses?: boolean }
+function draw({ isTTY, term, shouldDrawStatuses = false }: Terminal): string {
   const script = `
     Object.defineProperty(process.stdout, 'isTTY', {value: ${isTTY}})
     const { progress, closeFrame } = await import('./src/terminal-frame.ts')
     progress.start('files')
     progress.finish('done')
-    if (${statuses}) {
+    if (${shouldDrawStatuses}) {
     progress.start('git')
     progress.warn('warning')
     progress.start('install')
     progress.cancel()
     progress.start('files')
     progress.error('error')
-    closeFrame('reason', 'end')
+    closeFrame({ reason: 'reason', closing: 'end' })
     }
   `
   return execFileSync(process.execPath, ['--input-type=module', '-e', script], {
@@ -28,7 +28,7 @@ function draw({ isTTY, term, statuses = false }: Terminal): string {
 void it('draws the Clack status colors and indicator for each terminal', () => {
   const steps = draw({ isTTY: true, term: 'xterm' })
   assert.ok(steps.includes('\u001B[32m◇'), JSON.stringify(steps))
-  const output = draw({ isTTY: true, term: 'xterm', statuses: true })
+  const output = draw({ isTTY: true, term: 'xterm', shouldDrawStatuses: true })
   for (const colored of [
     '\u001B[35m◒',
     '\u001B[32m◇',
@@ -75,7 +75,7 @@ void it('wraps the installer tail and long resume path inside the guide', () => 
   const script = `
     Object.defineProperty(process.stdout, 'columns', {value: 24})
     const { closeFrame } = await import('./src/terminal-frame.ts')
-    closeFrame(${JSON.stringify(reason)}, 'end')
+    closeFrame({ reason: ${JSON.stringify(reason)}, closing: 'end' })
   `
   const output = execFileSync(
     process.execPath,

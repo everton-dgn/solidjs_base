@@ -350,7 +350,8 @@ void it('keeps the template switcher and language examples for the default serve
 void it('keeps explicit project languages independent of the questionnaire language', context => {
   const root = mkdtempSync(path.join(tmpdir(), 'solid-language-precedence-'))
   context.after(() => rmSync(root, { recursive: true, force: true }))
-  function read(language: string, flags: string[]) {
+  type Settings = { language: string; flags: string[] }
+  function read({ language, flags }: Settings) {
     const dir = path.join(root, language)
     const result = spawnSync(
       process.execPath,
@@ -369,9 +370,12 @@ void it('keeps explicit project languages independent of the questionnaire langu
     assert.equal(result.status, 0, result.stderr)
     return readLocaleSettings(dir).baseLocale
   }
-  assert.equal(read('pt-BR', ['--base-locale', 'en']), 'en')
+  assert.equal(
+    read({ language: 'pt-BR', flags: ['--base-locale', 'en'] }),
+    'en'
+  )
   const flags = ['--locales', 'pt,en']
-  const base = read('en', flags)
+  const base = read({ language: 'en', flags })
   assert.equal(base, 'pt')
-  assert.equal(read('es', flags), base)
+  assert.equal(read({ language: 'es', flags }), base)
 })

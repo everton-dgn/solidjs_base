@@ -132,20 +132,20 @@ async function createApplication({ answers, isInteractive }: Creation) {
     )
   } catch (error) {
     if (error instanceof UsageError) throw error
-    const canceled = error instanceof CanceledError
+    const isCanceled = error instanceof CanceledError
     const reason = errorMessage(error)
-    const closing = canceled ? labels.cancel : labels.stopped
+    const closing = isCanceled ? labels.cancel : labels.stopped
     if (frame) {
-      if (canceled) frame.progress.cancel()
+      if (isCanceled) frame.progress.cancel()
       else frame.progress.error(failureTitle)
-      frame.closeFrame(reason, closing)
+      frame.closeFrame({ reason, closing })
     } else {
-      const title = canceled ? `■ ${active}` : `▲ ${failureTitle}`
+      const title = isCanceled ? `■ ${active}` : `▲ ${failureTitle}`
       process.stderr.write(
         [...[title, reason].filter(Boolean), '', closing, ''].join('\n')
       )
     }
-    process.exitCode = canceled ? interruptedExitCode : 1
+    process.exitCode = isCanceled ? interruptedExitCode : 1
     return
   }
   if (completed) finish(completed)
@@ -301,7 +301,7 @@ try {
   if (terminal.isFramed) {
     const { closeFrame, closeQuestion } = await import('./terminal-frame.ts')
     if (error instanceof CanceledError) closeQuestion(messages[language].cancel)
-    else closeFrame(reason)
+    else closeFrame({ reason })
   } else process.stderr.write(`${reason}\n`)
   const isArgumentError =
     error instanceof UsageError ||

@@ -22,6 +22,8 @@ type Completion = {
   language: Language
 }
 
+type Closing = { reason: string; closing?: string }
+
 type Confirmation = {
   summary: string
   language: Language
@@ -113,7 +115,7 @@ export const progress = {
 export function closeQuestion(label: string): void {
   outro(`${styleText('gray', S_BAR_END)}  ${label}`, { withGuide: false })
 }
-export function closeFrame(reason: string, closing?: string): void {
+export function closeFrame({ reason, closing }: Closing): void {
   if (reason) {
     log.message(wrapFrameText({ output: process.stdout, text: reason }), {
       spacing: 0

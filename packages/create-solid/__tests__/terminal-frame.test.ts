@@ -156,3 +156,36 @@ void it('aligns wrapped next steps with the note text', () => {
   )
   assert.match(output, /^│ {2}your site URL before publishing\. +│$/mu)
 })
+
+void it('keeps commands on one frame line for resuming and starting', () => {
+  const commands = [
+    'cd a-directory-name-longer-than-the-terminal',
+    'git init',
+    'pnpm install',
+    'bun run dev'
+  ]
+  const script = `
+    Object.defineProperty(process.stdout, 'columns', {value: 10})
+    const { finishProject, closeFrame } = await import('./src/terminal-frame.ts')
+    const steps = ${JSON.stringify(commands)}
+    closeFrame({reason: steps.join('\\n'), closing: 'end'})
+    finishProject({steps, language: 'en'})
+  `
+  const output = execFileSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, FORCE_COLOR: '0', TERM: 'xterm' }
+    }
+  )
+  const lines = output.split('\n')
+  const expectedOccurrences = 2
+  for (const command of commands) {
+    assert.equal(
+      lines.filter(line => line === `│  ${command}`).length,
+      expectedOccurrences,
+      output
+    )
+  }
+})

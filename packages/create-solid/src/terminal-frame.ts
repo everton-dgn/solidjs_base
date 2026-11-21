@@ -1,6 +1,7 @@
 import process from 'node:process'
 import { styleText } from 'node:util'
 
+import { wrapTextWithPrefix } from '@clack/core'
 import {
   S_BAR,
   S_STEP_ERROR,
@@ -50,6 +51,18 @@ function clearIndicator() {
   if (indicator) process.stdout.write('\r\u001B[2K')
   indicator = undefined
   active = ''
+}
+function isCommand(line: string): boolean {
+  return /^(?:cd .+|git init|(?:npm|pnpm|bun) install|bun run dev)$/u.test(line)
+}
+function wrapInstructions(text: string): string[] {
+  return text
+    .split('\n')
+    .flatMap(line =>
+      isCommand(line)
+        ? [line]
+        : wrapFrameText({ output: process.stdout, text: line })
+    )
 }
 export async function confirmProject({
   summary,
@@ -119,7 +132,7 @@ export function closeQuestion(label: string): void {
 }
 export function closeFrame({ reason, closing }: Closing): void {
   if (reason) {
-    log.message(wrapFrameText({ output: process.stdout, text: reason }), {
+    log.message(wrapInstructions(reason), {
       spacing: 0
     })
   }
@@ -133,6 +146,17 @@ export function stopFrame(reason: string, closing: string): void {
 }
 export function finishProject({ steps, language }: Completion): void {
   const m = messages[language]
-  note(steps.join('\n'), m.next, noteFormat)
+  const notePrefix = '      '
+  if (
+    steps.some(
+      line =>
+        isCommand(line) &&
+        (process.stdout.columns <= notePrefix.length ||
+          wrapTextWithPrefix(process.stdout, line, notePrefix).includes('\n'))
+    )
+  ) {
+    log.step(m.next)
+    log.message(wrapInstructions(steps.join('\n')), { spacing: 0 })
+  } else note(steps.join('\n'), m.next, noteFormat)
   outro(m.ready)
 }

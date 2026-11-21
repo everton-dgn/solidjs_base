@@ -1,8 +1,10 @@
 import process from 'node:process'
+import { styleText } from 'node:util'
 
 import {
   S_BAR,
   S_STEP_SUBMIT,
+  S_STEP_ERROR,
   confirm,
   isCancel,
   note,
@@ -63,17 +65,24 @@ export const progress = {
     clearIndicator()
     log.message(title, { symbol: S_STEP_SUBMIT, spacing: 0 })
   },
-  fail(): void {
+  warn(title: string): void {
+    clearIndicator()
+    log.warn(title, { spacing: 0 })
+  },
+  error(title: string): void {
+    clearIndicator()
+    log.message(title, { symbol: styleText('red', S_STEP_ERROR), spacing: 0 })
+  },
+  cancel(): void {
     if (!active) return
     const title = active
     clearIndicator()
     log.error(title, { spacing: 0 })
   }
 }
-export function closeFrame(reason: string): void {
-  progress.fail()
-  log.message(reason, { symbol: S_BAR, spacing: 0 })
-  outro()
+export function closeFrame(reason: string, closing?: string): void {
+  if (reason) log.message(reason, { symbol: S_BAR, spacing: 0 })
+  outro(closing)
 }
 export function finishProject({ steps, language }: Completion): void {
   const m = messages[language]

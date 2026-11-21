@@ -84,39 +84,66 @@ async function createApplication({ answers, isInteractive }: Creation) {
   const finish = progress?.finish ?? writeStep
   let completed = ''
   let active = ''
-  const steps = await generateTerminal(
-    {
-      ...profile,
-      ...(frame
-        ? {}
-        : {
-            onSeededCatalogs: (notices: string[]) =>
-              process.stdout.write(`${notices.join('\n')}\n`)
-          })
-    },
-    {
-      language,
-      isInteractive,
-      fail: () => {
-        if (progress) progress.fail()
-        else process.stderr.write(`■ ${active}\n`)
-        completed = ''
+  let failureTitle = labels.createFailed as string
+  let steps: string[]
+  try {
+    steps = await generateTerminal(
+      {
+        ...profile,
+        ...(frame
+          ? {}
+          : {
+              onSeededCatalogs: (notices: string[]) =>
+                process.stdout.write(`${notices.join('\n')}\n`)
+            })
       },
-      report: code => {
-        const values = { pm: toolNames[profile.pm] }
-        const title = message(language, { code, values })
-        const done = {
-          creating: 'created',
-          gitTask: 'gitDone',
-          installTask: 'installDone'
-        } as const
-        if (completed) finish(completed)
-        active = title
-        progress?.start(title)
-        completed = message(language, { code: done[code], values })
+      {
+        language,
+        isInteractive,
+        warn: diagnostic => {
+          const title = [labels.gitFailed, diagnostic]
+            .filter(Boolean)
+            .join('\n')
+          if (progress) progress.warn(title)
+          else process.stderr.write(`▲ ${title}\n`)
+          completed = ''
+        },
+        report: code => {
+          const values = { pm: toolNames[profile.pm] }
+          const title = message(language, { code, values })
+          const done = {
+            creating: 'created',
+            gitTask: 'gitDone',
+            installTask: 'installDone'
+          } as const
+          if (completed) finish(completed)
+          failureTitle =
+            code === 'installTask'
+              ? message(language, { code: 'installFailed', values })
+              : labels.createFailed
+          active = title
+          progress?.start(title)
+          completed = message(language, { code: done[code], values })
+        }
       }
+    )
+  } catch (error) {
+    const canceled = error instanceof CanceledError
+    const reason = error instanceof Error ? error.message : String(error)
+    const closing = canceled ? labels.cancel : labels.stopped
+    if (frame) {
+      if (canceled) frame.progress.cancel()
+      else frame.progress.error(failureTitle)
+      frame.closeFrame(reason, closing)
+    } else {
+      const title = canceled ? `■ ${active}` : `▲ ${failureTitle}`
+      process.stderr.write(
+        [...[title, reason, closing].filter(Boolean), ''].join('\n')
+      )
     }
-  )
+    process.exitCode = canceled ? interruptedExitCode : 1
+    return
+  }
   if (completed) finish(completed)
   if (frame) {
     frame.finishProject({ steps, language })

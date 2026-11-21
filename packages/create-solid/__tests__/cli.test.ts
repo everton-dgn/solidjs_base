@@ -62,6 +62,8 @@ void it('preserves generated files on install failure and ignores a parent repos
     }
   )
   assert.equal(child.status, 1)
+  assert.match(child.stderr, /^▲ Could not install dependencies with Bun\n/u)
+  assert.match(child.stderr, /Creation stopped\.\n$/u)
   const relative = path.relative(process.cwd(), dir)
   assert.ok(
     child.stderr.includes(`Open '${relative}' and run bun install again.`)
@@ -118,9 +120,13 @@ void it('shows the versioned package invocation in help', () => {
 void it('explains how to continue after Git initialization fails', context => {
   const parent = folder(context)
   const dir = path.join(parent, 'app')
-  writeFileSync(path.join(parent, 'git'), '#!/bin/sh\nexit 1\n', {
-    mode: executable
-  })
+  writeFileSync(
+    path.join(parent, 'git'),
+    '#!/bin/sh\necho hidden >&2\necho denied >&2\nexit 1\n',
+    {
+      mode: executable
+    }
+  )
   writeFileSync(
     path.join(parent, 'bun'),
     '#!/bin/sh\necho "bun $1" > install.called\n',
@@ -131,7 +137,7 @@ void it('explains how to continue after Git initialization fails', context => {
     env: { ...process.env, PATH: parent }
   })
   assert.equal(result.status, 0)
-  assert.match(result.stderr, /■ Creating the Git repository/u)
+  assert.equal(result.stderr, '▲ Git repository not created\ndenied\n')
   assert.match(result.stdout, /│ git init /u)
   assert.match(
     readFileSync(path.join(dir, 'install.called'), 'utf8'),

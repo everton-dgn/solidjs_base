@@ -305,7 +305,7 @@ const prepared = { guides: applyPreparedGuides, source: applyPreparedSource }
 type TerminalOptions = {
   isInteractive?: boolean
   language: Language
-  fail?: () => void
+  warn?: (diagnostic: string) => void
   report: (progress: Progress) => void
 }
 const childInterruptDeadlineMs = 750
@@ -316,19 +316,16 @@ async function executeSetup(
 ): Promise<void> {
   const child = spawn(command.executable, command.args, {
     cwd,
-    stdio:
-      command.task === 'gitTask'
-        ? 'ignore'
-        : [
-            'ignore',
-            isInteractive ? 'ignore' : 'inherit',
-            isInteractive ? 'pipe' : 'inherit'
-          ]
+    stdio: [
+      'ignore',
+      command.task === 'gitTask' || isInteractive ? 'ignore' : 'inherit',
+      'pipe'
+    ]
   })
   const tailLimit = 8192
   const diagnosticLines = 6
   let diagnostic = ''
-  child.stderr?.setEncoding('utf8').on('data', (chunk: string) => {
+  child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
     diagnostic = (diagnostic + chunk).slice(-tailLimit)
   })
   let deadline: ReturnType<typeof setTimeout> | undefined
@@ -596,7 +593,7 @@ export function generate(input: Profile): string[] {
 }
 export async function generateTerminal(
   input: Profile,
-  { language, report, fail, isInteractive = false }: TerminalOptions
+  { language, report, warn, isInteractive = false }: TerminalOptions
 ): Promise<string[]> {
   const steps = generation({ input, prepare: prepared, language })
   const controller = new AbortController()
@@ -621,7 +618,18 @@ export async function generateTerminal(
           })
         }
       } catch (error) {
-        fail?.()
+        if (
+          typeof step === 'object' &&
+          step.task === 'gitTask' &&
+          !controller.signal.aborted &&
+          !(error instanceof CanceledError)
+        ) {
+          warn?.(
+            error instanceof Error
+              ? (error.message.split('\n').at(-1) ?? '')
+              : ''
+          )
+        }
         current = steps.throw(
           controller.signal.aborted ? new CanceledError() : error
         )

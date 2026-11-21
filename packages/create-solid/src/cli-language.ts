@@ -63,40 +63,42 @@ export const messages = {
     usage: `bunx @evertondgn/create-solid@latest [DIR]
 
 Project
-  --name DIR                  Project folder
-  --title TEXT                Application title
+  --name DIR                   Project folder
+  --title TEXT                 Application title
   --mode server|static|client  Rendering mode
 
 Features
-  --seo                       Publish SEO metadata
-  --no-seo                    Do not publish SEO metadata
-  --theme                     Add the theme switcher
-  --no-theme                  Do not add the theme switcher
-  --icons                     Include icons
-  --no-icons                  Do not include icons
-  --fonts                     Bundle Inter
-  --no-fonts                  Do not bundle Inter
-  --diagnostics               Enable Solid reactivity diagnostics
-  --no-diagnostics            Do not enable Solid reactivity diagnostics
-  --i18n                      Enable translations
-  --no-i18n                   Do not enable translations
-  --locales TAGS              Application languages
-  --base-locale TAG           Base language
-  --site-url URL              Public site URL
+  --seo                        Publish SEO metadata
+  --no-seo                     Do not publish SEO metadata
+  --theme                      Add the theme switcher
+  --no-theme                   Do not add the theme switcher
+  --icons                      Include icons
+  --no-icons                   Do not include icons
+  --fonts                      Bundle Inter
+  --no-fonts                   Do not bundle Inter
+  --diagnostics                Enable Solid reactivity diagnostics
+  --no-diagnostics             Do not enable Solid reactivity diagnostics
+  --i18n                       Enable translations
+  --no-i18n                    Do not enable translations
+  --locales TAGS               Application languages
+  --base-locale TAG            Base language
+  --site-url URL               Public site URL
 
 Installation
-  --pm bun|npm|pnpm           Package manager
-  --git                       Initialize Git
-  --no-git                    Do not initialize Git
-  --install                   Install dependencies
-  --no-install                Do not install dependencies
+  --pm bun|npm|pnpm            Package manager
+  --git                        Initialize Git
+  --no-git                     Do not initialize Git
+  --install                    Install dependencies
+  --no-install                 Do not install dependencies
 
 Automation
-  --yes                       Use defaults and skip confirmation
-  --no-interactive            Read settings from flags
-  --lang pt-BR|en|es          Questionnaire language
-  --help                      Show this help
-  -h                          Show this help`,
+  --yes                        Use defaults and skip confirmation
+  --no-interactive             Read settings from flags
+  --lang pt-BR|en|es           Questionnaire language
+  --help                       Show this help
+  -h                           Show this help`,
+    installerHelp:
+      'npm and pnpm only install dependencies; Bun runs every task.',
     automation:
       'Use --yes to accept defaults. With --no-interactive, CI or redirected input, provide a destination or use --yes.',
     publishList: 'See "Before publishing" in README.md.',
@@ -183,40 +185,42 @@ Automation
     usage: `bunx @evertondgn/create-solid@latest [DIR]
 
 Projeto
-  --name DIR                  Pasta do projeto
-  --title TEXT                Título da aplicação
+  --name DIR                   Pasta do projeto
+  --title TEXT                 Título da aplicação
   --mode server|static|client  Modo de renderização
 
 Recursos
-  --seo                       Publicar metadados de SEO
-  --no-seo                    Não publicar metadados de SEO
-  --theme                     Incluir o seletor de tema
-  --no-theme                  Não incluir o seletor de tema
-  --icons                     Incluir ícones
-  --no-icons                  Não incluir ícones
-  --fonts                     Hospedar a fonte Inter
-  --no-fonts                  Não hospedar a fonte Inter
-  --diagnostics               Ativar diagnóstico de reatividade do Solid
-  --no-diagnostics            Não ativar diagnóstico de reatividade do Solid
-  --i18n                      Ativar traduções
-  --no-i18n                   Não ativar traduções
-  --locales TAGS              Idiomas da aplicação
-  --base-locale TAG           Idioma base
-  --site-url URL              URL pública do site
+  --seo                        Publicar metadados de SEO
+  --no-seo                     Não publicar metadados de SEO
+  --theme                      Incluir o seletor de tema
+  --no-theme                   Não incluir o seletor de tema
+  --icons                      Incluir ícones
+  --no-icons                   Não incluir ícones
+  --fonts                      Hospedar a fonte Inter
+  --no-fonts                   Não hospedar a fonte Inter
+  --diagnostics                Ativar diagnóstico de reatividade do Solid
+  --no-diagnostics             Não ativar diagnóstico de reatividade do Solid
+  --i18n                       Ativar traduções
+  --no-i18n                    Não ativar traduções
+  --locales TAGS               Idiomas da aplicação
+  --base-locale TAG            Idioma base
+  --site-url URL               URL pública do site
 
 Instalação
-  --pm bun|npm|pnpm           Gerenciador de pacotes
-  --git                       Criar um repositório Git
-  --no-git                    Não criar um repositório Git
-  --install                   Instalar dependências
-  --no-install                Não instalar dependências
+  --pm bun|npm|pnpm            Gerenciador de pacotes
+  --git                        Criar um repositório Git
+  --no-git                     Não criar um repositório Git
+  --install                    Instalar dependências
+  --no-install                 Não instalar dependências
 
 Automação
-  --yes                       Usar os padrões e pular a confirmação
-  --no-interactive            Usar as opções da linha de comando
-  --lang pt-BR|en|es          Idioma do questionário
-  --help                      Mostrar esta ajuda
-  -h                          Mostrar esta ajuda`,
+  --yes                        Usar os padrões e pular a confirmação
+  --no-interactive             Usar as opções da linha de comando
+  --lang pt-BR|en|es           Idioma do questionário
+  --help                       Mostrar esta ajuda
+  -h                           Mostrar esta ajuda`,
+    installerHelp:
+      'npm e pnpm só instalam as dependências; o Bun executa todas as tarefas.',
     automation:
       'Use --yes para aceitar os padrões. Com --no-interactive, CI ou entrada redirecionada, informe o destino ou use --yes.',
     publishList: 'Consulte "Before publishing" no README.md.',
@@ -304,40 +308,42 @@ Automação
     usage: `bunx @evertondgn/create-solid@latest [DIR]
 
 Proyecto
-  --name DIR                  Carpeta del proyecto
-  --title TEXT                Título de la aplicación
+  --name DIR                   Carpeta del proyecto
+  --title TEXT                 Título de la aplicación
   --mode server|static|client  Modo de renderizado
 
 Funcionalidades
-  --seo                       Publicar metadatos SEO
-  --no-seo                    No publicar metadatos SEO
-  --theme                     Incluir el selector de tema
-  --no-theme                  No incluir el selector de tema
-  --icons                     Incluir iconos
-  --no-icons                  No incluir iconos
-  --fonts                     Incluir la fuente Inter
-  --no-fonts                  No incluir la fuente Inter
-  --diagnostics               Activar el diagnóstico de reactividad de Solid
-  --no-diagnostics            No activar el diagnóstico de reactividad de Solid
-  --i18n                      Activar traducciones
-  --no-i18n                   No activar traducciones
-  --locales TAGS              Idiomas de la aplicación
-  --base-locale TAG           Idioma base
-  --site-url URL              URL pública del sitio
+  --seo                        Publicar metadatos SEO
+  --no-seo                     No publicar metadatos SEO
+  --theme                      Incluir el selector de tema
+  --no-theme                   No incluir el selector de tema
+  --icons                      Incluir iconos
+  --no-icons                   No incluir iconos
+  --fonts                      Incluir la fuente Inter
+  --no-fonts                   No incluir la fuente Inter
+  --diagnostics                Activar el diagnóstico de reactividad de Solid
+  --no-diagnostics             No activar el diagnóstico de reactividad de Solid
+  --i18n                       Activar traducciones
+  --no-i18n                    No activar traducciones
+  --locales TAGS               Idiomas de la aplicación
+  --base-locale TAG            Idioma base
+  --site-url URL               URL pública del sitio
 
 Instalación
-  --pm bun|npm|pnpm           Gestor de paquetes
-  --git                       Crear un repositorio Git
-  --no-git                    No crear un repositorio Git
-  --install                   Instalar dependencias
-  --no-install                No instalar dependencias
+  --pm bun|npm|pnpm            Gestor de paquetes
+  --git                        Crear un repositorio Git
+  --no-git                     No crear un repositorio Git
+  --install                    Instalar dependencias
+  --no-install                 No instalar dependencias
 
 Automatización
-  --yes                       Usar los valores predeterminados y omitir la confirmación
-  --no-interactive            Usar las opciones de la línea de comandos
-  --lang pt-BR|en|es          Idioma del cuestionario
-  --help                      Mostrar esta ayuda
-  -h                          Mostrar esta ayuda`,
+  --yes                        Usar los valores predeterminados y omitir la confirmación
+  --no-interactive             Usar las opciones de la línea de comandos
+  --lang pt-BR|en|es           Idioma del cuestionario
+  --help                       Mostrar esta ayuda
+  -h                           Mostrar esta ayuda`,
+    installerHelp:
+      'npm y pnpm solo instalan las dependencias; Bun ejecuta todas las tareas.',
     automation:
       'Usa --yes para aceptar los valores predeterminados. Con --no-interactive, CI o entrada redirigida, indica el destino o usa --yes.',
     publishList: 'Consulta "Before publishing" en README.md.',

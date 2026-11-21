@@ -110,7 +110,7 @@ async function run(): Promise<void> {
       [
         labels.usage,
         labels.defaults,
-        labels.installHint,
+        labels.installerHelp,
         labels.automation,
         ''
       ].join('\n')

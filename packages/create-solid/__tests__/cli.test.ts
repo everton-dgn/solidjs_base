@@ -598,6 +598,15 @@ void it('lists each flag once with a description through both help aliases', () 
       })
     const help = read('-h')
     assert.equal(help, read('--help'))
+    assert.match(help, /^npm .*pnpm .*Bun/mu)
+    const descriptions = help
+      .split('\n')
+      .filter(line => /^  --(?:mode|title) /u.test(line))
+    assert.equal(descriptions.length, 2)
+    for (const line of descriptions) {
+      assert.match(line, /^.{31}\S/u)
+      assert.equal(line.slice(2, 31).trimEnd().includes('  '), false)
+    }
     const options = help.split('\n').filter(line => line.startsWith('  -'))
     const flags = options.map(line => line.trim().split(/\s+/u)[0])
     assert.equal(new Set(flags).size, flags.length)

@@ -244,7 +244,7 @@ export async function questionnaire({
       result['no-i18n'] = !(await toggle(labels.i18n))
     }
     const { defaults } = validateProfile(result)
-    const initialBase = questionnaireBase(language, defaults)
+    const initialBase = questionnaireBase({ language, defaults })
     if (result.mode === 'client') {
       const key = result['no-i18n'] ? 'base-locale' : 'locales'
       if (key === 'locales' && result['base-locale']) {
@@ -274,7 +274,10 @@ export async function questionnaire({
           ...io,
           message: labels.base,
           showInstructions: false,
-          initialValue: questionnaireBase(language, { locales, baseLocale }),
+          initialValue: questionnaireBase({
+            language,
+            defaults: { locales, baseLocale }
+          }),
           options: locales.map(value => ({ value }))
         })
       )

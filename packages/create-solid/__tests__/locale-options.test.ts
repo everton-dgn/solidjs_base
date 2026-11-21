@@ -86,7 +86,10 @@ void it('uses the machine language for unattended creation', context => {
 })
 
 void it('keeps the template base for a questionnaire language outside its catalogs', () => {
-  assert.equal(questionnaireBase('fr', defaults), defaults.baseLocale)
+  assert.equal(
+    questionnaireBase({ language: 'fr', defaults }),
+    defaults.baseLocale
+  )
 })
 
 void it('uses the template settings on a host and the base language on a client', () => {

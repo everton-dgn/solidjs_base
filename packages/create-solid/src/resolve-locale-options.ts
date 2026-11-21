@@ -27,10 +27,11 @@ function canonicalTag(field: LocaleField, problems: ProfileProblemError[]) {
   }
 }
 
-export function questionnaireBase(
-  language: string,
-  defaults: LocaleSettings
-): string {
+type QuestionnaireBase = { language: string; defaults: LocaleSettings }
+export function questionnaireBase({
+  language,
+  defaults
+}: QuestionnaireBase): string {
   const tag = new Intl.Locale(language).language
   return defaults.locales.includes(tag) ? tag : defaults.baseLocale
 }

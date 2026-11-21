@@ -65,10 +65,10 @@ async function withPromptSignals<T>(prompt: () => Promise<T>): Promise<T> {
 }
 async function createApplication({ answers, isInteractive }: Creation) {
   if (answers.locales === undefined && answers['base-locale'] === undefined) {
-    answers['base-locale'] = questionnaireBase(
+    answers['base-locale'] = questionnaireBase({
       language,
-      validateProfile(answers).defaults
-    )
+      defaults: validateProfile(answers).defaults
+    })
   }
   const validated = validateProfile(answers)
   const { profile } = validated

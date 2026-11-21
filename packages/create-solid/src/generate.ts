@@ -119,17 +119,17 @@ type NextSteps = {
   profile: Profile
   language: Language
   siteUrl: URL | undefined
-  retryGit?: boolean
+  shouldRetryGit?: boolean
 }
 function nextSteps({
   profile,
   language,
   siteUrl,
-  retryGit
+  shouldRetryGit
 }: NextSteps): string[] {
   const next = [`cd ${shellDirectory(profile.dir)}`]
   if (!hasTool('bun')) next.unshift(messages[language].missingBun)
-  if (retryGit) next.push('git init')
+  if (shouldRetryGit) next.push('git init')
   if (!profile.shouldInstall) {
     next.push(`${profile.pm} install`)
   }
@@ -372,10 +372,11 @@ async function executeSetup(
     signal.removeEventListener('abort', cancel)
   }
 }
-function* initializeGit(
-  profile: Profile,
-  language: Language
-): Generator<SetupCommand, boolean> {
+type GitOptions = { profile: Profile; language: Language }
+function* initializeGit({
+  profile,
+  language
+}: GitOptions): Generator<SetupCommand, boolean> {
   if (profile.shouldInitGit && !hasRepository(profile.dir)) {
     try {
       yield { task: 'gitTask', executable: 'git', args: ['init'] }
@@ -571,9 +572,12 @@ export function* generation({
     throw error
   }
   const notices = reportSeededCatalogs({ profile, seeded, language })
-  const retryGit = yield* initializeGit(profile, language)
-  yield* installProfile({ profile, language, shouldRetryGit: retryGit })
-  return [...notices, ...nextSteps({ profile, language, siteUrl, retryGit })]
+  const shouldRetryGit = yield* initializeGit({ profile, language })
+  yield* installProfile({ profile, language, shouldRetryGit })
+  return [
+    ...notices,
+    ...nextSteps({ profile, language, siteUrl, shouldRetryGit })
+  ]
 }
 
 export function generateSource(options: GenerationOptions): string[] {

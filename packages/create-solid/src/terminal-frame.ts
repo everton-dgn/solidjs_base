@@ -123,6 +123,12 @@ export function closeFrame({ reason, closing }: Closing): void {
   }
   outro(closing)
 }
+export function stopFrame(reason: string, closing: string): void {
+  log.warn(wrapFrameText({ output: process.stdout, text: reason }).join('\n'), {
+    spacing: 0
+  })
+  outro(closing)
+}
 export function finishProject({ steps, language }: Completion): void {
   const m = messages[language]
   note(steps.join('\n'), m.next)

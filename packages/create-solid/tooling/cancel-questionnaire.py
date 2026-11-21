@@ -42,10 +42,10 @@ def install_screen(transcript, columns):
     return ["".join(row) for row in rows]
 
 
-def question_session(directory, language, prompts, before_answer=None, color=False):
+def question_session(directory, language, prompts, before_answer=None, color=False, columns=80):
     master, slave = pty.openpty()
     try:
-        fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
+        fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, columns, 0, 0))
         with subprocess.Popen([node, cli, "app", "--lang", language, "--mode", "server",
                                "--no-git", "--no-install"], cwd=directory,
                               env=dict(os.environ, CI="false", NO_COLOR="" if color else "1", FORCE_COLOR="1" if color else "0", TERM="xterm"),
@@ -411,18 +411,23 @@ class Cancellation(unittest.TestCase):
                     self.assertEqual(status, 130)
 
     def test_destination_changes_before_confirmation(self):
-        with tempfile.TemporaryDirectory() as directory:
-            dest = pathlib.Path(directory) / "app"
-            def occupy(label):
-                if label == "¿Crear el proyecto?":
-                    dest.mkdir()
-                    (dest / "existing").write_text("keep")
-            output, status = question_session(directory, "es", [
-                ("Título de la aplicación", b"\r"), ("Configuración", b"\r"),
-                ("¿Crear el proyecto?", b"\r")], before_answer=occupy)
-            self.assertEqual(status, 2)
-            self.assertIn("La carpeta del proyecto debe ser nueva o estar vacía:", output)
-            self.assertEqual((dest / "existing").read_text(), "keep")
+        for trigger in ("Configuración", "¿Crear el proyecto?"):
+            with self.subTest(trigger=trigger), tempfile.TemporaryDirectory() as directory:
+                dest = pathlib.Path(directory) / "app"
+                def occupy(label):
+                    if label == trigger:
+                        dest.mkdir()
+                        (dest / "existing").write_text("keep")
+                prompts = [("Título de la aplicación", b"\r"), ("Configuración", b"\r")]
+                if trigger == "¿Crear el proyecto?":
+                    prompts.append((trigger, b"\r"))
+                output, status = question_session(directory, "es", prompts, before_answer=occupy, columns=240)
+                self.assertEqual(status, 2)
+                name = str(dest.resolve()) if trigger == "¿Crear el proyecto?" else "app"
+                self.assertEqual(output.replace("\x1b[?25h", "").rstrip().splitlines()[-3:], [
+                    f"▲  La carpeta del proyecto debe ser nueva o estar vacía: {name}",
+                    "│", "└  Creación interrumpida."])
+                self.assertEqual((dest / "existing").read_text(), "keep")
 
     def test_git_warning(self):
         self.exercise(True, git=True, git_warning=True)

@@ -299,9 +299,9 @@ try {
       .join('\n')
   }
   if (terminal.isFramed) {
-    const { closeFrame, closeQuestion } = await import('./terminal-frame.ts')
+    const { stopFrame, closeQuestion } = await import('./terminal-frame.ts')
     if (error instanceof CanceledError) closeQuestion(messages[language].cancel)
-    else closeFrame({ reason })
+    else stopFrame(reason, messages[language].stopped)
   } else process.stderr.write(`${reason}\n`)
   const isArgumentError =
     error instanceof UsageError ||

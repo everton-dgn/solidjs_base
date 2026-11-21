@@ -686,6 +686,7 @@ void it('lists each flag once with a description through both help aliases', () 
     }
     const options = help.split('\n').filter(line => line.startsWith('  -'))
     const terminalWidth = 80
+    assert.ok(help.split('\n').every(line => line.length <= terminalWidth))
     assert.ok(
       options
         .filter(line => line.trimStart().startsWith('--yes '))

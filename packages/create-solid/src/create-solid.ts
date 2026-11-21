@@ -166,6 +166,18 @@ function hasInteractiveInput() {
   )
   return process.stdin.isTTY && !isCI
 }
+function wrapParagraph(paragraph: string): string {
+  const width = 80
+  const lines: string[] = []
+  let line = ''
+  for (const word of paragraph.split(' ')) {
+    if (line && line.length + 1 + word.length > width) {
+      lines.push(line)
+      line = word
+    } else line = line ? `${line} ${word}` : word
+  }
+  return [...lines, line].join('\n')
+}
 async function run(): Promise<void> {
   const args = process.argv.slice(argumentOffset)
   const separator = args.indexOf('--')
@@ -176,9 +188,9 @@ async function run(): Promise<void> {
     process.stdout.write(
       [
         labels.usage,
-        labels.defaults,
-        labels.installerHelp,
-        labels.automation,
+        wrapParagraph(labels.defaults),
+        wrapParagraph(labels.installerHelp),
+        wrapParagraph(labels.automation),
         ''
       ].join('\n')
     )

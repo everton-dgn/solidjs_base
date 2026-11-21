@@ -84,3 +84,29 @@ void it('keeps the guide transcript in the order of the English questionnaire', 
     assert.ok(transcript.includes(command))
   }
 })
+
+void it('keeps the README excerpt aligned with the questionnaire across releases', () => {
+  const readme = readFileSync('README.md', 'utf8')
+  const guide = readFileSync('docs/installation.md', 'utf8')
+  for (const doc of [readme, guide]) {
+    assert.doesNotMatch(doc, /Solid Base v\d+\.\d+\.\d+/u)
+  }
+  const excerpt = readme.split('```text\n')[1]?.split('```')[0]
+  assert.ok(excerpt)
+  let offset = 0
+  for (const label of [
+    messages.en.tagline,
+    messages.en.dir,
+    messages.en.title,
+    messages.en.mode,
+    messages.en.setup,
+    messages.en.recommended
+  ]) {
+    const position = excerpt.indexOf(label, offset)
+    assert.ok(position >= offset, label)
+    offset = position + label.length
+  }
+  for (const entry of ['.git', '.DS_Store', 'Thumbs.db', 'git init']) {
+    assert.ok(guide.includes(entry))
+  }
+})

@@ -9,7 +9,7 @@ Start with `bunx @evertondgn/create-solid@latest --lang en`. This session
 selects the custom setup, static hosting, two languages and pnpm:
 
 ```text
-┌  Solid Base v0.10.0
+┌  Solid Base
 │  Start a Solid 2 application with Vite+, TypeScript and tests set up.
 │
 ◇  Project directory
@@ -23,8 +23,8 @@ selects the custom setup, static hosting, two languages and pnpm:
 │
 ◇  Setup
 │  Customize
-│
 │  Space to toggle, Enter to continue
+│
 ◇  Features
 │  SEO metadata, Light and dark theme switcher, Icons, Solid reactivity
 │  diagnostics in development
@@ -36,7 +36,7 @@ selects the custom setup, static hosting, two languages and pnpm:
 │  Yes
 │
 ◇  Language tags, separated by commas
-│  en, es
+│  en,es
 │
 ◇  Base language
 │  en
@@ -50,30 +50,30 @@ selects the custom setup, static hosting, two languages and pnpm:
 ◇  Install dependencies?
 │  No
 │
-◇  Project summary ────────────────────────────────────────────────────────────────────────────╮
-│                                                                                               │
-│  Project directory: portal                                                                    │
-│  Application title: Portal                                                                    │
-│  Rendering mode: Static HTML                                                                  │
-│  Languages: en (base), es                                                            │
-│  Public site URL: https://portal.example                                                      │
-│  Features: SEO, Theme, Icons, Solid diagnostics                                               │
-│  Package manager: pnpm                                                                        │
-│  Git: Yes                                                                                     │
-│  Installation: No                                                                             │
-│                                                                                               │
-├───────────────────────────────────────────────────────────────────────────────────────────────╯
+◇  Project summary ────────────────────────────────╮
+│                                                  │
+│  Project directory: portal                       │
+│  Application title: Portal                       │
+│  Rendering mode: Static HTML                     │
+│  Languages: en (base), es                        │
+│  Public site URL: https://portal.example         │
+│  Features: SEO, Theme, Icons, Solid diagnostics  │
+│  Package manager: pnpm                           │
+│  Git: Yes                                        │
+│  Installation: No                                │
+│                                                  │
+├──────────────────────────────────────────────────╯
 │
 ◇  Create the project?
 │  Yes
 │
 ◇  Creating the files
 │
-◇  Files created
+◆  Files created
 │
 ◇  Creating the Git repository
 │
-◇  Git repository created
+◆  Git repository created
 │
 ◇  Next steps ────────────────────────────╮
 │                                         │
@@ -98,9 +98,10 @@ bunx @evertondgn/create-solid@latest portal --title Portal --mode static \
 
 The CLI prints the settings before creating files. After this session, open
 `portal`, run `pnpm install` and `pnpm run dev`. Bun runs the application tasks.
-Server mode targets Vercel. Ctrl+C during the questions or generation discards
-the unfinished project. After publication, interrupting installation keeps the
-files and prints the command to resume.
+Server mode targets Vercel. Canceling at a prompt or while creating files
+removes the unfinished project and any parent directories created for it. After
+the files are published, canceling Git or installation stops that process and
+keeps the project. The CLI shows where to run `git init` or the install command.
 
 Use `--lang pt-BR`, `--lang en` or `--lang es` for the interface. By default,
 the CLI checks `LC_ALL`, `LC_MESSAGES`, `LANG` and the locale returned by
@@ -128,9 +129,10 @@ Set the application title with `--title "Minha aplicação"` or the API option
 package name still comes from the directory. Each page publishes its own
 translated title, including when SEO is disabled.
 
-The destination must be empty. Use `--no-git` to omit Git initialization or
-`--no-install` to install dependencies later. The npm profile uses the upstream
-Markdown converter without the Bun and pnpm patch.
+The destination may be new, empty, or contain only `.git`, `.DS_Store` or
+`Thumbs.db`. Use `--no-git` to omit Git initialization or `--no-install` to
+install dependencies later. The npm profile uses the upstream Markdown converter
+without the Bun and pnpm patch.
 
 For programmatic generation, import `generate` from `@evertondgn/create-solid`.
 TypeScript consumers can also import the `Profile` type from the same entry.

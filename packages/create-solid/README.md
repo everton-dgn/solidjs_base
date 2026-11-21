@@ -1,13 +1,13 @@
 # @evertondgn/create-solid
 
-Start the questionnaire in your terminal after the first registry release:
+Start the questionnaire in your terminal:
 
 ```sh
 bunx @evertondgn/create-solid@latest
 ```
 
 ```text
-┌  Solid Base v0.10.0
+┌  Solid Base
 │  Start a Solid 2 application with Vite+, TypeScript and tests set up.
 │
 ◇  Project directory

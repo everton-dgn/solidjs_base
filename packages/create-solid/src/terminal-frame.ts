@@ -26,12 +26,13 @@ type Confirmation = {
 
 const frames = S_BAR === '│' ? ['◒', '◐', '◓', '◑'] : ['•', 'o', 'O', '0']
 const intervalMs = 90
+const echoWidth = 2
 let indicator: ReturnType<typeof setInterval> | undefined
 let active = ''
-function stepTitle(title: string): string {
+function stepTitle(title: string, columns = process.stdout.columns): string {
   const prefixWidth = 3
-  if (!Number.isFinite(process.stdout.columns)) return title
-  const width = Math.max(0, process.stdout.columns - prefixWidth)
+  if (!Number.isFinite(columns)) return title
+  const width = Math.max(0, columns - prefixWidth)
   if (title.length <= width) return title
   return width === 0 ? '' : `${title.slice(0, width - 1)}…`
 }
@@ -65,7 +66,9 @@ export const progress = {
     let index = 0
     const draw = () => {
       const mark = styleText('magenta', frames[index] ?? '')
-      const label = stepTitle(title)
+      const columns = process.stdout.columns - echoWidth
+      if (columns < 1) return
+      const label = stepTitle(title, columns)
       process.stdout.write(label ? `\r${mark}  ${label}` : `\r${mark}`)
       index = (index + 1) % frames.length
     }

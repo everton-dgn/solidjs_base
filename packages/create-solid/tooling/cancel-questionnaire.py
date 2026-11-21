@@ -5,6 +5,7 @@ import struct
 import os
 import pathlib
 import pty
+import re
 import select
 import shutil
 import signal
@@ -16,6 +17,27 @@ import unittest
 
 cli = pathlib.Path(sys.argv.pop(1)).resolve()
 node = shutil.which("node")
+
+
+def install_screen(transcript, columns):
+    # The step uses only carriage return, erase-line and printable cells.
+    step = transcript.decode().rsplit("Files created", 1)[1].lstrip("\r\n")
+    rows = [[]]
+    column = 0
+    for token in re.findall(r"\x1b\[2K|.", step, re.DOTALL):
+        if token == "\r":
+            column = 0
+        elif token == "\n":
+            rows.append([])
+        elif token == "\x1b[2K":
+            rows[-1].clear()
+        elif token.isprintable():
+            if column == columns:
+                rows.append([])
+                column = 0
+            rows[-1][column:column + 1] = [token]
+            column += 1
+    return ["".join(row) for row in rows]
 
 
 class Cancellation(unittest.TestCase):
@@ -91,6 +113,14 @@ class Cancellation(unittest.TestCase):
                 if columns == 30:
                     self.assertIn("Installing dependencies wi…".encode(), transcript)
                     self.assertNotIn(b"Installing dependencies with Bun", transcript)
+                if columns in (30, 36):
+                    screen = install_screen(transcript, columns)
+                    cancel = next(i for i, line in enumerate(screen) if line.startswith("■"))
+                    self.assertFalse(any(line.startswith(tuple("◒◐◓◑")) for line in screen[:cancel]), screen)
+                    frames = re.findall(r"\r([◒◐◓◑]  [^\r\n^]+)", transcript.decode())
+                    self.assertTrue(frames)
+                    for frame in frames:
+                        self.assertLessEqual(len(frame), columns - 2)
                 if failure:
                     self.assertEqual(os.waitstatus_to_exitcode(status), 1)
                     self.assertIn("▲  Could not install dependencies with Bun".encode(), transcript)
@@ -198,7 +228,9 @@ class Cancellation(unittest.TestCase):
         self.exercise(True, failure=True)
 
     def test_narrow_install(self):
-        self.exercise(True, columns=30)
+        for columns in (30, 36):
+            with self.subTest(columns=columns):
+                self.exercise(True, columns=columns)
 
     def test_install(self):
         self.exercise(True)

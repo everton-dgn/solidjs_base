@@ -8,7 +8,7 @@ bunx @evertondgn/create-solid@latest
 
 ```text
 ┌  Solid Base v0.10.0
-│  Create a standalone Solid application.
+│  Start a Solid 2 application with Vite+, TypeScript and tests set up.
 │
 ◇  Project directory
 │  solid-app

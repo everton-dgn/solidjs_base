@@ -63,7 +63,7 @@ try:
         assert ("\x1b[38;2;68;107;158m" in output) == has_color, output
         assert has_color or plain == output, output
         assert re.search(r"\x1b\[[?0-9;]*[ABCDEFGHJKhl]", output), output
-        labels = ["Solid Base v", "Create a standalone Solid application.",
+        labels = ["Solid Base v", "Start a Solid 2 application with Vite+, TypeScript and tests set up.",
                   "Application title", "Project settings", "Create the project?"]
         labels += ["Creation canceled."] if should_cancel else [
             "Creating application files", "Next steps", "Project created."

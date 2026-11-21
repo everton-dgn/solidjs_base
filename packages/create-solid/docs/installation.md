@@ -10,7 +10,7 @@ selects the custom setup, static hosting, two languages and pnpm:
 
 ```text
 ┌  Solid Base v0.10.0
-│  Create a standalone Solid application.
+│  Start a Solid 2 application with Vite+, TypeScript and tests set up.
 │
 ◇  Project directory
 │  portal

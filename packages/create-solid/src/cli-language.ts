@@ -56,7 +56,8 @@ export const messages = {
     installation: 'Installation',
     create: 'Create the project?',
     ready: 'Project created.',
-    tagline: 'Create a standalone Solid application.',
+    tagline:
+      'Start a Solid 2 application with Vite+, TypeScript and tests set up.',
     languages: 'Languages',
     manager: 'Package manager',
     usage: `bunx @evertondgn/create-solid@latest [DIR]
@@ -174,7 +175,8 @@ Automation
     installation: 'Instalação',
     create: 'Criar o projeto?',
     ready: 'Projeto criado.',
-    tagline: 'Crie uma aplicação Solid independente.',
+    tagline:
+      'Comece uma aplicação Solid 2 com Vite+, TypeScript e testes prontos.',
     languages: 'Idiomas',
     manager: 'Gerenciador de pacotes',
     usage: `bunx @evertondgn/create-solid@latest [DIR]
@@ -293,7 +295,8 @@ Automação
     installation: 'Instalación',
     create: '¿Crear el proyecto?',
     ready: 'Proyecto creado.',
-    tagline: 'Crea una aplicación Solid independiente.',
+    tagline:
+      'Empieza una aplicación Solid 2 con Vite+, TypeScript y pruebas listas.',
     languages: 'Idiomas',
     manager: 'Gestor de paquetes',
     usage: `bunx @evertondgn/create-solid@latest [DIR]

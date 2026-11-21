@@ -65,3 +65,18 @@ void it('mentions the same flags and commands in each translation', () => {
     }
   }
 })
+
+void it('introduces the included Solid 2 tooling in every language', () => {
+  assert.equal(
+    messages.en.tagline,
+    'Start a Solid 2 application with Vite+, TypeScript and tests set up.'
+  )
+  assert.equal(
+    messages['pt-BR'].tagline,
+    'Comece uma aplicação Solid 2 com Vite+, TypeScript e testes prontos.'
+  )
+  assert.equal(
+    messages.es.tagline,
+    'Empieza una aplicación Solid 2 con Vite+, TypeScript y pruebas listas.'
+  )
+})

@@ -2,7 +2,7 @@ import path from 'node:path'
 import type { Writable, Readable } from 'node:stream'
 import { styleText } from 'node:util'
 
-import { MultiSelectPrompt, wrapTextWithPrefix } from '@clack/core'
+import { MultiSelectPrompt, TextPrompt, wrapTextWithPrefix } from '@clack/core'
 import {
   type CommonOptions,
   confirm,
@@ -17,8 +17,8 @@ import {
   S_BAR,
   S_CHECKBOX_SELECTED,
   S_CHECKBOX_INACTIVE,
-  select,
-  text
+  S_BAR_END,
+  select
 } from '@clack/prompts'
 
 import manifest from '../package.json' with { type: 'json' }
@@ -33,6 +33,34 @@ import { CanceledError } from './usage-error.ts'
 import { validateProfile } from './validateProfile/index.ts'
 import { wrapFrameText } from './wrapFrameText/index.ts'
 
+type TextLabel = { label: string; placeholder: string }
+function renderText({ label, placeholder }: TextLabel) {
+  return function render(this: TextPrompt): string {
+    const grayBar = styleText('gray', S_BAR)
+    const heading = `${grayBar}\n${symbol(this.state)}  ${label}`
+    if (this.state === 'cancel' || this.state === 'submit') {
+      const isCanceled = this.state === 'cancel'
+      const value = this.value ?? ''
+      const formatted = isCanceled
+        ? styleText(['strikethrough', 'dim'], value)
+        : styleText('dim', value)
+      const response = value ? `${grayBar}  ${formatted}` : grayBar
+      return [
+        heading,
+        response,
+        ...(isCanceled && value ? [grayBar] : [])
+      ].join('\n')
+    }
+    const color = this.state === 'error' ? 'yellow' : 'cyan'
+    const hint = placeholder
+      ? styleText('inverse', placeholder.slice(0, 1)) +
+        styleText('dim', placeholder.slice(1))
+      : styleText(['inverse', 'hidden'], '_')
+    const value = this.userInput ? this.userInputWithCursor : hint
+    const error = this.error ? `  ${styleText('yellow', this.error)}` : ''
+    return `${heading}\n${styleText(color, S_BAR)}  ${value}\n${styleText(color, S_BAR_END)}${error}\n`
+  }
+}
 type FieldOptions = {
   key: 'name' | 'title' | 'locales' | 'base-locale' | 'site-url'
   initialValue: string
@@ -226,9 +254,9 @@ export async function questionnaire({
     }
     if (result[key] !== undefined) return
     result[key] = answer<string>(
-      await text({
+      (await new TextPrompt({
         ...io,
-        message: names[key],
+        render: renderText({ label: names[key], placeholder: initialValue }),
         placeholder: initialValue,
         defaultValue: initialValue,
         validate(value) {
@@ -250,7 +278,7 @@ export async function questionnaire({
             })
           )
         }
-      })
+      }).prompt()) ?? initialValue
     )
   }
   await field({ key: 'name', initialValue: 'solid-app' })

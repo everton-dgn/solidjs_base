@@ -411,6 +411,15 @@ class Cancellation(unittest.TestCase):
             self.assertNotIn("SEO metadata", plain)
             self.assertEqual(plain.rstrip().splitlines()[-2:], ["│", "└  Creation canceled."])
 
+    def test_cancel_whitespace_title(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, status = question_session(directory, "en", [
+                ("Application title", b"   "), ("   ", b"\x03")])
+            final = re.sub(r"\x1b\[\?25[hl]", "", output.rsplit("\x1b[J", 1)[-1])
+            self.assertEqual(final.rstrip().splitlines(), [
+                "■  Application title", "│     ", "│", "└  Creation canceled."])
+            self.assertEqual(status, 130)
+
     def test_question_cancel(self):
         for language, title, setup, create, no, closing in [
             ("en", "Application title", "Setup", "Create the project?", "No", "Creation canceled."),

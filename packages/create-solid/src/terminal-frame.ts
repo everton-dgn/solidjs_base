@@ -13,6 +13,16 @@ import {
 import { messages, type Language } from './cli-language.ts'
 import { CanceledError } from './usage-error.ts'
 
+type Completion = {
+  steps: string[]
+  language: Language
+}
+
+type Confirmation = {
+  summary: string
+  language: Language
+}
+
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const intervalMs = 90
 let indicator: ReturnType<typeof setInterval> | undefined
@@ -26,10 +36,7 @@ function clearIndicator() {
 export async function confirmProject({
   summary,
   language
-}: {
-  summary: string
-  language: Language
-}): Promise<void> {
+}: Confirmation): Promise<void> {
   const m = messages[language]
   note(summary, m.summary)
   const result = await confirm({
@@ -68,13 +75,7 @@ export function closeFrame(reason: string): void {
   log.message(reason, { symbol: S_BAR, spacing: 0 })
   outro()
 }
-export function finishProject({
-  steps,
-  language
-}: {
-  steps: string[]
-  language: Language
-}): void {
+export function finishProject({ steps, language }: Completion): void {
   const m = messages[language]
   note(steps.join('\n'), m.next)
   outro(m.ready)

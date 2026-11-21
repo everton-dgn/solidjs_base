@@ -1,6 +1,12 @@
 import { message, type Language } from '../cli-language.ts'
 import type { ValidationCode } from '../types.ts'
 
+type FieldMessage = {
+  language: Language
+  code: ValidationCode
+  values?: Record<string, string>
+}
+
 const fieldMessages = {
   en: {
     destination: 'Choose a new or empty project directory.',
@@ -53,11 +59,7 @@ export function fieldMessage({
   language,
   code,
   values = {}
-}: {
-  language: Language
-  code: ValidationCode
-  values?: Record<string, string>
-}): string {
+}: FieldMessage): string {
   if (code === 'occupied') return message(language, { code, values })
   return fieldMessages[language][code]
 }

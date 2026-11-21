@@ -17,7 +17,7 @@ import { validateProfile } from './validateProfile/index.ts'
 
 const argumentOffset = 2
 const usageExitCode = 2
-const terminal = { framed: false }
+const terminal = { isFramed: false }
 let language: ReturnType<typeof cliLanguage> = 'en'
 function detectLanguage(options: string[]) {
   const index = options.findLastIndex(
@@ -217,7 +217,7 @@ async function run(): Promise<void> {
   )
   if (initial) throw initial
   if (isInteractive) {
-    terminal.framed = true
+    terminal.isFramed = true
     const { questionnaire } = await import('./questionnaire.ts')
     answers = await withPromptSignals(() =>
       questionnaire({
@@ -255,7 +255,7 @@ try {
       .filter(Boolean)
       .join('\n')
   }
-  if (terminal.framed) {
+  if (terminal.isFramed) {
     const { closeFrame } = await import('./terminal-frame.ts')
     closeFrame(reason)
   } else process.stderr.write(`${reason}\n`)

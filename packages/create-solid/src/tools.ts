@@ -5,6 +5,11 @@ import process from 'node:process'
 import { message, type Language } from './cli-language.ts'
 import type { Profile } from './types.ts'
 
+type ToolMessage = {
+  tool: Tool
+  language: Language
+}
+
 type ToolCheck = { profile: Profile; language: Language }
 const links = {
   git: 'https://git-scm.com/downloads',
@@ -27,13 +32,7 @@ export function hasTool(tool: Tool): boolean {
     }
   })
 }
-export function missingTool({
-  tool,
-  language
-}: {
-  tool: Tool
-  language: Language
-}): string {
+export function missingTool({ tool, language }: ToolMessage): string {
   return message(language, {
     code: 'tool',
     values: { tool: toolNames[tool], link: links[tool] }

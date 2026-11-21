@@ -28,7 +28,7 @@ type SessionOptions = {
   answers?: Answers
   language?: Language
   hasColor?: boolean
-  trueColor?: boolean
+  hasTrueColor?: boolean
 }
 async function session(
   lines: Line[],
@@ -36,7 +36,7 @@ async function session(
     answers = {},
     language = 'en',
     hasColor = false,
-    trueColor = false
+    hasTrueColor = false
   }: SessionOptions = {}
 ) {
   const input = new PassThrough()
@@ -44,7 +44,7 @@ async function session(
   let transcript = ''
   const trueColorCount = 16_777_216
   const output = Object.assign(new PassThrough(), {
-    hasColors: (count: number) => trueColor && count === trueColorCount
+    hasColors: (count: number) => hasTrueColor && count === trueColorCount
   })
   output.on('data', chunk => {
     const frame = String(chunk)
@@ -351,7 +351,7 @@ for (const language of ['en', 'pt-BR', 'es'] as const) {
 }
 
 void it('keeps cursor control with and without Solid blue', async () => {
-  for (const [hasColor, trueColor] of [
+  for (const [hasColor, hasTrueColor] of [
     [false, false],
     [true, false],
     [true, true]
@@ -364,10 +364,13 @@ void it('keeps cursor control with and without Solid blue', async () => {
         [m.mode, '\r'],
         [m.setup, '\r']
       ],
-      { hasColor, trueColor }
+      { hasColor, hasTrueColor }
     )
-    assert.equal(transcript.includes('\u001B[38;2;68;107;158m'), trueColor)
-    assert.equal(transcript.includes('\u001B[38;5;67m'), hasColor && !trueColor)
+    assert.equal(transcript.includes('\u001B[38;2;68;107;158m'), hasTrueColor)
+    assert.equal(
+      transcript.includes('\u001B[38;5;67m'),
+      hasColor && !hasTrueColor
+    )
     assert.match(
       transcript.split('\u001B').join('<ESC>'),
       /<ESC>\[[?\d;]*[ABCDEFGHJKhl]/u
@@ -453,7 +456,7 @@ void it('redraws a colorless prompt at the new terminal width', async () => {
   const input = new PassThrough()
   const output = Object.assign(new PassThrough(), { columns: 80, rows: 24 })
   let transcript = ''
-  let resized = false
+  let isResized = false
   function resizePrompt() {
     transcript = ''
     output.columns = 14
@@ -462,8 +465,8 @@ void it('redraws a colorless prompt at the new terminal width', async () => {
   }
   output.on('data', chunk => {
     transcript += String(chunk)
-    if (!resized && transcript.includes(messages.en.title)) {
-      resized = true
+    if (!isResized && transcript.includes(messages.en.title)) {
+      isResized = true
       setImmediate(resizePrompt)
     }
   })
@@ -478,7 +481,7 @@ void it('redraws a colorless prompt at the new terminal width', async () => {
       }),
       CanceledError
     )
-    assert.ok(resized)
+    assert.ok(isResized)
     assert.ok(transcript.includes('Application'))
     assert.ok(!transcript.includes(messages.en.title))
   } finally {

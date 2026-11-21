@@ -25,16 +25,23 @@ import type { Answers } from './types.ts'
 import { CanceledError } from './usage-error.ts'
 import { validateProfile } from './validateProfile/index.ts'
 
+type FieldOptions = {
+  key: 'name' | 'title' | 'locales' | 'base-locale' | 'site-url'
+  initialValue: string
+}
+
 function answer<T extends string | boolean | string[]>(value: T | symbol): T {
   if (isCancel(value) || typeof value === 'symbol') throw new CanceledError()
   return value
 }
 
+type SessionOutput = Writable & { hasColors?: (count: number) => boolean }
+
 type Session = {
   answers: Answers
   language: Language
   input: Readable
-  output: Writable & { hasColors?: (count: number) => boolean }
+  output: SessionOutput
   hasColor: boolean
 }
 
@@ -161,13 +168,7 @@ export async function questionnaire({
     answer<boolean>(
       await confirm({ ...io, message, active: labels.yes, inactive: labels.no })
     )
-  const field = async ({
-    key,
-    initialValue
-  }: {
-    key: 'name' | 'title' | 'locales' | 'base-locale' | 'site-url'
-    initialValue: string
-  }) => {
+  const field = async ({ key, initialValue }: FieldOptions) => {
     const names = {
       name: labels.dir,
       title: labels.title,

@@ -9,6 +9,7 @@ import pathlib
 import pty
 import re
 import select
+import shlex
 import shutil
 import signal
 import sys
@@ -455,6 +456,50 @@ class Cancellation(unittest.TestCase):
                     f"▲  La carpeta del proyecto debe ser nueva o estar vacía: {name}",
                     "│", "└  Creación interrumpida."])
                 self.assertEqual((dest / "existing").read_text(), "keep")
+
+    def test_resize_during_install(self):
+        for old, new in ((80, 30), (30, 80)):
+            with self.subTest(old=old, new=new), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                installer = root / "bun"
+                installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nexec sleep 20\n')
+                installer.chmod(0o755)
+                socket = str(root / "tmux.sock")
+                tmux_env = {key: os.environ[key] for key in ("HOME", "PATH", "LANG", "TMPDIR") if key in os.environ}
+                def tmux(*args):
+                    return subprocess.check_output(["tmux", "-f", "/dev/null", "-S", socket, *args], env=tmux_env, text=True, timeout=5)
+                def capture():
+                    return tmux("capture-pane", "-p", "-S", "-1000")
+                def wait_for(label):
+                    deadline = time.monotonic() + 10
+                    while time.monotonic() < deadline:
+                        screen = capture()
+                        if label in screen:
+                            return screen
+                        time.sleep(.04)
+                    self.fail((label, screen))
+                tmux("new-session", "-d", "-x", str(old), "-y", "80", "-c", directory, "/bin/sh")
+                try:
+                    command = shlex.join(["env", "CI=false", "NO_COLOR=1", "TERM=xterm",
+                        f"PID_FILE={root / 'pid'}", f"PATH={root}:{os.environ['PATH']}",
+                        node, str(cli), "app", "--lang", "en", "--mode", "server", "--git", "--install"])
+                    tmux("set-option", "remain-on-exit", "on")
+                    tmux("respawn-pane", "-k", "-c", directory, "exec " + command)
+                    for label in ("Application title", "Setup", "Create the project?"):
+                        wait_for(label)
+                        tmux("send-keys", "Enter")
+                    wait_for("Installing dependencies")
+                    tmux("resize-window", "-x", str(new), "-y", "80")
+                    wait_for("Installing dependencies…" if new == 30 else "Installing dependencies with Bun")
+                    tmux("send-keys", "C-c")
+                    screen = wait_for("└  Creation canceled.").splitlines()
+                    start = screen.index("◇  Files created")
+                    end = next(i for i in range(start,len(screen)) if screen[i].startswith("■"))
+                    self.assertEqual(screen[start:end], ["◇  Files created", "◇  Git repository created"])
+                    for line in screen[start:end]:
+                        self.assertEqual(screen.count(line), 1)
+                finally:
+                    tmux("kill-server")
 
     def test_git_warning(self):
         self.exercise(True, git=True, git_warning=True)

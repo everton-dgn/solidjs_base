@@ -34,11 +34,13 @@ const frames = S_BAR === '│' ? ['◒', '◐', '◓', '◑'] : ['•', 'o', 'O'
 const unicodeIntervalMs = 80
 const asciiIntervalMs = 120
 const noteFormat = { format: (line: string) => line.trimStart() }
+const prefixWidth = 3
+const clearRow = '\r\u001B[2K'
 const echoWidth = 2
 let indicator: ReturnType<typeof setInterval> | undefined
 let active = ''
+let removeResizeListener: (() => void) | undefined
 function stepTitle(title: string, columns = process.stdout.columns): string {
-  const prefixWidth = 3
   if (!Number.isFinite(columns)) return title
   const width = Math.max(0, columns - prefixWidth)
   if (title.length <= width) return title
@@ -47,8 +49,10 @@ function stepTitle(title: string, columns = process.stdout.columns): string {
 }
 function clearIndicator() {
   if (!active) return
+  removeResizeListener?.()
+  removeResizeListener = undefined
   clearInterval(indicator)
-  if (indicator) process.stdout.write('\r\u001B[2K')
+  if (indicator) process.stdout.write(clearRow)
   indicator = undefined
   active = ''
 }
@@ -85,14 +89,26 @@ export const progress = {
     active = title
     if (!process.stdout.isTTY) return
     let index = 0
+    let drawnWidth = 0
     const draw = () => {
       const mark = styleText('magenta', frames[index] ?? '')
       const columns = process.stdout.columns - echoWidth
       if (columns < 1) return
       const label = stepTitle(title, columns)
       process.stdout.write(label ? `\r${mark}  ${label}` : `\r${mark}`)
+      drawnWidth = label ? label.length + prefixWidth : 1
       index = (index + 1) % frames.length
     }
+    const resize = () => {
+      const width = Math.max(1, process.stdout.columns)
+      const rows = Math.max(1, Math.ceil(drawnWidth / width))
+      const previousRows = `\u001B[1A${clearRow}`.repeat(rows - 1)
+      process.stdout.write(`${clearRow}${previousRows}`)
+      drawnWidth = 0
+      draw()
+    }
+    process.stdout.on('resize', resize)
+    removeResizeListener = () => process.stdout.off('resize', resize)
     draw()
     indicator = setInterval(draw, unicode ? unicodeIntervalMs : asciiIntervalMs)
   },

@@ -332,9 +332,12 @@ async function executeSetup(
   const tailLimit = 8192
   const diagnosticLines = 6
   let diagnostic = ''
+  const forwarded = { needsNewline: false }
   child.stderr?.setEncoding('utf8').on('data', (chunk: string) => {
-    if (plainInstall) process.stderr.write(chunk)
-    else diagnostic = (diagnostic + chunk).slice(-tailLimit)
+    if (plainInstall) {
+      process.stderr.write(chunk)
+      forwarded.needsNewline = !chunk.endsWith('\n')
+    } else diagnostic = (diagnostic + chunk).slice(-tailLimit)
   })
   let deadline: ReturnType<typeof setTimeout> | undefined
   const forced = Promise.withResolvers<typeof child.signalCode>()
@@ -374,6 +377,7 @@ async function executeSetup(
       })
     }
   } finally {
+    if (forwarded.needsNewline) process.stderr.write('\n')
     clearTimeout(deadline)
     for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
       process.off(signalName, force)

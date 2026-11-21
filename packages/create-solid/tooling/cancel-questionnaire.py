@@ -343,7 +343,9 @@ class Cancellation(unittest.TestCase):
                 with self.subTest(terminal=terminal, status=status), tempfile.TemporaryDirectory() as directory:
                     root = pathlib.Path(directory)
                     installer = root / "bun"
-                    installer.write_text("#!/bin/sh\nif [ -t 2 ]; then echo tty >&2; else echo pipe >&2; fi\nprintf 'first\\nsecond\\nthird\\n' >&2\n"
+                    ending = "\\n" if terminal else ""
+                    installer.write_text("#!/bin/sh\nif [ -t 2 ]; then echo tty >&2; else echo pipe >&2; fi\n"
+                                         f"printf 'first\\nsecond\\nthird{ending}' >&2\n"
                                          'while [ ! -f "$RELEASE" ]; do sleep .02; done\n'
                                          f"exit {status}\n")
                     installer.chmod(0o755)
@@ -372,6 +374,8 @@ class Cancellation(unittest.TestCase):
                                     data.extend(os.read(master, 65536))
                             else:
                                 data.extend(stderr)
+                            if not terminal:
+                                self.assertIn(b"third\n", data)
                             lines = data.decode().splitlines()
                             start = lines.index("first")
                             self.assertEqual(lines[start - 1], "tty" if terminal else "pipe")

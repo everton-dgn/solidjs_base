@@ -28,6 +28,11 @@ function steps(job: unknown): Record<string, unknown>[] {
   assert.ok(Array.isArray(values))
   return values.map((value: unknown) => record(value))
 }
+function includesGenerator(plugin: {
+  components?: readonly string[]
+}): boolean {
+  return plugin.components?.includes('create-solid') ?? false
+}
 function expression(value: string) {
   return `\${{ ${value} }}`
 }
@@ -150,9 +155,7 @@ test('keeps the installed scenarios and package builds in their jobs', () => {
       step => step.name === 'Build published packages'
     )?.run,
     Object.hasOwn(releaseConfig.packages, 'packages/create-solid') ||
-      releaseConfig.plugins.some(plugin =>
-        plugin.components?.includes('create-solid')
-      )
+      releaseConfig.plugins.some(includesGenerator)
       ? 'vp run build'
       : 'vp run build:published'
   )
@@ -213,4 +216,9 @@ test('runs prepared artifact validation in the generator gate', () => {
         'vp run --fail-if-no-match --filter @evertondgn/create-solid test:validated'
       )
   )
+})
+
+test('accepts release plugins with no component list', () => {
+  assert.equal(includesGenerator({}), false)
+  assert.equal(includesGenerator({ components: ['create-solid'] }), true)
 })

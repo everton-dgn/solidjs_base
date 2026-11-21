@@ -24,7 +24,8 @@ selects the custom setup, static hosting, two languages and pnpm:
 ◇  Setup
 │  Customize
 │
-◇  Features (Space to toggle, Enter to continue)
+│  Space to toggle, Enter to continue
+◇  Features
 │  SEO metadata, Light and dark theme switcher, Icons, Solid reactivity
 │  diagnostics in development
 │

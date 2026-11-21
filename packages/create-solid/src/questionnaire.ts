@@ -210,6 +210,7 @@ export async function questionnaire({
           (result.mode !== 'client' && result['site-url'] === undefined))
     )
     if (keys.length > 0) {
+      io.output.write(`│  ${labels.featureKeys}\n`)
       const chosen = answer<string[]>(
         await multiselect({
           ...io,

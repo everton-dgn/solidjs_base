@@ -87,7 +87,12 @@ function allQuestions(language: Language): Line[] {
 
 for (const language of ['pt-BR', 'en', 'es'] as const) {
   void it(`accepts the full questionnaire in ${language}`, async () => {
-    const { result } = await session(allQuestions(language), { language })
+    const { result, transcript } = await session(allQuestions(language), {
+      language
+    })
+    const m = messages[language]
+    assert.ok(transcript.includes(m.featureKeys))
+    assert.ok(!transcript.includes(`${m.features} (${m.featureKeys})`))
     assert.deepEqual(
       answerProfile(result),
       answerProfile({

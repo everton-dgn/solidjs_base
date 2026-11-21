@@ -44,6 +44,9 @@ function detectLanguage(options: string[]) {
     intlLocale
   })
 }
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
 const writeStep = (title: string) => process.stdout.write(`◇ ${title}\n`)
 type Creation = { answers: Answers; isInteractive: boolean }
 const interruptedExitCode = 130
@@ -128,8 +131,9 @@ async function createApplication({ answers, isInteractive }: Creation) {
       }
     )
   } catch (error) {
+    if (error instanceof UsageError) throw error
     const canceled = error instanceof CanceledError
-    const reason = error instanceof Error ? error.message : String(error)
+    const reason = errorMessage(error)
     const closing = canceled ? labels.cancel : labels.stopped
     if (frame) {
       if (canceled) frame.progress.cancel()
@@ -277,7 +281,7 @@ async function run(): Promise<void> {
 try {
   await run()
 } catch (error) {
-  let reason = error instanceof Error ? error.message : String(error)
+  let reason = errorMessage(error)
   if (error instanceof ProfileProblemError) reason = error.describe(language)
   if (
     error instanceof TypeError &&

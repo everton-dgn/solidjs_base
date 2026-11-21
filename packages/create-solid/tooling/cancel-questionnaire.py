@@ -387,6 +387,20 @@ class Cancellation(unittest.TestCase):
                     self.assertEqual(final.rstrip().splitlines(), [*expected, "│", f"└  {closing}"])
                     self.assertEqual(status, 130)
 
+    def test_destination_changes_before_confirmation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            dest = pathlib.Path(directory) / "app"
+            def occupy(label):
+                if label == "¿Crear el proyecto?":
+                    dest.mkdir()
+                    (dest / "existing").write_text("keep")
+            output, status = question_session(directory, "es", [
+                ("Título de la aplicación", b"\r"), ("Configuración", b"\r"),
+                ("¿Crear el proyecto?", b"\r")], before_answer=occupy)
+            self.assertEqual(status, 2)
+            self.assertIn("La carpeta del proyecto debe ser nueva o estar vacía:", output)
+            self.assertEqual((dest / "existing").read_text(), "keep")
+
     def test_git_warning(self):
         self.exercise(True, git=True, git_warning=True)
 

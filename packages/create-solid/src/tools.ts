@@ -12,8 +12,9 @@ const links = {
   pnpm: 'https://pnpm.io/installation',
   npm: 'https://nodejs.org/download'
 }
-export const toolNames = { bun: 'Bun', git: 'Git', npm: 'npm', pnpm: 'pnpm' }
 type Tool = keyof typeof links
+
+export const toolNames = { bun: 'Bun', git: 'Git', npm: 'npm', pnpm: 'pnpm' }
 
 export function hasTool(tool: Tool): boolean {
   return (process.env.PATH ?? '').split(path.delimiter).some(directory => {

@@ -46,6 +46,7 @@ import { applyPreparedSource } from './prepared-source.ts'
 import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
+import { shellDirectory } from './shellDirectory/index.ts'
 import { checkTools, hasRepository, hasTool } from './tools.ts'
 import type {
   FileWrite,
@@ -121,12 +122,7 @@ function nextSteps({
   siteUrl,
   retryGit
 }: NextSteps): string[] {
-  let relative = path.relative(process.cwd(), profile.dir) || '.'
-  if (relative.startsWith('-')) relative = `./${relative}`
-  const directory = /^[a-zA-Z0-9_./-]+$/u.test(relative)
-    ? relative
-    : `'${relative.replaceAll("'", String.raw`'\''`)}'`
-  const next = [`cd ${directory}`]
+  const next = [`cd ${shellDirectory(profile.dir)}`]
   if (!hasTool('bun')) next.unshift(messages[language].missingBun)
   if (retryGit) next.push('git init')
   if (!profile.shouldInstall) {
@@ -373,7 +369,7 @@ function* initializeGit(
     } catch (error) {
       const resume = message(language, {
         code: 'gitFailure',
-        values: { dir: path.relative(process.cwd(), profile.dir) || '.' }
+        values: { dir: shellDirectory(profile.dir) }
       })
       if (error instanceof CanceledError) {
         throw new CanceledError(

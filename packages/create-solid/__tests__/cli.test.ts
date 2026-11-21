@@ -610,7 +610,7 @@ void it('preserves desktop metadata and an existing Git directory without runnin
 
 void it('reports cancellation during Git setup after publishing the tree', context => {
   const root = folder(context)
-  const dir = path.join(root, 'app')
+  const dir = path.join(root, 'my app')
   writeFileSync(
     path.join(root, 'git'),
     '#!/bin/sh\nkill -INT "$PPID"\nexec /bin/sleep 10\n',
@@ -631,7 +631,7 @@ void it('reports cancellation during Git setup after publishing the tree', conte
   const relative = path.relative(process.cwd(), dir)
   assert.ok(
     result.stderr.includes(
-      `Your project is in ${relative}. To finish, run:\ngit init\nbun install`
+      `Your project is in '${relative}'. To finish, run:\ngit init\nbun install`
     )
   )
   assert.ok(existsSync(path.join(dir, 'package.json')))

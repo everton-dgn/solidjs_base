@@ -1,7 +1,5 @@
-import path from 'node:path'
-import process from 'node:process'
-
 import { message, type Language } from '../cli-language.ts'
+import { shellDirectory } from '../shellDirectory/index.ts'
 import type { Profile } from '../types.ts'
 import { CanceledError } from '../usage-error.ts'
 
@@ -22,7 +20,7 @@ export function* installProfile({
     const resume = message(language, {
       code: 'installFailure',
       values: {
-        dir: path.relative(process.cwd(), profile.dir) || '.',
+        dir: shellDirectory(profile.dir),
         pm: profile.pm
       }
     })

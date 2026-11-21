@@ -591,7 +591,8 @@ void it('prints the Bun installation link before starting the selected installer
   assert.equal(result.status, 0, result.stderr)
   const link = result.stdout.indexOf('https://bun.sh')
   assert.ok(link !== -1 && link < result.stdout.indexOf('installer-started'))
-  assert.ok(result.stdout.includes('npm run dev'))
+  assert.ok(result.stdout.includes('bun run dev'))
+  assert.doesNotMatch(result.stdout, /(?:pnpm|npm) run dev/u)
 })
 
 void it('rejects an unsupported explicit language before showing help', () => {

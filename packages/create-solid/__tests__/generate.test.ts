@@ -65,7 +65,7 @@ void it('returns installation instructions to callers of generate', async contex
     [
       `cd ${path.relative(process.cwd(), dir)}`,
       'pnpm install',
-      'pnpm run dev',
+      'bun run dev',
       'Replace VITE_SITE_URL in .env with your site URL before publishing.',
       'See "Before publishing" in README.md.'
     ]

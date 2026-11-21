@@ -134,7 +134,7 @@ function nextSteps({
   if (!profile.shouldInstall) {
     next.push(`${profile.pm} install`)
   }
-  next.push(`${profile.pm} run dev`)
+  next.push('bun run dev')
   if (siteUrl?.origin === defaultSiteUrl) {
     next.push(messages[language].setUrl)
   }

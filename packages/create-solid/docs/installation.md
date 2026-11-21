@@ -73,7 +73,7 @@ selects the custom setup, static hosting, two languages and pnpm:
 │                                         │
 │  cd portal                              │
 │  pnpm install                           │
-│  pnpm run dev                           │
+│  bun run dev                            │
 │  See "Before publishing" in README.md.  │
 │                                         │
 ├─────────────────────────────────────────╯
@@ -92,7 +92,7 @@ bunx @evertondgn/create-solid@latest portal --title Portal --mode static \
 
 The CLI prints the settings before creating files. After confirmation, it groups
 the completed steps on consecutive lines. After this session, open `portal`, run
-`pnpm install` and `pnpm run dev`. Bun runs the application tasks. Server mode
+`pnpm install` and `bun run dev`. Bun runs the application tasks. Server mode
 targets Vercel. Canceling at a prompt or while creating files removes the
 unfinished project and any parent directories created for it. After the files
 are published, canceling Git or installation stops that process and keeps the

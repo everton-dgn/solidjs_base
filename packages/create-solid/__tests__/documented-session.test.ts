@@ -43,6 +43,8 @@ void it('generates the static pnpm application from the documented questionnaire
   assert.ok(existsSync(path.join(dir, '.git')))
   assert.ok(!existsSync(path.join(dir, 'node_modules')))
   assert.ok(output.includes('│ pnpm install '))
+  assert.ok(output.includes('bun run dev'))
+  assert.doesNotMatch(output, /(?:pnpm|npm) run dev/u)
   assert.ok(output.includes('https://portal.example'))
   assert.match(
     readFileSync(path.join(dir, 'src/constants/site/title.ts'), 'utf8'),
@@ -94,7 +96,7 @@ void it('keeps the guide transcript in the order of the English questionnaire', 
     assert.ok(index > last, label)
     last = index
   }
-  for (const command of ['cd portal', 'pnpm install', 'pnpm run dev']) {
+  for (const command of ['cd portal', 'pnpm install', 'bun run dev']) {
     assert.ok(transcript.includes(command))
   }
 })

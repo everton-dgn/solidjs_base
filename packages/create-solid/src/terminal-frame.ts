@@ -14,6 +14,7 @@ import {
 
 import { messages, type Language } from './cli-language.ts'
 import { CanceledError } from './usage-error.ts'
+import { wrapFrameText } from './wrapFrameText/index.ts'
 
 type Completion = {
   steps: string[]
@@ -82,7 +83,15 @@ export const progress = {
   warn(message: string): void {
     clearIndicator()
     const [title = '', ...diagnostic] = message.split('\n')
-    log.warn([stepTitle(title), ...diagnostic].join('\n'), { spacing: 0 })
+    log.warn(
+      [
+        stepTitle(title),
+        ...diagnostic.flatMap(line =>
+          wrapFrameText({ output: process.stdout, text: line })
+        )
+      ].join('\n'),
+      { spacing: 0 }
+    )
   },
   error(title: string): void {
     clearIndicator()
@@ -102,7 +111,11 @@ export function closeQuestion(label: string): void {
   outro(`${styleText('gray', S_BAR_END)}  ${label}`, { withGuide: false })
 }
 export function closeFrame(reason: string, closing?: string): void {
-  if (reason) log.message(reason, { spacing: 0 })
+  if (reason) {
+    log.message(wrapFrameText({ output: process.stdout, text: reason }), {
+      spacing: 0
+    })
+  }
   outro(closing)
 }
 export function finishProject({ steps, language }: Completion): void {

@@ -65,6 +65,35 @@ void it('reserves echo space in a single column and clips only the Git warning t
   )
   assert.equal(
     output,
-    '\r\u001B[2K◇\n▲  Git repo…\n│  denied by configuration\n'
+    '\r\u001B[2K◇\n▲  Git repo…\n│  denied by\n│  configur\n│  ation\n'
   )
+})
+
+void it('wraps the installer tail and long resume path inside the guide', () => {
+  const reason =
+    'registry rejected the installation\n\nYour project is in parent/a-directory-name-that-needs-wrapping. To finish, run:'
+  const script = `
+    Object.defineProperty(process.stdout, 'columns', {value: 24})
+    const { closeFrame } = await import('./src/terminal-frame.ts')
+    closeFrame(${JSON.stringify(reason)}, 'end')
+  `
+  const output = execFileSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, FORCE_COLOR: '0', TERM: 'xterm' }
+    }
+  )
+  assert.deepEqual(output.trimEnd().split('\n'), [
+    '│  registry rejected the',
+    '│  installation',
+    '│',
+    '│  Your project is in pa',
+    '│  rent/a-directory-name',
+    '│  -that-needs-wrapping.',
+    '│  To finish, run:',
+    '│',
+    '└  end'
+  ])
 })

@@ -29,6 +29,7 @@ import { hasTool, hasRepository, missingTool } from './tools.ts'
 import type { Answers } from './types.ts'
 import { CanceledError } from './usage-error.ts'
 import { validateProfile } from './validateProfile/index.ts'
+import { wrapFrameText } from './wrapFrameText/index.ts'
 
 type FieldOptions = {
   key: 'name' | 'title' | 'locales' | 'base-locale' | 'site-url'
@@ -144,8 +145,16 @@ function openQuestionnaire({
     ? '\u001B[38;2;68;107;158m'
     : '\u001B[38;5;67m'
   const name = hasColor ? `${solidBlue}Solid Base\u001B[0m` : 'Solid Base'
-  intro(`${name} v${manifest.version}`, { output, input })
-  log.message(messages[language].tagline, { output, spacing: 0 })
+  intro(
+    wrapFrameText({ output, text: `${name} v${manifest.version}` }).join(
+      `\n${styleText('gray', S_BAR)}  `
+    ),
+    { output, input }
+  )
+  log.message(wrapFrameText({ output, text: messages[language].tagline }), {
+    output,
+    spacing: 0
+  })
 }
 function reportMissingTools({ result, language, io }: SetupRecovery) {
   const labels = messages[language]

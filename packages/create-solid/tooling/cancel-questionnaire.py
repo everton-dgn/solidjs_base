@@ -189,6 +189,11 @@ class Cancellation(unittest.TestCase):
                     self.assertEqual(os.waitstatus_to_exitcode(status), 1)
                     return
                 if columns == 30:
+                    lines = transcript.decode().splitlines()
+                    self.assertEqual(lines[1:4], ["│  Start a Solid 2 application", "│  with Vite+, TypeScript and",
+                                                  "│  tests set up."])
+                    self.assertIn("│  Your project is in", lines)
+                    self.assertIn("│  parent/app. To finish, run:", lines)
                     self.assertIn("Installing dependencies wi…".encode(), transcript)
                     self.assertNotIn(b"Installing dependencies with Bun", transcript)
                 if columns in (30, 36):

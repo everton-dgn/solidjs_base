@@ -508,6 +508,24 @@ manifest until the next group release, N. Once all its pins are on npm:
    )
    ```
 
+   On release day, run the pnpm gate from the same release commit's tarball.
+   Keep `pnpm-workspace.yaml` exactly as pnpm leaves it during installation.
+
+   ```sh
+   (
+     set -eu
+     cd "$(mktemp -d)"
+     tar -xzf "$archive"
+     node package/dist/create-solid.mjs app --pm pnpm --no-install --no-git
+     cd app
+     env -u NODE_ENV pnpm install
+     env -u NODE_ENV vp run check:ci
+   )
+   ```
+
+   While the pnpm gate fails, including on `ERR_PNPM_UNUSED_PATCH`, do not
+   publish the pnpm profile.
+
    A nonzero exit stops the release.
 
 3. The owner publishes that same tarball by hand and tags the release commit

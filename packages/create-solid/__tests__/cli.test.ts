@@ -193,6 +193,8 @@ void it('generates without a formatter or installer on PATH when setup is disabl
     [bin, dir, '--no-install', '--no-git'],
     { encoding: 'utf8', env: { ...process.env, PATH: parent } }
   )
+  const steps = output.slice(output.lastIndexOf('Next steps'))
+  assert.ok(steps.indexOf('Install Bun') < steps.indexOf('cd '))
   assert.ok(output.includes('│ bun install '))
   assert.match(
     output.slice(output.lastIndexOf('Next steps')),

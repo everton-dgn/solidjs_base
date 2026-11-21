@@ -127,11 +127,11 @@ function nextSteps({
     ? relative
     : `'${relative.replaceAll("'", String.raw`'\''`)}'`
   const next = [`cd ${directory}`]
+  if (!hasTool('bun')) next.unshift(messages[language].missingBun)
   if (retryGit) next.push('git init')
   if (!profile.shouldInstall) {
     next.push(`${profile.pm} install`)
   }
-  if (!hasTool('bun')) next.push(messages[language].missingBun)
   next.push(`${profile.pm} run dev`)
   if (siteUrl?.origin === 'https://example.com') {
     next.push(messages[language].setUrl)

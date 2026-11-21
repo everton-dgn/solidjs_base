@@ -15,7 +15,7 @@ import time
 
 root = pathlib.Path.cwd()
 master, slave = pty.openpty()
-fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
+fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
 environment = dict(os.environ, NO_COLOR="1", TERM="xterm")
 if len(sys.argv) > 2:
     environment["CI"] = sys.argv[2]

@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { PassThrough, type Writable, type Readable } from 'node:stream'
+import type { Writable, Readable } from 'node:stream'
 
 import {
   type CommonOptions,
@@ -70,24 +70,6 @@ async function recoverSetup({ result, language, io }: SetupRecovery) {
   }
 }
 
-function promptStreams({
-  input,
-  output,
-  hasColor
-}: Pick<Session, 'input' | 'output' | 'hasColor'>) {
-  // SGR selects colors and styles. Cursor movement must reach the terminal.
-  // oxlint-disable-next-line no-control-regex
-  const sgr = /\u001B\[[\d;:]*m/gu
-  const plainOutput = new PassThrough()
-  plainOutput.on('data', chunk =>
-    output.write(String(chunk).replaceAll(sgr, ''))
-  )
-  return {
-    input,
-    output: hasColor ? output : plainOutput,
-    accessible: !hasColor
-  }
-}
 export async function questionnaire({
   answers,
   language,
@@ -96,7 +78,7 @@ export async function questionnaire({
   hasColor
 }: Session): Promise<Answers> {
   const labels = messages[language]
-  const io = promptStreams({ input, output, hasColor })
+  const io = { input, output }
   const result = { ...answers }
   intro(
     `${hasColor ? '\u001B[38;2;68;107;158mSolid Base\u001B[0m' : 'Solid Base'} v${manifest.version}`,

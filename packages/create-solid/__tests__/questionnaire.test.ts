@@ -410,3 +410,41 @@ void it('asks for one application language in a translated client app', async ()
   assert.equal(result.locales, 'es')
   assert.equal(result['base-locale'], 'es')
 })
+
+void it('redraws a colorless prompt at the new terminal width', async () => {
+  const input = new PassThrough()
+  const output = Object.assign(new PassThrough(), { columns: 80, rows: 24 })
+  let transcript = ''
+  let resized = false
+  function resizePrompt() {
+    transcript = ''
+    output.columns = 14
+    output.emit('resize')
+    setImmediate(() => input.write('\u0003'))
+  }
+  output.on('data', chunk => {
+    transcript += String(chunk)
+    if (!resized && transcript.includes(messages.en.title)) {
+      resized = true
+      setImmediate(resizePrompt)
+    }
+  })
+  try {
+    await assert.rejects(
+      questionnaire({
+        answers: { name: 'portal' },
+        language: 'en',
+        input,
+        output,
+        hasColor: false
+      }),
+      CanceledError
+    )
+    assert.ok(resized)
+    assert.ok(transcript.includes('Application'))
+    assert.ok(!transcript.includes(messages.en.title))
+  } finally {
+    input.destroy()
+    output.destroy()
+  }
+})

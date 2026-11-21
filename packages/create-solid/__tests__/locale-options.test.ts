@@ -346,3 +346,32 @@ void it('keeps the template switcher and language examples for the default serve
   )
   assert.match(read('docs/seo/sitemap.md'), /`\/pt\/blog\/x`/u)
 })
+
+void it('keeps explicit project languages independent of the questionnaire language', context => {
+  const root = mkdtempSync(path.join(tmpdir(), 'solid-language-precedence-'))
+  context.after(() => rmSync(root, { recursive: true, force: true }))
+  function read(language: string, flags: string[]) {
+    const dir = path.join(root, language)
+    const result = spawnSync(
+      process.execPath,
+      [
+        'src/create-solid.ts',
+        dir,
+        '--yes',
+        '--no-git',
+        '--no-install',
+        '--lang',
+        language,
+        ...flags
+      ],
+      { encoding: 'utf8' }
+    )
+    assert.equal(result.status, 0, result.stderr)
+    return readLocaleSettings(dir).baseLocale
+  }
+  assert.equal(read('pt-BR', ['--base-locale', 'en']), 'en')
+  const flags = ['--locales', 'pt,en']
+  const base = read('en', flags)
+  assert.equal(base, 'pt')
+  assert.equal(read('es', flags), base)
+})

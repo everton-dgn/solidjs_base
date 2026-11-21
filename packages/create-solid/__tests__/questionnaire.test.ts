@@ -112,6 +112,23 @@ for (const language of ['pt-BR', 'en', 'es'] as const) {
         .slice(transcript.lastIndexOf(m.features))
         .includes(m.featureKeys)
     )
+    const rows = transcript
+      .slice(transcript.indexOf(m.features), transcript.indexOf(m.featureKeys))
+      .split('\n')
+    const terminalWidth = 80
+    const optionLabels = [
+      m.seo,
+      m.theme,
+      m.icons,
+      `${m.fonts} (${m.fontHint})`,
+      m.diagnostics
+    ]
+    assert.equal(rows.slice(1, -1).length, optionLabels.length, rows.join('\n'))
+    for (const label of optionLabels) {
+      const row = rows.find(line => line.includes(label))
+      assert.ok(row, label)
+      assert.ok(row.startsWith('│') && row.length <= terminalWidth, row)
+    }
     assert.ok(!transcript.includes(`${m.features} (${m.featureKeys})`))
     assert.ok(transcript.includes(`${m.featureKeys}\n└`))
     assert.deepEqual(

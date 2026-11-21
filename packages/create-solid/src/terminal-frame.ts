@@ -28,7 +28,8 @@ type Confirmation = {
 }
 
 const frames = S_BAR === '│' ? ['◒', '◐', '◓', '◑'] : ['•', 'o', 'O', '0']
-const intervalMs = 90
+const unicodeIntervalMs = 80
+const asciiIntervalMs = 120
 const echoWidth = 2
 let indicator: ReturnType<typeof setInterval> | undefined
 let active = ''
@@ -76,7 +77,7 @@ export const progress = {
       index = (index + 1) % frames.length
     }
     draw()
-    indicator = setInterval(draw, intervalMs)
+    indicator = setInterval(draw, unicode ? unicodeIntervalMs : asciiIntervalMs)
   },
   finish: (title: string): void => {
     clearIndicator()

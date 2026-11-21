@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import process from 'node:process'
 import { it } from 'node:test'
 
@@ -113,4 +113,28 @@ void it('uses ASCII dots when clipping an ASCII step', () => {
     }
   )
   assert.match(output, / {2}Depend\.\.\.\n$/u)
+})
+
+void it('uses the Clack interval for each indicator', () => {
+  const script = `
+    Object.defineProperty(process.stdout, 'isTTY', {value: true})
+    globalThis.setInterval = (_, ms) => { process.stderr.write(String(ms)); return undefined }
+    const { progress } = await import('./src/terminal-frame.ts')
+    progress.start('files')
+  `
+  for (const [term, interval] of [
+    ['xterm', '80'],
+    ['linux', '120']
+  ] as const) {
+    const child = spawnSync(
+      process.execPath,
+      ['--input-type=module', '-e', script],
+      {
+        encoding: 'utf8',
+        env: { ...process.env, TERM: term }
+      }
+    )
+    assert.equal(child.status, 0, child.stderr)
+    assert.equal(child.stderr, interval)
+  }
 })

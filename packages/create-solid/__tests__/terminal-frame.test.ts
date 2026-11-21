@@ -138,3 +138,21 @@ void it('uses the Clack interval for each indicator', () => {
     assert.equal(child.stderr, interval)
   }
 })
+
+void it('aligns wrapped next steps with the note text', () => {
+  const script = `
+    Object.defineProperty(process.stdout, 'columns', {value: 40})
+    const { finishProject } = await import('./src/terminal-frame.ts')
+    const { messages } = await import('./src/cli-language.ts')
+    finishProject({ steps: [messages.en.setUrl], language: 'en' })
+  `
+  const output = execFileSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, FORCE_COLOR: '0', TERM: 'xterm' }
+    }
+  )
+  assert.match(output, /^│ {2}your site URL before publishing\. +│$/mu)
+})

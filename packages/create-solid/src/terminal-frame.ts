@@ -32,6 +32,7 @@ type Confirmation = {
 const frames = S_BAR === '│' ? ['◒', '◐', '◓', '◑'] : ['•', 'o', 'O', '0']
 const unicodeIntervalMs = 80
 const asciiIntervalMs = 120
+const noteFormat = { format: (line: string) => line.trimStart() }
 const echoWidth = 2
 let indicator: ReturnType<typeof setInterval> | undefined
 let active = ''
@@ -55,7 +56,7 @@ export async function confirmProject({
   language
 }: Confirmation): Promise<void> {
   const m = messages[language]
-  note(summary, m.summary, { format: line => line.trimStart() })
+  note(summary, m.summary, noteFormat)
   const result = await confirm({
     message: m.create,
     active: m.yes,
@@ -132,6 +133,6 @@ export function stopFrame(reason: string, closing: string): void {
 }
 export function finishProject({ steps, language }: Completion): void {
   const m = messages[language]
-  note(steps.join('\n'), m.next)
+  note(steps.join('\n'), m.next, noteFormat)
   outro(m.ready)
 }

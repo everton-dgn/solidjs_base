@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { it } from 'node:test'
 
+import manifest from '../package.json' with { type: 'json' }
 import { cliLanguage, messages } from '../src/cli-language.ts'
 
 void it('selects the interface language independently of the project', () => {
@@ -67,6 +68,7 @@ void it('mentions the same flags and commands in each translation', () => {
 })
 
 void it('introduces the included Solid 2 tooling in every language', () => {
+  assert.equal(manifest.description, messages.en.tagline)
   assert.equal(
     messages.en.tagline,
     'Start a Solid 2 application with Vite+, TypeScript and tests set up.'

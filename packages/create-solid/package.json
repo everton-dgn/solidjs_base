@@ -2,7 +2,7 @@
   "private": true,
   "name": "@evertondgn/create-solid",
   "version": "0.10.0",
-  "description": "Generate a standalone Solid Base application.",
+  "description": "Start a Solid 2 application with Vite+, TypeScript and tests set up.",
   "license": "MIT",
   "type": "module",
   "engines": {

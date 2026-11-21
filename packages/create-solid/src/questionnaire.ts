@@ -106,11 +106,14 @@ function renderFeatures({
       return [
         styleText('gray', S_BAR),
         heading,
-        wrapTextWithPrefix(
-          output,
-          styleText('dim', list),
-          `${styleText('gray', S_BAR)}  `
-        )
+        this.state === 'cancel' && !list
+          ? styleText('gray', S_BAR)
+          : wrapTextWithPrefix(
+              output,
+              styleText('dim', list),
+              `${styleText('gray', S_BAR)}  `
+            ),
+        ...(this.state === 'cancel' && list ? [styleText('gray', S_BAR)] : [])
       ].join('\n')
     }
     const rows = this.options.map((item, index) => {

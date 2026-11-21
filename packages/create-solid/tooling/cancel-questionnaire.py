@@ -1,5 +1,6 @@
 """Check Ctrl+C with the CLI in the foreground of a controlling terminal."""
 
+import errno
 import fcntl
 import subprocess
 import struct
@@ -39,6 +40,53 @@ def install_screen(transcript, columns):
             rows[-1][column:column + 1] = [token]
             column += 1
     return ["".join(row) for row in rows]
+
+
+def question_session(directory, language, prompts, before_answer=None):
+    master, slave = pty.openpty()
+    try:
+        fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
+        with subprocess.Popen([node, cli, "app", "--lang", language, "--mode", "server",
+                               "--no-git", "--no-install"], cwd=directory,
+                              env=dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm"),
+                              stdin=slave, stdout=slave, stderr=slave) as child:
+            os.close(slave)
+            slave = None
+            output = bytearray()
+            offset = 0
+            try:
+                for label, key in prompts:
+                    until = time.monotonic() + 5
+                    while label.encode() not in output[offset:]:
+                        if not select.select([master], [], [], max(0, until-time.monotonic()))[0]:
+                            raise AssertionError((label, output.decode()))
+                        block = os.read(master, 65536)
+                        if not block:
+                            raise AssertionError((label, output.decode()))
+                        output.extend(block)
+                    offset = len(output)
+                    if before_answer:
+                        before_answer(label)
+                    os.write(master, key)
+                until = time.monotonic() + 5
+                while select.select([master], [], [], max(0, until-time.monotonic()))[0]:
+                    try:
+                        block = os.read(master, 65536)
+                    except OSError as error:
+                        if error.errno != errno.EIO:
+                            raise
+                        break
+                    if not block:
+                        break
+                    output.extend(block)
+                return output.decode(), child.wait(timeout=1)
+            finally:
+                if child.poll() is None:
+                    child.kill()
+    finally:
+        os.close(master)
+        if slave is not None:
+            os.close(slave)
 
 
 class Cancellation(unittest.TestCase):
@@ -321,6 +369,23 @@ class Cancellation(unittest.TestCase):
                         if terminal:
                             os.close(master)
                             os.close(slave)
+
+    def test_question_cancel(self):
+        for language, title, setup, create, no, closing in [
+            ("en", "Application title", "Setup", "Create the project?", "No", "Creation canceled."),
+            ("es", "Título de la aplicación", "Configuración", "¿Crear el proyecto?", "No", "Creación cancelada."),
+        ]:
+            for key in (b"\x03", b"\x1b", b"n"):
+                with self.subTest(language=language, key=key), tempfile.TemporaryDirectory() as directory:
+                    prompts = [(title, key)]
+                    expected = [f"■  {title}", "│  app"]
+                    if key == b"n":
+                        prompts = [(title, b"\r"), (setup, b"\r"), (create, key)]
+                        expected = [f"◇  {create}", f"│  {no}"]
+                    output, status = question_session(directory, language, prompts)
+                    final = re.sub(r"\x1b\[\?25[hl]", "", output.rsplit("\x1b[J", 1)[-1])
+                    self.assertEqual(final.rstrip().splitlines(), [*expected, "│", f"└  {closing}"])
+                    self.assertEqual(status, 130)
 
     def test_git_warning(self):
         self.exercise(True, git=True, git_warning=True)

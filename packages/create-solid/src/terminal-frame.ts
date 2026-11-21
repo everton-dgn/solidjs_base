@@ -4,6 +4,7 @@ import { styleText } from 'node:util'
 import {
   S_BAR,
   S_STEP_ERROR,
+  S_BAR_END,
   confirm,
   isCancel,
   note,
@@ -54,10 +55,9 @@ export async function confirmProject({
     active: m.yes,
     inactive: m.no
   })
-  if (result === false || isCancel(result)) {
-    throw new CanceledError()
-  }
+  if (isCancel(result)) throw new CanceledError()
   log.message('', { spacing: 0 })
+  if (!result) throw new CanceledError()
 }
 export const progress = {
   start(title: string): void {
@@ -97,6 +97,9 @@ export const progress = {
     clearIndicator()
     log.error(stepTitle(title), { spacing: 0 })
   }
+}
+export function closeQuestion(label: string): void {
+  outro(`${styleText('gray', S_BAR_END)}  ${label}`, { withGuide: false })
 }
 export function closeFrame(reason: string, closing?: string): void {
   if (reason) log.message(reason, { spacing: 0 })

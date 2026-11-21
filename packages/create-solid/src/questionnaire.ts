@@ -130,7 +130,7 @@ export async function questionnaire({
     const names = {
       name: labels.dir,
       title: labels.title,
-      locales: labels.locales,
+      locales: result.mode === 'client' ? labels.appLanguage : labels.locales,
       'base-locale': result['no-i18n'] ? labels.appLanguage : labels.base,
       'site-url': labels.url
     }
@@ -183,16 +183,17 @@ export async function questionnaire({
       result['no-i18n'] = !(await toggle(labels.i18n))
     }
     const { defaults } = validateProfile(result)
-    if (!result['no-i18n']) {
-      if (result.mode === 'client' && result['base-locale'] !== undefined) {
+    if (result.mode === 'client') {
+      const key = result['no-i18n'] ? 'base-locale' : 'locales'
+      if (key === 'locales' && result['base-locale'])
         result.locales ??= result['base-locale']
-      }
-      await field(
-        'locales',
-        result.mode === 'client'
-          ? defaults.baseLocale
-          : defaults.locales.join(',')
-      )
+      if (!result[key]) io.output.write(`│  ${labels.singleLanguage}\n`)
+      await field(key, defaults.baseLocale)
+      if (result.locales) result['base-locale'] ??= result.locales
+      return
+    }
+    if (!result['no-i18n']) {
+      await field('locales', defaults.locales.join(','))
       if (result.locales && !result.locales.includes(',')) {
         result['base-locale'] ??= result.locales
       }

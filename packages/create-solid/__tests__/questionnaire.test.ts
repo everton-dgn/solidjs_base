@@ -381,3 +381,32 @@ void it('retries an occupied folder and matches the flags for a custom client ap
   ])
   assert.equal(tree(left), tree(right))
 })
+
+void it('asks for one application language in a translated client app', async () => {
+  const m = messages.en
+  const { result, transcript } = await session(
+    [
+      [m.setup, '\u001B[B\r'],
+      [m.i18n, 'y'],
+      [m.appLanguage, 'es\r']
+    ],
+    {
+      answers: {
+        name: 'portal',
+        title: 'Portal',
+        mode: 'client',
+        theme: true,
+        icons: true,
+        fonts: true,
+        diagnostics: true,
+        pm: 'bun',
+        'no-install': true,
+        'no-git': true
+      }
+    }
+  )
+  assert.ok(transcript.includes(m.singleLanguage))
+  assert.ok(!transcript.includes(m.locales))
+  assert.equal(result.locales, 'es')
+  assert.equal(result['base-locale'], 'es')
+})

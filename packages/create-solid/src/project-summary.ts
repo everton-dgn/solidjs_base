@@ -2,7 +2,7 @@ import path from 'node:path'
 import process from 'node:process'
 
 import { messages, type Language } from './cli-language.ts'
-import { toolNames } from './tools.ts'
+import { hasRepository, toolNames } from './tools.ts'
 import type { validateProfile } from './validateProfile/index.ts'
 
 type Summary = {
@@ -22,7 +22,7 @@ export function projectSummary({ validated, language }: Summary): string {
   ].filter(Boolean)
   const locales = languages.locales.map(tag =>
     tag === languages.baseLocale && languages.locales.length > 1
-      ? `${tag} (${m.base})`
+      ? `${tag} (base)`
       : tag
   )
   return [
@@ -33,7 +33,14 @@ export function projectSummary({ validated, language }: Summary): string {
     ...(siteUrl ? [[m.url, siteUrl.origin]] : []),
     [m.featureList, features.join(', ') || m.none],
     [m.manager, toolNames[profile.pm]],
-    ['Git', profile.shouldInitGit ? m.yes : m.no],
+    [
+      'Git',
+      hasRepository(profile.dir)
+        ? m.existingGit
+        : profile.shouldInitGit
+          ? m.yes
+          : m.no
+    ],
     [m.installation, profile.shouldInstall ? m.yes : m.no]
   ]
     .map(([label, value]) => `${label}: ${value}`)

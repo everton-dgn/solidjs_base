@@ -1,4 +1,4 @@
-import type { Language } from './cli-language.ts'
+import { message, type Language } from './cli-language.ts'
 
 const fieldMessages = {
   en: {
@@ -48,8 +48,13 @@ const fieldMessages = {
   }
 } as const
 
-export type ValidationCode = keyof typeof fieldMessages.en
+export type ValidationCode = 'occupied' | keyof typeof fieldMessages.en
 
-export function fieldMessage(language: Language, code: ValidationCode): string {
+export function fieldMessage(
+  language: Language,
+  code: ValidationCode,
+  values: Record<string, string> = {}
+): string {
+  if (code === 'occupied') return message(language, { code, values })
   return fieldMessages[language][code]
 }

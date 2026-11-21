@@ -110,10 +110,9 @@ void it('explains how to continue after Git initialization fails', context => {
     env: { ...process.env, PATH: `${parent}:${process.env.PATH}` }
   })
   assert.equal(result.status, 1)
+  const relative = path.relative(process.cwd(), dir)
   assert.ok(
-    result.stderr.includes(
-      `Your project is in ${path.relative(process.cwd(), dir)}. Run git init`
-    )
+    result.stderr.includes(`Your project is in ${relative}. Run git init`)
   )
   assert.doesNotMatch(result.stderr, /bun install/u)
   assert.ok(existsSync(path.join(dir, 'package.json')))
@@ -552,7 +551,7 @@ void it('rejects an unsupported explicit language before showing help', () => {
     })
     const usageError = 2
     assert.equal(result.status, usageError)
-    assert.match(result.stderr, /--lang/u)
+    assert.match(result.stderr, /--lang accepts pt-BR, en or es: fr/u)
   }
 })
 
@@ -593,10 +592,9 @@ void it('reports cancellation during Git setup after publishing the tree', conte
   assert.equal(result.status, canceled)
   assert.match(result.stderr, /Creation canceled/u)
   assert.doesNotMatch(result.stderr, /Git initialization failed/u)
+  const relative = path.relative(process.cwd(), dir)
   assert.ok(
-    result.stderr.includes(
-      `Your project is in ${path.relative(process.cwd(), dir)}. Run git init`
-    )
+    result.stderr.includes(`Your project is in ${relative}. Run git init`)
   )
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })
@@ -612,11 +610,17 @@ void it('lists each flag once with a description through both help aliases', () 
     assert.match(help, /^npm .*pnpm .*Bun/mu)
     const descriptions = help
       .split('\n')
-      .filter(line => /^  --(?:mode|title) /u.test(line))
-    assert.equal(descriptions.length, 2)
+      .filter(line => /^ {2}--(?:mode|title) /u.test(line))
+    const headingCount = 2
+    const descriptionColumn = 31
+    const indent = 2
+    assert.equal(descriptions.length, headingCount)
     for (const line of descriptions) {
       assert.match(line, /^.{31}\S/u)
-      assert.equal(line.slice(2, 31).trimEnd().includes('  '), false)
+      assert.equal(
+        line.slice(indent, descriptionColumn).trimEnd().includes('  '),
+        false
+      )
     }
     const options = help.split('\n').filter(line => line.startsWith('  -'))
     const flags = options.map(line => line.trim().split(/\s+/u)[0])
@@ -640,7 +644,11 @@ void it('preserves an occupied destination with flags and with yes', context => 
     )
     const usageError = 2
     assert.equal(result.status, usageError)
-    assert.match(result.stderr, /--name/u)
+    assert.ok(
+      result.stderr.includes(
+        `The project directory must be new or empty: ${dir}`
+      )
+    )
     assert.deepEqual(readdirSync(dir), ['notes.txt'])
     assert.equal(readFileSync(marker, 'utf8'), 'keep')
   }
@@ -655,6 +663,6 @@ void it('explains a missing tool before the summary in unattended setup', contex
   })
   assert.equal(child.status, 1)
   assert.match(child.stderr, /https:\/\/git-scm.com\/downloads/u)
-  assert.doesNotMatch(child.stdout, /Project settings/u)
+  assert.doesNotMatch(child.stdout, /Project summary/u)
   assert.deepEqual(readdirSync(root), [])
 })

@@ -31,7 +31,10 @@ function detectLanguage(options: string[]) {
   const fallback = cliLanguage({ environment, intlLocale })
   if (requested !== undefined && !Object.hasOwn(messages, requested)) {
     throw new UsageError(
-      message(fallback, { code: 'invalid', values: { flag: '--lang' } })
+      message(fallback, {
+        code: 'unknownLanguage',
+        values: { value: requested }
+      })
     )
   }
   return cliLanguage({

@@ -371,7 +371,7 @@ void it('retries an occupied folder and matches the flags for a custom client ap
   const m = messages.en
   const { result } = await session([
     [m.dir, `${process.cwd()}\r`],
-    [fieldMessage('en', 'destination'), `\u0015${left}\r`],
+    [fieldMessage('en', 'occupied', { dir: '' }).trimEnd(), `\u0015${left}\r`],
     [m.title, 'Portal\r'],
     [m.mode, '\u001B[B\u001B[B\r'],
     [m.setup, '\u001B[B\r'],

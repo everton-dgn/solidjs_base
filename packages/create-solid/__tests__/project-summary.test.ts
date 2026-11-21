@@ -16,7 +16,9 @@ void it('lists selected features in order and fits the default note in 80 column
     const validated = validateProfile({ name: 'solid-app' })
     const lines = projectSummary({ validated, language }).split('\n')
     assert.ok(lines.includes(expected))
-    assert.ok(lines.every(line => line.length + 6 <= 80))
+    const borderWidth = 6
+    const terminalWidth = 80
+    assert.ok(lines.every(line => line.length + borderWidth <= terminalWidth))
     const subset = validateProfile({
       name: 'solid-app',
       'no-seo': true,
@@ -25,5 +27,18 @@ void it('lists selected features in order and fits the default note in 80 column
     const summary = projectSummary({ validated: subset, language })
     assert.ok(!summary.includes('SEO'))
     assert.ok(!summary.includes('Inter'))
+  }
+})
+
+void it('identifies the base language and an existing Git repository', () => {
+  const validated = validateProfile({ name: '../..' })
+  for (const [language, git] of [
+    ['en', 'already present'],
+    ['pt-BR', 'já existe'],
+    ['es', 'ya existe']
+  ] as const) {
+    const summary = projectSummary({ validated, language })
+    assert.ok(summary.includes('en (base)'))
+    assert.ok(summary.includes(`Git: ${git}`))
   }
 })

@@ -68,7 +68,17 @@ export function validateProfile(input: Profile | Answers): ValidatedProfile {
         readdirSync(profile.dir).some(name => isDestinationEntry(name))))
   ) {
     problems.push(
-      new ProfileProblemError({ field: 'dir', code: 'destination' })
+      new ProfileProblemError(
+        profile.dir.trim()
+          ? {
+              field: 'dir',
+              code: 'occupied',
+              values: {
+                dir: 'name' in input ? (input.name ?? profile.dir) : profile.dir
+              }
+            }
+          : { field: 'dir', code: 'destination' }
+      )
     )
   }
   let title = ''

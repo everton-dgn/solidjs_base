@@ -43,7 +43,7 @@ async function recoverSetup({ result, language, io }: SetupRecovery) {
         ...io,
         message: missingTool('git', language),
         active: labels.retry,
-        inactive: labels.no
+        inactive: labels.withoutGit
       })
     )
     if (result['no-git']) delete result.git
@@ -137,7 +137,7 @@ export async function questionnaire({
                 (key === 'name' ? 'dir' : key) ||
               (key === 'locales' && item.code === 'membership')
           )
-          return problem && fieldMessage(language, problem.code)
+          return problem && fieldMessage(language, problem.code, problem.values)
         }
       })
     )

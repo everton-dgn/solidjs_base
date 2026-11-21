@@ -50,12 +50,12 @@ selects the custom setup, static hosting, two languages and pnpm:
 ◇  Install dependencies?
 │  No
 │
-◇  Project settings ────────────────────────────────────────────────────────────────────────────╮
+◇  Project summary ────────────────────────────────────────────────────────────────────────────╮
 │                                                                                               │
 │  Project directory: portal                                                                    │
 │  Application title: Portal                                                                    │
 │  Rendering mode: Static HTML                                                                  │
-│  Languages: en (Base language), es                                                            │
+│  Languages: en (base), es                                                            │
 │  Public site URL: https://portal.example                                                      │
 │  Features: SEO, Theme, Icons, Solid diagnostics                                               │
 │  Package manager: pnpm                                                                        │

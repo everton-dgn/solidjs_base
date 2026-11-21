@@ -428,6 +428,23 @@ void it('uses the resolved folder for the API package name and title', async con
   assert.equal(await generatedTitle(dir), 'My App')
 })
 
+void it('explains conflicting positional destinations', () => {
+  for (const [language, expected] of [
+    ['en', 'Pass a single project directory.'],
+    ['es', 'Indica una sola carpeta de proyecto.'],
+    ['pt-BR', 'Informe uma única pasta de projeto.']
+  ] as const) {
+    const result = spawnSync(
+      process.execPath,
+      [bin, 'a', 'b', '--lang', language],
+      { encoding: 'utf8' }
+    )
+    const usageExitCode = 2
+    assert.equal(result.status, usageExitCode)
+    assert.equal(result.stderr.trim(), expected)
+  }
+})
+
 void it('requires a destination without a terminal and translates flag errors', context => {
   const cwd = folder(context)
   for (const flags of [

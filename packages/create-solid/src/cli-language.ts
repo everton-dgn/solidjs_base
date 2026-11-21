@@ -151,6 +151,7 @@ Automation
     missingBun: 'Install Bun from https://bun.sh before running tasks.',
     defaults:
       'Defaults: solid-app, folder name as title, server on Vercel, pt/en/es with the questionnaire language as base, all features, https://example.com, Bun, Git and installation.',
+    singleDirectory: 'Pass a single project directory.',
     destination: '--name requires a new or empty directory',
     badTitle:
       '--title requires nonempty text on one line without control characters',
@@ -282,6 +283,7 @@ Automação
     missingBun: 'Instale o Bun em https://bun.sh antes de executar as tarefas.',
     defaults:
       'Padrões: solid-app, nome da pasta como título, servidor na Vercel, pt/en/es com o idioma do questionário como base, todos os recursos, https://example.com, Bun, Git e instalação.',
+    singleDirectory: 'Informe uma única pasta de projeto.',
     destination: '--name exige uma pasta nova ou vazia',
     badTitle: '--title exige texto em uma linha sem caracteres de controle',
     origin: '--site-url exige uma origem HTTP ou HTTPS',
@@ -414,6 +416,7 @@ Automatización
       'Instala Bun desde https://bun.sh antes de ejecutar las tareas.',
     defaults:
       'Valores predeterminados: solid-app, nombre de carpeta como título, servidor en Vercel, pt/en/es con el idioma del cuestionario como base, todas las funcionalidades, https://example.com, Bun, Git e instalación.',
+    singleDirectory: 'Indica una sola carpeta de proyecto.',
     destination: '--name requiere una carpeta nueva o vacía',
     badTitle: '--title requiere texto en una línea sin caracteres de control',
     origin: '--site-url requiere un origen HTTP o HTTPS',

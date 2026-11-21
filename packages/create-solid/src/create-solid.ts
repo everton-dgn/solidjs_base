@@ -196,7 +196,7 @@ async function run(): Promise<void> {
     positionals.length > 1 ||
     (values.name !== undefined && positionals.length > 0)
   ) {
-    throw new ProfileProblemError({ field: 'dir', code: 'destination' })
+    throw new UsageError(messages[language].singleDirectory)
   }
   const name =
     positionals[0] ?? values.name ?? (values.yes ? 'solid-app' : undefined)

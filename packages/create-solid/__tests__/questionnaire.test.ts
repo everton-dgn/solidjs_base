@@ -113,6 +113,7 @@ for (const language of ['pt-BR', 'en', 'es'] as const) {
         .includes(m.featureKeys)
     )
     assert.ok(!transcript.includes(`${m.features} (${m.featureKeys})`))
+    assert.ok(transcript.includes(`${m.featureKeys}\n└`))
     assert.deepEqual(
       answerProfile(result),
       answerProfile({

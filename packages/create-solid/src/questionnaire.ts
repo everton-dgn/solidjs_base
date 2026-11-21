@@ -1,5 +1,6 @@
 import path from 'node:path'
 import type { Writable, Readable } from 'node:stream'
+import { styleText } from 'node:util'
 
 import { MultiSelectPrompt, wrapTextWithPrefix } from '@clack/core'
 import {
@@ -9,6 +10,8 @@ import {
   isCancel,
   log,
   symbol,
+  symbolBar,
+  formatInstructionFooter,
   S_BAR,
   S_CHECKBOX_SELECTED,
   S_CHECKBOX_INACTIVE,
@@ -92,6 +95,7 @@ function renderFeatures({
   const labels = messages[language]
   return function render(this: MultiSelectPrompt<FeatureOption>) {
     const heading = `${symbol(this.state)}  ${labels.features}`
+    const bar = symbolBar(this.state) ?? styleText('gray', S_BAR)
     const selected = this.value ?? []
     if (this.state === 'submit' || this.state === 'cancel') {
       const list = this.options
@@ -99,9 +103,13 @@ function renderFeatures({
         .map(item => item.label)
         .join(', ')
       return [
-        S_BAR,
+        styleText('gray', S_BAR),
         heading,
-        wrapTextWithPrefix(output, list, `${S_BAR}  `)
+        wrapTextWithPrefix(
+          output,
+          styleText('dim', list),
+          `${styleText('gray', S_BAR)}  `
+        )
       ].join('\n')
     }
     const rows = this.options.map((item, index) => {
@@ -110,14 +118,13 @@ function renderFeatures({
         : S_CHECKBOX_INACTIVE
       const cursor = index === this.cursor ? '>' : ' '
       const hint = item.hint ? ` (${item.hint})` : ''
-      return `${S_BAR} ${cursor}${mark} ${item.label}${hint}`
+      return `${bar} ${cursor}${mark} ${item.label}${hint}`
     })
     return [
-      S_BAR,
+      styleText('gray', S_BAR),
       heading,
       ...rows,
-      `${S_BAR}  ${labels.featureKeys}`,
-      ''
+      ...formatInstructionFooter(output, [labels.featureKeys], true)
     ].join('\n')
   }
 }

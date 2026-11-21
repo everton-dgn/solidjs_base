@@ -3,7 +3,6 @@ import { styleText } from 'node:util'
 
 import {
   S_BAR,
-  S_STEP_SUBMIT,
   S_STEP_ERROR,
   confirm,
   isCancel,
@@ -25,7 +24,7 @@ type Confirmation = {
   language: Language
 }
 
-const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+const frames = S_BAR === '│' ? ['◒', '◐', '◓', '◑'] : ['•', 'o', 'O', '0']
 const intervalMs = 90
 let indicator: ReturnType<typeof setInterval> | undefined
 let active = ''
@@ -39,7 +38,8 @@ function stepTitle(title: string): string {
 function clearIndicator() {
   if (!active) return
   clearInterval(indicator)
-  process.stdout.write('\r\u001B[2K')
+  if (indicator) process.stdout.write('\r\u001B[2K')
+  indicator = undefined
   active = ''
 }
 export async function confirmProject({
@@ -61,9 +61,12 @@ export async function confirmProject({
 export const progress = {
   start(title: string): void {
     active = title
+    if (!process.stdout.isTTY) return
     let index = 0
     const draw = () => {
-      process.stdout.write(`\r${frames[index]}  ${stepTitle(title)}`)
+      process.stdout.write(
+        `\r${styleText('magenta', frames[index] ?? '')}  ${stepTitle(title)}`
+      )
       index = (index + 1) % frames.length
     }
     draw()
@@ -71,7 +74,7 @@ export const progress = {
   },
   finish: (title: string): void => {
     clearIndicator()
-    log.message(stepTitle(title), { symbol: S_STEP_SUBMIT, spacing: 0 })
+    log.step(stepTitle(title), { spacing: 0 })
   },
   warn(title: string): void {
     clearIndicator()
@@ -92,7 +95,7 @@ export const progress = {
   }
 }
 export function closeFrame(reason: string, closing?: string): void {
-  if (reason) log.message(reason, { symbol: S_BAR, spacing: 0 })
+  if (reason) log.message(reason, { spacing: 0 })
   outro(closing)
 }
 export function finishProject({ steps, language }: Completion): void {

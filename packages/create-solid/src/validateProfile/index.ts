@@ -3,6 +3,7 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { resolveAppTitle } from '../configureAppTitle/index.ts'
 import { readLocaleSettings } from '../configureLocales/catalogs.ts'
+import { defaultSiteUrl } from '../constants/site-url.ts'
 import { isDestinationEntry } from '../isDestinationEntry/index.ts'
 import { distribution } from '../paths.ts'
 import {
@@ -93,7 +94,7 @@ export function validateProfile(input: Profile | Answers): ValidatedProfile {
   const hasSeo = profile.mode !== 'client' && profile.hasSeo !== false
   let siteUrl
   if (hasSeo) {
-    siteUrl = URL.parse(profile.siteUrl ?? 'https://example.com') ?? undefined
+    siteUrl = URL.parse(profile.siteUrl ?? defaultSiteUrl) ?? undefined
     if (
       !siteUrl ||
       !['http:', 'https:'].includes(siteUrl.protocol) ||

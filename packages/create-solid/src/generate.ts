@@ -38,6 +38,7 @@ import { configureSeo } from './configureSeo/index.ts'
 import { configureSiteIdentity } from './configureSiteIdentity/index.ts'
 import { configureStandaloneGuides } from './configureStandaloneGuides/index.ts'
 import { configureStatic } from './configureStatic/index.ts'
+import { defaultSiteUrl } from './constants/site-url.ts'
 import { editTemplate } from './edit-template.ts'
 import { installProfile, type SetupCommand } from './installProfile/index.ts'
 import { isDestinationEntry } from './isDestinationEntry/index.ts'
@@ -129,7 +130,7 @@ function nextSteps({
     next.push(`${profile.pm} install`)
   }
   next.push(`${profile.pm} run dev`)
-  if (siteUrl?.origin === 'https://example.com') {
+  if (siteUrl?.origin === defaultSiteUrl) {
     next.push(messages[language].setUrl)
   }
   next.push(messages[language].publishList)

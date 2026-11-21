@@ -18,6 +18,7 @@ import {
 
 import manifest from '../package.json' with { type: 'json' }
 import { messages, type Language } from './cli-language.ts'
+import { defaultSiteUrl } from './constants/site-url.ts'
 import { fieldMessage } from './fieldMessage/index.ts'
 import { installers } from './profile-answers.ts'
 import { hasTool, hasRepository, missingTool } from './tools.ts'
@@ -300,7 +301,7 @@ export async function questionnaire({
       for (const key of keys) result[`no-${key}`] = !chosen.includes(key)
     }
     if (result.mode !== 'client' && !result['no-seo']) {
-      await field({ key: 'site-url', initialValue: 'https://example.com' })
+      await field({ key: 'site-url', initialValue: defaultSiteUrl })
     }
   }
   async function customize() {

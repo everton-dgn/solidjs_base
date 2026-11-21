@@ -190,6 +190,7 @@ class Cancellation(unittest.TestCase):
                     return
                 if columns == 30:
                     lines = transcript.decode().splitlines()
+                    self.assertTrue(any(re.fullmatch(r"│  diagnostics +│", line) for line in lines), lines)
                     self.assertEqual(lines[1:4], ["│  Start a Solid 2 application", "│  with Vite+, TypeScript and",
                                                   "│  tests set up."])
                     self.assertIn("│  Your project is in", lines)

@@ -53,7 +53,7 @@ export async function confirmProject({
   language
 }: Confirmation): Promise<void> {
   const m = messages[language]
-  note(summary, m.summary)
+  note(summary, m.summary, { format: line => line.trimStart() })
   const result = await confirm({
     message: m.create,
     active: m.yes,

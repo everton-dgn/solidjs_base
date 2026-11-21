@@ -127,7 +127,8 @@ function nextSteps({
   siteUrl,
   shouldRetryGit
 }: NextSteps): string[] {
-  const next = [`cd ${shellDirectory(profile.dir)}`]
+  const dir = shellDirectory(profile.dir)
+  const next = dir === '.' ? [] : [`cd ${dir}`]
   if (!hasTool('bun')) next.unshift(messages[language].missingBun)
   if (shouldRetryGit) next.push('git init')
   if (!profile.shouldInstall) {

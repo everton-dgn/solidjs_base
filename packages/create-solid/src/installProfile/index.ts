@@ -1,4 +1,4 @@
-import { message, type Language } from '../cli-language.ts'
+import { message, messages, type Language } from '../cli-language.ts'
 import { shellDirectory } from '../shellDirectory/index.ts'
 import type { Profile } from '../types.ts'
 import { CanceledError, ReportedInstallError } from '../usage-error.ts'
@@ -15,8 +15,9 @@ export function resumeSteps({
 }: InstallOptions): string {
   const dir = shellDirectory(profile.dir)
   return [
-    message(language, { code: 'resume', values: { dir } }),
-    `cd ${dir}`,
+    ...(dir === '.'
+      ? [messages[language].resumeHere]
+      : [message(language, { code: 'resume', values: { dir } }), `cd ${dir}`]),
     ...(shouldRetryGit ? ['git init'] : []),
     ...(profile.shouldInstall ? [`${profile.pm} install`] : [])
   ].join('\n')

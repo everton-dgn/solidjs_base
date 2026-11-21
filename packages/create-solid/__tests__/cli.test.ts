@@ -728,3 +728,40 @@ void it('explains a missing tool before the summary in unattended setup', contex
   assert.doesNotMatch(child.stdout, /Project summary/u)
   assert.deepEqual(readdirSync(root), [])
 })
+
+void it('omits the directory change when resuming or starting in place', context => {
+  const parent = folder(context)
+  writeFileSync(path.join(parent, 'bun'), '#!/bin/sh\nexit 1\n', {
+    mode: executable
+  })
+  for (const [language, sentence] of [
+    ['en', 'Your project is in the current directory. To finish, run:'],
+    ['pt-BR', 'Seu projeto está na pasta atual. Para concluir, execute:'],
+    ['es', 'Tu proyecto está en la carpeta actual. Para terminar, ejecuta:']
+  ] as const) {
+    for (const install of [true, false]) {
+      const cwd = mkdtempSync(path.join(parent, 'app-'))
+      const result = spawnSync(
+        process.execPath,
+        [
+          bin,
+          '.',
+          '--yes',
+          '--lang',
+          language,
+          '--no-git',
+          install ? '--install' : '--no-install'
+        ],
+        { cwd, encoding: 'utf8', env: { ...process.env, PATH: parent } }
+      )
+      assert.equal(result.status, install ? 1 : 0, result.stderr)
+      if (install) {
+        assert.ok(
+          result.stderr.includes(`${sentence}\nbun install\n`),
+          result.stderr
+        )
+      } else assert.ok(result.stdout.includes('bun run dev'))
+      assert.doesNotMatch(result.stdout + result.stderr, /cd \./u)
+    }
+  }
+})

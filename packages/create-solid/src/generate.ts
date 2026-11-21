@@ -319,27 +319,28 @@ async function executeSetup(
   command: SetupCommand,
   { cwd, signal, isInteractive }: SetupOptions
 ): Promise<void> {
+  const plainInstall = command.task === 'installTask' && !isInteractive
+  const inheritStderr = plainInstall && process.stderr.isTTY
   const child = spawn(command.executable, command.args, {
     cwd,
     stdio: [
       'ignore',
       command.task === 'gitTask' || isInteractive ? 'ignore' : 'inherit',
-      'pipe'
+      inheritStderr ? 'inherit' : 'pipe'
     ]
   })
   const tailLimit = 8192
   const diagnosticLines = 6
-  const shouldForward = command.task === 'installTask' && !isInteractive
   let diagnostic = ''
-  child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
-    if (shouldForward) process.stderr.write(chunk)
-    diagnostic = (diagnostic + chunk).slice(-tailLimit)
+  child.stderr?.setEncoding('utf8').on('data', (chunk: string) => {
+    if (plainInstall) process.stderr.write(chunk)
+    else diagnostic = (diagnostic + chunk).slice(-tailLimit)
   })
   let deadline: ReturnType<typeof setTimeout> | undefined
   const forced = Promise.withResolvers<typeof child.signalCode>()
   const force = () => {
     const release = () => {
-      child.stderr.destroy()
+      child.stderr?.destroy()
       forced.resolve(child.signalCode)
     }
     if (child.exitCode !== null || child.signalCode !== null) release()
@@ -367,7 +368,7 @@ async function executeSetup(
         .split('\n')
         .slice(-diagnosticLines)
         .join('\n')
-      const Failure = shouldForward ? ReportedInstallError : Error
+      const Failure = plainInstall ? ReportedInstallError : Error
       throw new Failure(tail, {
         cause: child.signalCode ?? child.exitCode
       })

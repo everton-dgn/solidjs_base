@@ -90,7 +90,7 @@ def question_session(directory, language, prompts, before_answer=None, color=Fal
 
 
 class Cancellation(unittest.TestCase):
-    def exercise(self, install, failure=False, git=False, interrupt=None, columns=80, descendant=False, second=False, git_warning=False, files_failure=False):
+    def exercise(self, install, failure=False, git=False, interrupt=None, columns=80, descendant=False, second=False, git_warning=False, files_failure=False, plain=False):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             bun = root / ("git" if git else "bun")
@@ -124,11 +124,12 @@ class Cancellation(unittest.TestCase):
                 os.environ.update(CI="false", NO_COLOR="1", PID_FILE=str(root / "pid"),
                                   PATH=str(root) + ":" + os.environ["PATH"])
                 os.execv(node, [node, str(executable), "parent/app", "--lang", "en",
-                                "--mode", "server", "--git" if git else "--no-git", "--install" if install else "--no-install"])
+                                *(["--yes"] if plain else []), "--mode", "server", "--git" if git else "--no-git", "--install" if install else "--no-install"])
             transcript = bytearray()
             waited = False
+            deadline = time.monotonic() + 10
             try:
-                for label in [b"Application title", b"Setup", b"Create the project?",
+                for label in [] if plain else [b"Application title", b"Setup", b"Create the project?",
                               b"Installing" if install else (b"Creating the Git repository" if git else b"Creating the files")]:
                     deadline = time.monotonic() + 10
                     while label not in transcript:
@@ -219,7 +220,13 @@ class Cancellation(unittest.TestCase):
                     self.assertEqual(screen[tail + 1:tail + 3], [
                         "│", "│  Your project is in parent/app. To finish, run:"])
                     return
-                if columns == 80 and (install or git):
+                if plain:
+                    closing = transcript.decode().rstrip().splitlines()[-6:]
+                    closing[0] = closing[0].removeprefix("^C")
+                    self.assertEqual(closing, [
+                        "■ Installing dependencies with Bun", "Your project is in parent/app. To finish, run:",
+                        "cd parent/app", "bun install", "", "Creation canceled."])
+                if columns == 80 and (install or git) and not plain:
                     lines = install_screen(transcript, columns)
                     while lines and not lines[-1]:
                         lines.pop()
@@ -325,13 +332,18 @@ class Cancellation(unittest.TestCase):
     def test_files(self):
         self.exercise(False)
 
+    def test_plain_install_cancellation(self):
+        self.exercise(True, plain=True)
+        self.exercise(True, interrupt=signal.SIGTERM, descendant=True, plain=True)
+        self.exercise(True, interrupt=signal.SIGTERM, descendant=True, second=True, plain=True)
+
     def test_plain_installer_stderr(self):
         for terminal in (False, True):
             for status in (0, 1):
                 with self.subTest(terminal=terminal, status=status), tempfile.TemporaryDirectory() as directory:
                     root = pathlib.Path(directory)
                     installer = root / "bun"
-                    installer.write_text("#!/bin/sh\nprintf 'first\\nsecond\\nthird\\n' >&2\n"
+                    installer.write_text("#!/bin/sh\nif [ -t 2 ]; then echo tty >&2; else echo pipe >&2; fi\nprintf 'first\\nsecond\\nthird\\n' >&2\n"
                                          'while [ ! -f "$RELEASE" ]; do sleep .02; done\n'
                                          f"exit {status}\n")
                     installer.chmod(0o755)
@@ -362,6 +374,7 @@ class Cancellation(unittest.TestCase):
                                 data.extend(stderr)
                             lines = data.decode().splitlines()
                             start = lines.index("first")
+                            self.assertEqual(lines[start - 1], "tty" if terminal else "pipe")
                             self.assertEqual(lines[start:start + 3], ["first", "second", "third"])
                             for line in ("first", "second", "third"):
                                 self.assertEqual(lines.count(line), 1)

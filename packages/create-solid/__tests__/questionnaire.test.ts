@@ -283,6 +283,7 @@ void it('reports missing tools before the title and recovers only the setup choi
         }
       }
     )
+    assert.ok(transcript.includes('pnpm · not found'))
     for (const link of [
       'https://bun.sh',
       'https://git-scm.com/downloads',

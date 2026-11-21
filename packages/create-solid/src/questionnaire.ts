@@ -55,7 +55,10 @@ async function recoverSetup({ result, language, io }: SetupRecovery) {
         ...io,
         message: missingTool(manager, language),
         options: [
-          ...installers.map(value => ({ value })),
+          ...installers.map(value => ({
+            value,
+            label: hasTool(value) ? value : `${value} · ${labels.unavailable}`
+          })),
           { value: 'skip', label: labels.skipInstall }
         ]
       })
@@ -255,9 +258,10 @@ export async function questionnaire({
           const hint = value === 'bun' ? labels.bunHint : labels.installHint
           return {
             value,
-            hint: availableManagers.has(value)
-              ? hint
-              : missingTool(value, language)
+            label: availableManagers.has(value)
+              ? value
+              : `${value} · ${labels.unavailable}`,
+            hint
           }
         })
       })

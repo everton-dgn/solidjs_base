@@ -80,3 +80,18 @@ void it('introduces the included Solid 2 tooling in every language', () => {
     'Empieza una aplicación Solid 2 con Vite+, TypeScript y pruebas listas.'
   )
 })
+
+void it('fits focused options with their hints in 80 columns', () => {
+  for (const m of Object.values(messages)) {
+    for (const [label, hint] of [
+      [m.server, m.serverHint],
+      [m.static, m.staticHint],
+      [m.client, m.clientHint],
+      [`pnpm · ${m.unavailable}`, m.installHint],
+      [`bun · ${m.unavailable}`, m.bunHint]
+    ] as const) {
+      assert.doesNotMatch(hint, /[()]|\.$/u)
+      assert.ok(`│  ● ${label} (${hint})`.length <= 80)
+    }
+  }
+})

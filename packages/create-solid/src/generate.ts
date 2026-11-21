@@ -311,16 +311,29 @@ async function executeSetup(
   const child = spawn(command.executable, command.args, {
     cwd,
     stdio:
-      command.task === 'gitTask' || isInteractive
+      command.task === 'gitTask'
         ? 'ignore'
-        : ['ignore', 'inherit', 'inherit']
+        : [
+            'ignore',
+            isInteractive ? 'ignore' : 'inherit',
+            isInteractive ? 'pipe' : 'inherit'
+          ]
+  })
+  const tailLimit = 8192
+  const diagnosticLines = 6
+  let diagnostic = ''
+  child.stderr?.setEncoding('utf8').on('data', (chunk: string) => {
+    diagnostic = (diagnostic + chunk).slice(-tailLimit)
   })
   const cancel = () => child.kill('SIGINT')
   signal.addEventListener('abort', cancel, { once: true })
   try {
     await once(child, 'close')
     if (child.exitCode !== 0 || signal.aborted) {
-      throw new Error(String(child.signalCode ?? child.exitCode))
+      throw new Error(
+        diagnostic.trimEnd().split('\n').slice(-diagnosticLines).join('\n'),
+        { cause: child.signalCode ?? child.exitCode }
+      )
     }
   } finally {
     signal.removeEventListener('abort', cancel)
@@ -514,8 +527,9 @@ export function* generation({
         code: 'gitFailure',
         values: { dir: path.relative(process.cwd(), profile.dir) || '.' }
       })
-      if (error instanceof CanceledError)
+      if (error instanceof CanceledError) {
         throw new CanceledError(resume, { cause: error })
+      }
       throw new Error(resume, { cause: error })
     }
   }

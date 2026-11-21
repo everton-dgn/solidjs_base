@@ -59,7 +59,10 @@ void it('preserves generated files on install failure and ignores a parent repos
     }
   )
   assert.equal(child.status, 1)
-  assert.ok(child.stderr.includes(`Open ${dir} and run bun install again.`))
+  const relative = path.relative(process.cwd(), dir)
+  assert.ok(
+    child.stderr.includes(`Open ${relative} and run bun install again.`)
+  )
   const json = readFileSync(path.join(dir, 'package.json'), 'utf8')
   const manifest = parse(manifestSchema, JSON.parse(json))
   assert.equal(manifest.name, 'my-app')

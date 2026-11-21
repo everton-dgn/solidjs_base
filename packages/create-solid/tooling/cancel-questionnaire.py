@@ -19,13 +19,15 @@ node = shutil.which("node")
 
 
 class Cancellation(unittest.TestCase):
-    def exercise(self, install, failure=False, git=False, interrupt=None, columns=80):
+    def exercise(self, install, failure=False, git=False, interrupt=None, columns=80, descendant=False, second=False):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             bun = root / ("git" if git else "bun")
             bun.write_text('#!/bin/sh\nif [ "$1" = install ]; then echo $$ > "$PID_FILE"; exec sleep 20; fi\n')
             if interrupt and install:
                 bun.write_text('#!/bin/sh\ntrap "" INT\necho $$ > "$PID_FILE"\nexec sleep 20\n')
+            if descendant:
+                bun.write_text('#!/bin/sh\ntrap "" INT HUP TERM\nsleep 30 &\necho $! > grandchild.pid\necho $$ > "$PID_FILE"\nwait\n')
             if git:
                 bun.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nexec sleep 20\n')
             if failure:
@@ -56,7 +58,14 @@ class Cancellation(unittest.TestCase):
                         time.sleep(.01)
                     self.assertTrue((root / "pid").exists())
                 if interrupt:
+                    started = time.monotonic()
                     os.kill(pid, interrupt)
+                    if second:
+                        time.sleep(.08)
+                        os.kill(pid, signal.SIGHUP)
+                    if descendant:
+                        deadline = started + (.65 if second else 2)
+
                 elif not failure:
                     os.write(terminal, b"\x03")
                 while time.monotonic() < deadline:
@@ -101,6 +110,14 @@ class Cancellation(unittest.TestCase):
                 else:
                     self.assertFalse((root / "parent").exists())
             finally:
+                grandchild_file = root / "parent/app/grandchild.pid"
+                if grandchild_file.exists():
+                    grandchild = int(grandchild_file.read_text())
+                    try:
+                        if os.getsid(grandchild) == pid:
+                            os.kill(grandchild, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
                 os.close(terminal)
                 if not waited:
                     os.kill(pid, signal.SIGKILL)
@@ -164,6 +181,12 @@ class Cancellation(unittest.TestCase):
             for install, git in [(False, False), (True, False), (False, True)]:
                 with self.subTest(signal=interrupt, install=install, git=git):
                     self.exercise(install, git=git, interrupt=interrupt)
+
+    def test_descendant_holding_stderr(self):
+        self.exercise(True, interrupt=signal.SIGTERM, descendant=True)
+
+    def test_second_signal(self):
+        self.exercise(True, interrupt=signal.SIGTERM, descendant=True, second=True)
 
     def test_git(self):
         self.exercise(False, git=True)

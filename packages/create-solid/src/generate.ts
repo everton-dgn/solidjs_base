@@ -333,7 +333,18 @@ async function executeSetup(
     diagnostic = (diagnostic + chunk).slice(-tailLimit)
   })
   let deadline: ReturnType<typeof setTimeout> | undefined
-  const force = () => child.kill('SIGKILL')
+  const forced = Promise.withResolvers<typeof child.signalCode>()
+  const force = () => {
+    const release = () => {
+      child.stderr.destroy()
+      forced.resolve(child.signalCode)
+    }
+    if (child.exitCode !== null || child.signalCode !== null) release()
+    else {
+      child.once('exit', release)
+      child.kill('SIGKILL')
+    }
+  }
   const cancel = () => {
     child.kill('SIGINT')
     deadline = setTimeout(force, childInterruptDeadlineMs)
@@ -343,7 +354,7 @@ async function executeSetup(
   }
   signal.addEventListener('abort', cancel, { once: true })
   try {
-    await once(child, 'close')
+    await Promise.race([once(child, 'close'), forced.promise])
     if (signal.aborted || child.signalCode === 'SIGINT') {
       throw new CanceledError()
     }

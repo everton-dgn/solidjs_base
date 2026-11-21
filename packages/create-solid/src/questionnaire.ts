@@ -6,6 +6,7 @@ import {
   confirm,
   intro,
   isCancel,
+  log,
   multiselect,
   select,
   text
@@ -88,16 +89,16 @@ export async function questionnaire({
   const availableManagers = new Set(installers.filter(tool => hasTool(tool)))
   function reportMissingTools() {
     const requestedManager = installers.find(pm => pm === result.pm) ?? 'bun'
-    if (!availableManagers.has('bun')) output.write(`${labels.missingBun}\n`)
+    if (!availableManagers.has('bun')) log.warn(labels.missingBun, io)
     if (
       requestedManager !== 'bun' &&
       !availableManagers.has(requestedManager) &&
       !result['no-install']
     ) {
-      output.write(`${missingTool(requestedManager, language)}\n`)
+      log.warn(missingTool(requestedManager, language), io)
     }
     if (!result['no-git'] && !hasRepository(result.name) && !hasTool('git')) {
-      output.write(`${missingTool('git', language)}\n`)
+      log.warn(missingTool('git', language), io)
     }
   }
   reportMissingTools()

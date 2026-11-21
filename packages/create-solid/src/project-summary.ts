@@ -2,6 +2,7 @@ import path from 'node:path'
 import process from 'node:process'
 
 import { messages, type Language } from './cli-language.ts'
+import { toolNames } from './tools.ts'
 import type { validateProfile } from './validateProfile/index.ts'
 
 type Summary = {
@@ -31,7 +32,7 @@ export function projectSummary({ validated, language }: Summary): string {
     [profile.hasI18n ? m.languages : m.appLanguage, locales.join(', ')],
     ...(siteUrl ? [[m.url, siteUrl.origin]] : []),
     [m.featureList, features.join(', ') || m.none],
-    [m.manager, profile.pm],
+    [m.manager, toolNames[profile.pm]],
     ['Git', profile.shouldInitGit ? m.yes : m.no],
     [m.installation, profile.shouldInstall ? m.yes : m.no]
   ]

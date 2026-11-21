@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util'
 import { cliLanguage, message, messages } from './cli-language.ts'
 import { generateTerminal } from './generate.ts'
 import { projectSummary } from './project-summary.ts'
-import { checkTools, hasTool } from './tools.ts'
+import { checkTools, hasTool, toolNames } from './tools.ts'
 import type { Answers } from './types.ts'
 import {
   CanceledError,
@@ -51,34 +51,37 @@ async function createApplication({ answers, isInteractive }: Creation) {
   const frame = isInteractive ? await import('./terminal-frame.ts') : undefined
   if (frame) await frame.confirmProject(summary, language)
   else process.stdout.write(`${labels.summary}\n${summary}\n`)
-  const progress = frame?.generationProgress()
-  let steps
-  try {
-    steps = await generateTerminal(
-      {
-        ...profile,
-        ...(frame
-          ? {}
-          : {
-              onSeededCatalogs: (notices: string[]) =>
-                process.stdout.write(`${notices.join('\n')}\n`)
-            })
-      },
-      {
-        language,
-        isInteractive,
-        report: code => {
-          const title = message(language, { code, values: { pm: profile.pm } })
-          if (progress) progress.start(title)
-          else process.stdout.write(`◇ ${title}\n`)
-        }
+  const writeStep = (title: string) => process.stdout.write(`◇ ${title}\n`)
+  const progress = frame?.progress ?? { start: writeStep, finish: writeStep }
+  let completed = ''
+  const steps = await generateTerminal(
+    {
+      ...profile,
+      ...(frame
+        ? {}
+        : {
+            onSeededCatalogs: (notices: string[]) =>
+              process.stdout.write(`${notices.join('\n')}\n`)
+          })
+    },
+    {
+      language,
+      isInteractive,
+      report: code => {
+        const values = { pm: toolNames[profile.pm] }
+        const title = message(language, { code, values })
+        const done = {
+          creating: 'created',
+          gitTask: 'gitDone',
+          installTask: 'installDone'
+        } as const
+        if (completed) progress.finish(completed)
+        progress.start(title)
+        completed = message(language, { code: done[code], values })
       }
-    )
-    progress?.finish()
-  } catch (error) {
-    progress?.fail()
-    throw error
-  }
+    }
+  )
+  if (completed) progress.finish(completed)
   if (frame) {
     frame.finishProject(steps, language)
     return

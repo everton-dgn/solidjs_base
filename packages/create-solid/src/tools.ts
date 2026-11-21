@@ -12,7 +12,7 @@ const links = {
   pnpm: 'https://pnpm.io/installation',
   npm: 'https://nodejs.org/download'
 }
-const names = { bun: 'Bun', git: 'Git', npm: 'npm', pnpm: 'pnpm' }
+export const toolNames = { bun: 'Bun', git: 'Git', npm: 'npm', pnpm: 'pnpm' }
 type Tool = keyof typeof links
 
 export function hasTool(tool: Tool): boolean {
@@ -29,7 +29,7 @@ export function hasTool(tool: Tool): boolean {
 export function missingTool(tool: Tool, language: Language): string {
   return message(language, {
     code: 'tool',
-    values: { tool: names[tool], link: links[tool] }
+    values: { tool: toolNames[tool], link: links[tool] }
   })
 }
 

@@ -3,11 +3,6 @@ import { confirm, isCancel, note, outro, log } from '@clack/prompts'
 import { messages, type Language } from './cli-language.ts'
 import { CanceledError } from './usage-error.ts'
 
-type Progress = {
-  start: (title: string) => void
-  finish: () => void
-  fail: () => void
-}
 export async function confirmProject(
   summary: string,
   language: Language
@@ -23,22 +18,7 @@ export async function confirmProject(
     throw new CanceledError()
   }
 }
-export function generationProgress(): Progress {
-  let current = ''
-  return {
-    start(title: string) {
-      if (current) log.success(current)
-      current = title
-      log.step(title)
-    },
-    finish() {
-      log.success(current)
-    },
-    fail() {
-      log.error(current)
-    }
-  }
-}
+export const progress = { start: log.step, finish: log.success }
 export function finishProject(steps: string[], language: Language): void {
   const m = messages[language]
   note(steps.join('\n'), m.next)

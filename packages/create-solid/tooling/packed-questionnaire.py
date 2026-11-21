@@ -84,7 +84,7 @@ try:
         labels = ["Solid Base v", "Start a Solid 2 application with Vite+, TypeScript and tests set up.",
                   "Application title", "Project settings", "Create the project?"]
         labels += ["Creation canceled."] if should_cancel else [
-            "Creating application files", "Next steps", "Project created."
+            "Creating the files", "Files created", "Next steps", "Project created."
         ]
         previous = -1
         for label in labels:

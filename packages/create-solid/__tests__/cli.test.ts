@@ -200,6 +200,14 @@ void it('completes a successful pnpm install without invoking a formatter', cont
   )
   assert.equal(result.status, 0, result.stderr)
   assert.doesNotMatch(result.stdout, /pnpm exec vp fmt/u)
+  for (const line of [
+    'Creating the files',
+    'Files created',
+    'Installing dependencies with pnpm',
+    'Dependencies installed with pnpm'
+  ]) {
+    assert.equal(result.stdout.split(`◇ ${line}\n`).length, 2)
+  }
 })
 
 void it('directs a client application with SEO to static hosting before writing files', context => {

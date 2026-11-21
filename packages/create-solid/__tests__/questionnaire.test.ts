@@ -284,6 +284,7 @@ void it('reports missing tools before the title and recovers only the setup choi
       }
     )
     assert.ok(transcript.includes('pnpm · not found'))
+    assert.match(transcript, /▲ {2}Install Bun/u)
     for (const link of [
       'https://bun.sh',
       'https://git-scm.com/downloads',

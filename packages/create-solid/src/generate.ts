@@ -40,7 +40,11 @@ import { configureStandaloneGuides } from './configureStandaloneGuides/index.ts'
 import { configureStatic } from './configureStatic/index.ts'
 import { defaultSiteUrl } from './constants/site-url.ts'
 import { editTemplate } from './edit-template.ts'
-import { installProfile, type SetupCommand } from './installProfile/index.ts'
+import {
+  installProfile,
+  resumeSteps,
+  type SetupCommand
+} from './installProfile/index.ts'
 import { isDestinationEntry } from './isDestinationEntry/index.ts'
 import { applyPreparedGuides } from './prepared-guides.ts'
 import { applyPreparedSource } from './prepared-source.ts'
@@ -365,17 +369,9 @@ function* initializeGit(
     try {
       yield { task: 'gitTask', executable: 'git', args: ['init'] }
     } catch (error) {
-      const resume = message(language, {
-        code: 'gitFailure',
-        values: { dir: shellDirectory(profile.dir) }
-      })
       if (error instanceof CanceledError) {
         throw new CanceledError(
-          [
-            resume,
-            'git init',
-            ...(profile.shouldInstall ? [`${profile.pm} install`] : [])
-          ].join('\n'),
+          resumeSteps({ profile, language, shouldRetryGit: true }),
           { cause: error }
         )
       }
@@ -565,7 +561,7 @@ export function* generation({
   }
   const notices = reportSeededCatalogs({ profile, seeded, language })
   const retryGit = yield* initializeGit(profile, language)
-  yield* installProfile({ profile, language })
+  yield* installProfile({ profile, language, shouldRetryGit: retryGit })
   return [...notices, ...nextSteps({ profile, language, siteUrl, retryGit })]
 }
 

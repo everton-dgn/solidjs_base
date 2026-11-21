@@ -66,7 +66,9 @@ void it('preserves generated files on install failure and ignores a parent repos
   assert.match(child.stderr, /Creation stopped\.\n$/u)
   const relative = path.relative(process.cwd(), dir)
   assert.ok(
-    child.stderr.includes(`Open '${relative}' and run bun install again.`)
+    child.stderr.includes(
+      `Your project is in '${relative}'. To finish, run:\ncd '${relative}'\nbun install`
+    )
   )
   const json = readFileSync(path.join(dir, 'package.json'), 'utf8')
   const manifest = parse(manifestSchema, JSON.parse(json))
@@ -188,6 +190,9 @@ void it('rolls back owned files and directories on an internal generation error'
       { encoding: 'utf8' }
     )
     assert.match(result.stderr, /Missing version for/u)
+    assert.match(result.stderr, /^▲ Could not create the files\n/u)
+    assert.match(result.stderr, /Creation stopped\.\n$/u)
+    assert.doesNotMatch(result.stderr, /To finish, run:|^cd /mu)
     assert.equal(result.status, 1)
     if (isExisting) assert.deepEqual(readdirSync(dir), [])
     else assert.ok(!existsSync(path.join(parent, 'new')))
@@ -550,7 +555,10 @@ void it('preserves the published project and gives a resume command on install c
   )
   const canceled = 130
   assert.equal(result.status, canceled, result.stderr)
-  assert.match(result.stderr, /ejecuta bun install de nuevo/u)
+  assert.match(
+    result.stderr,
+    /Para terminar, ejecuta:\ncd [^\n]+\nbun install/u
+  )
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })
 
@@ -647,7 +655,7 @@ void it('reports cancellation during Git setup after publishing the tree', conte
   const relative = path.relative(process.cwd(), dir)
   assert.ok(
     result.stderr.includes(
-      `Your project is in '${relative}'. To finish, run:\ngit init\nbun install`
+      `Your project is in '${relative}'. To finish, run:\ncd '${relative}'\ngit init\nbun install`
     )
   )
   assert.ok(existsSync(path.join(dir, 'package.json')))

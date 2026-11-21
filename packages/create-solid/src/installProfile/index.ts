@@ -3,7 +3,24 @@ import { shellDirectory } from '../shellDirectory/index.ts'
 import type { Profile } from '../types.ts'
 import { CanceledError } from '../usage-error.ts'
 
-type InstallOptions = { profile: Profile; language: Language }
+type InstallOptions = {
+  profile: Profile
+  language: Language
+  shouldRetryGit?: boolean
+}
+export function resumeSteps({
+  profile,
+  language,
+  shouldRetryGit
+}: InstallOptions): string {
+  const dir = shellDirectory(profile.dir)
+  return [
+    message(language, { code: 'resume', values: { dir } }),
+    `cd ${dir}`,
+    ...(shouldRetryGit ? ['git init'] : []),
+    ...(profile.shouldInstall ? [`${profile.pm} install`] : [])
+  ].join('\n')
+}
 export type SetupCommand = {
   task: 'gitTask' | 'installTask'
   executable: string
@@ -11,26 +28,21 @@ export type SetupCommand = {
 }
 export function* installProfile({
   profile,
-  language
+  language,
+  shouldRetryGit = false
 }: InstallOptions): Generator<SetupCommand, void> {
   if (!profile.shouldInstall) return
   try {
     yield { task: 'installTask', executable: profile.pm, args: ['install'] }
   } catch (error) {
-    const resume = message(language, {
-      code: 'installFailure',
-      values: {
-        dir: shellDirectory(profile.dir),
-        pm: profile.pm
-      }
-    })
+    const resume = resumeSteps({ profile, language, shouldRetryGit })
     if (error instanceof CanceledError) {
       throw new CanceledError(resume, { cause: error })
     }
     throw new Error(
       [error instanceof Error ? error.message : '', resume]
         .filter(Boolean)
-        .join('\n'),
+        .join('\n\n'),
       { cause: error }
     )
   }

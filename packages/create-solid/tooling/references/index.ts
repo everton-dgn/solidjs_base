@@ -9,9 +9,16 @@ export function references(file: string, text: string): Set<string> {
   new Visitor({
     CallExpression(node) {
       const [source] = node.arguments
+      const { callee } = node
+      const isRequire =
+        callee.type === 'Identifier' &&
+        ['require', '__require'].includes(callee.name)
+      const isCreatedRequire =
+        callee.type === 'CallExpression' &&
+        callee.callee.type === 'Identifier' &&
+        callee.callee.name === 'createRequire'
       if (
-        node.callee.type === 'Identifier' &&
-        node.callee.name === 'require' &&
+        (isRequire || isCreatedRequire) &&
         source?.type === 'Literal' &&
         typeof source.value === 'string'
       ) {

@@ -8,9 +8,9 @@ void it('collects literal CommonJS module references', () => {
     [
       ...references(
         'module.cjs',
-        "require('./local'); require(variable); object.require('other')"
+        "require('./local'); require(variable); object.require('other'); __require('wrapped'); createRequire(__filename)('factory')"
       )
     ],
-    ['./local']
+    ['./local', 'wrapped', 'factory']
   )
 })

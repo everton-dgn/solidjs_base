@@ -65,6 +65,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
   const progress = frame?.progress
   const finish = progress?.finish ?? writeStep
   let completed = ''
+  let active = ''
   const steps = await generateTerminal(
     {
       ...profile,
@@ -78,6 +79,11 @@ async function createApplication({ answers, isInteractive }: Creation) {
     {
       language,
       isInteractive,
+      fail: () => {
+        if (progress) progress.fail()
+        else process.stderr.write(`■ ${active}\n`)
+        completed = ''
+      },
       report: code => {
         const values = { pm: toolNames[profile.pm] }
         const title = message(language, { code, values })
@@ -87,6 +93,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
           installTask: 'installDone'
         } as const
         if (completed) finish(completed)
+        active = title
         progress?.start(title)
         completed = message(language, { code: done[code], values })
       }

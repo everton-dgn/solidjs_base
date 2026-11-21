@@ -111,16 +111,22 @@ void it('explains how to continue after Git initialization fails', context => {
   writeFileSync(path.join(parent, 'git'), '#!/bin/sh\nexit 1\n', {
     mode: executable
   })
-  const result = spawnSync(process.execPath, [bin, dir], {
-    encoding: 'utf8',
-    env: { ...process.env, PATH: `${parent}:${process.env.PATH}` }
-  })
-  assert.equal(result.status, 1)
-  const relative = path.relative(process.cwd(), dir)
-  assert.ok(
-    result.stderr.includes(`Your project is in ${relative}. Run git init`)
+  writeFileSync(
+    path.join(parent, 'bun'),
+    '#!/bin/sh\necho "bun $1" > install.called\n',
+    { mode: executable }
   )
-  assert.doesNotMatch(result.stderr, /bun install/u)
+  const result = spawnSync(process.execPath, [bin, dir, '--lang', 'en'], {
+    encoding: 'utf8',
+    env: { ...process.env, PATH: parent }
+  })
+  assert.equal(result.status, 0)
+  assert.match(result.stderr, /■ Creating the Git repository/u)
+  assert.match(result.stdout, /│ git init /u)
+  assert.match(
+    readFileSync(path.join(dir, 'install.called'), 'utf8'),
+    /bun install/u
+  )
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })
 
@@ -591,22 +597,23 @@ void it('reports cancellation during Git setup after publishing the tree', conte
     '#!/bin/sh\nkill -INT "$PPID"\nexec /bin/sleep 10\n',
     { mode: executable }
   )
-  const result = spawnSync(
-    process.execPath,
-    [bin, dir, '--lang', 'en', '--no-install'],
-    {
-      encoding: 'utf8',
-      timeout: 5000,
-      env: { ...process.env, PATH: root }
-    }
-  )
+  writeFileSync(path.join(root, 'bun'), '#!/bin/sh\nexit 0\n', {
+    mode: executable
+  })
+  const result = spawnSync(process.execPath, [bin, dir, '--lang', 'en'], {
+    encoding: 'utf8',
+    timeout: 5000,
+    env: { ...process.env, PATH: root }
+  })
   const canceled = 130
   assert.equal(result.status, canceled)
   assert.match(result.stderr, /Creation canceled/u)
   assert.doesNotMatch(result.stderr, /Git initialization failed/u)
   const relative = path.relative(process.cwd(), dir)
   assert.ok(
-    result.stderr.includes(`Your project is in ${relative}. Run git init`)
+    result.stderr.includes(
+      `Your project is in ${relative}. To finish, run:\ngit init\nbun install`
+    )
   )
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })

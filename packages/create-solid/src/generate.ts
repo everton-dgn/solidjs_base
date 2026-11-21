@@ -113,14 +113,21 @@ type NextSteps = {
   profile: Profile
   language: Language
   siteUrl: URL | undefined
+  retryGit?: boolean
 }
-function nextSteps({ profile, language, siteUrl }: NextSteps): string[] {
+function nextSteps({
+  profile,
+  language,
+  siteUrl,
+  retryGit
+}: NextSteps): string[] {
   let relative = path.relative(process.cwd(), profile.dir) || '.'
   if (relative.startsWith('-')) relative = `./${relative}`
   const directory = /^[a-zA-Z0-9_./-]+$/u.test(relative)
     ? relative
     : `'${relative.replaceAll("'", String.raw`'\''`)}'`
   const next = [`cd ${directory}`]
+  if (retryGit) next.push('git init')
   if (!profile.shouldInstall) {
     next.push(`${profile.pm} install`)
   }
@@ -301,6 +308,7 @@ const prepared = { guides: applyPreparedGuides, source: applyPreparedSource }
 type TerminalOptions = {
   isInteractive?: boolean
   language: Language
+  fail?: () => void
   report: (progress: Progress) => void
 }
 type SetupOptions = { cwd: string; signal: AbortSignal; isInteractive: boolean }
@@ -338,6 +346,33 @@ async function executeSetup(
   } finally {
     signal.removeEventListener('abort', cancel)
   }
+}
+function* initializeGit(
+  profile: Profile,
+  language: Language
+): Generator<SetupCommand, boolean> {
+  if (profile.shouldInitGit && !hasRepository(profile.dir)) {
+    try {
+      yield { task: 'gitTask', executable: 'git', args: ['init'] }
+    } catch (error) {
+      const resume = message(language, {
+        code: 'gitFailure',
+        values: { dir: path.relative(process.cwd(), profile.dir) || '.' }
+      })
+      if (error instanceof CanceledError) {
+        throw new CanceledError(
+          [
+            resume,
+            'git init',
+            ...(profile.shouldInstall ? [`${profile.pm} install`] : [])
+          ].join('\n'),
+          { cause: error }
+        )
+      }
+      return true
+    }
+  }
+  return false
 }
 export function resolveGroup(
   { settings }: GenerationContext,
@@ -519,22 +554,9 @@ export function* generation({
     throw error
   }
   const notices = reportSeededCatalogs({ profile, seeded, language })
-  if (profile.shouldInitGit && !hasRepository(profile.dir)) {
-    try {
-      yield { task: 'gitTask', executable: 'git', args: ['init'] }
-    } catch (error) {
-      const resume = message(language, {
-        code: 'gitFailure',
-        values: { dir: path.relative(process.cwd(), profile.dir) || '.' }
-      })
-      if (error instanceof CanceledError) {
-        throw new CanceledError(resume, { cause: error })
-      }
-      throw new Error(resume, { cause: error })
-    }
-  }
+  const retryGit = yield* initializeGit(profile, language)
   yield* installProfile({ profile, language })
-  return [...notices, ...nextSteps({ profile, language, siteUrl })]
+  return [...notices, ...nextSteps({ profile, language, siteUrl, retryGit })]
 }
 
 export function generateSource(options: GenerationOptions): string[] {
@@ -548,7 +570,8 @@ export function generateSource(options: GenerationOptions): string[] {
           stdio: 'inherit'
         })
       } catch (error) {
-        steps.throw(error)
+        current = steps.throw(error)
+        continue
       }
     }
     current = steps.next()
@@ -560,7 +583,7 @@ export function generate(input: Profile): string[] {
 }
 export async function generateTerminal(
   input: Profile,
-  { language, report, isInteractive = false }: TerminalOptions
+  { language, report, fail, isInteractive = false }: TerminalOptions
 ): Promise<string[]> {
   const steps = generation({ input, prepare: prepared, language })
   const controller = new AbortController()
@@ -585,7 +608,11 @@ export async function generateTerminal(
           })
         }
       } catch (error) {
-        steps.throw(controller.signal.aborted ? new CanceledError() : error)
+        fail?.()
+        current = steps.throw(
+          controller.signal.aborted ? new CanceledError() : error
+        )
+        continue
       }
       current = steps.next()
     }

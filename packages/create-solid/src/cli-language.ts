@@ -110,8 +110,7 @@ Automation
     tool: 'Install {tool} before generating the application. {link}',
     retry: 'Check again',
     skipInstall: 'Skip installation',
-    gitFailure:
-      'Your project is in {dir}. Run git init there to create the repository.',
+    gitFailure: 'Your project is in {dir}. To finish, run:',
     installFailure: 'Open {dir} and run {pm} install again.',
     created: 'Files created',
     gitDone: 'Git repository created',
@@ -241,8 +240,7 @@ Automação
     tool: 'Instale o {tool} antes de gerar a aplicação. {link}',
     retry: 'Verificar novamente',
     skipInstall: 'Pular a instalação',
-    gitFailure:
-      'Seu projeto está em {dir}. Execute git init nessa pasta para criar o repositório.',
+    gitFailure: 'Seu projeto está em {dir}. Para concluir, execute:',
     installFailure: 'Abra {dir} e execute {pm} install novamente.',
     created: 'Arquivos criados',
     gitDone: 'Repositório Git criado',
@@ -374,8 +372,7 @@ Automatización
     tool: 'Instala {tool} antes de generar la aplicación. {link}',
     retry: 'Volver a comprobar',
     skipInstall: 'Omitir la instalación',
-    gitFailure:
-      'Tu proyecto está en {dir}. Ejecuta git init allí para crear el repositorio.',
+    gitFailure: 'Tu proyecto está en {dir}. Para terminar, ejecuta:',
     installFailure: 'Abre {dir} y ejecuta {pm} install de nuevo.',
     created: 'Archivos creados',
     gitDone: 'Repositorio Git creado',

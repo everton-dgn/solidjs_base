@@ -95,7 +95,8 @@ The CLI prints the settings before creating files. After this session, open
 Server mode targets Vercel. Canceling at a prompt or while creating files
 removes the unfinished project and any parent directories created for it. After
 the files are published, canceling Git or installation stops that process and
-keeps the project. The CLI shows where to run `git init` or the install command.
+keeps the project. The CLI lists the commands left to run. If Git initialization
+fails, installation continues and the next steps include `git init`.
 
 Use `--lang pt-BR`, `--lang en` or `--lang es` for the interface. By default,
 the CLI checks `LC_ALL`, `LC_MESSAGES`, `LANG` and the locale returned by

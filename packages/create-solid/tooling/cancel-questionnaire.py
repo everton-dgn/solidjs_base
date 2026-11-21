@@ -41,7 +41,7 @@ def install_screen(transcript, columns):
 
 
 class Cancellation(unittest.TestCase):
-    def exercise(self, install, failure=False, git=False, interrupt=None, columns=80, descendant=False, second=False):
+    def exercise(self, install, failure=False, git=False, interrupt=None, columns=80, descendant=False, second=False, git_warning=False, files_failure=False):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             bun = root / ("git" if git else "bun")
@@ -55,13 +55,26 @@ class Cancellation(unittest.TestCase):
             if failure:
                 bun.write_text('#!/bin/sh\nif [ "$1" = install ]; then for line in discarded-line one two three four five registry-failure; do echo "$line" >&2; done; exit 1; fi\n')
             bun.chmod(0o755)
+            executable = cli
+            if git_warning:
+                bun.write_text("#!/bin/sh\necho denied >&2\nexit 1\n")
+                installer = root / "bun"
+                installer.write_text("#!/bin/sh\nexit 0\n")
+                installer.chmod(0o755)
+            if files_failure:
+                dist = root / "package/dist"
+                shutil.copytree(cli.parent, dist)
+                (dist.parent / "template").symlink_to(cli.parent.parent / "template")
+                settings = dist / "settings.json"
+                settings.write_text(settings.read_text().replace('"@evertondgn/solid-runtime":', '"absent":'))
+                executable = dist / cli.name
             pid, terminal = pty.fork()
             if pid == 0:
                 os.chdir(root)
                 fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, columns, 0, 0))
                 os.environ.update(CI="false", NO_COLOR="1", PID_FILE=str(root / "pid"),
                                   PATH=str(root) + ":" + os.environ["PATH"])
-                os.execv(node, [node, str(cli), "parent/app", "--lang", "en",
+                os.execv(node, [node, str(executable), "parent/app", "--lang", "en",
                                 "--mode", "server", "--git" if git else "--no-git", "--install" if install else "--no-install"])
             transcript = bytearray()
             waited = False
@@ -75,7 +88,7 @@ class Cancellation(unittest.TestCase):
                     if label in [b"Creating the files", b"Creating the Git repository", b"Installing"]:
                         break
                     os.write(terminal, b"\r")
-                if (install or git) and not failure:
+                if (install or git) and not (failure or git_warning or files_failure):
                     while not (root / "pid").exists() and time.monotonic() < deadline:
                         time.sleep(.01)
                     self.assertTrue((root / "pid").exists())
@@ -88,7 +101,7 @@ class Cancellation(unittest.TestCase):
                     if descendant:
                         deadline = started + (.65 if second else 2)
 
-                elif not failure:
+                elif not (failure or git_warning or files_failure):
                     os.write(terminal, b"\x03")
                 while time.monotonic() < deadline:
                     if select.select([terminal], [], [], .02)[0]:
@@ -110,6 +123,20 @@ class Cancellation(unittest.TestCase):
                     if not block:
                         break
                     transcript.extend(block)
+                if git_warning:
+                    screen = install_screen(transcript, columns)
+                    warning = screen.index("▲  Git repository not created")
+                    self.assertEqual(screen[warning:warning + 3], [
+                        "▲  Git repository not created", "│  denied", "◇  Dependencies installed with Bun"])
+                    self.assertTrue(any(re.fullmatch(r"│  git init +│", line) for line in screen), screen)
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+                    return
+                if files_failure:
+                    lines = transcript.decode().rsplit("\x1b[2K", 1)[-1].rstrip().splitlines()
+                    self.assertEqual(lines, ["▲  Could not create the files",
+                        "│  Missing version for @evertondgn/solid-runtime", "│", "└  Creation stopped."])
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 1)
+                    return
                 if columns == 30:
                     self.assertIn("Installing dependencies wi…".encode(), transcript)
                     self.assertNotIn(b"Installing dependencies with Bun", transcript)
@@ -129,7 +156,23 @@ class Cancellation(unittest.TestCase):
                     self.assertIn(b"registry-failure", transcript)
                     self.assertNotIn(b"discarded-line", transcript)
                     self.assertIn("│  cd parent/app\r\n│  bun install".encode(), transcript)
+                    screen = install_screen(transcript, columns)
+                    tail = screen.index("│  registry-failure")
+                    self.assertEqual(screen[tail + 1:tail + 3], [
+                        "│", "│  Your project is in parent/app. To finish, run:"])
                     return
+                if columns == 80 and (install or git):
+                    lines = install_screen(transcript, columns)
+                    while lines and not lines[-1]:
+                        lines.pop()
+                    expected = ["■  Creating the Git repository" if git else "■  Installing dependencies with Bun",
+                                "│  Your project is in parent/app. To finish, run:", "│  cd parent/app"]
+                    if git:
+                        expected.append("│  git init")
+                    if install:
+                        expected.append("│  bun install")
+                    expected.extend(["│", "└  Creation canceled."])
+                    self.assertEqual(lines[-len(expected):], expected)
                 self.assertEqual(transcript.count(b"Creation canceled."), 1, transcript)
                 self.assertEqual(os.waitstatus_to_exitcode(status), 130)
                 if install or git:
@@ -223,6 +266,12 @@ class Cancellation(unittest.TestCase):
 
     def test_files(self):
         self.exercise(False)
+
+    def test_git_warning(self):
+        self.exercise(True, git=True, git_warning=True)
+
+    def test_files_failure(self):
+        self.exercise(False, files_failure=True)
 
     def test_install_failure(self):
         self.exercise(True, failure=True)

@@ -642,6 +642,7 @@ void it('reports cancellation during Git setup after publishing the tree', conte
   })
   const canceled = 130
   assert.equal(result.status, canceled)
+  assert.match(result.stderr, /^■ Creating the Git repository$/mu)
   assert.match(result.stderr, /bun install\n\nCreation canceled\.\n$/u)
   assert.doesNotMatch(result.stderr, /Git initialization failed/u)
   const relative = path.relative(process.cwd(), dir)

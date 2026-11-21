@@ -71,47 +71,21 @@ void it('preserves generated files on install failure and ignores a parent repos
   execFileSync('sh', ['-c', manifest.scripts.prepare], { cwd: dir })
 })
 
-void it('formats pnpm settings added by the installer', context => {
-  const parent = folder(context)
-  const dir = path.join(parent, 'example')
-  mkdirSync(dir)
-  writeFileSync(
-    path.join(parent, 'pnpm'),
-    `#!/bin/sh
-mkdir -p node_modules/.bin
-cp "$TEST_VP" node_modules/.bin/vp
-printf 'minimumReleaseAgeExclude:\\n  - "@example/pkg"\\n' >> pnpm-workspace.yaml
-`,
-    { mode: executable }
-  )
-  const realVp = execFileSync('which', ['vp'], { encoding: 'utf8' }).trim()
-  // The fake installer supplies a local vp that uses the application formatting preset.
-  const formatter = path.resolve('dist/formatter')
-  writeFileSync(
-    path.join(parent, 'vp'),
-    `#!/bin/sh
-if [ "$2" = pnpm-workspace.yaml ]; then
-  file="$PWD/$2"
-  cd "$FORMATTER" || exit 1
-  "$REAL_VP" fmt --stdin-filepath=pnpm-workspace.yaml < "$file" > "$file.formatted" && mv "$file.formatted" "$file"
-else
-  exec "$REAL_VP" "$@"
-fi
-`,
-    { mode: executable }
-  )
-  execFileSync(process.execPath, [bin, dir, '--no-git', '--pm', 'pnpm'], {
-    env: {
-      ...process.env,
-      PATH: `${parent}:${process.env.PATH}`,
-      TEST_VP: path.join(parent, 'vp'),
-      REAL_VP: realVp,
-      FORMATTER: formatter
-    }
-  })
-  assert.match(
-    readFileSync(path.join(dir, 'pnpm-workspace.yaml'), 'utf8'),
-    /minimumReleaseAgeExclude:\n {2}- '@example\/pkg'/u
+void it('declares the workspace settings needed by pnpm before installation', context => {
+  const dir = folder(context)
+  execFileSync(process.execPath, [
+    bin,
+    dir,
+    '--no-git',
+    '--no-install',
+    '--pm',
+    'pnpm'
+  ])
+  const workspace = readFileSync(path.join(dir, 'pnpm-workspace.yaml'), 'utf8')
+  assert.ok(
+    workspace.includes(
+      'minimumReleaseAgeExclude:\n  - eslint-plugin-solid@0.20.1\n'
+    )
   )
 })
 
@@ -205,7 +179,7 @@ void it('generates without a formatter or installer on PATH when setup is disabl
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })
 
-void it('reports a local formatter failure after a successful pnpm install', context => {
+void it('completes a successful pnpm install without invoking a formatter', context => {
   const parent = folder(context)
   const dir = path.join(parent, 'app')
   writeFileSync(path.join(parent, 'pnpm'), '#!/bin/sh\nexit 0\n', {
@@ -216,8 +190,8 @@ void it('reports a local formatter failure after a successful pnpm install', con
     [bin, dir, '--no-git', '--pm', 'pnpm'],
     { encoding: 'utf8', env: { ...process.env, PATH: parent } }
   )
-  assert.equal(result.status, 1)
-  assert.match(result.stderr, /pnpm installed dependencies.*pnpm exec vp fmt/u)
+  assert.equal(result.status, 0, result.stderr)
+  assert.doesNotMatch(result.stdout, /pnpm exec vp fmt/u)
 })
 
 void it('directs a client application with SEO to static hosting before writing files', context => {

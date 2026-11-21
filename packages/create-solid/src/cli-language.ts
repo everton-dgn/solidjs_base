@@ -108,8 +108,6 @@ Automation
     gitFailure:
       'Git initialization failed. Open {dir} and run git init with Git installed, or continue without Git. Run {pm} install to install dependencies.',
     installFailure: 'Open {dir} and run {pm} install again.',
-    formatFailure:
-      'pnpm installed dependencies. Check the local Vite+ installation and run pnpm exec vp fmt pnpm-workspace.yaml in the application.',
     creating: 'Creating application files',
     gitTask: 'Initializing Git',
     installTask: 'Installing dependencies with {pm}',
@@ -229,8 +227,6 @@ Automação
     gitFailure:
       'Falha ao criar o repositório. Abra {dir} e execute git init com o Git instalado, ou continue sem Git. Execute {pm} install para instalar as dependências.',
     installFailure: 'Abra {dir} e execute {pm} install novamente.',
-    formatFailure:
-      'O pnpm instalou as dependências. Confira o Vite+ local e execute pnpm exec vp fmt pnpm-workspace.yaml na aplicação.',
     creating: 'Criando os arquivos da aplicação',
     gitTask: 'Inicializando o Git',
     installTask: 'Instalando as dependências com {pm}',
@@ -350,8 +346,6 @@ Automatización
     gitFailure:
       'No se pudo crear el repositorio. Abre {dir} y ejecuta git init con Git instalado o continúa sin Git. Ejecuta {pm} install para instalar las dependencias.',
     installFailure: 'Abre {dir} y ejecuta {pm} install de nuevo.',
-    formatFailure:
-      'pnpm instaló las dependencias. Comprueba Vite+ y ejecuta pnpm exec vp fmt pnpm-workspace.yaml en la aplicación.',
     creating: 'Creando los archivos de la aplicación',
     gitTask: 'Inicializando Git',
     installTask: 'Instalando las dependencias con {pm}',

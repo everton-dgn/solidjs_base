@@ -979,7 +979,7 @@ diff --git a/example/pnpm-workspace.yaml b/example/pnpm-workspace.yaml
 new file mode 100644
 --- /dev/null
 +++ b/example/pnpm-workspace.yaml
-@@ -0,0 +1,9 @@
+@@ -0,0 +1,11 @@
 +overrides:
 +  '@solidjs/compiler': '2.0.2'
 +  '@solidjs/signals': '2.0.3'
@@ -989,6 +989,8 @@ new file mode 100644
 +  '@mdream/js@2.2.0': 'patches/@mdream%2Fjs@2.2.0.patch'
 +allowBuilds:
 +  lefthook: false
++minimumReleaseAgeExclude:
++  - eslint-plugin-solid@0.20.1
 diff --git a/source/src/Document.tsx b/example/src/Document.tsx
 --- a/source/src/Document.tsx
 +++ b/example/src/Document.tsx

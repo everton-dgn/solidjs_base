@@ -54,7 +54,7 @@ void it('keeps message keys and interpolation parameters in sync', () => {
 const tokens = (text: string) =>
   text
     .match(
-      /--[\w{}-]+|git init|\{pm\} install|pnpm exec vp fmt pnpm-workspace\.yaml|bunx @evertondgn\/create-solid@latest/gu
+      /--[\w{}-]+|git init|\{pm\} install|bunx @evertondgn\/create-solid@latest/gu
     )
     ?.toSorted() ?? []
 void it('mentions the same flags and commands in each translation', () => {

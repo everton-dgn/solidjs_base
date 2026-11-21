@@ -65,7 +65,6 @@ void it('returns installation instructions to callers of generate', async contex
     [
       `cd ${path.relative(process.cwd(), dir)}`,
       'pnpm install',
-      'pnpm exec vp fmt pnpm-workspace.yaml',
       'pnpm run dev',
       'Set VITE_SITE_URL before publishing.',
       'See "Before publishing" in README.md.'

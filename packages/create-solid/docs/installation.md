@@ -74,7 +74,6 @@ selects the custom setup, static hosting, two languages and pnpm:
 │                                         │
 │  cd portal                              │
 │  pnpm install                           │
-│  pnpm exec vp fmt pnpm-workspace.yaml   │
 │  pnpm run dev                           │
 │  See "Before publishing" in README.md.  │
 │                                         │
@@ -93,11 +92,10 @@ bunx @evertondgn/create-solid@latest portal --title Portal --mode static \
 ```
 
 The CLI prints the settings before creating files. After this session, open
-`portal`, run `pnpm install`, `pnpm exec vp fmt pnpm-workspace.yaml` and
-`pnpm run dev`. Bun runs the application tasks. Server mode targets Vercel.
-Ctrl+C during the questions or generation discards the unfinished project. After
-publication, interrupting installation keeps the files and prints the command to
-resume.
+`portal`, run `pnpm install` and `pnpm run dev`. Bun runs the application tasks.
+Server mode targets Vercel. Ctrl+C during the questions or generation discards
+the unfinished project. After publication, interrupting installation keeps the
+files and prints the command to resume.
 
 Use `--lang pt-BR`, `--lang en` or `--lang es` for the interface. By default,
 the CLI checks `LC_ALL`, `LC_MESSAGES`, `LANG` and the locale returned by
@@ -147,10 +145,8 @@ console.log(nextSteps.join('\n'))
 ```
 
 `siteUrl` is optional. The build prepares the formatted template. Feature
-selection copies or edits preformatted files. During installation pnpm can
-append settings whose values are known only after dependency resolution. When
-pnpm changes its workspace file, the installer runs the application's local
-`vp fmt pnpm-workspace.yaml`.
+selection copies or edits preformatted files. The generated pnpm workspace
+includes the release-age exception for the tooling dependency.
 
 Use `--theme` or `--no-theme` to include or omit the light, dark and system
 appearance control. Use `--icons` or `--no-icons` to choose between icon

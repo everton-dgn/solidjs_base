@@ -123,7 +123,6 @@ function nextSteps({ profile, language, siteUrl }: NextSteps): string[] {
   const next = [`cd ${directory}`]
   if (!profile.shouldInstall) {
     next.push(`${profile.pm} install`)
-    if (profile.pm === 'pnpm') next.push('pnpm exec vp fmt pnpm-workspace.yaml')
   }
   next.push(`${profile.pm} run dev`)
   if (siteUrl?.origin === 'https://example.com') {
@@ -350,7 +349,7 @@ export function configureInstaller(context: GenerationContext): void {
       content: `${
         section('overrides', overrides) +
         section('patchedDependencies', settings.patches)
-      }allowBuilds:\n  lefthook: false\n`
+      }allowBuilds:\n  lefthook: false\nminimumReleaseAgeExclude:\n  - eslint-plugin-solid@0.20.1\n`
     })
   } else pkg.overrides = overrides
   if (pm === 'bun') {

@@ -303,11 +303,6 @@ try {
       values: { flag: /--?[\w-]+/u.exec(error.message)?.[0] ?? error.message }
     })
   }
-  if (error instanceof CanceledError) {
-    reason = [messages[language].cancel, error.message]
-      .filter(Boolean)
-      .join('\n')
-  }
   if (terminal.isFramed) {
     const { stopFrame, closeQuestion } = await import('./terminal-frame.ts')
     if (error instanceof CanceledError) closeQuestion(messages[language].cancel)

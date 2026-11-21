@@ -40,7 +40,11 @@ const echoWidth = 2
 let indicator: ReturnType<typeof setInterval> | undefined
 let active = ''
 let removeResizeListener: (() => void) | undefined
-function stepTitle(title: string, columns = process.stdout.columns): string {
+type StepTitle = { title: string; columns?: number }
+function stepTitle({
+  title,
+  columns = process.stdout.columns
+}: StepTitle): string {
   if (!Number.isFinite(columns)) return title
   const width = Math.max(0, columns - prefixWidth)
   if (title.length <= width) return title
@@ -94,7 +98,7 @@ export const progress = {
       const mark = styleText('magenta', frames[index] ?? '')
       const columns = process.stdout.columns - echoWidth
       if (columns < 1) return
-      const label = stepTitle(title, columns)
+      const label = stepTitle({ title, columns })
       process.stdout.write(label ? `\r${mark}  ${label}` : `\r${mark}`)
       drawnWidth = label ? label.length + prefixWidth : 1
       index = (index + 1) % frames.length
@@ -114,14 +118,14 @@ export const progress = {
   },
   finish: (title: string): void => {
     clearIndicator()
-    log.step(stepTitle(title), { spacing: 0 })
+    log.step(stepTitle({ title }), { spacing: 0 })
   },
   warn(message: string): void {
     clearIndicator()
     const [title = '', ...diagnostic] = message.split('\n')
     log.warn(
       [
-        stepTitle(title),
+        stepTitle({ title }),
         ...diagnostic.flatMap(line =>
           wrapFrameText({ output: process.stdout, text: line })
         )
@@ -131,7 +135,7 @@ export const progress = {
   },
   error(title: string): void {
     clearIndicator()
-    log.message(stepTitle(title), {
+    log.message(stepTitle({ title }), {
       symbol: styleText('red', S_STEP_ERROR),
       spacing: 0
     })
@@ -140,7 +144,7 @@ export const progress = {
     if (!active) return
     const title = active
     clearIndicator()
-    log.error(stepTitle(title), { spacing: 0 })
+    log.error(stepTitle({ title }), { spacing: 0 })
   }
 }
 export function closeQuestion(label: string): void {

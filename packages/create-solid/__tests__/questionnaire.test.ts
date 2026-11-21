@@ -112,6 +112,14 @@ for (const language of ['pt-BR', 'en', 'es'] as const) {
         .slice(transcript.lastIndexOf(m.features))
         .includes(m.featureKeys)
     )
+    const manager = transcript.slice(
+      transcript.indexOf(m.installer),
+      transcript.indexOf(m.git, transcript.indexOf(m.installer))
+    )
+    for (const name of ['● Bun', '○ pnpm', '○ npm']) {
+      assert.ok(manager.includes(name), manager)
+    }
+    assert.match(manager, /│ {2}Bun(?: · [^\n]+)?\r?\n/u)
     const rows = transcript
       .slice(transcript.indexOf(m.features), transcript.indexOf(m.featureKeys))
       .split('\n')

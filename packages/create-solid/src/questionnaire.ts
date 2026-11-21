@@ -25,7 +25,7 @@ import { defaultSiteUrl } from './constants/site-url.ts'
 import { fieldMessage } from './fieldMessage/index.ts'
 import { installers } from './profile-answers.ts'
 import { questionnaireBase } from './resolve-locale-options.ts'
-import { hasTool, hasRepository, missingTool } from './tools.ts'
+import { hasTool, hasRepository, missingTool, toolNames } from './tools.ts'
 import type { Answers } from './types.ts'
 import { CanceledError } from './usage-error.ts'
 import { validateProfile } from './validateProfile/index.ts'
@@ -76,7 +76,9 @@ async function recoverSetup({ result, language, io }: SetupRecovery) {
         options: [
           ...installers.map(value => ({
             value,
-            label: hasTool(value) ? value : `${value} · ${labels.unavailable}`
+            label: hasTool(value)
+              ? toolNames[value]
+              : `${toolNames[value]} · ${labels.unavailable}`
           })),
           { value: 'skip', label: labels.skipInstall }
         ]
@@ -338,8 +340,8 @@ export async function questionnaire({
           return {
             value,
             label: availableManagers.has(value)
-              ? value
-              : `${value} · ${labels.unavailable}`,
+              ? toolNames[value]
+              : `${toolNames[value]} · ${labels.unavailable}`,
             hint
           }
         })

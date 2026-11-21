@@ -55,6 +55,20 @@ void it('keeps the guide transcript in the order of the English questionnaire', 
   const transcript = guide.split('```text\n')[1]?.split('```')[0]
   assert.ok(transcript)
   const m = messages.en
+  const confirmation = [
+    `◇  ${m.create}`,
+    `│  ${m.yes}`,
+    '│',
+    `◇  ${m.created}`,
+    `◇  ${m.gitDone}`,
+    '│'
+  ]
+  const lines = transcript.split('\n')
+  const start = lines.indexOf(confirmation[0] ?? '')
+  assert.deepEqual(
+    lines.slice(start, start + confirmation.length),
+    confirmation
+  )
   let last = -1
   for (const label of [
     m.dir,

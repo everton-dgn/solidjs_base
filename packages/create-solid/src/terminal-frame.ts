@@ -49,6 +49,7 @@ export async function confirmProject({
   if (result === false || isCancel(result)) {
     throw new CanceledError()
   }
+  log.message('', { spacing: 0 })
 }
 export const progress = {
   start(title: string): void {

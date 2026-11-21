@@ -29,6 +29,13 @@ const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '
 const intervalMs = 90
 let indicator: ReturnType<typeof setInterval> | undefined
 let active = ''
+function stepTitle(title: string): string {
+  const prefixWidth = 3
+  if (!Number.isFinite(process.stdout.columns)) return title
+  const width = Math.max(0, process.stdout.columns - prefixWidth)
+  if (title.length <= width) return title
+  return width === 0 ? '' : `${title.slice(0, width - 1)}…`
+}
 function clearIndicator() {
   if (!active) return
   clearInterval(indicator)
@@ -56,7 +63,7 @@ export const progress = {
     active = title
     let index = 0
     const draw = () => {
-      process.stdout.write(`\r${frames[index]}  ${title}`)
+      process.stdout.write(`\r${frames[index]}  ${stepTitle(title)}`)
       index = (index + 1) % frames.length
     }
     draw()
@@ -64,7 +71,7 @@ export const progress = {
   },
   finish: (title: string): void => {
     clearIndicator()
-    log.message(title, { symbol: S_STEP_SUBMIT, spacing: 0 })
+    log.message(stepTitle(title), { symbol: S_STEP_SUBMIT, spacing: 0 })
   },
   warn(title: string): void {
     clearIndicator()
@@ -72,13 +79,16 @@ export const progress = {
   },
   error(title: string): void {
     clearIndicator()
-    log.message(title, { symbol: styleText('red', S_STEP_ERROR), spacing: 0 })
+    log.message(stepTitle(title), {
+      symbol: styleText('red', S_STEP_ERROR),
+      spacing: 0
+    })
   },
   cancel(): void {
     if (!active) return
     const title = active
     clearIndicator()
-    log.error(title, { spacing: 0 })
+    log.error(stepTitle(title), { spacing: 0 })
   }
 }
 export function closeFrame(reason: string, closing?: string): void {

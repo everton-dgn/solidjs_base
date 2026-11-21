@@ -19,7 +19,7 @@ node = shutil.which("node")
 
 
 class Cancellation(unittest.TestCase):
-    def exercise(self, install, failure=False, git=False, interrupt=None):
+    def exercise(self, install, failure=False, git=False, interrupt=None, columns=80):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             bun = root / ("git" if git else "bun")
@@ -34,7 +34,7 @@ class Cancellation(unittest.TestCase):
             pid, terminal = pty.fork()
             if pid == 0:
                 os.chdir(root)
-                fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
+                fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, columns, 0, 0))
                 os.environ.update(CI="false", NO_COLOR="1", PID_FILE=str(root / "pid"),
                                   PATH=str(root) + ":" + os.environ["PATH"])
                 os.execv(node, [node, str(cli), "parent/app", "--lang", "en",
@@ -79,6 +79,9 @@ class Cancellation(unittest.TestCase):
                     if not block:
                         break
                     transcript.extend(block)
+                if columns == 30:
+                    self.assertIn("Installing dependencies wi…".encode(), transcript)
+                    self.assertNotIn(b"Installing dependencies with Bun", transcript)
                 if failure:
                     self.assertEqual(os.waitstatus_to_exitcode(status), 1)
                     self.assertIn("▲  Could not install dependencies with Bun".encode(), transcript)
@@ -170,6 +173,9 @@ class Cancellation(unittest.TestCase):
 
     def test_install_failure(self):
         self.exercise(True, failure=True)
+
+    def test_narrow_install(self):
+        self.exercise(True, columns=30)
 
     def test_install(self):
         self.exercise(True)

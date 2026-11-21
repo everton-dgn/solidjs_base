@@ -22,6 +22,8 @@ import {
 } from '../src/resolve-locale-options.ts'
 import type { Profile } from '../src/types.ts'
 
+process.env.LC_ALL = 'C'
+
 const usageExitCode = 2
 const defaults = { baseLocale: 'en', locales: ['pt', 'en', 'es'] }
 const resolve = (options: Partial<Profile>) =>
@@ -60,6 +62,28 @@ for (const [language, baseLocale] of [
     }
   })
 }
+
+void it('uses the machine language for unattended creation', context => {
+  const root = mkdtempSync(path.join(tmpdir(), 'solid-machine-language-'))
+  context.after(() => rmSync(root, { recursive: true, force: true }))
+  for (const [name, flags, ci] of [
+    ['redirected', [], ''],
+    ['disabled', ['--no-interactive'], ''],
+    ['ci', [], 'true']
+  ] as const) {
+    const dir = path.join(root, name)
+    const result = spawnSync(
+      process.execPath,
+      ['src/create-solid.ts', dir, ...flags, '--no-install', '--no-git'],
+      {
+        env: { ...process.env, LC_ALL: 'pt_BR.UTF-8', CI: ci },
+        encoding: 'utf8'
+      }
+    )
+    assert.equal(result.status, 0, result.stderr)
+    assert.equal(readLocaleSettings(dir).baseLocale, 'pt')
+  }
+})
 
 void it('keeps the template base for a questionnaire language outside its catalogs', () => {
   assert.equal(questionnaireBase('fr', defaults), defaults.baseLocale)

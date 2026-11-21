@@ -18,6 +18,8 @@ import { parse } from 'valibot'
 
 import { manifestSchema } from '../src/schema.ts'
 
+process.env.LC_ALL = 'C'
+
 const usageExitCode = 2
 const bin = path.resolve('dist/create-solid.mjs')
 const manifest = (file: string) =>

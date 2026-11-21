@@ -219,6 +219,8 @@ try {
     execFileSync(process.execPath, [
       'dist/create-solid.mjs',
       path.join(probe, name),
+      '--lang',
+      'en',
       '--no-install',
       '--no-git',
       ...flags

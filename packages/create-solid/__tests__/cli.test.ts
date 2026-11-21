@@ -23,6 +23,8 @@ import { object, parse, string } from 'valibot'
 
 import { manifestSchema } from '../src/schema.ts'
 
+process.env.LC_ALL = 'C'
+
 const bin = path.resolve('dist/create-solid.mjs')
 const executable = 0o755
 function folder(context: TestContext) {

@@ -58,6 +58,8 @@ try {
       [
         path.join(sandbox, 'package/dist/create-solid.mjs'),
         cwd,
+        '--lang',
+        'en',
         '--pm',
         pm,
         '--no-install',

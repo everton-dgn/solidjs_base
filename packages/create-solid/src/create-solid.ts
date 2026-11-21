@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util'
 import { cliLanguage, message, messages } from './cli-language.ts'
 import { generateTerminal } from './generate.ts'
 import { projectSummary } from './projectSummary/index.ts'
+import { questionnaireBase } from './resolve-locale-options.ts'
 import { checkTools, hasTool, toolNames } from './tools.ts'
 import type { Answers } from './types.ts'
 import {
@@ -46,6 +47,12 @@ function detectLanguage(options: string[]) {
 const writeStep = (title: string) => process.stdout.write(`◇ ${title}\n`)
 type Creation = { answers: Answers; isInteractive: boolean }
 async function createApplication({ answers, isInteractive }: Creation) {
+  if (answers.locales === undefined && answers['base-locale'] === undefined) {
+    answers['base-locale'] = questionnaireBase(
+      language,
+      validateProfile(answers).defaults
+    )
+  }
   const validated = validateProfile(answers)
   const { profile } = validated
   if (validated.problems[0]) throw validated.problems[0]

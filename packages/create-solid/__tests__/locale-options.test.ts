@@ -16,13 +16,54 @@ import {
   catalogFolders,
   readLocaleSettings
 } from '../src/configureLocales/catalogs.ts'
-import { resolveLocaleOptions } from '../src/resolve-locale-options.ts'
+import {
+  questionnaireBase,
+  resolveLocaleOptions
+} from '../src/resolve-locale-options.ts'
 import type { Profile } from '../src/types.ts'
 
 const usageExitCode = 2
 const defaults = { baseLocale: 'en', locales: ['pt', 'en', 'es'] }
 const resolve = (options: Partial<Profile>) =>
   resolveLocaleOptions({ options, defaults })
+
+for (const [language, baseLocale] of [
+  ['pt-BR', 'pt'],
+  ['en', 'en'],
+  ['es', 'es']
+] as const) {
+  void it(`uses the ${language} questionnaire language in generated applications`, context => {
+    const root = mkdtempSync(path.join(tmpdir(), 'solid-default-language-'))
+    context.after(() => rmSync(root, { recursive: true, force: true }))
+    for (const mode of ['server', 'static', 'client']) {
+      const dir = path.join(root, mode)
+      const result = spawnSync(
+        process.execPath,
+        [
+          'src/create-solid.ts',
+          dir,
+          '--yes',
+          '--no-git',
+          '--no-install',
+          '--mode',
+          mode,
+          '--lang',
+          language
+        ],
+        { encoding: 'utf8' }
+      )
+      assert.equal(result.status, 0, result.stderr)
+      assert.deepEqual(readLocaleSettings(dir), {
+        baseLocale,
+        locales: mode === 'client' ? [baseLocale] : defaults.locales
+      })
+    }
+  })
+}
+
+void it('keeps the template base for a questionnaire language outside its catalogs', () => {
+  assert.equal(questionnaireBase('fr', defaults), defaults.baseLocale)
+})
 
 void it('uses the template settings on a host and the base language on a client', () => {
   for (const mode of ['server', 'static'] as const) {

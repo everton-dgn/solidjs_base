@@ -169,8 +169,9 @@ Use `--locales fr,ja --base-locale ja` to choose languages. Tags must be valid
 BCP 47 identifiers. An empty list, duplicates after canonicalization and a base
 outside the list are rejected. The first tag is the default base when you pass a
 list. Server and static apps otherwise use the template's English, Spanish and
-Portuguese catalogs with English as the base. A client app defaults to its base
-language alone. Use static mode for multiple languages on a file host.
+Portuguese catalogs with the questionnaire language as the base. A client app
+defaults to its base language alone. Use static mode for multiple languages on a
+file host.
 
 Use `--i18n` to enable translations and answer the language questions. Pass
 `--no-i18n` to use local message functions. In that profile, `--base-locale`

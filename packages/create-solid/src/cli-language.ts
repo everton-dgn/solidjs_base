@@ -356,7 +356,7 @@ Instalación
   --no-install                 No instalar dependencias
 
 Automatización
-  --yes                        Usar los valores predeterminados y omitir la confirmación
+  --yes                        Usar valores predeterminados sin confirmación
   --no-interactive             Usar las opciones de la línea de comandos
   --lang pt-BR|en|es           Idioma del cuestionario
   --help                       Mostrar esta ayuda

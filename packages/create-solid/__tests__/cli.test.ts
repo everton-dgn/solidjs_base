@@ -661,6 +661,12 @@ void it('lists each flag once with a description through both help aliases', () 
       )
     }
     const options = help.split('\n').filter(line => line.startsWith('  -'))
+    const terminalWidth = 80
+    assert.ok(
+      options
+        .filter(line => line.trimStart().startsWith('--yes '))
+        .every(line => line.length <= terminalWidth)
+    )
     const flags = options.map(line => line.trim().split(/\s+/u)[0])
     assert.equal(new Set(flags).size, flags.length)
     for (const flag of ['--mode', '--no-icons', '--install', '--yes', '-h']) {

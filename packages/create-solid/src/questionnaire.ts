@@ -1,13 +1,17 @@
 import path from 'node:path'
 import type { Writable, Readable } from 'node:stream'
 
+import { MultiSelectPrompt, wrapTextWithPrefix } from '@clack/core'
 import {
   type CommonOptions,
   confirm,
   intro,
   isCancel,
   log,
-  multiselect,
+  symbol,
+  S_BAR,
+  S_CHECKBOX_SELECTED,
+  S_CHECKBOX_INACTIVE,
   select,
   text
 } from '@clack/prompts'
@@ -71,6 +75,44 @@ async function recoverSetup({ result, language, io }: SetupRecovery) {
   }
 }
 
+type FeatureOption = { value: string; label: string; hint: string }
+function renderFeatures({
+  output,
+  language
+}: Pick<Session, 'output' | 'language'>) {
+  const labels = messages[language]
+  return function render(this: MultiSelectPrompt<FeatureOption>) {
+    const heading = `${symbol(this.state)}  ${labels.features}`
+    const selected = this.value ?? []
+    if (this.state === 'submit' || this.state === 'cancel') {
+      const list = this.options
+        .filter(item => selected.includes(item.value))
+        .map(item => item.label)
+        .join(', ')
+      return [
+        S_BAR,
+        heading,
+        wrapTextWithPrefix(output, list, `${S_BAR}  `)
+      ].join('\n')
+    }
+    const rows = this.options.map((item, index) => {
+      const mark = selected.includes(item.value)
+        ? S_CHECKBOX_SELECTED
+        : S_CHECKBOX_INACTIVE
+      const cursor = index === this.cursor ? '>' : ' '
+      const hint = item.hint ? ` (${item.hint})` : ''
+      return `${S_BAR} ${cursor}${mark} ${item.label}${hint}`
+    })
+    return [
+      S_BAR,
+      heading,
+      ...rows,
+      `${S_BAR}  ${labels.featureKeys}`,
+      ''
+    ].join('\n')
+  }
+}
+
 function openQuestionnaire({
   output,
   input,
@@ -83,7 +125,7 @@ function openQuestionnaire({
     : '\u001B[38;5;67m'
   const name = hasColor ? `${solidBlue}Solid Base\u001B[0m` : 'Solid Base'
   intro(`${name} v${manifest.version}`, { output, input })
-  output.write(`│  ${messages[language].tagline}\n`)
+  log.message(messages[language].tagline, { output, spacing: 0 })
 }
 function reportMissingTools({ result, language, io }: SetupRecovery) {
   const labels = messages[language]
@@ -196,7 +238,9 @@ export async function questionnaire({
       if (key === 'locales' && result['base-locale']) {
         result.locales ??= result['base-locale']
       }
-      if (!result[key]) io.output.write(`│  ${labels.singleLanguage}\n`)
+      if (!result[key]) {
+        log.message(labels.singleLanguage, { ...io, spacing: 0 })
+      }
       await field({ key, initialValue: defaults.baseLocale })
       if (result.locales) result['base-locale'] ??= result.locales
       return
@@ -238,20 +282,18 @@ export async function questionnaire({
           (result.mode !== 'client' && result['site-url'] === undefined))
     )
     if (keys.length > 0) {
-      io.output.write(`│  ${labels.featureKeys}\n`)
       const chosen = answer<string[]>(
-        await multiselect({
+        (await new MultiSelectPrompt<FeatureOption>({
           ...io,
-          message: labels.features,
           required: false,
-          showInstructions: false,
           initialValues: keys,
           options: keys.map(value => ({
             value,
             label: labels[value],
-            ...(value === 'fonts' ? { hint: labels.fontHint } : {})
-          }))
-        })
+            hint: value === 'fonts' ? labels.fontHint : ''
+          })),
+          render: renderFeatures({ output, language })
+        }).prompt()) ?? []
       )
       for (const key of keys) result[`no-${key}`] = !chosen.includes(key)
     }

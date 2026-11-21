@@ -100,7 +100,14 @@ for (const language of ['pt-BR', 'en', 'es'] as const) {
       language
     })
     const m = messages[language]
-    assert.ok(transcript.includes(m.featureKeys))
+    assert.ok(
+      transcript.indexOf(m.featureKeys) > transcript.indexOf(m.features)
+    )
+    assert.ok(
+      !transcript
+        .slice(transcript.lastIndexOf(m.features))
+        .includes(m.featureKeys)
+    )
     assert.ok(!transcript.includes(`${m.features} (${m.featureKeys})`))
     assert.deepEqual(
       answerProfile(result),

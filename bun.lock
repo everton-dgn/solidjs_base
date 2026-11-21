@@ -44,6 +44,7 @@
         "create-solid": "./dist/create-solid.mjs",
       },
       "devDependencies": {
+        "@clack/core": "1.6.0",
         "@clack/prompts": "1.9.0",
         "@evertondgn/solid-tooling": "workspace:*",
         "oxc-parser": "0.159.0",

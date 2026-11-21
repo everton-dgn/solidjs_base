@@ -195,6 +195,7 @@ class Cancellation(unittest.TestCase):
                                                   "│  tests set up."])
                     self.assertIn("│  Your project is in", lines)
                     self.assertIn("│  parent/app. To finish, run:", lines)
+                    self.assertRegex(transcript.decode(), r"[◒◐◓◑]  Installing dependencies…")
                     self.assertIn("Installing dependencies wi…".encode(), transcript)
                     self.assertNotIn(b"Installing dependencies with Bun", transcript)
                 if columns in (30, 36):

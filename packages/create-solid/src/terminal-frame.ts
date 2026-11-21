@@ -42,7 +42,7 @@ function stepTitle(title: string, columns = process.stdout.columns): string {
   const width = Math.max(0, columns - prefixWidth)
   if (title.length <= width) return title
   const ellipsis = (unicode ? '…' : '...').slice(0, width)
-  return title.slice(0, width - ellipsis.length) + ellipsis
+  return title.slice(0, width - ellipsis.length).trimEnd() + ellipsis
 }
 function clearIndicator() {
   if (!active) return

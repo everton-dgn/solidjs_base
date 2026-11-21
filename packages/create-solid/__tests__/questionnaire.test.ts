@@ -121,7 +121,7 @@ for (const language of ['pt-BR', 'en', 'es'] as const) {
         title: 'solid-app',
         mode: 'server',
         locales: 'pt,en,es',
-        'base-locale': 'en',
+        'base-locale': language === 'pt-BR' ? 'pt' : language,
         seo: true,
         'site-url': 'https://example.com',
         theme: true,
@@ -135,6 +135,58 @@ for (const language of ['pt-BR', 'en', 'es'] as const) {
     )
   })
 }
+
+for (const mode of ['client', 'server'] as const) {
+  void it(`suggests Portuguese for the single language field in ${mode} mode`, async () => {
+    const language = 'pt-BR'
+    const m = messages[language]
+    const { result } = await session(
+      [
+        [m.setup, '\u001B[B\r'],
+        [m.appLanguage, '\r']
+      ],
+      {
+        language,
+        answers: {
+          name: 'app',
+          title: 'App',
+          mode,
+          ...(mode === 'server'
+            ? { 'no-i18n': true, 'no-seo': true }
+            : { i18n: true }),
+          theme: true,
+          icons: true,
+          fonts: true,
+          diagnostics: true,
+          pm: 'bun',
+          'no-install': true,
+          'no-git': true
+        }
+      }
+    )
+    assert.equal(result['base-locale'], 'pt')
+  })
+}
+
+void it('suggests the questionnaire language in a reordered list', async () => {
+  const language = 'es'
+  const lines = allQuestions(language).map(([label, keys]): Line => [
+    label,
+    label === messages.es.locales ? '\u0015fr,es\r' : keys
+  ])
+  const { result } = await session(lines, { language })
+  assert.equal(result['base-locale'], 'es')
+})
+
+void it('suggests the first typed language when the questionnaire language is absent', async () => {
+  const language = 'es'
+  const lines = allQuestions(language).map(([label, keys]): Line => [
+    label,
+    label === messages.es.locales ? '\u0015fr,de\r' : keys
+  ])
+  const { result } = await session(lines, { language })
+  assert.equal(result['base-locale'], 'fr')
+})
 
 for (const [index, [question]] of allQuestions('en').entries()) {
   void it(`cancels at ${question}`, async () => {

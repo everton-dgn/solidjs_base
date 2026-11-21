@@ -24,6 +24,7 @@ import { messages, type Language } from './cli-language.ts'
 import { defaultSiteUrl } from './constants/site-url.ts'
 import { fieldMessage } from './fieldMessage/index.ts'
 import { installers } from './profile-answers.ts'
+import { questionnaireBase } from './resolve-locale-options.ts'
 import { hasTool, hasRepository, missingTool } from './tools.ts'
 import type { Answers } from './types.ts'
 import { CanceledError } from './usage-error.ts'
@@ -243,6 +244,7 @@ export async function questionnaire({
       result['no-i18n'] = !(await toggle(labels.i18n))
     }
     const { defaults } = validateProfile(result)
+    const initialBase = questionnaireBase(language, defaults)
     if (result.mode === 'client') {
       const key = result['no-i18n'] ? 'base-locale' : 'locales'
       if (key === 'locales' && result['base-locale']) {
@@ -251,7 +253,7 @@ export async function questionnaire({
       if (!result[key]) {
         log.message(labels.singleLanguage, { ...io, spacing: 0 })
       }
-      await field({ key, initialValue: defaults.baseLocale })
+      await field({ key, initialValue: initialBase })
       if (result.locales) result['base-locale'] ??= result.locales
       return
     }
@@ -262,7 +264,7 @@ export async function questionnaire({
       }
     }
     if (result['no-i18n']) {
-      await field({ key: 'base-locale', initialValue: defaults.baseLocale })
+      await field({ key: 'base-locale', initialValue: initialBase })
       return
     }
     if (!result['base-locale']) {
@@ -272,10 +274,7 @@ export async function questionnaire({
           ...io,
           message: labels.base,
           showInstructions: false,
-          initialValue:
-            result.locales === defaults.locales.join(',')
-              ? defaults.baseLocale
-              : baseLocale,
+          initialValue: questionnaireBase(language, { locales, baseLocale }),
           options: locales.map(value => ({ value }))
         })
       )

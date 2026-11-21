@@ -46,7 +46,7 @@ import { applyPreparedSource } from './prepared-source.ts'
 import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
-import { checkTools, hasRepository } from './tools.ts'
+import { checkTools, hasRepository, hasTool } from './tools.ts'
 import type {
   FileWrite,
   GenerationContext,
@@ -124,6 +124,7 @@ function nextSteps({ profile, language, siteUrl }: NextSteps): string[] {
   if (!profile.shouldInstall) {
     next.push(`${profile.pm} install`)
   }
+  if (!hasTool('bun')) next.push(messages[language].missingBun)
   next.push(`${profile.pm} run dev`)
   if (siteUrl?.origin === 'https://example.com') {
     next.push(messages[language].setUrl)

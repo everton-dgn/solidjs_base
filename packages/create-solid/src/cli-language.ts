@@ -100,7 +100,8 @@ Automation
     automation:
       'Use --yes to accept defaults. With --no-interactive, CI or redirected input, provide a destination or use --yes.',
     publishList: 'See "Before publishing" in README.md.',
-    setUrl: 'Set VITE_SITE_URL before publishing.',
+    setUrl:
+      'Replace VITE_SITE_URL in .env with your site URL before publishing.',
     seed: 'Translate the seeded messages for {tag}.',
     windows: 'create-solid supports macOS and Linux. Windows is unsupported.',
     tool: 'Install {tool} before generating the application. {link}',
@@ -219,7 +220,8 @@ Automação
     automation:
       'Use --yes para aceitar os padrões. Com --no-interactive, CI ou entrada redirecionada, informe o destino ou use --yes.',
     publishList: 'Consulte "Before publishing" no README.md.',
-    setUrl: 'Defina VITE_SITE_URL antes de publicar.',
+    setUrl:
+      'Troque o VITE_SITE_URL do .env pela URL do site antes de publicar.',
     seed: 'Traduza as mensagens iniciais de {tag}.',
     windows:
       'O create-solid funciona no macOS e no Linux. O Windows não tem suporte.',
@@ -339,7 +341,8 @@ Automatización
     automation:
       'Usa --yes para aceptar los valores predeterminados. Con --no-interactive, CI o entrada redirigida, indica el destino o usa --yes.',
     publishList: 'Consulta "Before publishing" en README.md.',
-    setUrl: 'Configura VITE_SITE_URL antes de publicar.',
+    setUrl:
+      'Cambia VITE_SITE_URL en .env por la URL del sitio antes de publicar.',
     seed: 'Traduce los mensajes iniciales de {tag}.',
     windows:
       'create-solid funciona en macOS y Linux. Windows no es compatible.',

@@ -180,6 +180,10 @@ void it('generates without a formatter or installer on PATH when setup is disabl
     { encoding: 'utf8', env: { ...process.env, PATH: parent } }
   )
   assert.ok(output.includes('│ bun install '))
+  assert.match(
+    output.slice(output.lastIndexOf('Next steps')),
+    /Install Bun from https:\/\/bun.sh/u
+  )
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })
 

@@ -63,7 +63,7 @@ void it('preserves generated files on install failure and ignores a parent repos
   )
   assert.equal(child.status, 1)
   assert.match(child.stderr, /^▲ Could not install dependencies with Bun\n/u)
-  assert.match(child.stderr, /Creation stopped\.\n$/u)
+  assert.match(child.stderr, /bun install\n\nCreation stopped\.\n$/u)
   const relative = path.relative(process.cwd(), dir)
   assert.ok(
     child.stderr.includes(
@@ -191,7 +191,7 @@ void it('rolls back owned files and directories on an internal generation error'
     )
     assert.match(result.stderr, /Missing version for/u)
     assert.match(result.stderr, /^▲ Could not create the files\n/u)
-    assert.match(result.stderr, /Creation stopped\.\n$/u)
+    assert.match(result.stderr, /\n\nCreation stopped\.\n$/u)
     assert.doesNotMatch(result.stderr, /To finish, run:|^cd /mu)
     assert.equal(result.status, 1)
     if (isExisting) assert.deepEqual(readdirSync(dir), [])
@@ -650,7 +650,7 @@ void it('reports cancellation during Git setup after publishing the tree', conte
   })
   const canceled = 130
   assert.equal(result.status, canceled)
-  assert.match(result.stderr, /Creation canceled/u)
+  assert.match(result.stderr, /bun install\n\nCreation canceled\.\n$/u)
   assert.doesNotMatch(result.stderr, /Git initialization failed/u)
   const relative = path.relative(process.cwd(), dir)
   assert.ok(

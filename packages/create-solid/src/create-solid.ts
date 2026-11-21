@@ -138,7 +138,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
     } else {
       const title = canceled ? `■ ${active}` : `▲ ${failureTitle}`
       process.stderr.write(
-        [...[title, reason, closing].filter(Boolean), ''].join('\n')
+        [...[title, reason].filter(Boolean), '', closing, ''].join('\n')
       )
     }
     process.exitCode = canceled ? interruptedExitCode : 1

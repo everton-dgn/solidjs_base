@@ -6,6 +6,7 @@ import { cliLanguage, message, messages } from './cli-language.ts'
 import { generateTerminal } from './generate.ts'
 import { projectSummary } from './projectSummary/index.ts'
 import { questionnaireBase } from './resolve-locale-options.ts'
+import type { progress as frameProgress } from './terminal-frame.ts'
 import { checkTools, hasTool, toolNames } from './tools.ts'
 import type { Answers } from './types.ts'
 import {
@@ -64,6 +65,15 @@ async function withPromptSignals<T>(prompt: () => Promise<T>): Promise<T> {
   } finally {
     process.off('SIGTERM', cancelPrompt)
     process.off('SIGHUP', cancelPrompt)
+  }
+}
+function rethrowUsageError(
+  error: unknown,
+  progress?: typeof frameProgress
+): void {
+  if (error instanceof UsageError) {
+    progress?.clear()
+    throw error
   }
 }
 async function createApplication({ answers, isInteractive }: Creation) {
@@ -131,7 +141,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
       }
     )
   } catch (error) {
-    if (error instanceof UsageError) throw error
+    rethrowUsageError(error, progress)
     const isCanceled = error instanceof CanceledError
     const reason = errorMessage(error)
     const closing = isCanceled ? labels.cancel : labels.stopped

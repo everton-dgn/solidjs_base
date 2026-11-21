@@ -66,6 +66,7 @@ export async function confirmProject({
   if (!result) throw new CanceledError()
 }
 export const progress = {
+  clear: clearIndicator,
   start(title: string): void {
     active = title
     if (!process.stdout.isTTY) return

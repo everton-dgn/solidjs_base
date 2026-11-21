@@ -16,6 +16,7 @@ import { validateProfile } from './validateProfile/index.ts'
 
 const argumentOffset = 2
 const usageExitCode = 2
+let framed = false
 let language: ReturnType<typeof cliLanguage> = 'en'
 function detectLanguage(options: string[]) {
   const index = options.findLastIndex(
@@ -50,7 +51,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
   const frame = isInteractive ? await import('./terminal-frame.ts') : undefined
   if (frame) await frame.confirmProject(summary, language)
   else process.stdout.write(`${labels.summary}\n${summary}\n`)
-  const progress = frame?.generationProgress(language)
+  const progress = frame?.generationProgress()
   let steps
   try {
     steps = await generateTerminal(
@@ -177,6 +178,7 @@ async function run(): Promise<void> {
   )
   if (initial) throw initial
   if (isInteractive) {
+    framed = true
     const { questionnaire } = await import('./questionnaire.ts')
     answers = await questionnaire({
       answers,
@@ -211,7 +213,10 @@ try {
       .filter(Boolean)
       .join('\n')
   }
-  process.stderr.write(`${reason}\n`)
+  if (framed && error instanceof CanceledError) {
+    const { outro } = await import('@clack/prompts')
+    outro(reason)
+  } else process.stderr.write(`${reason}\n`)
   const isArgumentError =
     error instanceof UsageError ||
     (error instanceof TypeError &&

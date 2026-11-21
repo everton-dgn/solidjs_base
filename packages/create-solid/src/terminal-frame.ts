@@ -1,4 +1,4 @@
-import { confirm, isCancel, note, outro, spinner } from '@clack/prompts'
+import { confirm, isCancel, note, outro, log } from '@clack/prompts'
 
 import { messages, type Language } from './cli-language.ts'
 import { CanceledError } from './usage-error.ts'
@@ -20,27 +20,22 @@ export async function confirmProject(
     inactive: m.no
   })
   if (result === false || isCancel(result)) {
-    outro(m.cancel)
     throw new CanceledError()
   }
 }
-export function generationProgress(language: Language): Progress {
-  const progress = spinner({
-    accessible: true,
-    cancelMessage: messages[language].cancel
-  })
+export function generationProgress(): Progress {
   let current = ''
   return {
     start(title: string) {
-      if (current) progress.stop(current)
+      if (current) log.success(current)
       current = title
-      progress.start(title)
+      log.step(title)
     },
     finish() {
-      progress.stop(current)
+      log.success(current)
     },
     fail() {
-      progress.error(current)
+      log.error(current)
     }
   }
 }

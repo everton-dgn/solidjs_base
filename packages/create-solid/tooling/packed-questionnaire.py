@@ -74,6 +74,7 @@ try:
             assert found > previous, (label, plain)
             previous = found
         if should_cancel:
+            assert plain.count("Creation canceled.") == 1, plain
             assert child.returncode == 130 and not (root / project).exists(), output
         else:
             assert child.returncode == 0 and (root / project / "package.json").is_file(), output

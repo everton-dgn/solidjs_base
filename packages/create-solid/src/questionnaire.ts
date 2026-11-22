@@ -62,6 +62,14 @@ function renderText({ label, placeholder }: TextLabel) {
     return `${heading}\n${styleText(color, S_BAR)}  ${value}\n${styleText(color, S_BAR_END)}${error}\n`
   }
 }
+type DirectoryError = { text: string; dir?: string; output: Writable }
+function directoryError({ text, dir, output }: DirectoryError): string {
+  if (!dir || !text.endsWith(dir)) return text
+  const frame = wrapTextWithPrefix(output, `${S_BAR_END}  ${text}`, '')
+  if (frame.endsWith(dir)) return text
+  const sentence = text.slice(0, -dir.length).trimEnd()
+  return [...wrapFrameText({ output, text: sentence }), dir].join('\n   ')
+}
 type FieldOptions = {
   key: 'name' | 'title' | 'locales' | 'base-locale' | 'site-url'
   initialValue: string
@@ -270,14 +278,14 @@ export async function questionnaire({
                 (key === 'name' ? 'dir' : key) ||
               (key === 'locales' && item.code === 'membership')
           )
-          return (
-            problem &&
-            fieldMessage({
-              language,
-              code: problem.code,
-              values: problem.values
-            })
-          )
+          if (!problem) return problem
+          const text = fieldMessage({
+            language,
+            code: problem.code,
+            values: problem.values
+          })
+          if (problem.code !== 'occupied' || key !== 'name') return text
+          return directoryError({ text, dir: problem.values.dir, output })
         }
       }).prompt()) ?? initialValue
     )

@@ -46,11 +46,11 @@ def install_screen(transcript, columns):
     return ["".join(row) for row in rows]
 
 
-def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False):
+def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False, ask_directory=False):
     master, slave = pty.openpty()
     try:
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, columns, 0, 0))
-        with subprocess.Popen([node, cli, "app", "--lang", language, "--mode", "server",
+        with subprocess.Popen([node, cli, *([] if ask_directory else ["app"]), "--lang", language, "--mode", "server",
                                "--no-git", "--install" if piped else "--no-install"], cwd=directory,
                               env=dict(os.environ, PATH=directory + os.pathsep + os.environ["PATH"] if piped else os.environ["PATH"], CI="false", NO_COLOR="" if color else "1", FORCE_COLOR="1" if color else "0", TERM="xterm"),
                               stdin=slave, stdout=subprocess.PIPE if piped else slave, stderr=slave) as child:
@@ -579,6 +579,33 @@ class Cancellation(unittest.TestCase):
                     final = re.sub(r"\x1b\[\?25[hl]", "", output.rsplit("\x1b[J", 1)[-1])
                     self.assertEqual(final.rstrip().splitlines(), [*expected, "│", f"└  {closing}"])
                     self.assertEqual(status, 130)
+
+    def test_occupied_directory_question(self):
+        path = "a-directory-that-is-longer-than-the-terminal-width"
+        for language, question, expected in [
+            ("en", "Project directory", ["└  The project directory must be new or", "   empty:"]),
+            ("es", "Carpeta del proyecto", ["└  La carpeta del proyecto debe ser", "   nueva o estar vacía:"]),
+        ]:
+            with self.subTest(language=language), tempfile.TemporaryDirectory() as directory:
+                destination = pathlib.Path(directory, path)
+                destination.mkdir()
+                (destination / "existing").touch()
+                output, status = question_session(directory, language, [
+                    (question, path.encode() + b"\r"), (expected[0], b"\x03")
+                ], columns=40, ask_directory=True)
+                lines = output.replace("\r\n", "\n")
+                self.assertIn("\n".join([*expected, "   " + path[:37], path[37:]]) + "\n", lines)
+                self.assertEqual(status, 130)
+
+                short = pathlib.Path(directory, "app")
+                short.mkdir()
+                (short / "existing").touch()
+                ending = expected[1].strip() + " app"
+                output, status = question_session(directory, language, [
+                    (question, b"app\r"), (ending, b"\x03")
+                ], columns=40, ask_directory=True)
+                self.assertIn(expected[0] + " \n" + ending + "\n", output.replace("\r\n", "\n"))
+                self.assertEqual(status, 130)
 
     def test_destination_changes_before_confirmation(self):
         for trigger in ("Configuración", "¿Crear el proyecto?"):

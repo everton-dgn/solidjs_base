@@ -325,6 +325,10 @@ class Cancellation(unittest.TestCase):
                             os.tcsetpgrp(0, child)
                             os.write(writer, b"x")
                             os.close(writer)
+                            _, status = os.waitpid(child, os.WUNTRACED)
+                            if not os.WIFSTOPPED(status):
+                                os._exit(1)
+                            (root / "stop.signal").write_text(str(os.WSTOPSIG(status)))
                             _, status = os.waitpid(child, 0)
                             os._exit(os.waitstatus_to_exitcode(status))
                         os.close(writer)
@@ -362,18 +366,29 @@ class Cancellation(unittest.TestCase):
                     os.write(master, key)
                     read_until(b"\x1b[?25h", start)
                     if key == b"\x1a":
-                        deadline = time.monotonic() + 3
-                        while "T" not in state(leader) and time.monotonic() < deadline:
-                            time.sleep(.02)
-                        self.assertIn("T", state(leader))
-                        self.assertEqual("T" in state(worker), job_control)
-                        self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript[start:])[-1], b"\x1b[?25h")
-                        start = len(transcript)
-                        os.killpg(leader, signal.SIGCONT)
-                        read_until(b"\x1b[?25l", start)
-                        read_until(b"Installing dependencies with Bun", transcript.index(b"\x1b[?25l", start))
+                        hidden = b"\x1b[?25l"
+                        shown = b"\x1b[?25h"
+                        if job_control:
+                            deadline = time.monotonic() + 3
+                            while not (root / "stop.signal").exists() and time.monotonic() < deadline:
+                                time.sleep(.02)
+                            self.assertEqual(int((root / "stop.signal").read_text()), signal.SIGTSTP)
+                            self.assertIn("T", state(leader))
+                            self.assertIn("T", state(worker))
+                            self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript[start:])[-1], shown)
+                            os.killpg(leader, signal.SIGCONT)
+                        for attempt in range(1 if job_control else 2):
+                            if attempt:
+                                start = len(transcript)
+                                os.write(master, key)
+                                read_until(shown, start)
+                            after_show = transcript.index(shown, start) + len(shown)
+                            read_until(hidden, after_show)
+                            read_until(b"Installing dependencies with Bun", transcript.index(hidden, after_show))
+                            self.assertNotIn("T", state(leader))
+                            self.assertNotIn("T", state(worker))
                         os.write(master, b"\x03")
-                        read_until(b"Creation canceled.", start)
+                        read_until("└  Creation canceled.".encode(), start)
                     deadline = time.monotonic() + 5
                     while time.monotonic() < deadline:
                         finished, status = os.waitpid(pid, os.WNOHANG)

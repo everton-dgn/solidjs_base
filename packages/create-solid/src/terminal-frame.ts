@@ -165,13 +165,16 @@ export const progress = {
       process.stdout.write(clearIndicatorRows)
       draw()
     }
-    const suspend = () => {
-      showCursor()
-      process.kill(process.pid, 'SIGSTOP')
-    }
     const resume = () => {
       process.stdout.write('\u001B[?25l')
       resize()
+    }
+    const suspend = () => {
+      showCursor()
+      process.off('SIGTSTP', suspend)
+      process.kill(process.pid, 'SIGTSTP')
+      process.on('SIGTSTP', suspend)
+      resume()
     }
     const quit = () => {
       showCursor()

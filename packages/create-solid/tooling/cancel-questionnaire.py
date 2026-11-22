@@ -46,14 +46,15 @@ def install_screen(transcript, columns):
     return ["".join(row) for row in rows]
 
 
-def question_session(directory, language, prompts, before_answer=None, color=False, columns=80):
+def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False):
     master, slave = pty.openpty()
     try:
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, columns, 0, 0))
         with subprocess.Popen([node, cli, "app", "--lang", language, "--mode", "server",
-                               "--no-git", "--no-install"], cwd=directory,
-                              env=dict(os.environ, CI="false", NO_COLOR="" if color else "1", FORCE_COLOR="1" if color else "0", TERM="xterm"),
-                              stdin=slave, stdout=slave, stderr=slave) as child:
+                               "--no-git", "--install" if piped else "--no-install"], cwd=directory,
+                              env=dict(os.environ, PATH=directory + os.pathsep + os.environ["PATH"] if piped else os.environ["PATH"], CI="false", NO_COLOR="" if color else "1", FORCE_COLOR="1" if color else "0", TERM="xterm"),
+                              stdin=slave, stdout=subprocess.PIPE if piped else slave, stderr=slave) as child:
+            reader = child.stdout.fileno() if piped else master
             os.close(slave)
             slave = None
             output = bytearray()
@@ -62,9 +63,9 @@ def question_session(directory, language, prompts, before_answer=None, color=Fal
                 for label, key in prompts:
                     until = time.monotonic() + 5
                     while label.encode() not in output[offset:]:
-                        if not select.select([master], [], [], max(0, until-time.monotonic()))[0]:
+                        if not select.select([reader], [], [], max(0, until-time.monotonic()))[0]:
                             raise AssertionError((label, output.decode()))
-                        block = os.read(master, 65536)
+                        block = os.read(reader, 65536)
                         if not block:
                             raise AssertionError((label, output.decode()))
                         output.extend(block)
@@ -73,9 +74,9 @@ def question_session(directory, language, prompts, before_answer=None, color=Fal
                         before_answer(label)
                     os.write(master, key)
                 until = time.monotonic() + 5
-                while select.select([master], [], [], max(0, until-time.monotonic()))[0]:
+                while select.select([reader], [], [], max(0, until-time.monotonic()))[0]:
                     try:
-                        block = os.read(master, 65536)
+                        block = os.read(reader, 65536)
                     except OSError as error:
                         if error.errno != errno.EIO:
                             raise
@@ -289,6 +290,20 @@ class Cancellation(unittest.TestCase):
                             os.kill(installer, signal.SIGKILL)
                     except ProcessLookupError:
                         pass
+
+    def test_piped_questionnaire(self):
+        for canceled in (True, False):
+            with self.subTest(canceled=canceled), tempfile.TemporaryDirectory() as directory:
+                bun = pathlib.Path(directory, "bun")
+                bun.write_text("#!/bin/sh\nexit 0\n")
+                bun.chmod(0o755)
+                prompts = [("Application title", b"\x03" if canceled else b"\r")]
+                if not canceled:
+                    prompts.extend([("Setup", b"\r"), ("Create the project?", b"\r")])
+                output, status = question_session(directory, "en", prompts, piped=True)
+                self.assertEqual(status, 130 if canceled else 0, output)
+                self.assertEqual(output.replace("\x1b[?25h", "").rstrip().splitlines()[-1],
+                                 "└  Creation canceled." if canceled else "└  Project created.")
 
     def test_prompt_signals(self):
         for stage in [b"Application title", b"Create the project?"]:

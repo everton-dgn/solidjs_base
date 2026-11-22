@@ -176,7 +176,7 @@ function hasInteractiveInput() {
   const isCI = !['', '0', 'false'].includes(
     process.env.CI?.trim().toLowerCase() ?? ''
   )
-  return process.stdin.isTTY && process.stdout.isTTY && !isCI
+  return process.stdin.isTTY && !isCI
 }
 function wrapParagraph(paragraph: string): string {
   const width = 80

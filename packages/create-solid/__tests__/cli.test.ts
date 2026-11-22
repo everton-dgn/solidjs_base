@@ -554,21 +554,17 @@ void it('preserves the published project and gives a resume command on install c
   assert.ok(existsSync(path.join(dir, 'package.json')))
 })
 
-void it('skips the questionnaire with redirected output, CI or no-interactive', context => {
+void it('skips the questionnaire on terminal stdin with CI or no-interactive', context => {
   const cwd = folder(context)
   const terminal = "Object.defineProperty(process.stdin,'isTTY',{value:true})"
-  const stdoutTerminal =
-    'Object.assign(process.stdout,{isTTY:true,hasColors:()=>false})'
+  const preload = `--import=data:text/javascript,${encodeURIComponent(terminal)}`
   const expectedUsageExit = 2
   const env = { ...process.env }
   delete env.CI
-  for (const { flags, environment, tty } of [
-    { flags: [], environment: env, tty: false },
-    { flags: ['--no-interactive'], environment: env, tty: true },
-    { flags: [], environment: { ...env, CI: 'true' }, tty: true }
+  for (const { flags, environment } of [
+    { flags: ['--no-interactive'], environment: env },
+    { flags: [], environment: { ...env, CI: 'true' } }
   ]) {
-    const setup = tty ? [terminal, stdoutTerminal].join(';') : terminal
-    const preload = `--import=data:text/javascript,${encodeURIComponent(setup)}`
     const child = spawnSync(process.execPath, [preload, bin, ...flags], {
       cwd,
       env: environment,

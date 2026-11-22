@@ -266,8 +266,9 @@ export function stopFrame({
       const after = text.slice(start + occupiedDir.length).trimStart()
       lines = [
         ...(before ? wrapLine(before) : []),
-        occupiedDir,
-        ...(after ? wrapLine(after) : [])
+        ...(/[\p{L}\p{N}]/u.test(after)
+          ? [occupiedDir, ...wrapLine(after)]
+          : [occupiedDir + after])
       ]
     }
   }

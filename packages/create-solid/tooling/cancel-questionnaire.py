@@ -91,6 +91,20 @@ def install_screen(transcript, columns):
     return screen.lines()
 
 
+def fork_terminal():
+    """Fork like pty.fork, keeping the slave open: macOS discards unread output when its last descriptor closes."""
+    master, slave = pty.openpty()
+    pid = os.fork()
+    if pid == 0:
+        os.close(master)
+        os.setsid()
+        fcntl.ioctl(slave, termios.TIOCSCTTY, 0)
+        for descriptor in (0, 1, 2):
+            os.dup2(slave, descriptor)
+        os.close(slave)
+    return pid, master, slave
+
+
 def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False, ask_directory=False):
     master, slave = pty.openpty()
     try:
@@ -355,9 +369,10 @@ class Cancellation(unittest.TestCase):
             with self.subTest(key=key, job_control=job_control), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
                 installer = root / "bun"
-                installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nexec sleep 20\n')
+                # The shell stays as the installer: a stop signal sent while it replaced itself with sleep was lost.
+                installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nsleep 20\n')
                 installer.chmod(0o755)
-                pid, master = pty.fork()
+                pid, master, slave = fork_terminal()
                 if pid == 0:
                     os.chdir(root)
                     if job_control:
@@ -398,15 +413,18 @@ class Cancellation(unittest.TestCase):
                     self.assertIn(b"\r\x1b[J", transcript[frame:end])
                 def state(process):
                     return subprocess.check_output(["ps", "-o", "stat=", "-p", str(process)], text=True).strip()
+                def recorded(name):
+                    # A file exists before its content is written.
+                    deadline = time.monotonic() + 4
+                    while not ((root / name).exists() and (root / name).read_text()) and time.monotonic() < deadline:
+                        time.sleep(.01)
+                    return int((root / name).read_text())
                 try:
                     for prompt in [b"Application title", b"Setup", b"Create the project?"]:
                         read_until(prompt)
                         os.write(master, b"\r")
                     read_until(b"Installing dependencies with Bun")
-                    deadline = time.monotonic() + 4
-                    while not (root / "installer.pid").exists() and time.monotonic() < deadline:
-                        time.sleep(.01)
-                    worker = int((root / "installer.pid").read_text())
+                    worker = recorded("installer.pid")
                     leader = int((root / "cli.pid").read_text())
                     self.assertEqual(os.getsid(leader), pid)
                     self.assertEqual(os.getpgid(worker), leader)
@@ -419,10 +437,7 @@ class Cancellation(unittest.TestCase):
                         hidden = b"\x1b[?25l"
                         shown = b"\x1b[?25h"
                         if job_control:
-                            deadline = time.monotonic() + 3
-                            while not (root / "stop.signal").exists() and time.monotonic() < deadline:
-                                time.sleep(.02)
-                            self.assertEqual(int((root / "stop.signal").read_text()), signal.SIGTSTP)
+                            self.assertEqual(recorded("stop.signal"), signal.SIGTSTP)
                             self.assertIn("T", state(leader))
                             self.assertIn("T", state(worker))
                             self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript[start:])[-1], shown)
@@ -475,6 +490,7 @@ class Cancellation(unittest.TestCase):
                             except ProcessLookupError:
                                 pass
                     os.close(master)
+                    os.close(slave)
                     if not waited:
                         os.kill(pid, signal.SIGKILL)
                         os.waitpid(pid, 0)
@@ -689,7 +705,7 @@ class Cancellation(unittest.TestCase):
                 destination = pathlib.Path(directory, path)
                 destination.mkdir()
                 (destination / "existing").touch()
-                pid, master = pty.fork()
+                pid, master, slave = fork_terminal()
                 if pid == 0:
                     os.chdir(directory)
                     fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, initial, 0, 0))
@@ -731,6 +747,7 @@ class Cancellation(unittest.TestCase):
                     self.assertEqual(os.waitstatus_to_exitcode(status), 130)
                 finally:
                     os.close(master)
+                    os.close(slave)
                     if not waited:
                         os.kill(pid, signal.SIGKILL)
                         os.waitpid(pid, 0)

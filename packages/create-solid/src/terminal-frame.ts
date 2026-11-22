@@ -250,19 +250,21 @@ export function stopFrame({
 }: Required<Closing<StopReason>>): void {
   const text = typeof reason === 'string' ? reason : reason.text
   let lines = wrapLine(text)
-  if (
-    typeof reason !== 'string' &&
-    !hasWholePath({
-      text,
-      start: text.length - reason.occupiedDir.length,
-      dir: reason.occupiedDir,
-      lines
-    })
-  ) {
-    lines = [
-      ...wrapLine(text.slice(0, -reason.occupiedDir.length).trimEnd()),
-      reason.occupiedDir
-    ]
+  if (typeof reason !== 'string') {
+    const { occupiedDir } = reason
+    const start = text.lastIndexOf(occupiedDir)
+    if (
+      start !== -1 &&
+      !hasWholePath({ text, start, dir: occupiedDir, lines })
+    ) {
+      const before = text.slice(0, start).trimEnd()
+      const after = text.slice(start + occupiedDir.length).trimStart()
+      lines = [
+        ...(before ? wrapLine(before) : []),
+        occupiedDir,
+        ...(after ? wrapLine(after) : [])
+      ]
+    }
   }
   log.warn(lines.join('\n'), {
     spacing: 0

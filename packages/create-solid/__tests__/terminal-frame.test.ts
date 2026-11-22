@@ -451,3 +451,61 @@ finally:
     assert.ok(row.trim().length <= target, row)
   }
 })
+
+void it('keeps an occupied path between its surrounding sentences', () => {
+  const dir = '/a/directory/that/will/not/fit/within/40/columns'
+  const bytes = execFileSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      `
+    Object.defineProperty(process.stdout, 'columns', {value:40})
+    const { stopFrame } = await import('./src/terminal-frame.ts')
+    const occupiedDir = ${JSON.stringify(dir)}
+    const { message } = await import('./src/cli-language.ts')
+    stopFrame({reason:{text:'Before the path: '+occupiedDir+' Continue here.',occupiedDir},closing:'end'})
+    for (const language of ['en','pt-BR','es']) {
+      const text = message(language,{code:'occupied',values:{dir:occupiedDir}})
+      stopFrame({reason:{text,occupiedDir},closing:'end'})
+    }
+    stopFrame({reason:{text:'No matching directory here.',occupiedDir},closing:'end'})
+  `
+    ],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, TERM: 'xterm', FORCE_COLOR: '0' }
+    }
+  )
+  assert.deepEqual(
+    bytes
+      .trimEnd()
+      .split('\n\n')
+      .map(frame => frame.split('\n')),
+    [
+      ['▲  Before the path:', `│  ${dir}`, '│  Continue here.', '│', '└  end'],
+      [
+        '▲  The project directory must be new or',
+        '│  empty:',
+        `│  ${dir}`,
+        '│',
+        '└  end'
+      ],
+      [
+        '▲  A pasta do projeto precisa ser nova',
+        '│  ou estar vazia:',
+        `│  ${dir}`,
+        '│',
+        '└  end'
+      ],
+      [
+        '▲  La carpeta del proyecto debe ser',
+        '│  nueva o estar vacía:',
+        `│  ${dir}`,
+        '│',
+        '└  end'
+      ],
+      ['▲  No matching directory here.', '│', '└  end']
+    ]
+  )
+})

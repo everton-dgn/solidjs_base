@@ -347,6 +347,10 @@ class Cancellation(unittest.TestCase):
                         block = os.read(master, 65536)
                         self.assertTrue(block, transcript)
                         transcript.extend(block)
+                def assert_cleared(start):
+                    end = transcript.index(b"\x1b[?25h", start)
+                    frame = transcript.rindex(b"Installing dependencies with Bun", 0, end)
+                    self.assertIn(b"\r\x1b[J", transcript[frame:end])
                 def state(process):
                     return subprocess.check_output(["ps", "-o", "stat=", "-p", str(process)], text=True).strip()
                 try:
@@ -365,6 +369,7 @@ class Cancellation(unittest.TestCase):
                     start = len(transcript)
                     os.write(master, key)
                     read_until(b"\x1b[?25h", start)
+                    assert_cleared(start)
                     if key == b"\x1a":
                         hidden = b"\x1b[?25l"
                         shown = b"\x1b[?25h"
@@ -382,6 +387,7 @@ class Cancellation(unittest.TestCase):
                                 start = len(transcript)
                                 os.write(master, key)
                                 read_until(shown, start)
+                                assert_cleared(start)
                             after_show = transcript.index(shown, start) + len(shown)
                             read_until(hidden, after_show)
                             read_until(b"Installing dependencies with Bun", transcript.index(hidden, after_show))
@@ -410,6 +416,9 @@ class Cancellation(unittest.TestCase):
                     self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], b"\x1b[?25h")
                     self.assertEqual(os.waitstatus_to_exitcode(status), 130 if key == b"\x1a" else -signal.SIGQUIT)
                     if key == b"\x1c":
+                        tail = transcript[transcript.index(b"\x1b[?25h", start):]
+                        self.assertNotIn(b"Installing dependencies with Bun", tail)
+                        self.assertNotIn("└".encode(), tail)
                         self.assertNotIn(b"Creation canceled.", transcript)
                 finally:
                     for file in ("installer.pid", "cli.pid"):

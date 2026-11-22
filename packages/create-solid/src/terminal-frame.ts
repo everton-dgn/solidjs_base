@@ -170,6 +170,7 @@ export const progress = {
       resize()
     }
     const suspend = () => {
+      process.stdout.write(clearIndicatorRows)
       showCursor()
       process.off('SIGTSTP', suspend)
       process.kill(process.pid, 'SIGTSTP')
@@ -177,6 +178,7 @@ export const progress = {
       resume()
     }
     const quit = () => {
+      process.stdout.write(clearIndicatorRows)
       showCursor()
       process.off('SIGQUIT', quit)
       process.kill(process.pid, 'SIGQUIT')

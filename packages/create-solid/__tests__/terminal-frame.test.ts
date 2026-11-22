@@ -536,3 +536,48 @@ void it('keeps an occupied path between its surrounding sentences', () => {
     ]
   )
 })
+
+void it('closes steps at the cached width when the terminal probe fails', () => {
+  const script = `
+    import tty from 'node:tty'
+    import { syncBuiltinESMExports } from 'node:module'
+    import assert from 'node:assert/strict'
+    Object.defineProperties(process.stdout, {
+      columns: { value: 12 },
+      isTTY: { value: true }
+    })
+    tty.isatty = () => true
+    let mode
+    let destroyed = 0
+    tty.WriteStream = class {
+      constructor() { if (mode === 'constructor') throw Error(mode) }
+      getWindowSize() {
+        if (mode === 'read') throw Error(mode)
+        return [mode]
+      }
+      destroy() { destroyed++ }
+    }
+    syncBuiltinESMExports()
+    const { progress } = await import('./src/terminal-frame.ts')
+    for (mode of ['constructor', 'read', undefined, 0, 2.5]) {
+      progress.start('files')
+      progress.finish('Dependencies installed')
+    }
+    assert.equal(destroyed, 4)
+  `
+  const bytes = execFileSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, TERM: 'xterm', FORCE_COLOR: '0' }
+    }
+  )
+  assert.deepEqual(
+    bytes
+      .split('\n')
+      .slice(0, -1)
+      .map(line => line.slice(line.lastIndexOf('◇'))),
+    Array.from({ length: 5 }, () => '◇  Dependen…')
+  )
+})

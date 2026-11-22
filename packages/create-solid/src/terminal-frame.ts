@@ -56,10 +56,17 @@ function closingOutput(): NodeJS.WriteStream {
   const { stdout } = process
   if (!stdout.isTTY || !isatty(stdout.fd)) return stdout
   // getWindowSize reads the dimensions cached when its stream was initialized.
-  const probe = new WriteStream(stdout.fd)
+  let probe: WriteStream | undefined
   try {
+    probe = new WriteStream(stdout.fd)
     const [columns] = probe.getWindowSize()
-    if (columns === stdout.columns || columns <= 0) return stdout
+    if (
+      !Number.isInteger(columns) ||
+      columns <= 0 ||
+      columns === stdout.columns
+    ) {
+      return stdout
+    }
     return new Proxy(stdout, {
       get(target, property): unknown {
         if (property === 'columns') return columns
@@ -67,8 +74,10 @@ function closingOutput(): NodeJS.WriteStream {
         return Reflect.get(target, property)
       }
     })
+  } catch {
+    return stdout
   } finally {
-    probe.destroy()
+    probe?.destroy()
   }
 }
 function showCursor() {

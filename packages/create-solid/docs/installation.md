@@ -199,5 +199,6 @@ The corresponding programmatic properties are `siteUrl`, `mode`, `hasSeo`,
 During a step, the CLI disables automatic wrapping while drawing the indicator.
 Resizing clears the indicator from its first column down, preserving the
 completed steps above it. The cursor is hidden during an interactive step and
-restored when it ends. A long directory stays on its own line in resume
-instructions and destination errors.
+restored when it ends. Ctrl+Z shows the cursor and lets the shell suspend the
+CLI. The indicator returns on `fg`; Ctrl+\ shows the cursor and quits. A long
+directory stays on its own line in resume instructions and destination errors.

@@ -419,6 +419,17 @@ class Cancellation(unittest.TestCase):
                     while not ((root / name).exists() and (root / name).read_text()) and time.monotonic() < deadline:
                         time.sleep(.01)
                     return int((root / name).read_text())
+                def drain():
+                    while select.select([master], [], [], 0)[0]:
+                        try:
+                            block = os.read(master, 65536)
+                        except OSError as error:
+                            if error.errno != errno.EIO:
+                                raise
+                            break
+                        if not block:
+                            break
+                        transcript.extend(block)
                 try:
                     for prompt in [b"Application title", b"Setup", b"Create the project?"]:
                         read_until(prompt)
@@ -440,6 +451,8 @@ class Cancellation(unittest.TestCase):
                             self.assertEqual(recorded("stop.signal"), signal.SIGTSTP)
                             self.assertIn("T", state(leader))
                             self.assertIn("T", state(worker))
+                            # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
+                            drain()
                             self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript[start:])[-1], shown)
                             os.killpg(leader, signal.SIGCONT)
                         for attempt in range(1 if job_control else 2):
@@ -463,16 +476,7 @@ class Cancellation(unittest.TestCase):
                             break
                         time.sleep(.01)
                     self.assertTrue(waited)
-                    while select.select([master], [], [], 0)[0]:
-                        try:
-                            block = os.read(master, 65536)
-                        except OSError as error:
-                            if error.errno != errno.EIO:
-                                raise
-                            break
-                        if not block:
-                            break
-                        transcript.extend(block)
+                    drain()
                     self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], b"\x1b[?25h")
                     self.assertEqual(os.waitstatus_to_exitcode(status), 130 if key == b"\x1a" else -signal.SIGQUIT)
                     if key == b"\x1c":

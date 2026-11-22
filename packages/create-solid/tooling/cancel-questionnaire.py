@@ -23,21 +23,24 @@ node = shutil.which("node")
 
 
 def install_screen(transcript, columns):
-    # The step uses only carriage return, erase-line and printable cells.
+    wrap = True
     step = transcript.decode().rsplit("Files created", 1)[1].lstrip("\r\n")
     rows = [[]]
     column = 0
-    for token in re.findall(r"\x1b\[2K|.", step, re.DOTALL):
+    for token in re.findall(r"\x1b\[(?:2K|J|\?(?:7|25)[hl])|.", step, re.DOTALL):
         if token == "\r":
             column = 0
         elif token == "\n":
             rows.append([])
-        elif token == "\x1b[2K":
+        elif token in ("\x1b[2K", "\x1b[J"):
             rows[-1].clear()
+        elif token in ("\x1b[?7h", "\x1b[?7l"):
+            wrap = token.endswith("h")
         elif token.isprintable():
             if column == columns:
-                rows.append([])
-                column = 0
+                if wrap:
+                    rows.append([])
+                column = 0 if wrap else columns - 1
             rows[-1][column:column + 1] = [token]
             column += 1
     return ["".join(row) for row in rows]
@@ -185,7 +188,7 @@ class Cancellation(unittest.TestCase):
                     self.assertEqual(os.waitstatus_to_exitcode(status), 0)
                     return
                 if files_failure:
-                    lines = transcript.decode().rsplit("\x1b[2K", 1)[-1].rstrip().splitlines()
+                    lines = transcript.decode().rsplit("\x1b[J", 1)[-1].rstrip().splitlines()
                     self.assertEqual(lines, ["▲  Could not create the files",
                         "│  Missing version for @evertondgn/solid-runtime", "│", "└  Creation stopped."])
                     self.assertEqual(os.waitstatus_to_exitcode(status), 1)
@@ -204,7 +207,7 @@ class Cancellation(unittest.TestCase):
                     screen = install_screen(transcript, columns)
                     cancel = next(i for i, line in enumerate(screen) if line.startswith("■"))
                     self.assertFalse(any(line.startswith(tuple("◒◐◓◑")) for line in screen[:cancel]), screen)
-                    frames = re.findall(r"\r([◒◐◓◑]  [^\r\n^]+)", transcript.decode())
+                    frames = re.findall(r"\r\x1b\[\?7l([◒◐◓◑]  [^\x1b\r\n^]+)\x1b\[\?7h", transcript.decode())
                     self.assertTrue(frames)
                     for frame in frames:
                         self.assertLessEqual(len(frame), columns - 2)
@@ -458,7 +461,13 @@ class Cancellation(unittest.TestCase):
                 self.assertEqual((dest / "existing").read_text(), "keep")
 
     def test_resize_during_install(self):
-        for old, new in ((80, 30), (30, 80)):
+        self.resize_install(((80, 30), (30, 80)))
+
+    def test_resize_during_pending_window_change(self):
+        self.resize_install(((80, 30),), drag=True)
+
+    def resize_install(self, sizes, drag=False):
+        for old, new in sizes:
             with self.subTest(old=old, new=new), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
                 installer = root / "bun"
@@ -489,6 +498,8 @@ class Cancellation(unittest.TestCase):
                         wait_for(label)
                         tmux("send-keys", "Enter")
                     wait_for("Installing dependencies")
+                    if drag:
+                        tmux("resize-window", "-x", "50", "-y", "80")
                     tmux("resize-window", "-x", str(new), "-y", "80")
                     wait_for("Installing dependencies…" if new == 30 else "Installing dependencies with Bun")
                     tmux("send-keys", "C-c")

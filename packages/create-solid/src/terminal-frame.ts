@@ -35,7 +35,7 @@ const unicodeIntervalMs = 80
 const asciiIntervalMs = 120
 const noteFormat = { format: (line: string) => line.trimStart() }
 const prefixWidth = 3
-const clearRow = '\r\u001B[2K'
+const clearIndicatorRows = '\r\u001B[J'
 const echoWidth = 2
 let indicator: ReturnType<typeof setInterval> | undefined
 let active = ''
@@ -56,7 +56,7 @@ function clearIndicator() {
   removeResizeListener?.()
   removeResizeListener = undefined
   clearInterval(indicator)
-  if (indicator) process.stdout.write(clearRow)
+  if (indicator) process.stdout.write(clearIndicatorRows)
   indicator = undefined
   active = ''
 }
@@ -93,22 +93,17 @@ export const progress = {
     active = title
     if (!process.stdout.isTTY) return
     let index = 0
-    let drawnWidth = 0
     const draw = () => {
       const mark = styleText('magenta', frames[index] ?? '')
       const columns = process.stdout.columns - echoWidth
       if (columns < 1) return
       const label = stepTitle({ title, columns })
-      process.stdout.write(label ? `\r${mark}  ${label}` : `\r${mark}`)
-      drawnWidth = label ? label.length + prefixWidth : 1
+      const line = label ? `${mark}  ${label}` : mark
+      process.stdout.write(`\r\u001B[?7l${line}\u001B[?7h\r`)
       index = (index + 1) % frames.length
     }
     const resize = () => {
-      const width = Math.max(1, process.stdout.columns)
-      const rows = Math.max(1, Math.ceil(drawnWidth / width))
-      const previousRows = `\u001B[1A${clearRow}`.repeat(rows - 1)
-      process.stdout.write(`${clearRow}${previousRows}`)
-      drawnWidth = 0
+      process.stdout.write(clearIndicatorRows)
       draw()
     }
     process.stdout.on('resize', resize)

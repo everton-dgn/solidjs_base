@@ -384,3 +384,70 @@ void it('keeps an occupied destination whole and wraps other errors normally', (
     '└  end'
   ])
 })
+
+void it('closes each step at the new PTY width before resize is dispatched', () => {
+  const title = 'Installing dependencies with Bun'
+  const script = `
+    import { readSync } from 'node:fs'
+    import { progress, closeFrame } from './src/terminal-frame.ts'
+    progress.start('${title}')
+    process.stderr.write('ready\\n')
+    readSync(Number(process.env.SYNC_FD), Buffer.alloc(1), 0, 1, null)
+    process.stdout.write('\\f')
+    progress.cancel()
+    progress.error('${title}')
+    progress.warn('${title}\\nThis diagnostic spans several words and several lines.')
+    progress.finish('${title}')
+    closeFrame({reason:'This explanation must wrap within the smaller terminal.',closing:'end'})
+    if (process.stdout.columns !== 80) process.exitCode = 1
+  `
+  const harness = `
+import os, pty, select, struct, subprocess, sys, termios, fcntl
+master, slave = pty.openpty()
+reader, writer = os.pipe()
+def resize(columns):
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, columns, 0, 0))
+try:
+    resize(80)
+    with subprocess.Popen(sys.argv[1:], pass_fds=(reader,), env=dict(os.environ, SYNC_FD=str(reader)), stdout=slave, stderr=subprocess.PIPE) as cli:
+        try:
+            assert select.select([cli.stderr], [], [], 5)[0]
+            assert cli.stderr.readline() == b'ready\\n'
+            resize(30)
+            os.write(writer, b'x')
+            _, errors = cli.communicate(timeout=5)
+            assert cli.returncode == 0, errors
+            while select.select([master], [], [], 0)[0]:
+                sys.stdout.buffer.write(os.read(master, 65536))
+        finally:
+            if cli.poll() is None:
+                cli.kill()
+finally:
+    os.close(master)
+    os.close(slave)
+    os.close(reader)
+    os.close(writer)
+  `
+  const bytes = execFileSync(
+    'python3',
+    ['-c', harness, process.execPath, '--input-type=module', '-e', script],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, TERM: 'xterm', FORCE_COLOR: '0' }
+    }
+  )
+  const target = 30
+  const rows = resizeScreen({ bytes, initial: 80, target, reflow: true })
+  for (const mark of ['■', '▲', '◇']) {
+    assert.ok(
+      rows.includes(`${mark}  Installing dependencies wi…`),
+      rows.join('\n')
+    )
+  }
+  const closing = bytes.slice(bytes.indexOf('\f') + 1)
+  // oxlint-disable-next-line no-control-regex
+  const plain = closing.replaceAll(/\u001B\[[0-9;?]*[A-Za-z]/gu, '')
+  for (const row of plain.split(/\r?\n/u)) {
+    assert.ok(row.trim().length <= target, row)
+  }
+})

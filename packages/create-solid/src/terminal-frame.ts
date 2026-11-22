@@ -1,4 +1,5 @@
 import process from 'node:process'
+import { isatty, WriteStream } from 'node:tty'
 import { styleText } from 'node:util'
 
 import { wrapTextWithPrefix } from '@clack/core'
@@ -51,6 +52,25 @@ function stepTitle({
   const ellipsis = (unicode ? '…' : '...').slice(0, width)
   return title.slice(0, width - ellipsis.length).trimEnd() + ellipsis
 }
+function closingOutput(): NodeJS.WriteStream {
+  const { stdout } = process
+  if (!stdout.isTTY || !isatty(stdout.fd)) return stdout
+  // getWindowSize reads the dimensions cached when its stream was initialized.
+  const probe = new WriteStream(stdout.fd)
+  try {
+    const [columns] = probe.getWindowSize()
+    if (columns === stdout.columns || columns <= 0) return stdout
+    return new Proxy(stdout, {
+      get(target, property): unknown {
+        if (property === 'columns') return columns
+        if (property === 'write') return target.write.bind(target)
+        return Reflect.get(target, property)
+      }
+    })
+  } finally {
+    probe.destroy()
+  }
+}
 function showCursor() {
   process.stdout.write('\u001B[?25h')
 }
@@ -70,8 +90,11 @@ function clearIndicator() {
 function isCommand(line: string): boolean {
   return /^(?:cd .+|git init|(?:npm|pnpm|bun) install|bun run dev)$/u.test(line)
 }
-function wrapLine(text: string): string[] {
-  return wrapFrameText({ output: process.stdout, text })
+function wrapLine(
+  text: string,
+  output: NodeJS.WriteStream = process.stdout
+): string[] {
+  return wrapFrameText({ output, text })
 }
 type PathSpan = { text: string; start: number; dir: string; lines: string[] }
 function hasWholePath({ text, start, dir, lines }: PathSpan): boolean {
@@ -83,11 +106,11 @@ function hasWholePath({ text, start, dir, lines }: PathSpan): boolean {
   }
   return false
 }
-function wrapInstructions(text: string): string[] {
+function wrapInstructions(text: string, output: NodeJS.WriteStream): string[] {
   const lines = text.split('\n')
   return lines.flatMap((line, index) => {
     if (isCommand(line)) return [line]
-    const wrapped = wrapLine(line)
+    const wrapped = wrapLine(line, output)
     const command = lines[index + 1]
     if (!command?.startsWith('cd ')) return wrapped
     const dir = command.slice('cd '.length)
@@ -98,8 +121,8 @@ function wrapInstructions(text: string): string[] {
           return wrapped
         }
         const [first, last] = labels.resume.split(' {dir}. ')
-        const parts = wrapLine(`${first}:`)
-        parts.push(dir, ...wrapLine(last ?? ''))
+        const parts = wrapLine(`${first}:`, output)
+        parts.push(dir, ...wrapLine(last ?? '', output))
         return parts
       }
     }
@@ -149,25 +172,30 @@ export const progress = {
   },
   finish: (title: string): void => {
     clearIndicator()
-    log.step(stepTitle({ title }), { spacing: 0 })
+    const output = closingOutput()
+    log.step(stepTitle({ title, columns: output.columns }), {
+      spacing: 0,
+      output
+    })
   },
   warn(message: string): void {
     clearIndicator()
+    const output = closingOutput()
     const [title = '', ...diagnostic] = message.split('\n')
     log.warn(
       [
-        stepTitle({ title }),
-        ...diagnostic.flatMap(line =>
-          wrapFrameText({ output: process.stdout, text: line })
-        )
+        stepTitle({ title, columns: output.columns }),
+        ...diagnostic.flatMap(line => wrapFrameText({ output, text: line }))
       ].join('\n'),
-      { spacing: 0 }
+      { spacing: 0, output }
     )
   },
   error(title: string): void {
     clearIndicator()
-    log.message(stepTitle({ title }), {
+    const output = closingOutput()
+    log.message(stepTitle({ title, columns: output.columns }), {
       symbol: styleText('red', S_STEP_ERROR),
+      output,
       spacing: 0
     })
   },
@@ -175,19 +203,25 @@ export const progress = {
     if (!active) return
     const title = active
     clearIndicator()
-    log.error(stepTitle({ title }), { spacing: 0 })
+    const output = closingOutput()
+    log.error(stepTitle({ title, columns: output.columns }), {
+      spacing: 0,
+      output
+    })
   }
 }
 export function closeQuestion(label: string): void {
   outro(`${styleText('gray', S_BAR_END)}  ${label}`, { withGuide: false })
 }
 export function closeFrame({ reason, closing }: Closing): void {
+  const output = closingOutput()
   if (reason) {
-    log.message(wrapInstructions(reason), {
+    log.message(wrapInstructions(reason, output), {
+      output,
       spacing: 0
     })
   }
-  outro(closing)
+  outro(closing, { output })
 }
 export function stopFrame({
   reason,
@@ -215,18 +249,22 @@ export function stopFrame({
   outro(closing)
 }
 export function finishProject({ steps, language }: Completion): void {
+  const output = closingOutput()
   const m = messages[language]
   const notePrefix = '      '
   if (
     steps.some(
       line =>
         isCommand(line) &&
-        (process.stdout.columns <= notePrefix.length ||
-          wrapTextWithPrefix(process.stdout, line, notePrefix).includes('\n'))
+        (output.columns <= notePrefix.length ||
+          wrapTextWithPrefix(output, line, notePrefix).includes('\n'))
     )
   ) {
-    log.step(m.next)
-    log.message(wrapInstructions(steps.join('\n')), { spacing: 0 })
-  } else note(steps.join('\n'), m.next, noteFormat)
-  outro(m.ready)
+    log.step(m.next, { output })
+    log.message(wrapInstructions(steps.join('\n'), output), {
+      spacing: 0,
+      output
+    })
+  } else note(steps.join('\n'), m.next, { ...noteFormat, output })
+  outro(m.ready, { output })
 }

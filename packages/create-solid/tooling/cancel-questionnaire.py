@@ -37,35 +37,34 @@ class Screen:
         self.column = min(self.column, columns - 1)
 
     def feed(self, text):
-        for sequence, argument, action, char in re.findall(r"(\x1b\[([?\d]*)([A-Za-z]))|([\s\S])", text):
+        for sequence, char in re.findall(r"(\x1b\[[0-?]*[ -/]*[@-~])|([\s\S])", text):
+            move = re.fullmatch(r"\x1b\[(\d*)([ABCDG])", sequence)
             if sequence in ("\x1b[?7h", "\x1b[?7l"):
-                self.wrap = action == "h"
+                self.wrap = sequence.endswith("h")
             elif sequence in ("\x1b[?25h", "\x1b[?25l"):
                 pass
-            elif sequence:
-                count = int(argument or 1)
-                if action == "A":
-                    self.row = max(0, self.row - count)
-                elif action == "B":
-                    self.row += count
-                elif action == "C":
-                    self.column = min(self.columns - 1, self.column + count)
-                elif action == "D":
-                    self.column = max(0, self.column - count)
-                elif action == "G":
-                    self.column = count - 1
-                elif sequence == "\x1b[2K":
-                    self.cells().clear()
-                elif sequence == "\x1b[J":
-                    del self.cells()[self.column:]
-                    del self.rows[self.row + 1:]
-                else:
-                    raise AssertionError(sequence)
+            elif sequence == "\x1b[2K":
+                self.cells().clear()
+            elif sequence == "\x1b[J":
+                del self.cells()[self.column:]
+                del self.rows[self.row + 1:]
+            elif move:
+                count = int(move[1] or 1)
+                self.row, self.column = {
+                    "A": (max(0, self.row - count), self.column),
+                    "B": (self.row + count, self.column),
+                    "C": (self.row, min(self.columns - 1, self.column + count)),
+                    "D": (self.row, max(0, self.column - count)),
+                    "G": (self.row, count - 1),
+                }[move[2]]
+            elif sequence or not (char in "\r\n" or char.isprintable()):
+                # An unknown byte would leave this model showing a screen the terminal does not have.
+                raise AssertionError(repr(sequence or char))
             elif char == "\r":
                 self.column = 0
             elif char == "\n":
                 self.row += 1
-            elif char.isprintable():
+            else:
                 if self.column == self.columns:
                     if self.wrap:
                         self.row += 1
@@ -728,8 +727,10 @@ class Cancellation(unittest.TestCase):
                     screen.feed(data.decode())
                 def error_rows():
                     rows = screen.lines()
-                    start = next(index for index, row in enumerate(rows) if row.startswith("└"))
-                    return [row for row in rows[start:] if row]
+                    rows = rows[next(index for index, row in enumerate(rows) if row.startswith("└")):]
+                    while rows and not rows[-1]:
+                        rows.pop()
+                    return rows
                 try:
                     read_render("└\r\n".encode())
                     os.write(master, path.encode() + b"\r")
@@ -755,6 +756,11 @@ class Cancellation(unittest.TestCase):
                     if not waited:
                         os.kill(pid, signal.SIGKILL)
                         os.waitpid(pid, 0)
+
+    def test_unknown_screen_bytes(self):
+        for text in ("\x1b[1;2H", "\x1b7", "\b"):
+            with self.subTest(text=text), self.assertRaises(AssertionError):
+                Screen(80).feed(text)
 
     def test_destination_changes_before_confirmation(self):
         for trigger in ("Configuración", "¿Crear el proyecto?"):

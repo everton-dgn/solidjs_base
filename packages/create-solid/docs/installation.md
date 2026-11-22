@@ -196,4 +196,5 @@ The corresponding programmatic properties are `siteUrl`, `mode`, `hasSeo`,
 
 During a step, the CLI disables automatic wrapping while drawing the indicator.
 Resizing clears the indicator from its first column down, preserving the
-completed steps above it.
+completed steps above it. The cursor is hidden during an interactive step and
+restored when it ends.

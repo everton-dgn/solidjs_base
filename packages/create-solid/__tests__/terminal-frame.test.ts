@@ -42,6 +42,7 @@ void it('draws the Clack status colors and indicator for each terminal', () => {
   assert.ok(draw({ isTTY: true, term: 'linux' }).includes('\u001B[35m•'))
   const redirected = draw({ isTTY: false, term: 'xterm' })
   assert.doesNotMatch(redirected, /\r/u)
+  assert.ok(!redirected.includes('\u001B[?25'))
   assert.match(redirected, /done/u)
 })
 
@@ -65,7 +66,7 @@ void it('reserves echo space in a single column and clips only the Git warning t
   )
   assert.equal(
     output,
-    '\r\u001B[J◇\n▲  Git repo…\n│  denied by\n│  configur\n│  ation\n'
+    '\u001B[?25l\r\u001B[J\u001B[?25h◇\n▲  Git repo…\n│  denied by\n│  configur\n│  ation\n'
   )
 })
 
@@ -293,3 +294,22 @@ for (const order of ['FWC', 'FTWC', 'FTTWC', 'FC', 'FTC', 'grow', 'truncate']) {
     assert.ok(end !== -1)
   })
 }
+
+void it('restores the cursor when exiting during a step', () => {
+  const bytes = execFileSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      `
+    Object.defineProperty(process.stdout,'isTTY',{value:true})
+    const {progress} = await import('./src/terminal-frame.ts')
+    progress.start('install')
+    process.exit(0)
+  `
+    ],
+    { encoding: 'utf8' }
+  )
+  assert.ok(bytes.includes('\u001B[?25l'))
+  assert.ok(bytes.endsWith('\u001B[?25h'))
+})

@@ -93,7 +93,7 @@ try:
             previous = found
         if not should_cancel:
             assert re.search(r"│  Yes\r?\n(?:\x1b\[\?25h)?│\r?\n", plain), plain
-            assert "\r\x1b[J◇  Files created" in plain, plain
+            assert "\r\x1b[J\x1b[?25h◇  Files created" in plain, plain
             assert "◆  Files created" not in plain, plain
         if should_cancel:
             assert plain.count("Creation canceled.") == 1, plain

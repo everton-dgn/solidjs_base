@@ -178,7 +178,7 @@ function hasInteractiveInput() {
   const isCI = !['', '0', 'false'].includes(
     process.env.CI?.trim().toLowerCase() ?? ''
   )
-  return process.stdin.isTTY && !isCI
+  return process.stdin.isTTY && process.stdout.isTTY && !isCI
 }
 function wrapParagraph(paragraph: string): string {
   const width = 80
@@ -304,7 +304,9 @@ try {
     })
   }
   if (terminal.isFramed) {
-    const { stopFrame, closeQuestion } = await import('./terminal-frame.ts')
+    const { stopFrame, closeQuestion, progress } =
+      await import('./terminal-frame.ts')
+    progress.clear()
     if (error instanceof CanceledError) closeQuestion(messages[language].cancel)
     else stopFrame(reason, messages[language].stopped)
   } else process.stderr.write(`${reason}\n`)

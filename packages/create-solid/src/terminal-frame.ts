@@ -51,12 +51,19 @@ function stepTitle({
   const ellipsis = (unicode ? '…' : '...').slice(0, width)
   return title.slice(0, width - ellipsis.length).trimEnd() + ellipsis
 }
+function showCursor() {
+  process.stdout.write('\u001B[?25h')
+}
 function clearIndicator() {
   if (!active) return
-  removeResizeListener?.()
-  removeResizeListener = undefined
   clearInterval(indicator)
-  if (indicator) process.stdout.write(clearIndicatorRows)
+  if (removeResizeListener) {
+    removeResizeListener()
+    removeResizeListener = undefined
+    process.stdout.write(clearIndicatorRows)
+    showCursor()
+    process.off('exit', showCursor)
+  }
   indicator = undefined
   active = ''
 }
@@ -92,6 +99,8 @@ export const progress = {
   start(title: string): void {
     active = title
     if (!process.stdout.isTTY) return
+    process.once('exit', showCursor)
+    process.stdout.write('\u001B[?25l')
     let index = 0
     const draw = () => {
       const mark = styleText('magenta', frames[index] ?? '')

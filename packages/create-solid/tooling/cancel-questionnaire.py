@@ -94,7 +94,7 @@ def question_session(directory, language, prompts, before_answer=None, color=Fal
 
 
 class Cancellation(unittest.TestCase):
-    def exercise(self, install, failure=False, git=False, interrupt=None, columns=80, descendant=False, second=False, git_warning=False, files_failure=False, plain=False):
+    def exercise(self, install, failure=False, git=False, interrupt=None, columns=80, descendant=False, second=False, git_warning=False, files_failure=False, plain=False, success=False):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             bun = root / ("git" if git else "bun")
@@ -108,6 +108,8 @@ class Cancellation(unittest.TestCase):
             if failure:
                 bun.write_text('#!/bin/sh\nif [ "$1" = install ]; then for line in discarded-line one two three four five registry-failure; do echo "$line" >&2; done; exit 1; fi\n')
             bun.chmod(0o755)
+            if success:
+                bun.write_text("#!/bin/sh\nexit 0\n")
             executable = cli
             if git_warning:
                 bun.write_text("#!/bin/sh\necho denied >&2\nexit 1\n")
@@ -138,11 +140,13 @@ class Cancellation(unittest.TestCase):
                     deadline = time.monotonic() + 10
                     while label not in transcript:
                         self.assertTrue(select.select([terminal], [], [], max(0, deadline-time.monotonic()))[0], transcript)
-                        transcript.extend(os.read(terminal, 65536))
+                        block = os.read(terminal, 65536)
+                        self.assertTrue(block, (label, transcript))
+                        transcript.extend(block)
                     if label in [b"Creating the files", b"Creating the Git repository", b"Installing"]:
                         break
                     os.write(terminal, b"\r")
-                if (install or git) and not (failure or git_warning or files_failure):
+                if (install or git) and not (success or failure or git_warning or files_failure):
                     while not (root / "pid").exists() and time.monotonic() < deadline:
                         time.sleep(.01)
                     self.assertTrue((root / "pid").exists())
@@ -155,7 +159,7 @@ class Cancellation(unittest.TestCase):
                     if descendant:
                         deadline = started + (.65 if second else 2)
 
-                elif not (failure or git_warning or files_failure):
+                elif not (success or failure or git_warning or files_failure):
                     os.write(terminal, b"\x03")
                 while time.monotonic() < deadline:
                     if select.select([terminal], [], [], .02)[0]:
@@ -177,6 +181,20 @@ class Cancellation(unittest.TestCase):
                     if not block:
                         break
                     transcript.extend(block)
+                cursor = rb"\x1b\[\?25[hl]"
+                if plain:
+                    self.assertNotRegex(transcript, cursor)
+                else:
+                    after_prompt = transcript.split(b"Create the project?")[-1]
+                    last_prompt_show = after_prompt.index(b"\x1b[?25h")
+                    steps = 1 + int(git) + int(install)
+                    self.assertEqual(re.findall(cursor, after_prompt[last_prompt_show:])[1:],
+                                     [b"\x1b[?25l", b"\x1b[?25h"] * steps)
+                    self.assertEqual(re.findall(cursor, transcript)[-1], b"\x1b[?25h")
+                if success:
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+                    self.assertIn(b"Project created.", transcript)
+                    return
                 if git_warning:
                     screen = install_screen(transcript, columns)
                     for diagnostic in (b"first", b"second", b"third"):
@@ -188,7 +206,7 @@ class Cancellation(unittest.TestCase):
                     self.assertEqual(os.waitstatus_to_exitcode(status), 0)
                     return
                 if files_failure:
-                    lines = transcript.decode().rsplit("\x1b[J", 1)[-1].rstrip().splitlines()
+                    lines = transcript.decode().rsplit("\x1b[J", 1)[-1].removeprefix("\x1b[?25h").rstrip().splitlines()
                     self.assertEqual(lines, ["▲  Could not create the files",
                         "│  Missing version for @evertondgn/solid-runtime", "│", "└  Creation stopped."])
                     self.assertEqual(os.waitstatus_to_exitcode(status), 1)
@@ -380,6 +398,7 @@ class Cancellation(unittest.TestCase):
                                 data.extend(stderr)
                             if not terminal:
                                 self.assertIn(b"third\n", data)
+                            self.assertNotIn(b"\x1b[?25", data + (stdout or b""))
                             lines = data.decode().splitlines()
                             start = lines.index("first")
                             self.assertEqual(lines[start - 1], "tty" if terminal else "pipe")
@@ -511,6 +530,9 @@ class Cancellation(unittest.TestCase):
                         self.assertEqual(screen.count(line), 1)
                 finally:
                     tmux("kill-server")
+
+    def test_success(self):
+        self.exercise(True, success=True)
 
     def test_git_warning(self):
         self.exercise(True, git=True, git_warning=True)

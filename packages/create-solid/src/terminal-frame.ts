@@ -99,12 +99,6 @@ function clearIndicator() {
 function isCommand(line: string): boolean {
   return /^(?:cd .+|git init|(?:npm|pnpm|bun) install|bun run dev)$/u.test(line)
 }
-function wrapLine(
-  text: string,
-  output: NodeJS.WriteStream = process.stdout
-): string[] {
-  return wrapFrameText({ output, text })
-}
 type PathSpan = { text: string; start: number; dir: string; lines: string[] }
 function hasWholePath({ text, start, dir, lines }: PathSpan): boolean {
   let offset = 0
@@ -115,11 +109,12 @@ function hasWholePath({ text, start, dir, lines }: PathSpan): boolean {
   }
   return false
 }
-function wrapInstructions(text: string, output: NodeJS.WriteStream): string[] {
+type Instructions = { text: string; output: NodeJS.WriteStream }
+function wrapInstructions({ text, output }: Instructions): string[] {
   const lines = text.split('\n')
   return lines.flatMap((line, index) => {
     if (isCommand(line)) return [line]
-    const wrapped = wrapLine(line, output)
+    const wrapped = wrapFrameText({ output, text: line })
     const command = lines[index + 1]
     if (!command?.startsWith('cd ')) return wrapped
     const dir = command.slice('cd '.length)
@@ -130,8 +125,8 @@ function wrapInstructions(text: string, output: NodeJS.WriteStream): string[] {
           return wrapped
         }
         const [first, last] = labels.resume.split(' {dir}. ')
-        const parts = wrapLine(`${first}:`, output)
-        parts.push(dir, ...wrapLine(last ?? '', output))
+        const parts = wrapFrameText({ output, text: `${first}:` })
+        parts.push(dir, ...wrapFrameText({ output, text: last ?? '' }))
         return parts
       }
     }
@@ -251,7 +246,7 @@ export function closeQuestion(label: string): void {
 export function closeFrame({ reason, closing }: Closing): void {
   const output = closingOutput()
   if (reason) {
-    log.message(wrapInstructions(reason, output), {
+    log.message(wrapInstructions({ text: reason, output }), {
       output,
       spacing: 0
     })
@@ -263,7 +258,7 @@ export function stopFrame({
   closing
 }: Required<Closing<StopReason>>): void {
   const text = typeof reason === 'string' ? reason : reason.text
-  let lines = wrapLine(text)
+  let lines = wrapFrameText({ output: process.stdout, text })
   if (typeof reason !== 'string') {
     const { occupiedDir } = reason
     const start = text.lastIndexOf(occupiedDir)
@@ -274,9 +269,14 @@ export function stopFrame({
       const before = text.slice(0, start).trimEnd()
       const after = text.slice(start + occupiedDir.length).trimStart()
       lines = [
-        ...(before ? wrapLine(before) : []),
+        ...(before
+          ? wrapFrameText({ output: process.stdout, text: before })
+          : []),
         ...(/[\p{L}\p{N}]/u.test(after)
-          ? [occupiedDir, ...wrapLine(after)]
+          ? [
+              occupiedDir,
+              ...wrapFrameText({ output: process.stdout, text: after })
+            ]
           : [occupiedDir + after])
       ]
     }
@@ -299,7 +299,7 @@ export function finishProject({ steps, language }: Completion): void {
     )
   ) {
     log.step(m.next, { output })
-    log.message(wrapInstructions(steps.join('\n'), output), {
+    log.message(wrapInstructions({ text: steps.join('\n'), output }), {
       spacing: 0,
       output
     })

@@ -219,7 +219,7 @@ class Cancellation(unittest.TestCase):
                                                   "│  tests set up."])
                     self.assertIn("│  Your project is in", lines)
                     self.assertIn("│  parent/app. To finish, run:", lines)
-                    self.assertRegex(transcript.decode(), r"[◒◐◓◑]  Installing dependencies…")
+                    self.assertRegex(transcript.decode(), r"[◒◐◓◑]  Installing dependencies wi…")
                     self.assertIn("Installing dependencies wi…".encode(), transcript)
                     self.assertNotIn(b"Installing dependencies with Bun", transcript)
                 if columns in (30, 36):
@@ -229,7 +229,7 @@ class Cancellation(unittest.TestCase):
                     frames = re.findall(r"\r\x1b\[\?7l([◒◐◓◑]  [^\x1b\r\n^]+)\x1b\[\?7h", transcript.decode())
                     self.assertTrue(frames)
                     for frame in frames:
-                        self.assertLessEqual(len(frame), columns - 2)
+                        self.assertLessEqual(len(frame), columns)
                 if failure:
                     self.assertEqual(os.waitstatus_to_exitcode(status), 1)
                     self.assertIn("▲  Could not install dependencies with Bun".encode(), transcript)
@@ -551,7 +551,7 @@ class Cancellation(unittest.TestCase):
                     if drag:
                         tmux("resize-window", "-x", "50", "-y", "80")
                     tmux("resize-window", "-x", str(new), "-y", "80")
-                    wait_for("Installing dependencies…" if new == 30 else "Installing dependencies with Bun")
+                    wait_for("Installing dependencies wi…" if new == 30 else "Installing dependencies with Bun")
                     tmux("send-keys", "C-c")
                     screen = wait_for("└  Creation canceled.").splitlines()
                     start = screen.index("◇  Files created")

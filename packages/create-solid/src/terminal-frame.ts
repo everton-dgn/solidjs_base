@@ -37,7 +37,6 @@ const asciiIntervalMs = 120
 const noteFormat = { format: (line: string) => line.trimStart() }
 const prefixWidth = 3
 const clearIndicatorRows = '\r\u001B[J'
-const echoWidth = 2
 let indicator: ReturnType<typeof setInterval> | undefined
 let active = ''
 let removeResizeListener: (() => void) | undefined
@@ -132,7 +131,7 @@ export const progress = {
     let index = 0
     const draw = () => {
       const mark = styleText('magenta', frames[index] ?? '')
-      const columns = process.stdout.columns - echoWidth
+      const { columns } = process.stdout
       if (columns < 1) return
       const label = stepTitle({ title, columns })
       const line = label ? `${mark}  ${label}` : mark

@@ -46,7 +46,7 @@ void it('draws the Clack status colors and indicator for each terminal', () => {
   assert.match(redirected, /done/u)
 })
 
-void it('reserves echo space in a single column and clips only the Git warning title', () => {
+void it('draws the indicator in a single column and clips only the Git warning title', () => {
   const script = `
     Object.defineProperty(process.stdout, 'isTTY', {value: true})
     Object.defineProperty(process.stdout, 'columns', {value: 1, configurable: true})
@@ -66,7 +66,7 @@ void it('reserves echo space in a single column and clips only the Git warning t
   )
   assert.equal(
     output,
-    '\u001B[?25l\r\u001B[J\u001B[?25h◇\n▲  Git repo…\n│  denied by\n│  configur\n│  ation\n'
+    '\u001B[?25l\r\u001B[?7l◒\u001B[?7h\r\r\u001B[J\u001B[?25h◇\n▲  Git repo…\n│  denied by\n│  configur\n│  ation\n'
   )
 })
 

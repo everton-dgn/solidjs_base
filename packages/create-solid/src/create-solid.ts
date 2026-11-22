@@ -308,7 +308,16 @@ try {
       await import('./terminal-frame.ts')
     progress.clear()
     if (error instanceof CanceledError) closeQuestion(messages[language].cancel)
-    else stopFrame(reason, messages[language].stopped)
+    else {
+      const occupiedDir =
+        error instanceof ProfileProblemError && error.code === 'occupied'
+          ? error.values.dir
+          : undefined
+      stopFrame(
+        occupiedDir ? { text: reason, occupiedDir } : reason,
+        messages[language].stopped
+      )
+    }
   } else process.stderr.write(`${reason}\n`)
   const isArgumentError =
     error instanceof UsageError ||

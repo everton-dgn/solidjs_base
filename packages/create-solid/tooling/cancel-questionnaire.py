@@ -479,6 +479,22 @@ class Cancellation(unittest.TestCase):
                     "│", "└  Creación interrumpida."])
                 self.assertEqual((dest / "existing").read_text(), "keep")
 
+    def test_occupied_destination_in_narrow_frame(self):
+        with tempfile.TemporaryDirectory() as directory:
+            dest = pathlib.Path(directory) / "app"
+            def occupy(label):
+                if label == "¿Crear el proyecto?":
+                    dest.mkdir()
+                    (dest / "existing").write_text("keep")
+            output, status = question_session(directory, "es", [
+                ("Título de la aplicación", b"\r"), ("Configuración", b"\r"),
+                ("¿Crear el proyecto?", b"\r")], before_answer=occupy, columns=40)
+            self.assertEqual(status, 2)
+            self.assertEqual(output.replace("\x1b[?25h", "").rstrip().splitlines()[-5:], [
+                "▲  La carpeta del proyecto debe ser", "│  nueva o estar vacía:",
+                f"│  {dest.resolve()}", "│", "└  Creación interrumpida."])
+            self.assertEqual((dest / "existing").read_text(), "keep")
+
     def test_resize_during_install(self):
         self.resize_install(((80, 30), (30, 80)))
 

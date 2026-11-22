@@ -72,7 +72,7 @@ void it('reserves echo space in a single column and clips only the Git warning t
 
 void it('wraps the installer tail and long resume path inside the guide', () => {
   const reason =
-    'registry rejected the installation\n\nYour project is in parent/a-directory-name-that-needs-wrapping. To finish, run:'
+    'registry rejected the installation\n\nYour project is in parent/a-directory-name-that-needs-wrapping. To finish, run:\ncd parent/a-directory-name-that-needs-wrapping'
   const script = `
     Object.defineProperty(process.stdout, 'columns', {value: 24})
     const { closeFrame } = await import('./src/terminal-frame.ts')
@@ -90,10 +90,10 @@ void it('wraps the installer tail and long resume path inside the guide', () => 
     '│  registry rejected the',
     '│  installation',
     '│',
-    '│  Your project is in pa',
-    '│  rent/a-directory-name',
-    '│  -that-needs-wrapping.',
+    '│  Your project is in:',
+    '│  parent/a-directory-name-that-needs-wrapping',
     '│  To finish, run:',
+    '│  cd parent/a-directory-name-that-needs-wrapping',
     '│',
     '└  end'
   ])
@@ -312,4 +312,75 @@ void it('restores the cursor when exiting during a step', () => {
   )
   assert.ok(bytes.includes('\u001B[?25l'))
   assert.ok(bytes.endsWith('\u001B[?25h'))
+})
+
+for (const [first, last] of [
+  ['Your project is in', 'To finish, run:'],
+  ['Seu projeto está em', 'Para concluir, execute:'],
+  ['Tu proyecto está en', 'Para terminar, ejecuta:']
+] as const) {
+  void it(`preserves long resume directories: ${first}`, () => {
+    const dir =
+      'parent/a-long-directory-name-that-will-not-fit-on-one-terminal-line/app'
+    const reason = `${first} ${dir}. ${last}\ncd ${dir}`
+    const bytes = execFileSync(
+      process.execPath,
+      [
+        '--input-type=module',
+        '-e',
+        `
+      Object.defineProperty(process.stdout,'columns',{value:40})
+      const {closeFrame} = await import('./src/terminal-frame.ts')
+      closeFrame({reason:${JSON.stringify(reason)},closing:'end'})
+    `
+      ],
+      {
+        encoding: 'utf8',
+        env: { ...process.env, TERM: 'xterm', FORCE_COLOR: '0' }
+      }
+    )
+    assert.deepEqual(bytes.trimEnd().split('\n'), [
+      `│  ${first}:`,
+      `│  ${dir}`,
+      `│  ${last}`,
+      `│  cd ${dir}`,
+      '│',
+      '└  end'
+    ])
+  })
+}
+void it('keeps an occupied destination whole and wraps other errors normally', () => {
+  const dir =
+    '/parent/a-long-directory-name-that-will-not-fit-on-one-terminal-line/app'
+  const bytes = execFileSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      `
+    Object.defineProperty(process.stdout,'columns',{value:40})
+    const {stopFrame} = await import('./src/terminal-frame.ts')
+    const occupiedDir = ${JSON.stringify(dir)}
+    stopFrame({text:'La carpeta del proyecto debe ser nueva o estar vacía: '+occupiedDir,occupiedDir},'Creación interrumpida.')
+    stopFrame('Error: '+occupiedDir,'end')
+  `
+    ],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, TERM: 'xterm', FORCE_COLOR: '0' }
+    }
+  )
+  assert.deepEqual(bytes.trimEnd().split('\n'), [
+    '▲  La carpeta del proyecto debe ser',
+    '│  nueva o estar vacía:',
+    `│  ${dir}`,
+    '│',
+    '└  Creación interrumpida.',
+    '',
+    '▲  Error:',
+    '│  /parent/a-long-directory-name-that-wi',
+    '│  ll-not-fit-on-one-terminal-line/app',
+    '│',
+    '└  end'
+  ])
 })

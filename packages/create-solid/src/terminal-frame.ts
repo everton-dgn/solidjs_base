@@ -23,6 +23,7 @@ type Completion = {
   language: Language
 }
 
+type StopReason = string | { text: string; occupiedDir: string }
 type Closing = { reason: string; closing?: string }
 
 type Confirmation = {
@@ -70,14 +71,41 @@ function clearIndicator() {
 function isCommand(line: string): boolean {
   return /^(?:cd .+|git init|(?:npm|pnpm|bun) install|bun run dev)$/u.test(line)
 }
+function wrapLine(text: string): string[] {
+  return wrapFrameText({ output: process.stdout, text })
+}
+type PathSpan = { text: string; start: number; dir: string; lines: string[] }
+function hasWholePath({ text, start, dir, lines }: PathSpan): boolean {
+  let offset = 0
+  for (const line of lines) {
+    const begin = text.indexOf(line, offset)
+    offset = begin + line.length
+    if (start >= begin && start + dir.length <= offset) return true
+  }
+  return false
+}
 function wrapInstructions(text: string): string[] {
-  return text
-    .split('\n')
-    .flatMap(line =>
-      isCommand(line)
-        ? [line]
-        : wrapFrameText({ output: process.stdout, text: line })
-    )
+  const lines = text.split('\n')
+  return lines.flatMap((line, index) => {
+    if (isCommand(line)) return [line]
+    const wrapped = wrapLine(line)
+    const command = lines[index + 1]
+    if (!command?.startsWith('cd ')) return wrapped
+    const dir = command.slice('cd '.length)
+    for (const labels of Object.values(messages)) {
+      if (labels.resume.replace('{dir}', () => dir) === line) {
+        const start = labels.resume.indexOf('{dir}')
+        if (hasWholePath({ text: line, start, dir, lines: wrapped })) {
+          return wrapped
+        }
+        const [first, last] = labels.resume.split(' {dir}. ')
+        const parts = wrapLine(`${first}:`)
+        parts.push(dir, ...wrapLine(last ?? ''))
+        return parts
+      }
+    }
+    return wrapped
+  })
 }
 export async function confirmProject({
   summary,
@@ -162,8 +190,24 @@ export function closeFrame({ reason, closing }: Closing): void {
   }
   outro(closing)
 }
-export function stopFrame(reason: string, closing: string): void {
-  log.warn(wrapFrameText({ output: process.stdout, text: reason }).join('\n'), {
+export function stopFrame(reason: StopReason, closing: string): void {
+  const text = typeof reason === 'string' ? reason : reason.text
+  let lines = wrapLine(text)
+  if (
+    typeof reason !== 'string' &&
+    !hasWholePath({
+      text,
+      start: text.length - reason.occupiedDir.length,
+      dir: reason.occupiedDir,
+      lines
+    })
+  ) {
+    lines = [
+      ...wrapLine(text.slice(0, -reason.occupiedDir.length).trimEnd()),
+      reason.occupiedDir
+    ]
+  }
+  log.warn(lines.join('\n'), {
     spacing: 0
   })
   outro(closing)

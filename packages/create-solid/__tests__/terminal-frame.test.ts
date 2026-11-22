@@ -414,7 +414,7 @@ void it('closes each step at the new PTY width before resize is dispatched', () 
   const title = 'Installing dependencies with Bun'
   const script = `
     import { readSync } from 'node:fs'
-    import { progress, closeFrame } from './src/terminal-frame.ts'
+    import { progress, closeFrame, finishProject } from './src/terminal-frame.ts'
     progress.start('${title}')
     process.stderr.write('ready\\n')
     readSync(Number(process.env.SYNC_FD), Buffer.alloc(1), 0, 1, null)
@@ -424,10 +424,12 @@ void it('closes each step at the new PTY width before resize is dispatched', () 
     progress.warn('${title}\\nThis diagnostic spans several words and several lines.')
     progress.finish('${title}')
     closeFrame({reason:'This explanation must wrap within the smaller terminal.',closing:'end'})
+    finishProject({steps:['bun run dev','Set the address of this application before publishing it.'],language:'en'})
+    finishProject({steps:['cd a-directory-of-22-chars'],language:'en'})
     if (process.stdout.columns !== 80) process.exitCode = 1
   `
   const harness = `
-import os, pty, select, struct, subprocess, sys, termios, fcntl
+import os, pty, select, struct, subprocess, sys, termios, fcntl, time
 master, slave = pty.openpty()
 reader, writer = os.pipe()
 def resize(columns):
@@ -440,6 +442,11 @@ try:
             assert cli.stderr.readline() == b'ready\\n'
             resize(30)
             os.write(writer, b'x')
+            deadline = time.monotonic() + 5
+            while cli.poll() is None:
+                assert time.monotonic() < deadline
+                if select.select([master], [], [], .05)[0]:
+                    sys.stdout.buffer.write(os.read(master, 65536))
             _, errors = cli.communicate(timeout=5)
             assert cli.returncode == 0, errors
             while select.select([master], [], [], 0)[0]:
@@ -472,6 +479,9 @@ finally:
   const closing = bytes.slice(bytes.indexOf('\f') + 1)
   // oxlint-disable-next-line no-control-regex
   const plain = closing.replaceAll(/\u001B\[[0-9;?]*[A-Za-z]/gu, '')
+  assert.match(plain, /│ {2}bun run dev +│/u)
+  assert.match(plain, /◇ {2}Next steps/u)
+  assert.match(plain, /│ {2}cd a-directory-of-22-chars\r?\n/u)
   for (const row of plain.split(/\r?\n/u)) {
     assert.ok(row.trim().length <= target, row)
   }

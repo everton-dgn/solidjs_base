@@ -672,6 +672,7 @@ class Cancellation(unittest.TestCase):
         path = "a-directory-that-is-longer-than-the-terminal-width"
         for language, question, expected in [
             ("en", "Project directory", ["└  The project directory must be new or", "   empty:"]),
+            ("pt-BR", "Pasta do projeto", ["└  A pasta do projeto precisa ser nova", "   ou estar vazia:"]),
             ("es", "Carpeta del proyecto", ["└  La carpeta del proyecto debe ser", "   nueva o estar vacía:"]),
         ]:
             with self.subTest(language=language), tempfile.TemporaryDirectory() as directory:
@@ -685,6 +686,13 @@ class Cancellation(unittest.TestCase):
                 self.assertIn("\n".join([*expected, "   " + path[:37], path[37:]]) + "\n", lines)
                 self.assertEqual(status, 130)
 
+                sentence = expected[0] + " " + expected[1].strip()
+                output, status = question_session(directory, language, [
+                    (question, path.encode() + b"\r"), (sentence, b"\x03")
+                ], ask_directory=True)
+                self.assertIn(sentence + "\n   " + path + "\n", output.replace("\r\n", "\n"))
+                self.assertEqual(status, 130)
+
                 short = pathlib.Path(directory, "app")
                 short.mkdir()
                 (short / "existing").touch()
@@ -692,7 +700,7 @@ class Cancellation(unittest.TestCase):
                 output, status = question_session(directory, language, [
                     (question, b"app\r"), (ending, b"\x03")
                 ], columns=40, ask_directory=True)
-                self.assertIn(expected[0] + " \n" + ending + "\n", output.replace("\r\n", "\n"))
+                self.assertIn(expected[0] + "\n   " + ending + "\n", output.replace("\r\n", "\n"))
                 self.assertEqual(status, 130)
 
     def test_resize_occupied_directory_question(self):
@@ -701,7 +709,7 @@ class Cancellation(unittest.TestCase):
         narrow = [sentence, "   empty:", "   " + path[:37], path[37:]]
         ending = path[37:].encode() + b"\r\n"
         for initial, target, before, after in [
-            (80, 40, [sentence + " empty: ", path], narrow),
+            (80, 40, [sentence + " empty:", "   " + path], narrow),
             (40, 120, narrow, [sentence + " empty: " + path]),
         ]:
             with self.subTest(initial=initial, target=target), tempfile.TemporaryDirectory() as directory:

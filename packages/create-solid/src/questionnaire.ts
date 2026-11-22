@@ -72,9 +72,17 @@ type DirectoryError = { text: string; dir?: string; output: Writable }
 function directoryError({ text, dir, output }: DirectoryError): string {
   if (!dir || !text.endsWith(dir)) return text
   const frame = wrapTextWithPrefix(output, `${S_BAR_END}  ${text}`, '')
-  if (frame.endsWith(dir)) return text
-  const sentence = text.slice(0, -dir.length).trimEnd()
-  return [...wrapFrameText({ output, text: sentence }), dir].join('\n   ')
+  if (!frame.includes('\n')) return text
+  const sentence = wrapFrameText({
+    output,
+    text: text.slice(0, -dir.length).trimEnd()
+  })
+  const ending = `${sentence.at(-1) ?? ''} ${dir}`
+  const lines =
+    wrapFrameText({ output, text: ending }).length === 1
+      ? [...sentence.slice(0, -1), ending]
+      : [...sentence, dir]
+  return lines.join('\n   ')
 }
 type FieldOptions = {
   key: 'name' | 'title' | 'locales' | 'base-locale' | 'site-url'

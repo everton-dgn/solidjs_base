@@ -305,6 +305,111 @@ class Cancellation(unittest.TestCase):
                 self.assertEqual(output.replace("\x1b[?25h", "").rstrip().splitlines()[-1],
                                  "└  Creation canceled." if canceled else "└  Project created.")
 
+    def test_step_job_signals(self):
+        for key, job_control in [(b"\x1a", False), (b"\x1a", True), (b"\x1c", False)]:
+            with self.subTest(key=key, job_control=job_control), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                installer = root / "bun"
+                installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nexec sleep 20\n')
+                installer.chmod(0o755)
+                pid, master = pty.fork()
+                if pid == 0:
+                    os.chdir(root)
+                    if job_control:
+                        # Keep a parent in this session but outside the foreground group.
+                        reader, writer = os.pipe()
+                        child = os.fork()
+                        if child:
+                            os.close(reader)
+                            os.setpgid(child, child)
+                            os.tcsetpgrp(0, child)
+                            os.write(writer, b"x")
+                            os.close(writer)
+                            _, status = os.waitpid(child, 0)
+                            os._exit(os.waitstatus_to_exitcode(status))
+                        os.close(writer)
+                        os.read(reader, 1)
+                        os.close(reader)
+                    (root / "cli.pid").write_text(str(os.getpid()))
+                    fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
+                    os.environ.update(CI="false", NO_COLOR="1", TERM="xterm", PID_FILE=str(root / "installer.pid"), PATH=directory + ":" + os.environ["PATH"])
+                    os.execv(node, [node, str(cli), "app", "--lang", "en", "--mode", "server", "--no-git", "--install"])
+                transcript = bytearray()
+                waited = False
+                def read_until(marker, start=0):
+                    deadline = time.monotonic() + 8
+                    while marker not in transcript[start:]:
+                        self.assertTrue(select.select([master], [], [], max(0, deadline-time.monotonic()))[0], transcript)
+                        block = os.read(master, 65536)
+                        self.assertTrue(block, transcript)
+                        transcript.extend(block)
+                def state(process):
+                    return subprocess.check_output(["ps", "-o", "stat=", "-p", str(process)], text=True).strip()
+                try:
+                    for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                        read_until(prompt)
+                        os.write(master, b"\r")
+                    read_until(b"Installing dependencies with Bun")
+                    deadline = time.monotonic() + 4
+                    while not (root / "installer.pid").exists() and time.monotonic() < deadline:
+                        time.sleep(.01)
+                    worker = int((root / "installer.pid").read_text())
+                    leader = int((root / "cli.pid").read_text())
+                    self.assertEqual(os.getsid(leader), pid)
+                    self.assertEqual(os.getpgid(worker), leader)
+                    self.assertEqual(os.getpgid(leader), leader)
+                    start = len(transcript)
+                    os.write(master, key)
+                    read_until(b"\x1b[?25h", start)
+                    if key == b"\x1a":
+                        deadline = time.monotonic() + 3
+                        while "T" not in state(leader) and time.monotonic() < deadline:
+                            time.sleep(.02)
+                        self.assertIn("T", state(leader))
+                        self.assertEqual("T" in state(worker), job_control)
+                        self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript[start:])[-1], b"\x1b[?25h")
+                        start = len(transcript)
+                        os.killpg(leader, signal.SIGCONT)
+                        read_until(b"\x1b[?25l", start)
+                        read_until(b"Installing dependencies with Bun", transcript.index(b"\x1b[?25l", start))
+                        os.write(master, b"\x03")
+                        read_until(b"Creation canceled.", start)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    while select.select([master], [], [], 0)[0]:
+                        try:
+                            block = os.read(master, 65536)
+                        except OSError as error:
+                            if error.errno != errno.EIO:
+                                raise
+                            break
+                        if not block:
+                            break
+                        transcript.extend(block)
+                    self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], b"\x1b[?25h")
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 130 if key == b"\x1a" else -signal.SIGQUIT)
+                    if key == b"\x1c":
+                        self.assertNotIn(b"Creation canceled.", transcript)
+                finally:
+                    for file in ("installer.pid", "cli.pid"):
+                        if (root / file).exists():
+                            target = int((root / file).read_text())
+                            try:
+                                if os.getsid(target) == pid:
+                                    os.kill(target, signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass
+                    os.close(master)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+
     def test_prompt_signals(self):
         for stage in [b"Application title", b"Create the project?"]:
             for sig in [signal.SIGHUP, signal.SIGTERM]:

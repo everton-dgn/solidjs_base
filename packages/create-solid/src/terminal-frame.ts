@@ -40,7 +40,7 @@ const prefixWidth = 3
 const clearIndicatorRows = '\r\u001B[J'
 let indicator: ReturnType<typeof setInterval> | undefined
 let active = ''
-let removeResizeListener: (() => void) | undefined
+let removeStepListeners: (() => void) | undefined
 type StepTitle = { title: string; columns?: number }
 function stepTitle({
   title,
@@ -77,9 +77,9 @@ function showCursor() {
 function clearIndicator() {
   if (!active) return
   clearInterval(indicator)
-  if (removeResizeListener) {
-    removeResizeListener()
-    removeResizeListener = undefined
+  if (removeStepListeners) {
+    removeStepListeners()
+    removeStepListeners = undefined
     process.stdout.write(clearIndicatorRows)
     showCursor()
     process.off('exit', showCursor)
@@ -165,8 +165,29 @@ export const progress = {
       process.stdout.write(clearIndicatorRows)
       draw()
     }
+    const suspend = () => {
+      showCursor()
+      process.kill(process.pid, 'SIGSTOP')
+    }
+    const resume = () => {
+      process.stdout.write('\u001B[?25l')
+      resize()
+    }
+    const quit = () => {
+      showCursor()
+      process.off('SIGQUIT', quit)
+      process.kill(process.pid, 'SIGQUIT')
+    }
+    process.on('SIGTSTP', suspend)
+    process.on('SIGCONT', resume)
+    process.on('SIGQUIT', quit)
     process.stdout.on('resize', resize)
-    removeResizeListener = () => process.stdout.off('resize', resize)
+    removeStepListeners = () => {
+      process.stdout.off('resize', resize)
+      process.off('SIGTSTP', suspend)
+      process.off('SIGCONT', resume)
+      process.off('SIGQUIT', quit)
+    }
     draw()
     indicator = setInterval(draw, unicode ? unicodeIntervalMs : asciiIntervalMs)
   },

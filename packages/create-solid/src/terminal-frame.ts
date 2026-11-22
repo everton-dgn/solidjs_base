@@ -177,8 +177,11 @@ export const progress = {
       process.stdout.write(clearIndicatorRows)
       showCursor()
       process.off('SIGTSTP', suspend)
+      // WHY: Without a listener the continue of this stop emits no event, so only the line below restores it.
+      process.off('SIGCONT', resume)
       process.kill(process.pid, 'SIGTSTP')
       process.on('SIGTSTP', suspend)
+      process.on('SIGCONT', resume)
       resume()
     }
     const quit = () => {

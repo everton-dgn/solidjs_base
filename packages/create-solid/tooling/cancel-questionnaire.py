@@ -364,7 +364,8 @@ class Cancellation(unittest.TestCase):
                                  "└  Creation canceled." if canceled else "└  Project created.")
 
     def test_step_job_signals(self):
-        for key, job_control in [(b"\x1a", False), (b"\x1a", True), (b"\x1c", False)]:
+        # Without a key the script stops the CLI itself, as an outside SIGSTOP would.
+        for key, job_control in [(b"\x1a", False), (b"\x1a", True), (b"\x1c", False), (None, False)]:
             with self.subTest(key=key, job_control=job_control), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
                 installer = root / "bun"
@@ -399,9 +400,9 @@ class Cancellation(unittest.TestCase):
                     os.execv(node, [node, str(cli), "app", "--lang", "en", "--mode", "server", "--no-git", "--install"])
                 transcript = bytearray()
                 waited = False
-                def read_until(marker, start=0):
+                def read_until(marker, start=0, count=1):
                     deadline = time.monotonic() + 8
-                    while marker not in transcript[start:]:
+                    while transcript.count(marker, start) < count:
                         self.assertTrue(select.select([master], [], [], max(0, deadline-time.monotonic()))[0], transcript)
                         block = os.read(master, 65536)
                         self.assertTrue(block, transcript)
@@ -440,29 +441,40 @@ class Cancellation(unittest.TestCase):
                     self.assertEqual(os.getpgid(worker), leader)
                     self.assertEqual(os.getpgid(leader), leader)
                     start = len(transcript)
-                    os.write(master, key)
-                    read_until(b"\x1b[?25h", start)
-                    assert_cleared(start)
-                    if key == b"\x1a":
-                        hidden = b"\x1b[?25l"
-                        shown = b"\x1b[?25h"
+                    hidden = b"\x1b[?25l"
+                    shown = b"\x1b[?25h"
+                    continued = None
+                    if key:
+                        os.write(master, key)
+                        read_until(shown, start)
+                        assert_cleared(start)
+                    else:
+                        os.kill(leader, signal.SIGSTOP)
+                        deadline = time.monotonic() + 4
+                        while "T" not in state(leader):
+                            self.assertLess(time.monotonic(), deadline)
+                            time.sleep(.01)
+                    if key != b"\x1c":
                         if job_control:
                             self.assertEqual(recorded("stop.signal"), signal.SIGTSTP)
                             self.assertIn("T", state(leader))
                             self.assertIn("T", state(worker))
+                        if job_control or not key:
                             # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
                             drain()
-                            self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript[start:])[-1], shown)
+                            self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], shown if key else hidden)
+                            continued = len(transcript)
                             os.killpg(leader, signal.SIGCONT)
-                        for attempt in range(1 if job_control else 2):
+                        for attempt in range(2 if continued is None else 1):
                             if attempt:
                                 start = len(transcript)
                                 os.write(master, key)
                                 read_until(shown, start)
                                 assert_cleared(start)
-                            after_show = transcript.index(shown, start) + len(shown)
-                            read_until(hidden, after_show)
-                            read_until(b"Installing dependencies with Bun", transcript.index(hidden, after_show))
+                            restored = transcript.index(shown, start) + len(shown) if continued is None else continued
+                            read_until(hidden, restored)
+                            # libuv delivers a pending SIGCONT between two timer runs, so the third frame comes after it.
+                            read_until(b"Installing dependencies with Bun", transcript.index(hidden, restored), 3)
                             self.assertNotIn("T", state(leader))
                             self.assertNotIn("T", state(worker))
                         os.write(master, b"\x03")
@@ -477,7 +489,9 @@ class Cancellation(unittest.TestCase):
                     self.assertTrue(waited)
                     drain()
                     self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], b"\x1b[?25h")
-                    self.assertEqual(os.waitstatus_to_exitcode(status), 130 if key == b"\x1a" else -signal.SIGQUIT)
+                    self.assertEqual(os.waitstatus_to_exitcode(status), -signal.SIGQUIT if key == b"\x1c" else 130)
+                    if continued is not None:
+                        self.assertEqual(transcript.count(hidden, continued), 1)
                     if key == b"\x1c":
                         tail = transcript[transcript.index(b"\x1b[?25h", start):]
                         self.assertNotIn(b"Installing dependencies with Bun", tail)

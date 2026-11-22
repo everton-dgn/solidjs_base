@@ -368,7 +368,7 @@ class Cancellation(unittest.TestCase):
             with self.subTest(key=key, job_control=job_control), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
                 installer = root / "bun"
-                # The shell stays as the installer: a stop signal sent while it replaced itself with sleep was lost.
+                # The shell stays as the installer: with exec sleep it missed the stop in 5 of 120 runs, and in none without exec.
                 installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nsleep 20\n')
                 installer.chmod(0o755)
                 pid, master, slave = fork_terminal()

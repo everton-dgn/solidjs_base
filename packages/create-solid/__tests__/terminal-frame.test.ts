@@ -361,8 +361,8 @@ void it('keeps an occupied destination whole and wraps other errors normally', (
     Object.defineProperty(process.stdout,'columns',{value:40})
     const {stopFrame} = await import('./src/terminal-frame.ts')
     const occupiedDir = ${JSON.stringify(dir)}
-    stopFrame({text:'La carpeta del proyecto debe ser nueva o estar vacía: '+occupiedDir,occupiedDir},'Creación interrumpida.')
-    stopFrame('Error: '+occupiedDir,'end')
+    stopFrame({reason:{text:'La carpeta del proyecto debe ser nueva o estar vacía: '+occupiedDir,occupiedDir},closing:'Creación interrumpida.'})
+    stopFrame({reason:'Error: '+occupiedDir,closing:'end'})
   `
     ],
     {

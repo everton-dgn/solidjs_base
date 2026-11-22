@@ -67,10 +67,8 @@ async function withPromptSignals<T>(prompt: () => Promise<T>): Promise<T> {
     process.off('SIGHUP', cancelPrompt)
   }
 }
-function rethrowUsageError(
-  error: unknown,
-  progress?: typeof frameProgress
-): void {
+type GenerationError = { error: unknown; progress?: typeof frameProgress }
+function rethrowUsageError({ error, progress }: GenerationError): void {
   if (error instanceof UsageError) {
     progress?.clear()
     throw error
@@ -141,7 +139,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
       }
     )
   } catch (error) {
-    rethrowUsageError(error, progress)
+    rethrowUsageError({ error, progress })
     const isCanceled = error instanceof CanceledError
     const reason = errorMessage(error)
     const closing = isCanceled ? labels.cancel : labels.stopped
@@ -313,10 +311,10 @@ try {
         error instanceof ProfileProblemError && error.code === 'occupied'
           ? error.values.dir
           : undefined
-      stopFrame(
-        occupiedDir ? { text: reason, occupiedDir } : reason,
-        messages[language].stopped
-      )
+      stopFrame({
+        reason: occupiedDir ? { text: reason, occupiedDir } : reason,
+        closing: messages[language].stopped
+      })
     }
   } else process.stderr.write(`${reason}\n`)
   const isArgumentError =

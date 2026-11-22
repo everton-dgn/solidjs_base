@@ -24,7 +24,7 @@ type Completion = {
 }
 
 type StopReason = string | { text: string; occupiedDir: string }
-type Closing = { reason: string; closing?: string }
+type Closing<Reason = string> = { reason: Reason; closing?: string }
 
 type Confirmation = {
   summary: string
@@ -190,7 +190,10 @@ export function closeFrame({ reason, closing }: Closing): void {
   }
   outro(closing)
 }
-export function stopFrame(reason: StopReason, closing: string): void {
+export function stopFrame({
+  reason,
+  closing
+}: Required<Closing<StopReason>>): void {
   const text = typeof reason === 'string' ? reason : reason.text
   let lines = wrapLine(text)
   if (

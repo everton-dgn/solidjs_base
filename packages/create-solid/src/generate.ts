@@ -319,24 +319,24 @@ async function executeSetup(
   command: SetupCommand,
   { cwd, signal, isInteractive }: SetupOptions
 ): Promise<void> {
-  const plainInstall = command.task === 'installTask' && !isInteractive
-  const inheritStderr = plainInstall && process.stderr.isTTY
+  const isPlainInstall = command.task === 'installTask' && !isInteractive
+  const shouldInheritStderr = isPlainInstall && process.stderr.isTTY
   const child = spawn(command.executable, command.args, {
     cwd,
     stdio: [
       'ignore',
       command.task === 'gitTask' || isInteractive ? 'ignore' : 'inherit',
-      inheritStderr ? 'inherit' : 'pipe'
+      shouldInheritStderr ? 'inherit' : 'pipe'
     ]
   })
   const tailLimit = 8192
   const diagnosticLines = 6
   let diagnostic = ''
-  const forwarded = { needsNewline: false }
+  const forwarded = { shouldAppendNewline: false }
   child.stderr?.setEncoding('utf8').on('data', (chunk: string) => {
-    if (plainInstall) {
+    if (isPlainInstall) {
       process.stderr.write(chunk)
-      forwarded.needsNewline = !chunk.endsWith('\n')
+      forwarded.shouldAppendNewline = !chunk.endsWith('\n')
     } else diagnostic = (diagnostic + chunk).slice(-tailLimit)
   })
   let deadline: ReturnType<typeof setTimeout> | undefined
@@ -371,13 +371,13 @@ async function executeSetup(
         .split('\n')
         .slice(-diagnosticLines)
         .join('\n')
-      const Failure = plainInstall ? ReportedInstallError : Error
+      const Failure = isPlainInstall ? ReportedInstallError : Error
       throw new Failure(tail, {
         cause: child.signalCode ?? child.exitCode
       })
     }
   } finally {
-    if (forwarded.needsNewline) process.stderr.write('\n')
+    if (forwarded.shouldAppendNewline) process.stderr.write('\n')
     clearTimeout(deadline)
     for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
       process.off(signalName, force)

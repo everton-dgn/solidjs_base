@@ -548,12 +548,14 @@ void it('keeps an occupied path between its surrounding sentences', () => {
 })
 
 void it('closes steps at the cached width when the terminal probe fails', () => {
+  const fractionalWidth = 2.5
+  const modes = ['constructor', 'read', undefined, 0, fractionalWidth]
   const script = `
     import tty from 'node:tty'
     import { syncBuiltinESMExports } from 'node:module'
     import assert from 'node:assert/strict'
     Object.defineProperties(process.stdout, {
-      columns: { value: 12 },
+      columns: { value: 12, writable: true, configurable: true },
       isTTY: { value: true }
     })
     tty.isatty = () => true
@@ -568,12 +570,14 @@ void it('closes steps at the cached width when the terminal probe fails', () => 
       destroy() { destroyed++ }
     }
     syncBuiltinESMExports()
-    const { progress } = await import('./src/terminal-frame.ts')
-    for (mode of ['constructor', 'read', undefined, 0, 2.5]) {
+    const { progress, closeFrame } = await import('./src/terminal-frame.ts')
+    for (mode of ${JSON.stringify(modes)}.map(item => item ?? undefined)) {
       progress.start('files')
       progress.finish('Dependencies installed')
+      closeFrame({ reason: 'Wrapped by Clack', closing: 'end' })
+      process.stdout.write('\\f')
     }
-    assert.equal(destroyed, 4)
+    assert.equal(destroyed, 8)
   `
   const bytes = execFileSync(
     process.execPath,
@@ -583,11 +587,15 @@ void it('closes steps at the cached width when the terminal probe fails', () => 
       env: { ...process.env, TERM: 'xterm', FORCE_COLOR: '0' }
     }
   )
+  const frames = bytes.split('\f').slice(0, -1)
+  const closing = ['◇  Dependen…', '│  Wrapped', '│  by Clack', '│', '└  end']
   assert.deepEqual(
-    bytes
-      .split('\n')
-      .slice(0, -1)
-      .map(line => line.slice(line.lastIndexOf('◇'))),
-    Array.from({ length: 5 }, () => '◇  Dependen…')
+    Object.fromEntries(
+      frames.map((frame, index) => [
+        `probe ${modes[index]}`,
+        frame.slice(frame.lastIndexOf('◇')).trimEnd().split('\n')
+      ])
+    ),
+    Object.fromEntries(modes.map(mode => [`probe ${mode}`, closing]))
   )
 })

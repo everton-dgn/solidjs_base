@@ -34,6 +34,7 @@ import { validateProfile } from './validateProfile/index.ts'
 import { wrapFrameText } from './wrapFrameText/index.ts'
 
 type TextLabel = { label: string; placeholder: string }
+// WHY: This reproduces Clack's text renderer so a spaces-only cancellation closes with │. Compare both on upgrades.
 function renderText({ label, placeholder }: TextLabel) {
   return function render(this: TextPrompt): string {
     const grayBar = styleText('gray', S_BAR)

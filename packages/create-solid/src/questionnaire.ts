@@ -33,9 +33,13 @@ import { CanceledError } from './usage-error.ts'
 import { validateProfile } from './validateProfile/index.ts'
 import { wrapFrameText } from './wrapFrameText/index.ts'
 
-type TextLabel = { label: string; placeholder: string }
+type TextLabel = {
+  label: string
+  placeholder: string
+  wrapError: (text: string) => string
+}
 // WHY: This reproduces Clack's text renderer so a spaces-only cancellation closes with │. Compare both on upgrades.
-function renderText({ label, placeholder }: TextLabel) {
+function renderText({ label, placeholder, wrapError }: TextLabel) {
   return function render(this: TextPrompt): string {
     const grayBar = styleText('gray', S_BAR)
     const heading = `${grayBar}\n${symbol(this.state)}  ${label}`
@@ -58,7 +62,9 @@ function renderText({ label, placeholder }: TextLabel) {
         styleText('dim', placeholder.slice(1))
       : styleText(['inverse', 'hidden'], '_')
     const value = this.userInput ? this.userInputWithCursor : hint
-    const error = this.error ? `  ${styleText('yellow', this.error)}` : ''
+    const error = this.error
+      ? `  ${styleText('yellow', wrapError(this.error))}`
+      : ''
     return `${heading}\n${styleText(color, S_BAR)}  ${value}\n${styleText(color, S_BAR_END)}${error}\n`
   }
 }
@@ -262,10 +268,15 @@ export async function questionnaire({
       'site-url': labels.url
     }
     if (result[key] !== undefined) return
+    let occupiedDir: string | undefined
     result[key] = answer<string>(
       (await new TextPrompt({
         ...io,
-        render: renderText({ label: names[key], placeholder: initialValue }),
+        render: renderText({
+          label: names[key],
+          placeholder: initialValue,
+          wrapError: text => directoryError({ text, dir: occupiedDir, output })
+        }),
         placeholder: initialValue,
         defaultValue: initialValue,
         validate(value) {
@@ -278,14 +289,13 @@ export async function questionnaire({
                 (key === 'name' ? 'dir' : key) ||
               (key === 'locales' && item.code === 'membership')
           )
+          occupiedDir = problem?.values.dir
           if (!problem) return problem
-          const text = fieldMessage({
+          return fieldMessage({
             language,
             code: problem.code,
             values: problem.values
           })
-          if (problem.code !== 'occupied' || key !== 'name') return text
-          return directoryError({ text, dir: problem.values.dir, output })
         }
       }).prompt()) ?? initialValue
     )

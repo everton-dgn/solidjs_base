@@ -22,28 +22,73 @@ cli = pathlib.Path(sys.argv.pop(1)).resolve()
 node = shutil.which("node")
 
 
+class Screen:
+    """Model a terminal that clips its rows on a resize instead of reflowing them."""
+
+    def __init__(self, columns):
+        self.columns = columns
+        self.rows = [[]]
+        self.row = self.column = 0
+        self.wrap = True
+
+    def resize(self, columns):
+        self.columns = columns
+        self.rows = [cells[:columns] for cells in self.rows]
+        self.column = min(self.column, columns - 1)
+
+    def feed(self, text):
+        for sequence, argument, action, char in re.findall(r"(\x1b\[([?\d]*)([A-Za-z]))|([\s\S])", text):
+            if sequence in ("\x1b[?7h", "\x1b[?7l"):
+                self.wrap = action == "h"
+            elif sequence in ("\x1b[?25h", "\x1b[?25l"):
+                pass
+            elif sequence:
+                count = int(argument or 1)
+                if action == "A":
+                    self.row = max(0, self.row - count)
+                elif action == "B":
+                    self.row += count
+                elif action == "C":
+                    self.column = min(self.columns - 1, self.column + count)
+                elif action == "D":
+                    self.column = max(0, self.column - count)
+                elif action == "G":
+                    self.column = count - 1
+                elif sequence == "\x1b[2K":
+                    self.cells().clear()
+                elif sequence == "\x1b[J":
+                    del self.cells()[self.column:]
+                    del self.rows[self.row + 1:]
+                else:
+                    raise AssertionError(sequence)
+            elif char == "\r":
+                self.column = 0
+            elif char == "\n":
+                self.row += 1
+            elif char.isprintable():
+                if self.column == self.columns:
+                    if self.wrap:
+                        self.row += 1
+                    self.column = 0 if self.wrap else self.columns - 1
+                cells = self.cells()
+                cells.extend(" " * (self.column - len(cells)))
+                cells[self.column:self.column + 1] = [char]
+                self.column += 1
+
+    def cells(self):
+        while self.row >= len(self.rows):
+            self.rows.append([])
+        return self.rows[self.row]
+
+    def lines(self):
+        self.cells()
+        return ["".join(cells) for cells in self.rows]
+
+
 def install_screen(transcript, columns):
-    wrap = True
-    step = transcript.decode().rsplit("Files created", 1)[1].lstrip("\r\n")
-    rows = [[]]
-    column = 0
-    for token in re.findall(r"\x1b\[(?:2K|J|\?(?:7|25)[hl])|.", step, re.DOTALL):
-        if token == "\r":
-            column = 0
-        elif token == "\n":
-            rows.append([])
-        elif token in ("\x1b[2K", "\x1b[J"):
-            rows[-1].clear()
-        elif token in ("\x1b[?7h", "\x1b[?7l"):
-            wrap = token.endswith("h")
-        elif token.isprintable():
-            if column == columns:
-                if wrap:
-                    rows.append([])
-                column = 0 if wrap else columns - 1
-            rows[-1][column:column + 1] = [token]
-            column += 1
-    return ["".join(row) for row in rows]
+    screen = Screen(columns)
+    screen.feed(transcript.decode().rsplit("Files created", 1)[1].lstrip("\r\n"))
+    return screen.lines()
 
 
 def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False, ask_directory=False):
@@ -630,6 +675,65 @@ class Cancellation(unittest.TestCase):
                 ], columns=40, ask_directory=True)
                 self.assertIn(expected[0] + " \n" + ending + "\n", output.replace("\r\n", "\n"))
                 self.assertEqual(status, 130)
+
+    def test_resize_occupied_directory_question(self):
+        path = "a-directory-that-is-longer-than-the-terminal-width"
+        sentence = "└  The project directory must be new or"
+        narrow = [sentence, "   empty:", "   " + path[:37], path[37:]]
+        ending = path[37:].encode() + b"\r\n"
+        for initial, target, before, after in [
+            (80, 40, [sentence + " empty: ", path], narrow),
+            (40, 120, narrow, [sentence + " empty: " + path]),
+        ]:
+            with self.subTest(initial=initial, target=target), tempfile.TemporaryDirectory() as directory:
+                destination = pathlib.Path(directory, path)
+                destination.mkdir()
+                (destination / "existing").touch()
+                pid, master = pty.fork()
+                if pid == 0:
+                    os.chdir(directory)
+                    fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, initial, 0, 0))
+                    os.environ.update(CI="false", NO_COLOR="1", TERM="xterm")
+                    os.execv(node, [node, str(cli), "--lang", "en", "--mode", "server", "--no-git", "--no-install"])
+                screen = Screen(initial)
+                waited = False
+                def read_render(ending):
+                    data = bytearray()
+                    deadline = time.monotonic() + 5
+                    while not data.endswith(ending):
+                        self.assertTrue(select.select([master], [], [], max(0, deadline-time.monotonic()))[0], data)
+                        block = os.read(master, 65536)
+                        self.assertTrue(block, data)
+                        data.extend(block)
+                    screen.feed(data.decode())
+                def error_rows():
+                    rows = screen.lines()
+                    start = next(index for index, row in enumerate(rows) if row.startswith("└"))
+                    return [row for row in rows[start:] if row]
+                try:
+                    read_render("└\r\n".encode())
+                    os.write(master, path.encode() + b"\r")
+                    read_render(ending)
+                    self.assertEqual(error_rows(), before)
+                    screen.resize(target)
+                    fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", 40, target, 0, 0))
+                    read_render(ending)
+                    self.assertEqual(error_rows(), after)
+                    os.write(master, b"\x03")
+                    read_render("└  Creation canceled.\r\n\r\n".encode())
+                    deadline = time.monotonic() + 5
+                    while not waited and time.monotonic() < deadline:
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        waited = bool(finished)
+                        if not waited:
+                            time.sleep(.01)
+                    self.assertTrue(waited)
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 130)
+                finally:
+                    os.close(master)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
 
     def test_destination_changes_before_confirmation(self):
         for trigger in ("Configuración", "¿Crear el proyecto?"):

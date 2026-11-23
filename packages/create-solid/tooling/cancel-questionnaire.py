@@ -2012,25 +2012,30 @@ process.stdout.write = (...args) => {
         parent = "a-parent-directory-with-a-long-name/"
         middle = "a-directory-that-is-longer-than-the-terminal-width/"
         name = parent + middle + "app"
-        for columns, pieces in [
+        languages = [
+            ("en", "Application title", "Setup", "Create the project?", "Project summary", "Project directory"),
+            ("pt-BR", "Título da aplicação", "Configuração", "Criar o projeto?", "Resumo do projeto", "Pasta do projeto"),
+            ("es", "Título de la aplicación", "Configuración", "¿Crear el proyecto?", "Resumen del proyecto", "Carpeta del proyecto"),
+        ]
+        for (language, title, setup, create, summary, label), (columns, pieces) in itertools.product(languages, [
             (80, [parent, middle + "app"]),
             (40, [parent[:34], parent[34:], middle[:34], middle[34:] + "app"]),
-        ]:
-            with self.subTest(columns=columns), tempfile.TemporaryDirectory() as directory:
-                output, status = question_session(directory, "en", [
-                    ("Application title", b"\r"), ("Setup", b"\r"), ("Create the project?", b"\x03")
+        ]):
+            with self.subTest(language=language, columns=columns), tempfile.TemporaryDirectory() as directory:
+                output, status = question_session(directory, language, [
+                    (title, b"\r"), (setup, b"\r"), (create, b"\x03")
                 ], columns=columns, name=name)
                 self.assertEqual(status, 130)
                 self.assertEqual("".join(pieces), name)
                 lines = output.replace("\r\n", "\n").splitlines()
-                top = next(index for index, line in enumerate(lines) if line.startswith("◇  Project summary"))
+                top = next(index for index, line in enumerate(lines) if line.startswith("◇  " + summary))
                 bottom = next(index for index, line in enumerate(lines) if line.startswith("├"))
                 box = lines[top:bottom + 1]
                 self.assertEqual(len({len(line) for line in box}), 1, box)
                 self.assertLessEqual(len(box[0]), columns)
                 content = [line[3:-1].rstrip() for line in box[1:-1]]
                 self.assertTrue(all(line.startswith("│  ") and line.endswith("│") for line in box[1:-1]), box)
-                self.assertEqual(content[:len(pieces) + 3], ["", "Project directory:", *pieces, "Application title: app"])
+                self.assertEqual(content[:len(pieces) + 3], ["", label + ":", *pieces, title + ": app"])
 
     def test_unknown_screen_bytes(self):
         for text in ("\x1b[1;2H", "\x1b7", "\b"):

@@ -107,8 +107,8 @@ void it('holds a question without erasing it and draws it again on the flush', (
   assert.deepEqual(written, ['three\n'])
 })
 
-const finished: string[] = []
-const done = () => finished.push('write')
+// WHY: Only the identity of the callback is checked.
+const done = () => true
 void it('forwards every argument of a write and keeps the callback of a held one', () => {
   const calls: unknown[][] = []
   const stream = Object.assign(new PassThrough(), { columns: 80, rows })

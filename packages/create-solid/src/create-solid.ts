@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util'
 import { cliLanguage, message, messages } from './cli-language.ts'
 import { generateTerminal } from './generate.ts'
 import { projectSummary } from './projectSummary/index.ts'
+import { readPendingSignals } from './readPendingSignals/index.ts'
 import { questionnaireBase } from './resolve-locale-options.ts'
 import type { progress as frameProgress } from './terminal-frame.ts'
 import { checkTools, hasTool, toolNames } from './tools.ts'
@@ -106,6 +107,8 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
   try {
     return await prompt(output)
   } finally {
+    // WHY: A Ctrl+Z read together with the key that closes the question is still pending, and without suspend it would be lost and leave the listener of readline.
+    await readPendingSignals()
     process.off('SIGTERM', cancelPrompt)
     process.off('SIGHUP', cancelPrompt)
     process.off('SIGTSTP', suspend)

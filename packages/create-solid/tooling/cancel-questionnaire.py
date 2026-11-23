@@ -625,10 +625,10 @@ process.stdout.write = (...args) => {
                     self.assertEqual(os.waitstatus_to_exitcode(status), 0)
                     closed = transcript.index(b"Files created", start)
                     cursors = re.findall(rb"\x1b\[\?25[hl]", transcript[start:closed])
-                    # A continue read before the stop cancels it; a stop left for the end of the step registers nothing again.
-                    self.assertEqual(cursors, [hidden, shown] if continued_first else [shown])
+                    # A continue read before the stop cancels it; a stop made inside the step hides the cursor once when it continues.
+                    self.assertEqual(cursors, [hidden, shown] if continued_first else [shown, hidden, shown])
                     if not continued_first:
-                        self.assertNotIn(hidden, transcript[continued:])
+                        self.assertEqual(transcript.count(hidden, continued), 1)
                 finally:
                     release.touch()
                     target = recorded(root / "cli.pid") if (root / "cli.pid").exists() else None
@@ -758,6 +758,85 @@ process.stdout.write = (...args) => {
                     reader.drain()
                     self.assertEqual(reader.cursor(), shown)
                     self.assertEqual(os.waitstatus_to_exitcode(status), 0 if stage == b"Create the project?" else 130)
+                finally:
+                    for file in (root / "installer.pid", root / "cli.pid"):
+                        target = recorded(file) if file.exists() else None
+                        try:
+                            if target and os.getsid(target) == pid:
+                                os.kill(target, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+
+    def test_suspend_with_closing_key(self):
+        # One write puts Ctrl+Z and Enter in the same read at the last question, so the signal is still pending when the question closes.
+        for job_control in (True, False):
+            with self.subTest(job_control=job_control), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                installer = root / "bun"
+                installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nsleep 20\n')
+                installer.chmod(0o755)
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--no-install" if job_control else "--install"],
+                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"]}, job_control)
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                hidden = b"\x1b[?25l"
+                shown = b"\x1b[?25h"
+                def cooked():
+                    flags = termios.tcgetattr(slave)[3]
+                    return all(flags & flag for flag in (termios.ICANON, termios.ECHO, termios.ISIG))
+                try:
+                    for prompt in [b"Application title", b"Setup"]:
+                        reader.until(prompt)
+                        os.write(master, b"\r")
+                    reader.until(b"Create the project?")
+                    reader.until("└\r\n".encode(), transcript.index(b"Create the project?"))
+                    leader = recorded(root / "cli.pid")
+                    start = len(transcript)
+                    os.write(master, b"\x1a\r")
+                    if job_control:
+                        self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
+                        self.assertIn("T", state(leader))
+                        # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
+                        reader.drain()
+                        self.assertEqual(reader.cursor(), shown)
+                        self.assertTrue(cooked())
+                        self.assertNotIn(b"Creating the files", transcript)
+                        os.killpg(leader, signal.SIGCONT)
+                        reader.until("└  Project created.".encode(), start)
+                    else:
+                        # The listener that readline registers for the key must be gone when a step is stopped from outside.
+                        reader.until(b"Installing dependencies with Bun", start)
+                        self.assertIsNotNone(recorded(root / "installer.pid"))
+                        os.kill(leader, signal.SIGSTOP)
+                        deadline = time.monotonic() + 4
+                        while "T" not in state(leader):
+                            self.assertLess(time.monotonic(), deadline)
+                            time.sleep(.01)
+                        reader.drain()
+                        outside = len(transcript)
+                        os.killpg(leader, signal.SIGCONT)
+                        reader.until(hidden + b"\r\x1b[J\r\x1b[?7l", outside)
+                        self.assertTrue(cooked())
+                        os.write(master, b"\x03")
+                        reader.until("└  Creation canceled.".encode(), outside)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    reader.drain()
+                    self.assertEqual(reader.cursor(), shown)
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 0 if job_control else 130)
                 finally:
                     for file in (root / "installer.pid", root / "cli.pid"):
                         target = recorded(file) if file.exists() else None

@@ -243,9 +243,9 @@ the shell then waits for the stop of the CLI, which clears the indicator first.
 The shell only owns the terminal while the CLI is at a question when the stop
 comes from outside, such as `kill -TSTP` to the process group: the CLI then
 keeps the question and raw mode as they are and draws the question again below
-what the shell wrote on `fg`. bash takes the terminal out of raw mode while the
-CLI is stopped, and zsh leaves it in raw mode. The CLI asks the system which
-process group owns the terminal, through `/proc` on Linux and `/bin/ps`
-elsewhere. When the system does not answer within 250 ms, the CLI clears as it
-did before it could ask, and under `npx` or `pnpm dlx` that clearing can land on
-the prompt of the shell.
+what the shell wrote on `fg`. A shell that does not restore its own terminal
+modes when a job stops leaves the terminal in raw mode until `fg`. The CLI asks
+the system which process group owns the terminal, through `/proc` on Linux and
+`/bin/ps` elsewhere. When the system does not answer within 250 ms, the CLI
+clears as it did before it could ask, and under `npx` or `pnpm dlx` that
+clearing can land on the prompt of the shell.

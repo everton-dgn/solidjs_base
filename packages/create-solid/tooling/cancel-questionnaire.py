@@ -104,6 +104,77 @@ def fork_terminal():
     return pid, master, slave
 
 
+def start_cli(root, arguments, environment, job_control=False, launcher=False):
+    """Fork the CLI on a new terminal: alone in its session, under a parent that waits like a shell with job control, or under a shell of its own group."""
+    pid, master, slave = fork_terminal()
+    if pid == 0:
+        os.chdir(root)
+        if job_control:
+            # Keep a parent in this session but outside the foreground group.
+            reader, writer = os.pipe()
+            child = os.fork()
+            if child:
+                os.close(reader)
+                os.setpgid(child, child)
+                os.tcsetpgrp(0, child)
+                os.write(writer, b"x")
+                os.close(writer)
+                _, status = os.waitpid(child, os.WUNTRACED)
+                if not os.WIFSTOPPED(status):
+                    os._exit(1)
+                (root / "stop.signal").write_text(str(os.WSTOPSIG(status)))
+                _, status = os.waitpid(child, 0)
+                os._exit(os.waitstatus_to_exitcode(status))
+            os.close(writer)
+            os.read(reader, 1)
+            os.close(reader)
+        (root / "cli.pid").write_text(str(os.getpid()))
+        fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
+        os.environ.update(CI="false", NO_COLOR="1", TERM="xterm", **environment)
+        command = [node, str(cli), *arguments]
+        if launcher:
+            # A second command keeps the shell above the CLI, in its group, as npx and pnpm dlx stay.
+            os.execv("/bin/sh", ["/bin/sh", "-c", shlex.join(command) + "; exit $?"])
+        os.execv(node, command)
+    return pid, master, slave
+
+
+def state(process):
+    return subprocess.check_output(["ps", "-o", "stat=", "-p", str(process)], text=True).strip()
+
+
+class Reader:
+    """Collect what the CLI writes to its terminal."""
+
+    def __init__(self, case, master):
+        self.case = case
+        self.master = master
+        self.transcript = bytearray()
+
+    def until(self, marker, start=0, count=1):
+        deadline = time.monotonic() + 8
+        while self.transcript.count(marker, start) < count:
+            self.case.assertTrue(select.select([self.master], [], [], max(0, deadline-time.monotonic()))[0], self.transcript)
+            block = os.read(self.master, 65536)
+            self.case.assertTrue(block, self.transcript)
+            self.transcript.extend(block)
+
+    def drain(self):
+        while select.select([self.master], [], [], 0)[0]:
+            try:
+                block = os.read(self.master, 65536)
+            except OSError as error:
+                if error.errno != errno.EIO:
+                    raise
+                break
+            if not block:
+                break
+            self.transcript.extend(block)
+
+    def cursor(self):
+        return re.findall(rb"\x1b\[\?25[hl]", self.transcript)[-1]
+
+
 def recorded(file):
     """Read the number in a file once it has content: a file exists before its content is written."""
     deadline = time.monotonic() + 10
@@ -373,47 +444,16 @@ class Cancellation(unittest.TestCase):
                 # The shell stays as the installer: with exec sleep it missed the stop in 5 of 120 runs, and in none without exec.
                 installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nsleep 20\n')
                 installer.chmod(0o755)
-                pid, master, slave = fork_terminal()
-                if pid == 0:
-                    os.chdir(root)
-                    if job_control:
-                        # Keep a parent in this session but outside the foreground group.
-                        reader, writer = os.pipe()
-                        child = os.fork()
-                        if child:
-                            os.close(reader)
-                            os.setpgid(child, child)
-                            os.tcsetpgrp(0, child)
-                            os.write(writer, b"x")
-                            os.close(writer)
-                            _, status = os.waitpid(child, os.WUNTRACED)
-                            if not os.WIFSTOPPED(status):
-                                os._exit(1)
-                            (root / "stop.signal").write_text(str(os.WSTOPSIG(status)))
-                            _, status = os.waitpid(child, 0)
-                            os._exit(os.waitstatus_to_exitcode(status))
-                        os.close(writer)
-                        os.read(reader, 1)
-                        os.close(reader)
-                    (root / "cli.pid").write_text(str(os.getpid()))
-                    fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
-                    os.environ.update(CI="false", NO_COLOR="1", TERM="xterm", PID_FILE=str(root / "installer.pid"), PATH=directory + ":" + os.environ["PATH"])
-                    os.execv(node, [node, str(cli), "app", "--lang", "en", "--mode", "server", "--no-git", "--install"])
-                transcript = bytearray()
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install"],
+                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"]}, job_control)
+                reader = Reader(self, master)
+                transcript, read_until, drain = reader.transcript, reader.until, reader.drain
                 waited = False
-                def read_until(marker, start=0, count=1):
-                    deadline = time.monotonic() + 8
-                    while transcript.count(marker, start) < count:
-                        self.assertTrue(select.select([master], [], [], max(0, deadline-time.monotonic()))[0], transcript)
-                        block = os.read(master, 65536)
-                        self.assertTrue(block, transcript)
-                        transcript.extend(block)
                 def assert_cleared(start):
                     end = transcript.index(b"\x1b[?25h", start)
                     frame = transcript.rindex(b"Installing dependencies with Bun", 0, end)
                     self.assertIn(b"\r\x1b[J", transcript[frame:end])
-                def state(process):
-                    return subprocess.check_output(["ps", "-o", "stat=", "-p", str(process)], text=True).strip()
                 def stop_outside():
                     os.kill(leader, signal.SIGSTOP)
                     deadline = time.monotonic() + 4
@@ -422,18 +462,7 @@ class Cancellation(unittest.TestCase):
                         time.sleep(.01)
                     # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
                     drain()
-                    self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], hidden)
-                def drain():
-                    while select.select([master], [], [], 0)[0]:
-                        try:
-                            block = os.read(master, 65536)
-                        except OSError as error:
-                            if error.errno != errno.EIO:
-                                raise
-                            break
-                        if not block:
-                            break
-                        transcript.extend(block)
+                    self.assertEqual(reader.cursor(), hidden)
                 try:
                     for prompt in [b"Application title", b"Setup", b"Create the project?"]:
                         read_until(prompt)
@@ -461,7 +490,7 @@ class Cancellation(unittest.TestCase):
                             self.assertIn("T", state(worker))
                             # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
                             drain()
-                            self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], shown)
+                            self.assertEqual(reader.cursor(), shown)
                         if job_control or not key:
                             continued = len(transcript)
                             os.killpg(leader, signal.SIGCONT)
@@ -496,7 +525,7 @@ class Cancellation(unittest.TestCase):
                         time.sleep(.01)
                     self.assertTrue(waited)
                     drain()
-                    self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], b"\x1b[?25h")
+                    self.assertEqual(reader.cursor(), shown)
                     self.assertEqual(os.waitstatus_to_exitcode(status), -signal.SIGQUIT if key == b"\x1c" else 130)
                     if continued is not None:
                         self.assertEqual(transcript.count(hidden, continued, outside), 1)
@@ -507,6 +536,135 @@ class Cancellation(unittest.TestCase):
                         self.assertNotIn(b"Installing dependencies with Bun", tail)
                         self.assertNotIn("└".encode(), tail)
                         self.assertNotIn(b"Creation canceled.", transcript)
+                finally:
+                    for file in (root / "installer.pid", root / "cli.pid"):
+                        target = recorded(file) if file.exists() else None
+                        try:
+                            if target and os.getsid(target) == pid:
+                                os.kill(target, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+
+    def test_question_job_signals(self):
+        # A text, a select and a confirm question; the installer runs only where the test goes on to a step.
+        for stage, job_control, launcher in [(b"Application title", True, False), (b"Application title", False, False),
+                                             (b"Setup", True, True), (b"Create the project?", True, False)]:
+            with self.subTest(stage=stage, job_control=job_control, launcher=launcher), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                installer = root / "bun"
+                installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nsleep 20\n')
+                installer.chmod(0o755)
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--no-install" if job_control else "--install"],
+                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"]}, job_control, launcher)
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                hidden = b"\x1b[?25l"
+                shown = b"\x1b[?25h"
+                frame_end = "└\r\n".encode()
+                def cooked():
+                    flags = termios.tcgetattr(slave)[3]
+                    return all(flags & flag for flag in (termios.ICANON, termios.ECHO, termios.ISIG))
+                def rows():
+                    screen = Screen(80)
+                    screen.feed(transcript.decode())
+                    lines = screen.lines()
+                    while lines and not lines[-1]:
+                        lines.pop()
+                    return lines
+                try:
+                    for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        if prompt == stage:
+                            break
+                        os.write(master, b"\r")
+                    reader.until(frame_end, transcript.index(stage))
+                    leader = recorded(root / "cli.pid")
+                    self.assertFalse(cooked())
+                    start = len(transcript)
+                    os.write(master, b"\x1a")
+                    reader.until(shown, start)
+                    if job_control:
+                        self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
+                        members = [leader]
+                        if launcher:
+                            members.extend(map(int, subprocess.check_output(["pgrep", "-P", str(leader)], text=True).split()))
+                            self.assertEqual(len(members), 2)
+                        for member in members:
+                            self.assertIn("T", state(member))
+                        # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
+                        reader.drain()
+                        self.assertEqual(reader.cursor(), shown)
+                        self.assertTrue(cooked())
+                        # A shell writes below the question while the CLI is stopped and when it continues it.
+                        os.write(slave, b"[1]+  Stopped\r\n$ fg\r\n")
+                        reader.until(b"$ fg", start)
+                        continued = len(transcript)
+                        os.killpg(leader, signal.SIGCONT)
+                        reader.until(stage, continued)
+                        reader.until(frame_end, transcript.index(stage, continued))
+                        self.assertEqual(transcript.count(stage, continued), 1)
+                    else:
+                        reader.until(hidden, transcript.index(shown, start))
+                        self.assertNotIn("T", state(leader))
+                    self.assertFalse(cooked())
+                    answered = len(transcript)
+                    if stage == b"Application title":
+                        os.write(master, b"abc")
+                        reader.until("│  abc".encode(), answered)
+                    os.write(master, b"\r")
+                    if stage == b"Create the project?":
+                        reader.until("└  Project created.".encode(), answered)
+                    else:
+                        reader.until(b"Create the project?" if stage == b"Setup" else b"Setup", answered)
+                        reader.until(frame_end, answered)
+                    if job_control and not launcher and stage == b"Application title":
+                        os.write(master, b"\x03")
+                        reader.until("└  Creation canceled.".encode(), answered)
+                        lines = rows()
+                        shell = lines.index("[1]+  Stopped")
+                        self.assertEqual(lines[shell - 4:shell], ["│", "◆  Application title", "│  app", "└"])
+                        self.assertEqual(lines[shell:], [
+                            "[1]+  Stopped", "$ fg", "│", "◇  Application title", "│  abc", "│", "■  Setup",
+                            "│  Recommended", "│", "└  Creation canceled."])
+                    if not job_control:
+                        self.assertEqual(sum("Application title" in line for line in rows()), 1)
+                        # The listener that readline registers for the key must be gone when a step is stopped from outside.
+                        os.write(master, b"\r")
+                        reader.until(b"Create the project?", answered)
+                        os.write(master, b"\r")
+                        reader.until(b"Installing dependencies with Bun", answered)
+                        self.assertIsNotNone(recorded(root / "installer.pid"))
+                        os.kill(leader, signal.SIGSTOP)
+                        deadline = time.monotonic() + 4
+                        while "T" not in state(leader):
+                            self.assertLess(time.monotonic(), deadline)
+                            time.sleep(.01)
+                        reader.drain()
+                        outside = len(transcript)
+                        os.killpg(leader, signal.SIGCONT)
+                        reader.until(hidden + b"\r\x1b[J\r\x1b[?7l", outside)
+                        self.assertTrue(cooked())
+                    if stage != b"Create the project?" and (launcher or not job_control):
+                        os.write(master, b"\x03")
+                        reader.until("└  Creation canceled.".encode(), answered)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    reader.drain()
+                    self.assertEqual(reader.cursor(), shown)
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 0 if stage == b"Create the project?" else 130)
                 finally:
                     for file in (root / "installer.pid", root / "cli.pid"):
                         target = recorded(file) if file.exists() else None

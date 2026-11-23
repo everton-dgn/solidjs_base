@@ -30,6 +30,7 @@ type Closing<Reason = string> = { reason: Reason; closing?: string }
 type Confirmation = {
   summary: string
   language: Language
+  output: NodeJS.WriteStream
 }
 
 const frames = S_BAR === '│' ? ['◒', '◐', '◓', '◑'] : ['•', 'o', 'O', '0']
@@ -135,17 +136,19 @@ function wrapInstructions({ text, output }: Instructions): string[] {
 }
 export async function confirmProject({
   summary,
-  language
+  language,
+  output
 }: Confirmation): Promise<void> {
   const m = messages[language]
-  note(summary, m.summary, noteFormat)
+  note(summary, m.summary, { ...noteFormat, output })
   const result = await confirm({
     message: m.create,
     active: m.yes,
-    inactive: m.no
+    inactive: m.no,
+    output
   })
   if (isCancel(result)) throw new CanceledError()
-  log.message('', { spacing: 0 })
+  log.message('', { spacing: 0, output })
   if (!result) throw new CanceledError()
 }
 export const progress = {

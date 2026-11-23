@@ -51,20 +51,65 @@ function errorMessage(error: unknown): string {
 const writeStep = (title: string) => process.stdout.write(`◇ ${title}\n`)
 type Creation = { answers: Answers; isInteractive: boolean }
 const interruptedExitCode = 130
+const showCursor = '\u001B[?25h'
+const hideCursor = '\u001B[?25l'
 function cancelPrompt() {
-  process.stdout.write('\u001B[?25h')
+  process.stdout.write(showCursor)
   process.stdin.setRawMode(false)
   process.stdout.write(`\n└  ${messages[language].cancel}\n`)
   process.exit(interruptedExitCode)
 }
-async function withPromptSignals<T>(prompt: () => Promise<T>): Promise<T> {
+type Prompt<T> = (output: NodeJS.WriteStream) => Promise<T>
+async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
+  // WHY: Clack hides the cursor when it opens a question and shows it when the question closes, so the bytes between the two draw the open question again.
+  let question = ''
+  const output = new Proxy(process.stdout, {
+    get(target, property): unknown {
+      if (property !== 'write') return Reflect.get(target, property)
+      return (chunk: string) => {
+        const isOpen =
+          !chunk.includes(showCursor) &&
+          (question !== '' || chunk.includes(hideCursor))
+        question = isOpen ? question + chunk : ''
+        return target.write(chunk)
+      }
+    }
+  })
+  const redraw = () => {
+    if (!question) return
+    // WHY: A shell takes the terminal out of raw mode when it stops a job, and Node skips a mode it believes is set.
+    process.stdin.setRawMode(false)
+    process.stdin.setRawMode(true)
+    // WHY: Clack moves from where its last render ended, so the question is drawn again below what the shell wrote.
+    process.stdout.write(question)
+  }
+  const suspend = () => {
+    // WHY: On Ctrl+Z readline leaves a one-time SIGCONT listener that pauses stdin and, when no continue comes, turns raw mode on during a later step.
+    const fromKey = process
+      .listeners('SIGCONT')
+      .filter(listener => listener !== redraw)
+    for (const listener of fromKey) process.off('SIGCONT', listener)
+    process.stdout.write(showCursor)
+    process.stdin.setRawMode(false)
+    process.off('SIGTSTP', suspend)
+    // WHY: readline signals only this process for the key, and the terminal would have stopped the whole group.
+    process.kill(fromKey.length > 0 ? 0 : process.pid, 'SIGTSTP')
+    process.on('SIGTSTP', suspend)
+    if (!question) return
+    process.stdin.setRawMode(true)
+    process.stdout.write(hideCursor)
+  }
   process.on('SIGTERM', cancelPrompt)
   process.on('SIGHUP', cancelPrompt)
+  process.on('SIGTSTP', suspend)
+  process.on('SIGCONT', redraw)
   try {
-    return await prompt()
+    return await prompt(output)
   } finally {
     process.off('SIGTERM', cancelPrompt)
     process.off('SIGHUP', cancelPrompt)
+    process.off('SIGTSTP', suspend)
+    process.off('SIGCONT', redraw)
   }
 }
 type GenerationError = { error: unknown; progress?: typeof frameProgress }
@@ -89,7 +134,9 @@ async function createApplication({ answers, isInteractive }: Creation) {
   const summary = projectSummary({ validated, language })
   const frame = isInteractive ? await import('./terminal-frame.ts') : undefined
   if (frame) {
-    await withPromptSignals(() => frame.confirmProject({ summary, language }))
+    await withPromptSignals(output =>
+      frame.confirmProject({ summary, language, output })
+    )
   } else process.stdout.write(`${labels.summary}\n${summary}\n`)
   const progress = frame?.progress
   const finish = progress?.finish ?? writeStep
@@ -270,12 +317,12 @@ async function run(): Promise<void> {
   if (isInteractive) {
     terminal.isFramed = true
     const { questionnaire } = await import('./questionnaire.ts')
-    answers = await withPromptSignals(() =>
+    answers = await withPromptSignals(output =>
       questionnaire({
         answers,
         language,
         input: process.stdin,
-        output: process.stdout,
+        output,
         hasColor
       })
     )

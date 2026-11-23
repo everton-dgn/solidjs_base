@@ -909,6 +909,68 @@ process.stdout.write = (...args) => {
                         os.kill(pid, signal.SIGKILL)
                         os.waitpid(pid, 0)
 
+    def test_question_outside_stop(self):
+        # A stop the CLI cannot catch, under a parent that puts the terminal back in its own modes as a shell does.
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            pid, master, slave = start_cli(
+                root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--no-install"], {}, job_control=True, shell=True)
+            reader = Reader(self, master)
+            transcript = reader.transcript
+            waited = False
+            def cooked():
+                flags = termios.tcgetattr(slave)[3]
+                return all(flags & flag for flag in (termios.ICANON, termios.ECHO, termios.ISIG))
+            try:
+                reader.until(b"Application title")
+                reader.until("└\r\n".encode(), transcript.index(b"Application title"))
+                leader = recorded(root / "cli.pid")
+                self.assertFalse(cooked())
+                before = len(transcript)
+                os.kill(leader, signal.SIGSTOP)
+                self.assertEqual(recorded(root / "stop.signal"), signal.SIGSTOP)
+                self.assertTrue(cooked())
+                foreground(root, 1)
+                deadline = time.monotonic() + 4
+                while cooked():
+                    self.assertLess(time.monotonic(), deadline)
+                    time.sleep(.01)
+                # The second key is read after the loop turn that could have read the signal with the first one.
+                for key in (b"a", b"b"):
+                    size = len(transcript)
+                    os.write(master, key)
+                    reader.until(b"\x1b[999D", size)
+                # The CLI stopped with the question on screen, so the continue draws nothing.
+                self.assertEqual(transcript.count(b"Application title", before), 0)
+                self.assertNotIn(b"\x1b[?25", transcript[before:])
+                os.write(master, b"\r")
+                reader.until("│  ab\r\n".encode(), before)
+                reader.until(b"Setup", before)
+                os.write(master, b"\x03")
+                reader.until("└  Creation canceled.".encode(), before)
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline:
+                    finished, status = os.waitpid(pid, os.WNOHANG)
+                    if finished:
+                        waited = True
+                        break
+                    time.sleep(.01)
+                self.assertTrue(waited)
+                self.assertEqual(os.waitstatus_to_exitcode(status), 130)
+            finally:
+                foreground(root, 1)
+                target = recorded(root / "cli.pid") if (root / "cli.pid").exists() else None
+                try:
+                    if target and os.getsid(target) == pid:
+                        os.kill(target, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                os.close(master)
+                os.close(slave)
+                if not waited:
+                    os.kill(pid, signal.SIGKILL)
+                    os.waitpid(pid, 0)
+
     def test_resize_while_stopped(self):
         # A stopped CLI is not in the foreground group, so the terminal does not tell it about the new size.
         for stage in (b"Application title", b"Installing dependencies with Bun"):

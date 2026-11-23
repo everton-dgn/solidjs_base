@@ -123,6 +123,14 @@ try {
     }
     assert.deepEqual(failedTasks, [], `Failed tasks: ${failedTasks.join(', ')}`)
     if (flags.length > 0) {
+      // WHY: The Playwright config of a static or client application launches the browser of its own Playwright, which the CI runner does not have. The preset of a server application uses the Chrome of the runner under CI.
+      if (flags.includes('static') || flags.includes('client')) {
+        execFileSync('vp', ['run', 'test:browser:install'], {
+          cwd,
+          stdio: 'inherit',
+          timeout: 180_000
+        })
+      }
       execFileSync(
         'vp',
         ['run', 'playwright', 'test', 'Home.profile.production.e2e.test.ts'],

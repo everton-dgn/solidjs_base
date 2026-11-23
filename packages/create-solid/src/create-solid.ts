@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util'
 
 import { cliLanguage, message, messages } from './cli-language.ts'
 import { generateTerminal } from './generate.ts'
+import { ownsTerminal } from './ownsTerminal/index.ts'
 import { projectSummary } from './projectSummary/index.ts'
 import { questionFrame } from './questionFrame/index.ts'
 import { readPendingSignals } from './readPendingSignals/index.ts'
@@ -78,10 +79,15 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
       .listeners('SIGCONT')
       .filter(listener => listener !== resume)
     for (const listener of fromKey) process.off('SIGCONT', listener)
-    // WHY: The shell writes where the question was, so no copy of it stays above what the shell wrote.
-    frame.erase()
+    if (ownsTerminal()) {
+      // WHY: The shell writes where the question was, so no copy of it stays above what the shell wrote.
+      frame.erase()
+      process.stdin.setRawMode(false)
+    } else {
+      // WHY: Under a launcher the shell may own the terminal by now: what is erased then is its prompt, and a change of mode from the background stops the CLI with SIGTTOU. The question is drawn again below when the CLI continues.
+      frame.hold()
+    }
     process.stdout.write(showCursor)
-    process.stdin.setRawMode(false)
     process.off('SIGTSTP', suspend)
     // WHY: readline signals only this process for the key, and the terminal would have stopped the whole group.
     process.kill(fromKey.length > 0 ? 0 : process.pid, 'SIGTSTP')

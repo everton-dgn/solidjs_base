@@ -17,6 +17,7 @@ import {
 } from '@clack/prompts'
 
 import { messages, type Language } from './cli-language.ts'
+import { ownsTerminal } from './ownsTerminal/index.ts'
 import { CanceledError } from './usage-error.ts'
 import { wrapFrameText } from './wrapFrameText/index.ts'
 
@@ -244,7 +245,8 @@ export const progress = {
       // WHY: A launcher in the same group stops before this listener runs, so the continue of the shell may be queued behind this signal. The stop waits for the signals the loop has read, and that continue cancels it.
       pendingStop ??= setImmediate(() => {
         pendingStop = undefined
-        process.stdout.write(clearIndicatorRows)
+        // WHY: Under a launcher the shell may own the terminal by now, and the rows cleared then would be its prompt. Showing the cursor changes no cell, and the shell does not show it.
+        if (ownsTerminal()) process.stdout.write(clearIndicatorRows)
         showCursor()
         process.off('SIGTSTP', suspend)
         // WHY: With no SIGCONT listener during the stop its continue emits no event, so the resume() after process.kill is the only restore.

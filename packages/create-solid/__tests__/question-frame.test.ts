@@ -93,6 +93,20 @@ void it('keeps the rows of a multiple selection through its renders', async () =
   assert.deepEqual(await answer, ['two', 'three'])
 })
 
+void it('holds a question without erasing it and draws it again on the flush', () => {
+  const { stream, written } = terminal()
+  const frame = questionFrame(stream)
+  frame.output.write(hide)
+  frame.output.write('one\ntwo\n')
+  written.length = 0
+  frame.hold()
+  frame.output.write(`${escape}[999D${escape}[2A${escape}[J`)
+  frame.output.write('three\n')
+  assert.deepEqual(written, [])
+  frame.flush()
+  assert.deepEqual(written, ['three\n'])
+})
+
 const finished: string[] = []
 const done = () => finished.push('write')
 void it('forwards every argument of a write and keeps the callback of a held one', () => {

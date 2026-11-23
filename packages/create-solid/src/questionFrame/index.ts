@@ -5,6 +5,7 @@ type QuestionFrame<Output> = {
   output: Output
   isOpen: () => boolean
   erase: () => void
+  hold: () => void
   flush: () => void
 }
 
@@ -100,6 +101,9 @@ export function questionFrame<Output extends Writable>(
         `${frame.row > 0 ? `${escape}[${frame.row}A` : ''}\r${escape}[J`
       )
       isHeld = true
+    },
+    hold() {
+      if (frame?.isKnown) isHeld = true
     },
     flush
   }

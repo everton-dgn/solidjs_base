@@ -909,6 +909,97 @@ process.stdout.write = (...args) => {
                         os.kill(pid, signal.SIGKILL)
                         os.waitpid(pid, 0)
 
+    def test_stop_after_the_launcher(self):
+        # The terminal stops a launcher at once and the CLI later. Two signals put the two stops in that order every time.
+        for stage in (b"Application title", b"Installing dependencies with Bun"):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                installer = root / "bun"
+                installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nsleep 20\n')
+                installer.chmod(0o755)
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install"],
+                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"]},
+                    job_control=True, launcher=True, shell=True)
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                hidden = b"\x1b[?25l"
+                shown = b"\x1b[?25h"
+                frame_end = "└\r\n".encode()
+                def cooked():
+                    flags = termios.tcgetattr(slave)[3]
+                    return all(flags & flag for flag in (termios.ICANON, termios.ECHO, termios.ISIG))
+                try:
+                    for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        if prompt == stage:
+                            break
+                        os.write(master, b"\r")
+                    if stage == b"Application title":
+                        reader.until(frame_end, transcript.index(stage))
+                    else:
+                        reader.until(stage)
+                        self.assertIsNotNone(recorded(root / "installer.pid"))
+                    launcher = recorded(root / "cli.pid")
+                    worker = int(subprocess.check_output(["pgrep", "-P", str(launcher)], text=True))
+                    os.kill(launcher, signal.SIGSTOP)
+                    # The parent has taken the terminal back when it records the stop.
+                    self.assertEqual(recorded(root / "stop.signal"), signal.SIGSTOP)
+                    reader.drain()
+                    start = len(transcript)
+                    os.kill(worker, signal.SIGTSTP)
+                    deadline = time.monotonic() + 4
+                    while "T" not in state(worker):
+                        self.assertLess(time.monotonic(), deadline)
+                        time.sleep(.01)
+                    # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
+                    reader.drain()
+                    # The shell owns the terminal: the CLI shows the cursor and erases nothing.
+                    self.assertEqual(bytes(transcript[start:]), shown)
+                    self.assertTrue(cooked())
+                    os.write(slave, b"[1]+  Stopped\r\n$ fg\r\n")
+                    reader.until(b"$ fg", start)
+                    continued = len(transcript)
+                    foreground(root, 1)
+                    if stage == b"Application title":
+                        # The question is drawn again below what the shell wrote.
+                        reader.until(stage, continued)
+                        reader.until(frame_end, transcript.index(stage, continued))
+                        self.assertEqual(transcript.count(hidden, continued), 1)
+                        self.assertFalse(cooked())
+                        os.write(master, b"\r")
+                        reader.until(b"Setup", continued)
+                    else:
+                        reader.until(hidden + b"\r\x1b[J\r\x1b[?7l", continued)
+                        reader.until(stage, continued, 3)
+                    os.write(master, b"\x03")
+                    reader.until("└  Creation canceled.".encode(), continued)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    reader.drain()
+                    self.assertEqual(reader.cursor(), shown)
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 130)
+                finally:
+                    foreground(root, 1)
+                    target = recorded(root / "cli.pid") if (root / "cli.pid").exists() else None
+                    try:
+                        if target and os.getsid(target) == pid:
+                            os.killpg(target, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+
     def test_question_outside_stop(self):
         # A stop the CLI cannot catch, under a parent that puts the terminal back in its own modes as a shell does.
         with tempfile.TemporaryDirectory() as directory:

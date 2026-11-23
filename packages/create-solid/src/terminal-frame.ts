@@ -221,6 +221,7 @@ export const progress = {
     let index = 0
     let width: number | undefined
     let isRunning = true
+    const interval = unicode ? unicodeIntervalMs : asciiIntervalMs
     const draw = () => {
       const mark = styleText('magenta', frames[index] ?? '')
       const columns = width ?? process.stdout.columns
@@ -231,8 +232,10 @@ export const progress = {
       index = (index + 1) % frames.length
     }
     // WHY: After a synchronous part the timer runs before the loop reads a pending Ctrl+Z, and under a launcher the shell may own the terminal by then. The frame waits until the signals are read.
+    let pendingFrame: NodeJS.Immediate | undefined
     const tick = () => {
-      setImmediate(() => {
+      pendingFrame = setImmediate(() => {
+        pendingFrame = undefined
         if (isRunning && !pendingStop) draw()
       })
     }
@@ -252,6 +255,10 @@ export const progress = {
       // WHY: Node holds the size from before the stop until it reads that signal, and the timer of the indicator may run first.
       width = closingOutput().columns
       redraw()
+      // WHY: The interval came due during the stop, and its frame would follow this one at once. After a stop the CLI cannot catch, that frame may already wait for its turn.
+      clearImmediate(pendingFrame)
+      clearInterval(indicator)
+      indicator = setInterval(tick, interval)
     }
     const suspend = () => {
       // WHY: A launcher in the same group stops before this listener runs, so the continue of the shell may be queued behind this signal. The stop waits for the signals the loop has read, and that continue cancels it.
@@ -284,7 +291,7 @@ export const progress = {
       process.off('SIGQUIT', quit)
     }
     draw()
-    indicator = setInterval(tick, unicode ? unicodeIntervalMs : asciiIntervalMs)
+    indicator = setInterval(tick, interval)
   },
   finish: (title: string): void => {
     clearIndicator()

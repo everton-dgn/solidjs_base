@@ -376,6 +376,57 @@ void it('defers the stop of a step until the pending signals are read', () => {
   assert.deepEqual(cursor, ['l', 'l', 'h', 'l', 'h', 'l', 'h'])
 })
 
+void it('draws once on the continue and starts the interval again so no frame comes early', () => {
+  const script = `
+    Object.defineProperty(process.stdout,'isTTY',{value:true})
+    const timers = []
+    let tick
+    globalThis.setInterval = (callback, ms) => { tick = callback; timers.push(['set', ms]); return timers.length }
+    globalThis.clearInterval = handle => { if (handle !== undefined) timers.push(['clear', handle]) }
+    process.kill = () => true
+    const writes = []
+    const write = process.stdout.write.bind(process.stdout)
+    process.stdout.write = (chunk, ...rest) => { writes.push(String(chunk)); return write(chunk, ...rest) }
+    const turn = () => new Promise(resolve => setImmediate(resolve))
+    const {progress} = await import('./src/terminal-frame.ts')
+    progress.start('files')
+    const started = timers.length
+    process.emit('SIGTSTP')
+    await turn()
+    const stopped = writes.indexOf('\\u001B[?25h')
+    const continued = writes.slice(stopped + 1)
+    const restarted = timers.slice(started)
+    // A stop the CLI cannot catch: the due frame of the interval waits for its turn when the continue arrives.
+    const outside = writes.length
+    tick()
+    process.emit('SIGCONT')
+    await turn()
+    process.stderr.write(JSON.stringify({ restarted, continued, outside: writes.slice(outside) }))
+    progress.cancel()
+  `
+  const { stderr } = spawnSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, TERM: 'xterm', FORCE_COLOR: '0' }
+    }
+  )
+  const intervalMs = 80
+  assert.deepEqual(JSON.parse(stderr), {
+    restarted: [
+      ['clear', 1],
+      ['set', intervalMs]
+    ],
+    continued: [
+      '\u001B[?25l',
+      '\r\u001B[J',
+      '\r\u001B[?7l◐  files\u001B[?7h\r'
+    ],
+    outside: ['\u001B[?25l', '\r\u001B[J', '\r\u001B[?7l◓  files\u001B[?7h\r']
+  })
+})
+
 void it('restores the cursor when exiting during a step', () => {
   const bytes = execFileSync(
     process.execPath,

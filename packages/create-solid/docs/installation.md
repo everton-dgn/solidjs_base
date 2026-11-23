@@ -219,16 +219,15 @@ reflowing them loses the heading of the question instead.
 
 Ctrl+Z during a question or a step shows the cursor and lets the shell suspend
 the CLI. On `fg` the question is drawn again below what the shell wrote, or the
-indicator returns. Ctrl+\ during a step shows the cursor and quits. When the CLI
-is the command that `ssh -t`, `docker exec -it` or `docker run -it` without
-`--init` starts, nothing in the session can continue a stopped process, so
-Ctrl+Z does nothing and the question or the step goes on. A shell opened by
-those tools has job control, and there Ctrl+Z suspends as usual. Under an init
-process, as with `docker run -it --init`, Ctrl+Z stops the CLI and the processes
-it started until something sends SIGCONT to their process group, which nothing
-in the container does, so stop the container from another terminal. When a
-launcher such as `npx` or `pnpm dlx` runs the CLI, the shell takes the terminal
-back as soon as the launcher stops. A step that is still busy stops a moment
-later; the CLI then finds that the shell owns the terminal, shows the cursor
-without drawing over the prompt, and draws the question or the indicator again
-on `fg`.
+indicator returns. Ctrl+\ during a step shows the cursor and quits. When nothing
+in the session can continue a stopped process, as when the CLI is the command
+that `docker exec -it` starts, Ctrl+Z does nothing and the question or the step
+goes on. A shell opened by such a tool has job control, and there Ctrl+Z
+suspends as usual. Under an init process, as with `docker run -it --init`,
+Ctrl+Z stops the CLI and the processes it started until something sends SIGCONT
+to their process group, which nothing in the container does, so stop the
+container from another terminal. When a launcher such as `npx` or `pnpm dlx`
+runs the CLI, the shell takes the terminal back as soon as the launcher stops. A
+step that is still busy stops a moment later; the CLI then finds that the shell
+owns the terminal, shows the cursor without drawing over the prompt, and draws
+the question or the indicator again on `fg`.

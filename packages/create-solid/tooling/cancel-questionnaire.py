@@ -749,7 +749,8 @@ process.stdout.write = (...args) => {
                         reader.until("└  Creation canceled.".encode(), answered)
                         lines = rows()
                         shell = lines.index("[1]+  Stopped")
-                        self.assertEqual(lines[shell - 4:shell], ["│", "◆  Application title", "│  app", "└"])
+                        # The question was erased before the stop, so the shell wrote right below the tagline.
+                        self.assertEqual(lines[shell - 1], "│  Start a Solid 2 application with Vite+, TypeScript and tests set up.")
                         self.assertEqual(lines[shell:], [
                             "[1]+  Stopped", "$ fg", "│", "◇  Application title", "│  abc", "│", "■  Setup",
                             "│  Recommended", "│", "└  Creation canceled."])
@@ -793,6 +794,115 @@ process.stdout.write = (...args) => {
                                 os.kill(target, signal.SIGKILL)
                         except ProcessLookupError:
                             pass
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+
+    def test_question_suspend_cycles(self):
+        # A text question with a typed value and the multiple selection, three times each under a parent that plays the shell.
+        for stage, keys in [(b"Application title", [b"ab", b"c" * 40, b""]), (b"Features", [b" ", b"\x1b[B ", b""])]:
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--no-install"], {}, job_control=True, shell=True)
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                hidden = b"\x1b[?25l"
+                shown = b"\x1b[?25h"
+                frame_end = "└\r\n".encode()
+                def cooked():
+                    flags = termios.tcgetattr(slave)[3]
+                    return all(flags & flag for flag in (termios.ICANON, termios.ECHO, termios.ISIG))
+                def rows():
+                    screen = Screen(80)
+                    screen.feed(transcript.decode())
+                    lines = screen.lines()
+                    while lines and not lines[-1]:
+                        lines.pop()
+                    return lines
+                try:
+                    reader.until(b"Application title")
+                    if stage == b"Features":
+                        os.write(master, b"\r")
+                        reader.until(b"Setup")
+                        os.write(master, b"\x1b[B\r")
+                        reader.until(stage)
+                    reader.until(frame_end, transcript.index(stage))
+                    leader = recorded(root / "cli.pid")
+                    question = rows()[rows().index("◆  " + stage.decode()) - 1:]
+                    above = rows()[:-len(question)]
+                    for stop, typed in enumerate(keys, 1):
+                        start = len(transcript)
+                        os.write(master, b"\x1a")
+                        self.assertEqual(recorded(root / ("stop.signal" if stop == 1 else f"stop.{stop}.signal")), signal.SIGTSTP)
+                        self.assertIn("T", state(leader))
+                        # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
+                        reader.drain()
+                        self.assertEqual(reader.cursor(), shown)
+                        self.assertTrue(cooked())
+                        # No copy of the question stays where the shell writes.
+                        self.assertEqual(rows(), above)
+                        os.write(slave, f"[1]+  Stopped {stop}\r\n$ fg\r\n".encode())
+                        reader.until(b"$ fg", start)
+                        above.extend([f"[1]+  Stopped {stop}", "$ fg"])
+                        continued = len(transcript)
+                        foreground(root, stop)
+                        reader.until(stage, continued)
+                        reader.until(frame_end, transcript.index(stage, continued))
+                        drawn = bytes(transcript[continued:])
+                        # The continue hides the cursor once and draws the question once, as it was, with no render in between.
+                        self.assertEqual(drawn.count(hidden), 1)
+                        self.assertEqual(drawn.count(stage), 1)
+                        self.assertNotIn(b"\x1b[999D", drawn)
+                        self.assertEqual(rows(), above + question)
+                        self.assertFalse(cooked())
+                        if typed:
+                            os.write(master, typed)
+                            ending = ("ab" + "c" * 40 if stop == 2 else "ab") + "█" if stage == b"Application title" else "◻ " + ["SEO metadata", "Light and dark theme switcher"][stop - 1]
+                            reader.until(ending.encode(), continued)
+                            # Clack ends the render of one changed line with a move down to the last row.
+                            reader.until(b"B", transcript.rindex(ending.encode()))
+                            question = rows()[len(above):]
+                    # A SIGCONT with no stop draws nothing.
+                    before = len(transcript)
+                    os.kill(leader, signal.SIGCONT)
+                    # The second key is read after the loop turn that could have read the signal with the first one.
+                    for key in (b" ", b" ") if stage == b"Features" else (b"d", b"e"):
+                        size = len(transcript)
+                        os.write(master, key)
+                        reader.until(b"\x1b[999D", size)
+                    self.assertEqual(transcript.count(stage, before), 0)
+                    self.assertNotIn(hidden, transcript[before:])
+                    self.assertFalse(cooked())
+                    os.write(master, b"\x03")
+                    reader.until("└  Creation canceled.".encode(), before)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    reader.drain()
+                    lines = rows()
+                    self.assertEqual(lines[:len(above)], above)
+                    self.assertEqual(sum(stage.decode() in line for line in lines), 1)
+                    self.assertEqual(lines[-1], "└  Creation canceled.")
+                    self.assertEqual(reader.cursor(), shown)
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 130)
+                finally:
+                    for stop in (1, 2, 3):
+                        foreground(root, stop)
+                    target = recorded(root / "cli.pid") if (root / "cli.pid").exists() else None
+                    try:
+                        if target and os.getsid(target) == pid:
+                            os.kill(target, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
                     os.close(master)
                     os.close(slave)
                     if not waited:

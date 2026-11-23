@@ -1,0 +1,129 @@
+import assert from 'node:assert/strict'
+import { PassThrough } from 'node:stream'
+import { it } from 'node:test'
+import { setImmediate } from 'node:timers/promises'
+
+import { multiselect, text } from '@clack/prompts'
+
+import { questionFrame } from '../src/questionFrame/index.ts'
+
+const escape = '\u001B'
+const hide = `${escape}[?25l`
+const show = `${escape}[?25h`
+const rows = 24
+function terminal() {
+  const written: string[] = []
+  const stream = Object.assign(new PassThrough(), { columns: 80, rows })
+  stream.on('data', chunk => written.push(String(chunk)))
+  return { stream, written }
+}
+async function turns(): Promise<void> {
+  const enough = 6
+  for (let turn = 0; turn < enough; turn += 1) await setImmediate()
+}
+
+void it('erases and draws again the text question Clack has on screen', async () => {
+  const { stream, written } = terminal()
+  const frame = questionFrame(stream)
+  const input = new PassThrough()
+  const answer = text({ message: 'Title', input, output: frame.output })
+  await turns()
+  input.write('ab')
+  await turns()
+  assert.equal(frame.isOpen(), true)
+  written.length = 0
+  frame.erase()
+  const erased = `${escape}[4A\r${escape}[J`
+  assert.deepEqual(written, [erased])
+  input.write('c')
+  await turns()
+  assert.deepEqual(written, [erased])
+  frame.flush()
+  const drawn = '│\n◆  Title\n│  abc█\n└\n'
+  assert.deepEqual(written, [erased, drawn])
+  frame.flush()
+  assert.deepEqual(written, [erased, drawn])
+  input.write('\r')
+  assert.equal(await answer, 'abc')
+  assert.equal(frame.isOpen(), false)
+})
+
+void it('draws a held question before the bytes that close it', async () => {
+  const { stream, written } = terminal()
+  const frame = questionFrame(stream)
+  const input = new PassThrough()
+  const answer = text({ message: 'Title', input, output: frame.output })
+  await turns()
+  frame.erase()
+  written.length = 0
+  input.write('ab\r')
+  assert.equal(await answer, 'ab')
+  await turns()
+  const closed = ['│\n◇  Title\n│  ab\n', show]
+  assert.deepEqual(written, closed)
+  frame.flush()
+  frame.erase()
+  assert.deepEqual(written, closed)
+})
+
+void it('keeps the rows of a multiple selection through its renders', async () => {
+  const { stream, written } = terminal()
+  const frame = questionFrame(stream)
+  const input = new PassThrough()
+  const options = ['one', 'two', 'three'].map(value => ({ value }))
+  const answer = multiselect({
+    message: 'Pick',
+    options,
+    initialValues: ['one', 'two', 'three'],
+    input,
+    output: frame.output
+  })
+  await turns()
+  input.write(' ')
+  await turns()
+  const [opening = '', first = ''] = written
+  assert.equal(opening, hide)
+  frame.erase()
+  written.length = 0
+  frame.flush()
+  const [drawn = ''] = written
+  assert.equal(drawn.split('\n').length, first.split('\n').length)
+  assert.match(drawn, /◻ one\n.*◼ two\n.*◼ three\n/su)
+  input.write('\r')
+  assert.deepEqual(await answer, ['two', 'three'])
+})
+
+const finished: string[] = []
+const done = () => finished.push('write')
+void it('forwards every argument of a write and keeps the callback of a held one', () => {
+  const calls: unknown[][] = []
+  const stream = Object.assign(new PassThrough(), { columns: 80, rows })
+  stream.write = (...args: unknown[]) => calls.push(args) > 0
+  const frame = questionFrame(stream)
+  frame.output.write('plain', 'utf8', done)
+  frame.output.write(hide)
+  frame.output.write('question\n')
+  frame.erase()
+  frame.output.write('held', 'utf8', done)
+  assert.deepEqual(calls, [
+    ['plain', 'utf8', done],
+    [hide],
+    ['question\n'],
+    [`${escape}[1A\r${escape}[J`],
+    ['', 'utf8', done]
+  ])
+})
+
+void it('leaves a question as it is when its bytes are unknown or it is taller than the screen', () => {
+  for (const drawing of [`a${escape}[2;3Hb`, 'a\rb', 'a\n'.repeat(rows)]) {
+    const { stream, written } = terminal()
+    const frame = questionFrame(stream)
+    frame.output.write(hide)
+    frame.output.write(drawing)
+    written.length = 0
+    frame.erase()
+    frame.output.write('more')
+    frame.flush()
+    assert.deepEqual(written, ['more'], JSON.stringify(drawing))
+  }
+})

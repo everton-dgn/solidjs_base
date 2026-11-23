@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util'
 import { cliLanguage, message, messages } from './cli-language.ts'
 import { generateTerminal } from './generate.ts'
 import { projectSummary } from './projectSummary/index.ts'
+import { questionFrame } from './questionFrame/index.ts'
 import { readPendingSignals } from './readPendingSignals/index.ts'
 import { questionnaireBase } from './resolve-locale-options.ts'
 import type { progress as frameProgress } from './terminal-frame.ts'
@@ -62,59 +63,50 @@ function cancelPrompt() {
 }
 type Prompt<T> = (output: NodeJS.WriteStream) => Promise<T>
 async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
-  // WHY: Clack hides the cursor when it opens a question and shows it when the question closes, so the bytes between the two draw the open question again.
-  let question = ''
-  const output = new Proxy(process.stdout, {
-    get(target, property): unknown {
-      if (property !== 'write') return Reflect.get(target, property)
-      return (chunk: string) => {
-        const isOpen =
-          !chunk.includes(showCursor) &&
-          (question !== '' || chunk.includes(hideCursor))
-        question = isOpen ? question + chunk : ''
-        return target.write(chunk)
-      }
-    }
-  })
-  const redraw = () => {
+  const frame = questionFrame(process.stdout)
+  const resume = () => {
     // WHY: A stopped process gets no SIGWINCH, and Node reads the size of the terminal again only on that signal.
     process.kill(process.pid, 'SIGWINCH')
-    if (!question) return
-    // WHY: A shell takes the terminal out of raw mode when it stops a job, and Node skips a mode it believes is set.
+    if (!frame.isOpen()) return
+    // WHY: A shell takes the terminal out of raw mode when it stops a job, and libuv returns early from a mode it has recorded as set.
     process.stdin.setRawMode(false)
     process.stdin.setRawMode(true)
-    // WHY: Clack moves from where its last render ended, so the question is drawn again below what the shell wrote.
-    process.stdout.write(question)
   }
   const suspend = () => {
     // WHY: On Ctrl+Z readline leaves a one-time SIGCONT listener that pauses stdin and, when no continue comes, turns raw mode on during a later step.
     const fromKey = process
       .listeners('SIGCONT')
-      .filter(listener => listener !== redraw)
+      .filter(listener => listener !== resume)
     for (const listener of fromKey) process.off('SIGCONT', listener)
+    // WHY: The shell writes where the question was, so no copy of it stays above what the shell wrote.
+    frame.erase()
     process.stdout.write(showCursor)
     process.stdin.setRawMode(false)
     process.off('SIGTSTP', suspend)
     // WHY: readline signals only this process for the key, and the terminal would have stopped the whole group.
     process.kill(fromKey.length > 0 ? 0 : process.pid, 'SIGTSTP')
     process.on('SIGTSTP', suspend)
-    if (!question) return
-    process.stdin.setRawMode(true)
-    process.stdout.write(hideCursor)
+    // WHY: The kernel discards the stop of an orphaned group, and then no SIGCONT comes to restore the question.
+    resume()
+    if (frame.isOpen()) process.stdout.write(hideCursor)
   }
+  // WHY: This runs after the listener of Node, which reads the new size and lets Clack render the question at it, so the question is drawn once at the width of the terminal.
+  const draw = () => frame.flush()
   process.on('SIGTERM', cancelPrompt)
   process.on('SIGHUP', cancelPrompt)
   process.on('SIGTSTP', suspend)
-  process.on('SIGCONT', redraw)
+  process.on('SIGCONT', resume)
+  process.on('SIGWINCH', draw)
   try {
-    return await prompt(output)
+    return await prompt(frame.output)
   } finally {
     // WHY: A Ctrl+Z read together with the key that closes the question is still pending, and without suspend it would be lost and leave the listener of readline.
     await readPendingSignals()
     process.off('SIGTERM', cancelPrompt)
     process.off('SIGHUP', cancelPrompt)
     process.off('SIGTSTP', suspend)
-    process.off('SIGCONT', redraw)
+    process.off('SIGCONT', resume)
+    process.off('SIGWINCH', draw)
   }
 }
 type GenerationError = { error: unknown; progress?: typeof frameProgress }

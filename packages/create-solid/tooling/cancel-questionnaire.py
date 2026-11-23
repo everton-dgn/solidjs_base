@@ -106,14 +106,31 @@ def fork_terminal():
     return pid, master, slave
 
 
-def start_cli(root, arguments, environment, job_control=False, launcher=False, executable=cli, shell=False):
+# A launcher with the default action of SIGINT: like dash, the /bin/sh of Ubuntu, it dies at once on Ctrl+C.
+DYING_LAUNCHER = "const c = require('child_process').spawn(process.argv[1], process.argv.slice(2), { stdio: 'inherit' }); c.on('exit', code => process.exit(code ?? 1))"
+# An entry that runs the CLI and records its exit code, which a launcher that died cannot report.
+EXIT_ENTRY = """
+import { writeFileSync } from 'node:fs';
+process.on('exit', code => writeFileSync(process.env.EXIT_FILE, String(code)));
+await import(process.env.CLI_URL);
+"""
+
+
+def bash_path():
+    """/bin/bash when it exists, the bash the reports name, and otherwise the first one of PATH."""
+    return "/bin/bash" if os.path.exists("/bin/bash") else shutil.which("bash")
+
+
+def start_cli(root, arguments, environment, job_control=False, launcher=False, executable=cli, shell=False, stay=False):
     """Fork the CLI on a new terminal: alone in its session, under a parent that waits like a shell with job control, or under a shell of its own group.
 
-    With shell, that parent also takes the terminal back on every stop, as a shell does, and gives it back with SIGCONT when the script calls foreground."""
-    # bash, the /bin/sh of macOS, keeps waiting on Ctrl+C and exits with the code of the CLI; dash, the /bin/sh of Ubuntu,
-    # dies at once. The check runs here because a failure in the forked child would not reach the test.
-    bash = shutil.which("bash")
-    if launcher and not bash:
+    With shell, that parent also takes the terminal back on every stop, as a shell does, and gives it back with SIGCONT when the script calls foreground.
+    With stay, it also takes the terminal back when the launcher ends and stays until the CLI records its exit code in cli.exit.
+    launcher is True for bash -c or "dies" for a launcher that dies on SIGINT."""
+    # bash keeps waiting on Ctrl+C and exits with the code of the CLI; dash, the /bin/sh of Ubuntu, dies at once.
+    # The check runs here because a failure in the forked child would not reach the test.
+    bash = bash_path()
+    if launcher is True and not bash:
         raise AssertionError("The launcher tests of the questionnaire harness need bash: install it and run again")
     pid, master, slave = fork_terminal()
     if pid == 0:
@@ -132,7 +149,7 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False, e
                 os.write(writer, b"x")
                 os.close(writer)
                 _, status = os.waitpid(child, os.WUNTRACED)
-                if not os.WIFSTOPPED(status):
+                if not os.WIFSTOPPED(status) and not stay:
                     os._exit(1)
                 stops = 1
                 while shell and os.WIFSTOPPED(status):
@@ -148,7 +165,15 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False, e
                 if not shell:
                     (root / "stop.signal").write_text(str(os.WSTOPSIG(status)))
                     _, status = os.waitpid(child, 0)
-                os._exit(os.waitstatus_to_exitcode(status))
+                try:
+                    if stay:
+                        os.tcsetpgrp(0, os.getpgrp())
+                        termios.tcsetattr(0, termios.TCSANOW, modes)
+                        (root / "launcher.ended").write_text(str(os.waitstatus_to_exitcode(status)))
+                        recorded(root / "cli.exit")
+                finally:
+                    # This copy of the test process must never return into the test runner.
+                    os._exit(os.waitstatus_to_exitcode(status))
             os.close(writer)
             os.read(reader, 1)
             os.close(reader)
@@ -156,6 +181,8 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False, e
         fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
         os.environ.update(CI="false", NO_COLOR="1", TERM="xterm", **environment)
         command = [node, str(executable), *arguments]
+        if launcher == "dies":
+            os.execv(node, [node, "-e", DYING_LAUNCHER, *command])
         if launcher:
             # A second command keeps the shell above the CLI, in its group, as npx and pnpm dlx stay.
             os.execv(bash, [bash, "-c", shlex.join(command) + "; exit $?"])
@@ -1090,6 +1117,62 @@ process.stdout.write = (...args) => {
                         os.kill(pid, signal.SIGKILL)
                         os.waitpid(pid, 0)
 
+    def test_ctrl_c_under_a_launcher(self):
+        # Ctrl+C during a step under a launcher that waits for the CLI, as bash does, and under one that dies at once, as
+        # dash does. Only what the CLI does is checked: its closing line, its exit code and the cursor shown last.
+        for launcher in (True, "dies"):
+            with self.subTest(launcher=launcher), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                installer = root / "bun"
+                installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nsleep 20\n')
+                installer.chmod(0o755)
+                entry = root / "entry.mjs"
+                entry.write_text(EXIT_ENTRY)
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install"],
+                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"],
+                     "EXIT_FILE": str(root / "cli.exit"), "CLI_URL": cli.as_uri()},
+                    job_control=True, launcher=launcher, shell=True, stay=True, executable=entry)
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                try:
+                    for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        os.write(master, b"\r")
+                    reader.until(b"Installing dependencies with Bun")
+                    self.assertIsNotNone(recorded(root / "installer.pid"))
+                    start = len(transcript)
+                    os.write(master, b"\x03")
+                    reader.until("└  Creation canceled.".encode(), start)
+                    self.assertEqual(recorded(root / "cli.exit"), 130)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        reader.drain()
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    reader.drain()
+                    self.assertEqual(reader.cursor(), b"\x1b[?25h")
+                    # bash waits and ends with the code of the CLI; the other launcher died of the SIGINT.
+                    self.assertEqual(recorded(root / "launcher.ended"), 130 if launcher is True else -signal.SIGINT)
+                finally:
+                    for file in (root / "installer.pid", root / "cli.pid"):
+                        target = recorded(file) if file.exists() else None
+                        try:
+                            if target and os.getsid(target) == pid:
+                                os.killpg(os.getpgid(target), signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+
     def test_stop_after_the_launcher_while_a_step_holds_the_loop(self):
         # The shell writes its prompt while the CLI is held in the last synchronous part of the files step, or, with turn,
         # in the continuation of the first wait for pending signals after it, when the step has ended before the stop it
@@ -2003,7 +2086,7 @@ process.stdout.write = (...args) => {
             tmux("new-session", "-d", "-x", "80", "-y", "12", "-c", directory, "/bin/sh")
             try:
                 tmux("set-option", "remain-on-exit", "on")
-                tmux("respawn-pane", "-k", "-c", directory, "exec " + shlex.join([shutil.which("bash"), "--norc", "--noprofile", "-i", "-c", script]))
+                tmux("respawn-pane", "-k", "-c", directory, "exec " + shlex.join([bash_path(), "--norc", "--noprofile", "-i", "-c", script]))
                 wait_for(lambda lines: "└" in lines[-1])
                 value = "x" * 760
                 tmux("send-keys", "-l", value)

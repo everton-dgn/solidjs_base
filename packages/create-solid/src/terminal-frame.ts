@@ -107,15 +107,16 @@ function clearIndicator() {
   if (removeStepListeners) {
     removeStepListeners()
     removeStepListeners = undefined
-    process.stdout.write(clearIndicatorRows)
-    showCursor()
     process.off('exit', showCursor)
     if (pendingStop) {
       // WHY: The step ended before the stop it deferred, and none of its listeners is left to make it.
       clearImmediate(pendingStop)
       pendingStop = undefined
-      process.kill(process.pid, 'SIGTSTP')
+      if (!stopStep()) process.stdout.write(clearIndicatorRows)
       refreshSize()
+    } else {
+      process.stdout.write(clearIndicatorRows)
+      showCursor()
     }
   }
   indicator = undefined

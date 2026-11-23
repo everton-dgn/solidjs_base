@@ -183,11 +183,13 @@ def broken_cli(root):
 
 
 # The files step ends in a synchronous part; this module holds the event loop there until the script creates the RELEASE file.
-# With HOLD_AT=query it holds right after the CLI asked the system which process group owns the terminal.
+# With HOLD_AT=query it holds right after the CLI asked the system which process group owns the terminal. With HOLD_TURN it
+# holds in the continuation of the next turn of the event loop the CLI waits for after that synchronous part.
 HOLD_MODULE = """
 import childProcess from 'node:child_process';
 import fs, { existsSync, writeFileSync } from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
+import timers from 'node:timers/promises';
 let held = false;
 const hold = () => {
   held = true;
@@ -209,9 +211,20 @@ if (process.env.HOLD_AT === 'query') {
   };
 } else {
   const original = fs[process.env.HOLD_AT];
+  let isTurnNext = false;
   fs[process.env.HOLD_AT] = (...args) => {
-    if (!held && /\\.create-solid-[^/]+$/.test(String(args[0]))) hold();
+    if (!held && !isTurnNext && /\\.create-solid-[^/]+$/.test(String(args[0]))) {
+      if (process.env.HOLD_TURN) isTurnNext = true;
+      else hold();
+    }
     return original(...args);
+  };
+  const turn = timers.setImmediate;
+  timers.setImmediate = (...args) => {
+    const next = turn(...args);
+    if (!isTurnNext) return next;
+    isTurnNext = false;
+    return next.then(value => { hold(); return value; });
   };
 }
 syncBuiltinESMExports();
@@ -1058,79 +1071,81 @@ process.stdout.write = (...args) => {
                         os.waitpid(pid, 0)
 
     def test_stop_after_the_launcher_while_a_step_holds_the_loop(self):
-        # The shell writes its prompt while the CLI is held in the last synchronous part of the files step. The signals
-        # are the ones the terminal sends the group on Ctrl+Z, in the order a launcher sees them.
-        with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory)
-            release = root / "release"
-            pid, master, slave = start_cli(
-                root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--no-install"],
-                {"NODE_OPTIONS": "--import=data:text/javascript," + quote(HOLD_MODULE), "HOLD_AT": "renameSync",
-                 "HOLDING": str(root / "holding"), "RELEASE": str(release)},
-                job_control=True, launcher=True, shell=True)
-            reader = Reader(self, master)
-            transcript = reader.transcript
-            waited = False
-            shown = b"\x1b[?25h"
-            try:
-                for prompt in [b"Application title", b"Setup", b"Create the project?"]:
-                    reader.until(prompt)
-                    os.write(master, b"\r")
-                reader.until(b"Creating the files")
-                self.assertEqual(recorded(root / "holding"), 1)
-                launcher = recorded(root / "cli.pid")
-                worker = int(subprocess.check_output(["pgrep", "-P", str(launcher)], text=True))
-                os.kill(launcher, signal.SIGSTOP)
-                # The parent has taken the terminal back when it records the stop.
-                self.assertEqual(recorded(root / "stop.signal"), signal.SIGSTOP)
-                # The held CLI cannot run its listener, so the signal waits in its event loop.
-                os.kill(worker, signal.SIGTSTP)
-                reader.drain()
-                prompt_start = len(transcript)
-                os.write(slave, b"[1]+  Stopped\r\n$ ")
-                reader.until(b"$ ", prompt_start)
-                start = len(transcript)
-                # The hold outlasts the interval of the indicator (80 or 120 ms), so its timer is due when the loop runs again.
-                time.sleep(.3)
-                release.touch()
-                deadline = time.monotonic() + 4
-                while "T" not in state(worker):
-                    self.assertLess(time.monotonic(), deadline)
-                    time.sleep(.01)
-                # A stopped CLI writes nothing more, so this reads all it wrote after the prompt of the shell.
-                reader.drain()
-                self.assertEqual(bytes(transcript[start:]), shown)
-                os.write(slave, b"fg\r\n")
-                reader.until(b"fg", start)
-                continued = len(transcript)
-                foreground(root, 1)
-                reader.until(b"Files created", continued)
-                reader.until("└  Project created.".encode(), continued)
-                deadline = time.monotonic() + 5
-                while time.monotonic() < deadline:
-                    finished, status = os.waitpid(pid, os.WNOHANG)
-                    if finished:
-                        waited = True
-                        break
-                    time.sleep(.01)
-                self.assertTrue(waited)
-                reader.drain()
-                self.assertEqual(reader.cursor(), shown)
-                self.assertEqual(os.waitstatus_to_exitcode(status), 0)
-            finally:
-                release.touch()
-                foreground(root, 1)
-                target = recorded(root / "cli.pid") if (root / "cli.pid").exists() else None
+        # The shell writes its prompt while the CLI is held in the last synchronous part of the files step, or, with turn,
+        # in the continuation of the first wait for pending signals after it, when the step has ended before the stop it
+        # deferred. The signals are the ones the terminal sends the group on Ctrl+Z, in the order a launcher sees them.
+        for turn in (False, True):
+            with self.subTest(turn=turn), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                release = root / "release"
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--no-install"],
+                    {"NODE_OPTIONS": "--import=data:text/javascript," + quote(HOLD_MODULE), "HOLD_AT": "renameSync",
+                     "HOLDING": str(root / "holding"), "RELEASE": str(release), **({"HOLD_TURN": "1"} if turn else {})},
+                    job_control=True, launcher=True, shell=True)
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                shown = b"\x1b[?25h"
                 try:
-                    if target and os.getsid(target) == pid:
-                        os.killpg(target, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                os.close(master)
-                os.close(slave)
-                if not waited:
-                    os.kill(pid, signal.SIGKILL)
-                    os.waitpid(pid, 0)
+                    for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        os.write(master, b"\r")
+                    reader.until(b"Creating the files")
+                    self.assertEqual(recorded(root / "holding"), 1)
+                    launcher = recorded(root / "cli.pid")
+                    worker = int(subprocess.check_output(["pgrep", "-P", str(launcher)], text=True))
+                    os.kill(launcher, signal.SIGSTOP)
+                    # The parent has taken the terminal back when it records the stop.
+                    self.assertEqual(recorded(root / "stop.signal"), signal.SIGSTOP)
+                    # The held CLI cannot run its listener, so the signal waits in its event loop.
+                    os.kill(worker, signal.SIGTSTP)
+                    reader.drain()
+                    prompt_start = len(transcript)
+                    os.write(slave, b"[1]+  Stopped\r\n$ ")
+                    reader.until(b"$ ", prompt_start)
+                    start = len(transcript)
+                    # The hold outlasts the interval of the indicator (80 or 120 ms), so its timer is due when the loop runs again.
+                    time.sleep(.3)
+                    release.touch()
+                    deadline = time.monotonic() + 4
+                    while "T" not in state(worker):
+                        self.assertLess(time.monotonic(), deadline)
+                        time.sleep(.01)
+                    # A stopped CLI writes nothing more, so this reads all it wrote after the prompt of the shell.
+                    reader.drain()
+                    self.assertEqual(bytes(transcript[start:]), shown)
+                    os.write(slave, b"fg\r\n")
+                    reader.until(b"fg", start)
+                    continued = len(transcript)
+                    foreground(root, 1)
+                    reader.until(b"Files created", continued)
+                    reader.until("└  Project created.".encode(), continued)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    reader.drain()
+                    self.assertEqual(reader.cursor(), shown)
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+                finally:
+                    release.touch()
+                    foreground(root, 1)
+                    target = recorded(root / "cli.pid") if (root / "cli.pid").exists() else None
+                    try:
+                        if target and os.getsid(target) == pid:
+                            os.killpg(target, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
 
     def test_question_outside_stop(self):
         # A stop the CLI cannot catch, under a parent that puts the terminal back in its own modes as a shell does.

@@ -201,9 +201,16 @@ The corresponding programmatic properties are `siteUrl`, `mode`, `hasSeo`,
 During a step, the CLI disables automatic wrapping while drawing the indicator.
 Resizing clears the indicator from its first column down, preserving the
 completed steps above it. The cursor is hidden during an interactive step and
-restored when it ends. Ctrl+Z shows the cursor and lets the shell suspend the
-CLI. The indicator returns on `fg`; Ctrl+\ shows the cursor and quits. When
-nothing in the session can continue a stopped process, as under `ssh -t`,
-`docker exec -it` or `docker run -it` without `--init`, Ctrl+Z does nothing and
-the step goes on. A long directory stays on its own line in resume instructions
-and destination errors.
+restored when it ends. A long directory stays on its own line in resume
+instructions and destination errors.
+
+Ctrl+Z during a question or a step shows the cursor and lets the shell suspend
+the CLI. On `fg` the question is drawn again below what the shell wrote, or the
+indicator returns. Ctrl+\ during a step shows the cursor and quits. When the CLI
+is the command that `ssh -t`, `docker exec -it` or `docker run -it` without
+`--init` starts, nothing in the session can continue a stopped process, so
+Ctrl+Z does nothing and the question or the step goes on. A shell opened by
+those tools has job control, and there Ctrl+Z suspends as usual. Under an init
+process, as with `docker run -it --init`, Ctrl+Z stops the CLI until something
+sends SIGCONT to its process group, which nothing in the container does, so stop
+the container from another terminal.

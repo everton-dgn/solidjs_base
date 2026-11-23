@@ -230,6 +230,18 @@ if (process.env.HOLD_AT === 'query') {
 syncBuiltinESMExports();
 """
 
+# From a timer, this holds the event loop once the script creates the HOLD file, until it creates the RELEASE file.
+TIMER_HOLD_MODULE = """
+import { existsSync, writeFileSync } from 'node:fs';
+const timer = setInterval(() => {
+  if (!existsSync(process.env.HOLD)) return;
+  clearInterval(timer);
+  writeFileSync(process.env.HOLDING, '1');
+  while (!existsSync(process.env.RELEASE)) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+}, 10);
+timer.unref();
+"""
+
 
 class Reader:
     """Collect what the CLI writes to its terminal."""
@@ -975,8 +987,12 @@ process.stdout.write = (...args) => {
                 installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nsleep 20\n')
                 installer.chmod(0o755)
                 release = root / "release"
-                hold = {"NODE_OPTIONS": "--import=data:text/javascript," + quote(HOLD_MODULE), "HOLD_AT": "query",
-                        "HOLDING": str(root / "holding"), "RELEASE": str(release)} if held else {}
+                hold = {"HOLDING": str(root / "holding"), "RELEASE": str(release)}
+                if held:
+                    hold.update(NODE_OPTIONS="--import=data:text/javascript," + quote(HOLD_MODULE), HOLD_AT="query")
+                elif stage != b"Application title":
+                    # The indicator draws until the CLI reads its signal, so the loop is held while the two signals are sent.
+                    hold.update(NODE_OPTIONS="--import=data:text/javascript," + quote(TIMER_HOLD_MODULE), HOLD=str(root / "hold"))
                 pid, master, slave = start_cli(
                     root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install"],
                     {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"], **hold},
@@ -1006,6 +1022,9 @@ process.stdout.write = (...args) => {
                     if held:
                         os.kill(worker, signal.SIGTSTP)
                         self.assertEqual(recorded(root / "holding"), 1)
+                    elif stage != b"Application title":
+                        (root / "hold").touch()
+                        self.assertEqual(recorded(root / "holding"), 1)
                     os.kill(launcher, signal.SIGSTOP)
                     # The parent has taken the terminal back when it records the stop.
                     self.assertEqual(recorded(root / "stop.signal"), signal.SIGSTOP)
@@ -1018,6 +1037,7 @@ process.stdout.write = (...args) => {
                     else:
                         start = len(transcript)
                         os.kill(worker, signal.SIGTSTP)
+                        release.touch()
                     deadline = time.monotonic() + 4
                     while "T" not in state(worker):
                         self.assertLess(time.monotonic(), deadline)
@@ -1487,16 +1507,7 @@ process.stdout.write = (...args) => {
 
     def test_install_ends_before_signal(self):
         # A signal sent to the group ends the installer too. This holds the event loop until that end and the signal of the CLI are pending in that order.
-        hold = """
-import { existsSync, writeFileSync } from 'node:fs';
-const timer = setInterval(() => {
-  if (!existsSync(process.env.HOLD)) return;
-  clearInterval(timer);
-  writeFileSync(process.env.HOLDING, '1');
-  while (!existsSync(process.env.RELEASE)) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
-}, 10);
-timer.unref();
-"""
+        hold = TIMER_HOLD_MODULE
         for interrupt in (signal.SIGTERM, signal.SIGHUP):
             for plain in (False, True):
                 with self.subTest(signal=interrupt, plain=plain), tempfile.TemporaryDirectory() as directory:

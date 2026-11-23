@@ -1591,8 +1591,9 @@ process.stdout.write = (...args) => {
                     root = pathlib.Path(directory)
                     installer = root / "bun"
                     ending = "\\n" if terminal else ""
+                    # The second line ends in bytes that are not UTF-8, and in a pipe the last one has no newline.
                     installer.write_text("#!/bin/sh\nif [ -t 2 ]; then echo tty >&2; else echo pipe >&2; fi\n"
-                                         f"printf 'first\\nsecond\\nthird{ending}' >&2\n"
+                                         f"printf 'first\\nsecond \\351\\377\\nthird{ending}' >&2\n"
                                          'while [ ! -f "$RELEASE" ]; do sleep .02; done\n'
                                          f"exit {status}\n")
                     installer.chmod(0o755)
@@ -1622,25 +1623,53 @@ process.stdout.write = (...args) => {
                             else:
                                 data.extend(stderr)
                             if not terminal:
-                                self.assertIn(b"third\n", data)
+                                self.assertIn(b"\npipe\nfirst\nsecond \xe9\xff\nthird\n", b"\n" + data)
                             self.assertNotIn(b"\x1b[?25", data + (stdout or b""))
-                            lines = data.decode().splitlines()
-                            start = lines.index("first")
-                            self.assertEqual(lines[start - 1], "tty" if terminal else "pipe")
-                            self.assertEqual(lines[start:start + 3], ["first", "second", "third"])
-                            for line in ("first", "second", "third"):
+                            lines = data.splitlines()
+                            start = lines.index(b"first")
+                            self.assertEqual(lines[start - 1], b"tty" if terminal else b"pipe")
+                            self.assertEqual(lines[start:start + 3], [b"first", b"second \xe9\xff", b"third"])
+                            for line in (b"first", b"second \xe9\xff", b"third"):
                                 self.assertEqual(lines.count(line), 1)
                             self.assertEqual(child.returncode, status)
                             if status:
-                                self.assertEqual(lines[start + 3:], ["▲ Could not install dependencies with Bun",
+                                self.assertEqual([line.decode() for line in lines[start + 3:]], ["▲ Could not install dependencies with Bun",
                                     "Your project is in app. To finish, run:", "cd app", "bun install", "", "Creation stopped."])
                             else:
-                                closing = "\n".join(lines[start + 3:]) if terminal else stdout.decode()
-                                self.assertIn("Dependencies installed with Bun", closing)
+                                closing = b"\n".join(lines[start + 3:]) if terminal else stdout
+                                self.assertIn(b"Dependencies installed with Bun", closing)
                     finally:
                         if terminal:
                             os.close(master)
                             os.close(slave)
+
+    def test_plain_installer_stderr_back_pressure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            installer = root / "bun"
+            size = 4 * 1024 * 1024
+            installer.write_text(f"#!/bin/sh\nhead -c {size} /dev/zero | tr '\\0' x >&2\n: > \"$DONE\"\n")
+            installer.chmod(0o755)
+            done = root / "done"
+            env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + ":" + os.environ["PATH"], DONE=str(done))
+            with subprocess.Popen([node, cli, "app", "--yes", "--lang", "en", "--no-git"], cwd=root, env=env,
+                                  stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as child:
+                try:
+                    printed = bytearray()
+                    deadline = time.monotonic() + 10
+                    while b"Files created\n" not in printed:
+                        self.assertTrue(select.select([child.stdout], [], [], max(0, deadline-time.monotonic()))[0], printed)
+                        printed.extend(os.read(child.stdout.fileno(), 4096))
+                    # With nobody reading stderr, its pipes fill and the installer waits. An installer that the CLI did not hold back ends in milliseconds.
+                    time.sleep(1)
+                    self.assertFalse(done.exists())
+                    _, written = child.communicate(timeout=20)
+                    self.assertTrue(done.exists())
+                    self.assertEqual(written, b"x" * size + b"\n")
+                    self.assertEqual(child.returncode, 0)
+                finally:
+                    if child.poll() is None:
+                        child.kill()
 
     def test_plain_installer_stdout(self):
         for terminal in (False, True):

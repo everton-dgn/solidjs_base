@@ -14,6 +14,7 @@ import {
 } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import type { Readable } from 'node:stream'
 import { setImmediate } from 'node:timers/promises'
 import { URL } from 'node:url'
 
@@ -316,6 +317,17 @@ type TerminalOptions = {
 }
 const childInterruptDeadlineMs = 750
 const newline = '\n'.codePointAt(0)
+type Forwarding = { source: Readable | null; target: NodeJS.WriteStream }
+type Forwarded = { shouldAppendNewline: boolean }
+// WHY: pipe forwards the bytes as they are and pauses the installer while the reader of this output is slower than it.
+function forward({ source, target }: Forwarding): Forwarded {
+  const forwarded = { shouldAppendNewline: false }
+  source?.on('data', (chunk: Buffer) => {
+    forwarded.shouldAppendNewline = chunk.at(-1) !== newline
+  })
+  source?.pipe(target, { end: false })
+  return forwarded
+}
 type SetupOptions = { cwd: string; signal: AbortSignal; isInteractive: boolean }
 async function executeSetup(
   command: SetupCommand,
@@ -336,19 +348,15 @@ async function executeSetup(
   const tailLimit = 8192
   const diagnosticLines = 6
   let diagnostic = ''
-  const forwarded = { shouldAppendNewline: false }
-  child.stderr?.setEncoding('utf8').on('data', (chunk: string) => {
-    if (isPlainInstall) {
-      process.stderr.write(chunk)
-      forwarded.shouldAppendNewline = !chunk.endsWith('\n')
-    } else diagnostic = (diagnostic + chunk).slice(-tailLimit)
-  })
-  const printed = { shouldAppendNewline: false }
-  child.stdout?.on('data', (chunk: Buffer) => {
-    printed.shouldAppendNewline = chunk.at(-1) !== newline
-  })
-  // WHY: pipe forwards the bytes as they are and pauses the installer while the reader of this output is slower than it.
-  child.stdout?.pipe(process.stdout, { end: false })
+  const forwarded = isPlainInstall
+    ? forward({ source: child.stderr, target: process.stderr })
+    : { shouldAppendNewline: false }
+  if (!isPlainInstall) {
+    child.stderr?.setEncoding('utf8').on('data', (chunk: string) => {
+      diagnostic = (diagnostic + chunk).slice(-tailLimit)
+    })
+  }
+  const printed = forward({ source: child.stdout, target: process.stdout })
   let deadline: ReturnType<typeof setTimeout> | undefined
   const forced = Promise.withResolvers<typeof child.signalCode>()
   const force = () => {

@@ -42,6 +42,7 @@ const clearIndicatorRows = '\r\u001B[J'
 let indicator: ReturnType<typeof setInterval> | undefined
 let active = ''
 let removeStepListeners: (() => void) | undefined
+let pendingStop: NodeJS.Immediate | undefined
 type StepTitle = { title: string; columns?: number }
 function stepTitle({
   title,
@@ -93,6 +94,12 @@ function clearIndicator() {
     process.stdout.write(clearIndicatorRows)
     showCursor()
     process.off('exit', showCursor)
+    if (pendingStop) {
+      // WHY: The step ended before the stop it deferred, and none of its listeners is left to make it.
+      clearImmediate(pendingStop)
+      pendingStop = undefined
+      process.kill(process.pid, 'SIGTSTP')
+    }
   }
   indicator = undefined
   active = ''
@@ -173,19 +180,25 @@ export const progress = {
       draw()
     }
     const resume = () => {
+      clearImmediate(pendingStop)
+      pendingStop = undefined
       process.stdout.write('\u001B[?25l')
       resize()
     }
     const suspend = () => {
-      process.stdout.write(clearIndicatorRows)
-      showCursor()
-      process.off('SIGTSTP', suspend)
-      // WHY: Without a listener the continue of this stop emits no event, so only the line below restores it.
-      process.off('SIGCONT', resume)
-      process.kill(process.pid, 'SIGTSTP')
-      process.on('SIGTSTP', suspend)
-      process.on('SIGCONT', resume)
-      resume()
+      // WHY: A launcher in the same group stops before this listener runs, so the continue of the shell may be queued behind this signal. The stop waits for the signals the loop has read, and that continue cancels it.
+      pendingStop ??= setImmediate(() => {
+        pendingStop = undefined
+        process.stdout.write(clearIndicatorRows)
+        showCursor()
+        process.off('SIGTSTP', suspend)
+        // WHY: With no SIGCONT listener during the stop its continue emits no event, so the resume() after process.kill is the only restore.
+        process.off('SIGCONT', resume)
+        process.kill(process.pid, 'SIGTSTP')
+        process.on('SIGTSTP', suspend)
+        process.on('SIGCONT', resume)
+        resume()
+      })
     }
     const quit = () => {
       process.stdout.write(clearIndicatorRows)

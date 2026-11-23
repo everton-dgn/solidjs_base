@@ -17,6 +17,7 @@ import tempfile
 import termios
 import time
 import unittest
+from urllib.parse import quote
 
 cli = pathlib.Path(sys.argv.pop(1)).resolve()
 node = shutil.which("node")
@@ -544,6 +545,92 @@ class Cancellation(unittest.TestCase):
                                 os.kill(target, signal.SIGKILL)
                         except ProcessLookupError:
                             pass
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+
+    def test_step_launcher_signals(self):
+        # The files step holds the event loop; this holds it until the script has sent its signals.
+        hold = """
+import { existsSync } from 'node:fs';
+const write = process.stdout.write.bind(process.stdout);
+let held = false;
+process.stdout.write = (...args) => {
+  const result = write(...args);
+  if (!held && String(args[0]).includes('Creating the files')) {
+    held = true;
+    while (!existsSync(process.env.RELEASE)) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+  }
+  return result;
+};
+"""
+        for continued_first in (True, False):
+            with self.subTest(continued_first=continued_first), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                release = root / "release"
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--no-install"],
+                    {"NODE_OPTIONS": "--import=data:text/javascript," + quote(hold), "RELEASE": str(release)},
+                    job_control=True, launcher=True)
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                hidden = b"\x1b[?25l"
+                shown = b"\x1b[?25h"
+                try:
+                    for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        os.write(master, b"\r")
+                    reader.until(b"Creating the files")
+                    leader = recorded(root / "cli.pid")
+                    worker = int(subprocess.check_output(["pgrep", "-P", str(leader)], text=True))
+                    start = len(transcript)
+                    os.write(master, b"\x1a")
+                    # The terminal stops the shell at once, while the CLI has not read its signal yet.
+                    self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
+                    self.assertIn("T", state(leader))
+                    self.assertNotIn("T", state(worker))
+                    if continued_first:
+                        os.killpg(leader, signal.SIGCONT)
+                    release.touch()
+                    if not continued_first:
+                        deadline = time.monotonic() + 4
+                        while "T" not in state(worker):
+                            self.assertLess(time.monotonic(), deadline)
+                            time.sleep(.01)
+                        # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
+                        reader.drain()
+                        self.assertEqual(reader.cursor(), shown)
+                        self.assertNotIn(b"Files created", transcript)
+                        continued = len(transcript)
+                        os.killpg(leader, signal.SIGCONT)
+                    reader.until("└  Project created.".encode(), start)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    reader.drain()
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+                    closed = transcript.index(b"Files created", start)
+                    cursors = re.findall(rb"\x1b\[\?25[hl]", transcript[start:closed])
+                    # A continue read before the stop cancels it; a stop left for the end of the step registers nothing again.
+                    self.assertEqual(cursors, [hidden, shown] if continued_first else [shown])
+                    if not continued_first:
+                        self.assertNotIn(hidden, transcript[continued:])
+                finally:
+                    release.touch()
+                    target = recorded(root / "cli.pid") if (root / "cli.pid").exists() else None
+                    try:
+                        if target and os.getsid(target) == pid:
+                            os.killpg(target, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
                     os.close(master)
                     os.close(slave)
                     if not waited:

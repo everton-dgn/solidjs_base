@@ -320,6 +320,57 @@ for (const order of ['FWC', 'FTWC', 'FTTWC', 'FC', 'FTC', 'grow', 'truncate']) {
   })
 }
 
+void it('defers the stop of a step until the pending signals are read', () => {
+  const script = `
+    Object.defineProperty(process.stdout,'isTTY',{value:true})
+    const stops = []
+    const listeners = () => [process.listenerCount('SIGTSTP'), process.listenerCount('SIGCONT')]
+    process.kill = (pid, signal) => stops.push([signal, ...listeners()])
+    const turn = () => new Promise(resolve => setImmediate(resolve))
+    const {progress} = await import('./src/terminal-frame.ts')
+    const seen = {}
+    progress.start('files')
+    process.emit('SIGTSTP')
+    process.emit('SIGCONT')
+    await turn()
+    seen.canceled = [...stops]
+    process.emit('SIGTSTP')
+    seen.deferred = [...stops]
+    progress.finish('done')
+    seen.atStepEnd = [...stops]
+    await turn()
+    seen.afterStepEnd = [stops.length, ...listeners()]
+    progress.start('install')
+    process.emit('SIGTSTP')
+    process.emit('SIGTSTP')
+    await turn()
+    seen.duringStep = stops.slice(1)
+    seen.afterStop = listeners()
+    progress.cancel()
+    seen.end = listeners()
+    process.stderr.write(JSON.stringify(seen))
+  `
+  const { stdout, stderr } = spawnSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    { encoding: 'utf8', env: { ...process.env, TERM: 'xterm', NO_COLOR: '1' } }
+  )
+  assert.deepEqual(JSON.parse(stderr), {
+    canceled: [],
+    deferred: [],
+    atStepEnd: [['SIGTSTP', 0, 0]],
+    afterStepEnd: [1, 0, 0],
+    duringStep: [['SIGTSTP', 0, 0]],
+    afterStop: [1, 1],
+    end: [0, 0]
+  })
+  const cursor = stdout
+    .split('\u001B[?25')
+    .slice(1)
+    .map(part => part.slice(0, 1))
+  assert.deepEqual(cursor, ['l', 'l', 'h', 'l', 'h', 'l', 'h'])
+})
+
 void it('restores the cursor when exiting during a step', () => {
   const bytes = execFileSync(
     process.execPath,

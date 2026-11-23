@@ -525,11 +525,14 @@ class Cancellation(unittest.TestCase):
         for stage in [b"Application title", b"Create the project?"]:
             for sig in [signal.SIGHUP, signal.SIGTERM]:
                 with tempfile.TemporaryDirectory() as directory:
+                    installer = pathlib.Path(directory, "bun")
+                    installer.write_text("#!/bin/sh\nexit 0\n")
+                    installer.chmod(0o755)
                     pid, term = pty.fork()
                     if pid == 0:
                         os.chdir(directory)
                         fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
-                        os.environ.update(CI="false", NO_COLOR="1")
+                        os.environ.update(CI="false", NO_COLOR="1", PATH=directory + ":" + os.environ["PATH"])
                         os.execv(node, [node, str(cli), "app", "--mode", "server", "--lang", "en"])
                     transcript = bytearray()
                     waited = False

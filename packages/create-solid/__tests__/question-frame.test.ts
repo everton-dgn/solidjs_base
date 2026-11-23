@@ -179,3 +179,49 @@ void it('keeps the rows of a question taller than the screen through the renders
   input.write('\r')
   assert.equal(await answer, `${typed}y`)
 })
+
+void it('erases a question that was taller than the screen once its value is erased until it fits', async () => {
+  const typedLength = 60
+  const keptLength = 30
+  // The value starts after the bar and two spaces, in a screen of 20 columns.
+  const firstRowWidth = 17
+  const backspace = '\u007F'
+  const eraseLine = '\u0015'
+  const kept = 'x'.repeat(keptLength)
+  // Clack cuts the value at the width of the screen and draws an empty one as a placeholder.
+  for (const [keys, value, valueRows] of [
+    [
+      backspace.repeat(typedLength - keptLength),
+      kept,
+      [`│  ${kept.slice(0, firstRowWidth)}`, `${kept.slice(firstRowWidth)}█`]
+    ],
+    [eraseLine, '', ['│  _']]
+  ] as const) {
+    const stream = Object.assign(new PassThrough(), { columns: 20, rows: 6 })
+    const written: string[] = []
+    stream.on('data', chunk => written.push(String(chunk)))
+    const frame = questionFrame(stream)
+    const input = new PassThrough()
+    const answer = text({ message: 'Title', input, output: frame.output })
+    await turns()
+    input.write('x'.repeat(typedLength))
+    await turns()
+    for (const key of keys) {
+      input.write(key)
+      await turns()
+    }
+    const question = ['│', '◆  Title', ...valueRows, '└', '']
+    written.length = 0
+    frame.erase()
+    const erased = `${escape}[${question.length - 1}A\r${escape}[J`
+    assert.deepEqual(written, [erased], JSON.stringify(keys))
+    frame.flush()
+    assert.deepEqual(
+      written,
+      [erased, question.join('\n')],
+      JSON.stringify(keys)
+    )
+    input.write('\r')
+    assert.equal(await answer, value)
+  }
+})

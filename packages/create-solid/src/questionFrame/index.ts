@@ -8,6 +8,8 @@ type Frame = {
   bottom: number
   screenRows: number
   isKnown: boolean
+  stoppedRow?: number
+  rewrittenRow?: number
 }
 type QuestionFrame<Output> = {
   output: Output
@@ -32,6 +34,7 @@ function screenRows(target: Writable): number {
 }
 type Text = { frame: Frame; text: string }
 function addText({ frame, text }: Text): void {
+  if (text) frame.stoppedRow = undefined
   for (const [index, line] of text.split('\n').entries()) {
     if (index > 0) frame.row += 1
     frame.bottom = Math.max(frame.bottom, frame.row)
@@ -39,15 +42,39 @@ function addText({ frame, text }: Text): void {
     frame.lines[frame.row] += line
   }
 }
+type Rewrite = { frame: Frame; height?: number }
+// WHY: Clack writes a question that shrank from the top of the screen, from its first row once it fits there. Fewer rows than the screen show that at once, and a full screen only on the next move up, which spans the question.
+function settle({ frame, height }: Rewrite): void {
+  const start = frame.rewrittenRow
+  if (start === undefined) return
+  const fits =
+    frame.lines.length - start < frame.screenRows ||
+    (height !== undefined && height <= frame.screenRows)
+  if (fits) {
+    frame.lines.splice(0, start)
+    frame.row -= start
+    frame.bottom -= start
+  }
+  if (fits || height !== undefined) frame.rewrittenRow = undefined
+}
 type Change = { frame: Frame; count?: string; move?: string; erasure?: string }
 function change({ frame, count, move, erasure }: Change): void {
   const amount = count ? Number(count) : 1
+  if (move === 'A') settle({ frame, height: amount + 1 })
   // WHY: A move up stops at the top of the screen, which is below the first row once the question has scrolled past it.
   const top = Math.max(0, frame.bottom - frame.screenRows + 1)
-  if (move === 'A') frame.row = Math.max(top, frame.row - amount)
+  if (move === 'A') {
+    frame.stoppedRow = frame.row - amount < top ? top : undefined
+    frame.row = Math.max(top, frame.row - amount)
+  }
   if (move === 'B') frame.row += amount
+  if (move === 'B' || erasure === '2K') frame.stoppedRow = undefined
   addText({ frame, text: '' })
-  if (erasure === 'J') frame.lines.length = frame.row + 1
+  if (erasure === 'J') {
+    frame.rewrittenRow = frame.stoppedRow
+    frame.stoppedRow = undefined
+    frame.lines.length = frame.row + 1
+  }
   if (erasure) frame.lines[frame.row] = ''
 }
 type Chunk = { frame: Frame; chunk: string }
@@ -78,6 +105,7 @@ export function questionFrame<Output extends Writable>(
     if (!isHeld) return
     isHeld = false
     if (!frame) return
+    settle({ frame })
     const below = frame.lines.length - 1 - frame.row
     target.write(
       frame.lines.join('\n') + (below > 0 ? `${escape}[${below}A` : '')
@@ -121,6 +149,7 @@ export function questionFrame<Output extends Writable>(
     erase() {
       // WHY: A question drawn with unknown bytes stays as it is. One whose first row has left the top of the screen cannot be reached to erase it, so it is drawn whole again below what the shell writes.
       if (!frame?.isKnown || isHeld) return
+      settle({ frame })
       if (frame.bottom < screenRows(target)) {
         target.write(
           `${frame.row > 0 ? `${escape}[${frame.row}A` : ''}\r${escape}[J`

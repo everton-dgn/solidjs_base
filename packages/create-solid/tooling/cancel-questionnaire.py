@@ -2081,6 +2081,7 @@ process.stdout.write = (...args) => {
     def test_tall_question_after_fg(self):
         # A question taller than the screen, stopped and continued by bash with job control in a tmux window of 12 rows.
         self.assertIsNotNone(shutil.which("tmux"), "The tmux tests of the questionnaire harness need tmux: install it and run again")
+        self.assertIsNotNone(bash_path(), "The tmux tests of the questionnaire harness need bash: install it and run again")
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             socket = str(root / "tmux.sock")
@@ -2118,16 +2119,21 @@ process.stdout.write = (...args) => {
                 full = "│  " + "x" * 77
                 # Ten rows of the value, the bar and the line of the cursor do not fit in 12 rows: the first rows left the top.
                 wait_for(lambda lines: lines[-2:] == ["│  " + "x" * 67 + "█", "└"] and lines[0] == full)
+                [worker] = children(int(tmux("display", "-p", "#{pane_pid}")))
                 tmux("send-keys", "C-z")
-                wait_for(lambda lines: any("Stopped" in line for line in lines), history=True)
+                # bash 5 writes no notice when a job of -c stops, so the stop is read from the state of the CLI.
+                deadline = time.monotonic() + 10
+                while "T" not in state(worker):
+                    self.assertLess(time.monotonic(), deadline, processes())
+                    time.sleep(.04)
                 go.touch()
-                # Before fg the last rows are the ones the shell wrote; after it the question is drawn again below them.
-                wait_for(lambda lines: lines[-2:] == ["│  " + "x" * 67 + "█", "└"])
+                # The question is not erased, so after fg it is drawn whole a second time, below what the shell wrote.
+                wait_for(lambda lines: "T" not in state(worker) and lines[-2:] == ["│  " + "x" * 67 + "█", "└"]
+                         and sum(line == "◆  Application title" for line in lines) == 2, history=True)
                 tmux("send-keys", "-l", "y")
-                lines = wait_for(lambda lines: "y█" in "".join(lines))
                 # Clack redraws the changed row of a question taller than the screen at the row it expects, so the screen
                 # shows the end of the question once, with the key on its last row of value.
-                self.assertEqual(lines, [full] * 9 + ["│  " + "x" * 67 + "y█", "└"])
+                wait_for(lambda lines: lines == [full] * 9 + ["│  " + "x" * 67 + "y█", "└"])
                 tmux("send-keys", "C-c")
                 wait_for(lambda lines: "└  Creation canceled." in lines)
             finally:

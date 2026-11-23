@@ -213,4 +213,7 @@ Ctrl+Z does nothing and the question or the step goes on. A shell opened by
 those tools has job control, and there Ctrl+Z suspends as usual. Under an init
 process, as with `docker run -it --init`, Ctrl+Z stops the CLI until something
 sends SIGCONT to its process group, which nothing in the container does, so stop
-the container from another terminal.
+the container from another terminal. When a launcher such as `npx` or `pnpm dlx`
+runs the CLI, the shell takes the terminal back as soon as the launcher stops. A
+step that is still busy stops a moment later, and the CLI may draw its indicator
+on the line of the shell prompt and clear that line before it stops.

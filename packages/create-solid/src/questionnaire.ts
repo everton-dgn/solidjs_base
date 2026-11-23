@@ -24,6 +24,7 @@ import {
 import manifest from '../package.json' with { type: 'json' }
 import { messages, type Language } from './cli-language.ts'
 import { defaultSiteUrl } from './constants/site-url.ts'
+import { directoryError } from './directoryError/index.ts'
 import { fieldMessage } from './fieldMessage/index.ts'
 import { installers } from './profile-answers.ts'
 import { questionnaireBase } from './resolve-locale-options.ts'
@@ -75,22 +76,6 @@ function renderText({ label, placeholder, output, wrapError }: TextLabel) {
     )
     return `${heading}\n${typed}\n${styleText(color, S_BAR_END)}${error}\n`
   }
-}
-type DirectoryError = { text: string; dir?: string; output: Writable }
-function directoryError({ text, dir, output }: DirectoryError): string {
-  if (!dir || !text.endsWith(dir)) return text
-  const frame = wrapTextWithPrefix(output, `${S_BAR_END}  ${text}`, '')
-  if (!frame.includes('\n')) return text
-  const sentence = wrapFrameText({
-    output,
-    text: text.slice(0, -dir.length).trimEnd()
-  })
-  const ending = `${sentence.at(-1) ?? ''} ${dir}`
-  const lines =
-    wrapFrameText({ output, text: ending }).length === 1
-      ? [...sentence.slice(0, -1), ending]
-      : [...sentence, ...wrapFrameText({ output, text: dir })]
-  return lines.join('\n   ')
 }
 type FieldOptions = {
   key: 'name' | 'title' | 'locales' | 'base-locale' | 'site-url'

@@ -98,6 +98,8 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
   }
   // WHY: This runs after the listener of Node, which reads the new size and lets Clack render the question at it, so the question is drawn once at the width of the terminal.
   const draw = () => frame.flush()
+  // WHY: Without a listener Node ends on SIGINT with the cursor hidden. Ctrl+C is a key during a question, so this is a signal sent from outside.
+  process.on('SIGINT', cancelPrompt)
   process.on('SIGTERM', cancelPrompt)
   process.on('SIGHUP', cancelPrompt)
   process.on('SIGTSTP', suspend)
@@ -108,6 +110,7 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
   } finally {
     // WHY: A Ctrl+Z read together with the key that closes the question is still pending, and without suspend it would be lost and leave the listener of readline.
     await readPendingSignals()
+    process.off('SIGINT', cancelPrompt)
     process.off('SIGTERM', cancelPrompt)
     process.off('SIGHUP', cancelPrompt)
     process.off('SIGTSTP', suspend)

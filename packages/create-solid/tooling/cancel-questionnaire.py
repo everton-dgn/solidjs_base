@@ -1299,8 +1299,8 @@ syncBuiltinESMExports();
 
     def test_prompt_signals(self):
         for stage in [b"Application title", b"Create the project?"]:
-            for sig in [signal.SIGHUP, signal.SIGTERM]:
-                with tempfile.TemporaryDirectory() as directory:
+            for sig in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
+                with self.subTest(stage=stage, signal=sig), tempfile.TemporaryDirectory() as directory:
                     installer = pathlib.Path(directory, "bun")
                     installer.write_text("#!/bin/sh\nexit 0\n")
                     installer.chmod(0o755)
@@ -1339,7 +1339,8 @@ syncBuiltinESMExports();
                                 time.sleep(.01)
                         self.assertTrue(waited)
                         self.assertEqual(os.waitstatus_to_exitcode(status), 130)
-                        self.assertIn(b"\x1b[?25h", transcript[offset:])
+                        self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], b"\x1b[?25h")
+                        self.assertEqual(transcript[offset:].decode().replace("\x1b[?25h", "").strip(), "└  Creation canceled.")
                     finally:
                         os.close(term)
                         if not waited:

@@ -217,17 +217,35 @@ starts as many lines too low as went into the history, and the first part of an
 old line stays above the question. A terminal that cuts long lines instead of
 reflowing them loses the heading of the question instead.
 
-Ctrl+Z during a question or a step shows the cursor and lets the shell suspend
-the CLI. On `fg` the question is drawn again below what the shell wrote, or the
-indicator returns. Ctrl+\ during a step shows the cursor and quits. When nothing
-in the session can continue a stopped process, as when the CLI is the command
-that `docker exec -it` starts, Ctrl+Z does nothing and the question or the step
-goes on. A shell opened by such a tool has job control, and there Ctrl+Z
-suspends as usual. Under an init process, as with `docker run -it --init`,
-Ctrl+Z stops the CLI and the processes it started until something sends SIGCONT
-to their process group, which nothing in the container does, so stop the
-container from another terminal. When a launcher such as `npx` or `pnpm dlx`
-runs the CLI, the shell takes the terminal back as soon as the launcher stops. A
-step that is still busy stops a moment later; the CLI then finds that the shell
-owns the terminal, shows the cursor without drawing over the prompt, and draws
-the question or the indicator again on `fg`.
+Ctrl+Z during a step shows the cursor and lets the shell suspend the CLI. During
+a question the terminal is in raw mode, so Ctrl+Z reaches the CLI as a key: the
+CLI erases the question, shows the cursor and stops its own process group. On
+`fg` the question is drawn again below what the shell wrote, or the indicator
+returns. A question taller than the screen is drawn whole again. A question
+whose output holds bytes the CLI does not recognize is left as it is on Ctrl+Z
+and is not drawn again on `fg`. Ctrl+\ during a step shows the cursor and quits.
+When nothing in the session can continue a stopped process, as when the CLI is
+the command that `docker exec -it` starts, Ctrl+Z does nothing and the question
+or the step goes on. A shell opened by such a tool has job control, and there
+Ctrl+Z suspends as usual. Under an init process, as with
+`docker run -it --init`, Ctrl+Z during a step stops the CLI and the processes it
+started, and during a question it stops the whole process group of the CLI, the
+init included when it shares that group. Nothing in the container sends SIGCONT
+to them, so stop the container from another terminal.
+
+`npx` and `pnpm dlx` stay in the process group of the CLI and stop at once on
+Ctrl+Z, so the shell may take the terminal back before the CLI handles its stop.
+During a step the CLI then writes only the cursor, which changes no cell, before
+it stops: the indicator drawn before the stop stays above what the shell wrote,
+and on `fg` the indicator is drawn again below it. `bunx` runs the CLI in its
+own place, so the CLI leads its process group, as when Node runs it directly;
+the shell then waits for the stop of the CLI, which clears the indicator first.
+The shell only owns the terminal while the CLI is at a question when the stop
+comes from outside, such as `kill -TSTP` to the process group: the CLI then
+keeps the question and raw mode as they are and draws the question again below
+what the shell wrote on `fg`. bash takes the terminal out of raw mode while the
+CLI is stopped, and zsh leaves it in raw mode. The CLI asks the system which
+process group owns the terminal, through `/proc` on Linux and `/bin/ps`
+elsewhere. When the system does not answer within 250 ms, the CLI clears as it
+did before it could ask, and under `npx` or `pnpm dlx` that clearing can land on
+the prompt of the shell.

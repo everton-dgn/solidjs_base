@@ -290,6 +290,11 @@ class Cancellation(unittest.TestCase):
                 if (install or git) and not (success or failure or git_warning or files_failure):
                     installer = recorded(root / "pid")
                     self.assertIsNotNone(installer)
+                if plain:
+                    # macOS discards the output nobody has read when the terminal turns Ctrl+C into SIGINT.
+                    while b"Files created" not in transcript:
+                        self.assertTrue(select.select([terminal], [], [], max(0, deadline-time.monotonic()))[0], transcript)
+                        transcript.extend(os.read(terminal, 65536))
                 if interrupt:
                     started = time.monotonic()
                     os.kill(pid, interrupt)
@@ -383,11 +388,12 @@ class Cancellation(unittest.TestCase):
                         "│", "│  Your project is in parent/app. To finish, run:"])
                     return
                 if plain:
-                    closing = transcript.decode().rstrip().splitlines()[-6:]
-                    closing[0] = closing[0].removeprefix("^C")
-                    self.assertEqual(closing, [
-                        "■ Installing dependencies with Bun", "Your project is in parent/app. To finish, run:",
-                        "cd parent/app", "bun install", "", "Creation canceled."])
+                    # Only Ctrl+C is echoed by the terminal, and its echo stays alone on its line.
+                    echo = [] if interrupt else ["^C"]
+                    closing = [*echo, "■ Installing dependencies with Bun", "Your project is in parent/app. To finish, run:",
+                               "cd parent/app", "bun install", "", "Creation canceled."]
+                    lines = transcript.decode().rstrip().splitlines()
+                    self.assertEqual(lines[-len(closing) - 1:], ["◇ Files created", *closing])
                 if columns == 80 and (install or git) and not plain:
                     lines = install_screen(transcript, columns)
                     while lines and not lines[-1]:

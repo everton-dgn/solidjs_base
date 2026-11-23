@@ -547,6 +547,7 @@ void it('preserves the published project and gives a resume command on install c
   )
   const canceled = 130
   assert.equal(result.status, canceled, result.stderr)
+  assert.match(result.stderr, /^■ /u)
   assert.match(
     result.stderr,
     /Para terminar, ejecuta:\ncd [^\n]+\nbun install/u

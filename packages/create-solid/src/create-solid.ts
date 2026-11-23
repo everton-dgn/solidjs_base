@@ -119,6 +119,36 @@ function rethrowUsageError({ error, progress }: GenerationError): void {
     throw error
   }
 }
+type PlainClosing = {
+  lines: string[]
+  isCanceled: boolean
+  received: Set<NodeJS.Signals>
+}
+function writePlainClosing({
+  lines,
+  isCanceled,
+  received
+}: PlainClosing): void {
+  // WHY: The end of an installer that Ctrl+C interrupted may be read before the SIGINT of the CLI, so a cancellation with no SIGTERM or SIGHUP counts as Ctrl+C.
+  const isInterrupted =
+    isCanceled && (received.has('SIGINT') || received.size === 0)
+  // WHY: The terminal echoes ^C where the cursor is, and a new line keeps that echo off the title.
+  const echo = isInterrupted && process.stderr.isTTY ? '\n' : ''
+  process.stderr.write(echo + lines.join('\n'))
+}
+type SignalRecord = { received: Set<NodeJS.Signals>; stop: () => void }
+function recordSignals(): SignalRecord {
+  const received = new Set<NodeJS.Signals>()
+  const record = (signal: NodeJS.Signals) => received.add(signal)
+  const signals = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const
+  for (const signal of signals) process.on(signal, record)
+  return {
+    received,
+    stop() {
+      for (const signal of signals) process.off(signal, record)
+    }
+  }
+}
 async function createApplication({ answers, isInteractive }: Creation) {
   if (answers.locales === undefined && answers['base-locale'] === undefined) {
     answers['base-locale'] = questionnaireBase({
@@ -144,6 +174,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
   let active = ''
   let failureTitle = labels.createFailed as string
   let steps: string[]
+  const signals = recordSignals()
   try {
     steps = await generateTerminal(
       {
@@ -196,12 +227,16 @@ async function createApplication({ answers, isInteractive }: Creation) {
       frame.closeFrame({ reason, closing })
     } else {
       const title = isCanceled ? `■ ${active}` : `▲ ${failureTitle}`
-      process.stderr.write(
-        [...[title, reason].filter(Boolean), '', closing, ''].join('\n')
-      )
+      writePlainClosing({
+        lines: [...[title, reason].filter(Boolean), '', closing, ''],
+        isCanceled,
+        received: signals.received
+      })
     }
     process.exitCode = isCanceled ? interruptedExitCode : 1
     return
+  } finally {
+    signals.stop()
   }
   if (completed) finish(completed)
   if (frame) {

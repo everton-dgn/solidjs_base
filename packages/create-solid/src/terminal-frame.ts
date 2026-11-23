@@ -95,12 +95,12 @@ function restoreCursor() {
 function refreshSize() {
   process.kill(process.pid, 'SIGWINCH')
 }
-// WHY: A launcher in the group stops at once on Ctrl+Z and its shell may own the terminal by now, so the rows are cleared before the stop only when the CLI leads its group, and otherwise on the continue. Showing the cursor changes no cell, and the shell does not show it.
+// WHY: Under a launcher its shell may own the terminal by now, so only a CLI that leads its group clears the rows before it stops. Otherwise it stops the group, so the shell sees a stop sent only to the CLI.
 function stopStep(): boolean {
   const isCleared = isTerminalOwner()
   if (isCleared) process.stdout.write(clearIndicatorRows)
   restoreCursor()
-  process.kill(process.pid, 'SIGTSTP')
+  process.kill(isCleared ? process.pid : 0, 'SIGTSTP')
   return isCleared
 }
 function clearIndicator() {

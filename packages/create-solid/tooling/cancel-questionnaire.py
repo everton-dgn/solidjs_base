@@ -1019,9 +1019,12 @@ process.stdout.write = (...args) => {
     def test_stop_after_the_launcher(self):
         # The terminal stops a launcher at once and the CLI later. Two signals put the two stops in that order every time.
         # With held, the CLI gets its answer about the terminal while the launcher still runs, and the shell takes the
-        # terminal and writes its prompt before the CLI goes on.
-        for stage, held in itertools.product((b"Application title", b"Installing dependencies with Bun"), (False, True)):
-            with self.subTest(stage=stage, held=held), tempfile.TemporaryDirectory() as directory:
+        # terminal and writes its prompt before the CLI goes on. With alone, the stop is sent only to the CLI, which then
+        # stops its group so the shell sees it.
+        cases = [(stage, held, False) for stage, held in itertools.product(
+            (b"Application title", b"Installing dependencies with Bun"), (False, True))]
+        for stage, held, alone in [*cases, (b"Installing dependencies with Bun", False, True)]:
+            with self.subTest(stage=stage, held=held, alone=alone), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
                 installer = root / "bun"
                 installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nsleep 20\n')
@@ -1065,9 +1068,10 @@ process.stdout.write = (...args) => {
                     elif stage != b"Application title":
                         (root / "hold").touch()
                         self.assertEqual(recorded(root / "holding"), 1)
-                    os.kill(launcher, signal.SIGSTOP)
-                    # The parent has taken the terminal back when it records the stop.
-                    self.assertEqual(recorded(root / "stop.signal"), signal.SIGSTOP)
+                    if not alone:
+                        os.kill(launcher, signal.SIGSTOP)
+                        # The parent has taken the terminal back when it records the stop.
+                        self.assertEqual(recorded(root / "stop.signal"), signal.SIGSTOP)
                     reader.drain()
                     if held:
                         os.write(slave, b"[1]+  Stopped\r\n$ ")
@@ -1082,6 +1086,9 @@ process.stdout.write = (...args) => {
                     while "T" not in state(worker):
                         self.assertLess(time.monotonic(), deadline)
                         time.sleep(.01)
+                    if alone:
+                        self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
+                        self.assertIn("T", state(launcher))
                     # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
                     reader.drain()
                     # The shell owns the terminal: the CLI shows the cursor and erases nothing.

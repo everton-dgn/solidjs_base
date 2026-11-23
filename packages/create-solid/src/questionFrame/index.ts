@@ -30,7 +30,8 @@ function screenRows(target: Writable): number {
   const rows = 'rows' in target ? Number(target.rows) : Number.NaN
   return Number.isInteger(rows) && rows > 0 ? rows : Infinity
 }
-function addText(frame: Frame, text: string): void {
+type Text = { frame: Frame; text: string }
+function addText({ frame, text }: Text): void {
   for (const [index, line] of text.split('\n').entries()) {
     if (index > 0) frame.row += 1
     frame.bottom = Math.max(frame.bottom, frame.row)
@@ -38,29 +39,30 @@ function addText(frame: Frame, text: string): void {
     frame.lines[frame.row] += line
   }
 }
-type Change = { count?: string; move?: string; erasure?: string }
-function change(frame: Frame, { count, move, erasure }: Change): void {
+type Change = { frame: Frame; count?: string; move?: string; erasure?: string }
+function change({ frame, count, move, erasure }: Change): void {
   const amount = count ? Number(count) : 1
   // WHY: A move up stops at the top of the screen, which is below the first row once the question has scrolled past it.
   const top = Math.max(0, frame.bottom - frame.screenRows + 1)
   if (move === 'A') frame.row = Math.max(top, frame.row - amount)
   if (move === 'B') frame.row += amount
-  addText(frame, '')
+  addText({ frame, text: '' })
   if (erasure === 'J') frame.lines.length = frame.row + 1
   if (erasure) frame.lines[frame.row] = ''
 }
-function apply(frame: Frame, chunk: string): void {
+type Chunk = { frame: Frame; chunk: string }
+function apply({ frame, chunk }: Chunk): void {
   const [text = '', ...sequences] = chunk.split(escape)
-  addText(frame, text)
+  addText({ frame, text })
   let isKnown = !hasControl(text)
   for (const part of sequences) {
     const match = sequence.exec(part)
     const groups = match?.groups ?? {}
     const rest = part.slice(match?.[0].length ?? 0)
-    change(frame, groups)
+    change({ ...groups, frame })
     // WHY: A sequence with no move or erasure is a style, and it stays in the text of its line.
     const isStyle = match !== null && !groups.move && !groups.erasure
-    addText(frame, isStyle ? escape + part : rest)
+    addText({ frame, text: isStyle ? escape + part : rest })
     isKnown &&= match !== null && !hasControl(rest)
   }
   if (!isKnown) frame.isKnown = false
@@ -90,7 +92,7 @@ export function questionFrame<Output extends Writable>(
     }
     if (frame) {
       frame.screenRows = screenRows(target)
-      apply(frame, chunk)
+      apply({ frame, chunk })
     }
     if (!frame && chunk.includes(hideCursor)) {
       frame = {

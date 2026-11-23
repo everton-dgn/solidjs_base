@@ -180,6 +180,13 @@ jobs:
       - name: Install dependencies
         run: vp install --frozen-lockfile
 
+      # The questionnaire harness of test:tarball resizes a tmux window, and
+      # the software list of the runner image does not include tmux.
+      - name: Install tmux
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes tmux
+
       - name: Run checks
         run: |
           vp run validate:generator

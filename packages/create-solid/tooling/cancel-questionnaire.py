@@ -1508,64 +1508,72 @@ process.stdout.write = (...args) => {
     def test_install_ends_before_signal(self):
         # A signal sent to the group ends the installer too. This holds the event loop until that end and the signal of the CLI are pending in that order.
         hold = TIMER_HOLD_MODULE
-        for interrupt in (signal.SIGTERM, signal.SIGHUP):
-            for plain in (False, True):
-                with self.subTest(signal=interrupt, plain=plain), tempfile.TemporaryDirectory() as directory:
-                    root = pathlib.Path(directory)
-                    installer = root / "bun"
+        # The plain subcases guard the cancellation: an installer ended by the signal fails them without the wait for the
+        # pending signals when the installer ends, and one that handles the signal and exits with its code fails them
+        # without that wait on an exit code. In interactive mode the end of the installer is read only once its stderr pipe
+        # closes, behind the signal of the CLI, so those subcases pass either way and keep the closing a cancellation there.
+        for interrupt, plain, trapped in itertools.product((signal.SIGTERM, signal.SIGHUP), (False, True), (False, True)):
+            with self.subTest(signal=interrupt, plain=plain, trapped=trapped), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                installer = root / "bun"
+                if trapped:
+                    name = "TERM" if interrupt == signal.SIGTERM else "HUP"
+                    installer.write_text(f"#!/bin/sh\ntrap 'kill $child; exit {128 + interrupt}' {name}\nsleep 20 &\n"
+                                         'child=$!\necho $$ > "$PID_FILE"\nwait $child\n')
+                else:
                     installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nexec sleep 20\n')
-                    installer.chmod(0o755)
-                    release = root / "release"
-                    pid, master, slave = start_cli(
-                        root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install", *(["--yes"] if plain else [])],
-                        {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"],
-                         "NODE_OPTIONS": "--import=data:text/javascript," + quote(hold), "HOLD": str(root / "hold"),
-                         "HOLDING": str(root / "holding"), "RELEASE": str(release)})
-                    reader = Reader(self, master)
-                    transcript = reader.transcript
-                    waited = False
+                installer.chmod(0o755)
+                release = root / "release"
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install", *(["--yes"] if plain else [])],
+                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"],
+                     "NODE_OPTIONS": "--import=data:text/javascript," + quote(hold), "HOLD": str(root / "hold"),
+                     "HOLDING": str(root / "holding"), "RELEASE": str(release)})
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                try:
+                    for prompt in [] if plain else [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        os.write(master, b"\r")
+                    reader.until(b"Files created" if plain else b"Installing dependencies with Bun")
+                    worker = recorded(root / "installer.pid")
+                    (root / "hold").touch()
+                    self.assertEqual(recorded(root / "holding"), 1)
+                    os.kill(worker, interrupt)
+                    # The installer stays a zombie while the CLI cannot reap it, so its end is pending before the next signal is sent.
+                    deadline = time.monotonic() + 4
+                    while "Z" not in state(worker):
+                        self.assertLess(time.monotonic(), deadline)
+                        time.sleep(.01)
+                    os.kill(pid, interrupt)
+                    release.touch()
+                    reader.until(b"Creation canceled.")
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        reader.drain()
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 130)
+                    self.assertNotIn(b"Could not install", transcript)
+                    self.assertIn(("■ " if plain else "■  ").encode() + b"Installing dependencies with Bun", transcript)
+                finally:
+                    release.touch()
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+                    target = recorded(root / "installer.pid") if (root / "installer.pid").exists() else None
                     try:
-                        for prompt in [] if plain else [b"Application title", b"Setup", b"Create the project?"]:
-                            reader.until(prompt)
-                            os.write(master, b"\r")
-                        reader.until(b"Files created" if plain else b"Installing dependencies with Bun")
-                        worker = recorded(root / "installer.pid")
-                        (root / "hold").touch()
-                        self.assertEqual(recorded(root / "holding"), 1)
-                        os.kill(worker, interrupt)
-                        # The installer stays a zombie while the CLI cannot reap it, so its end is pending before the next signal is sent.
-                        deadline = time.monotonic() + 4
-                        while "Z" not in state(worker):
-                            self.assertLess(time.monotonic(), deadline)
-                            time.sleep(.01)
-                        os.kill(pid, interrupt)
-                        release.touch()
-                        reader.until(b"Creation canceled.")
-                        deadline = time.monotonic() + 5
-                        while time.monotonic() < deadline:
-                            reader.drain()
-                            finished, status = os.waitpid(pid, os.WNOHANG)
-                            if finished:
-                                waited = True
-                                break
-                            time.sleep(.01)
-                        self.assertTrue(waited)
-                        self.assertEqual(os.waitstatus_to_exitcode(status), 130)
-                        self.assertNotIn(b"Could not install", transcript)
-                        self.assertIn(("■ " if plain else "■  ").encode() + b"Installing dependencies with Bun", transcript)
-                    finally:
-                        release.touch()
-                        os.close(master)
-                        os.close(slave)
-                        if not waited:
-                            os.kill(pid, signal.SIGKILL)
-                            os.waitpid(pid, 0)
-                        target = recorded(root / "installer.pid") if (root / "installer.pid").exists() else None
-                        try:
-                            if target and os.getsid(target) == pid:
-                                os.kill(target, signal.SIGKILL)
-                        except ProcessLookupError:
-                            pass
+                        if target and os.getsid(target) == pid:
+                            os.kill(target, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
 
     def test_descendant_holding_stderr(self):
         self.exercise(True, interrupt=signal.SIGTERM, descendant=True)

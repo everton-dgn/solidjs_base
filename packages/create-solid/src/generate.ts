@@ -381,8 +381,8 @@ async function executeSetup(
   signal.addEventListener('abort', cancel, { once: true })
   try {
     await Promise.race([once(child, 'close'), forced.promise])
-    // WHY: A signal sent to the group ends the installer too, and its end may be read before the signal of the CLI.
-    if (child.signalCode !== null) await readPendingSignals()
+    // WHY: A signal sent to the group ends the installer too, by the signal or with the code its own handler chose, and its end may be read before the signal of the CLI.
+    if (child.exitCode !== 0) await readPendingSignals()
     if (signal.aborted || child.signalCode === 'SIGINT') {
       throw new CanceledError()
     }

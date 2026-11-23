@@ -151,8 +151,10 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False, e
         os.environ.update(CI="false", NO_COLOR="1", TERM="xterm", **environment)
         command = [node, str(executable), *arguments]
         if launcher:
-            # A second command keeps the shell above the CLI, in its group, as npx and pnpm dlx stay.
-            os.execv("/bin/sh", ["/bin/sh", "-c", shlex.join(command) + "; exit $?"])
+            # A second command keeps the shell above the CLI, in its group, as npx and pnpm dlx stay. bash, the /bin/sh of
+            # macOS, keeps waiting on Ctrl+C and exits with the code of the CLI; dash, the /bin/sh of Ubuntu, dies at once.
+            bash = shutil.which("bash")
+            os.execv(bash, [bash, "-c", shlex.join(command) + "; exit $?"])
         os.execv(node, command)
     return pid, master, slave
 

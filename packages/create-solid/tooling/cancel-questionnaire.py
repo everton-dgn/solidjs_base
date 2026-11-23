@@ -105,7 +105,7 @@ def fork_terminal():
     return pid, master, slave
 
 
-def start_cli(root, arguments, environment, job_control=False, launcher=False):
+def start_cli(root, arguments, environment, job_control=False, launcher=False, executable=cli):
     """Fork the CLI on a new terminal: alone in its session, under a parent that waits like a shell with job control, or under a shell of its own group."""
     pid, master, slave = fork_terminal()
     if pid == 0:
@@ -132,7 +132,7 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False):
         (root / "cli.pid").write_text(str(os.getpid()))
         fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
         os.environ.update(CI="false", NO_COLOR="1", TERM="xterm", **environment)
-        command = [node, str(cli), *arguments]
+        command = [node, str(executable), *arguments]
         if launcher:
             # A second command keeps the shell above the CLI, in its group, as npx and pnpm dlx stay.
             os.execv("/bin/sh", ["/bin/sh", "-c", shlex.join(command) + "; exit $?"])
@@ -142,6 +142,16 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False):
 
 def state(process):
     return subprocess.check_output(["ps", "-o", "stat=", "-p", str(process)], text=True).strip()
+
+
+def broken_cli(root):
+    """Copy the CLI with a setting that makes the files step fail."""
+    dist = root / "package/dist"
+    shutil.copytree(cli.parent, dist)
+    (dist.parent / "template").symlink_to(cli.parent.parent / "template")
+    settings = dist / "settings.json"
+    settings.write_text(settings.read_text().replace('"@evertondgn/solid-runtime":', '"absent":'))
+    return dist / cli.name
 
 
 class Reader:
@@ -258,12 +268,7 @@ class Cancellation(unittest.TestCase):
                 installer.write_text("#!/bin/sh\nprintf 'first\\nsecond\\nthird\\n' >&2\nexit 0\n")
                 installer.chmod(0o755)
             if files_failure:
-                dist = root / "package/dist"
-                shutil.copytree(cli.parent, dist)
-                (dist.parent / "template").symlink_to(cli.parent.parent / "template")
-                settings = dist / "settings.json"
-                settings.write_text(settings.read_text().replace('"@evertondgn/solid-runtime":', '"absent":'))
-                executable = dist / cli.name
+                executable = broken_cli(root)
             pid, terminal = pty.fork()
             if pid == 0:
                 os.chdir(root)
@@ -766,6 +771,83 @@ process.stdout.write = (...args) => {
                                 os.kill(target, signal.SIGKILL)
                         except ProcessLookupError:
                             pass
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+
+    def test_suspend_as_step_ends(self):
+        # The files step ends in a synchronous part; this holds the event loop there until the script has sent Ctrl+Z.
+        hold = """
+import fs, { existsSync, writeFileSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+const original = fs[process.env.HOLD_AT];
+let held = false;
+fs[process.env.HOLD_AT] = (...args) => {
+  if (!held && /\\.create-solid-[^/]+$/.test(String(args[0]))) {
+    held = true;
+    writeFileSync(process.env.HOLDING, '1');
+    while (!existsSync(process.env.RELEASE)) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+  }
+  return original(...args);
+};
+syncBuiltinESMExports();
+"""
+        # The step ends when the staged tree is renamed, or when a failure removes it.
+        for failure in (False, True):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                release = root / "release"
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--no-install"],
+                    {"NODE_OPTIONS": "--import=data:text/javascript," + quote(hold), "HOLD_AT": "rmSync" if failure else "renameSync",
+                     "HOLDING": str(root / "holding"), "RELEASE": str(release)},
+                    job_control=True, executable=broken_cli(root) if failure else cli)
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                closing = ("▲  Could not create the files" if failure else "◇  Files created").encode()
+                try:
+                    for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        os.write(master, b"\r")
+                    reader.until(b"Creating the files")
+                    self.assertEqual(recorded(root / "holding"), 1)
+                    leader = recorded(root / "cli.pid")
+                    start = len(transcript)
+                    os.write(master, b"\x1a")
+                    # The terminal echoes the key when it turns it into the signal.
+                    reader.until(b"^Z", start)
+                    release.touch()
+                    self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
+                    self.assertIn("T", state(leader))
+                    # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
+                    reader.drain()
+                    self.assertEqual(reader.cursor(), b"\x1b[?25h")
+                    self.assertNotIn(closing, transcript)
+                    os.killpg(leader, signal.SIGCONT)
+                    reader.until(("└  Creation stopped." if failure else "└  Project created.").encode(), start)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    reader.drain()
+                    self.assertIn(closing, transcript)
+                    self.assertEqual(reader.cursor(), b"\x1b[?25h")
+                    self.assertEqual(os.waitstatus_to_exitcode(status), int(failure))
+                finally:
+                    release.touch()
+                    target = recorded(root / "cli.pid") if (root / "cli.pid").exists() else None
+                    try:
+                        if target and os.getsid(target) == pid:
+                            os.kill(target, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
                     os.close(master)
                     os.close(slave)
                     if not waited:

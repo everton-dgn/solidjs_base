@@ -48,6 +48,7 @@ import {
 import { isDestinationEntry } from './isDestinationEntry/index.ts'
 import { applyPreparedGuides } from './prepared-guides.ts'
 import { applyPreparedSource } from './prepared-source.ts'
+import { readPendingSignals } from './readPendingSignals/index.ts'
 import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
@@ -414,6 +415,15 @@ function* initializeGit({
   }
   return false
 }
+type Advance = () => IteratorResult<Step, string[]>
+// WHY: The end of a step removes its signal listeners, so a signal that arrived while the generator ran is read before anything closes the step.
+async function advance(run: Advance): Promise<ReturnType<Advance>> {
+  try {
+    return run()
+  } finally {
+    await readPendingSignals()
+  }
+}
 export function resolveGroup(
   { settings }: GenerationContext,
   group: Versions
@@ -634,7 +644,7 @@ export async function generateTerminal(
   const signals = ['SIGINT', 'SIGHUP', 'SIGTERM'] as const
   for (const signal of signals) process.on(signal, cancel)
   try {
-    let current = steps.next()
+    let current = await advance(() => steps.next())
     while (!current.done) {
       const step = current.value
       if (step !== undefined) {
@@ -651,24 +661,23 @@ export async function generateTerminal(
           })
         }
       } catch (error) {
-        if (
+        const hasGitWarning =
           typeof step === 'object' &&
           step.task === 'gitTask' &&
           !controller.signal.aborted &&
           !(error instanceof CanceledError)
-        ) {
+        const failure = controller.signal.aborted ? new CanceledError() : error
+        current = await advance(() => steps.throw(failure))
+        if (hasGitWarning) {
           warn?.(
             error instanceof Error
               ? (error.message.split('\n').at(-1) ?? '')
               : ''
           )
         }
-        current = steps.throw(
-          controller.signal.aborted ? new CanceledError() : error
-        )
         continue
       }
-      current = steps.next()
+      current = await advance(() => steps.next())
     }
     return current.value
   } finally {

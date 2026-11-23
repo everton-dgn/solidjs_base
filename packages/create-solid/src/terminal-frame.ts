@@ -276,7 +276,8 @@ export const progress = {
       })
     }
     const quit = () => {
-      process.stdout.write(clearIndicatorRows)
+      // WHY: A launcher in the group ends at once on Ctrl+\ and its shell may write its prompt before this runs.
+      if (isTerminalOwner()) process.stdout.write(clearIndicatorRows)
       restoreCursor()
       process.off('SIGQUIT', quit)
       process.kill(process.pid, 'SIGQUIT')

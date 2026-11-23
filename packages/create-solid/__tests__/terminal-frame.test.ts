@@ -427,6 +427,47 @@ void it('draws once on the continue and starts the interval again so no frame co
   })
 })
 
+void it('clears the indicator on SIGQUIT only when the CLI owns the terminal and always shows the cursor', () => {
+  const script = `
+    import childProcess from 'node:child_process'
+    import fs from 'node:fs'
+    import { syncBuiltinESMExports } from 'node:module'
+    Object.defineProperty(process.stdout,'isTTY',{value:true})
+    const read = fs.readFileSync
+    fs.readFileSync = (file, ...rest) => {
+      if (file === '/proc/self/stat') throw new Error('no /proc')
+      return read(file, ...rest)
+    }
+    let foreground = process.pid
+    childProcess.spawnSync = () => ({ stdout: foreground + ' ' + process.pid + '\\n', error: undefined })
+    syncBuiltinESMExports()
+    process.kill = () => true
+    const writes = []
+    const write = process.stdout.write.bind(process.stdout)
+    process.stdout.write = (chunk, ...rest) => { writes.push(String(chunk)); return write(chunk, ...rest) }
+    const {progress} = await import('./src/terminal-frame.ts')
+    const quits = []
+    for (const owner of [process.pid, process.pid + 1]) {
+      foreground = owner
+      progress.start('files')
+      const start = writes.length
+      process.emit('SIGQUIT')
+      quits.push(writes.slice(start))
+      progress.clear()
+    }
+    process.stderr.write(JSON.stringify(quits))
+  `
+  const { stderr } = spawnSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    { encoding: 'utf8', env: { ...process.env, TERM: 'xterm', NO_COLOR: '1' } }
+  )
+  assert.deepEqual(JSON.parse(stderr), [
+    ['\r\u001B[J', '\u001B[?25h'],
+    ['\u001B[?25h']
+  ])
+})
+
 void it('restores the cursor when exiting during a step', () => {
   const bytes = execFileSync(
     process.execPath,

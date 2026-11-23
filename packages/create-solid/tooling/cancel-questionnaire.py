@@ -927,7 +927,7 @@ process.stdout.write = (...args) => {
                         target = recorded(file) if file.exists() else None
                         try:
                             if target and os.getsid(target) == pid:
-                                os.kill(target, signal.SIGKILL)
+                                os.killpg(os.getpgid(target), signal.SIGKILL)
                         except ProcessLookupError:
                             pass
                     os.close(master)

@@ -121,11 +121,11 @@ The full boilerplate application suites remain separate.
 | `vp run validate`                                       | Validate published packages, workspace consistency and installed tooling fixtures                      |
 | `vp run validate:generator`                             | Build generator prerequisites, run the workspace check, test each profile and compare packed templates |
 
-`vp run test:tarball` runs the questionnaire harness of the generator, and on
-macOS each run leaves crash reports in `~/Library/Logs/DiagnosticReports` for
-the processes its Ctrl+\ case ends with SIGQUIT (`node`, the `bash` behind the
-`sh` of the fake installer, and its `sleep`), up to the 25 reports macOS keeps
-for each name.
+`vp run test:tarball` and `vp run validate:generator` run the questionnaire
+harness of the generator. On macOS a run may leave crash reports in
+`~/Library/Logs/DiagnosticReports` for the processes its Ctrl+\ case ends with
+SIGQUIT (`node`, the `bash` behind the `sh` of the fake installer, and its
+`sleep`): macOS keeps at most 25 reports for each name.
 
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so
 `vp run test` builds the package first. The runtime tests run in the Vitest of

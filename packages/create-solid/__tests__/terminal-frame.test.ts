@@ -292,7 +292,10 @@ for (const order of ['FWC', 'FTWC', 'FTTWC', 'FC', 'FTC', 'grow', 'truncate']) {
       progress.start('Installing dependencies with Bun')
       for (const event of '${events}') {
         if (event === 'F') process.stdout.write('\\f')
-        if (event === 'T') tick()
+        if (event === 'T') {
+          tick()
+          await new Promise(resolve => setImmediate(resolve))
+        }
         if (event === 'W') { width(${target}); process.stdout.emit('resize') }
         if (event === 'C') progress.cancel()
       }

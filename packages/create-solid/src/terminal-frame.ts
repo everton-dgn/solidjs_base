@@ -211,6 +211,7 @@ export const progress = {
     process.stdout.write('\u001B[?25l')
     let index = 0
     let width: number | undefined
+    let isRunning = true
     const draw = () => {
       const mark = styleText('magenta', frames[index] ?? '')
       const columns = width ?? process.stdout.columns
@@ -219,6 +220,12 @@ export const progress = {
       const line = label ? `${mark}  ${label}` : mark
       process.stdout.write(`\r\u001B[?7l${line}\u001B[?7h\r`)
       index = (index + 1) % frames.length
+    }
+    // WHY: After a synchronous part the timer runs before the loop reads a pending Ctrl+Z, and under a launcher the shell may own the terminal by then. The frame waits until the signals are read.
+    const tick = () => {
+      setImmediate(() => {
+        if (isRunning && !pendingStop) draw()
+      })
     }
     const redraw = () => {
       process.stdout.write(clearIndicatorRows)
@@ -264,13 +271,14 @@ export const progress = {
     process.on('SIGQUIT', quit)
     process.stdout.on('resize', resize)
     removeStepListeners = () => {
+      isRunning = false
       process.stdout.off('resize', resize)
       process.off('SIGTSTP', suspend)
       process.off('SIGCONT', resume)
       process.off('SIGQUIT', quit)
     }
     draw()
-    indicator = setInterval(draw, unicode ? unicodeIntervalMs : asciiIntervalMs)
+    indicator = setInterval(tick, unicode ? unicodeIntervalMs : asciiIntervalMs)
   },
   finish: (title: string): void => {
     clearIndicator()

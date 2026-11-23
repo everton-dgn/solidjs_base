@@ -3,8 +3,9 @@ import process from 'node:process'
 import { parseArgs } from 'node:util'
 
 import { cliLanguage, message, messages } from './cli-language.ts'
+import { hideCursor, showCursor } from './constants/cursor.ts'
 import { generateTerminal } from './generate.ts'
-import { ownsTerminal } from './ownsTerminal/index.ts'
+import { isTerminalOwner } from './isTerminalOwner/index.ts'
 import { projectSummary } from './projectSummary/index.ts'
 import { questionFrame } from './questionFrame/index.ts'
 import { readPendingSignals } from './readPendingSignals/index.ts'
@@ -54,8 +55,6 @@ function errorMessage(error: unknown): string {
 const writeStep = (title: string) => process.stdout.write(`◇ ${title}\n`)
 type Creation = { answers: Answers; isInteractive: boolean }
 const interruptedExitCode = 130
-const showCursor = '\u001B[?25h'
-const hideCursor = '\u001B[?25l'
 function cancelPrompt() {
   process.stdout.write(showCursor)
   process.stdin.setRawMode(false)
@@ -81,7 +80,7 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
     for (const listener of fromKey) process.off('SIGCONT', listener)
     const isKey = fromKey.length > 0
     // WHY: The CLI read the key itself, so a launcher in its group still runs and the shell cannot have taken the terminal.
-    const isAlone = isKey || ownsTerminal()
+    const isAlone = isKey || isTerminalOwner()
     if (isAlone) {
       // WHY: The shell writes where the question was, so no copy of it stays above what the shell wrote.
       frame.erase()

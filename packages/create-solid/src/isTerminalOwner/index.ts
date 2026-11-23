@@ -43,7 +43,7 @@ export function psGroups({ stdout, error }: PsAnswer): Groups | undefined {
   return known({ group, foreground })
 }
 // WHY: Node does not expose the foreground process group of the terminal, so the system answers: /proc on Linux and ps elsewhere.
-export function ownsTerminal(): boolean {
+export function isTerminalOwner(): boolean {
   const stat = readStat()
   const groups =
     stat === undefined

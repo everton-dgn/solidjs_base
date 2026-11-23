@@ -1,5 +1,7 @@
 import type { Writable } from 'node:stream'
 
+import { hideCursor, showCursor } from '../constants/cursor.ts'
+
 type Frame = {
   lines: string[]
   row: number
@@ -16,8 +18,6 @@ type QuestionFrame<Output> = {
 }
 
 const escape = '\u001B'
-const showCursor = `${escape}[?25h`
-const hideCursor = `${escape}[?25l`
 // WHY: Clack moves by rows, erases a whole line (2K) or from the cursor down (J), always from the first column, and styles its text.
 const sequence = /^\[(?:(?<count>\d*)(?<move>[ABDG])|(?<erasure>2K|J)|[\d;]*m)/u
 function hasControl(text: string): boolean {

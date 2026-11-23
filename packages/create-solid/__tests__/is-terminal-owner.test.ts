@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process'
 import process from 'node:process'
 import { it } from 'node:test'
 
-import { psGroups, statGroups } from '../src/ownsTerminal/index.ts'
+import { psGroups, statGroups } from '../src/isTerminalOwner/index.ts'
 
 type StatFields = { name: string; group: number; foreground: number }
 function stat({ name, group, foreground }: StatFields): string {
@@ -65,8 +65,8 @@ void it('runs /bin/ps with a timeout and writes as before when it does not answe
       return { stdout: '', error: Object.assign(new Error('ETIMEDOUT'), { code: 'ETIMEDOUT' }) }
     }
     syncBuiltinESMExports()
-    const { ownsTerminal } = await import('./src/ownsTerminal/index.ts')
-    process.stdout.write(JSON.stringify({ owns: ownsTerminal(), calls }))
+    const { isTerminalOwner } = await import('./src/isTerminalOwner/index.ts')
+    process.stdout.write(JSON.stringify({ owns: isTerminalOwner(), calls }))
   `
   const child = spawnSync(
     process.execPath,
@@ -93,12 +93,12 @@ void it('owns the terminal only when the CLI leads the foreground group', () => 
     let answer = ''
     childProcess.spawnSync = () => ({ stdout: answer, error: undefined })
     syncBuiltinESMExports()
-    const { ownsTerminal } = await import('./src/ownsTerminal/index.ts')
+    const { isTerminalOwner } = await import('./src/isTerminalOwner/index.ts')
     const other = process.pid + 1
     const owns = []
     for (const [foreground, group] of [[process.pid, process.pid], [other, other], [other, process.pid]]) {
       answer = foreground + ' ' + group + '\\n'
-      owns.push(ownsTerminal())
+      owns.push(isTerminalOwner())
     }
     process.stdout.write(JSON.stringify(owns))
   `

@@ -1,5 +1,6 @@
 import path from 'node:path'
 import process from 'node:process'
+import { clearImmediate, setImmediate } from 'node:timers'
 import { isatty, WriteStream } from 'node:tty'
 import { styleText } from 'node:util'
 
@@ -17,7 +18,8 @@ import {
 } from '@clack/prompts'
 
 import { messages, type Language } from './cli-language.ts'
-import { ownsTerminal } from './ownsTerminal/index.ts'
+import { hideCursor, showCursor } from './constants/cursor.ts'
+import { isTerminalOwner } from './isTerminalOwner/index.ts'
 import { CanceledError } from './usage-error.ts'
 import { widthLines } from './widthLines/index.ts'
 import { wrapFrameText } from './wrapFrameText/index.ts'
@@ -86,8 +88,8 @@ function closingOutput(): NodeJS.WriteStream {
     probe?.destroy()
   }
 }
-function showCursor() {
-  process.stdout.write('\u001B[?25h')
+function restoreCursor() {
+  process.stdout.write(showCursor)
 }
 // WHY: A stopped process gets no SIGWINCH, and Node reads the size of the terminal again only on that signal.
 function refreshSize() {
@@ -95,9 +97,9 @@ function refreshSize() {
 }
 // WHY: A launcher in the group stops at once on Ctrl+Z and its shell may own the terminal by now, so the rows are cleared before the stop only when the CLI leads its group, and otherwise on the continue. Showing the cursor changes no cell, and the shell does not show it.
 function stopStep(): boolean {
-  const isCleared = ownsTerminal()
+  const isCleared = isTerminalOwner()
   if (isCleared) process.stdout.write(clearIndicatorRows)
-  showCursor()
+  restoreCursor()
   process.kill(process.pid, 'SIGTSTP')
   return isCleared
 }
@@ -107,7 +109,7 @@ function clearIndicator() {
   if (removeStepListeners) {
     removeStepListeners()
     removeStepListeners = undefined
-    process.off('exit', showCursor)
+    process.off('exit', restoreCursor)
     if (pendingStop) {
       // WHY: The step ended before the stop it deferred, and none of its listeners is left to make it.
       clearImmediate(pendingStop)
@@ -116,7 +118,7 @@ function clearIndicator() {
       refreshSize()
     } else {
       process.stdout.write(clearIndicatorRows)
-      showCursor()
+      restoreCursor()
     }
   }
   indicator = undefined
@@ -216,8 +218,8 @@ export const progress = {
   start(title: string): void {
     active = title
     if (!process.stdout.isTTY) return
-    process.once('exit', showCursor)
-    process.stdout.write('\u001B[?25l')
+    process.once('exit', restoreCursor)
+    process.stdout.write(hideCursor)
     let index = 0
     let width: number | undefined
     let isRunning = true
@@ -250,7 +252,7 @@ export const progress = {
     const resume = () => {
       clearImmediate(pendingStop)
       pendingStop = undefined
-      process.stdout.write('\u001B[?25l')
+      process.stdout.write(hideCursor)
       refreshSize()
       // WHY: Node holds the size from before the stop until it reads that signal, and the timer of the indicator may run first.
       width = closingOutput().columns
@@ -275,7 +277,7 @@ export const progress = {
     }
     const quit = () => {
       process.stdout.write(clearIndicatorRows)
-      showCursor()
+      restoreCursor()
       process.off('SIGQUIT', quit)
       process.kill(process.pid, 'SIGQUIT')
     }

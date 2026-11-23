@@ -414,6 +414,15 @@ class Cancellation(unittest.TestCase):
                     self.assertIn(b"\r\x1b[J", transcript[frame:end])
                 def state(process):
                     return subprocess.check_output(["ps", "-o", "stat=", "-p", str(process)], text=True).strip()
+                def stop_outside():
+                    os.kill(leader, signal.SIGSTOP)
+                    deadline = time.monotonic() + 4
+                    while "T" not in state(leader):
+                        self.assertLess(time.monotonic(), deadline)
+                        time.sleep(.01)
+                    # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
+                    drain()
+                    self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], hidden)
                 def drain():
                     while select.select([master], [], [], 0)[0]:
                         try:
@@ -438,26 +447,22 @@ class Cancellation(unittest.TestCase):
                     start = len(transcript)
                     hidden = b"\x1b[?25l"
                     shown = b"\x1b[?25h"
-                    continued = None
+                    continued = outside = None
                     if key:
                         os.write(master, key)
                         read_until(shown, start)
                         assert_cleared(start)
                     else:
-                        os.kill(leader, signal.SIGSTOP)
-                        deadline = time.monotonic() + 4
-                        while "T" not in state(leader):
-                            self.assertLess(time.monotonic(), deadline)
-                            time.sleep(.01)
+                        stop_outside()
                     if key != b"\x1c":
                         if job_control:
                             self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
                             self.assertIn("T", state(leader))
                             self.assertIn("T", state(worker))
-                        if job_control or not key:
                             # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
                             drain()
-                            self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], shown if key else hidden)
+                            self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], shown)
+                        if job_control or not key:
                             continued = len(transcript)
                             os.killpg(leader, signal.SIGCONT)
                         for attempt in range(2 if continued is None else 1):
@@ -472,6 +477,14 @@ class Cancellation(unittest.TestCase):
                             read_until(b"Installing dependencies with Bun", transcript.index(hidden, restored), 3)
                             self.assertNotIn("T", state(leader))
                             self.assertNotIn("T", state(worker))
+                        if key:
+                            # The listener that suspend registers again restores the step after a later outside stop.
+                            stop_outside()
+                            outside = len(transcript)
+                            os.killpg(leader, signal.SIGCONT)
+                            read_until(hidden + b"\r\x1b[J\r\x1b[?7l", outside)
+                            read_until(b"Installing dependencies with Bun", outside, 3)
+                            self.assertNotIn("T", state(leader))
                         os.write(master, b"\x03")
                         read_until("└  Creation canceled.".encode(), start)
                     deadline = time.monotonic() + 5
@@ -486,7 +499,9 @@ class Cancellation(unittest.TestCase):
                     self.assertEqual(re.findall(rb"\x1b\[\?25[hl]", transcript)[-1], b"\x1b[?25h")
                     self.assertEqual(os.waitstatus_to_exitcode(status), -signal.SIGQUIT if key == b"\x1c" else 130)
                     if continued is not None:
-                        self.assertEqual(transcript.count(hidden, continued), 1)
+                        self.assertEqual(transcript.count(hidden, continued, outside), 1)
+                    if outside is not None:
+                        self.assertEqual(transcript.count(hidden, outside), 1)
                     if key == b"\x1c":
                         tail = transcript[transcript.index(b"\x1b[?25h", start):]
                         self.assertNotIn(b"Installing dependencies with Bun", tail)

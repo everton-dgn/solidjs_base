@@ -119,7 +119,7 @@ The full boilerplate application suites remain separate.
 | `vp run test:consistency`                               | Check workspace consistency                                                                            |
 | `vp run test:ci`                                        | Test job selection, results and workflow contracts                                                     |
 | `vp run validate`                                       | Validate published packages, workspace consistency and installed tooling fixtures                      |
-| `vp run validate:generator`                             | Build generator prerequisites, run the workspace check, test each profile and compare packed templates |
+| `vp run validate:generator`                             | Build the other packages, check the workspace, build the generator, test profiles and packed templates |
 
 `vp run test:tarball` and `vp run validate:generator` run the questionnaire
 harness of the generator, which needs Python 3, bash, tmux, `ps` and `pgrep`. A

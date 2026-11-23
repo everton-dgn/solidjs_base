@@ -218,6 +218,19 @@ test('runs prepared artifact validation in the generator gate', () => {
   )
 })
 
+test('checks the workspace in the generator gate before the generator is built', () => {
+  // WHY: A pull request that touches only the generator does not run the package gate, which checks without the generator build.
+  const start = [
+    'vp run build:published',
+    'vp check',
+    'vp run --fail-if-no-match --filter @evertondgn/create-solid build'
+  ]
+  assert.deepEqual(
+    manifest.scripts['validate:generator'].split(' && ').slice(0, start.length),
+    start
+  )
+})
+
 test('accepts release plugins with no component list', () => {
   assert.equal(includesGenerator({}), false)
   assert.equal(includesGenerator({ components: ['create-solid'] }), true)

@@ -109,6 +109,11 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False, e
     """Fork the CLI on a new terminal: alone in its session, under a parent that waits like a shell with job control, or under a shell of its own group.
 
     With shell, that parent also takes the terminal back on every stop, as a shell does, and gives it back with SIGCONT when the script calls foreground."""
+    # bash, the /bin/sh of macOS, keeps waiting on Ctrl+C and exits with the code of the CLI; dash, the /bin/sh of Ubuntu,
+    # dies at once. The check runs here because a failure in the forked child would not reach the test.
+    bash = shutil.which("bash")
+    if launcher and not bash:
+        raise AssertionError("The launcher tests of the questionnaire harness need bash: install it and run again")
     pid, master, slave = fork_terminal()
     if pid == 0:
         os.chdir(root)
@@ -151,9 +156,7 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False, e
         os.environ.update(CI="false", NO_COLOR="1", TERM="xterm", **environment)
         command = [node, str(executable), *arguments]
         if launcher:
-            # A second command keeps the shell above the CLI, in its group, as npx and pnpm dlx stay. bash, the /bin/sh of
-            # macOS, keeps waiting on Ctrl+C and exits with the code of the CLI; dash, the /bin/sh of Ubuntu, dies at once.
-            bash = shutil.which("bash")
+            # A second command keeps the shell above the CLI, in its group, as npx and pnpm dlx stay.
             os.execv(bash, [bash, "-c", shlex.join(command) + "; exit $?"])
         os.execv(node, command)
     return pid, master, slave

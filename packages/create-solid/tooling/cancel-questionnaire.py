@@ -2,6 +2,7 @@
 
 import errno
 import fcntl
+import itertools
 import subprocess
 import struct
 import os
@@ -182,19 +183,37 @@ def broken_cli(root):
 
 
 # The files step ends in a synchronous part; this module holds the event loop there until the script creates the RELEASE file.
+# With HOLD_AT=query it holds right after the CLI asked the system which process group owns the terminal.
 HOLD_MODULE = """
+import childProcess from 'node:child_process';
 import fs, { existsSync, writeFileSync } from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
-const original = fs[process.env.HOLD_AT];
 let held = false;
-fs[process.env.HOLD_AT] = (...args) => {
-  if (!held && /\\.create-solid-[^/]+$/.test(String(args[0]))) {
-    held = true;
-    writeFileSync(process.env.HOLDING, '1');
-    while (!existsSync(process.env.RELEASE)) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
-  }
-  return original(...args);
+const hold = () => {
+  held = true;
+  writeFileSync(process.env.HOLDING, '1');
+  while (!existsSync(process.env.RELEASE)) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
 };
+if (process.env.HOLD_AT === 'query') {
+  const spawn = childProcess.spawnSync;
+  childProcess.spawnSync = (...args) => {
+    const answer = spawn(...args);
+    if (!held && /(^|\\/)ps$/.test(String(args[0]))) hold();
+    return answer;
+  };
+  const read = fs.readFileSync;
+  fs.readFileSync = (...args) => {
+    const answer = read(...args);
+    if (!held && args[0] === '/proc/self/stat') hold();
+    return answer;
+  };
+} else {
+  const original = fs[process.env.HOLD_AT];
+  fs[process.env.HOLD_AT] = (...args) => {
+    if (!held && /\\.create-solid-[^/]+$/.test(String(args[0]))) hold();
+    return original(...args);
+  };
+}
 syncBuiltinESMExports();
 """
 
@@ -934,15 +953,20 @@ process.stdout.write = (...args) => {
 
     def test_stop_after_the_launcher(self):
         # The terminal stops a launcher at once and the CLI later. Two signals put the two stops in that order every time.
-        for stage in (b"Application title", b"Installing dependencies with Bun"):
-            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as directory:
+        # With held, the CLI gets its answer about the terminal while the launcher still runs, and the shell takes the
+        # terminal and writes its prompt before the CLI goes on.
+        for stage, held in itertools.product((b"Application title", b"Installing dependencies with Bun"), (False, True)):
+            with self.subTest(stage=stage, held=held), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
                 installer = root / "bun"
                 installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nsleep 20\n')
                 installer.chmod(0o755)
+                release = root / "release"
+                hold = {"NODE_OPTIONS": "--import=data:text/javascript," + quote(HOLD_MODULE), "HOLD_AT": "query",
+                        "HOLDING": str(root / "holding"), "RELEASE": str(release)} if held else {}
                 pid, master, slave = start_cli(
                     root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install"],
-                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"]},
+                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"], **hold},
                     job_control=True, launcher=True, shell=True)
                 reader = Reader(self, master)
                 transcript = reader.transcript
@@ -966,12 +990,21 @@ process.stdout.write = (...args) => {
                         self.assertIsNotNone(recorded(root / "installer.pid"))
                     launcher = recorded(root / "cli.pid")
                     worker = int(subprocess.check_output(["pgrep", "-P", str(launcher)], text=True))
+                    if held:
+                        os.kill(worker, signal.SIGTSTP)
+                        self.assertEqual(recorded(root / "holding"), 1)
                     os.kill(launcher, signal.SIGSTOP)
                     # The parent has taken the terminal back when it records the stop.
                     self.assertEqual(recorded(root / "stop.signal"), signal.SIGSTOP)
                     reader.drain()
-                    start = len(transcript)
-                    os.kill(worker, signal.SIGTSTP)
+                    if held:
+                        os.write(slave, b"[1]+  Stopped\r\n$ ")
+                        reader.until(b"$ ")
+                        start = len(transcript)
+                        release.touch()
+                    else:
+                        start = len(transcript)
+                        os.kill(worker, signal.SIGTSTP)
                     deadline = time.monotonic() + 4
                     while "T" not in state(worker):
                         self.assertLess(time.monotonic(), deadline)
@@ -981,8 +1014,8 @@ process.stdout.write = (...args) => {
                     # The shell owns the terminal: the CLI shows the cursor and erases nothing.
                     self.assertEqual(bytes(transcript[start:]), shown)
                     self.assertTrue(cooked())
-                    os.write(slave, b"[1]+  Stopped\r\n$ fg\r\n")
-                    reader.until(b"$ fg", start)
+                    os.write(slave, b"fg\r\n" if held else b"[1]+  Stopped\r\n$ fg\r\n")
+                    reader.until(b"fg", start)
                     continued = len(transcript)
                     foreground(root, 1)
                     if stage == b"Application title":
@@ -1010,6 +1043,7 @@ process.stdout.write = (...args) => {
                     self.assertEqual(reader.cursor(), shown)
                     self.assertEqual(os.waitstatus_to_exitcode(status), 130)
                 finally:
+                    release.touch()
                     foreground(root, 1)
                     target = recorded(root / "cli.pid") if (root / "cli.pid").exists() else None
                     try:

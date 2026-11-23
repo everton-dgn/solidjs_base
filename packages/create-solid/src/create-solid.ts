@@ -79,18 +79,21 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
       .listeners('SIGCONT')
       .filter(listener => listener !== resume)
     for (const listener of fromKey) process.off('SIGCONT', listener)
-    if (ownsTerminal()) {
+    const isKey = fromKey.length > 0
+    // WHY: The CLI read the key itself, so a launcher in its group still runs and the shell cannot have taken the terminal.
+    const isAlone = isKey || ownsTerminal()
+    if (isAlone) {
       // WHY: The shell writes where the question was, so no copy of it stays above what the shell wrote.
       frame.erase()
       process.stdin.setRawMode(false)
     } else {
-      // WHY: Under a launcher the shell may own the terminal by now: what is erased then is its prompt, and a change of mode from the background stops the CLI with SIGTTOU. The question is drawn again below when the CLI continues.
+      // WHY: A stop sent from outside may have stopped a launcher of the group first, and its shell may own the terminal by now: what is erased then is its prompt, and a change of mode from the background stops the CLI with SIGTTOU. bash restores its own modes when a job stops. The question is drawn again below when the CLI continues.
       frame.hold()
     }
     process.stdout.write(showCursor)
     process.off('SIGTSTP', suspend)
-    // WHY: readline signals only this process for the key, and the terminal would have stopped the whole group.
-    process.kill(fromKey.length > 0 ? 0 : process.pid, 'SIGTSTP')
+    // WHY: readline signals only this process for the key, and the terminal would have stopped the whole group. Under a launcher the group stops too, so its shell sees the stop and can continue the CLI.
+    process.kill(isAlone && !isKey ? process.pid : 0, 'SIGTSTP')
     process.on('SIGTSTP', suspend)
     // WHY: The kernel discards the stop of an orphaned group, and then no SIGCONT comes to restore the question.
     resume()

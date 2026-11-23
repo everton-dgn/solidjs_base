@@ -79,3 +79,34 @@ void it('runs /bin/ps with a timeout and writes as before when it does not answe
     calls: [['/bin/ps', true]]
   })
 })
+
+void it('owns the terminal only when the CLI leads the foreground group', () => {
+  const script = `
+    import childProcess from 'node:child_process'
+    import fs from 'node:fs'
+    import { syncBuiltinESMExports } from 'node:module'
+    const read = fs.readFileSync
+    fs.readFileSync = (file, ...rest) => {
+      if (file === '/proc/self/stat') throw new Error('no /proc')
+      return read(file, ...rest)
+    }
+    let answer = ''
+    childProcess.spawnSync = () => ({ stdout: answer, error: undefined })
+    syncBuiltinESMExports()
+    const { ownsTerminal } = await import('./src/ownsTerminal/index.ts')
+    const other = process.pid + 1
+    const owns = []
+    for (const [foreground, group] of [[process.pid, process.pid], [other, other], [other, process.pid]]) {
+      answer = foreground + ' ' + group + '\\n'
+      owns.push(ownsTerminal())
+    }
+    process.stdout.write(JSON.stringify(owns))
+  `
+  const child = spawnSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    { encoding: 'utf8' }
+  )
+  assert.equal(child.status, 0, child.stderr)
+  assert.deepEqual(JSON.parse(child.stdout), [true, false, false])
+})

@@ -93,6 +93,14 @@ function showCursor() {
 function refreshSize() {
   process.kill(process.pid, 'SIGWINCH')
 }
+// WHY: A launcher in the group stops at once on Ctrl+Z and its shell may own the terminal by now, so the rows are cleared before the stop only when the CLI leads its group, and otherwise on the continue. Showing the cursor changes no cell, and the shell does not show it.
+function stopStep(): boolean {
+  const isCleared = ownsTerminal()
+  if (isCleared) process.stdout.write(clearIndicatorRows)
+  showCursor()
+  process.kill(process.pid, 'SIGTSTP')
+  return isCleared
+}
 function clearIndicator() {
   if (!active) return
   clearInterval(indicator)
@@ -248,13 +256,10 @@ export const progress = {
       // WHY: A launcher in the same group stops before this listener runs, so the continue of the shell may be queued behind this signal. The stop waits for the signals the loop has read, and that continue cancels it.
       pendingStop ??= setImmediate(() => {
         pendingStop = undefined
-        // WHY: Under a launcher the shell may own the terminal by now, and the rows cleared then would be its prompt. Showing the cursor changes no cell, and the shell does not show it.
-        if (ownsTerminal()) process.stdout.write(clearIndicatorRows)
-        showCursor()
         process.off('SIGTSTP', suspend)
-        // WHY: With no SIGCONT listener during the stop its continue emits no event, so the resume() after process.kill is the only restore.
+        // WHY: With no SIGCONT listener during the stop its continue emits no event, so the resume() after the stop is the only restore.
         process.off('SIGCONT', resume)
-        process.kill(process.pid, 'SIGTSTP')
+        stopStep()
         process.on('SIGTSTP', suspend)
         process.on('SIGCONT', resume)
         resume()

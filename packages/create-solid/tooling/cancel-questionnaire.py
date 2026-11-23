@@ -104,6 +104,16 @@ def fork_terminal():
     return pid, master, slave
 
 
+def recorded(file):
+    """Read the number in a file once it has content: a file exists before its content is written."""
+    deadline = time.monotonic() + 10
+    while True:
+        text = file.read_text().strip() if file.exists() else ""
+        if text or time.monotonic() >= deadline:
+            return int(text) if text else None
+        time.sleep(.01)
+
+
 def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False, ask_directory=False):
     master, slave = pty.openpty()
     try:
@@ -206,9 +216,8 @@ class Cancellation(unittest.TestCase):
                         break
                     os.write(terminal, b"\r")
                 if (install or git) and not (success or failure or git_warning or files_failure):
-                    while not (root / "pid").exists() and time.monotonic() < deadline:
-                        time.sleep(.01)
-                    self.assertTrue((root / "pid").exists())
+                    installer = recorded(root / "pid")
+                    self.assertIsNotNone(installer)
                 if interrupt:
                     started = time.monotonic()
                     os.kill(pid, interrupt)
@@ -325,27 +334,19 @@ class Cancellation(unittest.TestCase):
                     self.assertIn(b"bun install" if install else b"git init", transcript)
                     self.assertTrue((root / "parent/app/package.json").exists())
                     with self.assertRaises(ProcessLookupError):
-                        os.kill(int((root / "pid").read_text()), 0)
+                        os.kill(installer, 0)
                 else:
                     self.assertFalse((root / "parent").exists())
             finally:
-                grandchild_file = root / "parent/app/grandchild.pid"
-                if grandchild_file.exists():
-                    grandchild = int(grandchild_file.read_text())
-                    try:
-                        if os.getsid(grandchild) == pid:
-                            os.kill(grandchild, signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
                 os.close(terminal)
                 if not waited:
                     os.kill(pid, signal.SIGKILL)
                     os.waitpid(pid, 0)
-                if (root / "pid").exists():
-                    installer = int((root / "pid").read_text())
+                for file in (root / "parent/app/grandchild.pid", root / "pid"):
+                    target = recorded(file) if file.exists() else None
                     try:
-                        if os.getsid(installer) == pid:
-                            os.kill(installer, signal.SIGKILL)
+                        if target and os.getsid(target) == pid:
+                            os.kill(target, signal.SIGKILL)
                     except ProcessLookupError:
                         pass
 
@@ -413,12 +414,6 @@ class Cancellation(unittest.TestCase):
                     self.assertIn(b"\r\x1b[J", transcript[frame:end])
                 def state(process):
                     return subprocess.check_output(["ps", "-o", "stat=", "-p", str(process)], text=True).strip()
-                def recorded(name):
-                    # A file exists before its content is written.
-                    deadline = time.monotonic() + 4
-                    while not ((root / name).exists() and (root / name).read_text()) and time.monotonic() < deadline:
-                        time.sleep(.01)
-                    return int((root / name).read_text())
                 def drain():
                     while select.select([master], [], [], 0)[0]:
                         try:
@@ -435,8 +430,8 @@ class Cancellation(unittest.TestCase):
                         read_until(prompt)
                         os.write(master, b"\r")
                     read_until(b"Installing dependencies with Bun")
-                    worker = recorded("installer.pid")
-                    leader = int((root / "cli.pid").read_text())
+                    worker = recorded(root / "installer.pid")
+                    leader = recorded(root / "cli.pid")
                     self.assertEqual(os.getsid(leader), pid)
                     self.assertEqual(os.getpgid(worker), leader)
                     self.assertEqual(os.getpgid(leader), leader)
@@ -456,7 +451,7 @@ class Cancellation(unittest.TestCase):
                             time.sleep(.01)
                     if key != b"\x1c":
                         if job_control:
-                            self.assertEqual(recorded("stop.signal"), signal.SIGTSTP)
+                            self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
                             self.assertIn("T", state(leader))
                             self.assertIn("T", state(worker))
                         if job_control or not key:
@@ -498,14 +493,13 @@ class Cancellation(unittest.TestCase):
                         self.assertNotIn("└".encode(), tail)
                         self.assertNotIn(b"Creation canceled.", transcript)
                 finally:
-                    for file in ("installer.pid", "cli.pid"):
-                        if (root / file).exists():
-                            target = int((root / file).read_text())
-                            try:
-                                if os.getsid(target) == pid:
-                                    os.kill(target, signal.SIGKILL)
-                            except ProcessLookupError:
-                                pass
+                    for file in (root / "installer.pid", root / "cli.pid"):
+                        target = recorded(file) if file.exists() else None
+                        try:
+                            if target and os.getsid(target) == pid:
+                                os.kill(target, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
                     os.close(master)
                     os.close(slave)
                     if not waited:

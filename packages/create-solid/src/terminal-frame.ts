@@ -1,3 +1,4 @@
+import path from 'node:path'
 import process from 'node:process'
 import { isatty, WriteStream } from 'node:tty'
 import { styleText } from 'node:util'
@@ -37,6 +38,7 @@ const frames = S_BAR === '│' ? ['◒', '◐', '◓', '◑'] : ['•', 'o', 'O'
 const unicodeIntervalMs = 80
 const asciiIntervalMs = 120
 const noteFormat = { format: (line: string) => line.trimStart() }
+const notePrefix = '      '
 const prefixWidth = 3
 const clearIndicatorRows = '\r\u001B[J'
 let indicator: ReturnType<typeof setInterval> | undefined
@@ -141,13 +143,53 @@ function wrapInstructions({ text, output }: Instructions): string[] {
     return wrapped
   })
 }
+type NoteText = { text: string; output: NodeJS.WriteStream }
+function fitsNote({ text, output }: NoteText): boolean {
+  return !wrapTextWithPrefix(output, text, notePrefix).includes('\n')
+}
+function pathLines({ text, output }: NoteText): string[] {
+  const segments = text.split(path.sep)
+  const lines: string[] = []
+  let line = ''
+  for (const [index, name] of segments.entries()) {
+    const segment = index < segments.length - 1 ? name + path.sep : name
+    if (line && !fitsNote({ text: line + segment, output })) {
+      lines.push(line)
+      line = ''
+    }
+    for (const { segment: character } of new Intl.Segmenter().segment(
+      segment
+    )) {
+      if (line && !fitsNote({ text: line + character, output })) {
+        lines.push(line)
+        line = ''
+      }
+      line += character
+    }
+  }
+  return [...lines, line]
+}
 export async function confirmProject({
   summary,
   language,
   output
 }: Confirmation): Promise<void> {
   const m = messages[language]
-  note(summary, m.summary, { ...noteFormat, output })
+  const [directory = '', ...rest] = summary.split('\n')
+  const label = `${m.dir}:`
+  // WHY: Clack cuts a note line that passes its width at any character, so a long path gets lines of its own that fit.
+  const dir =
+    directory.startsWith(`${label} `) && !fitsNote({ text: directory, output })
+      ? pathLines({ text: directory.slice(label.length + 1), output })
+      : []
+  note(
+    dir.length > 0 ? [label, ...dir, ...rest].join('\n') : summary,
+    m.summary,
+    {
+      format: line => (dir.includes(line) ? line : noteFormat.format(line)),
+      output
+    }
+  )
   const result = await confirm({
     message: m.create,
     active: m.yes,
@@ -308,7 +350,6 @@ export function stopFrame({
 export function finishProject({ steps, language }: Completion): void {
   const output = closingOutput()
   const m = messages[language]
-  const notePrefix = '      '
   if (
     steps.some(
       line =>

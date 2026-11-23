@@ -186,11 +186,11 @@ def recorded(file):
         time.sleep(.01)
 
 
-def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False, ask_directory=False):
+def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False, ask_directory=False, name="app"):
     master, slave = pty.openpty()
     try:
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, columns, 0, 0))
-        with subprocess.Popen([node, cli, *([] if ask_directory else ["app"]), "--lang", language, "--mode", "server",
+        with subprocess.Popen([node, cli, *([] if ask_directory else [name]), "--lang", language, "--mode", "server",
                                "--no-git", "--install" if piped else "--no-install"], cwd=directory,
                               env=dict(os.environ, PATH=directory + os.pathsep + os.environ["PATH"] if piped else os.environ["PATH"], CI="false", NO_COLOR="" if color else "1", FORCE_COLOR="1" if color else "0", TERM="xterm"),
                               stdin=slave, stdout=subprocess.PIPE if piped else slave, stderr=slave) as child:
@@ -1035,6 +1035,30 @@ process.stdout.write = (...args) => {
                     if not waited:
                         os.kill(pid, signal.SIGKILL)
                         os.waitpid(pid, 0)
+
+    def test_long_directory_in_summary(self):
+        parent = "a-parent-directory-with-a-long-name/"
+        middle = "a-directory-that-is-longer-than-the-terminal-width/"
+        name = parent + middle + "app"
+        for columns, pieces in [
+            (80, [parent, middle + "app"]),
+            (40, [parent[:34], parent[34:], middle[:34], middle[34:] + "app"]),
+        ]:
+            with self.subTest(columns=columns), tempfile.TemporaryDirectory() as directory:
+                output, status = question_session(directory, "en", [
+                    ("Application title", b"\r"), ("Setup", b"\r"), ("Create the project?", b"\x03")
+                ], columns=columns, name=name)
+                self.assertEqual(status, 130)
+                self.assertEqual("".join(pieces), name)
+                lines = output.replace("\r\n", "\n").splitlines()
+                top = next(index for index, line in enumerate(lines) if line.startswith("◇  Project summary"))
+                bottom = next(index for index, line in enumerate(lines) if line.startswith("├"))
+                box = lines[top:bottom + 1]
+                self.assertEqual(len({len(line) for line in box}), 1, box)
+                self.assertLessEqual(len(box[0]), columns)
+                content = [line[3:-1].rstrip() for line in box[1:-1]]
+                self.assertTrue(all(line.startswith("│  ") and line.endswith("│") for line in box[1:-1]), box)
+                self.assertEqual(content[:len(pieces) + 3], ["", "Project directory:", *pieces, "Application title: app"])
 
     def test_unknown_screen_bytes(self):
         for text in ("\x1b[1;2H", "\x1b7", "\b"):

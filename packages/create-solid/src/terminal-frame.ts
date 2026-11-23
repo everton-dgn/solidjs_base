@@ -19,6 +19,7 @@ import {
 import { messages, type Language } from './cli-language.ts'
 import { ownsTerminal } from './ownsTerminal/index.ts'
 import { CanceledError } from './usage-error.ts'
+import { widthLines } from './widthLines/index.ts'
 import { wrapFrameText } from './wrapFrameText/index.ts'
 
 type Completion = {
@@ -155,23 +156,18 @@ function fitsNote({ text, output }: NoteText): boolean {
 }
 function pathLines({ text, output }: NoteText): string[] {
   const segments = text.split(path.sep)
+  const fits = (line: string) => fitsNote({ text: line, output })
   const lines: string[] = []
   let line = ''
   for (const [index, name] of segments.entries()) {
     const segment = index < segments.length - 1 ? name + path.sep : name
-    if (line && !fitsNote({ text: line + segment, output })) {
+    if (line && !fits(line + segment)) {
       lines.push(line)
       line = ''
     }
-    for (const { segment: character } of new Intl.Segmenter().segment(
-      segment
-    )) {
-      if (line && !fitsNote({ text: line + character, output })) {
-        lines.push(line)
-        line = ''
-      }
-      line += character
-    }
+    const pieces = widthLines({ text: line + segment, fits })
+    line = pieces.pop() ?? ''
+    lines.push(...pieces)
   }
   return [...lines, line]
 }

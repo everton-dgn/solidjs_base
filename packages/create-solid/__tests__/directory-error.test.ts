@@ -32,3 +32,19 @@ void it('moves the path to its own indented lines only when the error passes the
     'Must be\n   empty:\n   app-dir\n   ectory'
   )
 })
+
+void it('keeps every character of a path that is cut at a space', () => {
+  const dir = 'my app directory'
+  const text = `Must be empty: ${dir}`
+  const pieceWidth = 6
+  const indent = '\n   '
+  const error = directoryError({
+    text,
+    dir,
+    output: terminal(pieceWidth + '   '.length)
+  })
+  const sentence = ['Must', 'be', 'empty:'].join(indent)
+  const pieces = ['my app', ' direc', 'tory']
+  assert.equal(error, [sentence, ...pieces].join(indent))
+  assert.equal(pieces.join(''), dir)
+})

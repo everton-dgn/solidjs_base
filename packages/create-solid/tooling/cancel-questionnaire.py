@@ -195,8 +195,20 @@ def foreground(root, stop):
     (root / f"foreground.{stop}").touch()
 
 
+def system_tool(*command):
+    """Run ps or pgrep, failing with a message that names the tool when it is missing, as minimal images lack both."""
+    try:
+        return subprocess.check_output(command, text=True)
+    except FileNotFoundError:
+        raise AssertionError(f"The questionnaire harness needs {command[0]}: install it and run again") from None
+
+
 def state(process):
-    return subprocess.check_output(["ps", "-o", "stat=", "-p", str(process)], text=True).strip()
+    return system_tool("ps", "-o", "stat=", "-p", str(process)).strip()
+
+
+def children(process):
+    return [int(child) for child in system_tool("pgrep", "-P", str(process)).split()]
 
 
 def broken_cli(root):
@@ -712,7 +724,7 @@ process.stdout.write = (...args) => {
                         os.write(master, b"\r")
                     reader.until(b"Creating the files")
                     leader = recorded(root / "cli.pid")
-                    worker = int(subprocess.check_output(["pgrep", "-P", str(leader)], text=True))
+                    [worker] = children(leader)
                     start = len(transcript)
                     os.write(master, b"\x1a")
                     # The terminal stops the shell at once, while the CLI has not read its signal yet.
@@ -808,7 +820,7 @@ process.stdout.write = (...args) => {
                         self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
                         members = [leader]
                         if launcher:
-                            members.extend(map(int, subprocess.check_output(["pgrep", "-P", str(leader)], text=True).split()))
+                            members.extend(children(leader))
                             self.assertEqual(len(members), 2)
                         for member in members:
                             self.assertIn("T", state(member))
@@ -1045,7 +1057,7 @@ process.stdout.write = (...args) => {
                         reader.until(stage)
                         self.assertIsNotNone(recorded(root / "installer.pid"))
                     launcher = recorded(root / "cli.pid")
-                    worker = int(subprocess.check_output(["pgrep", "-P", str(launcher)], text=True))
+                    [worker] = children(launcher)
                     if held:
                         os.kill(worker, signal.SIGTSTP)
                         self.assertEqual(recorded(root / "holding"), 1)
@@ -1197,7 +1209,7 @@ process.stdout.write = (...args) => {
                     reader.until(b"Creating the files")
                     self.assertEqual(recorded(root / "holding"), 1)
                     launcher = recorded(root / "cli.pid")
-                    worker = int(subprocess.check_output(["pgrep", "-P", str(launcher)], text=True))
+                    [worker] = children(launcher)
                     os.kill(launcher, signal.SIGSTOP)
                     # The parent has taken the terminal back when it records the stop.
                     self.assertEqual(recorded(root / "stop.signal"), signal.SIGSTOP)

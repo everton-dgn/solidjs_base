@@ -122,9 +122,9 @@ The full boilerplate application suites remain separate.
 | `vp run validate:generator`                             | Build generator prerequisites, run the workspace check, test each profile and compare packed templates |
 
 `vp run test:tarball` and `vp run validate:generator` run the questionnaire
-harness of the generator, which needs Python 3, bash and tmux: its launcher
-tests fail with a message that names bash, and its resize tests one that names
-tmux, when it is missing. On macOS a run may leave crash reports in
+harness of the generator, which needs Python 3, bash, tmux, `ps` and `pgrep`. A
+test that does not find bash, tmux, `ps` or `pgrep` fails with a message that
+names the missing tool. On macOS a run may leave crash reports in
 `~/Library/Logs/DiagnosticReports` for the processes its Ctrl+\ case ends with
 SIGQUIT (`node`, the `bash` behind the `sh` of the fake installer, and its
 `sleep`): macOS keeps at most 25 reports for each name.

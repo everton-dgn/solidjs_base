@@ -109,6 +109,27 @@ def fork_terminal():
 
 # A launcher with the default action of SIGINT: like dash, the /bin/sh of Ubuntu, it dies at once on Ctrl+C.
 DYING_LAUNCHER = "const c = require('child_process').spawn(process.argv[1], process.argv.slice(2), { stdio: 'inherit' }); c.on('exit', code => process.exit(code ?? 1))"
+# A launcher that sends the CLI the SIGINT and SIGTERM it gets, as the signal manager of npm does for the bin of npx.
+FORWARDING_LAUNCHER = "const c = require('child_process').spawn(process.argv[1], process.argv.slice(2), { stdio: 'inherit' }); for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => c.kill(s)); c.on('exit', code => process.exit(code ?? 1))"
+# An installer that starts its cleanup on its first SIGINT or SIGTERM and ends it once the script creates the FINISH file.
+CLEANING_INSTALLER = """
+const { existsSync, writeFileSync } = require('node:fs');
+writeFileSync(process.env.PID_FILE, String(process.pid));
+let isCleaning = false;
+const clean = () => {
+  if (isCleaning) return;
+  isCleaning = true;
+  writeFileSync(process.env.CLEANING, '1');
+  setInterval(() => {
+    if (!existsSync(process.env.FINISH)) return;
+    writeFileSync(process.env.CLEANED, '1');
+    process.exit(130);
+  }, 10);
+};
+process.on('SIGINT', clean);
+process.on('SIGTERM', clean);
+setInterval(() => {}, 1000);
+"""
 # An entry that runs the CLI and records its exit code, which a launcher that died cannot report.
 EXIT_ENTRY = """
 import { writeFileSync } from 'node:fs';
@@ -127,7 +148,7 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False, e
 
     With shell, that parent also takes the terminal back on every stop, as a shell does, and gives it back with SIGCONT when the script calls foreground.
     With stay, it also takes the terminal back when the launcher ends and stays until the CLI records its exit code in cli.exit.
-    launcher is True for bash -c or "dies" for a launcher that dies on SIGINT."""
+    launcher is True for bash -c, "dies" for a launcher that dies on SIGINT or "forwards" for one that forwards SIGINT and SIGTERM."""
     # bash keeps waiting on Ctrl+C and exits with the code of the CLI; dash, the /bin/sh of Ubuntu, dies at once.
     # The check runs here because a failure in the forked child would not reach the test.
     bash = bash_path()
@@ -182,8 +203,8 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False, e
         fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
         os.environ.update(CI="false", NO_COLOR="1", TERM="xterm", **environment)
         command = [node, str(executable), *arguments]
-        if launcher == "dies":
-            os.execv(node, [node, "-e", DYING_LAUNCHER, *command])
+        if launcher in ("dies", "forwards"):
+            os.execv(node, [node, "-e", DYING_LAUNCHER if launcher == "dies" else FORWARDING_LAUNCHER, *command])
         if launcher:
             # A second command keeps the shell above the CLI, in its group, as npx and pnpm dlx stay.
             os.execv(bash, [bash, "-c", shlex.join(command) + "; exit $?"])
@@ -1180,6 +1201,91 @@ process.stdout.write = (...args) => {
                     # bash waits and ends with the code of the CLI; the other launcher died of the SIGINT.
                     self.assertEqual(recorded(root / "launcher.ended"), 130 if launcher is True else -signal.SIGINT)
                 finally:
+                    for file in (root / "installer.pid", root / "cli.pid"):
+                        target = recorded(file) if file.exists() else None
+                        try:
+                            if target and os.getsid(target) == pid:
+                                os.killpg(os.getpgid(target), signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+
+    def test_signal_forwarded_by_a_launcher(self):
+        # Under a launcher that forwards signals as npm does, Ctrl+C or a SIGTERM sent to the group reaches the CLI twice at
+        # once, and the installer must still end its cleanup. Two signals 300 ms apart are a person who wants out at once.
+        for interrupt, together in itertools.product((signal.SIGINT, signal.SIGTERM), (True, False)):
+            with self.subTest(signal=interrupt, together=together), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                (root / "installer.js").write_text(CLEANING_INSTALLER)
+                installer = root / "bun"
+                installer.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(root / 'installer.js'))}\n")
+                installer.chmod(0o755)
+                entry = root / "entry.mjs"
+                entry.write_text(EXIT_ENTRY)
+                cleaning, finish, cleaned = root / "cleaning", root / "finish", root / "cleaned"
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install"],
+                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"],
+                     "EXIT_FILE": str(root / "cli.exit"), "CLI_URL": cli.as_uri(),
+                     "CLEANING": str(cleaning), "FINISH": str(finish), "CLEANED": str(cleaned)},
+                    job_control=True, launcher="forwards", shell=True, stay=True, executable=entry)
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                try:
+                    for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        os.write(master, b"\r")
+                    reader.until(b"Installing dependencies with Bun")
+                    worker = recorded(root / "installer.pid")
+                    self.assertIsNotNone(worker)
+                    launcher = recorded(root / "cli.pid")
+                    [command] = children(launcher)
+                    start = len(transcript)
+                    sent = time.monotonic()
+                    if together:
+                        # The launcher, the CLI and the installer get the signal, and the launcher sends the CLI one more.
+                        if interrupt == signal.SIGINT:
+                            os.write(master, b"\x03")
+                        else:
+                            os.killpg(launcher, signal.SIGTERM)
+                        deadline = time.monotonic() + 4
+                        while not cleaning.exists() and b"Creation canceled." not in transcript[start:]:
+                            self.assertLess(time.monotonic(), deadline)
+                            reader.drain()
+                            time.sleep(.01)
+                        finish.touch()
+                    else:
+                        os.kill(command, interrupt)
+                        time.sleep(.3)
+                        os.kill(command, interrupt)
+                    reader.until("└  Creation canceled.".encode(), start)
+                    elapsed = time.monotonic() - sent
+                    self.assertEqual(recorded(root / "cli.exit"), 130)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        reader.drain()
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    self.assertEqual(recorded(root / "launcher.ended"), 130)
+                    if together:
+                        self.assertTrue(cleaned.exists())
+                    else:
+                        self.assertFalse(cleaned.exists())
+                        with self.assertRaises(ProcessLookupError):
+                            os.kill(worker, 0)
+                        # Without the second signal the deadline of the CLI forces 750 ms after the first one.
+                        self.assertLess(elapsed, .7)
+                finally:
+                    finish.touch()
                     for file in (root / "installer.pid", root / "cli.pid"):
                         target = recorded(file) if file.exists() else None
                         try:

@@ -13,6 +13,7 @@ import {
   cpSync
 } from 'node:fs'
 import path from 'node:path'
+import { performance } from 'node:perf_hooks'
 import process from 'node:process'
 import type { Readable } from 'node:stream'
 import { setImmediate } from 'node:timers/promises'
@@ -316,6 +317,9 @@ type TerminalOptions = {
   report: (progress: Progress) => void
 }
 const childInterruptDeadlineMs = 750
+// WHY: npm sends its bin the SIGINT and SIGTERM it gets, so the signal sent to the whole group reaches the CLI twice, 0 to 1 ms apart.
+const forwardedSignals = new Set<string>(['SIGINT', 'SIGTERM'])
+const repeatWindowMs = 150
 const newline = '\n'.codePointAt(0)
 type Forwarding = { source: Readable | null; target: NodeJS.WriteStream }
 type Forwarded = { shouldAppendNewline: boolean }
@@ -371,11 +375,20 @@ async function executeSetup(
       child.kill('SIGKILL')
     }
   }
+  let canceledAt = 0
+  const forceAgain = (signalName: NodeJS.Signals) => {
+    const isRepeat =
+      signalName === signal.reason &&
+      forwardedSignals.has(signalName) &&
+      performance.now() - canceledAt < repeatWindowMs
+    if (!isRepeat) force()
+  }
   const cancel = () => {
+    canceledAt = performance.now()
     child.kill('SIGINT')
     deadline = setTimeout(force, childInterruptDeadlineMs)
     for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
-      process.on(signalName, force)
+      process.on(signalName, forceAgain)
     }
   }
   signal.addEventListener('abort', cancel, { once: true })
@@ -402,7 +415,7 @@ async function executeSetup(
     if (forwarded.shouldAppendNewline) process.stderr.write('\n')
     clearTimeout(deadline)
     for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
-      process.off(signalName, force)
+      process.off(signalName, forceAgain)
     }
     signal.removeEventListener('abort', cancel)
   }
@@ -652,7 +665,7 @@ export async function generateTerminal(
 ): Promise<string[]> {
   const steps = generation({ input, prepare: prepared, language })
   const controller = new AbortController()
-  const cancel = () => controller.abort()
+  const cancel = (signalName: NodeJS.Signals) => controller.abort(signalName)
   const signals = ['SIGINT', 'SIGHUP', 'SIGTERM'] as const
   for (const signal of signals) process.on(signal, cancel)
   try {

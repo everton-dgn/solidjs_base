@@ -202,6 +202,6 @@ completed steps above it. The cursor is hidden during an interactive step and
 restored when it ends. Ctrl+Z shows the cursor and lets the shell suspend the
 CLI. The indicator returns on `fg`; Ctrl+\ shows the cursor and quits. When
 nothing in the session can continue a stopped process, as under `ssh -t`,
-`docker exec -it` or `docker run -it`, Ctrl+Z does nothing and the step goes on.
-A long directory stays on its own line in resume instructions and destination
-errors.
+`docker exec -it` or `docker run -it` without `--init`, Ctrl+Z does nothing and
+the step goes on. A long directory stays on its own line in resume instructions
+and destination errors.

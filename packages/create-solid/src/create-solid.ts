@@ -77,6 +77,8 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
     }
   })
   const redraw = () => {
+    // WHY: A stopped process gets no SIGWINCH, and Node reads the size of the terminal again only on that signal.
+    process.kill(process.pid, 'SIGWINCH')
     if (!question) return
     // WHY: A shell takes the terminal out of raw mode when it stops a job, and Node skips a mode it believes is set.
     process.stdin.setRawMode(false)

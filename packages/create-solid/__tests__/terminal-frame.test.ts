@@ -344,7 +344,7 @@ void it('defers the stop of a step until the pending signals are read', () => {
     process.emit('SIGTSTP')
     process.emit('SIGTSTP')
     await turn()
-    seen.duringStep = stops.slice(1)
+    seen.duringStep = stops.slice(seen.atStepEnd.length)
     seen.afterStop = listeners()
     progress.cancel()
     seen.end = listeners()
@@ -355,12 +355,14 @@ void it('defers the stop of a step until the pending signals are read', () => {
     ['--input-type=module', '-e', script],
     { encoding: 'utf8', env: { ...process.env, TERM: 'xterm', NO_COLOR: '1' } }
   )
+  const refreshed = ['SIGWINCH', 1, 1]
+  const atStepEnd = [refreshed, ['SIGTSTP', 0, 0], ['SIGWINCH', 0, 0]]
   assert.deepEqual(JSON.parse(stderr), {
-    canceled: [],
-    deferred: [],
-    atStepEnd: [['SIGTSTP', 0, 0]],
-    afterStepEnd: [1, 0, 0],
-    duringStep: [['SIGTSTP', 0, 0]],
+    canceled: [refreshed],
+    deferred: [refreshed],
+    atStepEnd,
+    afterStepEnd: [atStepEnd.length, 0, 0],
+    duringStep: [['SIGTSTP', 0, 0], refreshed],
     afterStop: [1, 1],
     end: [0, 0]
   })

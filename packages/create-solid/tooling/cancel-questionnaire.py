@@ -105,17 +105,22 @@ def fork_terminal():
     return pid, master, slave
 
 
-def start_cli(root, arguments, environment, job_control=False, launcher=False, executable=cli):
-    """Fork the CLI on a new terminal: alone in its session, under a parent that waits like a shell with job control, or under a shell of its own group."""
+def start_cli(root, arguments, environment, job_control=False, launcher=False, executable=cli, shell=False):
+    """Fork the CLI on a new terminal: alone in its session, under a parent that waits like a shell with job control, or under a shell of its own group.
+
+    With shell, that parent also takes the terminal back on every stop, as a shell does, and gives it back with SIGCONT when the script calls foreground."""
     pid, master, slave = fork_terminal()
     if pid == 0:
         os.chdir(root)
         if job_control:
             # Keep a parent in this session but outside the foreground group.
+            modes = termios.tcgetattr(0)
             reader, writer = os.pipe()
             child = os.fork()
             if child:
                 os.close(reader)
+                # A process outside the foreground group that changes the terminal gets SIGTTOU, and a shell ignores it.
+                signal.signal(signal.SIGTTOU, signal.SIG_IGN)
                 os.setpgid(child, child)
                 os.tcsetpgrp(0, child)
                 os.write(writer, b"x")
@@ -123,8 +128,20 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False, e
                 _, status = os.waitpid(child, os.WUNTRACED)
                 if not os.WIFSTOPPED(status):
                     os._exit(1)
-                (root / "stop.signal").write_text(str(os.WSTOPSIG(status)))
-                _, status = os.waitpid(child, 0)
+                stops = 1
+                while shell and os.WIFSTOPPED(status):
+                    os.tcsetpgrp(0, os.getpgrp())
+                    termios.tcsetattr(0, termios.TCSANOW, modes)
+                    (root / ("stop.signal" if stops == 1 else f"stop.{stops}.signal")).write_text(str(os.WSTOPSIG(status)))
+                    while not (root / f"foreground.{stops}").exists():
+                        time.sleep(.005)
+                    os.tcsetpgrp(0, child)
+                    os.killpg(child, signal.SIGCONT)
+                    stops += 1
+                    _, status = os.waitpid(child, os.WUNTRACED)
+                if not shell:
+                    (root / "stop.signal").write_text(str(os.WSTOPSIG(status)))
+                    _, status = os.waitpid(child, 0)
                 os._exit(os.waitstatus_to_exitcode(status))
             os.close(writer)
             os.read(reader, 1)
@@ -138,6 +155,11 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False, e
             os.execv("/bin/sh", ["/bin/sh", "-c", shlex.join(command) + "; exit $?"])
         os.execv(node, command)
     return pid, master, slave
+
+
+def foreground(root, stop):
+    """Play fg for the given stop of a CLI started with shell."""
+    (root / f"foreground.{stop}").touch()
 
 
 def state(process):
@@ -764,6 +786,85 @@ process.stdout.write = (...args) => {
                     self.assertEqual(reader.cursor(), shown)
                     self.assertEqual(os.waitstatus_to_exitcode(status), 0 if stage == b"Create the project?" else 130)
                 finally:
+                    for file in (root / "installer.pid", root / "cli.pid"):
+                        target = recorded(file) if file.exists() else None
+                        try:
+                            if target and os.getsid(target) == pid:
+                                os.kill(target, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+
+    def test_resize_while_stopped(self):
+        # A stopped CLI is not in the foreground group, so the terminal does not tell it about the new size.
+        for stage in (b"Application title", b"Installing dependencies with Bun"):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                installer = root / "bun"
+                installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\nsleep 20\n')
+                installer.chmod(0o755)
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install"],
+                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"]},
+                    job_control=True, shell=True)
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                narrow = "Installing dependencies wi…".encode()
+                def frames(start):
+                    return re.findall(rb"\x1b\[\?7l(.*?)\x1b\[\?7h", bytes(transcript[start:]))
+                try:
+                    for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        if prompt == stage:
+                            break
+                        os.write(master, b"\r")
+                    if stage == b"Application title":
+                        reader.until("└\r\n".encode(), transcript.index(stage))
+                    else:
+                        reader.until(stage)
+                        self.assertIsNotNone(recorded(root / "installer.pid"))
+                    leader = recorded(root / "cli.pid")
+                    os.write(master, b"\x1a")
+                    self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
+                    self.assertIn("T", state(leader))
+                    # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
+                    reader.drain()
+                    fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 30, 0, 0))
+                    continued = len(transcript)
+                    foreground(root, 1)
+                    if stage == b"Application title":
+                        reader.until(stage, continued)
+                        reader.until("└\r\n".encode(), transcript.index(stage, continued))
+                        # The question breaks a long value at the new width.
+                        os.write(master, b"x" * 50)
+                        reader.until("│  ".encode() + b"x" * 27 + b"\r\n", continued)
+                        os.write(master, b"\r")
+                        for prompt in [b"Setup", b"Create the project?"]:
+                            reader.until(prompt, continued)
+                            os.write(master, b"\r")
+                    # Every frame of the indicator after the continue has the title cut at the new width.
+                    reader.until(narrow, continued, 3)
+                    self.assertEqual({frame.split(b"  ", 1)[1] for frame in frames(continued) if b"Installing" in frame}, {narrow})
+                    os.write(master, b"\x03")
+                    reader.until("└  Creation canceled.".encode(), continued)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    reader.drain()
+                    self.assertEqual(reader.cursor(), b"\x1b[?25h")
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 130)
+                finally:
+                    foreground(root, 1)
                     for file in (root / "installer.pid", root / "cli.pid"):
                         target = recorded(file) if file.exists() else None
                         try:

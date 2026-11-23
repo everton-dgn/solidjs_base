@@ -87,6 +87,10 @@ function closingOutput(): NodeJS.WriteStream {
 function showCursor() {
   process.stdout.write('\u001B[?25h')
 }
+// WHY: A stopped process gets no SIGWINCH, and Node reads the size of the terminal again only on that signal.
+function refreshSize() {
+  process.kill(process.pid, 'SIGWINCH')
+}
 function clearIndicator() {
   if (!active) return
   clearInterval(indicator)
@@ -101,6 +105,7 @@ function clearIndicator() {
       clearImmediate(pendingStop)
       pendingStop = undefined
       process.kill(process.pid, 'SIGTSTP')
+      refreshSize()
     }
   }
   indicator = undefined
@@ -208,24 +213,32 @@ export const progress = {
     process.once('exit', showCursor)
     process.stdout.write('\u001B[?25l')
     let index = 0
+    let width: number | undefined
     const draw = () => {
       const mark = styleText('magenta', frames[index] ?? '')
-      const { columns } = process.stdout
+      const columns = width ?? process.stdout.columns
       if (columns < 1) return
       const label = stepTitle({ title, columns })
       const line = label ? `${mark}  ${label}` : mark
       process.stdout.write(`\r\u001B[?7l${line}\u001B[?7h\r`)
       index = (index + 1) % frames.length
     }
-    const resize = () => {
+    const redraw = () => {
       process.stdout.write(clearIndicatorRows)
       draw()
+    }
+    const resize = () => {
+      width = undefined
+      redraw()
     }
     const resume = () => {
       clearImmediate(pendingStop)
       pendingStop = undefined
       process.stdout.write('\u001B[?25l')
-      resize()
+      refreshSize()
+      // WHY: Node holds the size from before the stop until it reads that signal, and the timer of the indicator may run first.
+      width = closingOutput().columns
+      redraw()
     }
     const suspend = () => {
       // WHY: A launcher in the same group stops before this listener runs, so the continue of the shell may be queued behind this signal. The stop waits for the signals the loop has read, and that continue cancels it.

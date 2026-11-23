@@ -315,6 +315,7 @@ type TerminalOptions = {
   report: (progress: Progress) => void
 }
 const childInterruptDeadlineMs = 750
+const newline = '\n'.codePointAt(0)
 type SetupOptions = { cwd: string; signal: AbortSignal; isInteractive: boolean }
 async function executeSetup(
   command: SetupCommand,
@@ -343,10 +344,11 @@ async function executeSetup(
     } else diagnostic = (diagnostic + chunk).slice(-tailLimit)
   })
   const printed = { shouldAppendNewline: false }
-  child.stdout?.setEncoding('utf8').on('data', (chunk: string) => {
-    process.stdout.write(chunk)
-    printed.shouldAppendNewline = !chunk.endsWith('\n')
+  child.stdout?.on('data', (chunk: Buffer) => {
+    printed.shouldAppendNewline = chunk.at(-1) !== newline
   })
+  // WHY: pipe forwards the bytes as they are and pauses the installer while the reader of this output is slower than it.
+  child.stdout?.pipe(process.stdout, { end: false })
   let deadline: ReturnType<typeof setTimeout> | undefined
   const forced = Promise.withResolvers<typeof child.signalCode>()
   const force = () => {

@@ -1434,8 +1434,9 @@ syncBuiltinESMExports();
                 with self.subTest(terminal=terminal, status=status), tempfile.TemporaryDirectory() as directory:
                     root = pathlib.Path(directory)
                     installer = root / "bun"
+                    # The second line ends in bytes that are not UTF-8, and the last one has no newline.
                     installer.write_text("#!/bin/sh\nif [ -t 1 ]; then echo tty; else echo pipe; fi\n"
-                                         f"printf 'first\\nsecond\\nthird'\nexit {status}\n")
+                                         f"printf 'first\\nsecond \\351\\377\\nthird'\nexit {status}\n")
                     installer.chmod(0o755)
                     env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + ":" + os.environ["PATH"])
                     master, slave = pty.openpty() if terminal else (None, None)
@@ -1452,20 +1453,46 @@ syncBuiltinESMExports();
                                         data.extend(os.read(master, 65536))
                                 child.stderr.read()
                                 # On a terminal the installer keeps the terminal, so its last line is not completed.
-                                self.assertIn("tty", data.decode().splitlines())
+                                self.assertIn(b"tty", data.splitlines())
                             else:
-                                stdout, _ = child.communicate(timeout=10)
-                                printed = stdout.decode()
-                                self.assertIn("\npipe\nfirst\nsecond\nthird\n", printed)
+                                printed, _ = child.communicate(timeout=10)
+                                self.assertIn(b"\npipe\nfirst\nsecond \xe9\xff\nthird\n", printed)
                                 if status:
-                                    self.assertTrue(printed.endswith("third\n"), printed)
+                                    self.assertTrue(printed.endswith(b"third\n"), printed)
                                 else:
-                                    self.assertIn("third\n◇ Dependencies installed with Bun\n", printed)
+                                    self.assertIn("third\n◇ Dependencies installed with Bun\n".encode(), printed)
                             self.assertEqual(child.returncode, status)
                     finally:
                         if terminal:
                             os.close(master)
                             os.close(slave)
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            installer = root / "bun"
+            size = 4 * 1024 * 1024
+            installer.write_text(f"#!/bin/sh\nhead -c {size} /dev/zero | tr '\\0' x\n: > \"$DONE\"\n")
+            installer.chmod(0o755)
+            done = root / "done"
+            env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + ":" + os.environ["PATH"], DONE=str(done))
+            with subprocess.Popen([node, cli, "app", "--yes", "--lang", "en", "--no-git"], cwd=root, env=env,
+                                  stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as child:
+                try:
+                    printed = bytearray()
+                    deadline = time.monotonic() + 10
+                    while b"Files created\n" not in printed:
+                        self.assertTrue(select.select([child.stdout], [], [], max(0, deadline-time.monotonic()))[0], printed)
+                        printed.extend(os.read(child.stdout.fileno(), 4096))
+                    # With nobody reading, the pipes fill and the installer waits. An installer that the CLI did not hold back ends in milliseconds.
+                    time.sleep(1)
+                    self.assertFalse(done.exists())
+                    rest, _ = child.communicate(timeout=20)
+                    printed.extend(rest)
+                    self.assertTrue(done.exists())
+                    self.assertIn(b"\n" + b"x" * size + b"\n" + "◇ Dependencies installed with Bun\n".encode(), printed)
+                    self.assertEqual(child.returncode, 0)
+                finally:
+                    if child.poll() is None:
+                        child.kill()
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             installer = root / "bun"

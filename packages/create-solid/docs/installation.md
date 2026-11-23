@@ -110,8 +110,10 @@ with an active `CI` value (anything except empty, `0` or `false`), or with
 `--no-interactive`, give a positional destination or `--name DIR` unless using
 `--yes`. Other omitted options use their documented defaults. Invalid or
 conflicting answers exit with status 2 before writing. In plain output the
-installer inherits terminal stderr. When stderr is a pipe, the CLI forwards it
-as it arrives and supplies a missing final newline.
+installer inherits a terminal stdout and a terminal stderr. When one of them is
+not a terminal, the CLI forwards it as it arrives and supplies a missing final
+newline. On a terminal the installer writes directly, so a last line it leaves
+without a newline is followed by the next line of the CLI.
 
 ## Project options
 

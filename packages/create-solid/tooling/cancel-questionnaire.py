@@ -902,6 +902,73 @@ process.stdout.write = (...args) => {
                             os.close(master)
                             os.close(slave)
 
+    def test_plain_installer_stdout(self):
+        for terminal in (False, True):
+            for status in (0, 1):
+                with self.subTest(terminal=terminal, status=status), tempfile.TemporaryDirectory() as directory:
+                    root = pathlib.Path(directory)
+                    installer = root / "bun"
+                    installer.write_text("#!/bin/sh\nif [ -t 1 ]; then echo tty; else echo pipe; fi\n"
+                                         f"printf 'first\\nsecond\\nthird'\nexit {status}\n")
+                    installer.chmod(0o755)
+                    env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + ":" + os.environ["PATH"])
+                    master, slave = pty.openpty() if terminal else (None, None)
+                    try:
+                        with subprocess.Popen([node, cli, "app", "--yes", "--lang", "en", "--no-git"], cwd=root, env=env,
+                                              stdin=slave or subprocess.DEVNULL, stdout=slave or subprocess.PIPE,
+                                              stderr=subprocess.PIPE) as child:
+                            if terminal:
+                                data = bytearray()
+                                deadline = time.monotonic() + 10
+                                while child.poll() is None or select.select([master], [], [], 0)[0]:
+                                    self.assertLess(time.monotonic(), deadline, data)
+                                    if select.select([master], [], [], .05)[0]:
+                                        data.extend(os.read(master, 65536))
+                                child.stderr.read()
+                                # On a terminal the installer keeps the terminal, so its last line is not completed.
+                                self.assertIn("tty", data.decode().splitlines())
+                            else:
+                                stdout, _ = child.communicate(timeout=10)
+                                printed = stdout.decode()
+                                self.assertIn("\npipe\nfirst\nsecond\nthird\n", printed)
+                                if status:
+                                    self.assertTrue(printed.endswith("third\n"), printed)
+                                else:
+                                    self.assertIn("third\n◇ Dependencies installed with Bun\n", printed)
+                            self.assertEqual(child.returncode, status)
+                    finally:
+                        if terminal:
+                            os.close(master)
+                            os.close(slave)
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            installer = root / "bun"
+            installer.write_text('#!/bin/sh\ntrap "" INT HUP TERM\nsleep 30 &\necho $! > grandchild.pid\necho started\nwait\n')
+            installer.chmod(0o755)
+            env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + ":" + os.environ["PATH"])
+            with subprocess.Popen([node, cli, "app", "--yes", "--lang", "en", "--no-git"], cwd=root, env=env,
+                                  stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as child:
+                try:
+                    printed = bytearray()
+                    deadline = time.monotonic() + 10
+                    while b"started\n" not in printed:
+                        self.assertTrue(select.select([child.stdout], [], [], max(0, deadline-time.monotonic()))[0], printed)
+                        block = os.read(child.stdout.fileno(), 65536)
+                        self.assertTrue(block, printed)
+                        printed.extend(block)
+                    child.send_signal(signal.SIGTERM)
+                    # A descendant that keeps the installer's stdout open must not keep the CLI running.
+                    self.assertEqual(child.wait(timeout=5), 130)
+                finally:
+                    grandchild = recorded(root / "app/grandchild.pid") if (root / "app/grandchild.pid").exists() else None
+                    if child.poll() is None:
+                        child.kill()
+                    if grandchild:
+                        try:
+                            os.kill(grandchild, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+
     def test_feature_colors(self):
         with tempfile.TemporaryDirectory() as directory:
             output, status = question_session(directory, "en", [

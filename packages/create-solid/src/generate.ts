@@ -321,11 +321,13 @@ async function executeSetup(
 ): Promise<void> {
   const isPlainInstall = command.task === 'installTask' && !isInteractive
   const shouldInheritStderr = isPlainInstall && process.stderr.isTTY
+  // WHY: An installer keeps its progress display only on a terminal, so its stdout is forwarded only when it is not one.
+  const plainStdout = process.stdout.isTTY ? 'inherit' : 'pipe'
   const child = spawn(command.executable, command.args, {
     cwd,
     stdio: [
       'ignore',
-      command.task === 'gitTask' || isInteractive ? 'ignore' : 'inherit',
+      isPlainInstall ? plainStdout : 'ignore',
       shouldInheritStderr ? 'inherit' : 'pipe'
     ]
   })
@@ -339,10 +341,16 @@ async function executeSetup(
       forwarded.shouldAppendNewline = !chunk.endsWith('\n')
     } else diagnostic = (diagnostic + chunk).slice(-tailLimit)
   })
+  const printed = { shouldAppendNewline: false }
+  child.stdout?.setEncoding('utf8').on('data', (chunk: string) => {
+    process.stdout.write(chunk)
+    printed.shouldAppendNewline = !chunk.endsWith('\n')
+  })
   let deadline: ReturnType<typeof setTimeout> | undefined
   const forced = Promise.withResolvers<typeof child.signalCode>()
   const force = () => {
     const release = () => {
+      child.stdout?.destroy()
       child.stderr?.destroy()
       forced.resolve(child.signalCode)
     }
@@ -377,6 +385,7 @@ async function executeSetup(
       })
     }
   } finally {
+    if (printed.shouldAppendNewline) process.stdout.write('\n')
     if (forwarded.shouldAppendNewline) process.stderr.write('\n')
     clearTimeout(deadline)
     for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {

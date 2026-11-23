@@ -358,7 +358,7 @@ void it('rejects a site origin without SEO through the CLI and API', async conte
   const usageError = 2
   assert.equal(child.status, usageError)
   assert.match(child.stderr, /--site-url requires SEO/u)
-  const { generate } = await import('@evertondgn/create-solid')
+  const { generate } = await import('../src/index.ts')
   assert.throws(
     () =>
       generate({
@@ -375,7 +375,7 @@ void it('rejects a site origin without SEO through the CLI and API', async conte
 })
 
 void it('rejects invalid titles before creating an application', async context => {
-  const { generate } = await import('@evertondgn/create-solid')
+  const { generate } = await import('../src/index.ts')
   const dir = path.join(folder(context), 'bad-title')
   const usageError = 2
   for (const title of ['', '  ', 'one\ntwo', 'one\ttwo', 'a\u007Fb']) {

@@ -36,10 +36,11 @@ import { wrapFrameText } from './wrapFrameText/index.ts'
 type TextLabel = {
   label: string
   placeholder: string
+  output: Writable
   wrapError: (text: string) => string
 }
-// WHY: This reproduces Clack's text renderer so a spaces-only cancellation closes with │. Compare both on upgrades.
-function renderText({ label, placeholder, wrapError }: TextLabel) {
+// WHY: This reproduces Clack's text renderer so a spaces-only cancellation closes with │ and a value longer than the line keeps the guide. Compare both on upgrades.
+function renderText({ label, placeholder, output, wrapError }: TextLabel) {
   return function render(this: TextPrompt): string {
     const grayBar = styleText('gray', S_BAR)
     const heading = `${grayBar}\n${symbol(this.state)}  ${label}`
@@ -49,7 +50,9 @@ function renderText({ label, placeholder, wrapError }: TextLabel) {
       const formatted = isCanceled
         ? styleText(['strikethrough', 'dim'], value)
         : styleText('dim', value)
-      const response = value ? `${grayBar}  ${formatted}` : grayBar
+      const response = value
+        ? wrapTextWithPrefix(output, formatted, `${grayBar}  `)
+        : grayBar
       return [
         heading,
         response,
@@ -65,7 +68,12 @@ function renderText({ label, placeholder, wrapError }: TextLabel) {
     const error = this.error
       ? `  ${styleText('yellow', wrapError(this.error))}`
       : ''
-    return `${heading}\n${styleText(color, S_BAR)}  ${value}\n${styleText(color, S_BAR_END)}${error}\n`
+    const typed = wrapTextWithPrefix(
+      output,
+      value,
+      `${styleText(color, S_BAR)}  `
+    )
+    return `${heading}\n${typed}\n${styleText(color, S_BAR_END)}${error}\n`
   }
 }
 type DirectoryError = { text: string; dir?: string; output: Writable }
@@ -81,7 +89,7 @@ function directoryError({ text, dir, output }: DirectoryError): string {
   const lines =
     wrapFrameText({ output, text: ending }).length === 1
       ? [...sentence.slice(0, -1), ending]
-      : [...sentence, dir]
+      : [...sentence, ...wrapFrameText({ output, text: dir })]
   return lines.join('\n   ')
 }
 type FieldOptions = {
@@ -283,6 +291,7 @@ export async function questionnaire({
         render: renderText({
           label: names[key],
           placeholder: initialValue,
+          output,
           wrapError: text => directoryError({ text, dir: occupiedDir, output })
         }),
         placeholder: initialValue,

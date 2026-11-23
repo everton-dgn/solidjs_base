@@ -954,7 +954,7 @@ process.stdout.write = (...args) => {
                     (question, path.encode() + b"\r"), (expected[0], b"\x03")
                 ], columns=40, ask_directory=True)
                 lines = output.replace("\r\n", "\n")
-                self.assertIn("\n".join([*expected, "   " + path[:37], path[37:]]) + "\n", lines)
+                self.assertIn("\n".join(["│  " + path[:37], "│  " + path[37:] + "█", *expected, "   " + path[:37], "   " + path[37:]]) + "\n", lines)
                 self.assertEqual(status, 130)
 
                 sentence = expected[0] + " " + expected[1].strip()
@@ -977,7 +977,7 @@ process.stdout.write = (...args) => {
     def test_resize_occupied_directory_question(self):
         path = "a-directory-that-is-longer-than-the-terminal-width"
         sentence = "└  The project directory must be new or"
-        narrow = [sentence, "   empty:", "   " + path[:37], path[37:]]
+        narrow = [sentence, "   empty:", "   " + path[:37], "   " + path[37:]]
         ending = path[37:].encode() + b"\r\n"
         for initial, target, before, after in [
             (80, 40, [sentence + " empty:", "   " + path], narrow),

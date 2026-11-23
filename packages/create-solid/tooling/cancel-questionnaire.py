@@ -21,7 +21,8 @@ import unittest
 from urllib.parse import quote
 
 cli = pathlib.Path(sys.argv.pop(1)).resolve()
-node = shutil.which("node")
+# The node of PATH may be the shim of a version manager, which would add a process of its own to every job.
+node = subprocess.check_output([shutil.which("node"), "-p", "process.execPath"], text=True).strip()
 
 
 class Screen:
@@ -2083,11 +2084,17 @@ process.stdout.write = (...args) => {
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             socket = str(root / "tmux.sock")
-            tmux_env = {key: os.environ[key] for key in ("HOME", "PATH", "LANG", "TMPDIR") if key in os.environ}
+            # SHELL keeps the login shell of the account, and the PATH it sets, out of the commands of tmux.
+            tmux_env = {key: os.environ[key] for key in ("HOME", "PATH", "LANG", "TMPDIR") if key in os.environ} | {"SHELL": "/bin/sh"}
             def tmux(*args):
                 return subprocess.check_output(["tmux", "-f", "/dev/null", "-S", socket, *args], env=tmux_env, text=True, timeout=5)
             def capture(history=False):
                 return tmux("capture-pane", "-p", *(["-S", "-100"] if history else [])).rstrip("\n").split("\n")
+            def processes():
+                tty = tmux("display", "-p", "#{pane_tty}").strip().removeprefix("/dev/")
+                version = subprocess.run([bash_path(), "--version"], capture_output=True, text=True).stdout.split("\n")[0]
+                table = subprocess.run(["ps", "-o", "pid,ppid,pgid,tpgid,stat,args", "-t", tty], capture_output=True, text=True).stdout
+                return f"{version}\n{table}"
             def wait_for(check, history=False):
                 deadline = time.monotonic() + 10
                 while time.monotonic() < deadline:
@@ -2095,7 +2102,8 @@ process.stdout.write = (...args) => {
                     if check(lines):
                         return lines
                     time.sleep(.04)
-                self.fail(capture(history))
+                # The state of each process of the pane tells a CLI that did not stop from a shell that wrote nothing.
+                self.fail(f"{capture(history)}\n{processes()}")
             command = shlex.join(["env", "CI=false", "NO_COLOR=1", "TERM=xterm", node, str(cli),
                                   "app", "--lang", "en", "--mode", "server", "--no-git", "--no-install"])
             go = root / "go"

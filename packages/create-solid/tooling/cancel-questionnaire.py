@@ -1804,6 +1804,7 @@ timer.unref();
         self.resize_install(((80, 30),), drag=True)
 
     def resize_install(self, sizes, drag=False):
+        self.assertIsNotNone(shutil.which("tmux"), "The resize tests of the questionnaire harness need tmux: install it and run again")
         for old, new in sizes:
             with self.subTest(old=old, new=new), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)

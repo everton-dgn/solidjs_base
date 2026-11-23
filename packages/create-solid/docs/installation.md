@@ -113,7 +113,11 @@ conflicting answers exit with status 2 before writing. In plain output the
 installer inherits a terminal stdout and a terminal stderr. When one of them is
 not a terminal, the CLI forwards it as it arrives and supplies a missing final
 newline. On a terminal the installer writes directly, so a last line it leaves
-without a newline is followed by the next line of the CLI.
+without a newline is followed by the next line of the CLI. When Ctrl+C cancels
+plain output and stderr is a terminal, the closing lines start on a new line, so
+the `^C` that the terminal echoes stays on a line of its own. A SIGINT sent with
+`kill` has no echo, and that line stays empty: Node does not tell the CLI
+whether the terminal echoes control characters.
 
 ## Project options
 

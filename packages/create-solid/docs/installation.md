@@ -205,16 +205,17 @@ The corresponding programmatic properties are `siteUrl`, `mode`, `hasSeo`,
 During a step, the CLI disables automatic wrapping while drawing the indicator.
 Resizing clears the indicator from its first column down, preserving the
 completed steps above it. The cursor is hidden during an interactive step and
-restored when it ends. A long directory stays on its own line in resume
-instructions and destination errors.
+restored when it ends. A long directory gets lines of its own in resume
+instructions, in the project summary and in destination errors, and keeps every
+character.
 
 A question is drawn again by Clack when the terminal is resized, with a known
 limit when it gets narrower. Clack moves the cursor up by the height the old
 frame has at the new width. tmux moves the lines its reflow adds above the
 cursor into the history, where no cursor movement reaches them, so the redraw
-starts one line too low and the first part of an old line stays above the
-question. A terminal that cuts long lines instead of reflowing them loses the
-heading of the question instead.
+starts as many lines too low as went into the history, and the first part of an
+old line stays above the question. A terminal that cuts long lines instead of
+reflowing them loses the heading of the question instead.
 
 Ctrl+Z during a question or a step shows the cursor and lets the shell suspend
 the CLI. On `fg` the question is drawn again below what the shell wrote, or the
@@ -223,9 +224,11 @@ is the command that `ssh -t`, `docker exec -it` or `docker run -it` without
 `--init` starts, nothing in the session can continue a stopped process, so
 Ctrl+Z does nothing and the question or the step goes on. A shell opened by
 those tools has job control, and there Ctrl+Z suspends as usual. Under an init
-process, as with `docker run -it --init`, Ctrl+Z stops the CLI until something
-sends SIGCONT to its process group, which nothing in the container does, so stop
-the container from another terminal. When a launcher such as `npx` or `pnpm dlx`
-runs the CLI, the shell takes the terminal back as soon as the launcher stops. A
-step that is still busy stops a moment later, and the CLI may draw its indicator
-on the line of the shell prompt and clear that line before it stops.
+process, as with `docker run -it --init`, Ctrl+Z stops the CLI and the processes
+it started until something sends SIGCONT to their process group, which nothing
+in the container does, so stop the container from another terminal. When a
+launcher such as `npx` or `pnpm dlx` runs the CLI, the shell takes the terminal
+back as soon as the launcher stops. A step that is still busy stops a moment
+later; the CLI then finds that the shell owns the terminal, shows the cursor
+without drawing over the prompt, and draws the question or the indicator again
+on `fg`.

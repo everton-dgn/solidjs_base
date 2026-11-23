@@ -1,6 +1,12 @@
 import type { Writable } from 'node:stream'
 
-type Frame = { lines: string[]; row: number; isKnown: boolean }
+type Frame = {
+  lines: string[]
+  row: number
+  bottom: number
+  screenRows: number
+  isKnown: boolean
+}
 type QuestionFrame<Output> = {
   output: Output
   isOpen: () => boolean
@@ -20,9 +26,14 @@ function hasControl(text: string): boolean {
   }
   return false
 }
+function screenRows(target: Writable): number {
+  const rows = 'rows' in target ? Number(target.rows) : Number.NaN
+  return Number.isInteger(rows) && rows > 0 ? rows : Infinity
+}
 function addText(frame: Frame, text: string): void {
   for (const [index, line] of text.split('\n').entries()) {
     if (index > 0) frame.row += 1
+    frame.bottom = Math.max(frame.bottom, frame.row)
     while (frame.lines.length <= frame.row) frame.lines.push('')
     frame.lines[frame.row] += line
   }
@@ -30,7 +41,9 @@ function addText(frame: Frame, text: string): void {
 type Change = { count?: string; move?: string; erasure?: string }
 function change(frame: Frame, { count, move, erasure }: Change): void {
   const amount = count ? Number(count) : 1
-  if (move === 'A') frame.row = Math.max(0, frame.row - amount)
+  // WHY: A move up stops at the top of the screen, which is below the first row once the question has scrolled past it.
+  const top = Math.max(0, frame.bottom - frame.screenRows + 1)
+  if (move === 'A') frame.row = Math.max(top, frame.row - amount)
   if (move === 'B') frame.row += amount
   addText(frame, '')
   if (erasure === 'J') frame.lines.length = frame.row + 1
@@ -67,6 +80,7 @@ export function questionFrame<Output extends Writable>(
     target.write(
       frame.lines.join('\n') + (below > 0 ? `${escape}[${below}A` : '')
     )
+    frame.bottom = frame.lines.length - 1
   }
   const record = (chunk: string) => {
     if (chunk.includes(showCursor)) {
@@ -74,9 +88,18 @@ export function questionFrame<Output extends Writable>(
       frame = undefined
       return
     }
-    if (frame) apply(frame, chunk)
+    if (frame) {
+      frame.screenRows = screenRows(target)
+      apply(frame, chunk)
+    }
     if (!frame && chunk.includes(hideCursor)) {
-      frame = { lines: [''], row: 0, isKnown: true }
+      frame = {
+        lines: [''],
+        row: 0,
+        bottom: 0,
+        screenRows: screenRows(target),
+        isKnown: true
+      }
     }
   }
   const forward = target.write.bind(target)
@@ -94,12 +117,13 @@ export function questionFrame<Output extends Writable>(
     }),
     isOpen: () => frame !== undefined,
     erase() {
-      const rows = 'rows' in target ? Number(target.rows) : Infinity
-      // WHY: A move up stops at the top of the screen, so a question taller than the screen or drawn with unknown bytes stays as it is.
-      if (!frame?.isKnown || isHeld || frame.row >= rows) return
-      target.write(
-        `${frame.row > 0 ? `${escape}[${frame.row}A` : ''}\r${escape}[J`
-      )
+      // WHY: A question drawn with unknown bytes stays as it is. One whose first row has left the top of the screen cannot be reached to erase it, so it is drawn whole again below what the shell writes.
+      if (!frame?.isKnown || isHeld) return
+      if (frame.bottom < screenRows(target)) {
+        target.write(
+          `${frame.row > 0 ? `${escape}[${frame.row}A` : ''}\r${escape}[J`
+        )
+      }
       isHeld = true
     },
     hold() {

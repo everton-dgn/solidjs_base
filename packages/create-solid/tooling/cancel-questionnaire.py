@@ -1929,6 +1929,54 @@ timer.unref();
                 f"│  {dest.resolve()}", "│", "└  Creación interrumpida."])
             self.assertEqual((dest / "existing").read_text(), "keep")
 
+    def test_tall_question_after_fg(self):
+        # A question taller than the screen, stopped and continued by bash with job control in a tmux window of 12 rows.
+        self.assertIsNotNone(shutil.which("tmux"), "The tmux tests of the questionnaire harness need tmux: install it and run again")
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            socket = str(root / "tmux.sock")
+            tmux_env = {key: os.environ[key] for key in ("HOME", "PATH", "LANG", "TMPDIR") if key in os.environ}
+            def tmux(*args):
+                return subprocess.check_output(["tmux", "-f", "/dev/null", "-S", socket, *args], env=tmux_env, text=True, timeout=5)
+            def capture(history=False):
+                return tmux("capture-pane", "-p", *(["-S", "-100"] if history else [])).rstrip("\n").split("\n")
+            def wait_for(check, history=False):
+                deadline = time.monotonic() + 10
+                while time.monotonic() < deadline:
+                    lines = capture(history)
+                    if check(lines):
+                        return lines
+                    time.sleep(.04)
+                self.fail(capture(history))
+            command = shlex.join(["env", "CI=false", "NO_COLOR=1", "TERM=xterm", node, str(cli),
+                                  "app", "--lang", "en", "--mode", "server", "--no-git", "--no-install"])
+            go = root / "go"
+            script = f"{command}; until [ -e {shlex.quote(str(go))} ]; do sleep .05; done; fg"
+            tmux("new-session", "-d", "-x", "80", "-y", "12", "-c", directory, "/bin/sh")
+            try:
+                tmux("set-option", "remain-on-exit", "on")
+                tmux("respawn-pane", "-k", "-c", directory, "exec " + shlex.join([shutil.which("bash"), "--norc", "--noprofile", "-i", "-c", script]))
+                wait_for(lambda lines: "└" in lines[-1])
+                value = "x" * 760
+                tmux("send-keys", "-l", value)
+                full = "│  " + "x" * 77
+                # Ten rows of the value, the bar and the line of the cursor do not fit in 12 rows: the first rows left the top.
+                wait_for(lambda lines: lines[-2:] == ["│  " + "x" * 67 + "█", "└"] and lines[0] == full)
+                tmux("send-keys", "C-z")
+                wait_for(lambda lines: any("Stopped" in line for line in lines), history=True)
+                go.touch()
+                # Before fg the last rows are the ones the shell wrote; after it the question is drawn again below them.
+                wait_for(lambda lines: lines[-2:] == ["│  " + "x" * 67 + "█", "└"])
+                tmux("send-keys", "-l", "y")
+                lines = wait_for(lambda lines: "y█" in "".join(lines))
+                # Clack redraws the changed row of a question taller than the screen at the row it expects, so the screen
+                # shows the end of the question once, with the key on its last row of value.
+                self.assertEqual(lines, [full] * 9 + ["│  " + "x" * 67 + "y█", "└"])
+                tmux("send-keys", "C-c")
+                wait_for(lambda lines: "└  Creation canceled." in lines)
+            finally:
+                tmux("kill-server")
+
     def test_resize_during_install(self):
         self.resize_install(((80, 30), (30, 80)))
 

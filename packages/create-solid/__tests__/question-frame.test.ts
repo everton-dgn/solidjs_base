@@ -128,8 +128,8 @@ void it('forwards every argument of a write and keeps the callback of a held one
   ])
 })
 
-void it('leaves a question as it is when its bytes are unknown or it is taller than the screen', () => {
-  for (const drawing of [`a${escape}[2;3Hb`, 'a\rb', 'a\n'.repeat(rows)]) {
+void it('leaves a question as it is when its bytes are unknown', () => {
+  for (const drawing of [`a${escape}[2;3Hb`, 'a\rb']) {
     const { stream, written } = terminal()
     const frame = questionFrame(stream)
     frame.output.write(hide)
@@ -140,4 +140,42 @@ void it('leaves a question as it is when its bytes are unknown or it is taller t
     frame.flush()
     assert.deepEqual(written, ['more'], JSON.stringify(drawing))
   }
+})
+
+void it('holds a question whose first row left the top and draws it whole on the flush', () => {
+  const { stream, written } = terminal()
+  const frame = questionFrame(stream)
+  frame.output.write(hide)
+  frame.output.write('a\n'.repeat(rows))
+  written.length = 0
+  frame.erase()
+  frame.output.write('more')
+  assert.deepEqual(written, [])
+  frame.flush()
+  assert.deepEqual(written, [`${'a\n'.repeat(rows)}more`])
+})
+
+void it('keeps the rows of a question taller than the screen through the renders of Clack', async () => {
+  const stream = Object.assign(new PassThrough(), { columns: 20, rows: 6 })
+  const written: string[] = []
+  stream.on('data', chunk => written.push(String(chunk)))
+  const frame = questionFrame(stream)
+  const input = new PassThrough()
+  const answer = text({ message: 'Title', input, output: frame.output })
+  await turns()
+  const first = 'xxxxxxxxxxxxxxxxx'
+  const row = 'xxxxxxxxxxxxxxxxxxxx'
+  const typed = `${first}${row}${row}xxx`
+  input.write(typed)
+  await turns()
+  input.write('y')
+  await turns()
+  frame.erase()
+  written.length = 0
+  frame.flush()
+  // Clack cuts the value at the width of the screen, so its rows after the first have no bar.
+  const lines = ['│', '◆  Title', `│  ${first}`, row, row, 'xxxy█', '└', '']
+  assert.deepEqual(written, [lines.join('\n')])
+  input.write('\r')
+  assert.equal(await answer, `${typed}y`)
 })

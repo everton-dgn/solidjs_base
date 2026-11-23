@@ -204,6 +204,14 @@ completed steps above it. The cursor is hidden during an interactive step and
 restored when it ends. A long directory stays on its own line in resume
 instructions and destination errors.
 
+A question is drawn again by Clack when the terminal is resized, with a known
+limit when it gets narrower. Clack moves the cursor up by the height the old
+frame has at the new width. tmux moves the lines its reflow adds above the
+cursor into the history, where no cursor movement reaches them, so the redraw
+starts one line too low and the first part of an old line stays above the
+question. A terminal that cuts long lines instead of reflowing them loses the
+heading of the question instead.
+
 Ctrl+Z during a question or a step shows the cursor and lets the shell suspend
 the CLI. On `fg` the question is drawn again below what the shell wrote, or the
 indicator returns. Ctrl+\ during a step shows the cursor and quits. When the CLI

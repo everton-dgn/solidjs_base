@@ -163,39 +163,45 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False, e
             reader, writer = os.pipe()
             child = os.fork()
             if child:
-                os.close(reader)
-                # A process outside the foreground group that changes the terminal gets SIGTTOU, and a shell ignores it.
-                signal.signal(signal.SIGTTOU, signal.SIG_IGN)
-                os.setpgid(child, child)
-                os.tcsetpgrp(0, child)
-                os.write(writer, b"x")
-                os.close(writer)
-                _, status = os.waitpid(child, os.WUNTRACED)
-                if not os.WIFSTOPPED(status) and not stay:
-                    os._exit(1)
-                stops = 1
-                while shell and os.WIFSTOPPED(status):
-                    os.tcsetpgrp(0, os.getpgrp())
-                    termios.tcsetattr(0, termios.TCSANOW, modes)
-                    (root / ("stop.signal" if stops == 1 else f"stop.{stops}.signal")).write_text(str(os.WSTOPSIG(status)))
-                    while not (root / f"foreground.{stops}").exists():
-                        time.sleep(.005)
-                    os.tcsetpgrp(0, child)
-                    os.killpg(child, signal.SIGCONT)
-                    stops += 1
-                    _, status = os.waitpid(child, os.WUNTRACED)
-                if not shell:
-                    (root / "stop.signal").write_text(str(os.WSTOPSIG(status)))
-                    _, status = os.waitpid(child, 0)
+                code = 1
                 try:
+                    os.close(reader)
+                    # A process outside the foreground group that changes the terminal gets SIGTTOU, and a shell ignores it.
+                    signal.signal(signal.SIGTTOU, signal.SIG_IGN)
+                    os.setpgid(child, child)
+                    os.tcsetpgrp(0, child)
+                    os.write(writer, b"x")
+                    os.close(writer)
+                    _, status = os.waitpid(child, os.WUNTRACED)
+                    if not os.WIFSTOPPED(status) and not stay:
+                        os._exit(1)
+                    stops = 1
+                    while shell and os.WIFSTOPPED(status):
+                        os.tcsetpgrp(0, os.getpgrp())
+                        termios.tcsetattr(0, termios.TCSANOW, modes)
+                        (root / ("stop.signal" if stops == 1 else f"stop.{stops}.signal")).write_text(str(os.WSTOPSIG(status)))
+                        # Longer than every wait of a test, so only a test that ended without calling foreground reaches it.
+                        deadline = time.monotonic() + 30
+                        while not (root / f"foreground.{stops}").exists():
+                            if time.monotonic() > deadline:
+                                raise TimeoutError(f"foreground.{stops} never came")
+                            time.sleep(.005)
+                        os.tcsetpgrp(0, child)
+                        os.killpg(child, signal.SIGCONT)
+                        stops += 1
+                        _, status = os.waitpid(child, os.WUNTRACED)
+                    if not shell:
+                        (root / "stop.signal").write_text(str(os.WSTOPSIG(status)))
+                        _, status = os.waitpid(child, 0)
+                    code = os.waitstatus_to_exitcode(status)
                     if stay:
                         os.tcsetpgrp(0, os.getpgrp())
                         termios.tcsetattr(0, termios.TCSANOW, modes)
-                        (root / "launcher.ended").write_text(str(os.waitstatus_to_exitcode(status)))
+                        (root / "launcher.ended").write_text(str(code))
                         recorded(root / "cli.exit")
                 finally:
-                    # This copy of the test process must never return into the test runner.
-                    os._exit(os.waitstatus_to_exitcode(status))
+                    # This copy of the test process must never return into the test runner, whatever fails above.
+                    os._exit(code)
             os.close(writer)
             os.read(reader, 1)
             os.close(reader)

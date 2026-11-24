@@ -272,14 +272,15 @@ Ctrl+Z and is not drawn again on `fg`.
 
 Ctrl+\ during a step shows the cursor and quits.
 
-Ctrl+D at a question ends the input of readline while its line is empty. At a
-text question that line is the value. At a selection or a confirmation it is a
-line that the question does not show, which a printable key fills, so there
-Ctrl+D ends the input only while that line is empty. The CLI then ends as a
-cancel, with code 130, the cancel line and the cursor shown. With text in that
-line, Ctrl+D deletes the character to the right of the cursor, and at the end of
-the value it does nothing, so the question goes on. This was measured on macOS
-in the questionnaire harness and on Linux in the CI.
+Ctrl+D at a selection, a multiple selection or a confirmation cancels, whatever
+keys came before it, such as `j`, `k`, `h`, `l`, space or a letter. At a text
+question Ctrl+D cancels while the value is empty. With text it keeps what
+readline does: it deletes the character to the right of the cursor, and at the
+end of the value it does nothing, so the question goes on. Keys read together
+with the Ctrl+D, such as an Enter sent right after it, never reach the question.
+The CLI then ends as a cancel, with code 130, the cancel line and the cursor
+shown. This was measured on macOS in the questionnaire harness. On Linux the CI
+measured only the Ctrl+D at an empty line, before the CLI read the key itself.
 
 When nothing in the session can continue a stopped process, as when the CLI is
 the command that `docker exec -it` starts, Ctrl+Z does nothing and the question
@@ -323,29 +324,43 @@ system does not answer within 250 ms, the CLI clears as it did before it could
 ask, and under `npx` or `pnpm dlx` that clearing can land on the prompt of the
 shell.
 
-Canceling Git or the installation sends SIGINT to that process, which has 750 ms
-to end before the CLI kills it, and another SIGINT, SIGTERM or SIGHUP kills it
-at once. The signal manager of npm (`@npmcli/run-script`, the same in npm 12.2.3
-and 11.20.0) sends the CLI every SIGINT and SIGTERM that `npx` gets, so a Ctrl+C
-or a `kill -TERM` to the process group reaches the CLI twice. For Ctrl+C under a
+Canceling Git or the installation sends SIGINT to that process once and waits
+for it to end, so an installer can finish its own cleanup. The rollback of npm
+in a large install took a few seconds on its own. Once the window of a repeated
+signal described below has passed with the installer still running, the title of
+the step turns into a line saying that the CLI waits for the installer to clean
+up and that Ctrl+C again stops it now. Without a question frame, the CLI writes
+that line on its own line of the standard error. A second Ctrl+C, SIGINT or
+SIGTERM after that window, or a different signal, kills the installer at once. A
+repeated SIGHUP never does: nobody sends it, and on Linux a terminal that closes
+sends two. When nobody can press again, as after the terminal closed or under a
+supervisor that sends SIGTERM once, the CLI kills the installer about 8 seconds
+after the first signal. That leaves a few seconds more than the rollback of npm
+took, and stays below the 10 seconds after which Docker sends SIGKILL. Once the
+installer itself has ended, the CLI waits at most half a second for a process it
+started that still holds its output, such as a lifecycle script that outlives
+bun, and then goes on.
+
+The signal manager of npm (`@npmcli/run-script`, the same in npm 12.2.3 and
+11.20.0) sends the CLI every SIGINT and SIGTERM that `npx` gets, so a Ctrl+C or
+a `kill -TERM` to the process group reaches the CLI twice. For Ctrl+C under a
 real `npx` the two came about 1 ms apart or less; the SIGTERM case comes from
 reading that code and from a test launcher that forwards both signals the same
 way, not from a real `npx`. The CLI ignores the same SIGINT or SIGTERM when it
 comes again within 150 ms, so the installer keeps its own cleanup under `npx`.
-Any other second signal, a second SIGHUP included, and the same one after 150 ms
-still kill it at once.
 
-When the terminal of an interactive bash closes during the installation, on
-macOS 27 (bash 3.2.57, tmux 3.8) the CLI and an installer of a test with a
-cleanup of 200 ms each got one SIGHUP, the installer then got SIGINT from the
-CLI, and its cleanup ended, while the CLI ended with code 1 on a write to the
-closed terminal (`write EIO`) before its 750 ms were over. On Linux (bash 5.3.9,
-tmux 3.6) the CLI got two SIGHUP less than 1 ms apart, and a few milliseconds
-after the pane closed it sent the installer SIGINT and, on the second SIGHUP
-less than 1 ms later, SIGKILL. The same installer was gone within a few tens of
-milliseconds of the pane closing, before it recorded any signal and before its
-cleanup ran. The macOS case was measured in the questionnaire harness and the
-Linux case in the CI.
+When the terminal of an interactive bash closes during the installation, the
+installer gets SIGHUP from the system and SIGINT from the CLI, and the CLI waits
+for its cleanup as it does on Ctrl+C, up to the same bound. A write of the CLI
+to the closed terminal fails with `EIO`, and one to a pipe whose reader ended
+fails with `EPIPE`. The CLI then stops writing to that output, goes on with the
+cancel and ends with code 130. On macOS 27 (bash 3.2.57, tmux 3.8) an installer
+of a test with a cleanup of over a second ended it, and the CLI ended as a
+cancel with nothing on its standard error. Before this change the CLI ended
+there with code 1 on the first failed write. On Linux (bash 5.3.9, tmux 3.6) it
+got two SIGHUP less than 1 ms apart and killed the installer on the second one,
+before its cleanup ran. The new behavior was measured on macOS in the
+questionnaire harness, and not yet on Linux.
 
 When the terminal closes at a question, the input of the CLI ends. On macOS 27
 and on Linux no SIGHUP reached the CLI before that. Node used to end the CLI

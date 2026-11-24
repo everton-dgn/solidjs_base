@@ -229,6 +229,11 @@ test('checks the workspace in the generator gate before the generator is built',
     manifest.scripts['validate:generator'].split(' && ').slice(0, start.length),
     start
   )
+  // WHY: The check sees no build of the generator only while build:published leaves the generator out.
+  assert.match(
+    manifest.scripts['build:published'],
+    / --filter '!@evertondgn\/create-solid' /u
+  )
 })
 
 test('accepts release plugins with no component list', () => {

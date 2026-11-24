@@ -241,9 +241,9 @@ Ctrl+Z suspends as usual. Under an init process, as with
 `docker run -it --init`, Ctrl+Z stops the CLI and the processes it started, and
 the init too when it shares the process group of the CLI. Nothing in the
 container sends SIGCONT to them, so stop the container from another terminal.
-These two cases were measured in an `ubuntu:24.04` container on arm64 with Node
-26.13.1, before the CLI asked the system which process group owns the terminal.
-They follow from what the CLI does now, but were not measured again.
+These two cases were measured in an `ubuntu:24.04` container on arm64, before
+the CLI asked the system which process group owns the terminal. They follow from
+what the CLI does now, but were not measured again.
 
 `npx` and `pnpm dlx` stay in the process group of the CLI and stop at once on
 Ctrl+Z, so the shell may take the terminal back before the CLI handles its stop.
@@ -274,11 +274,11 @@ shell.
 Canceling Git or the installation sends SIGINT to that process, which has 750 ms
 to end before the CLI kills it, and another SIGINT, SIGTERM or SIGHUP kills it
 at once. `npx` sends the CLI every SIGINT and SIGTERM it gets, so a Ctrl+C or a
-`kill -TERM` to the process group reaches the CLI twice, less than a millisecond
-apart. The CLI ignores the same signal when it comes again within 150 ms, so the
-installer keeps its own cleanup under `npx`; a second signal after that still
-kills it at once.
+`kill -TERM` to the process group reaches the CLI twice; for Ctrl+C the two came
+0 to 1 ms apart. The CLI ignores the same signal when it comes again within 150
+ms, so the installer keeps its own cleanup under `npx`; a second signal after
+that still kills it at once.
 
 What this guide says about `npx`, `pnpm dlx` and `bunx` was measured on macOS 27
 (arm64) with npm 12.2.3 and 11.20.0 (the `npx` of Node 26.13.1), pnpm 12.23.0
-and bun 1.4.5, and not on Linux, where npm runs the bin through `/bin/sh`.
+and bun 1.4.5, and not on Linux.

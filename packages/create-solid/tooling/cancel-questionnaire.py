@@ -868,7 +868,7 @@ process.stdout.write = (...args) => {
                     reader.until(shown, start)
                     if job_control:
                         # The CLI read the key, so it erases the question before the stop even when a launcher shares its group.
-                        self.assertRegex(bytes(transcript[start:transcript.index(shown, start)]), rb"\A\x1b\[\d+A\r\x1b\[J\Z")
+                        self.assertRegex(bytes(transcript[start:transcript.index(shown, start)]), rb"\A\x1b\[\d+A\x1b\[2K\x1b\[B\r\x1b\[J\x1b\[A\Z")
                         self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
                         members = [leader]
                         if launcher:

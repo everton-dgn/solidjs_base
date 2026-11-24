@@ -19,6 +19,11 @@ function terminal() {
   stream.on('data', chunk => written.push(String(chunk)))
   return { stream, written }
 }
+// tmux copies the screen to its history on an erase from the top left corner, so the first row of a question is cleared
+// alone and the rest from the row below it.
+function erasure(up: number): string {
+  return `${escape}[${up}A${escape}[2K${escape}[B\r${escape}[J${escape}[A`
+}
 async function turns(): Promise<void> {
   const enough = 6
   for (let turn = 0; turn < enough; turn += 1) await setImmediate()
@@ -35,13 +40,14 @@ void it('erases and draws again the text question Clack has on screen', async ()
   assert.equal(frame.isOpen(), true)
   written.length = 0
   frame.erase()
-  const erased = `${escape}[4A\r${escape}[J`
+  const drawn = '│\n◆  Title\n│  abc█\n└\n'
+  // The cursor is on the row below the last row of the question.
+  const erased = erasure(drawn.split('\n').length - 1)
   assert.deepEqual(written, [erased])
   input.write('c')
   await turns()
   assert.deepEqual(written, [erased])
   frame.flush()
-  const drawn = '│\n◆  Title\n│  abc█\n└\n'
   assert.deepEqual(written, [erased, drawn])
   frame.flush()
   assert.deepEqual(written, [erased, drawn])
@@ -125,7 +131,7 @@ void it('forwards every argument of a write and keeps the callback of a held one
     ['plain', 'utf8', done],
     [hide],
     ['question\n'],
-    [`${escape}[1A\r${escape}[J`],
+    [erasure(1)],
     ['', 'utf8', done]
   ])
 })
@@ -218,12 +224,8 @@ void it('erases a question that was taller than the screen once its value is era
     const question = ['│', '◆  Title', ...valueRows, '└', '']
     written.length = 0
     frame.erase()
-    const up = `${escape}[${question.length - 1}A`
-    // A question that fills the screen has its first row cleared alone, and the rest from the row below it.
-    const erased =
-      question.length === tableRows
-        ? `${up}${escape}[2K${escape}[B\r${escape}[J${escape}[A`
-        : `${up}\r${escape}[J`
+    // The question starts on the top row of the screen whether it fills it or not.
+    const erased = erasure(question.length - 1)
     assert.deepEqual(written, [erased], JSON.stringify(keys))
     frame.flush()
     assert.deepEqual(
@@ -402,12 +404,7 @@ for (const cell of cells) {
         assert.equal(draw, question, round)
       }
       const isErased = cell.pause === 'erase' && drawnRows <= tableRows
-      const up = `${escape}[${drawnRows - 1}A`
-      const erasure =
-        drawnRows === tableRows
-          ? `${up}${escape}[2K${escape}[B\r${escape}[J${escape}[A`
-          : `${up}\r${escape}[J`
-      assert.deepEqual(erased, isErased ? [erasure] : [], round)
+      assert.deepEqual(erased, isErased ? [erasure(drawnRows - 1)] : [], round)
     }
   })
 }

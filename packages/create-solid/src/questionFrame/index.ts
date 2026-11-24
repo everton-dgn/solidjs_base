@@ -162,11 +162,18 @@ export function questionFrame<Output extends Writable>(
       if (!frame?.isKnown || isHeld) return
       if (frame.bottom < screenRows(target)) {
         // WHY: tmux copies the screen to its history on an erase from the top left corner, and the first row of a question may be on the top row of the screen, so it is cleared alone and the rest from the row below it.
+        const up = frame.row > 0 ? `${escape}[${frame.row}A` : ''
         target.write(
-          frame.row > 0
-            ? `${escape}[${frame.row}A${escape}[2K${escape}[B\r${escape}[J${escape}[A`
-            : `\r${escape}[J`
+          frame.lines.length > 1
+            ? `${up}${escape}[2K${escape}[B\r${escape}[J${escape}[A`
+            : `${up}\r${escape}[J`
         )
+      } else {
+        // WHY: When every row that changed is above the screen Clack moves the cursor up to the top of the screen and writes nothing more, where the shell would write over the question.
+        const below = frame.lines.length - 1 - frame.row
+        if (below > 0) target.write(`${escape}[${below}B`)
+        frame.row += below
+        frame.stoppedRow = undefined
       }
       isHeld = true
     },

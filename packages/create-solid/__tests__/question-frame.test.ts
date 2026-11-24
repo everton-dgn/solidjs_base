@@ -115,6 +115,36 @@ void it('holds a question without erasing it and draws it again on the flush', (
   assert.deepEqual(written, ['three\n'])
 })
 
+// When every row that changed is above the screen Clack writes only its move up, and the cursor stays there.
+void it('erases a question from its first row alone when Clack left the cursor on that row', () => {
+  const { stream, written } = terminal()
+  const frame = questionFrame(stream)
+  frame.output.write(hide)
+  frame.output.write('one\ntwo\n')
+  frame.output.write(`${escape}[999D${escape}[2A`)
+  written.length = 0
+  frame.erase()
+  assert.deepEqual(written, [`${escape}[2K${escape}[B\r${escape}[J${escape}[A`])
+})
+
+void it('moves the cursor to the end of a question that stays on screen when Clack left it at the top of the screen', () => {
+  const { stream, written } = terminal()
+  const frame = questionFrame(stream)
+  // The question has this many rows above the top of the screen.
+  const rowsOver = 2
+  const taller = rows + rowsOver
+  frame.output.write(hide)
+  frame.output.write('a\n'.repeat(taller))
+  frame.output.write(`${escape}[999D${escape}[${taller}A`)
+  written.length = 0
+  frame.erase()
+  // The top of the screen is rows - 1 rows above the end of the question.
+  assert.deepEqual(written, [`${escape}[${rows - 1}B`])
+  written.length = 0
+  frame.flush()
+  assert.deepEqual(written, ['a\n'.repeat(rows - 1)])
+})
+
 // WHY: Only the identity of the callback is checked.
 const done = () => true
 void it('forwards every argument of a write and keeps the callback of a held one', () => {

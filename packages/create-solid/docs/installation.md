@@ -224,24 +224,28 @@ Ctrl+Z during a step shows the cursor and lets the shell suspend the CLI. During
 a question the terminal is in raw mode, so Ctrl+Z reaches the CLI as a key: the
 CLI erases the question, shows the cursor and stops its own process group. On
 `fg` the question is drawn again below what the shell wrote, or the indicator
-returns. A question taller than the screen stays on screen, because the CLI
-cannot reach its first row, and on `fg` it is drawn whole again below what the
-shell wrote. When such a question shrinks, or the width of the terminal changes,
-Clack writes again only the rows it can reach from the top of the screen, and
-until Clack draws the question again the CLI cannot tell how many of the rows
-above the screen still belong to it. Ctrl+Z at that moment erases the rows on
-screen, and `fg` draws them back without the rows above them, which stay in the
-history above what the shell wrote. After one more key the CLI knows the
-question again, unless the width changed: Clack never draws the rows above the
-screen again at a new width, so the CLI drops them. A question that shrinks
-until it fits, to exactly the height of the screen included, is erased like any
-other. The rows that Clack left above the screen while the question was taller
-stay in the history of the terminal. tmux by default moves the screen into its
-history when a program clears it from the top left corner (`scroll-on-clear`),
-so it also keeps a copy of each screen that Clack clears that way while the
-question shrinks; the CLI itself erases a question that fills the screen without
-clearing from that corner. A question whose output holds bytes the CLI does not
-recognize is left as it is on Ctrl+Z and is not drawn again on `fg`.
+returns. The CLI clears the first row of the question alone and the rest from
+the row below it. tmux by default moves the screen into its history when a
+program clears it from the top left corner (`scroll-on-clear`), so this way it
+keeps no copy of a question that starts on the top row of the screen, whether
+the question fills the screen or not. It still keeps a copy of each screen that
+Clack clears from that corner while a question taller than the screen shrinks.
+
+Clack writes again only the rows of a question that are on screen, so a row
+above the top of the screen can be old, for example the symbol of the title
+after a validation error, or a row of the value after an edit in its middle. On
+`fg` the CLI draws a question taller than the screen again only from the row
+that was on the top of the screen, as many rows as the screen has, which Clack
+keeps right. The rows above them stay in the history above what the shell wrote.
+Such a question stays on screen on Ctrl+Z while the CLI cannot reach rows of it
+above the top of the screen, that is when it grew past the screen and Clack has
+not written it again from the top of the screen since. When Clack writes it
+again from there, as when it shrinks or the terminal gets wider, Ctrl+Z erases
+the rows on screen. A question that shrinks until it fits is erased like any
+other. A resize while the CLI is stopped draws the question at the new width on
+`fg`. A question whose output holds bytes the CLI does not recognize is left as
+it is on Ctrl+Z and is not drawn again on `fg`.
+
 Ctrl+\ during a step shows the cursor and quits.
 
 When nothing in the session can continue a stopped process, as when the CLI is
@@ -301,19 +305,28 @@ still kill it at once.
 When the terminal of an interactive bash closes during the installation, on
 macOS 27 (bash 3.2.57, tmux 3.8) the CLI and an installer of a test with a
 cleanup of 200 ms each got one SIGHUP, the installer then got SIGINT from the
-CLI, and its cleanup ended. On Linux (bash 5.3.9, tmux 3.6) the CLI got two
-SIGHUP 0.7 ms apart, and the same installer was gone within 12 to 14 ms of the
-pane closing, before it recorded any signal and before its cleanup ran. The
-macOS case was measured in five runs of the questionnaire harness, the signals
-of the CLI in three of them, and the Linux case in two runs of the CI, the
-signals of the CLI in one.
+CLI, and its cleanup ended, while the CLI ended with code 1 on a write to the
+closed terminal (`write EIO`) before its 750 ms were over. On Linux (bash 5.3.9,
+tmux 3.6) the CLI got two SIGHUP 0.7 to 0.8 ms apart, and the same installer was
+gone within 12 to 14 ms of the pane closing, before it recorded any signal and
+before its cleanup ran. The macOS case was measured in five runs of the
+questionnaire harness, the signals of the CLI in three of them, and the Linux
+case in three runs of the CI, the signals of the CLI in two of them.
+
+When the terminal closes at a question, the input of the CLI ends. On macOS 27
+no SIGHUP reached the CLI before that, and Node ended it with code 1, on the
+change of terminal mode that readline makes when its input ends, or with code
+13, with the question still open. The CLI now ends as a cancel, with code 130,
+when the input of a question ends or fails. This was measured on macOS in the
+questionnaire harness and in a separate probe, and not on Linux.
 
 The process groups of `npx`, `pnpm dlx` and `bunx`, and Ctrl+Z and Ctrl+C under
 each of them, were measured on macOS 27 (arm64) with npm 12.2.3 and 11.20.0 (the
 `npx` of Node 26.13.1), pnpm 12.23.0 and bun 1.4.5, and not on Linux. A stop
 sent from outside to the CLI alone was measured with `bash -c` as the launcher,
 and with the CLI leading its group under an interactive bash 3.2.57 on macOS 27.
-Ctrl+\ under a launcher was measured in two runs of the CI on Linux (bash 5.3.9,
-tmux 3.6), with the same screen in both, with a test launcher that ends on
-SIGQUIT, not with a real `npx`, and not on macOS. What this guide says about
-SIGTERM under a launcher comes from reading the code of the CLI and of npm.
+Ctrl+\ under a launcher was measured in three runs of the CI on Linux (bash
+5.3.9, tmux 3.6), with the same screen in all three, with a test launcher that
+ends on SIGQUIT, not with a real `npx`, and not on macOS. What this guide says
+about SIGTERM under a launcher comes from reading the code of the CLI and of
+npm.

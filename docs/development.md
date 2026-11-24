@@ -125,9 +125,12 @@ The full boilerplate application suites remain separate.
 harness of the generator, which needs Python 3, bash, tmux, `ps` and `pgrep`. A
 test that does not find bash, tmux, `ps` or `pgrep` fails with a message that
 names the missing tool. On macOS a run may leave crash reports in
-`~/Library/Logs/DiagnosticReports` for the processes its Ctrl+\ case ends with
-SIGQUIT (`node`, the `bash` behind the `sh` of the fake installer, and its
-`sleep`): macOS keeps at most 25 reports for each name.
+`~/Library/Logs/DiagnosticReports` for the processes that `test_step_quit_key`
+ends with SIGQUIT (`node`, the `bash` behind the `sh` of the fake installer, and
+its `sleep`): macOS keeps at most 25 reports for each name. On Linux each
+process that the Ctrl+\ cases end with SIGQUIT may leave a core dump where the
+`core_pattern` of the system sends it; in the CI, bash reported the launcher of
+the terminal-close test as `Quit (core dumped)`.
 
 `vp run test:scenarios` and `node packages/create-solid/tooling/scenario.ts` run
 `test:browser:install` in each generated static and client application, which

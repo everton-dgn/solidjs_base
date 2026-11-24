@@ -141,13 +141,29 @@ for (const name of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(name, clean);
 setInterval(() => {}, 1000);
 """
 # An entry that runs the CLI and records its exit code, which a launcher that died cannot report. With CLI_SIGNALS it also
-# records each SIGHUP, SIGINT and SIGTERM the CLI gets and when, from a listener that runs before those of the CLI.
+# records each SIGHUP, SIGINT and SIGTERM the CLI gets and when, from a listener that runs before those of the CLI. With
+# CLI_CHILDREN it records each signal the CLI sends to a process it started, and how and when that process ended.
 EXIT_ENTRY = """
+import childProcess from 'node:child_process';
 import { appendFileSync, writeFileSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+const now = () => (performance.timeOrigin + performance.now()).toFixed(1);
 process.on('exit', code => writeFileSync(process.env.EXIT_FILE, String(code)));
 for (const name of process.env.CLI_SIGNALS ? ['SIGHUP', 'SIGINT', 'SIGTERM'] : []) process.on(name, () => {
-  appendFileSync(process.env.CLI_SIGNALS, `${name} ${(performance.timeOrigin + performance.now()).toFixed(1)}\\n`);
+  appendFileSync(process.env.CLI_SIGNALS, `${name} ${now()}\\n`);
 });
+if (process.env.CLI_CHILDREN) {
+  const record = line => appendFileSync(process.env.CLI_CHILDREN, `${line} ${now()}\\n`);
+  const spawn = childProcess.spawn;
+  childProcess.spawn = (...args) => {
+    const child = spawn(...args);
+    const kill = child.kill.bind(child);
+    child.kill = name => { record(`kill ${name ?? 'SIGTERM'}`); return kill(name); };
+    child.on('exit', (code, name) => record(`exit ${code} ${name}`));
+    return child;
+  };
+  syncBuiltinESMExports();
+}
 await import(process.env.CLI_URL);
 """
 
@@ -2323,7 +2339,7 @@ process.stdout.write = (...args) => {
                 installer.chmod(0o755)
                 (root / "entry.mjs").write_text(EXIT_ENTRY)
                 signals, cleaned, cli_signals = root / "installer.signals", root / "cleaned", root / "cli.signals"
-                cli_stderr = root / "cli.stderr"
+                cli_stderr, cli_children = root / "cli.stderr", root / "cli.children"
                 socket = str(root / "tmux.sock")
                 # The shell reads its prompt and the file of its history from these, so nothing reaches the account.
                 tmux_env = {key: os.environ[key] for key in ("HOME", "LANG", "TMPDIR") if key in os.environ} | {
@@ -2332,7 +2348,8 @@ process.stdout.write = (...args) => {
                     "LAUNCHER": DYING_LAUNCHER, "PID_FILE": str(root / "installer.pid"), "SIGNALS": str(signals),
                     "CLEANING": str(root / "cleaning"), "CLEANED": str(cleaned), "CLEANUP_MS": str(cleanup_ms),
                     "EXIT_FILE": str(root / "cli.exit"), "CLI_URL": cli.as_uri(), "CLI_STDERR": str(cli_stderr),
-                    **({"CLI_SIGNALS": str(cli_signals)} if case != "quit" else {})}
+                    **({"CLI_SIGNALS": str(cli_signals)} if case != "quit" else {}),
+                    **({"CLI_CHILDREN": str(cli_children)} if case == "hangup" else {})}
                 def tmux(*args, check=True):
                     return subprocess.run(["tmux", "-f", "/dev/null", "-S", socket, *args], env=tmux_env, text=True,
                                           capture_output=True, timeout=5, check=check).stdout
@@ -2396,7 +2413,7 @@ process.stdout.write = (...args) => {
                                                            capture_output=True).returncode, 0)
                         def times(file):
                             lines = file.read_text().splitlines() if file.exists() else []
-                            return [[name, round(float(at) - closed * 1000, 1)] for name, at in map(str.split, lines)]
+                            return [[*fields[:-1], round(float(fields[-1]) - closed * 1000, 1)] for fields in map(str.split, lines)]
                         cli_exit = recorded(root / "cli.exit") if (root / "cli.exit").exists() else None
                         written = cli_stderr.read_text() if cli_stderr.exists() else ""
                         place = "at a question" if case == "question" else "during the install"
@@ -2404,6 +2421,7 @@ process.stdout.write = (...args) => {
                             "system": sys.platform, "bash": versions[0], "tmux": versions[1],
                             "cli_signals_ms": times(cli_signals), "cli_exit": cli_exit, "cli_stderr": written.splitlines(),
                             **({"cleanup_ms": cleanup_ms, "installer_signals_ms": times(signals),
+                                "cli_to_installer_ms": times(cli_children),
                                 "cleanup_ended_ms": round(float(cleaned.read_text()) - closed * 1000, 1) if cleaned.exists() else None,
                                 "installer_gone_ms": round((ended - closed) * 1000, 1)} if worker else {}),
                             "processes": table.splitlines()}), flush=True)

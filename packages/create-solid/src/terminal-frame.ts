@@ -25,6 +25,7 @@ import {
 import { messages, type Language } from './cli-language.ts'
 import { hideCursor, showCursor } from './constants/cursor.ts'
 import { isTerminalOwner } from './isTerminalOwner/index.ts'
+import { listenEndKey } from './listenEndKey/index.ts'
 import { CanceledError } from './usage-error.ts'
 import { widthLines } from './widthLines/index.ts'
 import { wrapFrameText } from './wrapFrameText/index.ts'
@@ -41,6 +42,7 @@ type Confirmation = {
   summary: string
   language: Language
   output: NodeJS.WriteStream
+  onEnd: () => void
 }
 
 const frames = S_BAR === '│' ? ['◒', '◐', '◓', '◑'] : ['•', 'o', 'O', '0']
@@ -192,7 +194,8 @@ function pathLines({ text, output }: NoteText): string[] {
 export async function confirmProject({
   summary,
   language,
-  output
+  output,
+  onEnd
 }: Confirmation): Promise<void> {
   const m = messages[language]
   const [directory = '', ...rest] = summary.split('\n')
@@ -210,15 +213,22 @@ export async function confirmProject({
       output
     }
   )
-  const result = await confirm({
-    message: m.create,
-    active: m.yes,
-    inactive: m.no,
-    output
-  })
-  if (isCancel(result)) throw new CanceledError()
-  log.message('', { spacing: 0, output })
-  if (!result) throw new CanceledError()
+  const input = process.stdin
+  const stop = listenEndKey({ input, hasText: () => false, onEnd })
+  try {
+    const result = await confirm({
+      message: m.create,
+      active: m.yes,
+      inactive: m.no,
+      input,
+      output
+    })
+    if (isCancel(result)) throw new CanceledError()
+    log.message('', { spacing: 0, output })
+    if (!result) throw new CanceledError()
+  } finally {
+    stop()
+  }
 }
 export const progress = {
   clear: clearIndicator,

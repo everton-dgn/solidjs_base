@@ -26,6 +26,7 @@ import { messages, type Language } from './cli-language.ts'
 import { defaultSiteUrl } from './constants/site-url.ts'
 import { directoryError } from './directoryError/index.ts'
 import { fieldMessage } from './fieldMessage/index.ts'
+import { listenEndKey } from './listenEndKey/index.ts'
 import { installers } from './profile-answers.ts'
 import { questionnaireBase } from './resolve-locale-options.ts'
 import { hasTool, hasRepository, missingTool, toolNames } from './tools.ts'
@@ -95,6 +96,7 @@ type Session = {
   input: Readable
   output: SessionOutput
   hasColor: boolean
+  onEnd?: () => void
 }
 
 type SetupRecovery = { result: Answers; language: Language; io: CommonOptions }
@@ -244,13 +246,25 @@ function reportMissingTools({ result, language, io }: SetupRecovery) {
   }
   return availableManagers
 }
-export async function questionnaire({
+type Typing = { field?: TextPrompt }
+type Questions = Omit<Session, 'onEnd'> & { typing: Typing }
+type TextQuestion = { prompt: TextPrompt; typing: Typing }
+async function askText({ prompt, typing }: TextQuestion) {
+  typing.field = prompt
+  try {
+    return await prompt.prompt()
+  } finally {
+    typing.field = undefined
+  }
+}
+async function askQuestions({
   answers,
   language,
   input,
   output,
-  hasColor
-}: Session): Promise<Answers> {
+  hasColor,
+  typing
+}: Questions): Promise<Answers> {
   const labels = messages[language]
   const io = { input, output }
   const result = { ...answers }
@@ -270,36 +284,36 @@ export async function questionnaire({
     }
     if (result[key] !== undefined) return
     let occupiedDir: string | undefined
-    result[key] = answer<string>(
-      (await new TextPrompt({
-        ...io,
-        render: renderText({
-          label: names[key],
-          placeholder: initialValue,
-          output,
-          wrapError: text => directoryError({ text, dir: occupiedDir, output })
-        }),
+    const prompt = new TextPrompt({
+      ...io,
+      render: renderText({
+        label: names[key],
         placeholder: initialValue,
-        defaultValue: initialValue,
-        validate(value) {
-          const problem = validateProfile({
-            ...result,
-            [key]: value === '' ? initialValue : (value ?? initialValue)
-          }).problems.find(
-            item =>
-              item.field.replace(/^--/u, '') ===
-                (key === 'name' ? 'dir' : key) ||
-              (key === 'locales' && item.code === 'membership')
-          )
-          occupiedDir = problem?.values.dir
-          if (!problem) return problem
-          return fieldMessage({
-            language,
-            code: problem.code,
-            values: problem.values
-          })
-        }
-      }).prompt()) ?? initialValue
+        output,
+        wrapError: text => directoryError({ text, dir: occupiedDir, output })
+      }),
+      placeholder: initialValue,
+      defaultValue: initialValue,
+      validate(value) {
+        const problem = validateProfile({
+          ...result,
+          [key]: value === '' ? initialValue : (value ?? initialValue)
+        }).problems.find(
+          item =>
+            item.field.replace(/^--/u, '') === (key === 'name' ? 'dir' : key) ||
+            (key === 'locales' && item.code === 'membership')
+        )
+        occupiedDir = problem?.values.dir
+        if (!problem) return problem
+        return fieldMessage({
+          language,
+          code: problem.code,
+          values: problem.values
+        })
+      }
+    })
+    result[key] = answer<string>(
+      (await askText({ prompt, typing })) ?? initialValue
     )
   }
   await field({ key: 'name', initialValue: 'solid-app' })
@@ -442,4 +456,23 @@ export async function questionnaire({
   if (setup === 'custom') await customize()
   await recoverSetup({ result, language, io })
   return result
+}
+export async function questionnaire({
+  onEnd,
+  ...session
+}: Session): Promise<Answers> {
+  const typing: Typing = {}
+  // WHY: At a text question Ctrl+D keeps the delete of readline while the value holds text.
+  const stop = onEnd
+    ? listenEndKey({
+        input: session.input,
+        hasText: () => Boolean(typing.field?.userInput),
+        onEnd
+      })
+    : undefined
+  try {
+    return await askQuestions({ ...session, typing })
+  } finally {
+    stop?.()
+  }
 }

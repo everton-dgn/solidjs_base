@@ -216,7 +216,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
   const frame = isInteractive ? await import('./terminal-frame.ts') : undefined
   if (frame) {
     await withPromptSignals(output =>
-      frame.confirmProject({ summary, language, output })
+      frame.confirmProject({ summary, language, output, onEnd: cancelPrompt })
     )
   } else process.stdout.write(`${labels.summary}\n${summary}\n`)
   const progress = frame?.progress
@@ -418,7 +418,8 @@ async function run(): Promise<void> {
         language,
         input: process.stdin,
         output,
-        hasColor
+        hasColor,
+        onEnd: cancelPrompt
       })
     )
   }

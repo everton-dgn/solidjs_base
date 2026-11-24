@@ -2297,19 +2297,27 @@ process.stdout.write = (...args) => {
                     self.assertEqual(status, 130)
 
     def test_end_of_input_at_a_question(self):
-        # readline ends its input on Ctrl+D only when the line is empty: with text it deletes to the right, which at the end
-        # of the value does nothing. A select or a confirm keeps a line of its own, empty until a printable key reaches it.
+        # Ctrl+D cancels at a select, a multiselect or a confirm, whatever keys came before it, and at a text question while
+        # the value is empty. Keys read with it in the same write never reach the question.
+        select = [("Application title", b"\r")]
         cancels = [
             ("an empty value", [("Application title", b"\x04")]),
-            ("a select", [("Application title", b"\r"), ("Setup", b"\x04")]),
-            ("a confirm", [("Application title", b"\r"), ("Setup", b"\r"), ("Create the project?", b"\x04")]),
+            ("an empty value with Enter in the same read", [("Application title", b"\x04\r")]),
+            ("a select", [*select, ("Setup", b"\x04")]),
+            *((f"a select after {name}", [*select, ("Setup", key + b"\x04")])
+              for name, key in (("j", b"j"), ("k", b"k"), ("h", b"h"), ("l", b"l"), ("space", b" "), ("a letter", b"x"))),
+            ("a select after a letter with an arrow in the same read", [*select, ("Setup", b"x\x04\x1b[B")]),
+            ("a multiselect after space", [*select, ("Setup", b"\x1b[B\r"), ("Features", b" \x04")]),
+            ("a confirm", [*select, ("Setup", b"\r"), ("Create the project?", b"\x04")]),
+            ("a confirm after l", [*select, ("Setup", b"\r"), ("Create the project?", b"l\x04")]),
         ]
-        # The question goes on, and Clack still reads the Ctrl+C that follows as a key. That Ctrl+C comes in a write of its own
-        # after a render that only the key before it gives: a readline closed by the Ctrl+D would pause the input before it.
+        # With text, readline deletes to the right, which at the end of the value does nothing, and the question goes on.
+        # Clack still reads the key that follows. A Ctrl+C there comes in a write of its own after a render that only the key
+        # before it gives: a readline closed by the Ctrl+D would pause the input before it.
         stays = [
             ("a value", [("Application title", b"ab"), ("ab", b"\x04c"), ("abc", b"\x03")], ["■  Application title", "│  abc"]),
-            ("a select after a letter", [("Application title", b"\r"), ("Setup", b"x\x04\x1b[B"), ("● Customize", b"\x03")],
-             ["■  Setup", "│  Customize"]),
+            ("a value with Enter in the same read", [("Application title", b"ab"), ("ab", b"\x04\r"), ("Setup", b"\x03")],
+             ["■  Setup", "│  Recommended"]),
         ]
         for name, prompts, *kept in [*cancels, *stays]:
             with self.subTest(case=name), tempfile.TemporaryDirectory() as directory:

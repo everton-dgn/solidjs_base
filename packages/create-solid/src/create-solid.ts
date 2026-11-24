@@ -66,7 +66,7 @@ function cancelPrompt() {
   process.stdin.setRawMode(false)
   writeCancel()
 }
-// WHY: macOS answers a change of mode of a closed terminal with ENOENT, and Linux answers every call but a read on a hung-up terminal with EIO.
+// WHY: The change of mode of a terminal that closed failed with ENOENT on macOS and with EIO on Linux.
 const closedTerminalCodes = new Set(['EIO', 'ENOENT'])
 // WHY: Once the terminal is gone a change of its mode fails with an error of the input, also inside cancelPrompt, so this changes no mode. A write to a closed terminal reports its error on a later tick, after the CLI has ended.
 function closeInput(error: NodeJS.ErrnoException) {

@@ -129,6 +129,12 @@ names the missing tool. On macOS a run may leave crash reports in
 SIGQUIT (`node`, the `bash` behind the `sh` of the fake installer, and its
 `sleep`): macOS keeps at most 25 reports for each name.
 
+`vp run test:scenarios` and `node packages/create-solid/tooling/scenario.ts` run
+`test:browser:install` in each generated static and client application, which
+downloads the Chromium of Playwright. Outside CI it goes to the Playwright cache
+of the user (`~/Library/Caches/ms-playwright` on macOS, `~/.cache/ms-playwright`
+on Linux), about 615 MB on macOS, and stays there after the run.
+
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so
 `vp run test` builds the package first. The runtime tests run in the Vitest of
 `packages/solid-runtime` (`vp test run --coverage` in that folder), with the

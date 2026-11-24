@@ -112,12 +112,15 @@ with an active `CI` value (anything except empty, `0` or `false`), or with
 conflicting answers exit with status 2 before writing. In plain output the
 installer inherits a terminal stdout and a terminal stderr. When one of them is
 not a terminal, the CLI forwards it as it arrives and supplies a missing final
-newline. On a terminal the installer writes directly, so a last line it leaves
-without a newline is followed by the next line of the CLI. When Ctrl+C cancels
-plain output and stderr is a terminal, the closing lines start on a new line, so
-the `^C` that the terminal echoes stays on a line of its own. A SIGINT sent with
-`kill` has no echo, and that line stays empty: Node does not tell the CLI
-whether the terminal echoes control characters.
+newline. The two outputs reach the CLI through separate pipes, so when both
+outputs of the CLI go to the same file, as with `2>&1`, the lines the installer
+writes to stdout and to stderr may not keep their order. On a terminal the
+installer writes directly, so a last line it leaves without a newline is
+followed by the next line of the CLI. When Ctrl+C cancels plain output and
+stderr is a terminal, the closing lines start on a new line, so the `^C` that
+the terminal echoes stays on a line of its own. A SIGINT sent with `kill` has no
+echo, and that line stays empty: Node does not tell the CLI whether the terminal
+echoes control characters.
 
 ## Project options
 
@@ -221,31 +224,61 @@ Ctrl+Z during a step shows the cursor and lets the shell suspend the CLI. During
 a question the terminal is in raw mode, so Ctrl+Z reaches the CLI as a key: the
 CLI erases the question, shows the cursor and stops its own process group. On
 `fg` the question is drawn again below what the shell wrote, or the indicator
-returns. A question taller than the screen is drawn whole again. A question
+returns. A question taller than the screen stays on screen, because the CLI
+cannot reach its first row, and on `fg` it is drawn whole again below what the
+shell wrote. A question that was taller than the screen and then shrank until it
+fits is erased like any other, but the rows that Clack left above the screen
+while it was taller stay in the history of the terminal, and tmux, which by
+default moves the screen into its history when a program clears it from the top
+(`scroll-on-clear`), keeps there a copy of the question as well. A question
 whose output holds bytes the CLI does not recognize is left as it is on Ctrl+Z
 and is not drawn again on `fg`. Ctrl+\ during a step shows the cursor and quits.
+
 When nothing in the session can continue a stopped process, as when the CLI is
 the command that `docker exec -it` starts, Ctrl+Z does nothing and the question
 or the step goes on. A shell opened by such a tool has job control, and there
 Ctrl+Z suspends as usual. Under an init process, as with
-`docker run -it --init`, Ctrl+Z during a step stops the CLI and the processes it
-started, and during a question it stops the whole process group of the CLI, the
-init included when it shares that group. Nothing in the container sends SIGCONT
-to them, so stop the container from another terminal.
+`docker run -it --init`, Ctrl+Z stops the CLI and the processes it started, and
+the init too when it shares the process group of the CLI. Nothing in the
+container sends SIGCONT to them, so stop the container from another terminal.
+These two cases were measured in an `ubuntu:24.04` container on arm64 with Node
+26.13.1, before the CLI asked the system which process group owns the terminal.
+They follow from what the CLI does now, but were not measured again.
 
 `npx` and `pnpm dlx` stay in the process group of the CLI and stop at once on
 Ctrl+Z, so the shell may take the terminal back before the CLI handles its stop.
 During a step the CLI then writes only the cursor, which changes no cell, before
 it stops: the indicator drawn before the stop stays above what the shell wrote,
-and on `fg` the indicator is drawn again below it. `bunx` runs the CLI in its
-own place, so the CLI leads its process group, as when Node runs it directly;
-the shell then waits for the stop of the CLI, which clears the indicator first.
+and on `fg` the indicator is drawn again below it. `bunx` runs the CLI as the
+leader of its own process group, as when Node runs it directly; the shell then
+waits for the stop of the CLI, which clears the indicator first. A stop sent
+from outside to the CLI alone during a step, such as `kill -TSTP` to its
+process, stops its whole process group when the CLI does not lead it, so the
+shell of the launcher sees the stop. On Ctrl+\ during a step the CLI clears the
+indicator only when it leads the foreground process group: a launcher in its
+group that ends at once leaves the shell writing its prompt, and the indicator
+stays above it.
+
 The shell only owns the terminal while the CLI is at a question when the stop
 comes from outside, such as `kill -TSTP` to the process group: the CLI then
-keeps the question and raw mode as they are and draws the question again below
-what the shell wrote on `fg`. A shell that does not restore its own terminal
-modes when a job stops leaves the terminal in raw mode until `fg`. The CLI asks
-the system which process group owns the terminal, through `/proc` on Linux and
-`/bin/ps` elsewhere. When the system does not answer within 250 ms, the CLI
-clears as it did before it could ask, and under `npx` or `pnpm dlx` that
-clearing can land on the prompt of the shell.
+keeps the question and raw mode as they are, because erasing would reach the
+prompt of the shell and a change of mode from the background would stop the CLI
+again, and it draws the question again below what the shell wrote on `fg`. A
+shell that does not restore its own terminal modes when a job stops leaves the
+terminal in raw mode until `fg`. The CLI asks the system which process group
+owns the terminal, through `/proc` on Linux and `/bin/ps` elsewhere. When the
+system does not answer within 250 ms, the CLI clears as it did before it could
+ask, and under `npx` or `pnpm dlx` that clearing can land on the prompt of the
+shell.
+
+Canceling Git or the installation sends SIGINT to that process, which has 750 ms
+to end before the CLI kills it, and another SIGINT, SIGTERM or SIGHUP kills it
+at once. `npx` sends the CLI every SIGINT and SIGTERM it gets, so a Ctrl+C or a
+`kill -TERM` to the process group reaches the CLI twice, less than a millisecond
+apart. The CLI ignores the same signal when it comes again within 150 ms, so the
+installer keeps its own cleanup under `npx`; a second signal after that still
+kills it at once.
+
+What this guide says about `npx`, `pnpm dlx` and `bunx` was measured on macOS 27
+(arm64) with npm 12.2.3 and 11.20.0 (the `npx` of Node 26.13.1), pnpm 12.23.0
+and bun 1.4.5, and not on Linux, where npm runs the bin through `/bin/sh`.

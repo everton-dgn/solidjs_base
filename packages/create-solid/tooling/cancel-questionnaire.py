@@ -144,13 +144,17 @@ setInterval(() => {}, 1000);
 CLEANUP_LIMIT_S = 8
 # Once the installer has exited, the CLI waits at most this long for the pipes a process it started still holds (pipeDrainMs).
 PIPE_DRAIN_S = .5
+# After its SIGKILL, the CLI waits this long for the installer to exit before it lets it go (killWaitMs).
+KILL_WAIT_S = 1
 # The waiting line after Ctrl+C, and after a first signal that came from no key.
 WAITING_LINE = "Press Ctrl+C again to stop Bun now. Waiting for it to clean up."
 SIGNAL_WAITING_LINE = "Press Ctrl+C to stop Bun now. Waiting for it to clean up."
 # An entry that runs the CLI and records its exit code, which a launcher that died cannot report. With CLI_SIGNALS it also
 # records each SIGHUP, SIGINT and SIGTERM the CLI gets and when, from a listener that runs before those of the CLI. With
 # CLI_CHILDREN it records each signal the CLI sends to a process it started, and how and when that process ended. With
-# CLI_INPUT it records when the input of the CLI ends and each error it emits, with its code and the call that failed.
+# CLI_INPUT it records when the input of the CLI ends and each error it emits, with its code and the call that failed. With
+# CLI_UNKILLABLE as well as CLI_CHILDREN, the SIGKILL the CLI sends never reaches the process, as for one in a wait that nothing
+# interrupts.
 EXIT_ENTRY = """
 import childProcess from 'node:child_process';
 import { appendFileSync, writeFileSync } from 'node:fs';
@@ -166,7 +170,10 @@ if (process.env.CLI_CHILDREN) {
   childProcess.spawn = (...args) => {
     const child = spawn(...args);
     const kill = child.kill.bind(child);
-    child.kill = name => { record(`kill ${name ?? 'SIGTERM'}`); return kill(name); };
+    child.kill = name => {
+      record(`kill ${name ?? 'SIGTERM'}`);
+      return name === 'SIGKILL' && process.env.CLI_UNKILLABLE ? true : kill(name);
+    };
     child.on('exit', (code, name) => record(`exit ${code} ${name}`));
     return child;
   };
@@ -1629,6 +1636,69 @@ process.stdout.write = (...args) => {
                             os.kill(target, signal.SIGKILL)
                     except ProcessLookupError:
                         pass
+
+    def test_installer_outliving_its_kill(self):
+        # An installer in a wait that nothing interrupts outlives the SIGKILL that a second Ctrl+C sends. The CLI lets it go a
+        # short time later and ends as a cancel, and the Ctrl+C that come after it force nothing more.
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            installer = root / "bun"
+            installer.write_text('#!/bin/sh\ntrap "" INT HUP TERM\necho $$ > "$PID_FILE"\nwhile :; do sleep .05; done\n')
+            installer.chmod(0o755)
+            entry, children_file = root / "entry.mjs", root / "children"
+            entry.write_text(EXIT_ENTRY)
+            pid, master, slave = start_cli(
+                root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install"],
+                {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"],
+                 "EXIT_FILE": str(root / "cli.exit"), "CLI_URL": cli.as_uri(), "CLI_CHILDREN": str(children_file),
+                 "CLI_UNKILLABLE": "1"}, executable=entry)
+            reader = Reader(self, master)
+            transcript = reader.transcript
+            waited = False
+            try:
+                for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                    reader.until(prompt)
+                    os.write(master, b"\r")
+                reader.until(b"Installing dependencies with Bun")
+                worker = recorded(root / "installer.pid")
+                self.assertIsNotNone(worker)
+                start = len(transcript)
+                os.write(master, b"\x03")
+                reader.until(WAITING_LINE.encode(), start)
+                forced = time.monotonic()
+                # More than the 10 listeners after which Node warns that one leaks.
+                for _ in range(12):
+                    os.write(master, b"\x03")
+                    time.sleep(.02)
+                deadline = time.monotonic() + KILL_WAIT_S + 4
+                while time.monotonic() < deadline:
+                    reader.drain()
+                    finished, status = os.waitpid(pid, os.WNOHANG)
+                    if finished:
+                        waited = True
+                        break
+                    time.sleep(.01)
+                self.assertTrue(waited, install_screen(transcript, 80))
+                reader.drain()
+                self.assertEqual(os.waitstatus_to_exitcode(status), 130)
+                self.assertGreaterEqual(time.monotonic() - forced, KILL_WAIT_S)
+                self.assertIn(b"Creation canceled.", transcript[start:])
+                self.assertNotIn(b"MaxListenersExceededWarning", transcript)
+                kills = [line.split()[1] for line in children_file.read_text().splitlines() if line.startswith("kill ")]
+                self.assertEqual(kills, ["SIGINT", "SIGKILL"])
+                os.kill(worker, 0)
+            finally:
+                os.close(master)
+                os.close(slave)
+                if not waited:
+                    os.kill(pid, signal.SIGKILL)
+                    os.waitpid(pid, 0)
+                target = recorded(root / "installer.pid") if (root / "installer.pid").exists() else None
+                try:
+                    if target and os.getsid(target) == pid:
+                        os.kill(target, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
 
     def test_installer_ends_while_a_descendant_holds_stderr(self):
         # A lifecycle script that outlives bun keeps the stderr pipe of bun. Once bun has exited, on its own or on the SIGINT

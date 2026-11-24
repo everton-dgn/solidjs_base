@@ -321,6 +321,8 @@ type TerminalOptions = {
 const cleanupLimitMs = 8000
 // WHY: A process the installer started, such as a lifecycle script that outlives bun, may keep its pipes open after it exits.
 const pipeDrainMs = 500
+// WHY: SIGKILL ends a process at once unless it waits for I/O that nothing interrupts, such as on a network disk that stopped answering.
+const killWaitMs = 1000
 // WHY: npm sends its bin the SIGINT and SIGTERM it gets, so the signal sent to the whole group reaches the CLI twice, 0 to 1 ms apart.
 const forwardedSignals = new Set<string>(['SIGINT', 'SIGTERM'])
 const repeatWindowMs = 150
@@ -380,6 +382,7 @@ async function executeSetup(
   let deadline: ReturnType<typeof setInterval> | undefined
   let notice: ReturnType<typeof setTimeout> | undefined
   let drain: ReturnType<typeof setTimeout> | undefined
+  let killWait: ReturnType<typeof setTimeout> | undefined
   const ended = Promise.withResolvers<typeof child.exitCode>()
   const release = () => {
     child.stdout?.destroy()
@@ -392,12 +395,21 @@ async function executeSetup(
   child.once('exit', () => {
     drain = setTimeout(release, pipeDrainMs)
   })
+  let isForced = false
   const force = () => {
     clearTimeout(notice)
-    if (isRunning()) {
-      child.once('exit', release)
-      child.kill('SIGKILL')
-    } else release()
+    if (isForced) return
+    isForced = true
+    if (!isRunning()) {
+      release()
+      return
+    }
+    child.once('exit', release)
+    child.kill('SIGKILL')
+    killWait = setTimeout(() => {
+      child.unref()
+      release()
+    }, killWaitMs)
   }
   let canceledAt = 0
   const forceAgain = (signalName: NodeJS.Signals) => {
@@ -455,6 +467,7 @@ async function executeSetup(
     clearInterval(deadline)
     clearTimeout(notice)
     clearTimeout(drain)
+    clearTimeout(killWait)
     for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
       process.off(signalName, forceAgain)
     }

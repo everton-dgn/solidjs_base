@@ -65,33 +65,32 @@ function stepTitle({
   const ellipsis = (unicode ? '…' : '...').slice(0, width)
   return title.slice(0, width - ellipsis.length).trimEnd() + ellipsis
 }
-function closingOutput(): NodeJS.WriteStream {
+function probedColumns(): number | undefined {
   const { stdout } = process
-  if (!stdout.isTTY || !isatty(stdout.fd)) return stdout
+  if (!stdout.isTTY || !isatty(stdout.fd)) return undefined
   // getWindowSize reads the dimensions cached when its stream was initialized.
   let probe: WriteStream | undefined
   try {
     probe = new WriteStream(stdout.fd)
     const [columns] = probe.getWindowSize()
-    if (
-      !Number.isInteger(columns) ||
-      columns <= 0 ||
-      columns === stdout.columns
-    ) {
-      return stdout
-    }
-    return new Proxy(stdout, {
-      get(target, property): unknown {
-        if (property === 'columns') return columns
-        if (property === 'write') return target.write.bind(target)
-        return Reflect.get(target, property)
-      }
-    })
+    return Number.isInteger(columns) && columns > 0 ? columns : undefined
   } catch {
-    return stdout
+    return undefined
   } finally {
     probe?.destroy()
   }
+}
+function closingOutput(): NodeJS.WriteStream {
+  const { stdout } = process
+  const columns = probedColumns()
+  if (columns === undefined || columns === stdout.columns) return stdout
+  return new Proxy(stdout, {
+    get(target, property): unknown {
+      if (property === 'columns') return columns
+      if (property === 'write') return target.write.bind(target)
+      return Reflect.get(target, property)
+    }
+  })
 }
 function restoreCursor() {
   process.stdout.write(showCursor)
@@ -254,8 +253,15 @@ export const progress = {
     }
     // WHY: Node reads the size of the terminal in a SIGWINCH listener of its own, which may run before or after this one, and reports no resize for a size that went back to the one it held during a stop.
     const resize = () => {
-      width = closingOutput().columns
-      if (drawnColumns !== width) redraw()
+      width = probedColumns()
+      if (width !== undefined) {
+        if (drawnColumns !== width) redraw()
+        return
+      }
+      // WHY: Without the probe the width is the one Node reads in its listener, and every listener of the signal has run by the next microtask.
+      queueMicrotask(() => {
+        if (drawnColumns !== process.stdout.columns) redraw()
+      })
     }
     const resume = () => {
       clearImmediate(pendingStop)
@@ -263,7 +269,7 @@ export const progress = {
       process.stdout.write(hideCursor)
       refreshSize()
       // WHY: Node holds the size from before the stop until it reads that signal, and the timer of the indicator may run first.
-      width = closingOutput().columns
+      width = probedColumns()
       redraw()
       // WHY: The interval came due during the stop, and its frame would follow this one at once. After a stop the CLI cannot catch, that frame may already wait for its turn.
       clearImmediate(pendingFrame)

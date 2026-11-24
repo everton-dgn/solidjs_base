@@ -207,10 +207,11 @@ The corresponding programmatic properties are `siteUrl`, `mode`, `hasSeo`,
 
 During a step, the CLI disables automatic wrapping while drawing the indicator.
 Resizing clears the indicator from its first column down, preserving the
-completed steps above it. The cursor is hidden during an interactive step and
-restored when it ends. A long directory gets lines of its own in resume
-instructions, in the project summary and in destination errors, and keeps every
-character.
+completed steps above it. When the CLI cannot read the size of the terminal
+itself, the indicator takes the width that Node reads on the resize. The cursor
+is hidden during an interactive step and restored when it ends. A long directory
+gets lines of its own in resume instructions, in the project summary and in
+destination errors, and keeps every character.
 
 A question is drawn again by Clack when the terminal is resized, with a known
 limit when it gets narrower. Clack moves the cursor up by the height the old
@@ -236,23 +237,30 @@ above the top of the screen can be old, for example the symbol of the title
 after a validation error, or a row of the value after an edit in its middle. On
 `fg` the CLI draws a question taller than the screen again only from the first
 row that has stayed on screen through every render of Clack since the question
-grew past it, at most as many rows as the screen had when Clack last wrote.
-Clack keeps those rows right, and a row that went above the top of the screen
-stays old even after the terminal gets taller. The rows above them stay in the
-history above what the shell wrote. Such a question stays on screen on Ctrl+Z
-while the CLI cannot reach rows of it above the top of the screen, that is when
-it grew past the screen and Clack has not written it again from the top of the
-screen since. When Clack writes it again from there, as when it shrinks or the
-terminal gets wider, Ctrl+Z erases the rows on screen. When every row that
-changed is above the screen, as after a key that clears a validation error,
-Clack leaves the cursor at the top of the screen, and the CLI moves it back to
-the end of the question before the stop, so that the shell writes below it. A
-question that shrinks until it fits is erased like any other. A resize while the
-CLI is stopped draws the question at the new width on `fg`. A question whose
-output holds bytes the CLI does not recognize is left as it is on Ctrl+Z and is
-not drawn again on `fg`.
+grew past it, at most as many rows as the screen had when Clack last wrote, and
+no more rows than the screen has now. Clack keeps those rows right, and a row
+that went above the top of the screen stays old even after the terminal gets
+taller. The rows above them stay in the history above what the shell wrote. Such
+a question stays on screen on Ctrl+Z while the CLI cannot reach rows of it above
+the top of the screen, that is when it grew past the screen and Clack has not
+written it again from the top of the screen since. When Clack writes it again
+from there, as when it shrinks or the terminal gets wider, Ctrl+Z erases the
+rows on screen. When every row that changed is above the screen, as after a key
+that clears a validation error, Clack leaves the cursor at the top of the
+screen, and the CLI moves it back to the end of the question before the stop, so
+that the shell writes below it. A question that shrinks until it fits is erased
+like any other. A resize while the CLI is stopped draws the question at the new
+width on `fg`. A question whose output holds bytes the CLI does not recognize is
+left as it is on Ctrl+Z and is not drawn again on `fg`.
 
 Ctrl+\ during a step shows the cursor and quits.
+
+Ctrl+D at a question ends the input of readline when its line is empty: at a
+text question with nothing typed, or at a selection or a confirmation before any
+printable key. The CLI then ends as a cancel, with code 130, the cancel line and
+the cursor shown. With text in that line, Ctrl+D deletes the character to the
+right of the cursor, and at the end of the value it does nothing, so the
+question goes on. This was measured on macOS.
 
 When nothing in the session can continue a stopped process, as when the CLI is
 the command that `docker exec -it` starts, Ctrl+Z does nothing and the question
@@ -301,11 +309,11 @@ to end before the CLI kills it, and another SIGINT, SIGTERM or SIGHUP kills it
 at once. The signal manager of npm (`@npmcli/run-script`, the same in npm 12.2.3
 and 11.20.0) sends the CLI every SIGINT and SIGTERM that `npx` gets, so a Ctrl+C
 or a `kill -TERM` to the process group reaches the CLI twice. For Ctrl+C under a
-real `npx` the two came 0 to 1 ms apart; the SIGTERM case comes from reading
-that code and from a test launcher that forwards both signals the same way, not
-from a real `npx`. The CLI ignores the same SIGINT or SIGTERM when it comes
-again within 150 ms, so the installer keeps its own cleanup under `npx`. Any
-other second signal, a second SIGHUP included, and the same one after 150 ms
+real `npx` the two came less than 1 ms apart; the SIGTERM case comes from
+reading that code and from a test launcher that forwards both signals the same
+way, not from a real `npx`. The CLI ignores the same SIGINT or SIGTERM when it
+comes again within 150 ms, so the installer keeps its own cleanup under `npx`.
+Any other second signal, a second SIGHUP included, and the same one after 150 ms
 still kill it at once.
 
 When the terminal of an interactive bash closes during the installation, on
@@ -313,26 +321,33 @@ macOS 27 (bash 3.2.57, tmux 3.8) the CLI and an installer of a test with a
 cleanup of 200 ms each got one SIGHUP, the installer then got SIGINT from the
 CLI, and its cleanup ended, while the CLI ended with code 1 on a write to the
 closed terminal (`write EIO`) before its 750 ms were over. On Linux (bash 5.3.9,
-tmux 3.6) the CLI got two SIGHUP 0.7 to 0.8 ms apart, and the same installer was
-gone within 12 to 14 ms of the pane closing, before it recorded any signal and
-before its cleanup ran. The macOS case was measured in five runs of the
-questionnaire harness, the signals of the CLI in three of them, and the Linux
-case in three runs of the CI, the signals of the CLI in two of them.
+tmux 3.6) the CLI got two SIGHUP less than 1 ms apart, and a few milliseconds
+after the pane closed it sent the installer SIGINT and, on the second SIGHUP
+less than 1 ms later, SIGKILL. The same installer was gone within a few tens of
+milliseconds of the pane closing, before it recorded any signal and before its
+cleanup ran. The macOS case was measured in the questionnaire harness and the
+Linux case in the CI, and in some runs of both no signal of the CLI was recorded
+before it ended.
 
 When the terminal closes at a question, the input of the CLI ends. On macOS 27
-no SIGHUP reached the CLI before that, and Node ended it with code 1, on the
-change of terminal mode that readline makes when its input ends, or with code
-13, with the question still open. The CLI now ends as a cancel, with code 130,
-when the input of a question ends or fails. This was measured on macOS in the
-questionnaire harness and in a separate probe, and not on Linux.
+and on Linux no SIGHUP reached the CLI before that. Node used to end the CLI
+with code 1, on the change of terminal mode that readline makes when its input
+ends, or with code 13, with the question still open. The CLI now ends as a
+cancel, with code 130, when the input of a question ends, and when the input
+fails with the error of a closed terminal: on macOS the change of terminal mode
+after the end failed with `ENOENT`, which was measured, and on Linux the kernel
+answers it with `EIO`, which comes from reading its code. Where the terminal
+still shows output, the CLI writes the cancel line and shows the cursor. An
+input error with any other code stops the CLI with code 1, the message of the
+error and the cursor shown. The closed terminal was measured on macOS in the
+questionnaire harness and on Linux in the CI.
 
 The process groups of `npx`, `pnpm dlx` and `bunx`, and Ctrl+Z and Ctrl+C under
 each of them, were measured on macOS 27 (arm64) with npm 12.2.3 and 11.20.0 (the
 `npx` of Node 26.13.1), pnpm 12.23.0 and bun 1.4.5, and not on Linux. A stop
 sent from outside to the CLI alone was measured with `bash -c` as the launcher,
 and with the CLI leading its group under an interactive bash 3.2.57 on macOS 27.
-Ctrl+\ under a launcher was measured in three runs of the CI on Linux (bash
-5.3.9, tmux 3.6), with the same screen in all three, with a test launcher that
-ends on SIGQUIT, not with a real `npx`, and not on macOS. What this guide says
-about SIGTERM under a launcher comes from reading the code of the CLI and of
-npm.
+Ctrl+\ under a launcher was measured in the CI on Linux (bash 5.3.9, tmux 3.6),
+with the same screen in every run, with a test launcher that ends on SIGQUIT,
+not with a real `npx`, and not on macOS. What this guide says about SIGTERM
+under a launcher comes from reading the code of the CLI and of npm.

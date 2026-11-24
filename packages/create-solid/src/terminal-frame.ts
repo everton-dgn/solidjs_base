@@ -53,6 +53,8 @@ const clearIndicatorRows = '\r\u001B[J'
 let indicator: ReturnType<typeof setInterval> | undefined
 let active = ''
 let removeStepListeners: (() => void) | undefined
+let redrawStep: (() => void) | undefined
+let waiting = ''
 let pendingStop: NodeJS.Immediate | undefined
 type StepTitle = { title: string; columns?: number }
 function stepTitle({
@@ -127,6 +129,7 @@ function clearIndicator() {
   }
   indicator = undefined
   active = ''
+  waiting = ''
 }
 function isCommand(line: string): boolean {
   return /^(?:cd .+|git init|(?:npm|pnpm|bun) install|bun run dev)$/u.test(line)
@@ -233,7 +236,7 @@ export const progress = {
       const mark = styleText('magenta', frames[index] ?? '')
       const columns = width ?? process.stdout.columns
       if (columns < 1) return
-      const label = stepTitle({ title, columns })
+      const label = stepTitle({ title: waiting || title, columns })
       const line = label ? `${mark}  ${label}` : mark
       process.stdout.write(`\r\u001B[?7l${line}\u001B[?7h\r`)
       drawnColumns = columns
@@ -300,8 +303,12 @@ export const progress = {
     process.on('SIGCONT', resume)
     process.on('SIGQUIT', quit)
     process.on('SIGWINCH', resize)
+    redrawStep = () => {
+      if (isRunning && !pendingStop) redraw()
+    }
     removeStepListeners = () => {
       isRunning = false
+      redrawStep = undefined
       process.off('SIGWINCH', resize)
       process.off('SIGTSTP', suspend)
       process.off('SIGCONT', resume)
@@ -309,6 +316,10 @@ export const progress = {
     }
     draw()
     indicator = setInterval(tick, interval)
+  },
+  wait(title: string): void {
+    waiting = title
+    redrawStep?.()
   },
   finish: (title: string): void => {
     clearIndicator()

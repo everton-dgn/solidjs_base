@@ -154,33 +154,42 @@ function rethrowUsageError({ error, progress }: GenerationError): void {
     throw error
   }
 }
+type SignalRecord = {
+  received: Set<NodeJS.Signals>
+  counts: { interrupts: number; echoed: number }
+  stop: () => void
+}
+// WHY: The terminal echoes ^C where the cursor is, and a new line keeps that echo off the next line of the CLI.
+function echoBreak({ counts }: SignalRecord): string {
+  const hasEcho = counts.interrupts > counts.echoed
+  counts.echoed = counts.interrupts
+  return hasEcho && process.stderr.isTTY ? '\n' : ''
+}
 type PlainClosing = {
   lines: string[]
   isCanceled: boolean
-  received: Set<NodeJS.Signals>
+  signals: SignalRecord
 }
-function writePlainClosing({
-  lines,
-  isCanceled,
-  received
-}: PlainClosing): void {
+function writePlainClosing({ lines, isCanceled, signals }: PlainClosing): void {
   // WHY: The end of an installer that Ctrl+C interrupted may be read before the SIGINT of the CLI, so a cancellation with no SIGTERM or SIGHUP counts as Ctrl+C.
-  const isInterrupted =
-    isCanceled && (received.has('SIGINT') || received.size === 0)
-  // WHY: The terminal echoes ^C where the cursor is, and a new line keeps that echo off the title.
-  const echo = isInterrupted && process.stderr.isTTY ? '\n' : ''
+  if (isCanceled && signals.received.size === 0) signals.counts.interrupts += 1
+  const echo = isCanceled ? echoBreak(signals) : ''
   process.stderr.write(echo + lines.join('\n'))
 }
-type SignalRecord = { received: Set<NodeJS.Signals>; stop: () => void }
 function recordSignals(): SignalRecord {
+  const names = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const
   const received = new Set<NodeJS.Signals>()
-  const record = (signal: NodeJS.Signals) => received.add(signal)
-  const signals = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const
-  for (const signal of signals) process.on(signal, record)
+  const counts = { interrupts: 0, echoed: 0 }
+  const record = (signal: NodeJS.Signals) => {
+    received.add(signal)
+    if (signal === 'SIGINT') counts.interrupts += 1
+  }
+  for (const name of names) process.on(name, record)
   return {
     received,
+    counts,
     stop() {
-      for (const signal of signals) process.off(signal, record)
+      for (const name of names) process.off(name, record)
     }
   }
 }
@@ -208,6 +217,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
   let completed = ''
   let active = ''
   let failureTitle = labels.createFailed as string
+  let task = ''
   let steps: string[]
   const signals = recordSignals()
   try {
@@ -241,6 +251,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
             installTask: 'installDone'
           } as const
           if (completed) finish(completed)
+          task = code
           failureTitle =
             code === 'installTask'
               ? message(language, { code: 'installFailed', values })
@@ -248,6 +259,13 @@ async function createApplication({ answers, isInteractive }: Creation) {
           active = title
           progress?.start(title)
           completed = message(language, { code: done[code], values })
+        },
+        onWait: () => {
+          if (task !== 'installTask') return
+          const values = { pm: toolNames[profile.pm] }
+          const notice = message(language, { code: 'installWait', values })
+          if (progress) progress.wait(notice)
+          else process.stderr.write(`${echoBreak(signals)}${notice}\n`)
         }
       }
     )
@@ -265,7 +283,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
       writePlainClosing({
         lines: [...[title, reason].filter(Boolean), '', closing, ''],
         isCanceled,
-        received: signals.received
+        signals
       })
     }
     process.exitCode = isCanceled ? interruptedExitCode : 1

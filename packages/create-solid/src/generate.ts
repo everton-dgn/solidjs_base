@@ -1,5 +1,4 @@
 import { execFileSync, spawn } from 'node:child_process'
-import { once } from 'node:events'
 import {
   existsSync,
   mkdirSync,
@@ -315,8 +314,12 @@ type TerminalOptions = {
   language: Language
   warn?: (diagnostic: string) => void
   report: (progress: Progress) => void
+  onWait?: () => void
 }
-const childInterruptDeadlineMs = 750
+// WHY: The rollback of npm on its own took about 3 s, and Docker sends SIGKILL 10 s after its SIGTERM. Nobody can press again once the terminal closed, and a supervisor may send its signal only once.
+const cleanupLimitMs = 8000
+// WHY: A process the installer started, such as a lifecycle script that outlives bun, may keep its pipes open after it exits.
+const pipeDrainMs = 500
 // WHY: npm sends its bin the SIGINT and SIGTERM it gets, so the signal sent to the whole group reaches the CLI twice, 0 to 1 ms apart.
 const forwardedSignals = new Set<string>(['SIGINT', 'SIGTERM'])
 const repeatWindowMs = 150
@@ -332,10 +335,15 @@ function forward({ source, target }: Forwarding): Forwarded {
   source?.pipe(target, { end: false })
   return forwarded
 }
-type SetupOptions = { cwd: string; signal: AbortSignal; isInteractive: boolean }
+type SetupOptions = {
+  cwd: string
+  signal: AbortSignal
+  isInteractive: boolean
+  onWait?: () => void
+}
 async function executeSetup(
   command: SetupCommand,
-  { cwd, signal, isInteractive }: SetupOptions
+  { cwd, signal, isInteractive, onWait }: SetupOptions
 ): Promise<void> {
   const isPlainInstall = command.task === 'installTask' && !isInteractive
   const shouldInheritStderr = isPlainInstall && process.stderr.isTTY
@@ -362,21 +370,31 @@ async function executeSetup(
   }
   const printed = forward({ source: child.stdout, target: process.stdout })
   let deadline: ReturnType<typeof setTimeout> | undefined
-  const forced = Promise.withResolvers<typeof child.signalCode>()
+  let notice: ReturnType<typeof setTimeout> | undefined
+  let drain: ReturnType<typeof setTimeout> | undefined
+  const ended = Promise.withResolvers<typeof child.exitCode>()
+  const release = () => {
+    child.stdout?.destroy()
+    child.stderr?.destroy()
+    ended.resolve(child.exitCode)
+  }
+  const isRunning = () => child.exitCode === null && child.signalCode === null
+  child.once('error', ended.reject)
+  child.once('close', ended.resolve)
+  child.once('exit', () => {
+    drain = setTimeout(release, pipeDrainMs)
+  })
   const force = () => {
-    const release = () => {
-      child.stdout?.destroy()
-      child.stderr?.destroy()
-      forced.resolve(child.signalCode)
-    }
-    if (child.exitCode !== null || child.signalCode !== null) release()
-    else {
+    clearTimeout(notice)
+    if (isRunning()) {
       child.once('exit', release)
       child.kill('SIGKILL')
-    }
+    } else release()
   }
   let canceledAt = 0
   const forceAgain = (signalName: NodeJS.Signals) => {
+    // WHY: On Linux a terminal that closes sends SIGHUP twice, less than 1 ms apart, and neither comes from the person.
+    if (signalName === 'SIGHUP' && signal.reason === 'SIGHUP') return
     const isRepeat =
       signalName === signal.reason &&
       forwardedSignals.has(signalName) &&
@@ -386,14 +404,18 @@ async function executeSetup(
   const cancel = () => {
     canceledAt = performance.now()
     child.kill('SIGINT')
-    deadline = setTimeout(force, childInterruptDeadlineMs)
+    deadline = setTimeout(force, cleanupLimitMs)
+    // WHY: A second key forces only once this window closes, and an installer that ends on the first signal is gone by then.
+    notice = setTimeout(() => {
+      if (isRunning()) onWait?.()
+    }, repeatWindowMs)
     for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
       process.on(signalName, forceAgain)
     }
   }
   signal.addEventListener('abort', cancel, { once: true })
   try {
-    await Promise.race([once(child, 'close'), forced.promise])
+    await ended.promise
     // WHY: A signal sent to the group ends the installer too, by the signal or with the code its own handler chose, and its end may be read before the signal of the CLI.
     if (child.exitCode !== 0) await readPendingSignals()
     if (signal.aborted || child.signalCode === 'SIGINT') {
@@ -414,6 +436,8 @@ async function executeSetup(
     if (printed.shouldAppendNewline) process.stdout.write('\n')
     if (forwarded.shouldAppendNewline) process.stderr.write('\n')
     clearTimeout(deadline)
+    clearTimeout(notice)
+    clearTimeout(drain)
     for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
       process.off(signalName, forceAgain)
     }
@@ -661,7 +685,7 @@ export function generate(input: Profile): string[] {
 }
 export async function generateTerminal(
   input: Profile,
-  { language, report, warn, isInteractive = false }: TerminalOptions
+  { language, report, warn, onWait, isInteractive = false }: TerminalOptions
 ): Promise<string[]> {
   const steps = generation({ input, prepare: prepared, language })
   const controller = new AbortController()
@@ -682,7 +706,8 @@ export async function generateTerminal(
           await executeSetup(step, {
             isInteractive,
             cwd: input.dir,
-            signal: controller.signal
+            signal: controller.signal,
+            ...(onWait ? { onWait } : {})
           })
         }
       } catch (error) {

@@ -140,6 +140,11 @@ const clean = name => {
 for (const name of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(name, clean);
 setInterval(() => {}, 1000);
 """
+# The CLI forces an installer that has not ended this long after the first signal (cleanupLimitMs in src/generate.ts).
+CLEANUP_LIMIT_S = 8
+# Once the installer has exited, the CLI waits at most this long for the pipes a process it started still holds (pipeDrainMs).
+PIPE_DRAIN_S = .5
+WAITING_LINE = "Waiting for Bun to clean up. Press Ctrl+C again to stop it now."
 # An entry that runs the CLI and records its exit code, which a launcher that died cannot report. With CLI_SIGNALS it also
 # records each SIGHUP, SIGINT and SIGTERM the CLI gets and when, from a listener that runs before those of the CLI. With
 # CLI_CHILDREN it records each signal the CLI sends to a process it started, and how and when that process ended. With
@@ -535,8 +540,11 @@ class Cancellation(unittest.TestCase):
                     if second:
                         time.sleep(.08)
                         os.kill(pid, signal.SIGHUP)
-                    if descendant:
-                        deadline = started + (.65 if second else 2)
+                    if install and not second:
+                        # The installer ignores SIGINT, so the CLI forces it only at the long bound.
+                        deadline = started + CLEANUP_LIMIT_S + 4
+                    if descendant and second:
+                        deadline = started + .65
 
                 elif not (success or failure or git_warning or files_failure):
                     os.write(terminal, b"\x03")
@@ -549,9 +557,12 @@ class Cancellation(unittest.TestCase):
                     finished, status = os.waitpid(pid, os.WNOHANG)
                     if finished:
                         waited = True
+                        ended = time.monotonic()
                         break
                     time.sleep(.01)
                 self.assertTrue(waited)
+                if interrupt and install and not second:
+                    self.assertGreaterEqual(ended - started, CLEANUP_LIMIT_S)
                 while select.select([terminal], [], [], 0)[0]:
                     try:
                         block = os.read(terminal, 65536)
@@ -624,7 +635,9 @@ class Cancellation(unittest.TestCase):
                 if plain:
                     # Only Ctrl+C is echoed by the terminal, and its echo stays alone on its line.
                     echo = [] if interrupt else ["^C"]
-                    closing = [*echo, "■ Installing dependencies with Bun", "Your project is in parent/app. To finish, run:",
+                    # An installer that ignores SIGINT is still running when the window of a repeated signal closes.
+                    waiting = [WAITING_LINE] if interrupt and not second else []
+                    closing = [*echo, *waiting, "■ Installing dependencies with Bun", "Your project is in parent/app. To finish, run:",
                                "cd parent/app", "bun install", "", "Creation canceled."]
                     lines = transcript.decode().rstrip().splitlines()
                     self.assertEqual(lines[-len(closing) - 1:], ["◇ Files created", *closing])
@@ -1377,7 +1390,7 @@ process.stdout.write = (...args) => {
                         self.assertFalse(cleaned.exists())
                         with self.assertRaises(ProcessLookupError):
                             os.kill(worker, 0)
-                        # A second signal taken for the first would leave the force to the deadline, 750 ms after the first one.
+                        # A second signal taken for the first would leave the force to the long bound, CLEANUP_LIMIT_S after the first one.
                         self.assertLess(elapsed, .3)
                 finally:
                     finish.touch()
@@ -1393,6 +1406,156 @@ process.stdout.write = (...args) => {
                     if not waited:
                         os.kill(pid, signal.SIGKILL)
                         os.waitpid(pid, 0)
+
+    def test_cleanup_after_ctrl_c(self):
+        # Ctrl+C reaches the installer from the terminal and from the CLI, and the CLI waits for its cleanup of about 1.5 s.
+        # A second Ctrl+C after the window of a repeated signal forces it at once. The waiting line comes once that window
+        # closes, in the frame of the step or, in plain output, on a line of its own after the echo of each ^C.
+        for plain, second in itertools.product((False, True), (False, True)):
+            with self.subTest(plain=plain, second=second), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                (root / "installer.js").write_text(CLEANING_INSTALLER)
+                installer = root / "bun"
+                installer.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(root / 'installer.js'))}\n")
+                installer.chmod(0o755)
+                cleaning, cleaned = root / "cleaning", root / "cleaned"
+                pid, master, slave = start_cli(
+                    root, ["parent/app", "--lang", "en", "--mode", "server", "--no-git", "--install", *(["--yes"] if plain else [])],
+                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"],
+                     "CLEANING": str(cleaning), "CLEANED": str(cleaned), "FINISH": str(root / "finish"),
+                     **({} if second else {"CLEANUP_MS": "1500"})})
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                try:
+                    for prompt in [] if plain else [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        os.write(master, b"\r")
+                    reader.until(b"Files created" if plain else b"Installing dependencies with Bun")
+                    worker = recorded(root / "installer.pid")
+                    self.assertIsNotNone(worker)
+                    start = len(transcript)
+                    sent = time.monotonic()
+                    os.write(master, b"\x03")
+                    reader.until(WAITING_LINE.encode(), start)
+                    if second:
+                        time.sleep(max(0, sent + 1 - time.monotonic()))
+                        sent = time.monotonic()
+                        os.write(master, b"\x03")
+                    reader.until(b"Creation canceled.", start)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        reader.drain()
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            elapsed = time.monotonic() - sent
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    reader.drain()
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 130)
+                    with self.assertRaises(ProcessLookupError):
+                        os.kill(worker, 0)
+                    if second:
+                        self.assertFalse(cleaned.exists())
+                        self.assertLess(elapsed, 1)
+                    else:
+                        self.assertTrue(cleaned.exists())
+                        self.assertGreaterEqual(elapsed, 1.5)
+                    echo = ["^C"] * (1 + int(second))
+                    closing = ["■ Installing dependencies with Bun" if plain else "■  Installing dependencies with Bun"]
+                    if plain:
+                        lines = transcript.decode().rstrip().splitlines()
+                        expected = ["◇ Files created", echo[0], WAITING_LINE, *echo[1:], *closing,
+                                    "Your project is in parent/app. To finish, run:", "cd parent/app", "bun install", "",
+                                    "Creation canceled."]
+                        self.assertEqual(lines[-len(expected):], expected)
+                    else:
+                        lines = install_screen(transcript, 80)
+                        while lines and not lines[-1]:
+                            lines.pop()
+                        self.assertEqual(lines[-6:], [*closing, "│  Your project is in parent/app. To finish, run:",
+                                                      "│  cd parent/app", "│  bun install", "│", "└  Creation canceled."])
+                        self.assertFalse([line for line in lines if WAITING_LINE in line], lines)
+                        self.assertEqual(reader.cursor(), b"\x1b[?25h")
+                finally:
+                    (root / "finish").touch()
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+                    target = recorded(root / "installer.pid") if (root / "installer.pid").exists() else None
+                    try:
+                        if target and os.getsid(target) == pid:
+                            os.kill(target, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+
+    def test_installer_ends_while_a_descendant_holds_stderr(self):
+        # A lifecycle script that outlives bun keeps the stderr pipe of bun. Once bun has exited, on its own or on the SIGINT
+        # the CLI sends, the CLI waits for that pipe only a short time.
+        for interrupt in (None, signal.SIGINT):
+            with self.subTest(signal=interrupt), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                installer = root / "bun"
+                ending = "trap 'exit 130' INT\nwhile :; do sleep .05; done" if interrupt else "exit 0"
+                installer.write_text(f'#!/bin/sh\nsleep 30 &\necho $! > "$GRANDCHILD"\necho $$ > "$PID_FILE"\n{ending}\n')
+                installer.chmod(0o755)
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install"],
+                    {"PID_FILE": str(root / "installer.pid"), "GRANDCHILD": str(root / "grandchild.pid"),
+                     "PATH": directory + ":" + os.environ["PATH"]})
+                reader = Reader(self, master)
+                waited = False
+                try:
+                    for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        os.write(master, b"\r")
+                    reader.until(b"Installing dependencies with Bun")
+                    worker = recorded(root / "installer.pid")
+                    self.assertIsNotNone(recorded(root / "grandchild.pid"))
+                    if interrupt:
+                        os.kill(pid, signal.SIGTERM)
+                    else:
+                        while True:
+                            try:
+                                os.kill(worker, 0)
+                            except ProcessLookupError:
+                                break
+                            time.sleep(.005)
+                    gone = time.monotonic()
+                    deadline = gone + CLEANUP_LIMIT_S / 2
+                    while time.monotonic() < deadline:
+                        reader.drain()
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited, reader.transcript)
+                    reader.drain()
+                    if interrupt:
+                        self.assertEqual(os.waitstatus_to_exitcode(status), 130)
+                        self.assertIn(b"Creation canceled.", reader.transcript)
+                    else:
+                        self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+                        self.assertLess(time.monotonic() - gone, PIPE_DRAIN_S + 2)
+                        self.assertIn(b"Project created.", reader.transcript)
+                finally:
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+                    for file in (root / "grandchild.pid", root / "installer.pid"):
+                        target = recorded(file) if file.exists() else None
+                        try:
+                            if target and os.getsid(target) == pid:
+                                os.kill(target, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
 
     def test_node_missing_from_path(self):
         # Minimal images may lack node, and the harness then names it instead of failing on a missing path.
@@ -2077,8 +2240,9 @@ process.stdout.write = (...args) => {
                         self.assertTrue(block, printed)
                         printed.extend(block)
                     child.send_signal(signal.SIGTERM)
-                    # A descendant that keeps the installer's stdout open must not keep the CLI running.
-                    self.assertEqual(child.wait(timeout=5), 130)
+                    # A descendant that keeps the installer's stdout open must not keep the CLI running. The installer
+                    # ignores SIGINT, so the CLI forces it at the long bound.
+                    self.assertEqual(child.wait(timeout=CLEANUP_LIMIT_S + 4), 130)
                 finally:
                     grandchild = recorded(root / "app/grandchild.pid") if (root / "app/grandchild.pid").exists() else None
                     if child.poll() is None:

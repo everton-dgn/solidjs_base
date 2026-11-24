@@ -382,14 +382,16 @@ def recorded(file):
         time.sleep(.01)
 
 
-def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False, ask_directory=False, name="app"):
+def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False, ask_directory=False, name="app", errors=None):
+    """With errors, stderr goes to that file instead of the terminal."""
     master, slave = pty.openpty()
+    error_file = open(errors, "wb") if errors else None
     try:
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, columns, 0, 0))
         with subprocess.Popen([node, cli, *([] if ask_directory else [name]), "--lang", language, "--mode", "server",
                                "--no-git", "--install" if piped else "--no-install"], cwd=directory,
                               env=dict(os.environ, PATH=directory + os.pathsep + os.environ["PATH"] if piped else os.environ["PATH"], CI="false", NO_COLOR="" if color else "1", FORCE_COLOR="1" if color else "0", TERM="xterm"),
-                              stdin=slave, stdout=subprocess.PIPE if piped else slave, stderr=slave) as child:
+                              stdin=slave, stdout=subprocess.PIPE if piped else slave, stderr=error_file or slave) as child:
             reader = child.stdout.fileno() if piped else master
             os.close(slave)
             slave = None
@@ -428,6 +430,8 @@ def question_session(directory, language, prompts, before_answer=None, color=Fal
         os.close(master)
         if slave is not None:
             os.close(slave)
+        if error_file:
+            error_file.close()
 
 
 class Cancellation(unittest.TestCase):
@@ -2087,6 +2091,36 @@ process.stdout.write = (...args) => {
                     final = re.sub(r"\x1b\[\?25[hl]", "", output.rsplit("\x1b[J", 1)[-1])
                     self.assertEqual(final.rstrip().splitlines(), [*expected, "│", f"└  {closing}"])
                     self.assertEqual(status, 130)
+
+    def test_end_of_input_at_a_question(self):
+        # readline ends its input on Ctrl+D only when the line is empty: with text it deletes to the right, which at the end
+        # of the value does nothing. A select or a confirm keeps a line of its own, empty until a printable key reaches it.
+        cancels = [
+            ("an empty value", [("Application title", b"\x04")]),
+            ("a select", [("Application title", b"\r"), ("Setup", b"\x04")]),
+            ("a confirm", [("Application title", b"\r"), ("Setup", b"\r"), ("Create the project?", b"\x04")]),
+        ]
+        # The question goes on, and Clack still reads the Ctrl+C that follows as a key.
+        stays = [
+            ("a value", [("Application title", b"ab"), ("ab", b"\x04c"), ("abc", b"\x03")], ["■  Application title", "│  abc"]),
+            ("a select after a letter", [("Application title", b"\r"), ("Setup", b"x\x04\x03")], ["■  Setup"]),
+        ]
+        for name, prompts, *kept in [*cancels, *stays]:
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as directory:
+                errors = pathlib.Path(directory, "stderr")
+                output, status = question_session(directory, "en", prompts, errors=errors)
+                written = errors.read_text()
+                cursor = re.findall(r"\x1b\[\?25[hl]", output)[-1:]
+                plain = re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", output).replace("\r", "").rstrip().splitlines()
+                print(f"Measured, Ctrl+D at a question with {name}:", json.dumps({
+                    "system": sys.platform, "cli_exit": status, "cli_stderr": written.splitlines(), "last_cursor": cursor,
+                    "last_lines": plain[-2:]}), flush=True)
+                self.assertEqual((status, written), (130, ""))
+                self.assertEqual(cursor, ["\x1b[?25h"])
+                self.assertEqual(plain[-1], "└  Creation canceled.")
+                if kept:
+                    final = re.sub(r"\x1b\[\?25[hl]", "", output.rsplit("\x1b[J", 1)[-1])
+                    self.assertEqual(final.rstrip().splitlines()[:len(kept[0])], kept[0])
 
     def test_occupied_directory_question(self):
         path = "a-directory-that-is-longer-than-the-terminal-width"

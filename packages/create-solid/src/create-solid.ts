@@ -112,6 +112,8 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
   // WHY: A terminal that closes during a question ends the input, and on macOS no SIGHUP comes before Node ends with the question still open.
   process.stdin.on('end', cancelPrompt)
   process.stdin.on('error', closeInput)
+  // WHY: readline closes on Ctrl+D at an empty line without ending the input, and Clack then waits for a key that can no longer come. Once the loop is empty nothing can answer the question.
+  process.on('beforeExit', cancelPrompt)
   try {
     return await prompt(frame.output)
   } finally {
@@ -125,6 +127,7 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
     process.off('SIGWINCH', draw)
     process.stdin.off('end', cancelPrompt)
     process.stdin.off('error', closeInput)
+    process.off('beforeExit', cancelPrompt)
   }
 }
 type GenerationError = { error: unknown; progress?: typeof frameProgress }

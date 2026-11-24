@@ -2140,10 +2140,12 @@ process.stdout.write = (...args) => {
             ("a select", [("Application title", b"\r"), ("Setup", b"\x04")]),
             ("a confirm", [("Application title", b"\r"), ("Setup", b"\r"), ("Create the project?", b"\x04")]),
         ]
-        # The question goes on, and Clack still reads the Ctrl+C that follows as a key.
+        # The question goes on, and Clack still reads the Ctrl+C that follows as a key. That Ctrl+C comes in a write of its own
+        # after a render that only the key before it gives: a readline closed by the Ctrl+D would pause the input before it.
         stays = [
             ("a value", [("Application title", b"ab"), ("ab", b"\x04c"), ("abc", b"\x03")], ["■  Application title", "│  abc"]),
-            ("a select after a letter", [("Application title", b"\r"), ("Setup", b"x\x04\x03")], ["■  Setup"]),
+            ("a select after a letter", [("Application title", b"\r"), ("Setup", b"x\x04\x1b[B"), ("● Customize", b"\x03")],
+             ["■  Setup", "│  Customize"]),
         ]
         for name, prompts, *kept in [*cancels, *stays]:
             with self.subTest(case=name), tempfile.TemporaryDirectory() as directory:

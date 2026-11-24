@@ -2287,9 +2287,12 @@ process.stdout.write = (...args) => {
                     self.assertLess(time.monotonic(), deadline, processes())
                     time.sleep(.04)
                 go.touch()
-                # The question is not erased, so after fg it is drawn whole a second time, below what the shell wrote.
-                wait_for(lambda lines: "T" not in state(worker) and lines[-2:] == ["│  " + "x" * 67 + "█", "└"]
-                         and sum(line == "◆  Application title" for line in lines) == 2, history=True)
+                # The question is not erased, so it stays above what the shell wrote, and after fg only the rows of it that
+                # fill the screen are drawn again below that, without its title.
+                cursor_row = "│  " + "x" * 67 + "█"
+                wait_for(lambda lines: "T" not in state(worker) and lines[-2:] == [cursor_row, "└"]
+                         and lines.count(cursor_row) == 2
+                         and sum(line == "◆  Application title" for line in lines) == 1, history=True)
                 tmux("send-keys", "-l", "y")
                 # Clack redraws the changed row of a question taller than the screen at the row it expects, so the screen
                 # shows the end of the question once, with the key on its last row of value.

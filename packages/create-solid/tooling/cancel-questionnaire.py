@@ -22,8 +22,11 @@ import unittest
 from urllib.parse import quote
 
 cli = pathlib.Path(sys.argv.pop(1)).resolve()
+found_node = shutil.which("node")
+if not found_node:
+    sys.exit("The questionnaire harness needs node: install it and run again")
 # The node of PATH may be the shim of a version manager, which would add a process of its own to every job.
-node = subprocess.check_output([shutil.which("node"), "-p", "process.execPath"], text=True).strip()
+node = subprocess.check_output([found_node, "-p", "process.execPath"], text=True).strip()
 
 
 class Screen:
@@ -1280,7 +1283,13 @@ process.stdout.write = (...args) => {
                         finish.touch()
                     else:
                         os.kill(command, interrupt)
+                        # The installer starts its cleanup on the SIGINT the CLI sends it, so by then the CLI has handled the first signal.
+                        deadline = time.monotonic() + 4
+                        while not cleaning.exists():
+                            self.assertLess(time.monotonic(), deadline)
+                            time.sleep(.005)
                         time.sleep(.3)
+                        sent = time.monotonic()
                         os.kill(command, interrupt)
                     reader.until("└  Creation canceled.".encode(), start)
                     elapsed = time.monotonic() - sent
@@ -1301,8 +1310,8 @@ process.stdout.write = (...args) => {
                         self.assertFalse(cleaned.exists())
                         with self.assertRaises(ProcessLookupError):
                             os.kill(worker, 0)
-                        # Without the second signal the deadline of the CLI forces 750 ms after the first one.
-                        self.assertLess(elapsed, .7)
+                        # A second signal taken for the first would leave the force to the deadline, 750 ms after the first one.
+                        self.assertLess(elapsed, .3)
                 finally:
                     finish.touch()
                     for file in (root / "installer.pid", root / "cli.pid"):
@@ -1317,6 +1326,14 @@ process.stdout.write = (...args) => {
                     if not waited:
                         os.kill(pid, signal.SIGKILL)
                         os.waitpid(pid, 0)
+
+    def test_node_missing_from_path(self):
+        # Minimal images may lack node, and the harness then names it instead of failing on a missing path.
+        with tempfile.TemporaryDirectory() as directory:
+            run = subprocess.run([sys.executable, __file__, str(cli)], env={"PATH": directory}, capture_output=True,
+                                 text=True, timeout=30)
+            self.assertNotEqual(run.returncode, 0)
+            self.assertIn("The questionnaire harness needs node: install it and run again", run.stderr)
 
     def test_stop_after_the_launcher_while_a_step_holds_the_loop(self):
         # The shell writes its prompt while the CLI is held in the last synchronous part of the files step, or, with turn,

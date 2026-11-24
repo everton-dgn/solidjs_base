@@ -3,6 +3,8 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import process from 'node:process'
 import { it } from 'node:test'
 
+// WHY: A child that keeps a real interval never ends, so a test that replaces node:timers fails in seconds when the frame goes back to the global timers.
+const childTimeoutMs = 10_000
 type Terminal = { isTTY: boolean; term: string; shouldDrawStatuses?: boolean }
 function draw({ isTTY, term, shouldDrawStatuses = false }: Terminal): string {
   const script = `
@@ -135,7 +137,8 @@ void it('uses the Clack interval for each indicator', () => {
       ['--input-type=module', '-e', script],
       {
         encoding: 'utf8',
-        env: { ...process.env, TERM: term }
+        env: { ...process.env, TERM: term },
+        timeout: childTimeoutMs
       }
     )
     assert.equal(child.status, 0, child.stderr)
@@ -311,7 +314,8 @@ for (const order of ['FWC', 'FTWC', 'FTTWC', 'FC', 'FTC', 'grow', 'truncate']) {
       ['--input-type=module', '-e', script],
       {
         encoding: 'utf8',
-        env: { ...process.env, TERM: 'xterm', FORCE_COLOR: '0' }
+        env: { ...process.env, TERM: 'xterm', FORCE_COLOR: '0' },
+        timeout: childTimeoutMs
       }
     )
     const rows = resizeScreen({
@@ -418,7 +422,8 @@ void it('draws once on the continue and starts the interval again so no frame co
     ['--input-type=module', '-e', script],
     {
       encoding: 'utf8',
-      env: { ...process.env, TERM: 'xterm', FORCE_COLOR: '0' }
+      env: { ...process.env, TERM: 'xterm', FORCE_COLOR: '0' },
+      timeout: childTimeoutMs
     }
   )
   const intervalMs = 80

@@ -3,6 +3,9 @@ import { spawnSync } from 'node:child_process'
 import process from 'node:process'
 import { it } from 'node:test'
 
+// WHY: A child that keeps a real interval never ends, so the test fails in seconds when the frame goes back to the global timers.
+const childTimeoutMs = 10_000
+
 void it('draws the indicator at the width of the terminal after a continue, also when the size went back before Node read it', () => {
   const script = `
     import nodeTimers from 'node:timers'
@@ -48,7 +51,11 @@ void it('draws the indicator at the width of the terminal after a continue, also
   const { stderr } = spawnSync(
     process.execPath,
     ['--input-type=module', '-e', script],
-    { encoding: 'utf8', env: { ...process.env, TERM: 'xterm', NO_COLOR: '1' } }
+    {
+      encoding: 'utf8',
+      env: { ...process.env, TERM: 'xterm', NO_COLOR: '1' },
+      timeout: childTimeoutMs
+    }
   )
   // The continue has drawn at the size of the terminal once; only a size Node did not report as a resize draws again.
   assert.deepEqual(JSON.parse(stderr), {

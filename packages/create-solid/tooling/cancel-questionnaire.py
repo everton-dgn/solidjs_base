@@ -142,7 +142,8 @@ setInterval(() => {}, 1000);
 """
 # An entry that runs the CLI and records its exit code, which a launcher that died cannot report. With CLI_SIGNALS it also
 # records each SIGHUP, SIGINT and SIGTERM the CLI gets and when, from a listener that runs before those of the CLI. With
-# CLI_CHILDREN it records each signal the CLI sends to a process it started, and how and when that process ended.
+# CLI_CHILDREN it records each signal the CLI sends to a process it started, and how and when that process ended. With
+# CLI_INPUT it records when the input of the CLI ends and each error it emits, with its code and the call that failed.
 EXIT_ENTRY = """
 import childProcess from 'node:child_process';
 import { appendFileSync, writeFileSync } from 'node:fs';
@@ -163,6 +164,16 @@ if (process.env.CLI_CHILDREN) {
     return child;
   };
   syncBuiltinESMExports();
+}
+if (process.env.CLI_INPUT) {
+  const input = process.stdin;
+  const emit = input.emit;
+  input.emit = function (name, ...args) {
+    const [error] = args;
+    if (name === 'end') appendFileSync(process.env.CLI_INPUT, `end ${now()}\\n`);
+    if (name === 'error') appendFileSync(process.env.CLI_INPUT, `error ${error?.code} ${error?.syscall} ${now()}\\n`);
+    return Reflect.apply(emit, this, [name, ...args]);
+  };
 }
 await import(process.env.CLI_URL);
 """
@@ -2373,7 +2384,7 @@ process.stdout.write = (...args) => {
                 installer.chmod(0o755)
                 (root / "entry.mjs").write_text(EXIT_ENTRY)
                 signals, cleaned, cli_signals = root / "installer.signals", root / "cleaned", root / "cli.signals"
-                cli_stderr, cli_children = root / "cli.stderr", root / "cli.children"
+                cli_stderr, cli_children, cli_input = root / "cli.stderr", root / "cli.children", root / "cli.input"
                 socket = str(root / "tmux.sock")
                 # The shell reads its prompt and the file of its history from these, so nothing reaches the account.
                 tmux_env = {key: os.environ[key] for key in ("HOME", "LANG", "TMPDIR") if key in os.environ} | {
@@ -2383,7 +2394,8 @@ process.stdout.write = (...args) => {
                     "CLEANING": str(root / "cleaning"), "CLEANED": str(cleaned), "CLEANUP_MS": str(cleanup_ms),
                     "EXIT_FILE": str(root / "cli.exit"), "CLI_URL": cli.as_uri(), "CLI_STDERR": str(cli_stderr),
                     **({"CLI_SIGNALS": str(cli_signals)} if case != "quit" else {}),
-                    **({"CLI_CHILDREN": str(cli_children)} if case == "hangup" else {})}
+                    **({"CLI_CHILDREN": str(cli_children)} if case == "hangup" else {}),
+                    **({"CLI_INPUT": str(cli_input)} if case == "question" else {})}
                 def tmux(*args, check=True):
                     return subprocess.run(["tmux", "-f", "/dev/null", "-S", socket, *args], env=tmux_env, text=True,
                                           capture_output=True, timeout=5, check=check).stdout
@@ -2454,6 +2466,7 @@ process.stdout.write = (...args) => {
                         print(f"Measured, the terminal closed {place}:", json.dumps({
                             "system": sys.platform, "bash": versions[0], "tmux": versions[1],
                             "cli_signals_ms": times(cli_signals), "cli_exit": cli_exit, "cli_stderr": written.splitlines(),
+                            **({"cli_input_ms": times(cli_input)} if case == "question" else {}),
                             **({"cleanup_ms": cleanup_ms, "installer_signals_ms": times(signals),
                                 "cli_to_installer_ms": times(cli_children),
                                 "cleanup_ended_ms": round(float(cleaned.read_text()) - closed * 1000, 1) if cleaned.exists() else None,

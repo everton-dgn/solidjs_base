@@ -2303,14 +2303,15 @@ process.stdout.write = (...args) => {
                 tmux("kill-server")
 
     def test_terminal_closed_or_quit_during_install(self):
-        # A person in an interactive bash closes the terminal during the install, or presses Ctrl+\ under a launcher that dies
-        # on SIGQUIT as npx does. Only the end is checked; the signals that reach the installer and the screen are printed.
+        # A person in an interactive bash closes the terminal during the install or at a question, or presses Ctrl+\ under a
+        # launcher that dies on SIGQUIT as npx does. Only the end is checked, and at a question the code of a cancel; the
+        # signals that reach the CLI and the installer, what the CLI wrote to stderr and the screen are printed.
         self.assertIsNotNone(shutil.which("tmux"), "The tmux tests of the questionnaire harness need tmux: install it and run again")
         self.assertIsNotNone(bash_path(), "The tmux tests of the questionnaire harness need bash: install it and run again")
         versions = [subprocess.run(command, capture_output=True, text=True).stdout.split("\n")[0]
                     for command in ([bash_path(), "--version"], ["tmux", "-V"])]
         cleanup_ms = 200
-        for case in ("hangup", "quit"):
+        for case in ("hangup", "question", "quit"):
             with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
                 if case == "quit" and not sys.platform.startswith("linux"):
                     # On macOS every process that SIGQUIT ends leaves a crash report.
@@ -2322,6 +2323,7 @@ process.stdout.write = (...args) => {
                 installer.chmod(0o755)
                 (root / "entry.mjs").write_text(EXIT_ENTRY)
                 signals, cleaned, cli_signals = root / "installer.signals", root / "cleaned", root / "cli.signals"
+                cli_stderr = root / "cli.stderr"
                 socket = str(root / "tmux.sock")
                 # The shell reads its prompt and the file of its history from these, so nothing reaches the account.
                 tmux_env = {key: os.environ[key] for key in ("HOME", "LANG", "TMPDIR") if key in os.environ} | {
@@ -2329,8 +2331,8 @@ process.stdout.write = (...args) => {
                     "BASH_SILENCE_DEPRECATION_WARNING": "1", "NODE": node, "ENTRY": str(root / "entry.mjs"),
                     "LAUNCHER": DYING_LAUNCHER, "PID_FILE": str(root / "installer.pid"), "SIGNALS": str(signals),
                     "CLEANING": str(root / "cleaning"), "CLEANED": str(cleaned), "CLEANUP_MS": str(cleanup_ms),
-                    "EXIT_FILE": str(root / "cli.exit"), "CLI_URL": cli.as_uri(),
-                    **({"CLI_SIGNALS": str(cli_signals)} if case == "hangup" else {})}
+                    "EXIT_FILE": str(root / "cli.exit"), "CLI_URL": cli.as_uri(), "CLI_STDERR": str(cli_stderr),
+                    **({"CLI_SIGNALS": str(cli_signals)} if case != "quit" else {})}
                 def tmux(*args, check=True):
                     return subprocess.run(["tmux", "-f", "/dev/null", "-S", socket, *args], env=tmux_env, text=True,
                                           capture_output=True, timeout=5, check=check).stdout
@@ -2358,28 +2360,34 @@ process.stdout.write = (...args) => {
                     shell = int(tmux("display", "-p", "#{pane_pid}"))
                     wait_for(lambda lines: lines[-1] == "$")
                     launcher = '"$NODE" -e "$LAUNCHER" ' if case == "quit" else ""
+                    # The terminal is gone by the time the CLI writes an error, so stderr goes to a file.
+                    errors = ' 2> "$CLI_STDERR"' if case != "quit" else ""
                     tmux("send-keys", "-l", f'env CI=false NO_COLOR=1 TERM=xterm {launcher}"$NODE" "$ENTRY" app --lang en '
-                                            "--mode server --no-git --install")
+                                            f"--mode server --no-git --install{errors}")
                     tmux("send-keys", "Enter")
-                    for label in ("Application title", "Setup", "Create the project?"):
+                    labels = ("Application title",) if case == "question" else ("Application title", "Setup", "Create the project?")
+                    for label in labels:
                         wait_for(lambda lines: any(label in line for line in lines))
-                        tmux("send-keys", "Enter")
-                    wait_for(lambda lines: any("Installing dependencies with Bun" in line for line in lines))
-                    worker = recorded(root / "installer.pid")
-                    self.assertIsNotNone(worker)
+                        if case != "question":
+                            tmux("send-keys", "Enter")
+                    worker = None
+                    if case != "question":
+                        wait_for(lambda lines: any("Installing dependencies with Bun" in line for line in lines))
+                        worker = recorded(root / "installer.pid")
+                        self.assertIsNotNone(worker)
                     [job] = children(shell)
                     leader = children(job)[0] if case == "quit" else job
-                    started = [job, leader, worker]
+                    started = [process for process in (job, leader, worker) if process]
                     tty = tmux("display", "-p", "#{pane_tty}").strip().removeprefix("/dev/")
                     table = system_tool("ps", "-o", "pid,ppid,pgid,tpgid,stat,args", "-t", tty)
-                    if case == "hangup":
+                    if case != "quit":
                         closed = time.time()
                         tmux("kill-pane")
                         deadline = time.monotonic() + 5
                         ended = None
-                        while alive(leader) or alive(worker):
+                        while alive(leader) or (worker and alive(worker)):
                             self.assertLess(time.monotonic(), deadline, table)
-                            if ended is None and not alive(worker):
+                            if ended is None and not (worker and alive(worker)):
                                 ended = time.time()
                             time.sleep(.005)
                         ended = ended or time.time()
@@ -2389,13 +2397,18 @@ process.stdout.write = (...args) => {
                         def times(file):
                             lines = file.read_text().splitlines() if file.exists() else []
                             return [[name, round(float(at) - closed * 1000, 1)] for name, at in map(str.split, lines)]
-                        print("Measured, the terminal closed during the install:", json.dumps({
-                            "system": sys.platform, "bash": versions[0], "tmux": versions[1], "cleanup_ms": cleanup_ms,
-                            "cli_signals_ms": times(cli_signals), "installer_signals_ms": times(signals),
-                            "cleanup_ended_ms": round(float(cleaned.read_text()) - closed * 1000, 1) if cleaned.exists() else None,
-                            "installer_gone_ms": round((ended - closed) * 1000, 1),
-                            "cli_exit": recorded(root / "cli.exit") if (root / "cli.exit").exists() else None,
+                        cli_exit = recorded(root / "cli.exit") if (root / "cli.exit").exists() else None
+                        written = cli_stderr.read_text() if cli_stderr.exists() else ""
+                        place = "at a question" if case == "question" else "during the install"
+                        print(f"Measured, the terminal closed {place}:", json.dumps({
+                            "system": sys.platform, "bash": versions[0], "tmux": versions[1],
+                            "cli_signals_ms": times(cli_signals), "cli_exit": cli_exit, "cli_stderr": written.splitlines(),
+                            **({"cleanup_ms": cleanup_ms, "installer_signals_ms": times(signals),
+                                "cleanup_ended_ms": round(float(cleaned.read_text()) - closed * 1000, 1) if cleaned.exists() else None,
+                                "installer_gone_ms": round((ended - closed) * 1000, 1)} if worker else {}),
                             "processes": table.splitlines()}), flush=True)
+                        if case == "question":
+                            self.assertEqual(cli_exit, 130, written)
                     else:
                         group = os.getpgid(job)
                         names = [system_tool("ps", "-o", "comm=", "-p", member).strip()

@@ -61,6 +61,8 @@ function cancelPrompt() {
   process.stdout.write(`\n└  ${messages[language].cancel}\n`)
   process.exit(interruptedExitCode)
 }
+// WHY: Once the terminal is gone a change of its mode fails with an error of the input, and writing a cancel there would fail too.
+const closeInput = () => process.exit(interruptedExitCode)
 type Prompt<T> = (output: NodeJS.WriteStream) => Promise<T>
 async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
   const frame = questionFrame(process.stdout)
@@ -107,6 +109,9 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
   process.on('SIGTSTP', suspend)
   process.on('SIGCONT', resume)
   process.on('SIGWINCH', draw)
+  // WHY: A terminal that closes during a question ends the input, and on macOS no SIGHUP comes before Node ends with the question still open.
+  process.stdin.on('end', cancelPrompt)
+  process.stdin.on('error', closeInput)
   try {
     return await prompt(frame.output)
   } finally {
@@ -118,6 +123,8 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
     process.off('SIGTSTP', suspend)
     process.off('SIGCONT', resume)
     process.off('SIGWINCH', draw)
+    process.stdin.off('end', cancelPrompt)
+    process.stdin.off('error', closeInput)
   }
 }
 type GenerationError = { error: unknown; progress?: typeof frameProgress }

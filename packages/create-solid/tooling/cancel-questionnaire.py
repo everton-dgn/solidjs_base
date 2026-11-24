@@ -2510,6 +2510,46 @@ process.stdout.write = (...args) => {
                     if child.poll() is None:
                         child.kill()
 
+    def test_plain_output_closed_during_install(self):
+        # The reader of the output of the CLI goes away during the install, before the installer writes a megabyte that no
+        # pipe holds. Each later write of the CLI to that output fails and is dropped, the CLI keeps reading the installer,
+        # which then ends, and the CLI ends as it would have, with nothing on its standard error.
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            go, done = root / "go", root / "done"
+            installer = root / "bun"
+            size = 1024 * 1024
+            installer.write_text(f"#!/bin/sh\nwhile [ ! -e \"$GO\" ]; do sleep .01; done\n"
+                                 f"head -c {size} /dev/zero | tr '\\0' z\n: > \"$DONE\"\n")
+            installer.chmod(0o755)
+            env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + ":" + os.environ["PATH"],
+                       GO=str(go), DONE=str(done))
+            reader, writer = os.pipe()
+            try:
+                with subprocess.Popen([node, cli, "app", "--yes", "--lang", "en", "--no-git"], cwd=root, env=env,
+                                      stdin=subprocess.DEVNULL, stdout=writer, stderr=subprocess.PIPE) as child:
+                    os.close(writer)
+                    writer = None
+                    try:
+                        printed = bytearray()
+                        deadline = time.monotonic() + 10
+                        while b"Files created\n" not in printed:
+                            self.assertTrue(select.select([reader], [], [], max(0, deadline-time.monotonic()))[0], printed)
+                            printed.extend(os.read(reader, 4096))
+                        os.close(reader)
+                        reader = None
+                        go.touch()
+                        _, errors = child.communicate(timeout=10)
+                        self.assertEqual((child.returncode, errors), (0, b""))
+                        self.assertTrue(done.exists())
+                    finally:
+                        if child.poll() is None:
+                            child.kill()
+            finally:
+                for descriptor in (reader, writer):
+                    if descriptor is not None:
+                        os.close(descriptor)
+
     def test_feature_colors(self):
         with tempfile.TemporaryDirectory() as directory:
             output, status = question_session(directory, "en", [

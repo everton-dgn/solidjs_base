@@ -1775,17 +1775,18 @@ process.stdout.write = (...args) => {
                         fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
                         os.environ.update(CI="false", NO_COLOR="1", PATH=directory + ":" + os.environ["PATH"])
                         os.execv(node, [node, str(cli), "app", "--mode", "server", "--lang", "en"])
-                    transcript = bytearray()
+                    reader = Reader(self, term)
+                    transcript = reader.transcript
                     waited = False
                     try:
                         labels = [b"Application title", b"Setup", b"Create the project?"]
                         for label in labels:
-                            while label not in transcript:
-                                self.assertTrue(select.select([term], [], [], 5)[0], (label, transcript))
-                                transcript.extend(os.read(term, 65536))
+                            reader.until(label)
                             if label == stage:
                                 break
                             os.write(term, b"\r")
+                        # The rest of the frame may come in a later read than its title, and it must be read before the offset.
+                        reader.until("└\r\n".encode(), transcript.index(stage))
                         offset = len(transcript)
                         os.kill(pid, sig)
                         while select.select([term], [], [], 5)[0]:

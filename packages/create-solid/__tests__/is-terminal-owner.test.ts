@@ -49,6 +49,7 @@ void it('has no answer from ps without a controlling terminal, with no output or
   }
 })
 
+const psTimeoutMs = 250
 void it('runs /bin/ps with a timeout and writes as before when it does not answer in time', () => {
   const script = `
     import childProcess from 'node:child_process'
@@ -61,7 +62,7 @@ void it('runs /bin/ps with a timeout and writes as before when it does not answe
       return read(file, ...rest)
     }
     childProcess.spawnSync = (command, args, options) => {
-      calls.push([command, options.timeout > 0])
+      calls.push([command, options.timeout])
       return { stdout: '', error: Object.assign(new Error('ETIMEDOUT'), { code: 'ETIMEDOUT' }) }
     }
     syncBuiltinESMExports()
@@ -76,7 +77,7 @@ void it('runs /bin/ps with a timeout and writes as before when it does not answe
   assert.equal(child.status, 0, child.stderr)
   assert.deepEqual(JSON.parse(child.stdout), {
     owns: true,
-    calls: [['/bin/ps', true]]
+    calls: [['/bin/ps', psTimeoutMs]]
   })
 })
 

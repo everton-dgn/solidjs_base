@@ -1,6 +1,11 @@
 import path from 'node:path'
 import process from 'node:process'
-import { clearImmediate, setImmediate } from 'node:timers'
+import {
+  clearImmediate,
+  clearInterval,
+  setImmediate,
+  setInterval
+} from 'node:timers'
 import { isatty, WriteStream } from 'node:tty'
 import { styleText } from 'node:util'
 
@@ -95,7 +100,7 @@ function restoreCursor() {
 function refreshSize() {
   process.kill(process.pid, 'SIGWINCH')
 }
-// WHY: Under a launcher its shell may own the terminal by now, so only a CLI that leads its group clears the rows before it stops. Otherwise it stops the group, so the shell sees a stop sent only to the CLI.
+// WHY: Under a launcher its shell may own the terminal by now, and it sees a stop sent only to the CLI once the CLI stops the group.
 function stopStep(): boolean {
   const isCleared = isTerminalOwner()
   if (isCleared) process.stdout.write(clearIndicatorRows)
@@ -265,7 +270,7 @@ export const progress = {
       indicator = setInterval(tick, interval)
     }
     const suspend = () => {
-      // WHY: A launcher in the same group stops before this listener runs, so the continue of the shell may be queued behind this signal. The stop waits for the signals the loop has read, and that continue cancels it.
+      // WHY: A launcher of the group stops first, so the continue of its shell may be queued behind this signal, and it cancels the stop.
       pendingStop ??= setImmediate(() => {
         pendingStop = undefined
         process.off('SIGTSTP', suspend)

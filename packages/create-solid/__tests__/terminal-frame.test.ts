@@ -118,8 +118,11 @@ void it('uses ASCII dots when clipping an ASCII step', () => {
 
 void it('uses the Clack interval for each indicator', () => {
   const script = `
+    import timers from 'node:timers'
+    import { syncBuiltinESMExports } from 'node:module'
     Object.defineProperty(process.stdout, 'isTTY', {value: true})
-    globalThis.setInterval = (_, ms) => { process.stderr.write(String(ms)); return undefined }
+    timers.setInterval = (_, ms) => { process.stderr.write(String(ms)); return undefined }
+    syncBuiltinESMExports()
     const { progress } = await import('./src/terminal-frame.ts')
     progress.start('files')
   `
@@ -279,11 +282,14 @@ for (const order of ['FWC', 'FTWC', 'FTTWC', 'FC', 'FTC', 'grow', 'truncate']) {
     const target = order === 'grow' ? wide : narrow
     const events = order === 'grow' || order === 'truncate' ? 'FWC' : order
     const script = `
+      import timers from 'node:timers'
+      import { syncBuiltinESMExports } from 'node:module'
       Object.defineProperty(process.stdout,'isTTY',{value:true})
       const width = value => Object.defineProperty(process.stdout,'columns',{value,configurable:true})
       width(${initial})
       let tick
-      globalThis.setInterval = callback => { tick = callback; return 1 }
+      timers.setInterval = callback => { tick = callback; return 1 }
+      syncBuiltinESMExports()
       const {progress} = await import('./src/terminal-frame.ts')
       for (const title of ['Files created','Git repository created']) {
         progress.start(title)
@@ -378,11 +384,14 @@ void it('defers the stop of a step until the pending signals are read', () => {
 
 void it('draws once on the continue and starts the interval again so no frame comes early', () => {
   const script = `
+    import nodeTimers from 'node:timers'
+    import { syncBuiltinESMExports } from 'node:module'
     Object.defineProperty(process.stdout,'isTTY',{value:true})
     const timers = []
     let tick
-    globalThis.setInterval = (callback, ms) => { tick = callback; timers.push(['set', ms]); return timers.length }
-    globalThis.clearInterval = handle => { if (handle !== undefined) timers.push(['clear', handle]) }
+    nodeTimers.setInterval = (callback, ms) => { tick = callback; timers.push(['set', ms]); return timers.length }
+    nodeTimers.clearInterval = handle => { if (handle !== undefined) timers.push(['clear', handle]) }
+    syncBuiltinESMExports()
     process.kill = () => true
     const writes = []
     const write = process.stdout.write.bind(process.stdout)

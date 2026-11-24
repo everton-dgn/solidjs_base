@@ -86,7 +86,7 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
       frame.erase()
       process.stdin.setRawMode(false)
     } else {
-      // WHY: A stop sent from outside may have stopped a launcher of the group first, and its shell may own the terminal by now: what is erased then is its prompt, and a change of mode from the background stops the CLI with SIGTTOU. bash restores its own modes when a job stops. The question is drawn again below when the CLI continues.
+      // WHY: The shell of a launcher may own the terminal by now: erasing would reach its prompt, and a change of mode would stop the CLI with SIGTTOU.
       frame.hold()
     }
     process.stdout.write(showCursor)

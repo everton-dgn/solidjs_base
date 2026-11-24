@@ -139,7 +139,7 @@ await import(process.env.CLI_URL);
 
 
 def bash_path():
-    """/bin/bash when it exists, the bash the reports name, and otherwise the first one of PATH."""
+    """The bash of the system, /bin/bash, when it exists, and otherwise the first bash of PATH."""
     return "/bin/bash" if os.path.exists("/bin/bash") else shutil.which("bash")
 
 
@@ -2337,4 +2337,5 @@ process.stdout.write = (...args) => {
         self.exercise(True)
 
 
-unittest.main()
+if __name__ == "__main__":
+    unittest.main()

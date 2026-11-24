@@ -59,7 +59,7 @@ export function isTerminalOwner(): boolean {
           )
         )
       : statGroups(stat)
-  // WHY: With no answer the CLI writes as it did before it could ask. A launcher that shares the group stops at once, and its shell may take the terminal between this answer and a write, so the terminal is owned only by a CLI that leads its group, which the shell waits for.
+  // WHY: A shell waits only for the stop of a group leader, and with no answer the CLI writes as it did before it could ask.
   return (
     groups === undefined ||
     (groups.group === process.pid && groups.group === groups.foreground)

@@ -499,6 +499,11 @@ async function openQuestion(columns: number) {
       stream.emit('resize')
       await turns()
     },
+    async heighten(height: number) {
+      stream.rows = height
+      stream.emit('resize')
+      await turns()
+    },
     async stop(pause: Pause, during?: () => Promise<void>): Promise<Stop> {
       written.length = 0
       if (pause === 'erase') frame.erase()
@@ -560,6 +565,25 @@ for (const pause of ['erase', 'hold'] as const) {
     assertDrawn({ entries, flushed, round: name })
     // The question grew past the screen and Clack did not write it from the top since.
     assert.deepEqual(erased, [], `${name}: erase`)
+  })
+  // A taller screen changes no row of the question, so Clack writes nothing, and the rows above the old screen stay old.
+  void it(`draws back no old row of a question taller than the screen after ${name} and a taller screen during the stop, ${pause === 'erase' ? 'erased' : 'held'}`, async () => {
+    const [tall = 0] = await valueLengths({
+      height: tableRows + rowsAbove,
+      columns: firstColumns
+    })
+    const typed = ['x'.repeat(tall), '\r']
+    const entries = await lastWrite(typed)
+    assert.ok(entries.length >= tableRows, JSON.stringify(entries))
+    const question = await openQuestion(firstColumns)
+    for (const key of typed) await question.press(key)
+    // The terminal of the stop gets twice as tall.
+    const tallScreen = 12
+    const { flushed } = await question.stop(pause, async () =>
+      question.heighten(tallScreen)
+    )
+    await question.close()
+    assertDrawn({ entries, flushed, round: `${name}, taller screen` })
   })
 }
 const home = '\u001B[H'

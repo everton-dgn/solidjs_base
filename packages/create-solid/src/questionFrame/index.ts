@@ -109,8 +109,9 @@ export function questionFrame<Output extends Writable>(
     if (!isHeld) return
     isHeld = false
     if (!frame) return
-    // WHY: Clack keeps right only the rows on screen, so the rows of a taller question above them stay in the history above what the shell wrote.
-    const start = Math.max(0, frame.lines.length - screenRows(target))
+    // WHY: Clack keeps right only the rows that were on screen when it last wrote, so the rows of a taller question above them stay in the history above what the shell wrote. A taller screen alone has Clack write nothing.
+    const shown = Math.min(frame.screenRows, screenRows(target))
+    const start = Math.max(0, frame.lines.length - shown)
     const below = frame.lines.length - 1 - frame.row
     target.write(
       frame.lines.slice(start).join('\n') +

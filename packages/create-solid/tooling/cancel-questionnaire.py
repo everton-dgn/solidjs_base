@@ -137,10 +137,14 @@ const clean = name => {
 for (const name of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(name, clean);
 setInterval(() => {}, 1000);
 """
-# An entry that runs the CLI and records its exit code, which a launcher that died cannot report.
+# An entry that runs the CLI and records its exit code, which a launcher that died cannot report. With CLI_SIGNALS it also
+# records each SIGHUP, SIGINT and SIGTERM the CLI gets and when, from a listener that runs before those of the CLI.
 EXIT_ENTRY = """
-import { writeFileSync } from 'node:fs';
+import { appendFileSync, writeFileSync } from 'node:fs';
 process.on('exit', code => writeFileSync(process.env.EXIT_FILE, String(code)));
+for (const name of process.env.CLI_SIGNALS ? ['SIGHUP', 'SIGINT', 'SIGTERM'] : []) process.on(name, () => {
+  appendFileSync(process.env.CLI_SIGNALS, `${name} ${(performance.timeOrigin + performance.now()).toFixed(1)}\\n`);
+});
 await import(process.env.CLI_URL);
 """
 
@@ -2289,7 +2293,7 @@ process.stdout.write = (...args) => {
                 installer.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(root / 'installer.js'))}\n")
                 installer.chmod(0o755)
                 (root / "entry.mjs").write_text(EXIT_ENTRY)
-                signals, cleaned = root / "installer.signals", root / "cleaned"
+                signals, cleaned, cli_signals = root / "installer.signals", root / "cleaned", root / "cli.signals"
                 socket = str(root / "tmux.sock")
                 # The shell reads its prompt and the file of its history from these, so nothing reaches the account.
                 tmux_env = {key: os.environ[key] for key in ("HOME", "LANG", "TMPDIR") if key in os.environ} | {
@@ -2297,7 +2301,8 @@ process.stdout.write = (...args) => {
                     "BASH_SILENCE_DEPRECATION_WARNING": "1", "NODE": node, "ENTRY": str(root / "entry.mjs"),
                     "LAUNCHER": DYING_LAUNCHER, "PID_FILE": str(root / "installer.pid"), "SIGNALS": str(signals),
                     "CLEANING": str(root / "cleaning"), "CLEANED": str(cleaned), "CLEANUP_MS": str(cleanup_ms),
-                    "EXIT_FILE": str(root / "cli.exit"), "CLI_URL": cli.as_uri()}
+                    "EXIT_FILE": str(root / "cli.exit"), "CLI_URL": cli.as_uri(),
+                    **({"CLI_SIGNALS": str(cli_signals)} if case == "hangup" else {})}
                 def tmux(*args, check=True):
                     return subprocess.run(["tmux", "-f", "/dev/null", "-S", socket, *args], env=tmux_env, text=True,
                                           capture_output=True, timeout=5, check=check).stdout
@@ -2353,10 +2358,12 @@ process.stdout.write = (...args) => {
                         # The pane is gone, and with it the only session of this server.
                         self.assertNotEqual(subprocess.run(["tmux", "-S", socket, "list-panes"], env=tmux_env,
                                                            capture_output=True).returncode, 0)
-                        received = [line.split() for line in signals.read_text().splitlines()] if signals.exists() else []
+                        def times(file):
+                            lines = file.read_text().splitlines() if file.exists() else []
+                            return [[name, round(float(at) - closed * 1000, 1)] for name, at in map(str.split, lines)]
                         print("Measured, the terminal closed during the install:", json.dumps({
                             "system": sys.platform, "bash": versions[0], "tmux": versions[1], "cleanup_ms": cleanup_ms,
-                            "installer_signals_ms": [[name, round(float(at) - closed * 1000, 1)] for name, at in received],
+                            "cli_signals_ms": times(cli_signals), "installer_signals_ms": times(signals),
                             "cleanup_ended_ms": round(float(cleaned.read_text()) - closed * 1000, 1) if cleaned.exists() else None,
                             "installer_gone_ms": round((ended - closed) * 1000, 1),
                             "cli_exit": recorded(root / "cli.exit") if (root / "cli.exit").exists() else None,

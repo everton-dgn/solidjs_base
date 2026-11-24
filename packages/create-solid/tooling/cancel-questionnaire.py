@@ -538,8 +538,10 @@ class Cancellation(unittest.TestCase):
                     started = time.monotonic()
                     os.kill(pid, interrupt)
                     if second:
+                        # A different signal is a second one from the person and forces at once, even inside the window of a
+                        # repeated signal. A SIGHUP never forces.
                         time.sleep(.08)
-                        os.kill(pid, signal.SIGHUP)
+                        os.kill(pid, signal.SIGINT)
                     if install and not second:
                         # The installer ignores SIGINT, so the CLI forces it only at the long bound.
                         deadline = started + CLEANUP_LIMIT_S + 4
@@ -633,8 +635,9 @@ class Cancellation(unittest.TestCase):
                         "│", "│  Your project is in parent/app. To finish, run:"])
                     return
                 if plain:
-                    # Only Ctrl+C is echoed by the terminal, and its echo stays alone on its line.
-                    echo = [] if interrupt else ["^C"]
+                    # Only Ctrl+C is echoed by the terminal, and its echo stays alone on its line. The CLI cannot tell a SIGINT
+                    # sent with kill from Ctrl+C, so it ends the line of an echo that never came.
+                    echo = ([""] if second else []) if interrupt else ["^C"]
                     # An installer that ignores SIGINT is still running when the window of a repeated signal closes.
                     waiting = [WAITING_LINE] if interrupt and not second else []
                     closing = [*echo, *waiting, "■ Installing dependencies with Bun", "Your project is in parent/app. To finish, run:",
@@ -1479,6 +1482,69 @@ process.stdout.write = (...args) => {
                                                       "│  cd parent/app", "│  bun install", "│", "└  Creation canceled."])
                         self.assertFalse([line for line in lines if WAITING_LINE in line], lines)
                         self.assertEqual(reader.cursor(), b"\x1b[?25h")
+                finally:
+                    (root / "finish").touch()
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+                    target = recorded(root / "installer.pid") if (root / "installer.pid").exists() else None
+                    try:
+                        if target and os.getsid(target) == pid:
+                            os.kill(target, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+
+    def test_hangup_during_cleanup(self):
+        # A SIGHUP never forces the installer, whether it comes after Ctrl+C, after a SIGTERM or after another SIGHUP, as when
+        # the person closes the terminal while the CLI waits. The installer ends its cleanup of about 1.5 s.
+        for first in (b"\x03", signal.SIGTERM, signal.SIGHUP):
+            with self.subTest(first=first), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                (root / "installer.js").write_text(CLEANING_INSTALLER)
+                installer = root / "bun"
+                installer.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(root / 'installer.js'))}\n")
+                installer.chmod(0o755)
+                cleaned = root / "cleaned"
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install"],
+                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"],
+                     "CLEANING": str(root / "cleaning"), "CLEANED": str(cleaned), "FINISH": str(root / "finish"),
+                     "CLEANUP_MS": "1500"})
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                try:
+                    for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        os.write(master, b"\r")
+                    reader.until(b"Installing dependencies with Bun")
+                    worker = recorded(root / "installer.pid")
+                    self.assertIsNotNone(worker)
+                    start = len(transcript)
+                    sent = time.monotonic()
+                    if isinstance(first, bytes):
+                        os.write(master, first)
+                    else:
+                        os.kill(pid, first)
+                    # The waiting line comes once the window of a repeated signal has closed, so the SIGHUP is no repeat.
+                    reader.until(WAITING_LINE.encode(), start)
+                    os.kill(pid, signal.SIGHUP)
+                    reader.until(b"Creation canceled.", start)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        reader.drain()
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            elapsed = time.monotonic() - sent
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 130)
+                    self.assertTrue(cleaned.exists(), install_screen(transcript, 80))
+                    self.assertGreaterEqual(elapsed, 1.5)
                 finally:
                     (root / "finish").touch()
                     os.close(master)

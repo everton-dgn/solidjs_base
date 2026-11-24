@@ -400,8 +400,8 @@ async function executeSetup(
   }
   let canceledAt = 0
   const forceAgain = (signalName: NodeJS.Signals) => {
-    // WHY: On Linux a terminal that closes sends SIGHUP twice, less than 1 ms apart, and neither comes from the person.
-    if (signalName === 'SIGHUP' && signal.reason === 'SIGHUP') return
+    // WHY: A terminal that closes sends SIGHUP, on Linux twice less than 1 ms apart, and after it nobody can press again, so only the long bound forces.
+    if (signalName === 'SIGHUP') return
     const isRepeat =
       signalName === signal.reason &&
       forwardedSignals.has(signalName) &&

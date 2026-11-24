@@ -327,7 +327,7 @@ to end before the CLI kills it, and another SIGINT, SIGTERM or SIGHUP kills it
 at once. The signal manager of npm (`@npmcli/run-script`, the same in npm 12.2.3
 and 11.20.0) sends the CLI every SIGINT and SIGTERM that `npx` gets, so a Ctrl+C
 or a `kill -TERM` to the process group reaches the CLI twice. For Ctrl+C under a
-real `npx` the two came less than 1 ms apart; the SIGTERM case comes from
+real `npx` the two came about 1 ms apart or less; the SIGTERM case comes from
 reading that code and from a test launcher that forwards both signals the same
 way, not from a real `npx`. The CLI ignores the same SIGINT or SIGTERM when it
 comes again within 150 ms, so the installer keeps its own cleanup under `npx`.

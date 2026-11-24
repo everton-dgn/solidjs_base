@@ -326,21 +326,20 @@ after the pane closed it sent the installer SIGINT and, on the second SIGHUP
 less than 1 ms later, SIGKILL. The same installer was gone within a few tens of
 milliseconds of the pane closing, before it recorded any signal and before its
 cleanup ran. The macOS case was measured in the questionnaire harness and the
-Linux case in the CI, and in some runs of both no signal of the CLI was recorded
-before it ended.
+Linux case in the CI.
 
 When the terminal closes at a question, the input of the CLI ends. On macOS 27
 and on Linux no SIGHUP reached the CLI before that. Node used to end the CLI
 with code 1, on the change of terminal mode that readline makes when its input
 ends, or with code 13, with the question still open. The CLI now ends as a
-cancel, with code 130, when the input of a question ends, and when the input
-fails with the error of a closed terminal: on macOS the change of terminal mode
-after the end failed with `ENOENT`, which was measured, and on Linux the kernel
-answers it with `EIO`, which comes from reading its code. Where the terminal
-still shows output, the CLI writes the cancel line and shows the cursor. An
-input error with any other code stops the CLI with code 1, the message of the
-error and the cursor shown. The closed terminal was measured on macOS in the
-questionnaire harness and on Linux in the CI.
+cancel, with code 130, when the input of a question ends, whatever error the
+change of terminal mode of that cancel gives: on macOS it failed with `ENOENT`,
+which was measured, and on Linux the kernel answers it with `EIO`, by its code
+for a terminal that hung up. An input error with one of these two codes cancels
+the same way. Where the terminal still shows output, the CLI writes the cancel
+line and shows the cursor. Any other input error stops the CLI with code 1, the
+message of the error and the cursor shown. The closed terminal was measured on
+macOS in the questionnaire harness and on Linux in the CI.
 
 The process groups of `npx`, `pnpm dlx` and `bunx`, and Ctrl+Z and Ctrl+C under
 each of them, were measured on macOS 27 (arm64) with npm 12.2.3 and 11.20.0 (the

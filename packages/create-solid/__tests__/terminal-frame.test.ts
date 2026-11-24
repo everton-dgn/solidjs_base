@@ -302,7 +302,7 @@ for (const order of ['FWC', 'FTWC', 'FTTWC', 'FC', 'FTC', 'grow', 'truncate']) {
           tick()
           await new Promise(resolve => setImmediate(resolve))
         }
-        if (event === 'W') { width(${target}); process.stdout.emit('resize') }
+        if (event === 'W') { width(${target}); process.stdout.emit('resize'); process.emit('SIGWINCH') }
         if (event === 'C') progress.cancel()
       }
     `

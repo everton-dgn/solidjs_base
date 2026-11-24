@@ -227,6 +227,7 @@ export const progress = {
     process.stdout.write(hideCursor)
     let index = 0
     let width: number | undefined
+    let drawnColumns: number | undefined
     let isRunning = true
     const interval = unicode ? unicodeIntervalMs : asciiIntervalMs
     const draw = () => {
@@ -236,6 +237,7 @@ export const progress = {
       const label = stepTitle({ title, columns })
       const line = label ? `${mark}  ${label}` : mark
       process.stdout.write(`\r\u001B[?7l${line}\u001B[?7h\r`)
+      drawnColumns = columns
       index = (index + 1) % frames.length
     }
     // WHY: After a synchronous part the timer runs before the loop reads a pending Ctrl+Z, and under a launcher the shell may own the terminal by then. The frame waits until the signals are read.
@@ -250,11 +252,10 @@ export const progress = {
       process.stdout.write(clearIndicatorRows)
       draw()
     }
+    // WHY: Node reads the size of the terminal in its own SIGWINCH listener, which runs first, and reports no resize for a size that went back to the one it held during a stop.
     const resize = () => {
-      // WHY: The SIGWINCH that resume sends makes Node report a size that resume has already drawn.
-      const isDrawn = width === process.stdout.columns
       width = undefined
-      if (!isDrawn) redraw()
+      if (drawnColumns !== process.stdout.columns) redraw()
     }
     const resume = () => {
       clearImmediate(pendingStop)
@@ -292,10 +293,10 @@ export const progress = {
     process.on('SIGTSTP', suspend)
     process.on('SIGCONT', resume)
     process.on('SIGQUIT', quit)
-    process.stdout.on('resize', resize)
+    process.on('SIGWINCH', resize)
     removeStepListeners = () => {
       isRunning = false
-      process.stdout.off('resize', resize)
+      process.off('SIGWINCH', resize)
       process.off('SIGTSTP', suspend)
       process.off('SIGCONT', resume)
       process.off('SIGQUIT', quit)

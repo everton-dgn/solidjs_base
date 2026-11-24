@@ -2582,13 +2582,14 @@ process.stdout.write = (...args) => {
 
     def test_terminal_closed_or_quit_during_install(self):
         # A person in an interactive bash closes the terminal during the install or at a question, or presses Ctrl+\ under a
-        # launcher that dies on SIGQUIT as npx does. Only the end is checked, and at a question the code of a cancel; the
-        # signals that reach the CLI and the installer, what the CLI wrote to stderr and the screen are printed.
+        # launcher that dies on SIGQUIT as npx does. Closed during the install, the installer ends a cleanup longer than the
+        # window of a repeated signal and the CLI ends as a cancel, with nothing on its stderr. At a question only the code of
+        # a cancel is checked. The signals that reach the CLI and the installer, its stderr and the screen are printed.
         self.assertIsNotNone(shutil.which("tmux"), "The tmux tests of the questionnaire harness need tmux: install it and run again")
         self.assertIsNotNone(bash_path(), "The tmux tests of the questionnaire harness need bash: install it and run again")
         versions = [subprocess.run(command, capture_output=True, text=True).stdout.split("\n")[0]
                     for command in ([bash_path(), "--version"], ["tmux", "-V"])]
-        cleanup_ms = 200
+        cleanup_ms = 1500
         for case in ("hangup", "question", "quit"):
             with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
                 if case == "quit" and not sys.platform.startswith("linux"):
@@ -2691,6 +2692,9 @@ process.stdout.write = (...args) => {
                             "processes": table.splitlines()}), flush=True)
                         if case == "question":
                             self.assertEqual(cli_exit, 130, written)
+                        else:
+                            self.assertTrue(cleaned.exists(), written)
+                            self.assertEqual((cli_exit, written), (130, ""))
                     else:
                         group = os.getpgid(job)
                         names = [system_tool("ps", "-o", "comm=", "-p", member).strip()

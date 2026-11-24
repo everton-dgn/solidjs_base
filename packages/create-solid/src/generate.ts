@@ -325,14 +325,20 @@ const forwardedSignals = new Set<string>(['SIGINT', 'SIGTERM'])
 const repeatWindowMs = 150
 const newline = '\n'.codePointAt(0)
 type Forwarding = { source: Readable | null; target: NodeJS.WriteStream }
-type Forwarded = { shouldAppendNewline: boolean }
+type Forwarded = { shouldAppendNewline: boolean; stop: () => void }
 // WHY: pipe forwards the bytes as they are and pauses the installer while the reader of this output is slower than it.
 function forward({ source, target }: Forwarding): Forwarded {
-  const forwarded = { shouldAppendNewline: false }
+  // WHY: pipe stops reading once its target fails, and an installer that still writes during its cleanup would then block on a full pipe.
+  const discard = () => source?.resume()
+  const forwarded = {
+    shouldAppendNewline: false,
+    stop: () => target.off('error', discard)
+  }
   source?.on('data', (chunk: Buffer) => {
     forwarded.shouldAppendNewline = chunk.at(-1) !== newline
   })
   source?.pipe(target, { end: false })
+  target.once('error', discard)
   return forwarded
 }
 type SetupOptions = {
@@ -360,9 +366,10 @@ async function executeSetup(
   const tailLimit = 8192
   const diagnosticLines = 6
   let diagnostic = ''
-  const forwarded = isPlainInstall
-    ? forward({ source: child.stderr, target: process.stderr })
-    : { shouldAppendNewline: false }
+  const forwarded = forward({
+    source: isPlainInstall ? child.stderr : null,
+    target: process.stderr
+  })
   if (!isPlainInstall) {
     child.stderr?.setEncoding('utf8').on('data', (chunk: string) => {
       diagnostic = (diagnostic + chunk).slice(-tailLimit)
@@ -433,8 +440,14 @@ async function executeSetup(
       })
     }
   } finally {
-    if (printed.shouldAppendNewline) process.stdout.write('\n')
-    if (forwarded.shouldAppendNewline) process.stderr.write('\n')
+    printed.stop()
+    forwarded.stop()
+    if (printed.shouldAppendNewline && process.stdout.writable) {
+      process.stdout.write('\n')
+    }
+    if (forwarded.shouldAppendNewline && process.stderr.writable) {
+      process.stderr.write('\n')
+    }
     clearTimeout(deadline)
     clearTimeout(notice)
     clearTimeout(drain)

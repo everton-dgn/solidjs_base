@@ -20,6 +20,13 @@ import {
 } from './usage-error.ts'
 import { validateProfile } from './validateProfile/index.ts'
 
+// WHY: A write to a terminal that closed fails with EIO and one to a pipe whose reader ended fails with EPIPE, both on a later tick. The stream then ends and drops later writes, and the CLI goes on with what it was doing, such as waiting for the cleanup of the installer.
+const goneOutputCodes = new Set(['EIO', 'EPIPE'])
+function dropGoneOutput(error: NodeJS.ErrnoException) {
+  if (!goneOutputCodes.has(error.code ?? '')) throw error
+}
+process.stdout.on('error', dropGoneOutput)
+process.stderr.on('error', dropGoneOutput)
 const argumentOffset = 2
 const usageExitCode = 2
 const terminal = { isFramed: false }

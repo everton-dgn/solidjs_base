@@ -226,13 +226,23 @@ CLI erases the question, shows the cursor and stops its own process group. On
 `fg` the question is drawn again below what the shell wrote, or the indicator
 returns. A question taller than the screen stays on screen, because the CLI
 cannot reach its first row, and on `fg` it is drawn whole again below what the
-shell wrote. A question that was taller than the screen and then shrank until it
-fits is erased like any other, but the rows that Clack left above the screen
-while it was taller stay in the history of the terminal, and tmux, which by
-default moves the screen into its history when a program clears it from the top
-(`scroll-on-clear`), keeps there a copy of the question as well. A question
-whose output holds bytes the CLI does not recognize is left as it is on Ctrl+Z
-and is not drawn again on `fg`. Ctrl+\ during a step shows the cursor and quits.
+shell wrote. When such a question shrinks, or the width of the terminal changes,
+Clack writes again only the rows it can reach from the top of the screen, and
+until Clack draws the question again the CLI cannot tell how many of the rows
+above the screen still belong to it. Ctrl+Z at that moment erases the rows on
+screen, and `fg` draws them back without the rows above them, which stay in the
+history above what the shell wrote. After one more key the CLI knows the
+question again, unless the width changed: Clack never draws the rows above the
+screen again at a new width, so the CLI drops them. A question that shrinks
+until it fits, to exactly the height of the screen included, is erased like any
+other. The rows that Clack left above the screen while the question was taller
+stay in the history of the terminal. tmux by default moves the screen into its
+history when a program clears it from the top left corner (`scroll-on-clear`),
+so it also keeps a copy of each screen that Clack clears that way while the
+question shrinks; the CLI itself erases a question that fills the screen without
+clearing from that corner. A question whose output holds bytes the CLI does not
+recognize is left as it is on Ctrl+Z and is not drawn again on `fg`.
+Ctrl+\ during a step shows the cursor and quits.
 
 When nothing in the session can continue a stopped process, as when the CLI is
 the command that `docker exec -it` starts, Ctrl+Z does nothing and the question
@@ -253,11 +263,12 @@ and on `fg` the indicator is drawn again below it. `bunx` runs the CLI as the
 leader of its own process group, as when Node runs it directly; the shell then
 waits for the stop of the CLI, which clears the indicator first. A stop sent
 from outside to the CLI alone during a step, such as `kill -TSTP` to its
-process, stops its whole process group when the CLI does not lead it, so the
-shell of the launcher sees the stop. On Ctrl+\ during a step the CLI clears the
-indicator only when it leads the foreground process group: a launcher in its
-group that ends at once leaves the shell writing its prompt, and the indicator
-stays above it.
+process, stops its whole process group when the CLI does not own the terminal,
+that is when it does not lead the foreground process group, so the shell of the
+launcher sees the stop. On Ctrl+\ during a step the CLI clears the indicator
+only when it leads the foreground process group: a launcher in its group that
+ends at once leaves the shell writing its prompt, and the indicator stays above
+it.
 
 The shell only owns the terminal while the CLI is at a question when the stop
 comes from outside, such as `kill -TSTP` to the process group: the CLI then
@@ -273,12 +284,19 @@ shell.
 
 Canceling Git or the installation sends SIGINT to that process, which has 750 ms
 to end before the CLI kills it, and another SIGINT, SIGTERM or SIGHUP kills it
-at once. `npx` sends the CLI every SIGINT and SIGTERM it gets, so a Ctrl+C or a
-`kill -TERM` to the process group reaches the CLI twice; for Ctrl+C the two came
-0 to 1 ms apart. The CLI ignores the same signal when it comes again within 150
-ms, so the installer keeps its own cleanup under `npx`; a second signal after
-that still kills it at once.
+at once. The signal manager of npm (`@npmcli/run-script`, the same in npm 12.2.3
+and 11.20.0) sends the CLI every SIGINT and SIGTERM that `npx` gets, so a Ctrl+C
+or a `kill -TERM` to the process group reaches the CLI twice. For Ctrl+C under a
+real `npx` the two came 0 to 1 ms apart; the SIGTERM case comes from reading
+that code and from a test launcher that forwards both signals the same way, not
+from a real `npx`. The CLI ignores the same SIGINT or SIGTERM when it comes
+again within 150 ms, so the installer keeps its own cleanup under `npx`. Any
+other second signal, a second SIGHUP included, and the same one after 150 ms
+still kill it at once.
 
-What this guide says about `npx`, `pnpm dlx` and `bunx` was measured on macOS 27
-(arm64) with npm 12.2.3 and 11.20.0 (the `npx` of Node 26.13.1), pnpm 12.23.0
-and bun 1.4.5, and not on Linux.
+The process groups of `npx`, `pnpm dlx` and `bunx`, and Ctrl+Z and Ctrl+C under
+each of them, were measured on macOS 27 (arm64) with npm 12.2.3 and 11.20.0 (the
+`npx` of Node 26.13.1), pnpm 12.23.0 and bun 1.4.5, and not on Linux. A stop
+sent from outside to the CLI alone was measured with `bash -c` as the launcher.
+What this guide says about Ctrl+\ and SIGTERM under a launcher comes from
+reading the code of the CLI and of npm.

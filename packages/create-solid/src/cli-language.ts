@@ -122,8 +122,9 @@ Automation
     creating: 'Creating the files',
     gitTask: 'Creating the Git repository',
     installTask: 'Installing dependencies with {pm}',
-    installWait:
-      'Waiting for {pm} to clean up. Press Ctrl+C again to stop it now.',
+    installWait: 'Press Ctrl+C to stop {pm} now. Waiting for it to clean up.',
+    installWaitAgain:
+      'Press Ctrl+C again to stop {pm} now. Waiting for it to clean up.',
     dir: 'Project directory',
     title: 'Application title',
     mode: 'Rendering mode',
@@ -260,7 +261,9 @@ Automação
     gitTask: 'Criando o repositório Git',
     installTask: 'Instalando as dependências com o {pm}',
     installWait:
-      'Esperando o {pm} terminar a limpeza. Aperte Ctrl+C de novo para parar agora.',
+      'Aperte Ctrl+C para parar o {pm} agora. Esperando o fim da limpeza.',
+    installWaitAgain:
+      'Aperte Ctrl+C de novo para parar o {pm} agora. Esperando o fim da limpeza.',
     dir: 'Pasta do projeto',
     title: 'Título da aplicação',
     mode: 'Modo de renderização',
@@ -400,7 +403,9 @@ Automatización
     gitTask: 'Creando el repositorio Git',
     installTask: 'Instalando las dependencias con {pm}',
     installWait:
-      'Esperando a que {pm} termine la limpieza. Pulsa Ctrl+C otra vez para detenerlo ya.',
+      'Pulsa Ctrl+C para detener {pm} ya. Esperando el fin de la limpieza.',
+    installWaitAgain:
+      'Pulsa Ctrl+C otra vez para detener {pm} ya. Esperando el fin de la limpieza.',
     dir: 'Carpeta del proyecto',
     title: 'Título de la aplicación',
     mode: 'Modo de renderizado',

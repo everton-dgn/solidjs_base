@@ -144,7 +144,9 @@ setInterval(() => {}, 1000);
 CLEANUP_LIMIT_S = 8
 # Once the installer has exited, the CLI waits at most this long for the pipes a process it started still holds (pipeDrainMs).
 PIPE_DRAIN_S = .5
-WAITING_LINE = "Waiting for Bun to clean up. Press Ctrl+C again to stop it now."
+# The waiting line after Ctrl+C, and after a first signal that came from no key.
+WAITING_LINE = "Press Ctrl+C again to stop Bun now. Waiting for it to clean up."
+SIGNAL_WAITING_LINE = "Press Ctrl+C to stop Bun now. Waiting for it to clean up."
 # An entry that runs the CLI and records its exit code, which a launcher that died cannot report. With CLI_SIGNALS it also
 # records each SIGHUP, SIGINT and SIGTERM the CLI gets and when, from a listener that runs before those of the CLI. With
 # CLI_CHILDREN it records each signal the CLI sends to a process it started, and how and when that process ended. With
@@ -639,7 +641,7 @@ class Cancellation(unittest.TestCase):
                     # sent with kill from Ctrl+C, so it ends the line of an echo that never came.
                     echo = ([""] if second else []) if interrupt else ["^C"]
                     # An installer that ignores SIGINT is still running when the window of a repeated signal closes.
-                    waiting = [WAITING_LINE] if interrupt and not second else []
+                    waiting = [WAITING_LINE if interrupt == signal.SIGINT else SIGNAL_WAITING_LINE] if interrupt and not second else []
                     closing = [*echo, *waiting, "■ Installing dependencies with Bun", "Your project is in parent/app. To finish, run:",
                                "cd parent/app", "bun install", "", "Creation canceled."]
                     lines = transcript.decode().rstrip().splitlines()
@@ -1528,8 +1530,11 @@ process.stdout.write = (...args) => {
                         os.write(master, first)
                     else:
                         os.kill(pid, first)
-                    # The waiting line comes once the window of a repeated signal has closed, so the SIGHUP is no repeat.
-                    reader.until(WAITING_LINE.encode(), start)
+                    # The waiting line comes once the window of a repeated signal has closed, so the SIGHUP is no repeat. Only
+                    # after Ctrl+C does it say again.
+                    reader.until((WAITING_LINE if isinstance(first, bytes) else SIGNAL_WAITING_LINE).encode(), start)
+                    if not isinstance(first, bytes):
+                        self.assertNotIn(b"again", transcript[start:])
                     os.kill(pid, signal.SIGHUP)
                     reader.until(b"Creation canceled.", start)
                     deadline = time.monotonic() + 5

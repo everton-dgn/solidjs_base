@@ -314,7 +314,7 @@ type TerminalOptions = {
   language: Language
   warn?: (diagnostic: string) => void
   report: (progress: Progress) => void
-  onWait?: () => void
+  onWait?: (reason: string) => void
 }
 // WHY: The rollback of npm on its own took about 3 s, and Docker sends SIGKILL 10 s after its SIGTERM. Nobody can press again once the terminal closed, and a supervisor may send its signal only once.
 const cleanupLimitMs = 8000
@@ -345,7 +345,7 @@ type SetupOptions = {
   cwd: string
   signal: AbortSignal
   isInteractive: boolean
-  onWait?: () => void
+  onWait?: (reason: string) => void
 }
 async function executeSetup(
   command: SetupCommand,
@@ -414,7 +414,7 @@ async function executeSetup(
     deadline = setTimeout(force, cleanupLimitMs)
     // WHY: A second key forces only once this window closes, and an installer that ends on the first signal is gone by then.
     notice = setTimeout(() => {
-      if (isRunning()) onWait?.()
+      if (isRunning()) onWait?.(String(signal.reason))
     }, repeatWindowMs)
     for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
       process.on(signalName, forceAgain)

@@ -3,6 +3,7 @@ import { it } from 'node:test'
 
 import manifest from '../package.json' with { type: 'json' }
 import { cliLanguage, messages } from '../src/cli-language.ts'
+import { toolNames } from '../src/tools.ts'
 
 void it('selects the interface language independently of the project', () => {
   const environment = {
@@ -96,6 +97,25 @@ void it('fits focused options with their hints in 80 columns', () => {
       assert.doesNotMatch(hint, /[()]|\.$/u)
       const terminalWidth = 80
       assert.ok(`│  ● ${label} (${hint})`.length <= terminalWidth)
+    }
+  }
+})
+
+void it('fits the waiting line of each installer in the step frame of 80 columns with its key first', () => {
+  // The indicator draws its mark and two spaces before the line, and cuts what passes the width.
+  const frameWidth = 77
+  const again = /again|de novo|otra vez/u
+  for (const m of Object.values(messages)) {
+    for (const pm of [toolNames.bun, toolNames.npm, toolNames.pnpm]) {
+      for (const code of ['installWait', 'installWaitAgain'] as const) {
+        const line = m[code].replaceAll('{pm}', pm)
+        assert.ok(line.length <= frameWidth, line)
+        assert.match(
+          line.split('. ')[0] ?? '',
+          /^\S+ Ctrl\+C .*\b(?:Bun|npm|pnpm)\b/u
+        )
+        assert.equal(again.test(line), code === 'installWaitAgain', line)
+      }
     }
   }
 })

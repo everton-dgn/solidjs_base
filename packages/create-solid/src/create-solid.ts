@@ -268,10 +268,12 @@ async function createApplication({ answers, isInteractive }: Creation) {
           progress?.start(title)
           completed = message(language, { code: done[code], values })
         },
-        onWait: () => {
+        onWait: reason => {
           if (task !== 'installTask') return
           const values = { pm: toolNames[profile.pm] }
-          const notice = message(language, { code: 'installWait', values })
+          // WHY: A SIGINT sent with kill cannot be told from Ctrl+C, and any other signal came from no key.
+          const code = reason === 'SIGINT' ? 'installWaitAgain' : 'installWait'
+          const notice = message(language, { code, values })
           if (progress) progress.wait(notice)
           else process.stderr.write(`${echoBreak(signals)}${notice}\n`)
         }

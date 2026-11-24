@@ -29,6 +29,11 @@ if not found_node:
 node = subprocess.check_output([found_node, "-p", "process.execPath"], text=True).strip()
 
 
+# A test writes this through the slave once the CLI has stopped, and reads up to it. The terminal hands its output over in
+# the order it was written, so all the CLI wrote before the stop comes before the mark. The screen model ignores it.
+MARK = b"\x1b[?9999h"
+
+
 class Screen:
     """Model a terminal that clips its rows on a resize instead of reflowing them."""
 
@@ -48,7 +53,7 @@ class Screen:
             move = re.fullmatch(r"\x1b\[(\d*)([ABCDG])", sequence)
             if sequence in ("\x1b[?7h", "\x1b[?7l"):
                 self.wrap = sequence.endswith("h")
-            elif sequence in ("\x1b[?25h", "\x1b[?25l"):
+            elif sequence in ("\x1b[?25h", "\x1b[?25l", MARK.decode()):
                 pass
             elif sequence == "\x1b[2K":
                 self.cells().clear()
@@ -438,6 +443,13 @@ class Reader:
 
     def cursor(self):
         return re.findall(rb"\x1b\[\?25[hl]", self.transcript)[-1]
+
+    def mark(self, slave):
+        """Read all the CLI wrote before it stopped, up to a mark written through the slave, and return where the mark starts."""
+        start = len(self.transcript)
+        os.write(slave, MARK)
+        self.until(MARK, start)
+        return self.transcript.index(MARK, start)
 
 
 def recorded(file):
@@ -888,8 +900,7 @@ process.stdout.write = (...args) => {
                         while "T" not in state(worker):
                             self.assertLess(time.monotonic(), deadline)
                             time.sleep(.01)
-                        # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
-                        reader.drain()
+                        reader.mark(slave)
                         self.assertEqual(reader.cursor(), shown)
                         self.assertNotIn(b"Files created", transcript)
                         continued = len(transcript)
@@ -1222,7 +1233,7 @@ process.stdout.write = (...args) => {
                         os.kill(launcher, signal.SIGSTOP)
                         # The parent has taken the terminal back when it records the stop.
                         self.assertEqual(recorded(root / "stop.signal"), signal.SIGSTOP)
-                    reader.drain()
+                    reader.mark(slave)
                     if held:
                         os.write(slave, b"[1]+  Stopped\r\n$ ")
                         reader.until(b"$ ")
@@ -1239,10 +1250,9 @@ process.stdout.write = (...args) => {
                     if alone:
                         self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
                         self.assertIn("T", state(launcher))
-                    # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
-                    reader.drain()
+                    marked = reader.mark(slave)
                     # The shell owns the terminal: the CLI shows the cursor and erases nothing.
-                    self.assertEqual(bytes(transcript[start:]), shown)
+                    self.assertEqual(bytes(transcript[start:marked]), shown)
                     self.assertTrue(cooked())
                     os.write(slave, b"fg\r\n" if held else b"[1]+  Stopped\r\n$ fg\r\n")
                     reader.until(b"fg", start)
@@ -1959,8 +1969,7 @@ process.stdout.write = (...args) => {
                     os.write(master, b"\x1a")
                     self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
                     self.assertIn("T", state(leader))
-                    # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
-                    reader.drain()
+                    reader.mark(slave)
                     fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 30, 0, 0))
                     continued = len(transcript)
                     foreground(root, 1)

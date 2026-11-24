@@ -381,6 +381,20 @@ const timer = setInterval(() => {
 timer.unref();
 """
 
+# Once the CLI has written to its standard output, this emits on that output the error of a write that failed with EIO.
+OUTPUT_ERROR_MODULE = """
+const output = process.stdout;
+const write = output.write;
+let isFailed = false;
+output.write = function (...args) {
+  if (!isFailed) {
+    isFailed = true;
+    setImmediate(() => output.emit('error', Object.assign(new Error('write EIO'), { code: 'EIO', errno: -5, syscall: 'write' })));
+  }
+  return Reflect.apply(write, this, args);
+};
+"""
+
 # From a timer, this holds the event loop once the script creates the HOLD file, until it creates the RELEASE file.
 TIMER_HOLD_MODULE = """
 import { existsSync, writeFileSync } from 'node:fs';
@@ -2549,6 +2563,46 @@ process.stdout.write = (...args) => {
                 for descriptor in (reader, writer):
                     if descriptor is not None:
                         os.close(descriptor)
+
+    def test_output_error_on_a_file(self):
+        # On a terminal EIO means that the terminal closed, and the CLI goes on. On a file it is a failure of the disk, and
+        # the CLI stops with it.
+        for terminal in (False, True):
+            with self.subTest(terminal=terminal), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                preload = root / "output-error.mjs"
+                preload.write_text(OUTPUT_ERROR_MODULE)
+                env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm")
+                master, slave = pty.openpty() if terminal else (None, None)
+                try:
+                    with open(root / "output", "wb") as file, subprocess.Popen(
+                            [node, "--import", preload.as_uri(), cli, "app", "--yes", "--lang", "en", "--no-git", "--no-install"],
+                            cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=slave or file, stderr=subprocess.PIPE) as child:
+                        try:
+                            if terminal:
+                                os.close(slave)
+                                slave = None
+                                deadline = time.monotonic() + 20
+                                while child.poll() is None:
+                                    self.assertLess(time.monotonic(), deadline)
+                                    if select.select([master], [], [], .05)[0]:
+                                        try:
+                                            os.read(master, 65536)
+                                        except OSError:
+                                            break
+                            _, errors = child.communicate(timeout=20)
+                        finally:
+                            if child.poll() is None:
+                                child.kill()
+                finally:
+                    for descriptor in (master, slave):
+                        if descriptor is not None:
+                            os.close(descriptor)
+                if terminal:
+                    self.assertEqual((child.returncode, errors), (0, b""))
+                else:
+                    self.assertEqual(child.returncode, 1, errors)
+                    self.assertIn(b"write EIO", errors)
 
     def test_feature_colors(self):
         with tempfile.TemporaryDirectory() as directory:

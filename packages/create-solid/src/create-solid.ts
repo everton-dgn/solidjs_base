@@ -20,13 +20,16 @@ import {
 } from './usage-error.ts'
 import { validateProfile } from './validateProfile/index.ts'
 
-// WHY: A write to a terminal that closed fails with EIO and one to a pipe whose reader ended fails with EPIPE, both on a later tick. The stream then ends and drops later writes, and the CLI goes on with what it was doing, such as waiting for the cleanup of the installer.
-const goneOutputCodes = new Set(['EIO', 'EPIPE'])
-function dropGoneOutput(error: NodeJS.ErrnoException) {
-  if (!goneOutputCodes.has(error.code ?? '')) throw error
+// WHY: A write to a terminal that closed fails with EIO and one to a pipe whose reader ended fails with EPIPE, both on a later tick. Node then opens process.stdout and process.stderr again, so each later write fails the same way and lands here, and the CLI goes on with what it was doing, such as waiting for the cleanup of the installer. On a file EIO is a failure of the disk.
+function dropGoneOutput(output: NodeJS.WriteStream) {
+  return (error: NodeJS.ErrnoException) => {
+    const isGone =
+      error.code === 'EPIPE' || (error.code === 'EIO' && output.isTTY)
+    if (!isGone) throw error
+  }
 }
-process.stdout.on('error', dropGoneOutput)
-process.stderr.on('error', dropGoneOutput)
+process.stdout.on('error', dropGoneOutput(process.stdout))
+process.stderr.on('error', dropGoneOutput(process.stderr))
 const argumentOffset = 2
 const usageExitCode = 2
 const terminal = { isFramed: false }

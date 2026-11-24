@@ -59,7 +59,9 @@ function writeCancel() {
   process.stdout.write(`\n└  ${messages[language].cancel}\n`)
   process.exit(interruptedExitCode)
 }
+let isCanceling = false
 function cancelPrompt() {
+  isCanceling = true
   process.stdout.write(showCursor)
   process.stdin.setRawMode(false)
   writeCancel()
@@ -69,8 +71,8 @@ const closedTerminalCodes = new Set(['EIO', 'ENOENT'])
 // WHY: Once the terminal is gone a change of its mode fails with an error of the input, also inside cancelPrompt, so this changes no mode. A write to a closed terminal reports its error on a later tick, after the CLI has ended.
 function closeInput(error: NodeJS.ErrnoException) {
   process.stdout.write(showCursor)
-  // WHY: Any other error of the input is no cancel by the person, so the CLI stops with it as a failure.
-  if (!closedTerminalCodes.has(error.code ?? '')) {
+  // WHY: An error during a cancel comes from the change of mode of cancelPrompt, so the cancel goes on whatever its code. Any other error of the input that is not a closed terminal is no cancel by the person, so the CLI stops with it as a failure.
+  if (!isCanceling && !closedTerminalCodes.has(error.code ?? '')) {
     process.stdout.write(
       `\n▲  ${error.message}\n└  ${messages[language].stopped}\n`
     )

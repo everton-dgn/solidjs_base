@@ -339,14 +339,27 @@ syncBuiltinESMExports();
 """
 
 # Once the script creates the INPUT_ERROR file, this emits an error on the input of the CLI with the code the file holds, as
-# a change of mode of a closed terminal does.
+# a change of mode of a closed terminal does. With INPUT_END the input ends first, and the next change of mode out of raw
+# mode fails with that code.
 INPUT_ERROR_MODULE = """
 import { existsSync, readFileSync } from 'node:fs';
+const input = process.stdin;
+const setRawMode = input.setRawMode.bind(input);
+const failure = code => Object.assign(new Error(`setRawMode ${code}`), { code, syscall: 'setRawMode' });
+let ended;
+input.setRawMode = flag => {
+  if (ended === undefined || flag) return setRawMode(flag);
+  input.emit('error', failure(ended));
+  return input;
+};
 const timer = setInterval(() => {
   if (!existsSync(process.env.INPUT_ERROR)) return;
   clearInterval(timer);
   const code = readFileSync(process.env.INPUT_ERROR, 'utf8');
-  process.stdin.emit('error', Object.assign(new Error(`setRawMode ${code}`), { code, syscall: 'setRawMode' }));
+  if (process.env.INPUT_END) {
+    ended = code;
+    input.emit('end');
+  } else input.emit('error', failure(code));
 }, 10);
 timer.unref();
 """
@@ -2148,16 +2161,20 @@ process.stdout.write = (...args) => {
 
     def test_input_error_at_a_question(self):
         # An error of the input at a question, while the terminal still shows what the CLI writes. A closed terminal answers
-        # with ENOENT on macOS and EIO on Linux, and any other code is a failure.
-        for code, expected, closing in (("ENOENT", 130, ["└  Creation canceled."]), ("EIO", 130, ["└  Creation canceled."]),
-                                        ("EPERM", 1, ["▲  setRawMode EPERM", "└  Creation stopped."])):
-            with self.subTest(code=code), tempfile.TemporaryDirectory() as directory:
+        # with ENOENT on macOS and EIO on Linux, and any other code is a failure. After the end of the input the CLI cancels,
+        # and the error of its own change of mode cancels too, whatever its code.
+        canceled = ["└  Creation canceled."]
+        for code, ends, expected, closing in (("ENOENT", False, 130, canceled), ("EIO", False, 130, canceled),
+                                              ("EPERM", False, 1, ["▲  setRawMode EPERM", "└  Creation stopped."]),
+                                              ("EPERM", True, 130, canceled)):
+            with self.subTest(code=code, ends=ends), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
                 (root / "input-error.mjs").write_text(INPUT_ERROR_MODULE)
                 trigger, errors = root / "input.error", root / "stderr"
                 output, status = question_session(directory, "en", [("Application title", b"")],
                                                   before_answer=lambda label: trigger.write_text(code), errors=errors,
-                                                  preload=root / "input-error.mjs", environment={"INPUT_ERROR": str(trigger)})
+                                                  preload=root / "input-error.mjs",
+                                                  environment={"INPUT_ERROR": str(trigger), **({"INPUT_END": "1"} if ends else {})})
                 written = errors.read_text()
                 plain = re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", output).replace("\r", "").rstrip().splitlines()
                 self.assertEqual((status, written), (expected, ""))

@@ -234,22 +234,23 @@ Clack clears from that corner while a question taller than the screen shrinks.
 Clack writes again only the rows of a question that are on screen, so a row
 above the top of the screen can be old, for example the symbol of the title
 after a validation error, or a row of the value after an edit in its middle. On
-`fg` the CLI draws a question taller than the screen again only from the row
-that was on the top of the screen when Clack last wrote, as many rows as the
-screen had then, which Clack keeps right, also when the terminal got taller
-during the stop. The rows above them stay in the history above what the shell
-wrote. Such a question stays on screen on Ctrl+Z while the CLI cannot reach rows
-of it above the top of the screen, that is when it grew past the screen and
-Clack has not written it again from the top of the screen since. When Clack
-writes it again from there, as when it shrinks or the terminal gets wider,
-Ctrl+Z erases the rows on screen. When every row that changed is above the
-screen, as after a key that clears a validation error, Clack leaves the cursor
-at the top of the screen, and the CLI moves it back to the end of the question
-before the stop, so that the shell writes below it. A question that shrinks
-until it fits is erased like any other. A resize while the CLI is stopped draws
-the question at the new width on `fg`. A question whose output holds bytes the
-CLI does not recognize is left as it is on Ctrl+Z and is not drawn again on
-`fg`.
+`fg` the CLI draws a question taller than the screen again only from the first
+row that has stayed on screen through every render of Clack since the question
+grew past it, at most as many rows as the screen had when Clack last wrote.
+Clack keeps those rows right, and a row that went above the top of the screen
+stays old even after the terminal gets taller. The rows above them stay in the
+history above what the shell wrote. Such a question stays on screen on Ctrl+Z
+while the CLI cannot reach rows of it above the top of the screen, that is when
+it grew past the screen and Clack has not written it again from the top of the
+screen since. When Clack writes it again from there, as when it shrinks or the
+terminal gets wider, Ctrl+Z erases the rows on screen. When every row that
+changed is above the screen, as after a key that clears a validation error,
+Clack leaves the cursor at the top of the screen, and the CLI moves it back to
+the end of the question before the stop, so that the shell writes below it. A
+question that shrinks until it fits is erased like any other. A resize while the
+CLI is stopped draws the question at the new width on `fg`. A question whose
+output holds bytes the CLI does not recognize is left as it is on Ctrl+Z and is
+not drawn again on `fg`.
 
 Ctrl+\ during a step shows the cursor and quits.
 

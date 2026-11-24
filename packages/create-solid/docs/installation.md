@@ -265,10 +265,14 @@ waits for the stop of the CLI, which clears the indicator first. A stop sent
 from outside to the CLI alone during a step, such as `kill -TSTP` to its
 process, stops its whole process group when the CLI does not own the terminal,
 that is when it does not lead the foreground process group, so the shell of the
-launcher sees the stop. On Ctrl+\ during a step the CLI clears the indicator
-only when it leads the foreground process group: a launcher in its group that
-ends at once leaves the shell writing its prompt, and the indicator stays above
-it.
+launcher sees the stop. When the CLI leads the foreground process group, such a
+stop stops the CLI alone: the shell reports the job as stopped and takes the
+terminal back, the installer goes on during the stop, and `fg` sends SIGCONT to
+both. On Ctrl+\ during a step the CLI clears the indicator only when it leads
+the foreground process group. Under a launcher in its group that ends at once on
+Ctrl+\, on Linux the terminal echoed `^\` on the row of the indicator, and bash
+wrote its `Quit (core dumped)` notice and the command over that row, with its
+prompt below them.
 
 The shell only owns the terminal while the CLI is at a question when the stop
 comes from outside, such as `kill -TSTP` to the process group: the CLI then
@@ -294,9 +298,21 @@ again within 150 ms, so the installer keeps its own cleanup under `npx`. Any
 other second signal, a second SIGHUP included, and the same one after 150 ms
 still kill it at once.
 
+When the terminal of an interactive bash closes during the installation, on
+macOS 27 (bash 3.2.57, tmux 3.8) the CLI and an installer of a test with a
+cleanup of 200 ms each got one SIGHUP, the installer then got SIGINT from the
+CLI, and its cleanup ended. On Linux (bash 5.3.9, tmux 3.6) the same installer
+ended 14 ms after the pane closed, before its cleanup ran, and the signals the
+CLI got there were not recorded. The macOS case was measured in four runs of the
+questionnaire harness, the signals of the CLI in two of them, and the Linux case
+in one.
+
 The process groups of `npx`, `pnpm dlx` and `bunx`, and Ctrl+Z and Ctrl+C under
 each of them, were measured on macOS 27 (arm64) with npm 12.2.3 and 11.20.0 (the
 `npx` of Node 26.13.1), pnpm 12.23.0 and bun 1.4.5, and not on Linux. A stop
-sent from outside to the CLI alone was measured with `bash -c` as the launcher.
-What this guide says about Ctrl+\ and SIGTERM under a launcher comes from
-reading the code of the CLI and of npm.
+sent from outside to the CLI alone was measured with `bash -c` as the launcher,
+and with the CLI leading its group under an interactive bash 3.2.57 on macOS 27.
+Ctrl+\ under a launcher was measured once on Linux (bash 5.3.9, tmux 3.6) with a
+test launcher that ends on SIGQUIT, not with a real `npx`, and not on macOS.
+What this guide says about SIGTERM under a launcher comes from reading the code
+of the CLI and of npm.

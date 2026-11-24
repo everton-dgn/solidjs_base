@@ -301,18 +301,19 @@ still kill it at once.
 When the terminal of an interactive bash closes during the installation, on
 macOS 27 (bash 3.2.57, tmux 3.8) the CLI and an installer of a test with a
 cleanup of 200 ms each got one SIGHUP, the installer then got SIGINT from the
-CLI, and its cleanup ended. On Linux (bash 5.3.9, tmux 3.6) the same installer
-ended 14 ms after the pane closed, before its cleanup ran, and the signals the
-CLI got there were not recorded. The macOS case was measured in four runs of the
-questionnaire harness, the signals of the CLI in two of them, and the Linux case
-in one.
+CLI, and its cleanup ended. On Linux (bash 5.3.9, tmux 3.6) the CLI got two
+SIGHUP 0.7 ms apart, and the same installer was gone within 12 to 14 ms of the
+pane closing, before it recorded any signal and before its cleanup ran. The
+macOS case was measured in five runs of the questionnaire harness, the signals
+of the CLI in three of them, and the Linux case in two runs of the CI, the
+signals of the CLI in one.
 
 The process groups of `npx`, `pnpm dlx` and `bunx`, and Ctrl+Z and Ctrl+C under
 each of them, were measured on macOS 27 (arm64) with npm 12.2.3 and 11.20.0 (the
 `npx` of Node 26.13.1), pnpm 12.23.0 and bun 1.4.5, and not on Linux. A stop
 sent from outside to the CLI alone was measured with `bash -c` as the launcher,
 and with the CLI leading its group under an interactive bash 3.2.57 on macOS 27.
-Ctrl+\ under a launcher was measured once on Linux (bash 5.3.9, tmux 3.6) with a
-test launcher that ends on SIGQUIT, not with a real `npx`, and not on macOS.
-What this guide says about SIGTERM under a launcher comes from reading the code
-of the CLI and of npm.
+Ctrl+\ under a launcher was measured in two runs of the CI on Linux (bash 5.3.9,
+tmux 3.6), with the same screen in both, with a test launcher that ends on
+SIGQUIT, not with a real `npx`, and not on macOS. What this guide says about
+SIGTERM under a launcher comes from reading the code of the CLI and of npm.

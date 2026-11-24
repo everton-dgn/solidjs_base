@@ -53,6 +53,7 @@ import { readPendingSignals } from './readPendingSignals/index.ts'
 import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
+import { setRunningTimeout } from './setRunningTimeout/index.ts'
 import { shellDirectory } from './shellDirectory/index.ts'
 import { checkTools, hasRepository, hasTool } from './tools.ts'
 import type {
@@ -376,7 +377,7 @@ async function executeSetup(
     })
   }
   const printed = forward({ source: child.stdout, target: process.stdout })
-  let deadline: ReturnType<typeof setTimeout> | undefined
+  let deadline: ReturnType<typeof setInterval> | undefined
   let notice: ReturnType<typeof setTimeout> | undefined
   let drain: ReturnType<typeof setTimeout> | undefined
   const ended = Promise.withResolvers<typeof child.exitCode>()
@@ -411,7 +412,10 @@ async function executeSetup(
   const cancel = () => {
     canceledAt = performance.now()
     child.kill('SIGINT')
-    deadline = setTimeout(force, cleanupLimitMs)
+    deadline = setRunningTimeout({
+      delayMs: cleanupLimitMs,
+      onExpire: force
+    })
     // WHY: A second key forces only once this window closes, and an installer that ends on the first signal is gone by then.
     notice = setTimeout(() => {
       if (isRunning()) onWait?.(String(signal.reason))
@@ -448,7 +452,7 @@ async function executeSetup(
     if (forwarded.shouldAppendNewline && process.stderr.writable) {
       process.stderr.write('\n')
     }
-    clearTimeout(deadline)
+    clearInterval(deadline)
     clearTimeout(notice)
     clearTimeout(drain)
     for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {

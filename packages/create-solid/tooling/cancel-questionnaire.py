@@ -1564,6 +1564,72 @@ process.stdout.write = (...args) => {
                     except ProcessLookupError:
                         pass
 
+    def test_stop_during_cleanup(self):
+        # The long bound counts only the time the CLI ran. A stop of its whole group during the cleanup, longer than the
+        # bound, leaves the installer to end its cleanup once the group goes on.
+        for plain in (False, True):
+            with self.subTest(plain=plain), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                (root / "installer.js").write_text(CLEANING_INSTALLER)
+                installer = root / "bun"
+                installer.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(root / 'installer.js'))}\n")
+                installer.chmod(0o755)
+                cleaning, cleaned, finish = root / "cleaning", root / "cleaned", root / "finish"
+                pid, master, slave = start_cli(
+                    root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install", *(["--yes"] if plain else [])],
+                    {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"],
+                     "CLEANING": str(cleaning), "CLEANED": str(cleaned), "FINISH": str(finish)})
+                reader = Reader(self, master)
+                transcript = reader.transcript
+                waited = False
+                try:
+                    for prompt in [] if plain else [b"Application title", b"Setup", b"Create the project?"]:
+                        reader.until(prompt)
+                        os.write(master, b"\r")
+                    reader.until(b"Files created" if plain else b"Installing dependencies with Bun")
+                    worker = recorded(root / "installer.pid")
+                    self.assertIsNotNone(worker)
+                    start = len(transcript)
+                    os.write(master, b"\x03")
+                    reader.until(WAITING_LINE.encode(), start)
+                    self.assertTrue(cleaning.exists())
+                    os.killpg(pid, signal.SIGSTOP)
+                    deadline = time.monotonic() + 4
+                    while not ("T" in state(pid) and "T" in state(worker)):
+                        self.assertLess(time.monotonic(), deadline)
+                        time.sleep(.01)
+                    time.sleep(CLEANUP_LIMIT_S + 1)
+                    os.killpg(pid, signal.SIGCONT)
+                    # A bound that counted the stop would force the installer as soon as the CLI runs again.
+                    time.sleep(1)
+                    finish.touch()
+                    reader.until(b"Creation canceled.", start)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        reader.drain()
+                        finished, status = os.waitpid(pid, os.WNOHANG)
+                        if finished:
+                            waited = True
+                            break
+                        time.sleep(.01)
+                    self.assertTrue(waited)
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 130)
+                    self.assertTrue(cleaned.exists(), transcript[start:])
+                finally:
+                    finish.touch()
+                    os.close(master)
+                    os.close(slave)
+                    if not waited:
+                        os.killpg(pid, signal.SIGCONT)
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+                    target = recorded(root / "installer.pid") if (root / "installer.pid").exists() else None
+                    try:
+                        if target and os.getsid(target) == pid:
+                            os.kill(target, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+
     def test_installer_ends_while_a_descendant_holds_stderr(self):
         # A lifecycle script that outlives bun keeps the stderr pipe of bun. Once bun has exited, on its own or on the SIGINT
         # the CLI sends, the CLI waits for that pipe only a short time.

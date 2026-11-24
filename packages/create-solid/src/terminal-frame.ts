@@ -252,10 +252,10 @@ export const progress = {
       process.stdout.write(clearIndicatorRows)
       draw()
     }
-    // WHY: Node reads the size of the terminal in its own SIGWINCH listener, which runs first, and reports no resize for a size that went back to the one it held during a stop.
+    // WHY: Node reads the size of the terminal in a SIGWINCH listener of its own, which may run before or after this one, and reports no resize for a size that went back to the one it held during a stop.
     const resize = () => {
-      width = undefined
-      if (drawnColumns !== process.stdout.columns) redraw()
+      width = closingOutput().columns
+      if (drawnColumns !== width) redraw()
     }
     const resume = () => {
       clearImmediate(pendingStop)

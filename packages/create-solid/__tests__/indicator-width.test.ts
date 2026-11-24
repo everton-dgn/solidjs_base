@@ -63,3 +63,58 @@ void it('draws the indicator at the width of the terminal after a continue, also
     narrower: { clears: 0, last: '◓  Installing dependencies wi…' }
   })
 })
+
+void it('draws the indicator once at the width of the terminal on a resize, whether its listener runs before the one of Node or after it', () => {
+  const script = `
+    import nodeTimers from 'node:timers'
+    import tty from 'node:tty'
+    import { syncBuiltinESMExports } from 'node:module'
+    Object.defineProperty(process.stdout, 'isTTY', { value: true })
+    Object.defineProperty(process.stdout, 'columns', { value: 80, writable: true })
+    let real = 80
+    tty.isatty = () => true
+    tty.WriteStream = class { getWindowSize() { return [real, 24] } destroy() {} }
+    let tick
+    nodeTimers.setInterval = callback => { tick = callback; return 1 }
+    nodeTimers.clearInterval = () => {}
+    syncBuiltinESMExports()
+    process.kill = () => true
+    const writes = []
+    const write = process.stdout.write.bind(process.stdout)
+    process.stdout.write = (chunk, ...rest) => { writes.push(String(chunk)); return write(chunk, ...rest) }
+    const turn = () => new Promise(resolve => setImmediate(resolve))
+    const { progress } = await import('./src/terminal-frame.ts')
+    const seen = {}
+    for (const isFirst of [true, false]) {
+      progress.start('Installing dependencies with Bun')
+      const started = writes.length
+      real = 30
+      // Node reads the size in its own SIGWINCH listener and reports the resize, which runs before or after the one of the step.
+      const read = () => { process.stdout.columns = real; process.stdout.emit('resize') }
+      if (!isFirst) read()
+      process.emit('SIGWINCH')
+      if (isFirst) read()
+      tick()
+      await turn()
+      const after = writes.slice(started)
+      const last = after.filter(chunk => chunk.includes('Installing')).at(-1)
+      const clears = after.filter(chunk => chunk === '\\r\\u001B[J').length
+      seen[isFirst ? 'before' : 'after'] = { clears, last: last.replaceAll(/\\u001B\\[[\\d;?]*[a-z]|\\r/gu, '') }
+      progress.clear()
+      real = 80
+      process.stdout.columns = 80
+    }
+    process.stderr.write(JSON.stringify(seen))
+  `
+  const { stderr } = spawnSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, TERM: 'xterm', NO_COLOR: '1' },
+      timeout: childTimeoutMs
+    }
+  )
+  const narrower = { clears: 1, last: '◓  Installing dependencies wi…' }
+  assert.deepEqual(JSON.parse(stderr), { before: narrower, after: narrower })
+})

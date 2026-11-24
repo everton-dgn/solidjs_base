@@ -208,8 +208,13 @@ export function questionFrame<Output extends Writable>(
       })
       return true
     }
-    if (waiting) forward(waiting.chunk)
-    return Reflect.apply(forward, undefined, args)
+    if (!waiting) return Reflect.apply(forward, undefined, args)
+    forward(waiting.chunk)
+    // WHY: tmux copies the screen to its history when Clack erases from the top left corner, where its move up stops on a question that fills the screen, so the row the move reached is cleared alone and the rest from the row below it. A move of at least one row leaves the cursor above the last row of the screen.
+    const isErasure = text === `${escape}[J` && waiting.chunk.endsWith('A')
+    return isErasure
+      ? forward(`${escape}[2K${escape}[B\r${escape}[J${escape}[A`)
+      : Reflect.apply(forward, undefined, args)
   }
   return {
     output: new Proxy(target, {

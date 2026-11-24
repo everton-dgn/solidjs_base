@@ -2649,7 +2649,9 @@ process.stdout.write = (...args) => {
 
     def test_end_of_input_at_a_question(self):
         # Ctrl+D cancels at a select, a multiselect or a confirm, whatever keys came before it, and at a text question while
-        # the value is empty. Keys read with it in the same write never reach the question.
+        # the value is empty. Keys read after it in the same write never reach the question. Read with the key that answered
+        # a question, it gives what it gives in a read of its own at what comes next: the next question cancels, and after the
+        # last confirm the project is created.
         select = [("Application title", b"\r")]
         cancels = [
             ("an empty value", [("Application title", b"\x04")]),
@@ -2661,6 +2663,15 @@ process.stdout.write = (...args) => {
             ("a multiselect after space", [*select, ("Setup", b"\x1b[B\r"), ("Features", b" \x04")]),
             ("a confirm", [*select, ("Setup", b"\r"), ("Create the project?", b"\x04")]),
             ("a confirm after l", [*select, ("Setup", b"\r"), ("Create the project?", b"l\x04")]),
+            ("a value with Enter and the Ctrl+D in the same read", [("Application title", b"abc\r\x04")]),
+            ("a value with Enter and the Ctrl+D in a read of its own", [("Application title", b"abc\r"), ("Setup", b"\x04")]),
+        ]
+        creates = [
+            *((f"a confirm answered with {name} and the Ctrl+D in the same read",
+               [*select, ("Setup", b"\r"), ("Create the project?", key + b"\x04")]) for name, key in (("y", b"y"), ("Enter", b"\r"))),
+            *((f"a confirm answered with {name} and the Ctrl+D in a read of its own",
+               [*select, ("Setup", b"\r"), ("Create the project?", key), ("Creating the files", b"\x04")])
+              for name, key in (("y", b"y"), ("Enter", b"\r"))),
         ]
         # With text, readline deletes to the right, which at the end of the value does nothing, and the question goes on.
         # Clack still reads the key that follows. A Ctrl+C there comes in a write of its own after a render that only the key
@@ -2670,7 +2681,7 @@ process.stdout.write = (...args) => {
             ("a value with Enter in the same read", [("Application title", b"ab"), ("ab", b"\x04\r"), ("Setup", b"\x03")],
              ["■  Setup", "│  Recommended"]),
         ]
-        for name, prompts, *kept in [*cancels, *stays]:
+        for name, prompts, *kept in [*cancels, *stays, *((name, prompts, None) for name, prompts in creates)]:
             with self.subTest(case=name), tempfile.TemporaryDirectory() as directory:
                 errors = pathlib.Path(directory, "stderr")
                 output, status = question_session(directory, "en", prompts, errors=errors)
@@ -2680,10 +2691,11 @@ process.stdout.write = (...args) => {
                 print(f"Measured, Ctrl+D at a question with {name}:", json.dumps({
                     "system": sys.platform, "cli_exit": status, "cli_stderr": written.splitlines(), "last_cursor": cursor,
                     "last_lines": plain[-2:]}), flush=True)
-                self.assertEqual((status, written), (130, ""))
+                is_created = kept == [None]
+                self.assertEqual((status, written), (0 if is_created else 130, ""))
                 self.assertEqual(cursor, ["\x1b[?25h"])
-                self.assertEqual(plain[-1], "└  Creation canceled.")
-                if kept:
+                self.assertEqual(plain[-1], "└  Project created." if is_created else "└  Creation canceled.")
+                if kept and not is_created:
                     final = re.sub(r"\x1b\[\?25[hl]", "", output.rsplit("\x1b[J", 1)[-1])
                     self.assertEqual(final.rstrip().splitlines()[:len(kept[0])], kept[0])
 

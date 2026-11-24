@@ -249,6 +249,7 @@ function reportMissingTools({ result, language, io }: SetupRecovery) {
   return availableManagers
 }
 type Typing = { field?: TextPrompt; follow?: Follow | undefined }
+const openStates = new Set(['active', 'error'])
 type Questions = Omit<Session, 'onEnd' | 'follow'> & { typing: Typing }
 type TextQuestion = {
   prompt: TextPrompt
@@ -480,11 +481,13 @@ export async function questionnaire({
   ...session
 }: Session): Promise<Answers> {
   const typing: Typing = { follow }
-  // WHY: At a text question Ctrl+D keeps the delete of readline while the value holds text.
+  // WHY: At a text question Ctrl+D keeps the delete of readline while the value holds text. A question that a key before it in the same read answered counts as empty, as the next question would be in a later read.
   const stop = onEnd
     ? listenEndKey({
         input: session.input,
-        hasText: () => Boolean(typing.field?.userInput),
+        shouldIgnore: () =>
+          Boolean(typing.field?.userInput) &&
+          openStates.has(typing.field?.state ?? ''),
         onEnd
       })
     : undefined

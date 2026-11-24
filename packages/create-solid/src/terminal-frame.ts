@@ -214,7 +214,8 @@ export async function confirmProject({
     }
   )
   const input = process.stdin
-  const stop = listenEndKey({ input, hasText: () => false, onEnd })
+  // WHY: The confirm closes on y, n or Enter and leaves raw mode before the rest of the read reaches this listener, and no question comes after it to take a Ctrl+D read later.
+  const stop = listenEndKey({ input, shouldIgnore: () => !input.isRaw, onEnd })
   try {
     const result = await confirm({
       message: m.create,

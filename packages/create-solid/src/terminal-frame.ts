@@ -246,8 +246,10 @@ export const progress = {
       draw()
     }
     const resize = () => {
+      // WHY: The SIGWINCH that resume sends makes Node report a size that resume has already drawn.
+      const isDrawn = width === process.stdout.columns
       width = undefined
-      redraw()
+      if (!isDrawn) redraw()
     }
     const resume = () => {
       clearImmediate(pendingStop)

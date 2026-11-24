@@ -1497,6 +1497,9 @@ process.stdout.write = (...args) => {
                     # Every frame of the indicator after the continue has the title cut at the new width.
                     reader.until(narrow, continued, 3)
                     self.assertEqual({frame.split(b"  ", 1)[1] for frame in frames(continued) if b"Installing" in frame}, {narrow})
+                    if stage != b"Application title":
+                        # The continue draws the indicator at the new width once; the resize Node reads after it draws nothing more.
+                        self.assertEqual(transcript.count(b"\r\x1b[J", continued), 1)
                     os.write(master, b"\x03")
                     reader.until("└  Creation canceled.".encode(), continued)
                     deadline = time.monotonic() + 5

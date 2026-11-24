@@ -177,8 +177,13 @@ export function questionFrame<Output extends Writable>(
       // WHY: A question drawn with unknown bytes stays as it is. One whose first kept row has left the top of the screen cannot be reached to erase it, so it is drawn again below what the shell writes.
       if (!frame?.isKnown || isHeld) return
       if (frame.bottom < screenRows(target)) {
+        const up = frame.row > 0 ? `${escape}[${frame.row}A` : ''
+        // WHY: tmux copies the screen to its history on an erase from the top left corner, so a question that fills the screen has its first row cleared alone.
+        const isFullScreen = frame.row === screenRows(target) - 1
         target.write(
-          `${frame.row > 0 ? `${escape}[${frame.row}A` : ''}\r${escape}[J`
+          isFullScreen
+            ? `${up}${escape}[2K${escape}[B\r${escape}[J${escape}[A`
+            : `${up}\r${escape}[J`
         )
       }
       isHeld = true

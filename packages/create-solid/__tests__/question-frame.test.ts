@@ -11,6 +11,8 @@ const escape = '\u001B'
 const hide = `${escape}[?25l`
 const show = `${escape}[?25h`
 const rows = 24
+// The screen of the questions that grow past it, short enough for a value of a few rows.
+const tableRows = 6
 function terminal() {
   const written: string[] = []
   const stream = Object.assign(new PassThrough(), { columns: 80, rows })
@@ -197,7 +199,10 @@ void it('erases a question that was taller than the screen once its value is era
     ],
     [eraseLine, '', ['│  _']]
   ] as const) {
-    const stream = Object.assign(new PassThrough(), { columns: 20, rows: 6 })
+    const stream = Object.assign(new PassThrough(), {
+      columns: 20,
+      rows: tableRows
+    })
     const written: string[] = []
     stream.on('data', chunk => written.push(String(chunk)))
     const frame = questionFrame(stream)
@@ -213,7 +218,12 @@ void it('erases a question that was taller than the screen once its value is era
     const question = ['│', '◆  Title', ...valueRows, '└', '']
     written.length = 0
     frame.erase()
-    const erased = `${escape}[${question.length - 1}A\r${escape}[J`
+    const up = `${escape}[${question.length - 1}A`
+    // A question that fills the screen has its first row cleared alone, and the rest from the row below it.
+    const erased =
+      question.length === tableRows
+        ? `${up}${escape}[2K${escape}[B\r${escape}[J${escape}[A`
+        : `${up}\r${escape}[J`
     assert.deepEqual(written, [erased], JSON.stringify(keys))
     frame.flush()
     assert.deepEqual(
@@ -226,7 +236,6 @@ void it('erases a question that was taller than the screen once its value is era
   }
 })
 
-const tableRows = 6
 const firstColumns = 30
 // A question shorter than the screen keeps one row of value, so growing reaches it with a second letter.
 const shortLength = 2
@@ -393,11 +402,12 @@ for (const cell of cells) {
         assert.equal(draw, question, round)
       }
       const isErased = cell.pause === 'erase' && drawnRows <= tableRows
-      assert.deepEqual(
-        erased,
-        isErased ? [`${escape}[${drawnRows - 1}A\r${escape}[J`] : [],
-        round
-      )
+      const up = `${escape}[${drawnRows - 1}A`
+      const erasure =
+        drawnRows === tableRows
+          ? `${up}${escape}[2K${escape}[B\r${escape}[J${escape}[A`
+          : `${up}\r${escape}[J`
+      assert.deepEqual(erased, isErased ? [erasure] : [], round)
     }
   })
 }

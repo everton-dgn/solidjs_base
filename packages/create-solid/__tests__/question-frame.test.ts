@@ -614,6 +614,44 @@ for (const pause of ['erase', 'hold'] as const) {
     assert.deepEqual(erased, [], `${name}: erase`)
   })
 }
+// A screen that gets taller during the stop keeps the question taller than it. The next key has Clack write at the new
+// height, and the first row of the value, above the old screen, never got the letter of the edit.
+const tallerScreen = 8
+for (const pause of ['erase', 'hold'] as const) {
+  const name =
+    'an edit in the middle of the value, a taller screen during the stop and one more key'
+  void it(`draws back no old row of a question taller than the screen after ${name}, ${pause === 'erase' ? 'erased' : 'held'}`, async () => {
+    const [tall = 0] = await valueLengths({
+      height: tableRows + rowsAbove,
+      columns: firstColumns
+    })
+    const value = 'x'.repeat(tall)
+    const question = await openQuestion(firstColumns)
+    for (const key of [value, home, right.repeat(editAt), 'y', end, 'z']) {
+      await question.press(key)
+    }
+    const first = await question.stop(pause, async () =>
+      question.heighten(tallerScreen)
+    )
+    await question.press('w')
+    const second = await question.stop(pause)
+    await question.close()
+    const edited = `${value.slice(0, editAt)}y${value.slice(editAt)}z`
+    for (const [index, { flushed }] of [first, second].entries()) {
+      const typed = index === 0 ? edited : `${edited}w`
+      const drawn = await firstFrame({ value: typed, columns: firstColumns })
+      const entries = drawn.split('\n')
+      const [draw = ''] = flushed
+      const drawnRows = draw.split('\n').length
+      assert.equal(flushed.length, 1, `stop ${index + 1}`)
+      assert.equal(
+        draw,
+        entries.slice(-drawnRows).join('\n'),
+        `stop ${index + 1}: old row`
+      )
+    }
+  })
+}
 const wideColumns = columnsAfter.wider
 const narrowColumns = columnsAfter.narrower
 // A narrower screen puts two rows or more above the first row Clack writes of a question taller than the screen, and the

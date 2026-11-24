@@ -10,6 +10,7 @@ type Frame = {
   columns: number
   isKnown: boolean
   stoppedRow?: number
+  keptRow: number
 }
 type QuestionFrame<Output> = {
   output: Output
@@ -57,12 +58,15 @@ function rewrap(frame: Frame): void {
   frame.lines.splice(0, top)
   frame.row -= top
   frame.bottom -= top
+  frame.keptRow = Math.max(0, frame.keptRow - top)
 }
 type Change = { frame: Frame; count?: string; move?: string; erasure?: string }
 function change({ frame, count, move, erasure }: Change): void {
   const amount = count ? Number(count) : 1
   // WHY: A move up stops at the top of the screen, which is below the first row once the question has scrolled past it.
   const top = Math.max(0, frame.bottom - frame.screenRows + 1)
+  // WHY: Clack never writes again a row above the top of the screen, so a change of that row never reaches the terminal, even once the screen gets taller.
+  frame.keptRow = Math.max(frame.keptRow, top)
   if (move === 'A') {
     frame.stoppedRow = frame.row - amount < top ? top : undefined
     frame.row = Math.max(top, frame.row - amount)
@@ -78,6 +82,7 @@ function change({ frame, count, move, erasure }: Change): void {
     frame.lines.splice(0, start)
     frame.row -= start
     frame.bottom -= start
+    frame.keptRow = Math.min(Math.max(0, frame.keptRow - start), frame.row)
   }
   if (erasure) frame.lines[frame.row] = ''
 }
@@ -111,12 +116,13 @@ export function questionFrame<Output extends Writable>(
     if (!frame) return
     // WHY: Clack keeps right only the rows that were on screen when it last wrote, so the rows of a taller question above them stay in the history above what the shell wrote. A taller screen alone has Clack write nothing.
     const shown = Math.min(frame.screenRows, screenRows(target))
-    const start = Math.max(0, frame.lines.length - shown)
+    const start = Math.max(frame.keptRow, frame.lines.length - shown)
     const below = frame.lines.length - 1 - frame.row
     target.write(
       frame.lines.slice(start).join('\n') +
         (below > 0 ? `${escape}[${below}A` : '')
     )
+    frame.keptRow = start
     frame.bottom = frame.lines.length - 1
   }
   const record = (chunk: string) => {
@@ -140,7 +146,8 @@ export function questionFrame<Output extends Writable>(
         bottom: 0,
         screenRows: screenRows(target),
         columns: screenColumns(target),
-        isKnown: true
+        isKnown: true,
+        keptRow: 0
       }
     }
   }
@@ -163,9 +170,11 @@ export function questionFrame<Output extends Writable>(
       if (!frame?.isKnown || isHeld) return
       if (frame.bottom < screenRows(target)) {
         // WHY: tmux copies the screen to its history on an erase from the top left corner, and the first row of a question may be on the top row of the screen, so it is cleared alone and the rest from the row below it.
-        const up = frame.row > 0 ? `${escape}[${frame.row}A` : ''
+        // WHY: The rows above the first one Clack keeps right were not drawn again, and what is there may belong to the shell.
+        const above = Math.max(0, frame.row - frame.keptRow)
+        const up = above > 0 ? `${escape}[${above}A` : ''
         target.write(
-          frame.lines.length > 1
+          frame.lines.length - frame.keptRow > 1
             ? `${up}${escape}[2K${escape}[B\r${escape}[J${escape}[A`
             : `${up}\r${escape}[J`
         )

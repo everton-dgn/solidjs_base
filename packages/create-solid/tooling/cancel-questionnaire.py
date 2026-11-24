@@ -3,6 +3,7 @@
 import errno
 import fcntl
 import itertools
+import json
 import subprocess
 import struct
 import os
@@ -111,23 +112,29 @@ def fork_terminal():
 DYING_LAUNCHER = "const c = require('child_process').spawn(process.argv[1], process.argv.slice(2), { stdio: 'inherit' }); c.on('exit', code => process.exit(code ?? 1))"
 # A launcher that sends the CLI the SIGINT and SIGTERM it gets, as the signal manager of npm does for the bin of npx.
 FORWARDING_LAUNCHER = "const c = require('child_process').spawn(process.argv[1], process.argv.slice(2), { stdio: 'inherit' }); for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => c.kill(s)); c.on('exit', code => process.exit(code ?? 1))"
-# An installer that starts its cleanup on its first SIGINT or SIGTERM and ends it once the script creates the FINISH file.
+# An installer that starts its cleanup on its first SIGINT, SIGTERM or SIGHUP and ends it once the script creates the FINISH
+# file, or CLEANUP_MS after it started when that is set. With SIGNALS it records each of these signals and when it came.
 CLEANING_INSTALLER = """
-const { existsSync, writeFileSync } = require('node:fs');
+const { appendFileSync, existsSync, writeFileSync } = require('node:fs');
+const now = () => (performance.timeOrigin + performance.now()).toFixed(1);
 writeFileSync(process.env.PID_FILE, String(process.pid));
 let isCleaning = false;
-const clean = () => {
+const clean = name => {
+  if (process.env.SIGNALS) appendFileSync(process.env.SIGNALS, `${name} ${now()}\\n`);
   if (isCleaning) return;
   isCleaning = true;
   writeFileSync(process.env.CLEANING, '1');
+  const started = performance.now();
   setInterval(() => {
-    if (!existsSync(process.env.FINISH)) return;
-    writeFileSync(process.env.CLEANED, '1');
+    const isDone = process.env.CLEANUP_MS
+      ? performance.now() - started >= Number(process.env.CLEANUP_MS)
+      : existsSync(process.env.FINISH);
+    if (!isDone) return;
+    writeFileSync(process.env.CLEANED, now());
     process.exit(130);
   }, 10);
 };
-process.on('SIGINT', clean);
-process.on('SIGTERM', clean);
+for (const name of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(name, clean);
 setInterval(() => {}, 1000);
 """
 # An entry that runs the CLI and records its exit code, which a launcher that died cannot report.
@@ -2262,6 +2269,125 @@ process.stdout.write = (...args) => {
                 wait_for(lambda lines: "└  Creation canceled." in lines)
             finally:
                 tmux("kill-server")
+
+    def test_terminal_closed_or_quit_during_install(self):
+        # A person in an interactive bash closes the terminal during the install, or presses Ctrl+\ under a launcher that dies
+        # on SIGQUIT as npx does. Only the end is checked; the signals that reach the installer and the screen are printed.
+        self.assertIsNotNone(shutil.which("tmux"), "The tmux tests of the questionnaire harness need tmux: install it and run again")
+        self.assertIsNotNone(bash_path(), "The tmux tests of the questionnaire harness need bash: install it and run again")
+        versions = [subprocess.run(command, capture_output=True, text=True).stdout.split("\n")[0]
+                    for command in ([bash_path(), "--version"], ["tmux", "-V"])]
+        cleanup_ms = 200
+        for case in ("hangup", "quit"):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                if case == "quit" and not sys.platform.startswith("linux"):
+                    # On macOS every process that SIGQUIT ends leaves a crash report.
+                    self.skipTest("Ctrl+\\ runs only on Linux")
+                root = pathlib.Path(directory)
+                (root / "installer.js").write_text(CLEANING_INSTALLER)
+                installer = root / "bun"
+                installer.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(root / 'installer.js'))}\n")
+                installer.chmod(0o755)
+                (root / "entry.mjs").write_text(EXIT_ENTRY)
+                signals, cleaned = root / "installer.signals", root / "cleaned"
+                socket = str(root / "tmux.sock")
+                # The shell reads its prompt and the file of its history from these, so nothing reaches the account.
+                tmux_env = {key: os.environ[key] for key in ("HOME", "LANG", "TMPDIR") if key in os.environ} | {
+                    "SHELL": "/bin/sh", "PATH": f"{root}:{os.environ['PATH']}", "PS1": "$ ", "HISTFILE": str(root / "history"),
+                    "BASH_SILENCE_DEPRECATION_WARNING": "1", "NODE": node, "ENTRY": str(root / "entry.mjs"),
+                    "LAUNCHER": DYING_LAUNCHER, "PID_FILE": str(root / "installer.pid"), "SIGNALS": str(signals),
+                    "CLEANING": str(root / "cleaning"), "CLEANED": str(cleaned), "CLEANUP_MS": str(cleanup_ms),
+                    "EXIT_FILE": str(root / "cli.exit"), "CLI_URL": cli.as_uri()}
+                def tmux(*args, check=True):
+                    return subprocess.run(["tmux", "-f", "/dev/null", "-S", socket, *args], env=tmux_env, text=True,
+                                          capture_output=True, timeout=5, check=check).stdout
+                def capture():
+                    return tmux("capture-pane", "-p", "-S", "-200").rstrip("\n").split("\n")
+                def wait_for(check):
+                    deadline = time.monotonic() + 10
+                    while time.monotonic() < deadline:
+                        lines = capture()
+                        if check(lines):
+                            return lines
+                        time.sleep(.04)
+                    self.fail(capture())
+                def alive(process):
+                    try:
+                        os.kill(process, 0)
+                    except ProcessLookupError:
+                        return False
+                    # A process that ended and that nobody has reaped yet is gone too.
+                    status = subprocess.run(["ps", "-o", "stat=", "-p", str(process)], capture_output=True, text=True)
+                    return "Z" not in status.stdout
+                started = []
+                tmux("new-session", "-d", "-x", "80", "-y", "60", "-c", directory, bash_path(), "--norc", "--noprofile", "-i")
+                try:
+                    shell = int(tmux("display", "-p", "#{pane_pid}"))
+                    wait_for(lambda lines: lines[-1] == "$")
+                    launcher = '"$NODE" -e "$LAUNCHER" ' if case == "quit" else ""
+                    tmux("send-keys", "-l", f'env CI=false NO_COLOR=1 TERM=xterm {launcher}"$NODE" "$ENTRY" app --lang en '
+                                            "--mode server --no-git --install")
+                    tmux("send-keys", "Enter")
+                    for label in ("Application title", "Setup", "Create the project?"):
+                        wait_for(lambda lines: any(label in line for line in lines))
+                        tmux("send-keys", "Enter")
+                    wait_for(lambda lines: any("Installing dependencies with Bun" in line for line in lines))
+                    worker = recorded(root / "installer.pid")
+                    self.assertIsNotNone(worker)
+                    [job] = children(shell)
+                    leader = children(job)[0] if case == "quit" else job
+                    started = [job, leader, worker]
+                    tty = tmux("display", "-p", "#{pane_tty}").strip().removeprefix("/dev/")
+                    table = system_tool("ps", "-o", "pid,ppid,pgid,tpgid,stat,args", "-t", tty)
+                    if case == "hangup":
+                        closed = time.time()
+                        tmux("kill-pane")
+                        deadline = time.monotonic() + 5
+                        ended = None
+                        while alive(leader) or alive(worker):
+                            self.assertLess(time.monotonic(), deadline, table)
+                            if ended is None and not alive(worker):
+                                ended = time.time()
+                            time.sleep(.005)
+                        ended = ended or time.time()
+                        # The pane is gone, and with it the only session of this server.
+                        self.assertNotEqual(subprocess.run(["tmux", "-S", socket, "list-panes"], env=tmux_env,
+                                                           capture_output=True).returncode, 0)
+                        received = [line.split() for line in signals.read_text().splitlines()] if signals.exists() else []
+                        print("Measured, the terminal closed during the install:", json.dumps({
+                            "system": sys.platform, "bash": versions[0], "tmux": versions[1], "cleanup_ms": cleanup_ms,
+                            "installer_signals_ms": [[name, round(float(at) - closed * 1000, 1)] for name, at in received],
+                            "cleanup_ended_ms": round(float(cleaned.read_text()) - closed * 1000, 1) if cleaned.exists() else None,
+                            "installer_gone_ms": round((ended - closed) * 1000, 1),
+                            "cli_exit": recorded(root / "cli.exit") if (root / "cli.exit").exists() else None,
+                            "processes": table.splitlines()}), flush=True)
+                    else:
+                        group = os.getpgid(job)
+                        names = [system_tool("ps", "-o", "comm=", "-p", member).strip()
+                                 for member in system_tool("pgrep", "-g", str(group)).split()]
+                        # SIGQUIT goes to the foreground group, which must hold no Python process.
+                        self.assertFalse([name for name in names if "python" in name.lower()], names)
+                        lines = capture()
+                        row = max(index for index, line in enumerate(lines) if "Installing dependencies with Bun" in line)
+                        tmux("send-keys", "-H", "1c")
+                        deadline = time.monotonic() + 5
+                        while alive(job) or alive(leader) or alive(worker):
+                            self.assertLess(time.monotonic(), deadline, table)
+                            time.sleep(.01)
+                        # The shell has the terminal back and has written its prompt, on the row of the indicator or below.
+                        lines = wait_for(lambda lines: system_tool("ps", "-o", "tpgid=", "-p", str(shell)).strip() == str(shell)
+                                         and any(line.startswith("$") for line in lines[row:]))
+                        print("Measured, Ctrl+\\ under a launcher that dies on SIGQUIT:", json.dumps({
+                            "system": sys.platform, "bash": versions[0], "tmux": versions[1], "indicator_row": lines[row],
+                            "below": lines[row + 1:], "group": names, "processes": table.splitlines()}), flush=True)
+                finally:
+                    tmux("kill-server", check=False)
+                    for target in started:
+                        try:
+                            if os.getsid(target) == shell:
+                                os.kill(target, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
 
     def test_resize_during_install(self):
         self.resize_install(((80, 30), (30, 80)))

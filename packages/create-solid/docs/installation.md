@@ -258,16 +258,17 @@ screen, as after a key that clears a validation error, Clack leaves the cursor
 at the top of the screen. On Ctrl+Z, or on a stop from outside while the CLI
 owns the terminal, the CLI moves the cursor back to the end of the question
 before the stop, so that the shell writes below it. On a stop from outside while
-the CLI does not own the terminal it writes nothing, so the shell writes over
-the question: in a tmux session on macOS under `bash -c`, bash wrote its notice
-of the stop on the top row. A question that fits on the screen, or shrinks until
-it fits, is erased like any other, and on `fg` the CLI draws it again with no
-more rows than the screen has now: when the screen got shorter than the question
-during the stop, the rows above the ones drawn, the title among them, are drawn
-nowhere, because Ctrl+Z erased them from the screen and they never reached the
-history. A resize to another width while the CLI is stopped draws the question
-at the new width on `fg`. A question whose output holds bytes the CLI does not
-recognize is left as it is on Ctrl+Z and is not drawn again on `fg`.
+the CLI does not own the terminal it only shows the cursor, which moves nothing,
+so the shell writes over the question: in a tmux session on macOS under
+`bash -c`, bash wrote its notice of the stop on the top row. A question that
+fits on the screen, or shrinks until it fits, is erased like any other, and on
+`fg` the CLI draws it again with no more rows than the screen has now: when the
+screen got shorter than the question during the stop, the rows above the ones
+drawn, which can include the title, are drawn nowhere, because Ctrl+Z erased
+them from the screen and they never reached the history. A resize to another
+width while the CLI is stopped draws the question at the new width on `fg`. A
+question whose output holds bytes the CLI does not recognize is left as it is on
+Ctrl+Z and is not drawn again on `fg`.
 
 Ctrl+\ during a step shows the cursor and quits.
 

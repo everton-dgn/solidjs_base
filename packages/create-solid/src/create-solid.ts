@@ -55,14 +55,20 @@ function errorMessage(error: unknown): string {
 const writeStep = (title: string) => process.stdout.write(`◇ ${title}\n`)
 type Creation = { answers: Answers; isInteractive: boolean }
 const interruptedExitCode = 130
-function cancelPrompt() {
-  process.stdout.write(showCursor)
-  process.stdin.setRawMode(false)
+function writeCancel() {
   process.stdout.write(`\n└  ${messages[language].cancel}\n`)
   process.exit(interruptedExitCode)
 }
-// WHY: Once the terminal is gone a change of its mode fails with an error of the input, and writing a cancel there would fail too.
-const closeInput = () => process.exit(interruptedExitCode)
+function cancelPrompt() {
+  process.stdout.write(showCursor)
+  process.stdin.setRawMode(false)
+  writeCancel()
+}
+// WHY: Once the terminal is gone a change of its mode fails with an error of the input, also inside cancelPrompt, so this changes no mode. A write to a closed terminal reports its error on a later tick, after the CLI has ended.
+function closeInput() {
+  process.stdout.write(showCursor)
+  writeCancel()
+}
 type Prompt<T> = (output: NodeJS.WriteStream) => Promise<T>
 async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
   const frame = questionFrame(process.stdout)
@@ -109,7 +115,7 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
   process.on('SIGTSTP', suspend)
   process.on('SIGCONT', resume)
   process.on('SIGWINCH', draw)
-  // WHY: A terminal that closes during a question ends the input, and on macOS no SIGHUP comes before Node ends with the question still open.
+  // WHY: A terminal that closes during a question ends the input, and on macOS and Linux no SIGHUP came before Node ended with the question still open.
   process.stdin.on('end', cancelPrompt)
   process.stdin.on('error', closeInput)
   // WHY: readline closes on Ctrl+D at an empty line without ending the input, and Clack then waits for a key that can no longer come. Once the loop is empty nothing can answer the question.

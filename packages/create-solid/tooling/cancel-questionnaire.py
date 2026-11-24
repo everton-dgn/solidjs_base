@@ -338,6 +338,19 @@ if (process.env.HOLD_AT === 'query') {
 syncBuiltinESMExports();
 """
 
+# Once the script creates the INPUT_ERROR file, this emits an error on the input of the CLI with the code the file holds, as
+# a change of mode of a closed terminal does.
+INPUT_ERROR_MODULE = """
+import { existsSync, readFileSync } from 'node:fs';
+const timer = setInterval(() => {
+  if (!existsSync(process.env.INPUT_ERROR)) return;
+  clearInterval(timer);
+  const code = readFileSync(process.env.INPUT_ERROR, 'utf8');
+  process.stdin.emit('error', Object.assign(new Error(`setRawMode ${code}`), { code, syscall: 'setRawMode' }));
+}, 10);
+timer.unref();
+"""
+
 # From a timer, this holds the event loop once the script creates the HOLD file, until it creates the RELEASE file.
 TIMER_HOLD_MODULE = """
 import { existsSync, writeFileSync } from 'node:fs';
@@ -393,15 +406,15 @@ def recorded(file):
         time.sleep(.01)
 
 
-def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False, ask_directory=False, name="app", errors=None):
-    """With errors, stderr goes to that file instead of the terminal."""
+def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False, ask_directory=False, name="app", errors=None, preload=None, environment=None):
+    """With errors, stderr goes to that file instead of the terminal. Node imports the preload module before the CLI."""
     master, slave = pty.openpty()
     error_file = open(errors, "wb") if errors else None
     try:
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, columns, 0, 0))
-        with subprocess.Popen([node, cli, *([] if ask_directory else [name]), "--lang", language, "--mode", "server",
+        with subprocess.Popen([node, *(["--import", pathlib.Path(preload).as_uri()] if preload else []), cli, *([] if ask_directory else [name]), "--lang", language, "--mode", "server",
                                "--no-git", "--install" if piped else "--no-install"], cwd=directory,
-                              env=dict(os.environ, PATH=directory + os.pathsep + os.environ["PATH"] if piped else os.environ["PATH"], CI="false", NO_COLOR="" if color else "1", FORCE_COLOR="1" if color else "0", TERM="xterm"),
+                              env=dict(os.environ, PATH=directory + os.pathsep + os.environ["PATH"] if piped else os.environ["PATH"], CI="false", NO_COLOR="" if color else "1", FORCE_COLOR="1" if color else "0", TERM="xterm", **(environment or {})),
                               stdin=slave, stdout=subprocess.PIPE if piped else slave, stderr=error_file or slave) as child:
             reader = child.stdout.fileno() if piped else master
             os.close(slave)
@@ -2132,6 +2145,22 @@ process.stdout.write = (...args) => {
                 if kept:
                     final = re.sub(r"\x1b\[\?25[hl]", "", output.rsplit("\x1b[J", 1)[-1])
                     self.assertEqual(final.rstrip().splitlines()[:len(kept[0])], kept[0])
+
+    def test_input_error_at_a_question(self):
+        # An error of the input at a question, while the terminal still shows what the CLI writes.
+        for code in ("ENOENT",):
+            with self.subTest(code=code), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                (root / "input-error.mjs").write_text(INPUT_ERROR_MODULE)
+                trigger, errors = root / "input.error", root / "stderr"
+                output, status = question_session(directory, "en", [("Application title", b"")],
+                                                  before_answer=lambda label: trigger.write_text(code), errors=errors,
+                                                  preload=root / "input-error.mjs", environment={"INPUT_ERROR": str(trigger)})
+                written = errors.read_text()
+                plain = re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", output).replace("\r", "").rstrip().splitlines()
+                self.assertEqual((status, written), (130, ""))
+                self.assertEqual(re.findall(r"\x1b\[\?25[hl]", output)[-1:], ["\x1b[?25h"])
+                self.assertEqual(plain[-1], "└  Creation canceled.")
 
     def test_occupied_directory_question(self):
         path = "a-directory-that-is-longer-than-the-terminal-width"

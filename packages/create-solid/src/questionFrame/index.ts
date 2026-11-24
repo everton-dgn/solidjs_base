@@ -26,6 +26,16 @@ type QuestionFrame<Output> = {
 }
 
 const escape = '\u001B'
+// WHY: Clack moves the cursor to the first column and up by the rows of its last render minus one, in a write of its own.
+function isCursorMove(text: string): boolean {
+  const [before, left, up, ...rest] = text.split(escape)
+  return (
+    before === '' &&
+    left === '[999D' &&
+    (up === undefined || /^\[\d+A$/u.test(up)) &&
+    rest.length === 0
+  )
+}
 // WHY: Clack moves by rows, erases a whole line (2K) or from the cursor down (J), always from the first column, and styles its text.
 const sequence = /^\[(?:(?<count>\d*)(?<move>[ABDG])|(?<erasure>2K|J)|[\d;]*m)/u
 function hasControl(text: string): boolean {
@@ -180,11 +190,26 @@ export function questionFrame<Output extends Writable>(
     }
   }
   const forward = target.write.bind(target)
+  // WHY: Every render of Clack starts by moving the cursor up from the end of the question, and one that changed only rows above the screen ends there, with the cursor at the top of the screen, where the shell of a stop would write over the question. The move waits for the next write of the same render and is dropped when none comes; Clack moves up again from wherever the cursor is at its next render.
+  let moveUp: { chunk: string } | undefined
   const write = (...args: unknown[]): unknown => {
     const [chunk, ...rest] = args
     if (typeof chunk === 'string') record(chunk)
     // WHY: An empty write still calls the callback of a write that is held back.
-    return Reflect.apply(forward, undefined, isHeld ? ['', ...rest] : args)
+    if (isHeld) return Reflect.apply(forward, undefined, ['', ...rest])
+    const waiting = moveUp
+    moveUp = undefined
+    const text = typeof chunk === 'string' && rest.length === 0 ? chunk : ''
+    if (draw && frame && isCursorMove(text)) {
+      const move = { chunk: text }
+      moveUp = move
+      queueMicrotask(() => {
+        if (moveUp === move) moveUp = undefined
+      })
+      return true
+    }
+    if (waiting) forward(waiting.chunk)
+    return Reflect.apply(forward, undefined, args)
   }
   return {
     output: new Proxy(target, {

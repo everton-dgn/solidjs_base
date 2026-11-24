@@ -230,7 +230,10 @@ the row below it. tmux by default moves the screen into its history when a
 program clears it from the top left corner (`scroll-on-clear`), so this way it
 keeps no copy of a question that starts on the top row of the screen, whether
 the question fills the screen or not. It still keeps a copy of each screen that
-Clack clears from that corner while a question taller than the screen shrinks.
+Clack clears from that corner while a question taller than the screen shrinks:
+in a tmux session on macOS with `scroll-on-clear` on, deleting part of a long
+value left another copy of the title in the history above the notice of the
+stop, besides the one left when the question grew past the screen.
 
 Clack writes again only the rows of a question that are on screen, so a row
 above the top of the screen can be old, for example the symbol of the title
@@ -240,18 +243,31 @@ row that has stayed on screen through every render of Clack since the question
 grew past it, at most as many rows as the screen had when Clack last wrote, and
 no more rows than the screen has now. Clack keeps those rows right, and a row
 that went above the top of the screen stays old even after the terminal gets
-taller. The rows above them stay in the history above what the shell wrote. Such
-a question stays on screen on Ctrl+Z while the CLI cannot reach rows of it above
-the top of the screen, that is when it grew past the screen and Clack has not
-written it again from the top of the screen since. When Clack writes it again
-from there, as when it shrinks or the terminal gets wider, Ctrl+Z erases the
-rows on screen. When every row that changed is above the screen, as after a key
-that clears a validation error, Clack leaves the cursor at the top of the
-screen, and the CLI moves it back to the end of the question before the stop, so
-that the shell writes below it. A question that shrinks until it fits is erased
-like any other. A resize while the CLI is stopped draws the question at the new
-width on `fg`. A question whose output holds bytes the CLI does not recognize is
-left as it is on Ctrl+Z and is not drawn again on `fg`.
+taller. Such a question stays on screen on Ctrl+Z while the CLI cannot reach
+rows of it above the top of the screen, that is when it grew past the screen and
+Clack has not written it again from the top of the screen since, so its rows
+above those drawn again stay in the history above what the shell wrote. When the
+terminal gets taller during the stop, Clack counts more rows of the question on
+screen than the CLI drew on `fg`, so the next key that changes a row above them,
+such as the symbol of the title after a validation error, has Clack move up into
+the rows the shell wrote and write there: in a tmux session on macOS the title
+landed on the last row of the `fg` echo. When Clack writes the question again
+from the top of the screen, as when it shrinks or the terminal gets wider,
+Ctrl+Z erases the rows on screen. When every row that changed is above the
+screen, as after a key that clears a validation error, Clack leaves the cursor
+at the top of the screen. On Ctrl+Z, or on a stop from outside while the CLI
+owns the terminal, the CLI moves the cursor back to the end of the question
+before the stop, so that the shell writes below it. On a stop from outside while
+the CLI does not own the terminal it writes nothing, so the shell writes over
+the question: in a tmux session on macOS under `bash -c`, bash wrote its notice
+of the stop on the top row. A question that fits on the screen, or shrinks until
+it fits, is erased like any other, and on `fg` the CLI draws it again with no
+more rows than the screen has now: when the screen got shorter than the question
+during the stop, the rows above the ones drawn, the title among them, are drawn
+nowhere, because Ctrl+Z erased them from the screen and they never reached the
+history. A resize to another width while the CLI is stopped draws the question
+at the new width on `fg`. A question whose output holds bytes the CLI does not
+recognize is left as it is on Ctrl+Z and is not drawn again on `fg`.
 
 Ctrl+\ during a step shows the cursor and quits.
 

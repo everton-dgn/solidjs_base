@@ -354,8 +354,10 @@ input.setRawMode = flag => {
 };
 const timer = setInterval(() => {
   if (!existsSync(process.env.INPUT_ERROR)) return;
-  clearInterval(timer);
+  // A file exists before its content is written.
   const code = readFileSync(process.env.INPUT_ERROR, 'utf8');
+  if (!code) return;
+  clearInterval(timer);
   if (process.env.INPUT_END) {
     ended = code;
     input.emit('end');

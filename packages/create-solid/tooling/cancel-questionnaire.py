@@ -619,7 +619,15 @@ class Cancellation(unittest.TestCase):
 
     def test_step_job_signals(self):
         # Without a key the script stops the CLI itself, as an outside SIGSTOP would.
-        for key, job_control in [(b"\x1a", False), (b"\x1a", True), (b"\x1c", False), (None, False)]:
+        self.step_job_signals([(b"\x1a", False), (b"\x1a", True), (None, False)])
+
+    def test_step_quit_key(self):
+        # Ctrl+\ has a test of its own, so that the cases above can run again on macOS, where each process SIGQUIT ends
+        # leaves a crash report.
+        self.step_job_signals([(b"\x1c", False)])
+
+    def step_job_signals(self, cases):
+        for key, job_control in cases:
             with self.subTest(key=key, job_control=job_control), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
                 installer = root / "bun"

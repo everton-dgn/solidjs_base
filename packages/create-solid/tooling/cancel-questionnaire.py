@@ -142,7 +142,8 @@ setInterval(() => {}, 1000);
 """
 # The CLI forces an installer that has not ended this long after the first signal (cleanupLimitMs in src/generate.ts).
 CLEANUP_LIMIT_S = 8
-# Once the installer has exited, the CLI waits at most this long for the pipes a process it started still holds (pipeDrainMs).
+# Once the installer has exited, the CLI lets go of its pipes when nothing came for this long while its output took what came
+# (quietMs in src/settlePipes).
 PIPE_DRAIN_S = .5
 # After its SIGKILL, the CLI waits this long for the installer to exit before it lets it go (killWaitMs).
 KILL_WAIT_S = 1
@@ -2459,6 +2460,55 @@ process.stdout.write = (...args) => {
                             os.kill(grandchild, signal.SIGKILL)
                         except ProcessLookupError:
                             pass
+
+    def test_plain_installer_output_read_after_its_exit(self):
+        # The reader of the output of the CLI stops once the CLI has handled the exit of the installer, for longer than the
+        # short wait for the pipes, and still gets the whole output of the installer. Where a write to a full pipe holds the
+        # CLI, as on Linux, the CLI handles that exit only once the reader frees room, so the reader goes on in small reads
+        # until the exit is recorded.
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            installer = root / "bun"
+            # More than the pipes and the buffers of the CLI hold, so the installer exits only while the reader reads.
+            size = 512 * 1024
+            installer.write_text(f"#!/bin/sh\nhead -c {size} /dev/zero | tr '\\0' t\necho tail-end\n")
+            installer.chmod(0o755)
+            entry, children_file = root / "entry.mjs", root / "children"
+            entry.write_text(EXIT_ENTRY)
+            env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + ":" + os.environ["PATH"],
+                       EXIT_FILE=str(root / "cli.exit"), CLI_URL=cli.as_uri(), CLI_CHILDREN=str(children_file))
+            with subprocess.Popen([node, entry, "app", "--yes", "--lang", "en", "--no-git"], cwd=root, env=env,
+                                  stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as child:
+                try:
+                    output = child.stdout.fileno()
+                    printed = bytearray()
+                    def read():
+                        self.assertTrue(select.select([output], [], [], 10)[0], printed[-200:])
+                        block = os.read(output, 4096)
+                        self.assertTrue(block, printed[-200:])
+                        printed.extend(block)
+                    def exited():
+                        return children_file.exists() and re.search(r"^exit ", children_file.read_text(), re.M)
+                    while b"Files created\n" not in printed:
+                        read()
+                    start = len(printed)
+                    while len(printed) - start < 64 * 1024:
+                        read()
+                    deadline = time.monotonic() + 2
+                    while not exited() and time.monotonic() < deadline:
+                        time.sleep(.01)
+                    while not exited():
+                        read()
+                        time.sleep(.01)
+                    time.sleep(PIPE_DRAIN_S + 1)
+                    rest, errors = child.communicate(timeout=20)
+                    printed.extend(rest)
+                    self.assertEqual((child.returncode, errors), (0, b""))
+                    self.assertIn(b"\n" + b"t" * size + b"tail-end\n" + "◇ Dependencies installed with Bun\n".encode(), printed,
+                                  (printed.count(b"t"), printed[-300:]))
+                finally:
+                    if child.poll() is None:
+                        child.kill()
 
     def test_feature_colors(self):
         with tempfile.TemporaryDirectory() as directory:

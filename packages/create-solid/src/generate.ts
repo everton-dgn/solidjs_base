@@ -54,6 +54,7 @@ import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
 import { rewriteKnip, rewriteVite } from './rewrite.ts'
 import { manifestSchema, settingsSchema } from './schema.ts'
 import { setRunningTimeout } from './setRunningTimeout/index.ts'
+import { settlePipes } from './settlePipes/index.ts'
 import { shellDirectory } from './shellDirectory/index.ts'
 import { checkTools, hasRepository, hasTool } from './tools.ts'
 import type {
@@ -319,8 +320,6 @@ type TerminalOptions = {
 }
 // WHY: The rollback of npm on its own took about 3 s, and Docker sends SIGKILL 10 s after its SIGTERM. Nobody can press again once the terminal closed, and a supervisor may send its signal only once.
 const cleanupLimitMs = 8000
-// WHY: A process the installer started, such as a lifecycle script that outlives bun, may keep its pipes open after it exits.
-const pipeDrainMs = 500
 // WHY: SIGKILL ends a process at once unless it waits for I/O that nothing interrupts, such as on a network disk that stopped answering.
 const killWaitMs = 1000
 // WHY: npm sends its bin the SIGINT and SIGTERM it gets, so the signal sent to the whole group reaches the CLI twice, 0 to 1 ms apart.
@@ -381,7 +380,6 @@ async function executeSetup(
   const printed = forward({ source: child.stdout, target: process.stdout })
   let deadline: ReturnType<typeof setInterval> | undefined
   let notice: ReturnType<typeof setTimeout> | undefined
-  let drain: ReturnType<typeof setTimeout> | undefined
   let killWait: ReturnType<typeof setTimeout> | undefined
   const ended = Promise.withResolvers<typeof child.exitCode>()
   const release = () => {
@@ -393,7 +391,7 @@ async function executeSetup(
   child.once('error', ended.reject)
   child.once('close', ended.resolve)
   child.once('exit', () => {
-    drain = setTimeout(release, pipeDrainMs)
+    settlePipes({ child, boundMs: cleanupLimitMs, onSettled: release })
   })
   let isForced = false
   const force = () => {
@@ -466,7 +464,6 @@ async function executeSetup(
     }
     clearInterval(deadline)
     clearTimeout(notice)
-    clearTimeout(drain)
     clearTimeout(killWait)
     for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
       process.off(signalName, forceAgain)

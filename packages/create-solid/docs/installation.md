@@ -271,12 +271,14 @@ recognize is left as it is on Ctrl+Z and is not drawn again on `fg`.
 
 Ctrl+\ during a step shows the cursor and quits.
 
-Ctrl+D at a question ends the input of readline when its line is empty: at a
-text question with nothing typed, or at a selection or a confirmation before any
-printable key. The CLI then ends as a cancel, with code 130, the cancel line and
-the cursor shown. With text in that line, Ctrl+D deletes the character to the
-right of the cursor, and at the end of the value it does nothing, so the
-question goes on. This was measured on macOS.
+Ctrl+D at a question ends the input of readline while its line is empty. At a
+text question that line is the value. At a selection or a confirmation it is a
+line that the question does not show, which a printable key fills, so there
+Ctrl+D ends the input only while that line is empty. The CLI then ends as a
+cancel, with code 130, the cancel line and the cursor shown. With text in that
+line, Ctrl+D deletes the character to the right of the cursor, and at the end of
+the value it does nothing, so the question goes on. This was measured on macOS
+in the questionnaire harness and on Linux in the CI.
 
 When nothing in the session can continue a stopped process, as when the CLI is
 the command that `docker exec -it` starts, Ctrl+Z does nothing and the question
@@ -349,11 +351,10 @@ and on Linux no SIGHUP reached the CLI before that. Node used to end the CLI
 with code 1, on the change of terminal mode that readline makes when its input
 ends, or with code 13, with the question still open. The CLI now ends as a
 cancel, with code 130, when the input of a question ends, whatever error the
-change of terminal mode of that cancel gives: on macOS it failed with `ENOENT`,
-which was measured, and on Linux the kernel answers it with `EIO`, by its code
-for a terminal that hung up. An input error with one of these two codes cancels
-the same way. Where the terminal still shows output, the CLI writes the cancel
-line and shows the cursor. Any other input error stops the CLI with code 1, the
+change of terminal mode of that cancel gives: it failed with `ENOENT` on macOS
+and with `EIO` on Linux. An input error with one of these two codes cancels the
+same way. Where the terminal still shows output, the CLI writes the cancel line
+and shows the cursor. Any other input error stops the CLI with code 1, the
 message of the error and the cursor shown. The closed terminal was measured on
 macOS in the questionnaire harness and on Linux in the CI.
 

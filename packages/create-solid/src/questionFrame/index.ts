@@ -7,9 +7,11 @@ type Frame = {
   row: number
   bottom: number
   screenRows: number
+  columns: number
   isKnown: boolean
   stoppedRow?: number
-  rewrittenRow?: number
+  isInStep: boolean
+  aside?: string[]
 }
 type QuestionFrame<Output> = {
   output: Output
@@ -32,6 +34,13 @@ function screenRows(target: Writable): number {
   const rows = 'rows' in target ? Number(target.rows) : Number.NaN
   return Number.isInteger(rows) && rows > 0 ? rows : Infinity
 }
+// WHY: Clack wraps at 80 columns a stream that has no width.
+const defaultColumns = 80
+function screenColumns(target: Writable): number {
+  return 'columns' in target && typeof target.columns === 'number'
+    ? target.columns
+    : defaultColumns
+}
 type Text = { frame: Frame; text: string }
 function addText({ frame, text }: Text): void {
   if (text) frame.stoppedRow = undefined
@@ -42,25 +51,33 @@ function addText({ frame, text }: Text): void {
     frame.lines[frame.row] += line
   }
 }
-type Rewrite = { frame: Frame; height?: number }
-// WHY: Clack writes a question that shrank from the top of the screen, from its first row once it fits there. Fewer rows than the screen show that at once, and a full screen only on the next move up, which spans the question.
-function settle({ frame, height }: Rewrite): void {
-  const start = frame.rewrittenRow
-  if (start === undefined) return
-  const fits =
-    frame.lines.length - start < frame.screenRows ||
-    (height !== undefined && height <= frame.screenRows)
-  if (fits) {
-    frame.lines.splice(0, start)
-    frame.row -= start
-    frame.bottom -= start
-  }
-  if (fits || height !== undefined) frame.rewrittenRow = undefined
+type Restore = { frame: Frame; height: number }
+// WHY: A move up spans the question Clack drew last, so its height tells how many of the rows set aside are still the question's.
+function restore({ frame, height }: Restore): void {
+  const aside = frame.aside ?? []
+  frame.aside = undefined
+  const count = Math.min(aside.length, Math.max(0, height - frame.lines.length))
+  const kept = aside.slice(0, count)
+  frame.lines.unshift(...kept)
+  frame.row += kept.length
+  frame.bottom += kept.length
+}
+// WHY: At a new width Clack never draws again the rows above the screen, which the terminal keeps at the old width.
+function rewrap(frame: Frame): void {
+  const top = Math.max(0, frame.bottom - frame.screenRows + 1)
+  frame.aside = undefined
+  frame.lines.splice(0, top)
+  frame.row -= top
+  frame.bottom -= top
 }
 type Change = { frame: Frame; count?: string; move?: string; erasure?: string }
 function change({ frame, count, move, erasure }: Change): void {
   const amount = count ? Number(count) : 1
-  if (move === 'A') settle({ frame, height: amount + 1 })
+  if (move === 'A') {
+    restore({ frame, height: amount + 1 })
+    // WHY: At a narrower width Clack moves up by its last frame wrapped again, which the rows kept here no longer match.
+    frame.isInStep = frame.lines.length === amount + 1
+  }
   // WHY: A move up stops at the top of the screen, which is below the first row once the question has scrolled past it.
   const top = Math.max(0, frame.bottom - frame.screenRows + 1)
   if (move === 'A') {
@@ -71,9 +88,14 @@ function change({ frame, count, move, erasure }: Change): void {
   if (move === 'B' || erasure === '2K') frame.stoppedRow = undefined
   addText({ frame, text: '' })
   if (erasure === 'J') {
-    frame.rewrittenRow = frame.stoppedRow
+    // WHY: Clack writes again from the top of the screen only the rows it can reach. Until its next move up tells the height, the rows above may be old.
+    const start = frame.stoppedRow ?? 0
     frame.stoppedRow = undefined
     frame.lines.length = frame.row + 1
+    const above = frame.lines.splice(0, start)
+    frame.aside = frame.isInStep ? above : undefined
+    frame.row -= start
+    frame.bottom -= start
   }
   if (erasure) frame.lines[frame.row] = ''
 }
@@ -105,7 +127,6 @@ export function questionFrame<Output extends Writable>(
     if (!isHeld) return
     isHeld = false
     if (!frame) return
-    settle({ frame })
     const below = frame.lines.length - 1 - frame.row
     target.write(
       frame.lines.join('\n') + (below > 0 ? `${escape}[${below}A` : '')
@@ -119,6 +140,10 @@ export function questionFrame<Output extends Writable>(
       return
     }
     if (frame) {
+      if (screenColumns(target) !== frame.columns) {
+        rewrap(frame)
+        frame.columns = screenColumns(target)
+      }
       frame.screenRows = screenRows(target)
       apply({ frame, chunk })
     }
@@ -128,7 +153,9 @@ export function questionFrame<Output extends Writable>(
         row: 0,
         bottom: 0,
         screenRows: screenRows(target),
-        isKnown: true
+        columns: screenColumns(target),
+        isKnown: true,
+        isInStep: true
       }
     }
   }
@@ -147,9 +174,8 @@ export function questionFrame<Output extends Writable>(
     }),
     isOpen: () => frame !== undefined,
     erase() {
-      // WHY: A question drawn with unknown bytes stays as it is. One whose first row has left the top of the screen cannot be reached to erase it, so it is drawn whole again below what the shell writes.
+      // WHY: A question drawn with unknown bytes stays as it is. One whose first kept row has left the top of the screen cannot be reached to erase it, so it is drawn again below what the shell writes.
       if (!frame?.isKnown || isHeld) return
-      settle({ frame })
       if (frame.bottom < screenRows(target)) {
         target.write(
           `${frame.row > 0 ? `${escape}[${frame.row}A` : ''}\r${escape}[J`

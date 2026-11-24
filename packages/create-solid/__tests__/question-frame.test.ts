@@ -225,3 +225,179 @@ void it('erases a question that was taller than the screen once its value is era
     assert.equal(await answer, value)
   }
 })
+
+const tableRows = 6
+const firstColumns = 30
+// A question shorter than the screen keeps one row of value, so growing reaches it with a second letter.
+const shortLength = 2
+// A question that shrinks starts this many rows taller than the screen.
+const rowsAbove = 3
+const roundCount = 2
+const columnsAfter = { same: 30, narrower: 20, wider: 40 } as const
+type Direction = 'growing' | 'shrinking'
+type Pause = 'erase' | 'hold'
+type Cell = {
+  height: number
+  direction: Direction
+  isRightAfter: boolean
+  width: keyof typeof columnsAfter
+  pause: Pause
+}
+type Value = { length: number; columns: number }
+const drawnQuestions = new Map<string, string>()
+// WHY: Clack draws a question that opens with a value whole, so its first frame is the question as Clack has it.
+async function drawnQuestion({ length, columns }: Value): Promise<string> {
+  const key = `${columns}:${length}`
+  const known = drawnQuestions.get(key)
+  if (known !== undefined) return known
+  const stream = Object.assign(new PassThrough(), { columns, rows: tableRows })
+  const written: string[] = []
+  stream.on('data', chunk => written.push(String(chunk)))
+  const input = new PassThrough()
+  const answer = text({
+    message: 'Title',
+    input,
+    output: stream,
+    initialValue: 'x'.repeat(length)
+  })
+  await turns()
+  input.write('\r')
+  await answer
+  const [, frame = ''] = written
+  drawnQuestions.set(key, frame)
+  return frame
+}
+type Height = { height: number; columns: number }
+async function valueLengths({ height, columns }: Height): Promise<number[]> {
+  const longest = 260
+  const found: number[] = []
+  for (let length = 1; length <= longest; length += 1) {
+    const frame = await drawnQuestion({ length, columns })
+    if (frame.split('\n').length === height) found.push(length)
+  }
+  return found
+}
+type Round = { erased: string[]; flushed: string[]; length: number }
+async function stopAround(cell: Cell): Promise<Round[]> {
+  const columns = columnsAfter[cell.width]
+  const stream = Object.assign(new PassThrough(), {
+    columns: firstColumns,
+    rows: tableRows
+  })
+  const written: string[] = []
+  stream.on('data', chunk => written.push(String(chunk)))
+  const frame = questionFrame(stream)
+  const input = new PassThrough()
+  const answer = text({ message: 'Title', input, output: frame.output })
+  await turns()
+  const isGrowing = cell.direction === 'growing'
+  const step = isGrowing ? 1 : -1
+  const lengths = await valueLengths({ height: cell.height, columns })
+  const firstLength = cell.height < tableRows ? shortLength : (lengths[0] ?? 0)
+  const reached = isGrowing ? firstLength : (lengths.at(-1) ?? 0)
+  const before = reached - step
+  const [tall = 0] = await valueLengths({
+    height: tableRows + rowsAbove,
+    columns: firstColumns
+  })
+  const typed = isGrowing ? before : Math.max(tall, before)
+  input.write('x'.repeat(typed))
+  await turns()
+  input.write('\u007F'.repeat(typed - before))
+  await turns()
+  const resize = async () => {
+    if (cell.width === 'same') return
+    stream.columns = columns
+    stream.emit('resize')
+    await turns()
+  }
+  const press = async () => {
+    input.write(isGrowing ? 'x' : '\u007F')
+    await turns()
+  }
+  if (cell.isRightAfter) await resize()
+  await press()
+  let length = reached
+  if (!cell.isRightAfter) {
+    await resize()
+    await press()
+    length += step
+  }
+  const rounds: Round[] = []
+  for (let round = 0; round < roundCount; round += 1) {
+    if (round > 0) {
+      await press()
+      length += step
+    }
+    written.length = 0
+    if (cell.pause === 'erase') frame.erase()
+    else frame.hold()
+    const erased = [...written]
+    written.length = 0
+    frame.flush()
+    rounds.push({ erased, flushed: [...written], length })
+  }
+  input.write('\r')
+  await answer
+  return rounds
+}
+const places = [
+  'one row shorter than',
+  'as tall as',
+  'one row taller than',
+  'two rows taller than'
+]
+function cellName({ height, direction, isRightAfter, width, pause }: Cell) {
+  const place = `${places[height - tableRows + 1] ?? ''} the screen`
+  const stop = isRightAfter ? 'right after the render' : 'after one more key'
+  const resized = width === 'same' ? 'at one width' : `with a ${width} screen`
+  return `${place}, ${direction}, stopped ${stop}, ${resized}, ${pause === 'erase' ? 'erased' : 'held'}`
+}
+// The heights go from one row shorter than the screen to two rows taller.
+const heightCount = 4
+const heights = Array.from(
+  { length: heightCount },
+  (_, index) => tableRows - 1 + index
+)
+const cells: Cell[] = []
+for (const height of heights) {
+  for (const direction of ['growing', 'shrinking'] as const) {
+    for (const isRightAfter of [true, false]) {
+      for (const width of ['same', 'narrower', 'wider'] as const) {
+        const cell = { height, direction, isRightAfter, width }
+        cells.push({ ...cell, pause: 'erase' }, { ...cell, pause: 'hold' })
+      }
+    }
+  }
+}
+// Clack writes only the rows on screen again, so after a question taller than the screen shrinks, or the width
+// changes, the rows above may be old. A draw shows the end of the question, at least the rows on screen, and the whole
+// question when it fits or only grew at one width. What is drawn back is erased first when all of it is on screen.
+for (const cell of cells) {
+  void it(`draws back no old row of a question ${cellName(cell)}`, async () => {
+    const isWholeOnly = cell.direction === 'growing' && cell.width === 'same'
+    const rounds = await stopAround(cell)
+    for (const [index, { erased, flushed, length }] of rounds.entries()) {
+      const round = `round ${index + 1}, ${length} letters`
+      const question = await drawnQuestion({
+        length,
+        columns: columnsAfter[cell.width]
+      })
+      const entries = question.split('\n')
+      const [draw = ''] = flushed
+      const drawnRows = draw.split('\n').length
+      assert.equal(flushed.length, 1, round)
+      assert.equal(draw, entries.slice(-drawnRows).join('\n'), round)
+      assert.ok(drawnRows >= Math.min(entries.length, tableRows), round)
+      if (entries.length <= tableRows || isWholeOnly) {
+        assert.equal(draw, question, round)
+      }
+      const isErased = cell.pause === 'erase' && drawnRows <= tableRows
+      assert.deepEqual(
+        erased,
+        isErased ? [`${escape}[${drawnRows - 1}A\r${escape}[J`] : [],
+        round
+      )
+    }
+  })
+}

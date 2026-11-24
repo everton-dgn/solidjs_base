@@ -2147,8 +2147,10 @@ process.stdout.write = (...args) => {
                     self.assertEqual(final.rstrip().splitlines()[:len(kept[0])], kept[0])
 
     def test_input_error_at_a_question(self):
-        # An error of the input at a question, while the terminal still shows what the CLI writes.
-        for code in ("ENOENT",):
+        # An error of the input at a question, while the terminal still shows what the CLI writes. A closed terminal answers
+        # with ENOENT on macOS and EIO on Linux, and any other code is a failure.
+        for code, expected, closing in (("ENOENT", 130, ["└  Creation canceled."]), ("EIO", 130, ["└  Creation canceled."]),
+                                        ("EPERM", 1, ["▲  setRawMode EPERM", "└  Creation stopped."])):
             with self.subTest(code=code), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
                 (root / "input-error.mjs").write_text(INPUT_ERROR_MODULE)
@@ -2158,9 +2160,9 @@ process.stdout.write = (...args) => {
                                                   preload=root / "input-error.mjs", environment={"INPUT_ERROR": str(trigger)})
                 written = errors.read_text()
                 plain = re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", output).replace("\r", "").rstrip().splitlines()
-                self.assertEqual((status, written), (130, ""))
+                self.assertEqual((status, written), (expected, ""))
                 self.assertEqual(re.findall(r"\x1b\[\?25[hl]", output)[-1:], ["\x1b[?25h"])
-                self.assertEqual(plain[-1], "└  Creation canceled.")
+                self.assertEqual(plain[-len(closing):], closing)
 
     def test_occupied_directory_question(self):
         path = "a-directory-that-is-longer-than-the-terminal-width"

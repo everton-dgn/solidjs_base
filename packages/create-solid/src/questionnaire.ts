@@ -28,6 +28,7 @@ import { directoryError } from './directoryError/index.ts'
 import { fieldMessage } from './fieldMessage/index.ts'
 import { listenEndKey } from './listenEndKey/index.ts'
 import { installers } from './profile-answers.ts'
+import type { Follow } from './questionFrame/index.ts'
 import { questionnaireBase } from './resolve-locale-options.ts'
 import { hasTool, hasRepository, missingTool, toolNames } from './tools.ts'
 import type { Answers } from './types.ts'
@@ -97,6 +98,7 @@ type Session = {
   output: SessionOutput
   hasColor: boolean
   onEnd?: () => void
+  follow?: Follow
 }
 
 type SetupRecovery = { result: Answers; language: Language; io: CommonOptions }
@@ -246,16 +248,37 @@ function reportMissingTools({ result, language, io }: SetupRecovery) {
   }
   return availableManagers
 }
-type Typing = { field?: TextPrompt }
-type Questions = Omit<Session, 'onEnd'> & { typing: Typing }
-type TextQuestion = { prompt: TextPrompt; typing: Typing }
-async function askText({ prompt, typing }: TextQuestion) {
+type Typing = { field?: TextPrompt; follow?: Follow | undefined }
+type Questions = Omit<Session, 'onEnd' | 'follow'> & { typing: Typing }
+type TextQuestion = {
+  prompt: TextPrompt
+  render: (this: TextPrompt) => string
+  typing: Typing
+}
+async function askText({ prompt, render, typing }: TextQuestion) {
   typing.field = prompt
+  typing.follow?.(() => render.call(prompt))
   try {
     return await prompt.prompt()
   } finally {
     typing.field = undefined
+    typing.follow?.()
   }
+}
+type FieldName = Pick<FieldOptions, 'key'> &
+  Pick<Session, 'language'> & {
+    result: Answers
+  }
+function fieldName({ key, language, result }: FieldName): string {
+  const labels = messages[language]
+  const names = {
+    name: labels.dir,
+    title: labels.title,
+    locales: result.mode === 'client' ? labels.appLanguage : labels.locales,
+    'base-locale': result['no-i18n'] ? labels.appLanguage : labels.base,
+    'site-url': labels.url
+  }
+  return names[key]
 }
 async function askQuestions({
   answers,
@@ -275,23 +298,17 @@ async function askQuestions({
       await confirm({ ...io, message, active: labels.yes, inactive: labels.no })
     )
   const field = async ({ key, initialValue }: FieldOptions) => {
-    const names = {
-      name: labels.dir,
-      title: labels.title,
-      locales: result.mode === 'client' ? labels.appLanguage : labels.locales,
-      'base-locale': result['no-i18n'] ? labels.appLanguage : labels.base,
-      'site-url': labels.url
-    }
     if (result[key] !== undefined) return
     let occupiedDir: string | undefined
+    const render = renderText({
+      label: fieldName({ key, language, result }),
+      placeholder: initialValue,
+      output,
+      wrapError: text => directoryError({ text, dir: occupiedDir, output })
+    })
     const prompt = new TextPrompt({
       ...io,
-      render: renderText({
-        label: names[key],
-        placeholder: initialValue,
-        output,
-        wrapError: text => directoryError({ text, dir: occupiedDir, output })
-      }),
+      render,
       placeholder: initialValue,
       defaultValue: initialValue,
       validate(value) {
@@ -313,7 +330,7 @@ async function askQuestions({
       }
     })
     result[key] = answer<string>(
-      (await askText({ prompt, typing })) ?? initialValue
+      (await askText({ prompt, render, typing })) ?? initialValue
     )
   }
   await field({ key: 'name', initialValue: 'solid-app' })
@@ -459,9 +476,10 @@ async function askQuestions({
 }
 export async function questionnaire({
   onEnd,
+  follow,
   ...session
 }: Session): Promise<Answers> {
-  const typing: Typing = {}
+  const typing: Typing = { follow }
   // WHY: At a text question Ctrl+D keeps the delete of readline while the value holds text.
   const stop = onEnd
     ? listenEndKey({

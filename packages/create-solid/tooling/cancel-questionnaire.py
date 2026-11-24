@@ -2573,11 +2573,11 @@ process.stdout.write = (...args) => {
                     self.assertLess(time.monotonic(), deadline, processes())
                     time.sleep(.04)
                 go.touch()
-                # The question is not erased, so it stays above what the shell wrote, and after fg only the rows of it that
-                # fill the screen are drawn again below that, without its title.
+                # Ctrl+Z erases the rows of the question on the screen, so only its rows above the screen stay in the history,
+                # with its title, and after fg the rows of it that fill the screen are drawn again below what the shell wrote.
                 cursor_row = "│  " + "x" * 67 + "█"
                 wait_for(lambda lines: "T" not in state(worker) and lines[-2:] == [cursor_row, "└"]
-                         and lines.count(cursor_row) == 2
+                         and lines.count(cursor_row) == 1
                          and sum(line == "◆  Application title" for line in lines) == 1, history=True)
                 tmux("send-keys", "-l", "y")
                 # Clack redraws the changed row of a question taller than the screen at the row it expects, so the screen

@@ -7,7 +7,7 @@ import { hideCursor, showCursor } from './constants/cursor.ts'
 import { generateTerminal } from './generate.ts'
 import { isTerminalOwner } from './isTerminalOwner/index.ts'
 import { projectSummary } from './projectSummary/index.ts'
-import { questionFrame } from './questionFrame/index.ts'
+import { type Follow, questionFrame } from './questionFrame/index.ts'
 import { readPendingSignals } from './readPendingSignals/index.ts'
 import { questionnaireBase } from './resolve-locale-options.ts'
 import type { progress as frameProgress } from './terminal-frame.ts'
@@ -87,7 +87,8 @@ function closeInput(error: NodeJS.ErrnoException) {
   }
   writeCancel()
 }
-type Prompt<T> = (output: NodeJS.WriteStream) => Promise<T>
+type Question = { output: NodeJS.WriteStream; follow: Follow }
+type Prompt<T> = (question: Question) => Promise<T>
 async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
   const frame = questionFrame(process.stdout)
   const resume = () => {
@@ -139,7 +140,7 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
   // WHY: readline closes on Ctrl+D at an empty line without ending the input, and Clack then waits for a key that can no longer come. Once the loop is empty nothing can answer the question.
   process.on('beforeExit', cancelPrompt)
   try {
-    return await prompt(frame.output)
+    return await prompt({ output: frame.output, follow: frame.follow })
   } finally {
     // WHY: A Ctrl+Z read together with the key that closes the question is still pending, and without suspend it would be lost and leave the listener of readline.
     await readPendingSignals()
@@ -215,7 +216,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
   const summary = projectSummary({ validated, language })
   const frame = isInteractive ? await import('./terminal-frame.ts') : undefined
   if (frame) {
-    await withPromptSignals(output =>
+    await withPromptSignals(({ output }) =>
       frame.confirmProject({ summary, language, output, onEnd: cancelPrompt })
     )
   } else process.stdout.write(`${labels.summary}\n${summary}\n`)
@@ -412,14 +413,15 @@ async function run(): Promise<void> {
   if (isInteractive) {
     terminal.isFramed = true
     const { questionnaire } = await import('./questionnaire.ts')
-    answers = await withPromptSignals(output =>
+    answers = await withPromptSignals(({ output, follow }) =>
       questionnaire({
         answers,
         language,
         input: process.stdin,
         output,
         hasColor,
-        onEnd: cancelPrompt
+        onEnd: cancelPrompt,
+        follow
       })
     )
   }

@@ -1,5 +1,7 @@
 import type { Writable } from 'node:stream'
 
+import { getColumns, getRows, wrapTextWithPrefix } from '@clack/core'
+
 import { hideCursor, showCursor } from '../constants/cursor.ts'
 
 type Frame = {
@@ -12,12 +14,15 @@ type Frame = {
   stoppedRow?: number
   keptRow: number
 }
+// The rows of the open question that a stop left on the screen or in the history, and the width they have there.
+type Stop = { kept: number; columns: number; isErased: boolean }
 type QuestionFrame<Output> = {
   output: Output
   isOpen: () => boolean
   erase: () => void
   hold: () => void
   flush: () => void
+  follow: Follow
 }
 
 const escape = '\u001B'
@@ -110,10 +115,32 @@ export function questionFrame<Output extends Writable>(
 ): QuestionFrame<Output> {
   let frame: Frame | undefined
   let isHeld = false
-  const flush = () => {
+  // WHY: A text question of the CLI is computed from the state of its prompt as Clack wraps it, so no row is inferred from the bytes Clack wrote.
+  let draw: (() => string) | undefined
+  let stop: Stop | undefined
+  const exactRows = (text: string) =>
+    wrapTextWithPrefix(target, text, '').split('\n')
+  // WHY: The draw gives back every row the erase took from the screen, so a row that went above a shorter screen reaches the history, and at least the rows that fit, which Clack counts on screen at its next render. After a change of width the rows kept above the screen no longer match the question, so the draw gives it back whole.
+  const redraw = ({
+    lines,
+    kept,
+    columns,
+    isErased
+  }: Stop & { lines: string[] }) => {
+    const fit = Math.min(lines.length, getRows(target))
+    const isWhole = isErased && (kept === 0 || columns !== getColumns(target))
+    const count = isWhole ? lines.length : Math.max(fit, lines.length - kept)
+    target.write(lines.slice(-count).join('\n'))
+  }
+  const flush = (ending = '') => {
     if (!isHeld) return
     isHeld = false
     if (!frame) return
+    if (draw && stop) {
+      redraw({ ...stop, lines: exactRows(draw() + ending) })
+      stop = undefined
+      return
+    }
     // WHY: Clack keeps right only the rows that were on screen when it last wrote, so the rows of a taller question above them stay in the history above what the shell wrote. A taller screen alone has Clack write nothing.
     const shown = Math.min(frame.screenRows, screenRows(target))
     const start = Math.max(frame.keptRow, frame.lines.length - shown)
@@ -127,7 +154,8 @@ export function questionFrame<Output extends Writable>(
   }
   const record = (chunk: string) => {
     if (chunk.includes(showCursor)) {
-      flush()
+      // WHY: Clack ends a question with a new line before it shows the cursor.
+      flush('\n')
       frame = undefined
       return
     }
@@ -168,6 +196,24 @@ export function questionFrame<Output extends Writable>(
     erase() {
       // WHY: A question drawn with unknown bytes stays as it is. One whose rows went above the top of the screen since Clack last wrote it from there cannot be erased whole, so it stays and its rows on screen are drawn again below what the shell writes.
       if (!frame?.isKnown || isHeld) return
+      if (draw) {
+        // WHY: Clack leaves the cursor at the end of the question, and the rows of a question taller than the screen above its top are in the history, where no erase reaches.
+        const lines = exactRows(draw())
+        const shown = Math.min(lines.length, getRows(target))
+        // WHY: tmux copies the screen to its history on an erase from the top left corner, and the first row of a question may be on the top row of the screen, so it is cleared alone and the rest from the row below it.
+        target.write(
+          shown > 1
+            ? `${escape}[${shown - 1}A${escape}[2K${escape}[B\r${escape}[J${escape}[A`
+            : `\r${escape}[J`
+        )
+        stop = {
+          kept: lines.length - shown,
+          columns: getColumns(target),
+          isErased: true
+        }
+        isHeld = true
+        return
+      }
       if (frame.bottom < screenRows(target)) {
         // WHY: tmux copies the screen to its history on an erase from the top left corner, and the first row of a question may be on the top row of the screen, so it is cleared alone and the rest from the row below it.
         // WHY: The rows above the first one Clack keeps right were not drawn again, and what is there may belong to the shell.
@@ -188,8 +234,24 @@ export function questionFrame<Output extends Writable>(
       isHeld = true
     },
     hold() {
-      if (frame?.isKnown) isHeld = true
+      if (!frame?.isKnown) return
+      // WHY: A held question stays whole on the screen or in the history.
+      if (draw && !isHeld) {
+        const lines = exactRows(draw())
+        stop = {
+          kept: lines.length,
+          columns: getColumns(target),
+          isErased: false
+        }
+      }
+      isHeld = true
     },
-    flush
+    flush: () => {
+      flush()
+    },
+    follow(next) {
+      draw = next
+    }
   }
 }
+export type Follow = (draw?: () => string) => void

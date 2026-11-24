@@ -579,11 +579,14 @@ for (const pause of ['erase', 'hold'] as const) {
     for (const key of typed) await question.press(key)
     // The terminal of the stop gets twice as tall.
     const tallScreen = 12
-    const { flushed } = await question.stop(pause, async () =>
+    const { erased, flushed } = await question.stop(pause, async () =>
       question.heighten(tallScreen)
     )
     await question.close()
+    // Clack last wrote on the screen of tableRows rows, so the draw has as many rows.
     assertDrawn({ entries, flushed, round: `${name}, taller screen` })
+    // The question grew past the screen and Clack did not write it from the top since.
+    assert.deepEqual(erased, [], `${name}, taller screen: erase`)
   })
 }
 const home = '\u001B[H'
@@ -637,10 +640,28 @@ for (const pause of ['erase', 'hold'] as const) {
     const second = await question.stop(pause)
     await question.close()
     const edited = `${value.slice(0, editAt)}y${value.slice(editAt)}z`
-    for (const [index, { flushed }] of [first, second].entries()) {
-      const typed = index === 0 ? edited : `${edited}w`
-      const drawn = await firstFrame({ value: typed, columns: firstColumns })
-      const entries = drawn.split('\n')
+    const [firstEntries, secondEntries] = await Promise.all(
+      [edited, `${edited}w`].map(async typed => {
+        const drawn = await firstFrame({ value: typed, columns: firstColumns })
+        return drawn.split('\n')
+      })
+    )
+    const firstLength = firstEntries?.length ?? 0
+    const secondLength = secondEntries?.length ?? 0
+    // The first stop draws the rows of the screen of tableRows rows on which Clack last wrote, and the first of them is the
+    // first row Clack keeps right. The letter makes Clack write again, on the taller screen, from the first row that
+    // changed among the rows it takes for on screen, so the second stop draws from the higher of those two rows.
+    const changed = secondEntries?.findIndex(
+      (line, index) => line !== firstEntries?.[index]
+    )
+    const written = Math.max(changed ?? 0, secondLength - tallerScreen)
+    const kept = Math.min(firstLength - tableRows, written)
+    const expectedRows = [
+      tableRows,
+      Math.min(secondLength - kept, tallerScreen)
+    ]
+    for (const [index, { erased, flushed }] of [first, second].entries()) {
+      const entries = (index === 0 ? firstEntries : secondEntries) ?? []
       const [draw = ''] = flushed
       const drawnRows = draw.split('\n').length
       assert.equal(flushed.length, 1, `stop ${index + 1}`)
@@ -649,8 +670,71 @@ for (const pause of ['erase', 'hold'] as const) {
         entries.slice(-drawnRows).join('\n'),
         `stop ${index + 1}: old row`
       )
+      assert.equal(
+        drawnRows,
+        expectedRows[index],
+        `stop ${index + 1}: number of rows`
+      )
+      // At the first stop the question grew past the screen. After the letter Clack wrote it again, with an erase below,
+      // from the first row it keeps right, so the second stop erases the rows from there.
+      const up = (expectedRows[index] ?? 0) - 1
+      assert.deepEqual(
+        erased,
+        index > 0 && pause === 'erase' ? [erasure(up)] : [],
+        `stop ${index + 1}: erase`
+      )
     }
   })
+}
+// A screen that gets shorter during the stop changes no row of the question, so Clack writes nothing. The draw has as many
+// rows as the shorter screen, and the rows above them stay in the history above what the shell wrote.
+const shorterScreen = 4
+for (const pause of ['erase', 'hold'] as const) {
+  void it(`draws back as many rows as the screen has now of a question taller than the screen after a shorter screen during the stop, ${pause === 'erase' ? 'erased' : 'held'}`, async () => {
+    const [tall = 0] = await valueLengths({
+      height: tableRows + rowsAbove,
+      columns: firstColumns
+    })
+    const question = await openQuestion(firstColumns)
+    await question.press('x'.repeat(tall))
+    const { erased, flushed } = await question.stop(pause, async () =>
+      question.heighten(shorterScreen)
+    )
+    await question.close()
+    const drawn = await drawnQuestion({ length: tall, columns: firstColumns })
+    const entries = drawn.split('\n')
+    assert.deepEqual(flushed, [entries.slice(-shorterScreen).join('\n')])
+    assert.deepEqual(erased, [], 'erase')
+  })
+}
+// Ctrl+Z, fg and Ctrl+Z again with no key between: the second stop starts from what the flush of the first one left.
+for (const height of [tableRows - 1, tableRows + rowsAbove]) {
+  for (const pause of ['erase', 'hold'] as const) {
+    const place = height < tableRows ? 'shorter than' : 'taller than'
+    void it(`draws back no old row of a question ${place} the screen stopped twice with no key between, ${pause === 'erase' ? 'erased' : 'held'}`, async () => {
+      const [length = 0] = await valueLengths({
+        height,
+        columns: firstColumns
+      })
+      const question = await openQuestion(firstColumns)
+      await question.press('x'.repeat(length))
+      const first = await question.stop(pause)
+      const second = await question.stop(pause)
+      await question.close()
+      const drawn = await drawnQuestion({ length, columns: firstColumns })
+      const entries = drawn.split('\n')
+      const up = Math.min(entries.length, tableRows) - 1
+      for (const [index, { erased, flushed }] of [first, second].entries()) {
+        const round = `stop ${index + 1}`
+        assertDrawn({ entries, flushed, round })
+        assert.deepEqual(
+          erased,
+          pause === 'erase' && height < tableRows ? [erasure(up)] : [],
+          `${round}: erase`
+        )
+      }
+    })
+  }
 }
 const wideColumns = columnsAfter.wider
 const narrowColumns = columnsAfter.narrower

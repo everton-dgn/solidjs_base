@@ -510,15 +510,17 @@ def recorded(file):
         time.sleep(.01)
 
 
-def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False, ask_directory=False, name="app", errors=None, preload=None, environment=None):
-    """With errors, stderr goes to that file instead of the terminal. Node imports the preload module before the CLI."""
+def question_session(directory, language, prompts, before_answer=None, color=False, columns=80, piped=False, ask_directory=False, name="app", errors=None, preload=None, environment=None, flags=None):
+    """With errors, stderr goes to that file instead of the terminal. Node imports the preload module before the CLI.
+    flags replace the Git and install flags."""
     master, slave = pty.openpty()
     error_file = open(errors, "wb") if errors else None
     try:
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, columns, 0, 0))
         with subprocess.Popen([node, *(["--import", pathlib.Path(preload).as_uri()] if preload else []), cli, *([] if ask_directory else [name]), "--lang", language, "--mode", "server",
-                               "--no-git", "--install" if piped else "--no-install"], cwd=directory,
-                              env=dict(os.environ, PATH=directory + os.pathsep + os.environ["PATH"] if piped else os.environ["PATH"], CI="false", NO_COLOR="" if color else "1", FORCE_COLOR="1" if color else "0", TERM="xterm", **(environment or {})),
+                               *(flags or ["--no-git", "--install" if piped else "--no-install"])], cwd=directory,
+                              env={**os.environ, "PATH": directory + os.pathsep + os.environ["PATH"] if piped else os.environ["PATH"], "CI": "false",
+                                   "NO_COLOR": "" if color else "1", "FORCE_COLOR": "1" if color else "0", "TERM": "xterm", **(environment or {})},
                               stdin=slave, stdout=subprocess.PIPE if piped else slave, stderr=error_file or slave) as child:
             reader = child.stdout.fileno() if piped else master
             os.close(slave)
@@ -3163,6 +3165,12 @@ process.stdout.write = (...args) => {
             ("a value", [("Application title", b"ab"), ("ab", b"\x04c"), ("abc", b"\x03")], ["■  Application title", "│  abc"]),
             ("a value with Enter in the same read", [("Application title", b"ab"), ("ab", b"\x04\r"), ("Setup", b"\x03")],
              ["■  Setup", "│  Recommended"]),
+            # A value that failed its check keeps its text and its error until the next key, and Ctrl+D keeps it too.
+            ("a value with an error", [("Application title", b"  \r"), ("without control characters", b"\x04c"), ("  c", b"\x03")],
+             ["■  Application title", "│    c"]),
+            # n closes the confirm and leaves raw mode, so the Ctrl+D after it does nothing and n cancels as it does alone.
+            ("a confirm answered with n and the Ctrl+D in the same read", [*select, ("Setup", b"\r"), ("Create the project?", b"n\x04")],
+             ["◇  Create the project?", "│  No", "│", "└  Creation canceled."]),
         ]
         for name, prompts, *kept in [*cancels, *stays, *((name, prompts, None) for name, prompts in creates)]:
             with self.subTest(case=name), tempfile.TemporaryDirectory() as directory:
@@ -3181,6 +3189,19 @@ process.stdout.write = (...args) => {
                 if kept and not is_created:
                     final = re.sub(r"\x1b\[\?25[hl]", "", output.rsplit("\x1b[J", 1)[-1])
                     self.assertEqual(final.rstrip().splitlines()[:len(kept[0])], kept[0])
+        # The questions that recover a missing Git or installer cancel on Ctrl+D as the other questions do, whatever keys
+        # came before it.
+        for name, flags, prompts in [
+            ("the confirm of a missing Git after l", ["--git", "--no-install"], [*select, ("Setup", b"\r"), ("Install Git", b"l\x04")]),
+            ("the select of a missing installer after j", ["--no-git", "--install"],
+             [*select, ("Setup", b"\r"), ("Install Bun before", b"j\x04")]),
+        ]:
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as tools:
+                errors = pathlib.Path(directory, "stderr")
+                output, status = question_session(directory, "en", prompts, errors=errors, flags=flags, environment={"PATH": tools})
+                plain = re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", output).replace("\r", "").rstrip().splitlines()
+                self.assertEqual((status, errors.read_text()), (130, ""))
+                self.assertEqual(plain[-1], "└  Creation canceled.")
 
     def test_input_error_at_a_question(self):
         # An error of the input at a question, while the terminal still shows what the CLI writes. A closed terminal answers

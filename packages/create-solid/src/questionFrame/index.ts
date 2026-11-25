@@ -224,8 +224,8 @@ export function questionFrame<Output extends Writable>(
     }),
     isOpen: () => frame !== undefined,
     erase() {
-      // WHY: A question drawn with unknown bytes stays as it is. One whose rows went above the top of the screen since Clack last wrote it from there cannot be erased whole, so it stays and its rows on screen are drawn again below what the shell writes.
-      if (!frame?.isKnown || isHeld) return
+      // WHY: A question drawn with unknown bytes stays as it is, unless it is a text question of the CLI, which is computed from its state. One whose rows went above the top of the screen since Clack last wrote it from there cannot be erased whole, so it stays and its rows on screen are drawn again below what the shell writes.
+      if (!frame || isHeld || (!draw && !frame.isKnown)) return
       if (draw) {
         // WHY: Clack leaves the cursor at the end of the question, and the rows of a question taller than the screen above its top are in the history, where no erase reaches.
         const lines = exactRows(draw())
@@ -264,7 +264,7 @@ export function questionFrame<Output extends Writable>(
       isHeld = true
     },
     hold() {
-      if (!frame?.isKnown) return
+      if (!frame || (!draw && !frame.isKnown)) return
       // WHY: A held question stays whole on the screen or in the history.
       if (draw && !isHeld) {
         const lines = exactRows(draw())

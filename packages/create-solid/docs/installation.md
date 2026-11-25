@@ -276,9 +276,11 @@ taller than the screen again from the top. When every row that changed is above
 the screen, Clack only moves the cursor up to the top of the screen: Ctrl+Z, or
 a stop from outside while the CLI owns the terminal, moves the cursor back to
 the end of the question first, but on a stop from outside while the CLI does not
-own the terminal the shell writes over the question. A question whose output
-holds bytes the CLI does not recognize is left as it is on Ctrl+Z and is not
-drawn again on `fg`.
+own the terminal the shell writes over the question. One of these questions
+whose output holds bytes the CLI does not recognize is left as it is on Ctrl+Z
+and is not drawn again on `fg`. A text question whose value holds a control
+character, such as the one Ctrl+\ types at it, is erased and drawn again like
+any other.
 
 Ctrl+\ during a step shows the cursor and quits.
 

@@ -10,7 +10,7 @@ import { projectSummary } from './projectSummary/index.ts'
 import { type Follow, questionFrame } from './questionFrame/index.ts'
 import { readPendingSignals } from './readPendingSignals/index.ts'
 import { questionnaireBase } from './resolve-locale-options.ts'
-import type { progress as frameProgress } from './terminal-frame.ts'
+import type { closeFrame, progress as frameProgress } from './terminal-frame.ts'
 import { checkTools, hasTool, toolNames } from './tools.ts'
 import type { Answers } from './types.ts'
 import {
@@ -19,21 +19,17 @@ import {
   UsageError
 } from './usage-error.ts'
 import { validateProfile } from './validateProfile/index.ts'
+import { watchOutputs } from './watchOutputs/index.ts'
 
-// WHY: A write to a terminal that closed fails with EIO and one to a pipe whose reader ended fails with EPIPE, both on a later tick. Node then opens process.stdout and process.stderr again, so each later write fails the same way and lands here, and the CLI goes on with what it was doing, such as waiting for the cleanup of the installer. On a file EIO is a failure of the disk.
-function dropGoneOutput(output: NodeJS.WriteStream) {
-  return (error: NodeJS.ErrnoException) => {
-    const isGone =
-      error.code === 'EPIPE' || (error.code === 'EIO' && output.isTTY)
-    if (!isGone) throw error
-  }
-}
-process.stdout.on('error', dropGoneOutput(process.stdout))
-process.stderr.on('error', dropGoneOutput(process.stderr))
+const outputs = watchOutputs()
 const argumentOffset = 2
 const usageExitCode = 2
 const terminal = { isFramed: false }
 let language: ReturnType<typeof cliLanguage> = 'en'
+// WHY: A write that failed after the last step, such as one of the closing lines, has nothing left to stop.
+process.on('beforeExit', () => {
+  if (outputs.signal.aborted) outputs.report({ language, resume: '' })
+})
 function detectLanguage(options: string[]) {
   const index = options.findLastIndex(
     arg => arg === '--lang' || arg.startsWith('--lang=')
@@ -75,6 +71,13 @@ function cancelPrompt() {
   process.stdout.write(showCursor)
   process.stdin.setRawMode(false)
   writeCancel()
+}
+function failPrompt() {
+  isCanceling = true
+  process.stdout.write(showCursor)
+  process.stdin.setRawMode(false)
+  outputs.report({ language, resume: '' })
+  process.exit(1)
 }
 // WHY: The change of mode of a terminal that closed failed with ENOENT on macOS and with EIO on Linux.
 const closedTerminalCodes = new Set(['EIO', 'ENOENT'])
@@ -142,6 +145,8 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
   process.stdin.on('error', closeInput)
   // WHY: readline closes on Ctrl+D at an empty line without ending the input, and Clack then waits for a key that can no longer come. Once the loop is empty nothing can answer the question.
   process.on('beforeExit', cancelPrompt)
+  if (outputs.signal.aborted) failPrompt()
+  outputs.signal.addEventListener('abort', failPrompt)
   try {
     return await prompt({ output: frame.output, follow: frame.follow })
   } finally {
@@ -156,6 +161,7 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
     process.stdin.off('end', cancelPrompt)
     process.stdin.off('error', closeInput)
     process.off('beforeExit', cancelPrompt)
+    outputs.signal.removeEventListener('abort', failPrompt)
   }
 }
 type GenerationError = { error: unknown; progress?: typeof frameProgress }
@@ -204,6 +210,43 @@ function recordSignals(): SignalRecord {
     }
   }
 }
+type StepTitles = { active: string; failure: string }
+type Frame = { progress: typeof frameProgress; closeFrame: typeof closeFrame }
+type GenerationClosing = {
+  error: unknown
+  frame: Frame | undefined
+  titles: StepTitles
+  signals: SignalRecord
+}
+function closeGeneration({
+  error,
+  frame,
+  titles,
+  signals
+}: GenerationClosing): void {
+  if (outputs.signal.aborted) {
+    frame?.progress.clear()
+    outputs.report({ language, resume: errorMessage(error) })
+    return
+  }
+  const labels = messages[language]
+  const isCanceled = error instanceof CanceledError
+  const reason = errorMessage(error)
+  const closing = isCanceled ? labels.cancel : labels.stopped
+  if (frame) {
+    if (isCanceled) frame.progress.cancel()
+    else frame.progress.error(titles.failure)
+    frame.closeFrame({ reason, closing })
+  } else {
+    const title = isCanceled ? `■ ${titles.active}` : `▲ ${titles.failure}`
+    writePlainClosing({
+      lines: [...[title, reason].filter(Boolean), '', closing, ''],
+      isCanceled,
+      signals
+    })
+  }
+  process.exitCode = isCanceled ? interruptedExitCode : 1
+}
 async function createApplication({ answers, isInteractive }: Creation) {
   if (answers.locales === undefined && answers['base-locale'] === undefined) {
     answers['base-locale'] = questionnaireBase({
@@ -245,6 +288,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
       {
         language,
         isInteractive,
+        abortSignal: outputs.signal,
         warn: diagnostic => {
           const title = [labels.gitFailed, diagnostic]
             .filter(Boolean)
@@ -284,22 +328,12 @@ async function createApplication({ answers, isInteractive }: Creation) {
     )
   } catch (error) {
     rethrowUsageError({ error, progress })
-    const isCanceled = error instanceof CanceledError
-    const reason = errorMessage(error)
-    const closing = isCanceled ? labels.cancel : labels.stopped
-    if (frame) {
-      if (isCanceled) frame.progress.cancel()
-      else frame.progress.error(failureTitle)
-      frame.closeFrame({ reason, closing })
-    } else {
-      const title = isCanceled ? `■ ${active}` : `▲ ${failureTitle}`
-      writePlainClosing({
-        lines: [...[title, reason].filter(Boolean), '', closing, ''],
-        isCanceled,
-        signals
-      })
-    }
-    process.exitCode = isCanceled ? interruptedExitCode : 1
+    closeGeneration({
+      error,
+      frame,
+      titles: { active, failure: failureTitle },
+      signals
+    })
     return
   } finally {
     signals.stop()

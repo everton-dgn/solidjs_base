@@ -387,18 +387,39 @@ const timer = setInterval(() => {
 timer.unref();
 """
 
-# Once the CLI has written to its standard output, this emits on that output the error of a write that failed with EIO.
+# Once the CLI has written to its standard output, this emits on that output the error of a write that failed with EIO, and
+# every later write to it fails the same way, as on a disk that failed. With OUTPUT_ERROR it waits instead for the script to
+# write a code in that file, and fails with that code.
 OUTPUT_ERROR_MODULE = """
+import { existsSync, readFileSync } from 'node:fs';
 const output = process.stdout;
-const write = output.write;
-let isFailed = false;
-output.write = function (...args) {
-  if (!isFailed) {
-    isFailed = true;
-    setImmediate(() => output.emit('error', Object.assign(new Error('write EIO'), { code: 'EIO', errno: -5, syscall: 'write' })));
-  }
-  return Reflect.apply(write, this, args);
+const failure = code => Object.assign(new Error(`write ${code}`), { code, syscall: 'write' });
+const fail = code => {
+  output._write = (chunk, encoding, callback) => callback(failure(code));
+  output._writev = (chunks, callback) => callback(failure(code));
+  output.emit('error', failure(code));
 };
+if (process.env.OUTPUT_ERROR) {
+  const timer = setInterval(() => {
+    if (!existsSync(process.env.OUTPUT_ERROR)) return;
+    // A file exists before its content is written.
+    const code = readFileSync(process.env.OUTPUT_ERROR, 'utf8');
+    if (!code) return;
+    clearInterval(timer);
+    fail(code);
+  }, 10);
+  timer.unref();
+} else {
+  const write = output.write;
+  let isFailed = false;
+  output.write = function (...args) {
+    if (!isFailed) {
+      isFailed = true;
+      setImmediate(() => fail('EIO'));
+    }
+    return Reflect.apply(write, this, args);
+  };
+}
 """
 
 # This records in WRITE_RECORD each write to the standard output and error of the CLI, with the output, whether the chunk is
@@ -2917,8 +2938,9 @@ process.stdout.write = (...args) => {
                     pass
 
     def test_output_error_on_a_file(self):
-        # On a terminal EIO means that the terminal closed, and the CLI goes on. On a file it is a failure of the disk, and
-        # the CLI stops with it.
+        # On a terminal EIO means that the terminal closed, and the CLI goes on. On a file it is a failure of the disk: the
+        # CLI stops the generation as a signal does, before it creates the files, and ends with code 1 and one short line
+        # on its standard error.
         for terminal in (False, True):
             with self.subTest(terminal=terminal), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
@@ -2953,8 +2975,60 @@ process.stdout.write = (...args) => {
                 if terminal:
                     self.assertEqual((child.returncode, errors), (0, b""))
                 else:
-                    self.assertEqual(child.returncode, 1, errors)
-                    self.assertIn(b"write EIO", errors)
+                    self.assertEqual((child.returncode, errors), (1, b"Could not write to the standard output: EIO.\n"))
+                    self.assertFalse((root / "app").exists())
+
+    def test_output_error_during_cleanup(self):
+        # A write to a file that fails during the install, with EIO or ENOSPC as on a full disk, stops the CLI as a signal
+        # does: the installer gets SIGINT and ends its cleanup of about 1.5 s, and the CLI ends with code 1, the waiting
+        # line, one short line and the commands left to run, on its standard error.
+        for code in ("EIO", "ENOSPC"):
+            with self.subTest(code=code), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                (root / "installer.js").write_text(CLEANING_INSTALLER)
+                installer = root / "bun"
+                installer.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(root / 'installer.js'))}\n")
+                installer.chmod(0o755)
+                preload = root / "output-error.mjs"
+                preload.write_text(OUTPUT_ERROR_MODULE)
+                trigger, cleaned, pid_file = root / "output-error", root / "cleaned", root / "installer.pid"
+                env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + ":" + os.environ["PATH"],
+                           PID_FILE=str(pid_file), CLEANING=str(root / "cleaning"), CLEANED=str(cleaned),
+                           FINISH=str(root / "finish"), CLEANUP_MS="1500", OUTPUT_ERROR=str(trigger))
+                try:
+                    with open(root / "output", "wb") as file, subprocess.Popen(
+                            [node, "--import", preload.as_uri(), cli, "app", "--yes", "--lang", "en", "--no-git"],
+                            cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=file, stderr=subprocess.PIPE) as child:
+                        try:
+                            self.assertIsNotNone(recorded(pid_file))
+                            trigger.write_text(code)
+                            _, errors = child.communicate(timeout=CLEANUP_LIMIT_S + 4)
+                        finally:
+                            if child.poll() is None:
+                                child.kill()
+                    self.assertTrue(cleaned.exists(), errors)
+                    self.assertEqual((child.returncode, errors.decode().splitlines()), (1, [
+                        SIGNAL_WAITING_LINE, f"Could not write to the standard output: {code}.",
+                        "Your project is in app. To finish, run:", "cd app", "bun install"]))
+                finally:
+                    target = recorded(pid_file) if pid_file.exists() else None
+                    try:
+                        if target:
+                            os.kill(target, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+
+    def test_output_error_at_a_question(self):
+        # A write that fails at a question with a code that is no closed terminal ends the CLI with code 1 and one short line
+        # on the standard error.
+        with tempfile.TemporaryDirectory() as directory:
+            errors, trigger = pathlib.Path(directory, "stderr"), pathlib.Path(directory, "output-error")
+            preload = pathlib.Path(directory, "output-error.mjs")
+            preload.write_text(OUTPUT_ERROR_MODULE)
+            _, status = question_session(directory, "en", [("Application title", b"")],
+                                         before_answer=lambda label: trigger.write_text("ENOSPC"), errors=errors,
+                                         preload=preload, environment={"OUTPUT_ERROR": str(trigger)})
+            self.assertEqual((status, errors.read_text()), (1, "Could not write to the standard output: ENOSPC.\n"))
 
     def test_feature_colors(self):
         with tempfile.TemporaryDirectory() as directory:

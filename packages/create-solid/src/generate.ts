@@ -314,6 +314,7 @@ const prepared = { guides: applyPreparedGuides, source: applyPreparedSource }
 type TerminalOptions = {
   isInteractive?: boolean
   language: Language
+  abortSignal?: AbortSignal
   warn?: (diagnostic: string) => void
   report: (progress: Progress) => void
   onWait?: (reason: string) => void
@@ -717,11 +718,22 @@ export function generate(input: Profile): string[] {
 }
 export async function generateTerminal(
   input: Profile,
-  { language, report, warn, onWait, isInteractive = false }: TerminalOptions
+  {
+    language,
+    report,
+    warn,
+    onWait,
+    abortSignal,
+    isInteractive = false
+  }: TerminalOptions
 ): Promise<string[]> {
   const steps = generation({ input, prepare: prepared, language })
   const controller = new AbortController()
   const cancel = (signalName: NodeJS.Signals) => controller.abort(signalName)
+  // WHY: A write the CLI cannot drop stops the generation as a signal does.
+  const stopping = abortSignal
+    ? AbortSignal.any([controller.signal, abortSignal])
+    : controller.signal
   const signals = ['SIGINT', 'SIGHUP', 'SIGTERM'] as const
   for (const signal of signals) process.on(signal, cancel)
   try {
@@ -733,12 +745,12 @@ export async function generateTerminal(
       }
       await setImmediate()
       try {
-        controller.signal.throwIfAborted()
+        stopping.throwIfAborted()
         if (typeof step === 'object') {
           await executeSetup(step, {
             isInteractive,
             cwd: input.dir,
-            signal: controller.signal,
+            signal: stopping,
             ...(onWait ? { onWait } : {})
           })
         }
@@ -746,9 +758,9 @@ export async function generateTerminal(
         const hasGitWarning =
           typeof step === 'object' &&
           step.task === 'gitTask' &&
-          !controller.signal.aborted &&
+          !stopping.aborted &&
           !(error instanceof CanceledError)
-        const failure = controller.signal.aborted ? new CanceledError() : error
+        const failure = stopping.aborted ? new CanceledError() : error
         current = await advance(() => steps.throw(failure))
         if (hasGitWarning) {
           warn?.(

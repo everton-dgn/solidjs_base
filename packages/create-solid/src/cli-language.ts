@@ -125,6 +125,8 @@ Automation
     installWait: 'Press Ctrl+C to stop {pm} now. Waiting for it to clean up.',
     installWaitAgain:
       'Press Ctrl+C again to stop {pm} now. Waiting for it to clean up.',
+    stdoutFailed: 'Could not write to the standard output: {code}.',
+    stderrFailed: 'Could not write to the standard error: {code}.',
     dir: 'Project directory',
     title: 'Application title',
     mode: 'Rendering mode',
@@ -264,6 +266,8 @@ Automação
       'Aperte Ctrl+C para parar o {pm} agora. Esperando o fim da limpeza.',
     installWaitAgain:
       'Aperte Ctrl+C de novo para parar o {pm} agora. Esperando o fim da limpeza.',
+    stdoutFailed: 'Não foi possível escrever na saída padrão: {code}.',
+    stderrFailed: 'Não foi possível escrever na saída de erro: {code}.',
     dir: 'Pasta do projeto',
     title: 'Título da aplicação',
     mode: 'Modo de renderização',
@@ -406,6 +410,8 @@ Automatización
       'Pulsa Ctrl+C para detener {pm} ya. Esperando el fin de la limpieza.',
     installWaitAgain:
       'Pulsa Ctrl+C otra vez para detener {pm} ya. Esperando el fin de la limpieza.',
+    stdoutFailed: 'No se pudo escribir en la salida estándar: {code}.',
+    stderrFailed: 'No se pudo escribir en la salida de error: {code}.',
     dir: 'Carpeta del proyecto',
     title: 'Título de la aplicación',
     mode: 'Modo de renderizado',

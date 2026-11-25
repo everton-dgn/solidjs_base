@@ -391,7 +391,12 @@ async function executeSetup(
   child.once('error', ended.reject)
   child.once('close', ended.resolve)
   child.once('exit', () => {
-    settlePipes({ child, boundMs: cleanupLimitMs, onSettled: release })
+    settlePipes({
+      child,
+      outputs: [process.stdout, process.stderr],
+      boundMs: cleanupLimitMs,
+      onSettled: release
+    })
   })
   let isForced = false
   const force = () => {

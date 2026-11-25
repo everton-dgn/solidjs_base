@@ -2727,6 +2727,66 @@ process.stdout.write = (...args) => {
                 except ProcessLookupError:
                     pass
 
+    def test_plain_output_closed_while_it_asked_for_drain(self):
+        # The reader of the output of the CLI stops reading while the installer writes a megabyte, so the output asks for
+        # drain, and then goes away. The installer then exits while a process it started keeps its pipes open with nothing
+        # to write. The write that failed left the output asking for drain with nothing to write, and the CLI lets go of
+        # the pipes after the short wait for them.
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            grandchild, record, children_file = root / "grandchild.pid", root / "record", root / "children"
+            installer = root / "bun"
+            installer.write_text('#!/bin/sh\nsleep 30 &\necho $! > "$GRANDCHILD"\n'
+                                 f"head -c {1024 * 1024} /dev/zero | tr '\\0' d\n")
+            installer.chmod(0o755)
+            preload, entry = root / "record.mjs", root / "entry.mjs"
+            preload.write_text(WRITE_RECORD_MODULE)
+            entry.write_text(EXIT_ENTRY)
+            env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + ":" + os.environ["PATH"],
+                       GRANDCHILD=str(grandchild), WRITE_RECORD=str(record), EXIT_FILE=str(root / "cli.exit"),
+                       CLI_URL=cli.as_uri(), CLI_CHILDREN=str(children_file))
+            reader, writer = os.pipe()
+            try:
+                with subprocess.Popen([node, "--import", preload.as_uri(), entry, "app", "--yes", "--lang", "en", "--no-git"],
+                                      cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=writer, stderr=subprocess.PIPE) as child:
+                    os.close(writer)
+                    writer = None
+                    try:
+                        printed = bytearray()
+                        deadline = time.monotonic() + 10
+                        while b"Files created\n" not in printed:
+                            self.assertTrue(select.select([reader], [], [], max(0, deadline-time.monotonic()))[0], printed)
+                            printed.extend(os.read(reader, 4096))
+                        def lines():
+                            return record.read_text().splitlines() if record.exists() else []
+                        deadline = time.monotonic() + 10
+                        while not any(line.startswith("write stdout bytes ") and line.split()[4] == "false" for line in lines()):
+                            self.assertLess(time.monotonic(), deadline, lines()[-3:])
+                            time.sleep(.01)
+                        os.close(reader)
+                        reader = None
+                        _, errors = child.communicate(timeout=CLEANUP_LIMIT_S + 4)
+                        ended = time.time()
+                    finally:
+                        if child.poll() is None:
+                            child.kill()
+                # The path: a write of the forward returned false, and the output failed after it.
+                self.assertIn("error stdout EPIPE", lines())
+                self.assertEqual((child.returncode, errors), (0, b""))
+                # The record ends with the time of the exit, in milliseconds since the epoch.
+                [exited] = [float(line.split()[-1]) / 1000 for line in children_file.read_text().splitlines() if line.startswith("exit ")]
+                self.assertLess(ended - exited, PIPE_DRAIN_S + 1.5)
+            finally:
+                for descriptor in (reader, writer):
+                    if descriptor is not None:
+                        os.close(descriptor)
+                target = recorded(grandchild) if grandchild.exists() else None
+                try:
+                    if target:
+                        os.kill(target, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+
     def test_output_error_on_a_file(self):
         # On a terminal EIO means that the terminal closed, and the CLI goes on. On a file it is a failure of the disk, and
         # the CLI stops with it.

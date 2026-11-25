@@ -321,7 +321,8 @@ async function createApplication({ answers, isInteractive }: Creation) {
           // WHY: A SIGINT sent with kill cannot be told from Ctrl+C, and any other signal came from no key.
           const code = reason === 'SIGINT' ? 'installWaitAgain' : 'installWait'
           const notice = message(language, { code, values })
-          if (progress) progress.wait(notice)
+          // WHY: The indicator draws only on a terminal, and stdout may go elsewhere, as in create-solid app | tee log.
+          if (progress && process.stdout.isTTY) progress.wait(notice)
           else process.stderr.write(`${echoBreak(signals)}${notice}\n`)
         }
       }

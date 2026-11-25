@@ -205,8 +205,10 @@ def bash_path():
     return "/bin/bash" if os.path.exists("/bin/bash") else shutil.which("bash")
 
 
-def start_cli(root, arguments, environment, job_control=False, launcher=False, executable=cli, shell=False, stay=False):
+def start_cli(root, arguments, environment, job_control=False, launcher=False, executable=cli, shell=False, stay=False, stdout=None):
     """Fork the CLI on a new terminal: alone in its session, under a parent that waits like a shell with job control, or under a shell of its own group.
+
+    With stdout, the standard output of the CLI goes to that descriptor instead of the terminal, as with | cat.
 
     With shell, that parent also takes the terminal back on every stop, as a shell does, and gives it back with SIGCONT when the script calls foreground.
     With stay, it also takes the terminal back when the launcher ends and stays until the CLI records its exit code in cli.exit.
@@ -219,6 +221,8 @@ def start_cli(root, arguments, environment, job_control=False, launcher=False, e
     pid, master, slave = fork_terminal()
     if pid == 0:
         os.chdir(root)
+        if stdout is not None:
+            os.dup2(stdout, 1)
         if job_control:
             # Keep a parent in this session but outside the foreground group.
             modes = termios.tcgetattr(0)
@@ -772,6 +776,61 @@ class Cancellation(unittest.TestCase):
                 self.assertEqual(status, 130 if canceled else 0, output)
                 self.assertEqual(output.replace("\x1b[?25h", "").rstrip().splitlines()[-1],
                                  "└  Creation canceled." if canceled else "└  Project created.")
+        # Ctrl+C during the install: the indicator draws only on a terminal, so the waiting line goes to the standard
+        # error, here the terminal, after the ^C the terminal echoes.
+        with self.subTest(canceled="during the install"), tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / "installer.js").write_text(CLEANING_INSTALLER)
+            installer = root / "bun"
+            installer.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(root / 'installer.js'))}\n")
+            installer.chmod(0o755)
+            cleaned = root / "cleaned"
+            reader, writer = os.pipe()
+            pid, master, slave = start_cli(
+                root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install"],
+                {"PID_FILE": str(root / "installer.pid"), "PATH": directory + ":" + os.environ["PATH"],
+                 "CLEANING": str(root / "cleaning"), "CLEANED": str(cleaned), "FINISH": str(root / "finish"),
+                 "CLEANUP_MS": "1500"}, stdout=writer)
+            os.close(writer)
+            terminal, piped = Reader(self, master), Reader(self, reader)
+            waited = False
+            try:
+                for prompt in [b"Application title", b"Setup", b"Create the project?"]:
+                    piped.until(prompt)
+                    os.write(master, b"\r")
+                piped.until(b"Files created")
+                self.assertIsNotNone(recorded(root / "installer.pid"))
+                start = len(terminal.transcript)
+                os.write(master, b"\x03")
+                terminal.until(WAITING_LINE.encode(), start)
+                piped.until(b"Creation canceled.")
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline:
+                    terminal.drain()
+                    finished, status = os.waitpid(pid, os.WNOHANG)
+                    if finished:
+                        waited = True
+                        break
+                    time.sleep(.01)
+                self.assertTrue(waited)
+                terminal.drain()
+                self.assertEqual(os.waitstatus_to_exitcode(status), 130)
+                self.assertTrue(cleaned.exists())
+                self.assertEqual(terminal.transcript[start:].decode().splitlines(), ["^C", WAITING_LINE])
+            finally:
+                (root / "finish").touch()
+                os.close(master)
+                os.close(slave)
+                os.close(reader)
+                if not waited:
+                    os.kill(pid, signal.SIGKILL)
+                    os.waitpid(pid, 0)
+                target = recorded(root / "installer.pid") if (root / "installer.pid").exists() else None
+                try:
+                    if target and os.getsid(target) == pid:
+                        os.kill(target, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
 
     def test_step_job_signals(self):
         # Without a key the script stops the CLI itself, as an outside SIGSTOP would.

@@ -1,9 +1,13 @@
+import { Buffer } from 'node:buffer'
 import type { ChildProcess } from 'node:child_process'
-import { performance } from 'node:perf_hooks'
 import type { Writable } from 'node:stream'
+
+import { setRunningTimeout } from '../setRunningTimeout/index.ts'
 
 // WHY: What the installer wrote before it exited may still wait in its pipes while the reader of this output is slow, and a process it started, such as a lifecycle script that outlives bun, may keep those pipes open with nothing more to write.
 const quietMs = 500
+// WHY: Once the installer has exited, what its pipes and the buffers of the CLI still hold of its own output is far below these 4 MiB, so more comes from a process it started.
+const descendantBytes = 4_194_304
 type HeldOutput = Pick<Writable, 'writableNeedDrain' | 'writableLength'>
 type PipeSettling = {
   child: ChildProcess
@@ -22,15 +26,24 @@ export function settlePipes({
     outputs.some(
       output => output.writableNeedDrain && output.writableLength > 0
     )
-  const exitedAt = performance.now()
+  let readBytes = 0
   let timer: ReturnType<typeof setTimeout> | undefined
-  const wait = () => {
+  let isSettled = false
+  const settle = () => {
     clearTimeout(timer)
     timer = undefined
-    if (performance.now() - exitedAt >= boundMs) {
-      onSettled()
-      return
-    }
+    if (isSettled) return
+    isSettled = true
+    onSettled()
+  }
+  // WHY: While the output holds bytes the CLI waits for its reader, however slow or stopped, so only the time the output takes data counts, which is when a process the installer started can keep writing.
+  const bound = setRunningTimeout({
+    delayMs: boundMs,
+    onExpire: settle,
+    shouldCount: () => !isOutputHeld()
+  })
+  const wait = () => {
+    clearTimeout(timer)
     timer = setTimeout(() => {
       if (isOutputHeld()) {
         wait()
@@ -39,11 +52,22 @@ export function settlePipes({
       const settling = timer
       // WHY: A write that held the loop leaves this timer due before the loop reads the pipes again.
       setImmediate(() => {
-        if (timer === settling) onSettled()
+        if (timer === settling) settle()
       })
     }, quietMs)
   }
-  for (const source of [child.stdout, child.stderr]) source?.on('data', wait)
-  child.once('close', () => clearTimeout(timer))
+  const read = (chunk: Buffer | string) => {
+    readBytes += Buffer.byteLength(chunk)
+    if (readBytes > descendantBytes) {
+      settle()
+      return
+    }
+    wait()
+  }
+  for (const source of [child.stdout, child.stderr]) source?.on('data', read)
+  child.once('close', () => {
+    clearTimeout(timer)
+    clearInterval(bound)
+  })
   wait()
 }

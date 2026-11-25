@@ -157,7 +157,8 @@ WAITING_LINE = "Press Ctrl+C again to stop Bun now. Waiting for it to clean up."
 SIGNAL_WAITING_LINE = "Press Ctrl+C to stop Bun now. Waiting for it to clean up."
 # An entry that runs the CLI and records its exit code, which a launcher that died cannot report. With CLI_SIGNALS it also
 # records each SIGHUP, SIGINT and SIGTERM the CLI gets and when, from a listener that runs before those of the CLI. With
-# CLI_CHILDREN it records each signal the CLI sends to a process it started, and how and when that process ended. With
+# CLI_CHILDREN it records each signal the CLI sends to a process it started, and how and when that process ended, with
+# whether the standard output of the CLI asked for drain then and the bytes waiting in it. With
 # CLI_INPUT it records when the input of the CLI ends and each error it emits, with its code and the call that failed. With
 # CLI_UNKILLABLE as well as CLI_CHILDREN, the SIGKILL the CLI sends never reaches the process, as for one in a wait that nothing
 # interrupts.
@@ -180,7 +181,7 @@ if (process.env.CLI_CHILDREN) {
       record(`kill ${name ?? 'SIGTERM'}`);
       return name === 'SIGKILL' && process.env.CLI_UNKILLABLE ? true : kill(name);
     };
-    child.on('exit', (code, name) => record(`exit ${code} ${name}`));
+    child.on('exit', (code, name) => record(`exit ${code} ${name} ${process.stdout.writableNeedDrain} ${process.stdout.writableLength}`));
     return child;
   };
   syncBuiltinESMExports();
@@ -2507,24 +2508,37 @@ process.stdout.write = (...args) => {
                         except ProcessLookupError:
                             pass
 
-    def test_plain_installer_output_read_after_its_exit(self):
-        # The reader of the output of the CLI stops once the CLI has handled the exit of the installer, for longer than the
-        # short wait for the pipes, and still gets the whole output of the installer. Where a write to a full pipe holds the
-        # CLI, as on Linux, the CLI handles that exit only once the reader frees room, so the reader goes on in small reads
-        # until the exit is recorded.
+    def read_installer_tail(self, case):
+        """Run the plain CLI with an installer whose output passes what the pipes and the buffers of the CLI hold, so it
+        exits only while the reader reads. The reader reads slowly until the exit is recorded, then waits as the case
+        says, and then reads the rest, which must hold the whole output of the installer.
+
+        quiet waits longer than the short wait for the pipes, bound longer than the long bound, stop stops the group of
+        the CLI for longer than the long bound, and signal sends SIGTERM to the CLI and waits longer than the long bound.
+        With cleanup the installer writes its output after a cleanup of 4 s that SIGTERM to the CLI starts, and the reader
+        waits until the long bound has passed since that signal."""
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             installer = root / "bun"
-            # More than the pipes and the buffers of the CLI hold, so the installer exits only while the reader reads.
             size = 512 * 1024
-            installer.write_text(f"#!/bin/sh\nhead -c {size} /dev/zero | tr '\\0' t\necho tail-end\n")
+            tail = f"head -c {size} /dev/zero | tr '\\0' t\necho tail-end\n"
+            if case == "cleanup":
+                cleanup = root / "cleanup"
+                cleanup.write_text(f"#!/bin/sh\nsleep 4\n{tail}")
+                cleanup.chmod(0o755)
+                installer.write_text('#!/bin/sh\ntrap \'"$CLEANUP"; exit 130\' INT\necho $$ > "$PID_FILE"\nwhile :; do sleep .05; done\n')
+            else:
+                installer.write_text(f"#!/bin/sh\n{tail}")
             installer.chmod(0o755)
             entry, children_file = root / "entry.mjs", root / "children"
             entry.write_text(EXIT_ENTRY)
             env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + ":" + os.environ["PATH"],
-                       EXIT_FILE=str(root / "cli.exit"), CLI_URL=cli.as_uri(), CLI_CHILDREN=str(children_file))
+                       EXIT_FILE=str(root / "cli.exit"), CLI_URL=cli.as_uri(), CLI_CHILDREN=str(children_file),
+                       CLEANUP=str(root / "cleanup"), PID_FILE=str(root / "installer.pid"))
+            is_canceled = case in ("signal", "cleanup")
             with subprocess.Popen([node, entry, "app", "--yes", "--lang", "en", "--no-git"], cwd=root, env=env,
-                                  stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as child:
+                                  stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                  start_new_session=True) as child:
                 try:
                     output = child.stdout.fileno()
                     printed = bytearray()
@@ -2533,28 +2547,133 @@ process.stdout.write = (...args) => {
                         block = os.read(output, 4096)
                         self.assertTrue(block, printed[-200:])
                         printed.extend(block)
-                    def exited():
-                        return children_file.exists() and re.search(r"^exit ", children_file.read_text(), re.M)
+                    def exit_record():
+                        lines = children_file.read_text().splitlines() if children_file.exists() else []
+                        return next((line.split() for line in lines if line.startswith("exit ")), None)
                     while b"Files created\n" not in printed:
                         read()
+                    sent = time.monotonic()
+                    if case == "cleanup":
+                        # A signal before the step starts would cancel it before the installer runs.
+                        self.assertIsNotNone(recorded(root / "installer.pid"))
+                        child.send_signal(signal.SIGTERM)
                     start = len(printed)
                     while len(printed) - start < 64 * 1024:
                         read()
                     deadline = time.monotonic() + 2
-                    while not exited() and time.monotonic() < deadline:
+                    while not exit_record() and time.monotonic() < deadline:
                         time.sleep(.01)
-                    while not exited():
+                    while not exit_record():
                         read()
                         time.sleep(.01)
-                    time.sleep(PIPE_DRAIN_S + 1)
+                    # When the installer exited the output of the CLI still asked for drain, with bytes waiting for the reader.
+                    need_drain, waiting = exit_record()[3:5]
+                    self.assertEqual(need_drain, "true", exit_record())
+                    self.assertGreater(int(waiting), 0)
+                    if case == "quiet":
+                        time.sleep(PIPE_DRAIN_S + 1)
+                    if case == "bound":
+                        time.sleep(CLEANUP_LIMIT_S + 1)
+                    if case == "stop":
+                        os.killpg(child.pid, signal.SIGSTOP)
+                        deadline = time.monotonic() + 4
+                        while "T" not in state(child.pid):
+                            self.assertLess(time.monotonic(), deadline)
+                            time.sleep(.01)
+                        time.sleep(CLEANUP_LIMIT_S + 1)
+                        os.killpg(child.pid, signal.SIGCONT)
+                    if case == "signal":
+                        child.send_signal(signal.SIGTERM)
+                        time.sleep(CLEANUP_LIMIT_S + 1)
+                    if case == "cleanup":
+                        time.sleep(max(0, sent + CLEANUP_LIMIT_S + 1 - time.monotonic()))
                     rest, errors = child.communicate(timeout=20)
                     printed.extend(rest)
-                    self.assertEqual((child.returncode, errors), (0, b""))
-                    self.assertIn(b"\n" + b"t" * size + b"tail-end\n" + "◇ Dependencies installed with Bun\n".encode(), printed,
-                                  (printed.count(b"t"), printed[-300:]))
+                    self.assertIn(b"\n" + b"t" * size + b"tail-end\n", printed, (printed.count(b"t"), printed[-300:]))
+                    if is_canceled:
+                        self.assertEqual(child.returncode, 130, errors)
+                        lines = errors.decode().splitlines()
+                        self.assertEqual(lines[-6:], ["■ Installing dependencies with Bun", "Your project is in app. To finish, run:",
+                                                      "cd app", "bun install", "", "Creation canceled."])
+                        if case == "signal":
+                            # The installer was gone, so no line says that the CLI waits for it.
+                            self.assertNotIn("clean up", errors.decode())
+                    else:
+                        self.assertEqual((child.returncode, errors), (0, b""))
+                        self.assertIn(b"tail-end\n" + "◇ Dependencies installed with Bun\n".encode(), printed)
                 finally:
                     if child.poll() is None:
-                        child.kill()
+                        os.killpg(child.pid, signal.SIGKILL)
+
+    def test_plain_installer_output_read_after_its_exit(self):
+        # The reader stops once the CLI has handled the exit of the installer, for longer than the short wait for the pipes.
+        self.read_installer_tail("quiet")
+
+    def test_plain_installer_output_read_after_the_bound(self):
+        # While the output holds bytes for its reader, the CLI waits for it however long, and no time counts.
+        self.read_installer_tail("bound")
+
+    def test_plain_installer_output_read_after_a_stop(self):
+        # A stop of the CLI during the wait for the pipes, longer than the long bound, does not count either.
+        self.read_installer_tail("stop")
+
+    def test_plain_descendant_writing_after_the_installer(self):
+        # A process the installer started keeps writing to its stdout after the installer exited. The CLI lets go of the
+        # pipes once more came after the exit than the pipes and the buffers hold, or once the output took data for the
+        # long bound, whichever comes first.
+        for case in ("fast", "slow"):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                descendant = root / "descendant.pid"
+                writer = "yes descendant" if case == "fast" else "while :; do echo descendant; sleep .02; done"
+                installer = root / "bun"
+                installer.write_text(f'#!/bin/sh\n({writer}) &\necho $! > "$DESCENDANT"\nexit 0\n')
+                installer.chmod(0o755)
+                entry, children_file = root / "entry.mjs", root / "children"
+                entry.write_text(EXIT_ENTRY)
+                env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + ":" + os.environ["PATH"],
+                           EXIT_FILE=str(root / "cli.exit"), CLI_URL=cli.as_uri(), CLI_CHILDREN=str(children_file),
+                           DESCENDANT=str(descendant))
+                try:
+                    with subprocess.Popen([node, entry, "app", "--yes", "--lang", "en", "--no-git"], cwd=root, env=env,
+                                          stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                          start_new_session=True) as child:
+                        try:
+                            output = child.stdout.fileno()
+                            printed = bytearray()
+                            exited = None
+                            deadline = time.monotonic() + 10 + CLEANUP_LIMIT_S + 4
+                            while True:
+                                self.assertLess(time.monotonic(), deadline, printed[-200:])
+                                if exited is None and children_file.exists() and re.search(r"^exit ", children_file.read_text(), re.M):
+                                    exited = time.monotonic()
+                                if not select.select([output], [], [], .05)[0]:
+                                    continue
+                                block = os.read(output, 65536)
+                                if not block:
+                                    break
+                                printed.extend(block)
+                                del printed[:-8192]
+                            ended = time.monotonic()
+                            _, errors = child.communicate(timeout=10)
+                        finally:
+                            if child.poll() is None:
+                                os.killpg(child.pid, signal.SIGKILL)
+                    self.assertIsNotNone(exited)
+                    self.assertEqual((child.returncode, errors), (0, b""))
+                    self.assertIn("◇ Dependencies installed with Bun".encode(), printed)
+                    if case == "fast":
+                        self.assertLess(ended - exited, CLEANUP_LIMIT_S / 2)
+                    else:
+                        self.assertGreaterEqual(ended - exited, CLEANUP_LIMIT_S - 1)
+                        self.assertLess(ended - exited, CLEANUP_LIMIT_S + 4)
+                finally:
+                    target = recorded(descendant) if descendant.exists() else None
+                    try:
+                        if target:
+                            os.kill(target, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
 
     def test_plain_output_closed_during_install(self):
         # The reader of the output of the CLI goes away during the install, before the installer writes a megabyte that no

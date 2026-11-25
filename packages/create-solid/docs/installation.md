@@ -237,9 +237,12 @@ that went there when the question grew past the screen.
 
 The CLI computes its text questions, such as the directory and the title, from
 the state of the question as Clack wraps it at the width of the terminal, so no
-row of them comes back old. On Ctrl+Z it erases the rows of the question that
-are on the screen; the rows of a question taller than the screen that went above
-its top stay in the history, where no erase reaches. On `fg` it draws again the
+row it draws again comes back old. On Ctrl+Z, and on a stop from outside while
+the CLI owns the terminal, it erases the rows of the question that are on the
+screen. The rows of a question taller than the screen that went above its top
+stay in the history, where no erase reaches, as Clack last wrote them there, so
+they can be old, for example the symbol of the title after a validation error,
+or a row of the value after an edit in its middle. On `fg` it draws again the
 rows it erased, and at least as many rows as fit on the screen now, which are
 the rows Clack counts on screen at its next render: in a tmux session on macOS,
 after the window got taller during the stop, the next key that changed the title

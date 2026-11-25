@@ -327,14 +327,20 @@ const forwardedSignals = new Set<string>(['SIGINT', 'SIGTERM'])
 const repeatWindowMs = 150
 const newline = '\n'.codePointAt(0)
 type Forwarding = { source: Readable | null; target: NodeJS.WriteStream }
-type Forwarded = { shouldAppendNewline: boolean }
+type Forwarded = { shouldAppendNewline: boolean; stop: () => void }
 // WHY: pipe forwards the bytes as they are and pauses the installer while the reader of this output is slower than it.
 function forward({ source, target }: Forwarding): Forwarded {
-  const forwarded = { shouldAppendNewline: false }
+  // WHY: When its target fails, pipe stops reading and resumes only when one of its own writes waited for drain. After a write of the CLI that failed, or one of its own that failed while it waited with room left, an installer that still writes would block on a full pipe.
+  const discard = () => source?.resume()
+  const forwarded = {
+    shouldAppendNewline: false,
+    stop: () => target.off('error', discard)
+  }
   source?.on('data', (chunk: Buffer) => {
     forwarded.shouldAppendNewline = chunk.at(-1) !== newline
   })
   source?.pipe(target, { end: false })
+  target.once('error', discard)
   return forwarded
 }
 type SetupOptions = {
@@ -448,6 +454,8 @@ async function executeSetup(
       })
     }
   } finally {
+    printed.stop()
+    forwarded.stop()
     if (printed.shouldAppendNewline) process.stdout.write('\n')
     if (forwarded.shouldAppendNewline) process.stderr.write('\n')
     clearInterval(deadline)

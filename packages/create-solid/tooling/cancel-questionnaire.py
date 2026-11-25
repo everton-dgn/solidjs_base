@@ -861,14 +861,15 @@ class Cancellation(unittest.TestCase):
                     frame = transcript.rindex(b"Installing dependencies with Bun", 0, end)
                     self.assertIn(b"\r\x1b[J", transcript[frame:end])
                 def stop_outside():
+                    """Stop the CLI from outside and return where what it writes after the stop starts."""
                     os.kill(leader, signal.SIGSTOP)
                     deadline = time.monotonic() + 4
                     while "T" not in state(leader):
                         self.assertLess(time.monotonic(), deadline)
                         time.sleep(.01)
-                    # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
-                    drain()
+                    stopped = reader.mark(slave) + len(MARK)
                     self.assertEqual(reader.cursor(), hidden)
+                    return stopped
                 try:
                     for prompt in [b"Application title", b"Setup", b"Create the project?"]:
                         read_until(prompt)
@@ -882,23 +883,22 @@ class Cancellation(unittest.TestCase):
                     start = len(transcript)
                     hidden = b"\x1b[?25l"
                     shown = b"\x1b[?25h"
-                    continued = outside = None
+                    continued = outside = stopped = None
                     if key:
                         os.write(master, key)
                         read_until(shown, start)
                         assert_cleared(start)
                     else:
-                        stop_outside()
+                        stopped = stop_outside()
                     if key != b"\x1c":
                         if job_control:
                             self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
                             self.assertIn("T", state(leader))
                             self.assertIn("T", state(worker))
-                            # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
-                            drain()
+                            stopped = reader.mark(slave) + len(MARK)
                             self.assertEqual(reader.cursor(), shown)
                         if job_control or not key:
-                            continued = len(transcript)
+                            continued = stopped
                             os.killpg(leader, signal.SIGCONT)
                         for attempt in range(2 if continued is None else 1):
                             if attempt:
@@ -914,8 +914,7 @@ class Cancellation(unittest.TestCase):
                             self.assertNotIn("T", state(worker))
                         if key:
                             # The listener that suspend registers again restores the step after a later outside stop.
-                            stop_outside()
-                            outside = len(transcript)
+                            outside = stop_outside()
                             os.killpg(leader, signal.SIGCONT)
                             read_until(hidden + b"\r\x1b[J\r\x1b[?7l", outside)
                             read_until(b"Installing dependencies with Bun", outside, 3)
@@ -1091,8 +1090,7 @@ process.stdout.write = (...args) => {
                             self.assertEqual(len(members), 2)
                         for member in members:
                             self.assertIn("T", state(member))
-                        # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
-                        reader.drain()
+                        reader.mark(slave)
                         self.assertEqual(reader.cursor(), shown)
                         self.assertTrue(cooked())
                         # A shell writes below the question while the CLI is stopped and when it continues it.
@@ -1140,8 +1138,7 @@ process.stdout.write = (...args) => {
                         while "T" not in state(leader):
                             self.assertLess(time.monotonic(), deadline)
                             time.sleep(.01)
-                        reader.drain()
-                        outside = len(transcript)
+                        outside = reader.mark(slave) + len(MARK)
                         os.killpg(leader, signal.SIGCONT)
                         reader.until(hidden + b"\r\x1b[J\r\x1b[?7l", outside)
                         self.assertTrue(cooked())
@@ -1212,8 +1209,7 @@ process.stdout.write = (...args) => {
                         os.write(master, b"\x1a")
                         self.assertEqual(recorded(root / ("stop.signal" if stop == 1 else f"stop.{stop}.signal")), signal.SIGTSTP)
                         self.assertIn("T", state(leader))
-                        # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
-                        reader.drain()
+                        reader.mark(slave)
                         self.assertEqual(reader.cursor(), shown)
                         self.assertTrue(cooked())
                         # No copy of the question stays where the shell writes.
@@ -1831,18 +1827,21 @@ process.stdout.write = (...args) => {
 
     def test_installer_ends_while_a_descendant_holds_stderr(self):
         # A lifecycle script that outlives bun keeps the stderr pipe of bun. Once bun has exited, on its own or on the SIGINT
-        # the CLI sends, the CLI waits for that pipe only a short time.
-        for interrupt in (None, signal.SIGINT):
+        # the CLI sends it after a SIGTERM to the CLI, the CLI waits for that pipe only a short time after the exit.
+        for interrupt in (None, signal.SIGTERM):
             with self.subTest(signal=interrupt), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
                 installer = root / "bun"
                 ending = "trap 'exit 130' INT\nwhile :; do sleep .05; done" if interrupt else "exit 0"
                 installer.write_text(f'#!/bin/sh\nsleep 30 &\necho $! > "$GRANDCHILD"\necho $$ > "$PID_FILE"\n{ending}\n')
                 installer.chmod(0o755)
+                entry, children_file = root / "entry.mjs", root / "children"
+                entry.write_text(EXIT_ENTRY)
                 pid, master, slave = start_cli(
                     root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--install"],
                     {"PID_FILE": str(root / "installer.pid"), "GRANDCHILD": str(root / "grandchild.pid"),
-                     "PATH": directory + ":" + os.environ["PATH"]})
+                     "PATH": directory + ":" + os.environ["PATH"], "EXIT_FILE": str(root / "cli.exit"),
+                     "CLI_URL": cli.as_uri(), "CLI_CHILDREN": str(children_file)}, executable=entry)
                 reader = Reader(self, master)
                 waited = False
                 try:
@@ -1850,34 +1849,29 @@ process.stdout.write = (...args) => {
                         reader.until(prompt)
                         os.write(master, b"\r")
                     reader.until(b"Installing dependencies with Bun")
-                    worker = recorded(root / "installer.pid")
+                    self.assertIsNotNone(recorded(root / "installer.pid"))
                     self.assertIsNotNone(recorded(root / "grandchild.pid"))
                     if interrupt:
-                        os.kill(pid, signal.SIGTERM)
-                    else:
-                        while True:
-                            try:
-                                os.kill(worker, 0)
-                            except ProcessLookupError:
-                                break
-                            time.sleep(.005)
-                    gone = time.monotonic()
-                    deadline = gone + CLEANUP_LIMIT_S / 2
+                        os.kill(pid, interrupt)
+                    deadline = time.monotonic() + CLEANUP_LIMIT_S / 2
                     while time.monotonic() < deadline:
                         reader.drain()
                         finished, status = os.waitpid(pid, os.WNOHANG)
                         if finished:
                             waited = True
+                            ended = time.time()
                             break
                         time.sleep(.01)
                     self.assertTrue(waited, reader.transcript)
+                    # The record ends with the time of the exit, in milliseconds since the epoch.
+                    [exited] = [float(line.split()[-1]) / 1000 for line in children_file.read_text().splitlines() if line.startswith("exit ")]
+                    self.assertLess(ended - exited, PIPE_DRAIN_S + 1)
                     reader.drain()
                     if interrupt:
                         self.assertEqual(os.waitstatus_to_exitcode(status), 130)
                         self.assertIn(b"Creation canceled.", reader.transcript)
                     else:
                         self.assertEqual(os.waitstatus_to_exitcode(status), 0)
-                        self.assertLess(time.monotonic() - gone, PIPE_DRAIN_S + 2)
                         self.assertIn(b"Project created.", reader.transcript)
                 finally:
                     os.close(master)
@@ -1943,9 +1937,8 @@ process.stdout.write = (...args) => {
                     while "T" not in state(worker):
                         self.assertLess(time.monotonic(), deadline)
                         time.sleep(.01)
-                    # A stopped CLI writes nothing more, so this reads all it wrote after the prompt of the shell.
-                    reader.drain()
-                    self.assertEqual(bytes(transcript[start:]), shown)
+                    marked = reader.mark(slave)
+                    self.assertEqual(bytes(transcript[start:marked]), shown)
                     os.write(slave, b"fg\r\n")
                     reader.until(b"fg", start)
                     continued = len(transcript)
@@ -2151,8 +2144,7 @@ process.stdout.write = (...args) => {
                     release.touch()
                     self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
                     self.assertIn("T", state(leader))
-                    # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
-                    reader.drain()
+                    reader.mark(slave)
                     self.assertEqual(reader.cursor(), b"\x1b[?25h")
                     self.assertNotIn(closing, transcript)
                     os.killpg(leader, signal.SIGCONT)
@@ -2214,8 +2206,7 @@ process.stdout.write = (...args) => {
                     if job_control:
                         self.assertEqual(recorded(root / "stop.signal"), signal.SIGTSTP)
                         self.assertIn("T", state(leader))
-                        # A stopped CLI writes nothing more, so this reads all it wrote before the stop.
-                        reader.drain()
+                        reader.mark(slave)
                         self.assertEqual(reader.cursor(), shown)
                         self.assertTrue(cooked())
                         self.assertNotIn(b"Creating the files", transcript)
@@ -2230,8 +2221,7 @@ process.stdout.write = (...args) => {
                         while "T" not in state(leader):
                             self.assertLess(time.monotonic(), deadline)
                             time.sleep(.01)
-                        reader.drain()
-                        outside = len(transcript)
+                        outside = reader.mark(slave) + len(MARK)
                         os.killpg(leader, signal.SIGCONT)
                         reader.until(hidden + b"\r\x1b[J\r\x1b[?7l", outside)
                         self.assertTrue(cooked())

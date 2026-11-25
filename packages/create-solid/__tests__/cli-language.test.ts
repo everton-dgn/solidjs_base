@@ -104,18 +104,23 @@ void it('fits focused options with their hints in 80 columns', () => {
 void it('fits the waiting line of each installer in the step frame of 80 columns with its key first', () => {
   // The indicator draws its mark and two spaces before the line, and cuts what passes the width.
   const frameWidth = 77
+  // The CLI cannot tell a SIGINT sent with kill from Ctrl+C, so the line never says the key was pressed before.
   const again = /again|de novo|otra vez/u
   for (const m of Object.values(messages)) {
+    assert.deepEqual(
+      Object.values(m).filter(
+        text => text.includes('Ctrl+C') && text.includes('{pm}')
+      ),
+      [m.installWait]
+    )
     for (const pm of [toolNames.bun, toolNames.npm, toolNames.pnpm]) {
-      for (const code of ['installWait', 'installWaitAgain'] as const) {
-        const line = m[code].replaceAll('{pm}', pm)
-        assert.ok(line.length <= frameWidth, line)
-        assert.match(
-          line.split('. ')[0] ?? '',
-          /^\S+ Ctrl\+C .*\b(?:Bun|npm|pnpm)\b/u
-        )
-        assert.equal(again.test(line), code === 'installWaitAgain', line)
-      }
+      const line = m.installWait.replaceAll('{pm}', pm)
+      assert.ok(line.length <= frameWidth, line)
+      assert.match(
+        line.split('. ')[0] ?? '',
+        /^\S+ Ctrl\+C .*\b(?:Bun|npm|pnpm)\b/u
+      )
+      assert.doesNotMatch(line, again)
     }
   }
 })

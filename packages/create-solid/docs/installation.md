@@ -257,14 +257,28 @@ cursor stays at the end of the question.
 The selections, the multiple selection and the confirmations are drawn again
 from the rows Clack wrote of them, which fit on screens of usual sizes: one of
 these questions passes the height of the screen only on a terminal of fewer than
-about ten rows. There Ctrl+Z erases the rows of it on the screen, and `fg` draws
-again the rows the CLI recorded that fit on the screen. Clack moves up past the
-top of the screen only as far as the top, so the recorded rows can miss rows of
-the question or have them out of place, which shows when the screen gets taller
-during the stop. When the screen gets shorter than one of these questions during
-the stop, its rows above the shorter screen are drawn nowhere. A question whose
-output holds bytes the CLI does not recognize is left as it is on Ctrl+Z and is
-not drawn again on `fg`.
+about ten rows, or a few more when its message or its footer wraps on a narrow
+terminal. The CLI counts that the move up of Clack stops at the top of the
+screen, so the rows it records are the rows on the screen. Such a question
+taller than the screen stays on the screen on Ctrl+Z, the shell writes below it,
+and on `fg` the CLI draws again, below what the shell wrote, the rows of it that
+were on the screen; its rows above them stay in the history. When Clack writes
+it again from the top of the screen, as when it shrinks, Ctrl+Z erases the rows
+of it on the screen. When the screen gets taller during the stop, Clack counts
+on it rows of the question above the ones the CLI drew, where the shell wrote:
+when the title was above the top of the screen before the stop, closing the
+question has Clack write over the last rows the shell wrote. When the screen
+gets shorter during the stop than one of these questions that Ctrl+Z erased, its
+rows above the shorter screen are drawn nowhere. The CLI does not replace the
+erasures of Clack from the top left corner at these questions, so tmux with
+`scroll-on-clear` keeps a copy of the screen each time Clack writes one of them
+taller than the screen again from the top. When every row that changed is above
+the screen, Clack only moves the cursor up to the top of the screen: Ctrl+Z, or
+a stop from outside while the CLI owns the terminal, moves the cursor back to
+the end of the question first, but on a stop from outside while the CLI does not
+own the terminal the shell writes over the question. A question whose output
+holds bytes the CLI does not recognize is left as it is on Ctrl+Z and is not
+drawn again on `fg`.
 
 Ctrl+\ during a step shows the cursor and quits.
 

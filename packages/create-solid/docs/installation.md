@@ -231,9 +231,9 @@ program clears it from the top left corner (`scroll-on-clear`), so this way it
 keeps no copy of a question that starts on the top row of the screen, whether
 the question fills the screen or not. At a text question the CLI clears the same
 way when Clack itself clears from that corner, as when a question taller than
-the screen shrinks: in a tmux session on macOS with `scroll-on-clear` on,
-deleting part of a long value left one copy of the title in the history, the one
-that went there when the question grew past the screen.
+the screen shrinks: with `scroll-on-clear` on, deleting part of a long value
+leaves one copy of the title in the history, the one that went there when the
+question grew past the screen.
 
 The CLI computes its text questions, such as the directory and the title, from
 the state of the question as Clack wraps it at the width of the terminal, so no
@@ -244,18 +244,18 @@ stay in the history, where no erase reaches, as Clack last wrote them there, so
 they can be old, for example the symbol of the title after a validation error,
 or a row of the value after an edit in its middle. On `fg` it draws again the
 rows it erased, and at least as many rows as fit on the screen now, which are
-the rows Clack counts on screen at its next render: in a tmux session on macOS,
-after the window got taller during the stop, the next key that changed the title
-of a question taller than the old screen wrote it on the title drawn again. A
-question that fit on the screen comes back whole, also when the screen got
-shorter than the question during the stop: its first rows go to the history.
-After a resize to another width during the stop the question comes back whole at
-the new width. On a stop from outside while the CLI does not own the terminal
-the question stays as it is, the shell writes below it, and on `fg` the CLI
-draws again the rows of it that fit on the screen. When every row that changed
-is above the screen, as after a key that clears a validation error, Clack only
-moves the cursor up to the top of the screen; the CLI drops that move, so the
-cursor stays at the end of the question.
+the rows Clack counts on screen at its next render: after the window gets taller
+during the stop, the next key that changes the title of a question taller than
+the old screen writes it on the title drawn again. A question that fit on the
+screen comes back whole, also when the screen got shorter than the question
+during the stop: its first rows go to the history. After a resize to another
+width during the stop the question comes back whole at the new width. On a stop
+from outside while the CLI does not own the terminal the question stays as it
+is, the shell writes below it, and on `fg` the CLI draws again the rows of it
+that fit on the screen. When every row that changed is above the screen, as
+after a key that clears a validation error, Clack only moves the cursor up to
+the top of the screen; the CLI drops that move, so the cursor stays at the end
+of the question.
 
 The selections, the multiple selection and the confirmations are drawn again
 from the rows Clack wrote of them, which fit on screens of usual sizes: one of
@@ -308,9 +308,6 @@ Ctrl+Z suspends as usual. Under an init process, as with
 `docker run -it --init`, Ctrl+Z stops the CLI and the processes it started, and
 the init too when it shares the process group of the CLI. Nothing in the
 container sends SIGCONT to them, so stop the container from another terminal.
-These two cases were measured in an `ubuntu:24.04` container on arm64, before
-the CLI asked the system which process group owns the terminal. They follow from
-what the CLI does now, but were not measured again.
 
 `npx` and `pnpm dlx` stay in the process group of the CLI and stop at once on
 Ctrl+Z, so the shell may take the terminal back before the CLI handles its stop.
@@ -327,8 +324,8 @@ stop stops the CLI alone: the shell reports the job as stopped and takes the
 terminal back, the installer goes on during the stop, and `fg` sends SIGCONT to
 both. On Ctrl+\ during a step the CLI clears the indicator only when it leads
 the foreground process group. Under a launcher in its group that ends at once on
-Ctrl+\, on Linux the terminal echoed `^\` on the row of the indicator, and bash
-wrote its `Quit (core dumped)` notice and the command over that row, with its
+Ctrl+\, on Linux the terminal echoes `^\` on the row of the indicator, and bash
+writes its `Quit (core dumped)` notice and the command over that row, with its
 prompt below them.
 
 The shell only owns the terminal while the CLI is at a question when the stop
@@ -339,62 +336,80 @@ again, and it draws the question again below what the shell wrote on `fg`. A
 shell that does not restore its own terminal modes when a job stops leaves the
 terminal in raw mode until `fg`. The CLI asks the system which process group
 owns the terminal, through `/proc` on Linux and `/bin/ps` elsewhere. When the
-system does not answer within 250 ms, the CLI clears as it did before it could
-ask, and under `npx` or `pnpm dlx` that clearing can land on the prompt of the
-shell.
+system does not answer within a quarter of a second, the CLI clears as it did
+before it could ask, and under `npx` or `pnpm dlx` that clearing can land on the
+prompt of the shell.
 
 Canceling Git or the installation sends SIGINT to that process once and waits
 for it to end, so an installer can finish its own cleanup. The rollback of npm
 in a large install takes a few seconds on its own. Once the window of a repeated
 signal described below has passed with the installer still running, the title of
 the step turns into a line that starts with the key and then says that the CLI
-waits for the cleanup, such as "Press Ctrl+C again to stop Bun now. Waiting for
-it to clean up." It fits a terminal of 80 columns in the three languages with
-Bun, pnpm and npm, and a narrower terminal cuts its end, not the key. After a
-first SIGTERM or SIGHUP, which no key sends, the line leaves out "again".
-Without a question frame, the CLI writes that line on its own line of the
-standard error. A second Ctrl+C, SIGINT or SIGTERM after that window kills the
-installer at once, and so does, even inside it, a SIGINT or SIGTERM that differs
-from the first signal. A SIGHUP never does, first or later: closing the window
-asks for no faster stop, and after it nobody can press again. When nobody
-presses again, as after the terminal closed or under a supervisor that sends
-SIGTERM once, the CLI kills the installer about 8 seconds after the first
-signal. Those seconds count only while the CLI runs, so a stop with Ctrl+Z
-during the cleanup, however long, leaves the installer the rest of them after
-`fg`. The bound leaves a few seconds more than the rollback of npm takes, and
-stays below the 10 seconds after which Docker sends SIGKILL. After the SIGKILL
-the CLI waits about a second for the installer to exit. An installer that
-outlives it, such as one in a wait on a network disk that stopped answering,
-keeps running, and the CLI ends as a cancel. Each signal after the first kill
-sends nothing more.
+waits for the cleanup: "Press Ctrl+C to stop Bun now. Waiting for it to clean
+up." It fits a terminal of 80 columns in the three languages with Bun, pnpm and
+npm, and a narrower terminal cuts its end, not the key. The line is the same
+after any first signal: the CLI cannot tell a SIGINT sent with `kill` from
+Ctrl+C, and pressing Ctrl+C stops the installer at once after either. When no
+question frame is drawn on a terminal, as in plain output or with stdout in a
+pipe such as `create-solid app | tee log`, the CLI writes that line on its own
+line of the standard error. A second Ctrl+C, SIGINT or SIGTERM after that window
+kills the installer at once, and so does, even inside it, a SIGINT or SIGTERM
+that differs from the first signal. A SIGHUP never does, first or later: closing
+the terminal asks for no faster stop, and after it nobody can press again. When
+nobody presses again, as after the terminal closed or under a supervisor that
+sends SIGTERM once, the CLI kills the installer about 8 seconds after the first
+signal. Those seconds count only while the CLI runs: a stop with Ctrl+Z during
+the cleanup, however long, counts as at most a quarter of a second of them, and
+a CLI that the machine runs late takes longer to reach them. The bound leaves a
+few seconds more than the rollback of npm takes, and stays below the 10 seconds
+after which Docker sends SIGKILL. After the SIGKILL the CLI waits about a second
+for the installer to exit. An installer that outlives it, such as one in a wait
+on a network disk that stopped answering, stays until that wait ends, and the
+CLI ends as a cancel without it. Later signals send no other SIGKILL.
 
 Once the process of a step, Git or the installer, has exited, on success, on
-failure or on a cancel, the CLI goes on reading what it wrote until nothing more
-came for half a second and the output of the CLI took all it was given, so a
-slow reader of that output still gets all of it. A process the installer started
-that keeps its pipes open with nothing to write, such as a lifecycle script that
-outlives bun, then holds the CLI only that half second, and at most the 8
-seconds of the bound above while its output keeps coming or the reader of the
-output of the CLI stays behind.
+failure or on a cancel, the CLI goes on reading what it wrote, and the long
+bound above ends, since the installer is gone. While the output of the CLI holds
+bytes that its reader has not taken, the CLI waits for that reader, however slow
+it is and however long the CLI was stopped, so a slow reader gets the whole
+output of the installer. Once the output takes what comes, the CLI lets go of
+the pipes when nothing more came for half a second. A process the installer
+started that keeps its pipes open with nothing to write, such as a lifecycle
+script that outlives bun, then holds the CLI only that half second. One that
+keeps writing holds it until the CLI has read a few MiB after the exit, far more
+than the pipes and the buffers hold of the output of the installer, or until the
+output has taken data for about 8 seconds of the time the CLI runs, whichever
+comes first. A first signal during this wait sends nothing to the installer,
+which is gone, and arms no bound: the CLI goes on waiting and then ends as a
+cancel. A later signal, after the window of a repeated signal, lets go of the
+pipes at once, whether the first came before the exit or during this wait, since
+it asks to stop now.
 
-The signal manager of npm (`@npmcli/run-script`, the same in npm 12.2.3 and
-11.20.0) sends the CLI every SIGINT and SIGTERM that `npx` gets, so a Ctrl+C or
-a `kill -TERM` to the process group reaches the CLI twice. For Ctrl+C under a
-real `npx` the two came about 1 ms apart or less. The CLI ignores the same
-SIGINT or SIGTERM when it comes again within 150 ms, so the installer keeps its
-own cleanup under `npx`.
+The signal manager of npm (`@npmcli/run-script`) sends the CLI every SIGINT and
+SIGTERM that `npx` gets, so a Ctrl+C or a `kill -TERM` to the process group
+reaches the CLI twice, about a millisecond apart or less. The CLI ignores the
+same SIGINT or SIGTERM when it comes again within a small fraction of a second,
+so the installer keeps its own cleanup under `npx`.
 
 When the terminal of an interactive bash closes during the installation, the CLI
-and the installer get SIGHUP from the system, on Linux twice less than 1 ms
-apart, and the installer gets SIGINT from the CLI. The CLI waits for its cleanup
-as it does on Ctrl+C, up to the same bound, and no SIGHUP shortens that wait. A
-write of the CLI to the closed terminal fails with `EIO`, and one to a pipe
-whose reader ended fails with `EPIPE`. Node opens the output again after each
-failure, so every later write, such as each frame of the indicator, fails the
-same way. The CLI drops these failures, goes on with what it was doing and ends
-as it would have, with code 130 after a cancel and nothing on its standard
-error. On a file, `EIO` is a failure of the disk, and the CLI stops with it,
-with code 1.
+and the installer get SIGHUP from the system, on Linux twice less than a
+millisecond apart, and the installer gets SIGINT from the CLI. The CLI waits for
+its cleanup as it does on Ctrl+C, up to the same bound, and no SIGHUP shortens
+that wait. A write of the CLI to the closed terminal fails with `EIO`, and one
+to a pipe whose reader ended fails with `EPIPE`. Node opens the output again
+after each failure, so every later write, such as each frame of the indicator,
+fails the same way. The CLI drops these failures and keeps reading the output of
+the installer, whichever write failed first, one of its own such as the waiting
+line or one that forwards the installer, so an installer that still writes
+during its cleanup never blocks on a full pipe. The CLI goes on with what it was
+doing and ends as it would have, with code 130 after a cancel and nothing on its
+standard error. Any other failure of a write, such as `EIO` on a file, which is
+a failure of the disk, or `ENOSPC` on a full disk, stops the CLI as a signal
+does, at a question, in a step or after the summary: during the installation the
+installer gets SIGINT and the CLI waits for its cleanup. The CLI then ends with
+code 1, one line on the other output that names the output that failed and the
+error, and the commands left to run that a cancel lists, on that other output
+too. When the other output fails too, the CLI writes nothing more.
 
 When the terminal closes at a question, the input of the CLI ends, with no
 SIGHUP before it on macOS or on Linux. The CLI then ends as a cancel, with code
@@ -403,13 +418,3 @@ with `ENOENT` on macOS and with `EIO` on Linux. An input error with one of these
 two codes cancels the same way. Where the terminal still shows output, the CLI
 writes the cancel line and shows the cursor. Any other input error stops the CLI
 with code 1, the message of the error and the cursor shown.
-
-The process groups of `npx`, `pnpm dlx` and `bunx`, and Ctrl+Z and Ctrl+C under
-each of them, were measured on macOS 27 (arm64) with npm 12.2.3 and 11.20.0 (the
-`npx` of Node 26.13.1), pnpm 12.23.0 and bun 1.4.5, and not on Linux. A stop
-sent from outside to the CLI alone was measured with `bash -c` as the launcher,
-and with the CLI leading its group under an interactive bash 3.2.57 on macOS 27.
-Ctrl+\ under a launcher was measured in the CI on Linux (bash 5.3.9, tmux 3.6),
-with the same screen in every run, with a test launcher that ends on SIGQUIT,
-not with a real `npx`, and not on macOS. What this guide says about SIGTERM
-under a launcher comes from reading the code of the CLI and of npm.

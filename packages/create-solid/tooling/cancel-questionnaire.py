@@ -2617,6 +2617,16 @@ process.stdout.write = (...args) => {
         # A stop of the CLI during the wait for the pipes, longer than the long bound, does not count either.
         self.read_installer_tail("stop")
 
+    def test_plain_cleanup_ending_near_the_long_bound(self):
+        # The long bound exists to force the installer, so once the installer has exited it no longer cuts the wait for a
+        # slow reader of its output.
+        self.read_installer_tail("cleanup")
+
+    def test_plain_first_signal_after_the_installer_exited(self):
+        # A first signal once the installer has exited arms no long bound: the CLI waits for the reader as before and then
+        # ends as a cancel.
+        self.read_installer_tail("signal")
+
     def test_plain_descendant_writing_after_the_installer(self):
         # A process the installer started keeps writing to its stdout after the installer exited. The CLI lets go of the
         # pipes once more came after the exit than the pipes and the buffers hold, or once the output took data for the

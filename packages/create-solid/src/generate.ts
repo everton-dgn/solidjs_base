@@ -391,6 +391,8 @@ async function executeSetup(
   child.once('error', ended.reject)
   child.once('close', ended.resolve)
   child.once('exit', () => {
+    // WHY: The long bound exists to force the installer, which is gone, and the wait for its pipes keeps limits of its own.
+    clearInterval(deadline)
     settlePipes({
       child,
       outputs: [process.stdout, process.stderr],
@@ -426,6 +428,11 @@ async function executeSetup(
   }
   const cancel = () => {
     canceledAt = performance.now()
+    for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+      process.on(signalName, forceAgain)
+    }
+    // WHY: Once the installer has exited only the wait for its pipes is left, and the step ends as a cancel after it.
+    if (!isRunning()) return
     child.kill('SIGINT')
     deadline = setRunningTimeout({
       delayMs: cleanupLimitMs,
@@ -435,9 +442,6 @@ async function executeSetup(
     notice = setTimeout(() => {
       if (isRunning()) onWait?.(String(signal.reason))
     }, repeatWindowMs)
-    for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
-      process.on(signalName, forceAgain)
-    }
   }
   signal.addEventListener('abort', cancel, { once: true })
   try {

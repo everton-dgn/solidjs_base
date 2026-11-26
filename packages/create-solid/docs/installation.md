@@ -205,13 +205,15 @@ switcher the README omits screenshots that compare the light and dark themes.
 The corresponding programmatic properties are `siteUrl`, `mode`, `hasSeo`,
 `hasTheme`, `hasIcons`, `hasFonts` and `hasDiagnostics`.
 
-During a step, the CLI disables automatic wrapping while drawing the indicator.
-Resizing clears the indicator from its first column down, preserving the
-completed steps above it. When the CLI cannot read the size of the terminal
-itself, the indicator takes the width that Node reads on the resize. The cursor
-is hidden during an interactive step and restored when it ends. A long directory
-gets lines of its own in resume instructions, in the project summary and in
-destination errors, and keeps every character.
+The CLI draws the step title at the start and redraws it on resize and after
+`fg`. The indicator animates periodically only when the CLI confirms that it
+leads the foreground process group. The CLI disables automatic wrapping while
+drawing the indicator. Resizing clears the indicator from its first column down
+and preserves the completed steps above it. When the CLI cannot read the size of
+the terminal itself, the indicator takes the width that Node reads on the
+resize. The cursor is hidden during an interactive step and restored when it
+ends. A long directory gets lines of its own in resume instructions, in the
+project summary and in destination errors, and keeps every character.
 
 A question is drawn again by Clack when the terminal is resized, with a known
 limit when it gets narrower. Clack moves the cursor up by the height the old
@@ -327,21 +329,19 @@ container sends SIGCONT to them, so stop the container from another terminal.
 `npx` and `pnpm dlx` stay in the process group of the CLI and stop at once on
 Ctrl+Z, so the shell may take the terminal back before the CLI handles its stop.
 During a step the CLI then writes only the cursor, which changes no cell, before
-it stops: the indicator drawn before the stop stays above what the shell wrote,
-and on `fg` the indicator is drawn again below it. `bunx` runs the CLI as the
-leader of its own process group, as when Node runs it directly; the shell then
-waits for the stop of the CLI, which clears the indicator first. A stop sent
-from outside to the CLI alone during a step, such as `kill -TSTP` to its
-process, stops its whole process group when the CLI does not own the terminal,
-that is when it does not lead the foreground process group, so the shell of the
-launcher sees the stop. When the CLI leads the foreground process group, such a
-stop stops the CLI alone: the shell reports the job as stopped and takes the
-terminal back, the installer goes on during the stop, and `fg` sends SIGCONT to
-both. On Ctrl+\ during a step the CLI clears the indicator only when it leads
-the foreground process group. Under a launcher in its group that ends at once on
-Ctrl+\, on Linux the terminal echoes `^\` on the row of the indicator, and bash
-writes its `Quit (core dumped)` notice and the command over that row, with its
-prompt below them.
+it stops. The step title stays above what the shell wrote, and on `fg` the CLI
+redraws it below the shell's output. `bunx` runs the CLI as the leader of its
+own process group, as when Node runs it directly; the shell then waits for the
+stop of the CLI, which clears the indicator first. A stop sent from outside to
+the CLI alone during a step, such as `kill -TSTP` to its process, stops its
+whole process group when the CLI does not own the terminal, that is when it does
+not lead the foreground process group, so the shell of the launcher sees the
+stop. When the CLI leads the foreground process group, such a stop stops the CLI
+alone: the shell reports the job as stopped and takes the terminal back, the
+installer goes on during the stop, and `fg` sends SIGCONT to both. On
+Ctrl+\ during a step, the CLI clears the indicator only when it leads the
+foreground process group. The terminal may echo `^\`. The shell and terminal
+determine whether a quit message appears and where it goes.
 
 The shell only owns the terminal while the CLI is at a question when the stop
 comes from outside, such as `kill -TSTP` to the process group: the CLI then
@@ -349,82 +349,77 @@ keeps the question and raw mode as they are, because erasing would reach the
 prompt of the shell and a change of mode from the background would stop the CLI
 again, and it draws the question again below what the shell wrote on `fg`. A
 shell that does not restore its own terminal modes when a job stops leaves the
-terminal in raw mode until `fg`. The CLI asks the system which process group
-owns the terminal, through `/proc` on Linux and `/bin/ps` elsewhere. When the
-system does not answer within a quarter of a second, the CLI clears as it did
-before it could ask, and under `npx` or `pnpm dlx` that clearing can land on the
-prompt of the shell.
+terminal in raw mode until `fg`. The CLI checks the foreground process group
+through `/proc` on Linux, and through `/bin/ps` elsewhere. The `ps` query has a
+250 ms timeout. The Linux read uses no timer. An inconclusive result leaves
+periodic animation off. For stop and quit cleanup, the CLI still treats an
+inconclusive result as ownership. Under a launcher, that can put the clearing on
+the shell prompt.
 
-Canceling Git or the installation sends SIGINT to that process once and waits
-for it to end, so an installer can finish its own cleanup. The rollback of npm
-in a large install takes a few seconds on its own. Once the window of a repeated
-signal described below has passed with the installer still running, the title of
-the step turns into a line that starts with the key and then says that the CLI
-waits for the cleanup: "Press Ctrl+C to stop Bun now. Waiting for it to clean
-up." It fits a terminal of 80 columns in the three languages with Bun, pnpm and
-npm, and a narrower terminal cuts its end, not the key. The line is the same
-after any first signal: the CLI cannot tell a SIGINT sent with `kill` from
-Ctrl+C, and pressing Ctrl+C stops the installer at once after either. When no
-question frame is drawn on a terminal, as in plain output or with stdout in a
-pipe such as `create-solid app | tee log`, the CLI writes that line on its own
-line of the standard error. A second Ctrl+C, SIGINT or SIGTERM after that window
-kills the installer at once, and so does, even inside it, a SIGINT or SIGTERM
-that differs from the first signal. A SIGHUP never does, first or later: closing
-the terminal asks for no faster stop, and after it nobody can press again. When
-nobody presses again, as after the terminal closed or under a supervisor that
-sends SIGTERM once, the CLI kills the installer about 8 seconds after the first
-signal. Those seconds count only while the CLI runs: a stop with Ctrl+Z during
-the cleanup, however long, counts as at most a quarter of a second of them, and
-a CLI that the machine runs late takes longer to reach them. The bound leaves a
-few seconds more than the rollback of npm takes, and stays below the 10 seconds
-after which Docker sends SIGKILL. After the SIGKILL the CLI waits about a second
-for the installer to exit. An installer that outlives it, such as one in a wait
-on a network disk that stopped answering, stays until that wait ends, and the
-CLI ends as a cancel without it. Later signals send no other SIGKILL.
+The CLI sends one SIGINT to the active Git or installer process to start its
+cleanup. A Ctrl+C from the terminal can also reach the process independently
+through the foreground process group. When the installer is still running after
+the 150 ms window for a repeated signal, the CLI can show "Press Ctrl+C to stop
+Bun now. Waiting for it to clean up." The line includes the selected package
+manager and fits 80 columns in the three languages. A narrower frame truncates
+the end of the line and keeps the key visible. Once the line appears, pressing
+Ctrl+C forces the installer to stop.
 
-Once the process of a step, Git or the installer, has exited, on success, on
-failure or on a cancel, the CLI goes on reading what it wrote, and the long
-bound above ends, since the installer is gone. While the output of the CLI holds
-bytes that its reader has not taken, the CLI waits for that reader, however slow
-it is and however long the CLI was stopped, so a slow reader gets the whole
-output of the installer. Once the output takes what comes, the CLI lets go of
-the pipes when nothing more came for half a second. A process the installer
-started that keeps its pipes open with nothing to write, such as a lifecycle
-script that outlives bun, then holds the CLI only that half second. One that
-keeps writing holds it until the CLI has read a few MiB after the exit, far more
-than the pipes and the buffers hold of the output of the installer, or until the
-output has taken data for about 8 seconds of the time the CLI runs, whichever
-comes first. A first signal during this wait sends nothing to the installer,
-which is gone, and arms no bound: the CLI goes on waiting and then ends as a
-cancel. A later signal, after the window of a repeated signal, lets go of the
-pipes at once, whether the first came before the exit or during this wait, since
-it asks to stop now.
+An INT or TERM repeated within 150 ms of the same first signal is absorbed. A
+different INT or TERM forces immediately, and a repeated one forces once the
+window has elapsed. SIGHUP can start cleanup and never forces. A launcher can
+forward INT or TERM close to the original signal, and a terminal closing can
+deliver SIGHUP more than once. If an output error started cleanup, the CLI says
+"Waiting for Bun to clean up." The first real signal during that cleanup starts
+the same window for subsequent signals. The notice uses the interactive frame
+when its terminal is available. Otherwise it goes to stderr, or to stdout if
+stderr is lost. The CLI omits the notice if both destinations are lost.
 
-The signal manager of npm (`@npmcli/run-script`) sends the CLI every SIGINT and
-SIGTERM that `npx` gets, so a Ctrl+C or a `kill -TERM` to the process group
-reaches the CLI twice, about a millisecond apart or less. The CLI ignores the
-same SIGINT or SIGTERM when it comes again within a small fraction of a second,
-so the installer keeps its own cleanup under `npx`.
+With no signal that asks for an earlier stop, the CLI sends SIGKILL after about
+eight seconds of execution during cleanup. An elapsed tick counts at most 250
+ms, including the tick that spans a pause. A suspension or a busy event loop can
+stretch the elapsed wall time. After SIGKILL, the CLI gives the child about a
+second to exit, then finishes the cancellation even if the child is still
+blocked on a system operation. Later signals send no additional SIGKILL.
 
-When the terminal of an interactive bash closes during the installation, the CLI
-and the installer get SIGHUP from the system, on Linux twice less than a
-millisecond apart, and the installer gets SIGINT from the CLI. The CLI waits for
-its cleanup as it does on Ctrl+C, up to the same bound, and no SIGHUP shortens
-that wait. A write of the CLI to the closed terminal fails with `EIO`, and one
-to a pipe whose reader ended fails with `EPIPE`. Node opens the output again
-after each failure, so every later write, such as each frame of the indicator,
-fails the same way. The CLI drops these failures and keeps reading the output of
-the installer, whichever write failed first, one of its own such as the waiting
-line or one that forwards the installer, so an installer that still writes
-during its cleanup never blocks on a full pipe. The CLI goes on with what it was
-doing and ends as it would have, with code 130 after a cancel and nothing on its
-standard error. Any other failure of a write, such as `EIO` on a file, which is
-a failure of the disk, or `ENOSPC` on a full disk, stops the CLI as a signal
-does, at a question, in a step or after the summary: during the installation the
-installer gets SIGINT and the CLI waits for its cleanup. The CLI then ends with
-code 1, one line on the other output that names the output that failed and the
-error, and the commands left to run that a cancel lists, on that other output
-too. When the other output fails too, the CLI writes nothing more.
+The cleanup deadline ends when Git or the installer exits. Any child pipe still
+open drains independently. A pipe whose destination is asking for drain and has
+queued bytes can wait as long as its reader needs. Git and interactive install
+diagnostics use their own pipe without depending on the CLI's stderr queue. Once
+a source's destination can accept data, the CLI releases that source after about
+half a second without data, or about eight seconds of sampled execution while it
+can read. The silence interval starts again after each chunk. The CLI also
+releases a source as soon as it reads more than 4 MiB from that source after the
+child exits. The chunk that crosses the threshold is forwarded whole.
+Descendants can keep writing to a descriptor shared with the installer. A cutoff
+can discard bytes still in that source. The other source keeps its own limits
+and can deliver its full tail.
+
+A first signal during this drain records cancellation without signaling the
+exited child, setting a new cleanup deadline or showing a cleanup notice. A
+second eligible INT or TERM releases any remaining child pipes immediately,
+whether the first signal came before or after the exit. The CLI still lets bytes
+already accepted by a healthy output finish writing. It exits with 130 for
+cancellation, or with 1 if an output failure caused the stop.
+
+EPIPE from a closed reader and EIO from a closed TTY are tolerated. The CLI
+stops writing to that destination and continues consuming installer output so
+the installer can finish. A plain run can still show the wait and cancellation
+in stderr after stdout closes. If the other destination also closes, there is
+nowhere for a further message to go.
+
+A fatal write error such as EIO on a file or ENOSPC stops the CLI with code 1.
+The CLI starts cleanup if a child is still running. On the available alternate
+output, the diagnostic names the failed output and the error. At a question, the
+CLI stops accepting input, restores the terminal when it can and lets that
+diagnostic finish writing. Help and the summary before the project is created
+also report just the error. After the project files are created, the diagnostic
+includes the directory and commands still needed, including after a failure in
+the final instructions or title. A completed installation leaves no reinstall
+command. The CLI keeps the project and waits for the final interactive
+instructions to finish writing before printing the success title. The cleanup
+notice can precede the diagnostic. A pending Ctrl+C echo gets its own line when
+the diagnostic goes to a terminal.
 
 When the terminal closes at a question, the input of the CLI ends, with no
 SIGHUP before it on macOS or on Linux. The CLI then ends as a cancel, with code

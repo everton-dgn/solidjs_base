@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
-import { PassThrough } from 'node:stream'
+import { PassThrough, type Writable } from 'node:stream'
 import { setImmediate } from 'node:timers/promises'
 
-import { questionFrame } from '../src/questionFrame/index.ts'
+import { type Follow, questionFrame } from '../src/questionFrame/index.ts'
 import { questionnaire } from '../src/questionnaire.ts'
 import { CanceledError } from '../src/usage-error.ts'
 
@@ -26,6 +26,17 @@ type Title = {
   heighten: (height: number) => Promise<void>
   stop: (pause: Pause, during?: () => Promise<void>) => Promise<Stop>
   close: () => Promise<void>
+}
+type Asking = { input: PassThrough; output: Writable; follow?: Follow }
+// The question opened, with the promise that settles once Ctrl+C has canceled it.
+type Ask = (asking: Asking) => Promise<void>
+type Display = { write: (bytes: string) => void }
+type Opening = {
+  screen: Screen
+  ask: Ask
+  // Bytes go to the display as the question writes them, from its opening on.
+  display?: Display
+  isFramed?: boolean
 }
 
 const token =
@@ -80,29 +91,49 @@ function replay(written: string[]): string {
 }
 
 type Typing = { columns: number; keys: string[] }
+type Framing = Typing & { ask: Ask }
 
 type Track = { bytes: string; row: number; column?: number; rows: number }
 type Tracked = Cursor & { cornerErasures: number }
 
+export const askTitle: Ask = async ({ input, output, follow }) => {
+  await assert.rejects(
+    questionnaire({
+      answers,
+      language: 'en',
+      input,
+      output,
+      hasColor: false,
+      ...(follow ? { follow } : {})
+    }),
+    CanceledError
+  )
+}
 export type Pause = 'erase' | 'hold'
 export async function turns(): Promise<void> {
   const enough = 6
   for (let turn = 0; turn < enough; turn += 1) await setImmediate()
 }
-// The title question of the CLI, through the question frame, on a screen of the given size or on one with no size.
-export async function openTitle(screen: Screen): Promise<Title> {
+// A question on a screen of the given size or on one with no size, through the question frame unless it writes straight
+// to the screen.
+export async function openQuestion({
+  screen,
+  ask,
+  display,
+  isFramed = true
+}: Opening): Promise<Title> {
   const stream: Stream = Object.assign(new PassThrough(), screen)
   const written: string[] = []
-  stream.on('data', chunk => written.push(String(chunk)))
+  stream.on('data', chunk => {
+    written.push(String(chunk))
+    display?.write(String(chunk))
+  })
   const frame = questionFrame(stream)
   const input = new PassThrough()
-  const answer = questionnaire({
-    answers,
-    language: 'en',
+  const answer = ask({
     input,
-    output: frame.output,
-    hasColor: false,
-    follow: frame.follow
+    output: isFramed ? frame.output : stream,
+    ...(isFramed ? { follow: frame.follow } : {})
   })
   await turns()
   return {
@@ -135,36 +166,35 @@ export async function openTitle(screen: Screen): Promise<Title> {
     },
     async close() {
       input.write(ctrlC)
-      await assert.rejects(answer, CanceledError)
+      await answer
     }
   }
 }
-// The title question after each key, from the writes of Clack on a screen tall enough for all of it, with no question frame.
-export async function titleFrames({
+// The title question of the CLI, through the question frame, on a screen of the given size or on one with no size.
+export async function openTitle(screen: Screen): Promise<Title> {
+  return openQuestion({ screen, ask: askTitle })
+}
+// The question after each key, from the writes of Clack on a screen tall enough for all of it, with no question frame.
+export async function questionFrames({
   columns,
-  keys
-}: Typing): Promise<string[]> {
-  const stream = Object.assign(new PassThrough(), { columns, rows: tallRows })
-  const written: string[] = []
-  stream.on('data', chunk => written.push(String(chunk)))
-  const input = new PassThrough()
-  const answer = questionnaire({
-    answers,
-    language: 'en',
-    input,
-    output: stream,
-    hasColor: false
+  keys,
+  ask
+}: Framing): Promise<string[]> {
+  const question = await openQuestion({
+    screen: { columns, rows: tallRows },
+    ask,
+    isFramed: false
   })
-  await turns()
   const frames: string[] = []
   for (const key of keys) {
-    input.write(key)
-    await turns()
-    frames.push(replay(written))
+    await question.press(key)
+    frames.push(replay(question.written))
   }
-  input.write(ctrlC)
-  await assert.rejects(answer, CanceledError)
+  await question.close()
   return frames
+}
+export async function titleFrames(typing: Typing): Promise<string[]> {
+  return questionFrames({ ...typing, ask: askTitle })
 }
 // Follows the cursor of a terminal with this many rows: a move stops at its top and bottom rows, and a new line on its
 // last row scrolls. Counts the erasures to the end of the screen that start from its top left corner.

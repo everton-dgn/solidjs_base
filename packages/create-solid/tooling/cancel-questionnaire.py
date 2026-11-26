@@ -461,6 +461,59 @@ timer.unref();
 """
 
 
+class Pane:
+    """A tmux window of 80 columns with scroll-on-clear on, where an interactive bash runs the CLI as a job and continues it
+    with fg once the test creates the file go."""
+
+    def __init__(self, case, root, command, rows):
+        self.case = case
+        self.rows = rows
+        self.socket = str(root / "tmux.sock")
+        self.go = root / "go"
+        # SHELL keeps the login shell of the account, and the PATH it sets, out of the commands of tmux.
+        self.env = {key: os.environ[key] for key in ("HOME", "PATH", "LANG", "TMPDIR") if key in os.environ} | {"SHELL": "/bin/sh"}
+        script = f"{command}; until [ -e {shlex.quote(str(self.go))} ]; do sleep .05; done; fg"
+        self.tmux("new-session", "-d", "-x", "80", "-y", str(rows), "-c", str(root), "/bin/sh")
+        self.tmux("set-option", "remain-on-exit", "on")
+        self.tmux("set-option", "-g", "scroll-on-clear", "on")
+        self.tmux("respawn-pane", "-k", "-c", str(root), "exec " + shlex.join([bash_path(), "--norc", "--noprofile", "-i", "-c", script]))
+
+    def tmux(self, *args):
+        return subprocess.check_output(["tmux", "-f", "/dev/null", "-S", self.socket, *args], env=self.env, text=True, timeout=5)
+
+    def capture(self, history=False):
+        return self.tmux("capture-pane", "-p", *(["-S", "-200"] if history else [])).rstrip("\n").split("\n")
+
+    def split(self):
+        """The history and the screen, with the trailing blank rows of the screen left out."""
+        lines = self.tmux("capture-pane", "-p", "-S", "-200").split("\n")[:-1]
+        return lines[:-self.rows], lines[-self.rows:]
+
+    def wait_for(self, check, history=False):
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            lines = self.capture(history)
+            if check(lines):
+                return lines
+            time.sleep(.04)
+        tty = self.tmux("display", "-p", "#{pane_tty}").strip().removeprefix("/dev/")
+        table = subprocess.run(["ps", "-o", "pid,ppid,pgid,tpgid,stat,args", "-t", tty], capture_output=True, text=True).stdout
+        self.case.fail(f"{self.capture(history)}\n{table}")
+
+    def job(self):
+        [worker] = children(int(self.tmux("display", "-p", "#{pane_pid}")))
+        return worker
+
+    def wait_stopped(self, worker):
+        deadline = time.monotonic() + 10
+        while "T" not in state(worker):
+            self.case.assertLess(time.monotonic(), deadline, self.capture(True))
+            time.sleep(.04)
+
+    def close(self):
+        self.tmux("kill-server")
+
+
 class Reader:
     """Collect what the CLI writes to its terminal."""
 
@@ -3444,6 +3497,39 @@ process.stdout.write = (...args) => {
                 wait_for(lambda lines: "└  Creation canceled." in lines)
             finally:
                 tmux("kill-server")
+
+    def test_question_outside_stop_after_arrow_up(self):
+        # Under a launcher that leaves the terminal to its shell, a stop sent from outside to the group of the job after an
+        # arrow up at a title of spaces only that failed its check, in a tmux window of 12 rows with scroll-on-clear on.
+        self.assertIsNotNone(shutil.which("tmux"), "The tmux tests of the questionnaire harness need tmux: install it and run again")
+        self.assertIsNotNone(bash_path(), "The tmux tests of the questionnaire harness need bash: install it and run again")
+        with tempfile.TemporaryDirectory() as directory:
+            command = shlex.join([bash_path(), "-c", shlex.join(["env", "CI=false", "NO_COLOR=1", "TERM=xterm", node, str(cli),
+                                  "app", "--lang", "en", "--mode", "server", "--no-git", "--no-install"]) + "; exit 0"])
+            pane = Pane(self, pathlib.Path(directory), command, 12)
+            try:
+                pane.wait_for(lambda lines: "└" in lines[-1])
+                pane.tmux("send-keys", "-l", " " * 760)
+                pane.wait_for(lambda lines: lines[-2:] == ["│" + " " * 69 + "█", "└"])
+                pane.tmux("send-keys", "Enter")
+                pane.wait_for(lambda lines: lines[-1].startswith("└  Enter a title"))
+                pane.tmux("send-keys", "Up")
+                time.sleep(.3)
+                worker = pane.job()
+                os.killpg(os.getpgid(worker), signal.SIGTSTP)
+                pane.wait_stopped(worker)
+                lines = pane.wait_for(lambda lines: any("Stopped" in line for line in lines), history=True)
+                notice = next(index for index, line in enumerate(lines) if "Stopped" in line)
+                # The cursor stayed at the end of the question, so the shell wrote its notice below the last row of it.
+                last = max(index for index, line in enumerate(lines) if line.startswith("└"))
+                self.assertLess(last, notice, lines)
+                self.assertTrue(any(line.endswith("█") for line in lines[:last]), lines)
+                pane.go.touch()
+                pane.wait_for(lambda lines: "T" not in state(worker) and lines[-1].startswith("└") and lines[-2].endswith("█"))
+                pane.tmux("send-keys", "C-c")
+                pane.wait_for(lambda lines: "└  Creation canceled." in lines)
+            finally:
+                pane.close()
 
     def test_terminal_closed_or_quit_during_install(self):
         # A person in an interactive bash closes the terminal during the install or at a question, or presses Ctrl+\ under a

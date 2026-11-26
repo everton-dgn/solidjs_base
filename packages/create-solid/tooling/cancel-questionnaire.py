@@ -319,8 +319,9 @@ def broken_cli(root):
 # holds in the continuation of the next turn of the event loop the CLI waits for after that synchronous part.
 HOLD_MODULE = """
 import childProcess from 'node:child_process';
-import fs, { existsSync, writeFileSync } from 'node:fs';
+import fs, { appendFileSync, existsSync, writeFileSync } from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
+import callbacks from 'node:timers';
 import timers from 'node:timers/promises';
 let held = false;
 const hold = () => {
@@ -329,19 +330,41 @@ const hold = () => {
   while (!existsSync(process.env.RELEASE)) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
 };
 if (process.env.HOLD_AT === 'query') {
+  const shouldHold = () => !held && existsSync(process.env.HOLD_QUERY);
   const spawn = childProcess.spawnSync;
   childProcess.spawnSync = (...args) => {
     const answer = spawn(...args);
-    if (!held && /(^|\\/)ps$/.test(String(args[0]))) hold();
+    if (/(^|\\/)ps$/.test(String(args[0])) && shouldHold()) hold();
     return answer;
   };
   const read = fs.readFileSync;
   fs.readFileSync = (...args) => {
     const answer = read(...args);
-    if (!held && args[0] === '/proc/self/stat') hold();
+    if (args[0] === '/proc/self/stat' && shouldHold()) hold();
     return answer;
   };
 } else {
+  let tick;
+  let enqueueFrame = false;
+  const trace = event => appendFileSync(process.env.HOLD_TURN, event + '\\n');
+  if (process.env.HOLD_TURN) {
+    const repeat = callbacks.setInterval;
+    callbacks.setInterval = (callback, delay, ...args) => {
+      if (callback.name !== 'tick' || (delay !== 80 && delay !== 120)) return repeat(callback, delay, ...args);
+      tick = () => callback(...args);
+      trace('interval');
+      return undefined;
+    };
+    const immediate = callbacks.setImmediate;
+    callbacks.setImmediate = (callback, ...args) => {
+      if (!enqueueFrame) return immediate(callback, ...args);
+      trace('queue B');
+      return immediate((...values) => {
+        trace('run B');
+        callback(...values);
+      }, ...args);
+    };
+  }
   const original = fs[process.env.HOLD_AT];
   let isTurnNext = false;
   fs[process.env.HOLD_AT] = (...args) => {
@@ -356,7 +379,17 @@ if (process.env.HOLD_AT === 'query') {
     const next = turn(...args);
     if (!isTurnNext) return next;
     isTurnNext = false;
-    return next.then(value => { hold(); return value; });
+    trace('queue A');
+    if (tick) {
+      enqueueFrame = true;
+      tick();
+      enqueueFrame = false;
+    }
+    return next.then(value => {
+      trace('run A');
+      hold();
+      return value;
+    });
   };
 }
 syncBuiltinESMExports();
@@ -1347,7 +1380,8 @@ process.stdout.write = (...args) => {
                 release = root / "release"
                 hold = {"HOLDING": str(root / "holding"), "RELEASE": str(release)}
                 if held:
-                    hold.update(NODE_OPTIONS="--import=data:text/javascript," + quote(HOLD_MODULE), HOLD_AT="query")
+                    hold.update(NODE_OPTIONS="--import=data:text/javascript," + quote(HOLD_MODULE),
+                                HOLD_AT="query", HOLD_QUERY=str(root / "hold-query"))
                 elif stage != b"Application title":
                     # The indicator draws until the CLI reads its signal, so the loop is held while the two signals are sent.
                     hold.update(NODE_OPTIONS="--import=data:text/javascript," + quote(TIMER_HOLD_MODULE), HOLD=str(root / "hold"))
@@ -1378,6 +1412,7 @@ process.stdout.write = (...args) => {
                     launcher = recorded(root / "cli.pid")
                     [worker] = children(launcher)
                     if held:
+                        (root / "hold-query").touch()
                         os.kill(worker, signal.SIGTSTP)
                         self.assertEqual(recorded(root / "holding"), 1)
                     elif stage != b"Application title":
@@ -1422,7 +1457,7 @@ process.stdout.write = (...args) => {
                         reader.until(b"Setup", continued)
                     else:
                         reader.until(hidden + b"\r\x1b[J\r\x1b[?7l", continued)
-                        reader.until(stage, continued, 3)
+                        reader.until(stage, continued)
                     os.write(master, b"\x03")
                     reader.until("└  Creation canceled.".encode(), continued)
                     deadline = time.monotonic() + 5
@@ -1956,10 +1991,11 @@ process.stdout.write = (...args) => {
             with self.subTest(turn=turn), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
                 release = root / "release"
+                trace = root / "turn.trace"
                 pid, master, slave = start_cli(
                     root, ["app", "--lang", "en", "--mode", "server", "--no-git", "--no-install"],
                     {"NODE_OPTIONS": "--import=data:text/javascript," + quote(HOLD_MODULE), "HOLD_AT": "renameSync",
-                     "HOLDING": str(root / "holding"), "RELEASE": str(release), **({"HOLD_TURN": "1"} if turn else {})},
+                     "HOLDING": str(root / "holding"), "RELEASE": str(release), **({"HOLD_TURN": str(trace)} if turn else {})},
                     job_control=True, launcher=True, shell=True)
                 reader = Reader(self, master)
                 transcript = reader.transcript
@@ -1972,7 +2008,13 @@ process.stdout.write = (...args) => {
                     reader.until(b"Creating the files")
                     self.assertEqual(recorded(root / "holding"), 1)
                     launcher = recorded(root / "cli.pid")
+                    self.assertIsNotNone(launcher)
                     [worker] = children(launcher)
+                    self.assertEqual((os.getsid(launcher), os.getsid(worker)), (pid, pid))
+                    self.assertEqual((os.getpgid(launcher), os.getpgid(worker)), (launcher, launcher))
+                    queued = trace.read_text().splitlines() if turn else []
+                    if turn:
+                        self.assertIn(queued, (["queue A", "run A"], ["interval", "queue A", "queue B", "run A"]))
                     os.kill(launcher, signal.SIGSTOP)
                     # The parent has taken the terminal back when it records the stop.
                     self.assertEqual(recorded(root / "stop.signal"), signal.SIGSTOP)
@@ -1983,15 +2025,20 @@ process.stdout.write = (...args) => {
                     os.write(slave, b"[1]+  Stopped\r\n$ ")
                     reader.until(b"$ ", prompt_start)
                     start = len(transcript)
-                    # The hold outlasts the interval of the indicator (80 or 120 ms), so its timer is due when the loop runs again.
-                    time.sleep(.3)
                     release.touch()
                     deadline = time.monotonic() + 4
                     while "T" not in state(worker):
                         self.assertLess(time.monotonic(), deadline)
                         time.sleep(.01)
                     marked = reader.mark(slave)
-                    self.assertEqual(bytes(transcript[start:marked]), shown)
+                    stopped = bytes(transcript[start:marked])
+                    if turn:
+                        events = trace.read_text().splitlines()
+                        self.assertEqual(events, queued + (["run B"] if "queue B" in queued else []))
+                        print(f"Indicator after the shell prompt: {events!r}, {stopped!r}", flush=True)
+                    self.assertEqual(stopped, shown)
+                    if turn:
+                        self.assertEqual(events, ["queue A", "run A"])
                     os.write(slave, b"fg\r\n")
                     reader.until(b"fg", start)
                     continued = len(transcript)
@@ -2009,6 +2056,8 @@ process.stdout.write = (...args) => {
                     reader.drain()
                     self.assertEqual(reader.cursor(), shown)
                     self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+                    if turn:
+                        self.assertEqual(trace.read_text().splitlines(), events)
                 finally:
                     release.touch()
                     foreground(root, 1)

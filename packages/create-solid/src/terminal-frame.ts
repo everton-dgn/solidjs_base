@@ -24,7 +24,7 @@ import {
 
 import { messages, type Language } from './cli-language.ts'
 import { hideCursor, showCursor } from './constants/cursor.ts'
-import { isTerminalOwner } from './isTerminalOwner/index.ts'
+import { isForegroundLeader, isTerminalOwner } from './isTerminalOwner/index.ts'
 import { listenEndKey } from './listenEndKey/index.ts'
 import { CanceledError } from './usage-error.ts'
 import { widthLines } from './widthLines/index.ts'
@@ -253,7 +253,6 @@ export const progress = {
       drawnColumns = columns
       index = (index + 1) % frames.length
     }
-    // WHY: After a synchronous part the timer runs before the loop reads a pending Ctrl+Z, and under a launcher the shell may own the terminal by then. The frame waits until the signals are read.
     let pendingFrame: NodeJS.Immediate | undefined
     const tick = () => {
       pendingFrame = setImmediate(() => {
@@ -288,7 +287,7 @@ export const progress = {
       // WHY: The interval came due during the stop, and its frame would follow this one at once. After a stop the CLI cannot catch, that frame may already wait for its turn.
       clearImmediate(pendingFrame)
       clearInterval(indicator)
-      indicator = setInterval(tick, interval)
+      indicator = isForegroundLeader() ? setInterval(tick, interval) : undefined
     }
     const suspend = () => {
       // WHY: A launcher of the group stops first, so the continue of its shell may be queued behind this signal, and it cancels the stop.
@@ -326,7 +325,8 @@ export const progress = {
       process.off('SIGQUIT', quit)
     }
     draw()
-    indicator = setInterval(tick, interval)
+    // WHY: Under a launcher the shell can take the terminal before the CLI reads the stop.
+    if (isForegroundLeader()) indicator = setInterval(tick, interval)
   },
   wait(title: string): void {
     waiting = title

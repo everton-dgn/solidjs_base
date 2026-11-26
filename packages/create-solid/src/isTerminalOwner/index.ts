@@ -43,7 +43,7 @@ export function psGroups({ stdout, error }: PsAnswer): Groups | undefined {
   return known({ group, foreground })
 }
 // WHY: Node does not expose the foreground process group of the terminal, so the system answers: /proc on Linux and ps elsewhere.
-export function isTerminalOwner(): boolean {
+export function isForegroundLeader(): boolean | undefined {
   const stat = readStat()
   const groups =
     stat === undefined
@@ -59,9 +59,11 @@ export function isTerminalOwner(): boolean {
           )
         )
       : statGroups(stat)
-  // WHY: A shell waits only for the stop of a group leader, and with no answer the CLI writes as it did before it could ask.
-  return (
-    groups === undefined ||
-    (groups.group === process.pid && groups.group === groups.foreground)
-  )
+  if (!groups) return undefined
+  return groups.group === process.pid && groups.group === groups.foreground
+}
+
+export function isTerminalOwner(): boolean {
+  // WHY: With no answer the stop handler writes as it did before it could ask.
+  return isForegroundLeader() ?? true
 }

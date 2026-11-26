@@ -111,3 +111,70 @@ void it('owns the terminal only when the CLI leads the foreground group', () => 
   assert.equal(child.status, 0, child.stderr)
   assert.deepEqual(JSON.parse(child.stdout), [true, false, false])
 })
+
+const simulateTerminalGroups = `
+  import childProcess from 'node:child_process'
+  import fs from 'node:fs'
+  const read = fs.readFileSync
+  fs.readFileSync = (file, ...args) => {
+    if (file === '/proc/self/stat') throw new Error('use ps')
+    return read(file, ...args)
+  }
+  let terminalGroups = [process.pid, process.pid]
+  childProcess.spawnSync = () => ({ stdout: terminalGroups.join(' '), error: undefined })
+`
+const childTimeoutMs = 10_000
+void it('keeps each step static under a launcher or with no answer at start and continue', () => {
+  const script = `
+    import timers from 'node:timers'
+    import { syncBuiltinESMExports } from 'node:module'
+    ${simulateTerminalGroups}
+    Object.defineProperty(process.stdout, 'isTTY', {value: true})
+    Object.defineProperty(process.stdout, 'columns', {value: 80})
+    process.kill = () => true
+    let intervals = 0
+    timers.setInterval = () => ++intervals
+    timers.clearInterval = () => {}
+    syncBuiltinESMExports()
+    const { progress } = await import('./src/terminal-frame.ts')
+    const launcher = process.pid + 1
+    const counts = {}
+    for (const [name, groups] of [['launcher', [launcher, launcher]], ['unknown', []]]) {
+      terminalGroups = groups
+      counts[name] = {}
+      for (const title of ['files', 'git', 'install']) {
+        intervals = 0
+        progress.start(title)
+        const started = intervals
+        process.emit('SIGCONT')
+        counts[name][title] = { started, resumed: intervals - started }
+        progress.clear()
+      }
+    }
+    process.stderr.write(JSON.stringify(counts))
+  `
+  const child = spawnSync(
+    process.execPath,
+    ['--input-type=module', '-e', script],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, TERM: 'xterm', FORCE_COLOR: '0' },
+      timeout: childTimeoutMs
+    }
+  )
+  assert.equal(child.status, 0, child.stderr)
+  const staticStep = { started: 0, resumed: 0 }
+  const staticSteps = {
+    files: staticStep,
+    git: staticStep,
+    install: staticStep
+  }
+  assert.deepEqual(JSON.parse(child.stderr), {
+    launcher: staticSteps,
+    unknown: staticSteps
+  })
+  const expectedDraws = 4
+  for (const title of ['files', 'git', 'install']) {
+    assert.equal(child.stdout.split(`  ${title}`).length - 1, expectedDraws)
+  }
+})

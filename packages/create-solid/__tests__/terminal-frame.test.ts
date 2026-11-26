@@ -5,6 +5,17 @@ import { it } from 'node:test'
 
 // WHY: A child that keeps a real interval never ends, so a test that replaces node:timers fails in seconds when the frame goes back to the global timers.
 const childTimeoutMs = 10_000
+const simulateTerminalGroups = `
+  import childProcess from 'node:child_process'
+  import fs from 'node:fs'
+  const read = fs.readFileSync
+  fs.readFileSync = (file, ...args) => {
+    if (file === '/proc/self/stat') throw new Error('use ps')
+    return read(file, ...args)
+  }
+  let terminalGroups = [process.pid, process.pid]
+  childProcess.spawnSync = () => ({ stdout: terminalGroups.join(' '), error: undefined })
+`
 type Terminal = { isTTY: boolean; term: string; shouldDrawStatuses?: boolean }
 function draw({ isTTY, term, shouldDrawStatuses = false }: Terminal): string {
   const script = `
@@ -122,6 +133,7 @@ void it('uses the Clack interval for each indicator', () => {
   const script = `
     import timers from 'node:timers'
     import { syncBuiltinESMExports } from 'node:module'
+    ${simulateTerminalGroups}
     Object.defineProperty(process.stdout, 'isTTY', {value: true})
     timers.setInterval = (_, ms) => { process.stderr.write(String(ms)); return undefined }
     syncBuiltinESMExports()
@@ -287,6 +299,7 @@ for (const order of ['FWC', 'FTWC', 'FTTWC', 'FC', 'FTC', 'grow', 'truncate']) {
     const script = `
       import timers from 'node:timers'
       import { syncBuiltinESMExports } from 'node:module'
+      ${simulateTerminalGroups}
       Object.defineProperty(process.stdout,'isTTY',{value:true})
       const width = value => Object.defineProperty(process.stdout,'columns',{value,configurable:true})
       width(${initial})
@@ -390,6 +403,7 @@ void it('draws once on the continue and starts the interval again so no frame co
   const script = `
     import nodeTimers from 'node:timers'
     import { syncBuiltinESMExports } from 'node:module'
+    ${simulateTerminalGroups}
     Object.defineProperty(process.stdout,'isTTY',{value:true})
     const timers = []
     let tick

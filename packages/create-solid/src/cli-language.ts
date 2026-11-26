@@ -161,7 +161,7 @@ Automation
     singleDirectory: 'Pass a single project directory.',
     destination: '--name requires a new or empty directory',
     badTitle:
-      '--title requires nonempty text on one line without control characters',
+      '--title requires text that is neither empty nor only spaces, on one line without control characters',
     origin: '--site-url requires an HTTP or HTTPS origin',
     needsSeo: '--site-url requires SEO',
     clientSeo: 'Client rendering cannot publish SEO. Use --mode static.',
@@ -300,7 +300,8 @@ Automação
       'Padrões: solid-app, nome da pasta como título, servidor na Vercel, pt/en/es com o idioma do questionário como base, todos os recursos, https://example.com, Bun, Git e instalação.',
     singleDirectory: 'Informe uma única pasta de projeto.',
     destination: '--name exige uma pasta nova ou vazia',
-    badTitle: '--title exige texto em uma linha sem caracteres de controle',
+    badTitle:
+      '--title exige um texto que não seja vazio nem só espaços, em uma linha sem caracteres de controle',
     origin: '--site-url exige uma origem HTTP ou HTTPS',
     needsSeo: '--site-url exige SEO',
     clientSeo:
@@ -442,7 +443,8 @@ Automatización
       'Valores predeterminados: solid-app, nombre de carpeta como título, servidor en Vercel, pt/en/es con el idioma del cuestionario como base, todas las funcionalidades, https://example.com, Bun, Git e instalación.',
     singleDirectory: 'Indica una sola carpeta de proyecto.',
     destination: '--name requiere una carpeta nueva o vacía',
-    badTitle: '--title requiere texto en una línea sin caracteres de control',
+    badTitle:
+      '--title requiere un texto que no esté vacío ni sea solo espacios, en una línea sin caracteres de control',
     origin: '--site-url requiere un origen HTTP o HTTPS',
     needsSeo: '--site-url requiere SEO',
     clientSeo: 'El modo cliente no publica metadatos SEO. Usa --mode static.',

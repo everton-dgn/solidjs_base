@@ -10,7 +10,8 @@ type FieldMessage = {
 const fieldMessages = {
   en: {
     destination: 'Choose a new or empty project directory.',
-    badTitle: 'Enter a title on one line without control characters.',
+    badTitle:
+      'Enter a title that is not only spaces, on one line without control characters.',
     origin: 'Enter an HTTP or HTTPS URL without a path, query or fragment.',
     needsSeo: 'Enable SEO to set a public site URL.',
     clientSeo: 'Client rendering does not publish SEO metadata.',
@@ -25,7 +26,8 @@ const fieldMessages = {
   },
   'pt-BR': {
     destination: 'Escolha uma pasta nova ou vazia para o projeto.',
-    badTitle: 'Digite um título em uma linha, sem caracteres de controle.',
+    badTitle:
+      'Digite um título que não seja só espaços, em uma linha, sem caracteres de controle.',
     origin: 'Digite uma URL HTTP ou HTTPS sem caminho, consulta ou fragmento.',
     needsSeo: 'Ative o SEO para definir a URL pública do site.',
     clientSeo: 'A renderização no cliente não publica metadados de SEO.',
@@ -40,7 +42,8 @@ const fieldMessages = {
   },
   es: {
     destination: 'Elige una carpeta nueva o vacía para el proyecto.',
-    badTitle: 'Escribe un título de una línea sin caracteres de control.',
+    badTitle:
+      'Escribe un título que no sea solo espacios, de una línea y sin caracteres de control.',
     origin: 'Introduce una URL HTTP o HTTPS sin ruta, consulta ni fragmento.',
     needsSeo: 'Activa el SEO para definir la URL pública del sitio.',
     clientSeo: 'El renderizado en el cliente no publica metadatos SEO.',

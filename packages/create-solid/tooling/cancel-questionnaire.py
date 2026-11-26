@@ -3209,7 +3209,7 @@ process.stdout.write = (...args) => {
             ("a value with Enter in the same read", [("Application title", b"ab"), ("ab", b"\x04\r"), ("Setup", b"\x03")],
              ["■  Setup", "│  Recommended"]),
             # A value that failed its check keeps its text and its error until the next key, and Ctrl+D keeps it too.
-            ("a value with an error", [("Application title", b"  \r"), ("without control characters", b"\x04c"), ("  c", b"\x03")],
+            ("a value with an error", [("Application title", b"  \r"), ("not only spaces", b"\x04c"), ("  c", b"\x03")],
              ["■  Application title", "│    c"]),
             # n closes the confirm and leaves raw mode, so the Ctrl+D after it does nothing and n cancels as it does alone.
             ("a confirm answered with n and the Ctrl+D in the same read", [*select, ("Setup", b"\r"), ("Create the project?", b"n\x04")],
@@ -3539,7 +3539,7 @@ process.stdout.write = (...args) => {
                 pane.tmux("send-keys", "-l", " " * 760)
                 pane.wait_for(lambda lines: lines[-2:] == ["│" + " " * 69 + "█", "└"])
                 pane.tmux("send-keys", "Enter")
-                pane.wait_for(lambda lines: lines[-1].startswith("└  Enter a title"))
+                pane.wait_for(lambda lines: any(line.startswith("└  Enter a title") for line in lines[-2:]))
                 pane.tmux("send-keys", "Up")
                 time.sleep(.3)
                 worker = pane.job()

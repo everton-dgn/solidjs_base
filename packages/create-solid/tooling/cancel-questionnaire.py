@@ -637,6 +637,43 @@ process.stdout.on('error', error => setImmediate(() => record('output error', er
 """
 
 # Record the destination of a cleanup notice and acknowledge its callback, including when there is nowhere to write.
+ECHO_OUTPUT_MODULE = """
+import { appendFileSync, existsSync, writeFileSync } from 'node:fs';
+const env = process.env;
+const record = (...event) => appendFileSync(env.ECHO_TRACE, JSON.stringify(event) + '\\n');
+const output = process[env.ECHO_DESTINATION];
+const write = output.write.bind(output);
+output.write = (chunk, ...args) => {
+  const text = String(chunk);
+  if (text.includes('Waiting for Bun to clean up.')) record('notice', text);
+  if (text.includes('Could not write to the standard')) record('diagnostic', text);
+  return write(chunk, ...args);
+};
+const timeout = globalThis.setTimeout;
+globalThis.setTimeout = (callback, delay, ...args) => {
+  if (delay !== 150) return timeout(callback, delay, ...args);
+  return timeout(() => {
+    const barrier = setInterval(() => {
+      if (!existsSync(env.ECHO_NOTICE)) return;
+      clearInterval(barrier);
+      callback(...args);
+      writeFileSync(env.ECHO_NOTICED, '1');
+    }, 5);
+  }, delay);
+};
+const timer = setInterval(() => {
+  if (!existsSync(env.ECHO_ERROR)) return;
+  clearInterval(timer);
+  record('failure', env.ECHO_FAILING, 'ENOSPC');
+  process[env.ECHO_FAILING].emit('error', Object.assign(new Error('ENOSPC'), { code: 'ENOSPC' }));
+}, 5);
+process.on('SIGINT', () => setImmediate(() => {
+  record('signal', 'SIGINT');
+  writeFileSync(env.ECHO_SIGNAL, '1');
+}));
+process.on('exit', code => record('exit', code));
+"""
+
 NOTICE_OUTPUT_MODULE = """
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 const outputs = { stdout: process.stdout, stderr: process.stderr };
@@ -3603,6 +3640,122 @@ process.stdout.write = (...args) => {
                             os.kill(worker, signal.SIGKILL)
                         if child.poll() is None and belongs(child.pid):
                             child.kill()
+
+    def test_output_diagnostic_separates_the_interrupt_echo(self):
+        cases = (
+            ("stdout", True, "pending"), ("stderr", True, "pending"),
+            ("stdout", True, "consumed"), ("stdout", True, "absent"),
+            ("stderr", False, "pending"),
+        )
+        for failing, is_terminal, echo in cases:
+            with self.subTest(failing=failing, is_terminal=is_terminal, echo=echo), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                trace, failure, notice, noticed, delivered = (
+                    root / name for name in ("trace", "failure", "notice", "noticed", "delivered"))
+                ready, cleaning, cleaned, finish = (
+                    root / name for name in ("installer.pid", "cleaning", "cleaned", "finish"))
+                source = root / "installer.cjs"
+                source.write_text(CLEANING_INSTALLER)
+                installer = root / "bun"
+                installer.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(source))}\n")
+                installer.chmod(0o755)
+                preload = root / "echo-output.mjs"
+                preload.write_text(ECHO_OUTPUT_MODULE)
+                other = "stdout" if failing == "stderr" else "stderr"
+                env = dict(os.environ, CI="false", LC_ALL="C", TERM="xterm",
+                           PATH=str(root) + os.pathsep + os.environ["PATH"], PID_FILE=str(ready),
+                           CLEANING=str(cleaning), CLEANED=str(cleaned), FINISH=str(finish), CLEANUP_MS="",
+                           ECHO_TRACE=str(trace), ECHO_ERROR=str(failure), ECHO_NOTICE=str(notice),
+                           ECHO_NOTICED=str(noticed), ECHO_SIGNAL=str(delivered), ECHO_FAILING=failing, ECHO_DESTINATION=other)
+                master, slave = pty.openpty()
+
+                def claim_terminal():
+                    os.setsid()
+                    fcntl.ioctl(0, termios.TIOCSCTTY, 0)
+
+                try:
+                    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
+                    with (root / "failed-output").open("wb") as failed_output:
+                        alternate = slave if is_terminal else subprocess.PIPE
+                        streams = {failing: failed_output, other: alternate}
+                        with subprocess.Popen(
+                                [node, "--import", preload.as_uri(), cli, "app", "--lang", "en", "--mode", "server",
+                                 "--yes", "--install", "--no-git"],
+                                env=env, cwd=root, stdin=slave, preexec_fn=claim_terminal, **streams) as child:
+                            terminal = Reader(self, master)
+
+                            def belongs(pid):
+                                try:
+                                    return (os.getsid(pid), os.getpgid(pid)) == (child.pid, child.pid)
+                                except ProcessLookupError:
+                                    return False
+
+                            def interrupt():
+                                self.assertTrue(belongs(child.pid) and belongs(worker))
+                                os.write(master, b"\x03")
+                                terminal.until(b"^C")
+                                self.assertEqual(recorded(delivered), 1)
+
+                            worker = None
+                            try:
+                                worker = recorded(ready)
+                                self.assertIsNotNone(worker)
+                                self.assertTrue(belongs(child.pid) and belongs(worker))
+                                failure.touch()
+                                self.assertEqual(recorded(cleaning), 1)
+                                if echo == "consumed":
+                                    interrupt()
+                                notice.touch()
+                                self.assertEqual(recorded(noticed), 1)
+                                if is_terminal:
+                                    terminal.until(ERROR_WAITING_LINE.encode())
+                                if echo == "pending":
+                                    terminal.drain()
+                                    interrupt()
+                                finish.touch()
+                                if is_terminal:
+                                    terminal.until(b"bun install")
+                                stdout, stderr = child.communicate(timeout=8)
+                                terminal.drain()
+                            finally:
+                                finish.touch()
+                                if worker and belongs(worker):
+                                    os.kill(worker, signal.SIGKILL)
+                                if child.poll() is None and belongs(child.pid):
+                                    child.kill()
+                    events = [json.loads(line) for line in trace.read_text().splitlines()]
+                    transcript = bytes(terminal.transcript)
+                    channel = "error" if failing == "stderr" else "output"
+                    line = f"Could not write to the standard {channel}: ENOSPC."
+                    diagnostic = next(event[1] for event in events if event[0] == "diagnostic")
+                    expected_order = ["failure", "notice", "diagnostic", "exit"]
+                    if echo != "absent":
+                        expected_order.insert(1 if echo == "consumed" else 2, "signal")
+                    print(f"Diagnostic echo, {failing}/{is_terminal}/{echo}: events={events!r}, exit={child.returncode}, "
+                          f"tty={transcript[-480:]!r}", flush=True)
+                    self.assertEqual([event[0] for event in events], expected_order)
+                    self.assertEqual((child.returncode, events[-1]), (1, ["exit", 1]))
+                    self.assertTrue(cleaned.exists())
+                    self.assertTrue((root / "app/package.json").is_file())
+                    self.assertEqual(diagnostic.lstrip("\n").splitlines(), [
+                        line, "Your project is in app. To finish, run:", "cd app", "bun install"])
+                    self.assertEqual(transcript.count(b"^C"), int(echo != "absent"))
+                    if is_terminal:
+                        expected_prefix = "\n" if echo == "pending" else ""
+                        self.assertEqual(diagnostic[:diagnostic.index(line)], expected_prefix)
+                        expected = ((b"^C\r\n" if echo == "pending" else ERROR_WAITING_LINE.encode() + b"\r\n")
+                                    + line.encode())
+                        self.assertIn(expected, transcript)
+                        if echo == "consumed":
+                            self.assertIn(b"^C\r\n" + ERROR_WAITING_LINE.encode(), transcript)
+                    else:
+                        pipe = stdout if other == "stdout" else stderr
+                        self.assertTrue(diagnostic.startswith(line))
+                        self.assertIn(ERROR_WAITING_LINE.encode() + b"\n" + line.encode(), pipe)
+                finally:
+                    os.close(master)
+                    os.close(slave)
+
 
     def test_cleanup_notice_uses_an_available_output(self):
         cases = (

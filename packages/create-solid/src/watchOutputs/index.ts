@@ -6,6 +6,7 @@ type FailureReport = {
   language: Language
   resume: string
   onComplete?: () => void
+  prefix?: (output: NodeJS.WriteStream) => string
 }
 type OutputFailure = { output: NodeJS.WriteStream; code: string }
 type OutputWatch = {
@@ -35,7 +36,7 @@ export function watchOutputs(): OutputWatch {
   return {
     signal: controller.signal,
     canWrite,
-    report({ language, resume, onComplete }) {
+    report({ language, resume, onComplete, prefix }) {
       process.exitCode = 1
       if (isReported || !firstFailure) {
         onComplete?.()
@@ -52,7 +53,8 @@ export function watchOutputs(): OutputWatch {
         code: output === process.stdout ? 'stdoutFailed' : 'stderrFailed',
         values: { code }
       })
-      other.write(`${[line, resume].filter(Boolean).join('\n')}\n`, onComplete)
+      const text = [line, resume].filter(Boolean).join('\n')
+      other.write(`${prefix?.(other) ?? ''}${text}\n`, onComplete)
     }
   }
 }

@@ -27,13 +27,8 @@ const argumentOffset = 2
 const usageExitCode = 2
 const terminal = { isFramed: false }
 let language: ReturnType<typeof cliLanguage> = 'en'
-let closingResume = ''
-// WHY: A write that failed after the last step, such as one of the closing lines, has nothing left to stop.
-process.on('beforeExit', () => {
-  if (outputs.signal.aborted) {
-    outputs.report({ language, resume: closingResume })
-  }
-})
+type OutputRecovery = { resume: string; signals?: SignalRecord }
+let outputRecovery: OutputRecovery = { resume: '' }
 function detectLanguage(options: string[]) {
   const index = options.findLastIndex(
     arg => arg === '--lang' || arg.startsWith('--lang=')
@@ -232,6 +227,19 @@ function echoBreak(
   counts.echoed = counts.interrupts
   return hasEcho && output.isTTY ? '\n' : ''
 }
+function reportOutputFailure({ resume, signals }: OutputRecovery): void {
+  outputs.report({
+    language,
+    resume,
+    prefix: output => (signals ? echoBreak(signals, output) : '')
+  })
+}
+// WHY: A write that failed after the last step, such as one of the closing lines, has nothing left to stop.
+process.on('beforeExit', () => {
+  if (outputs.signal.aborted) {
+    reportOutputFailure(outputRecovery)
+  }
+})
 type PlainClosing = {
   lines: string[]
   isCanceled: boolean
@@ -275,10 +283,10 @@ function closeGeneration({
   signals
 }: GenerationClosing): void {
   const reason = errorMessage(error)
-  closingResume = reason
+  outputRecovery = { resume: reason, signals }
   if (outputs.signal.aborted) {
     frame?.progress.clear({ shouldWrite: outputs.canWrite(process.stdout) })
-    outputs.report({ language, resume: reason })
+    reportOutputFailure(outputRecovery)
     return
   }
   const labels = messages[language]
@@ -415,7 +423,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
     signals.stop()
   }
   const { steps, resume } = result
-  closingResume = resume
+  outputRecovery = { resume }
   if (completed) finish(completed)
   if (outputs.signal.aborted || !outputs.canWrite(process.stdout)) return
   if (frame) {

@@ -3920,6 +3920,103 @@ process.stdout.write = (...args) => {
                 self.assertEqual(entries, [["display accepted", True], ["observed", alternate, "EPIPE"],
                                            ["observed", primary, "ENOSPC"], ["exit", 1]])
 
+    @unittest.skipUnless(sys.platform.startswith("linux"), "/dev/full is a Linux check")
+    def test_dev_full_reports_a_real_file_write_error(self):
+        with tempfile.TemporaryDirectory() as directory, open("/dev/full", "wb", buffering=0) as output:
+            result = subprocess.run([node, cli, "--lang", "pt", "--help"], cwd=directory,
+                                    stdout=output, stderr=subprocess.PIPE, timeout=8)
+        diagnostic = "Não foi possível escrever na saída padrão: ENOSPC.\n"
+        self.assertEqual((result.returncode, result.stderr.decode()), (1, diagnostic))
+
+    def test_output_error_preserves_recovery_during_git_and_framed_install(self):
+        for task in ("Git", "framed install"):
+            with self.subTest(task=task), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                is_git = task == "Git"
+                failing = "stderr" if is_git else "stdout"
+                wanted = "error" if is_git else "output"
+                source, entry, worker, cleaned, cleaning, finish, trace, trigger, notice = (
+                    root / label for label in ("worker.cjs", "notice.mjs", "pid", "cleaned", "cleaning", "finish",
+                                              "trace", "trigger", "notice"))
+                source.write_text(CLEANING_INSTALLER)
+                entry.write_text(NOTICE_OUTPUT_MODULE)
+                task_command = root / ("git" if is_git else "bun")
+                invocation = root / "task-arguments"
+                task_command.write_text(
+                    f'#!/bin/sh\nprintf "%s\\n" "$@" > {shlex.quote(str(invocation))}\n'
+                    f'exec {shlex.quote(node)} {shlex.quote(str(source))}\n')
+                task_command.chmod(0o755)
+                skipped_install = root / "bun-ran"
+                if is_git:
+                    bun = root / "bun"
+                    bun.write_text(f"#!/bin/sh\n: > {shlex.quote(str(skipped_install))}\nexit 0\n")
+                    bun.chmod(0o755)
+                env = dict(os.environ, CI="false", TERM="xterm", NO_COLOR="1", FORCE_COLOR="0", CLEANUP_MS="",
+                           PATH=directory + os.pathsep + os.environ["PATH"], CLEANED=str(cleaned),
+                           PID_FILE=str(worker), FINISH=str(finish), CLEANING=str(cleaning),
+                           NOTICE_TRACE=str(trace), NOTICE_ERRORS=str(trigger), NOTICE_DONE=str(notice))
+                master, slave = pty.openpty() if not is_git else (None, None)
+                try:
+                    if slave is not None:
+                        fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
+                    stdout_path, stderr_path = root / "stdout", root / "stderr"
+                    command = [node, "--import", entry.as_uri(), cli, "app", "--lang", "en", "--mode", "server",
+                               "--install", *(("--git", "--yes") if is_git else ("--no-git",))]
+                    with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr, subprocess.Popen(
+                            command, cwd=root, env=env, stdin=slave if slave is not None else subprocess.DEVNULL,
+                            stdout=slave if slave is not None else stdout, stderr=stderr, start_new_session=True) as child:
+                        pid = None
+                        try:
+                            if master is not None:
+                                terminal = Reader(self, master)
+                                for prompt in (b"Application title", b"Setup", b"Create the project?"):
+                                    terminal.until(prompt)
+                                    os.write(master, b"\r")
+                                terminal.until(b"Installing dependencies with Bun")
+                                deadline = time.monotonic() + 6
+                                while not worker.exists() and time.monotonic() < deadline:
+                                    terminal.drain()
+                                    time.sleep(.01)
+                            pid = recorded(worker)
+                            self.assertIsNotNone(pid)
+                            self.assertEqual((os.getsid(pid), os.getpgid(pid)), (child.pid, child.pid))
+                            self.assertEqual(invocation.read_text().splitlines(), ["init" if is_git else "install"])
+                            staged = trigger.with_suffix(".new")
+                            staged.write_text(json.dumps([[failing, "ENOSPC"]]))
+                            staged.replace(trigger)
+                            self.assertEqual(recorded(cleaning), 1)
+                            if master is not None:
+                                self.assertEqual(recorded(notice), 1)
+                            finish.touch()
+                            status = child.wait(timeout=7)
+                        finally:
+                            finish.touch()
+                            for target in (pid, child.pid if child.poll() is None else None):
+                                try:
+                                    if target and (os.getsid(target), os.getpgid(target)) == (child.pid, child.pid):
+                                        os.kill(target, signal.SIGKILL)
+                                except ProcessLookupError:
+                                    pass
+                    events = [json.loads(line) for line in trace.read_text().splitlines()]
+                    lines = (stdout_path if is_git else stderr_path).read_text().splitlines()
+                    expected = [f"Could not write to the standard {wanted}: ENOSPC.",
+                                "Your project is in app. To finish, run:", "cd app", *(["git init"] if is_git else []),
+                                "bun install"]
+                    print(f"Write error in {task}, events={events!r}, exit={status}, diagnostic={lines[-len(expected):]!r}", flush=True)
+                    self.assertEqual(status, 1)
+                    self.assertTrue(cleaned.exists())
+                    self.assertTrue((root / "app/package.json").is_file())
+                    self.assertFalse(skipped_install.exists())
+                    self.assertEqual(events, [["failure", failing, "ENOSPC"], *([] if is_git else [["notice", "stderr"]])])
+                    self.assertEqual(lines[-len(expected):], expected)
+                    self.assertEqual(sum("ENOSPC" in line for line in lines), 1)
+                    if master is not None:
+                        self.assertNotIn(b"Project created.", terminal.transcript)
+                finally:
+                    for descriptor in (master, slave):
+                        if descriptor is not None:
+                            os.close(descriptor)
+
     def test_output_error_on_a_file(self):
         # On a terminal EIO means that the terminal closed, and the CLI goes on. On a file it is a failure of the disk: the
         # CLI stops the generation as a signal does, before it creates the files, and ends with code 1 and one short line

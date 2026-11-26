@@ -9,9 +9,9 @@ import { questionnaire } from '../src/questionnaire.ts'
 import { CanceledError } from '../src/usage-error.ts'
 import { turns, type Pause } from './question-screen.ts'
 
-// A selection, a multiple selection or a confirmation taller than the screen, stopped after a key that changes a row below
-// the top of the screen. Clack moves up only as far as the top of the screen and writes from there, so the rows the
-// question frame records are the rows on the screen.
+// A selection, a multiple selection or a confirmation taller than the screen, stopped after a key that changes a row on
+// the screen. Clack moves up only as far as the top of the screen and writes from there, so the rows the question frame
+// records are the rows on the screen.
 const escape = '\u001B'
 const hide = `${escape}[?25l`
 const right = `${escape}[C`

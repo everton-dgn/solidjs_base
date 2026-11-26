@@ -3,13 +3,20 @@ import { it } from 'node:test'
 
 import { openTitle, titleFrames, type Pause } from './question-screen.ts'
 
-// In raw mode Ctrl+\ reaches readline as a character with no name, which it puts in the value of a text question.
+// In raw mode Ctrl+\ and Ctrl+] reach readline as characters with no name, which it puts in the value of a text question.
 const ctrlBackslash = '\u001C'
+const ctrlBracket = '\u001D'
+// Clack erases a Tab with Ctrl+H right after readline puts it in the value, and Ctrl+_ has readline undo that erase, so the Tab stays.
+const tab = '\t'
+const undo = '\u001F'
 const columns = 30
 const rows = 6
 const values = [
   { name: 'no control character', keys: ['ab', 'c'] },
-  { name: 'the character of Ctrl+\\', keys: ['ab', ctrlBackslash, 'c'] }
+  { name: 'the character of Ctrl+\\', keys: ['ab', ctrlBackslash, 'c'] },
+  { name: 'the character of Ctrl+]', keys: ['ab', ctrlBracket, 'c'] },
+  { name: 'a Tab', keys: ['ab', tab, 'c'] },
+  { name: 'a Tab and Ctrl+_', keys: ['ab', tab, undo, 'c'] }
 ]
 function erasure(up: number): string {
   return `\u001B[${up}A\u001B[2K\u001B[B\r\u001B[J\u001B[A`

@@ -41,6 +41,11 @@ async function openOnScreen({ rows, columns, isScrollOnClear }: Opening) {
 const valueRow = /^│ {2}(?:x|\.{3}|ab |cde |fghi |[\u3040-\u9FFF])/u
 const isQuestionRow = (line: string) =>
   line.includes(label) || line.startsWith('└') || valueRow.test(line)
+const closingValueLength = 600
+const closingKeys = [
+  { key: '\r', mark: '◇', action: 'submitting' },
+  { key: '\u0003', mark: '■', action: 'canceling' }
+]
 type Place = 'first' | 'last'
 type Step = [string, Place]
 type Expected = { keys: string[]; place: Place; columns: number }
@@ -91,6 +96,33 @@ void it('keeps a text question with a long value on the screen through typing, B
   }
   await question.close()
 })
+
+for (const { key, mark, action } of closingKeys) {
+  void it(`keeps the entire title in the terminal after ${action} a text question`, async () => {
+    const { question, display } = await openOnScreen({
+      rows: screenRows,
+      columns: screenColumns,
+      isScrollOnClear: true
+    })
+    const value = 'x'.repeat(closingValueLength)
+    try {
+      await question.press(value)
+      await question.press(key)
+      const { history, screen } = display.view()
+      const lines = [...history, ...screen]
+      const title = lines.indexOf(`${mark}  ${label}`)
+      assert.ok(title !== -1, 'the closed title is missing from the terminal')
+      const displayedValue = lines
+        .slice(title + 1)
+        .filter(line => /^│ {2}x+$/u.test(line))
+        .map(line => line.slice('│  '.length))
+        .join('')
+      assert.equal(displayedValue, value)
+    } finally {
+      await question.close()
+    }
+  })
+}
 
 void it('keeps a text question with a long value on the screen through a validation error and the next key', async () => {
   const { question, display } = await openOnScreen({

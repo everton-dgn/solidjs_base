@@ -383,6 +383,28 @@ function fieldName({ key, language, result }: FieldName): string {
   }
   return names[key]
 }
+function createTextPromptOutput(stream: Writable) {
+  let isFinalized = false
+  // Clack skips the rows of the new frame above the screen even if it has
+  // never written them.
+  const output = new Proxy(stream, {
+    has(target, property) {
+      return (
+        (isFinalized && property === 'rows') || Reflect.has(target, property)
+      )
+    },
+    get(target, property): unknown {
+      if (isFinalized && property === 'rows') return Number.POSITIVE_INFINITY
+      return Reflect.get(target, property)
+    }
+  })
+  return {
+    output,
+    finalize: () => {
+      isFinalized = true
+    }
+  }
+}
 async function askQuestions({
   answers,
   language,
@@ -403,6 +425,7 @@ async function askQuestions({
   const field = async ({ key, initialValue }: FieldOptions) => {
     if (result[key] !== undefined) return
     let occupiedDir: string | undefined
+    const promptOutput = createTextPromptOutput(output)
     const render = renderText({
       label: fieldName({ key, language, result }),
       placeholder: initialValue,
@@ -411,6 +434,7 @@ async function askQuestions({
     })
     const prompt = new TextPrompt({
       ...io,
+      output: promptOutput.output,
       render,
       placeholder: initialValue,
       defaultValue: initialValue,
@@ -432,6 +456,7 @@ async function askQuestions({
         })
       }
     })
+    prompt.once('finalize', promptOutput.finalize)
     result[key] = answer<string>(
       (await askText({ prompt, render, typing, output })) ?? initialValue
     )

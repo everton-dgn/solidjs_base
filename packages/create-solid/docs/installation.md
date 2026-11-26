@@ -249,16 +249,12 @@ goes to the history, where Clack would leave it as it last wrote it. The message
 of a validation error shows only while the question is in error, as in Clack:
 the next key takes it out.
 
-Enter and Ctrl+C close a text question with its whole value, which can be taller
-than the screen. When the closed question has two rows more than the screen or
-more, Clack writes it only from the first row that changed below the rows that
-go above the screen, so the history keeps the first rows of the open question,
-with the symbol it had and its `...` row, and the first rows of the value are
-drawn nowhere. With fewer rows the whole closed question is drawn. A screen that
-gets shorter while a text question is open moves the first rows of the question
-into the history, as the terminal does with any row, and Clack draws the
-question again at the new height below them, so a copy of those rows stays in
-the history.
+Enter and Ctrl+C write the whole value when closing a text question. If the
+closed question is taller than the screen, its first rows scroll into the
+history. A screen that gets shorter while a text question is open moves the
+first rows of the question into the history, as the terminal does with any row,
+and Clack draws the question again at the new height below them, so a copy of
+those rows stays in the history.
 
 The CLI computes its text questions from the state of the question as Clack
 wraps it at the width of the terminal, so no row it draws again comes back old.

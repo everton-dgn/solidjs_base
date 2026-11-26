@@ -1,6 +1,7 @@
 import type { Writable } from 'node:stream'
 
 import { hideCursor, showCursor } from '../constants/cursor.ts'
+import type { Follow, Followed } from './types.ts'
 
 type Frame = {
   lines: string[]
@@ -14,13 +15,8 @@ type Frame = {
 }
 // The rows of the open question that a stop left on the screen or in the history, and the width they have there.
 type Stop = { kept: number; columns: number; isErased: boolean }
-// WHY: The question gives the size and the wrap it reads with Clack, so the CLI loads Clack only once a question opens.
-type Followed = {
-  draw: () => string
-  rows: () => number
-  columns: () => number
-  wrap: (text: string) => string
-}
+type Redraw = Stop & { lines: string[]; size: Followed }
+type MoveUp = { chunk: string }
 type QuestionFrame<Output> = {
   output: Output
   isOpen: () => boolean
@@ -134,13 +130,7 @@ export function questionFrame<Output extends Writable>(
   let followed: Followed | undefined
   let stop: Stop | undefined
   // WHY: The draw gives back every row the erase took from the screen, so a row that went above a shorter screen reaches the history, and at least the rows that fit, which Clack counts on screen at its next render. After a change of width the rows kept above the screen no longer match the question, so the draw gives it back whole.
-  const redraw = ({
-    lines,
-    kept,
-    columns,
-    isErased,
-    size
-  }: Stop & { lines: string[]; size: Followed }) => {
+  const redraw = ({ lines, kept, columns, isErased, size }: Redraw) => {
     const fit = Math.min(lines.length, size.rows())
     const isWhole = isErased && (kept === 0 || columns !== size.columns())
     const count = isWhole ? lines.length : Math.max(fit, lines.length - kept)
@@ -198,7 +188,7 @@ export function questionFrame<Output extends Writable>(
   }
   const forward = target.write.bind(target)
   // WHY: Every render of Clack starts by moving the cursor up from the end of the question, and one that changed only rows above the screen ends there, with the cursor at the top of the screen, where the shell of a stop would write over the question. The move waits for the next write of the same render and is dropped when none comes; Clack moves up again from wherever the cursor is at its next render.
-  let moveUp: { chunk: string } | undefined
+  let moveUp: MoveUp | undefined
   const write = (...args: unknown[]): unknown => {
     const [chunk, ...rest] = args
     if (typeof chunk === 'string') record(chunk)
@@ -291,4 +281,3 @@ export function questionFrame<Output extends Writable>(
     }
   }
 }
-export type Follow = (followed?: Followed) => void

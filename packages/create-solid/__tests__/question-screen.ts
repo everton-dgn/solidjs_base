@@ -10,7 +10,8 @@ import {
   wrapTextWithPrefix
 } from '@clack/core'
 
-import { type Follow, questionFrame } from '../src/questionFrame/index.ts'
+import { questionFrame } from '../src/questionFrame/index.ts'
+import type { Follow } from '../src/questionFrame/types.ts'
 import { questionnaire } from '../src/questionnaire.ts'
 import { CanceledError } from '../src/usage-error.ts'
 

@@ -19,6 +19,7 @@ import tempfile
 import termios
 import time
 import unittest
+from unittest import mock
 from urllib.parse import quote
 
 cli = pathlib.Path(sys.argv.pop(1)).resolve()
@@ -1124,6 +1125,25 @@ if os.environ['PIPE_WRITER'] and os.fork() == 0:
     os._exit(0)
 os._exit(0)
 """
+
+def tail_group(child):
+    if child.poll() is not None:
+        return None
+    try:
+        return child.pid, os.getpgid(child.pid), os.getsid(child.pid)
+    except ProcessLookupError:
+        return None
+
+
+def signal_tail_group(child, group, name):
+    if group != (child.pid, child.pid, child.pid) or tail_group(child) != group:
+        return False
+    try:
+        os.killpg(group[1], name)
+        return True
+    except ProcessLookupError:
+        return False
+
 
 class Reader:
     """Collect what the CLI writes to its terminal."""
@@ -3516,7 +3536,9 @@ process.stdout.write = (...args) => {
             with subprocess.Popen([node, entry, "app", "--yes", "--lang", "en", "--no-git"], cwd=root, env=env,
                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                   start_new_session=True) as child:
+                group = tail_group(child)
                 try:
+                    self.assertEqual(group, (child.pid, child.pid, child.pid))
                     output = child.stdout.fileno()
                     printed = bytearray()
                     def read():
@@ -3547,21 +3569,21 @@ process.stdout.write = (...args) => {
                     if case == "bound":
                         time.sleep(CLEANUP_LIMIT_S + 1)
                     if case == "stop":
-                        os.killpg(child.pid, signal.SIGSTOP)
+                        self.assertTrue(signal_tail_group(child, group, signal.SIGSTOP))
                         deadline = time.monotonic() + 4
                         while "T" not in state(child.pid):
                             self.assertLess(time.monotonic(), deadline)
                             time.sleep(.01)
                         time.sleep(CLEANUP_LIMIT_S + 1)
-                        os.killpg(child.pid, signal.SIGCONT)
+                        self.assertTrue(signal_tail_group(child, group, signal.SIGCONT))
                     rest, errors = child.communicate(timeout=20)
                     printed.extend(rest)
                     self.assertIn(b"\n" + b"t" * size + b"tail-end\n", printed, (printed.count(b"t"), printed[-300:]))
                     self.assertEqual((child.returncode, errors), (0, b""))
                     self.assertIn(b"tail-end\n" + "◇ Dependencies installed with Bun\n".encode(), printed)
                 finally:
-                    if child.poll() is None:
-                        os.killpg(child.pid, signal.SIGKILL)
+                    if signal_tail_group(child, group, signal.SIGKILL):
+                        child.wait(timeout=4)
 
     def read_installer_tail_across_deadline(self, *, signal_before_exit):
         marker = b"\nSLOW-END\n"
@@ -3592,6 +3614,7 @@ process.stdout.write = (...args) => {
                     cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     start_new_session=True) as child:
                 worker = None
+                group = tail_group(child)
 
                 def belongs(pid):
                     try:
@@ -3609,7 +3632,8 @@ process.stdout.write = (...args) => {
                         time.sleep(.01)
 
                 def send_term():
-                    self.assertTrue(belongs(child.pid))
+                    self.assertEqual(tail_group(child), group)
+                    self.assertEqual(group, (child.pid, child.pid, child.pid))
                     child.send_signal(signal.SIGTERM)
 
                 def advance(to_tick):
@@ -3643,9 +3667,10 @@ process.stdout.write = (...args) => {
                     stdout, stderr = child.communicate(timeout=8)
                 finally:
                     paths["FINISH"].touch()
-                    for pid in (worker, child.pid if child.poll() is None else None):
-                        if pid is not None and belongs(pid):
-                            os.kill(pid, signal.SIGKILL)
+                    if signal_tail_group(child, group, signal.SIGKILL):
+                        child.wait(timeout=4)
+                    if worker is not None and belongs(worker):
+                        os.kill(worker, signal.SIGKILL)
             events = entries(trace)
             observed_marker = marker in stdout
             print(f"Cleanup deadline, before_exit={signal_before_exit}, ticks={events!r}, "
@@ -3667,6 +3692,26 @@ process.stdout.write = (...args) => {
                 received = events.index(["signal", True, 0])
                 self.assertFalse([entry for entry in events[received + 1:] if entry[0] == "arm"])
                 self.assertNotIn("clean up", stderr.decode())
+
+    def test_tail_group_signals_require_the_original_leader(self):
+        child = mock.Mock(pid=17)
+        group = (17, 17, 17)
+        for pgid, sid, status in ((18, 17, None), (17, 18, None), (17, 17, 0)):
+            with self.subTest(pgid=pgid, sid=sid, status=status), \
+                    mock.patch.object(os, "getpgid", return_value=pgid) as current_group, \
+                    mock.patch.object(os, "getsid", return_value=sid) as current_session, \
+                    mock.patch.object(os, "killpg") as sent:
+                child.poll.return_value = status
+                signal_tail_group(child, group, signal.SIGKILL)
+                sent.assert_not_called()
+                if status is not None:
+                    current_group.assert_not_called()
+                    current_session.assert_not_called()
+        with mock.patch.object(os, "getpgid", return_value=17), \
+                mock.patch.object(os, "getsid", return_value=17), mock.patch.object(os, "killpg") as sent:
+            child.poll.return_value = None
+            self.assertTrue(signal_tail_group(child, group, signal.SIGKILL))
+            sent.assert_called_once_with(17, signal.SIGKILL)
 
     def test_plain_installer_output_read_after_its_exit(self):
         # The reader stops once the CLI has handled the exit of the installer, for longer than the short wait for the pipes.

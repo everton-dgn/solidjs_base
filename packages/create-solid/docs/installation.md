@@ -223,66 +223,84 @@ reflowing them loses the heading of the question instead.
 
 Ctrl+Z during a step shows the cursor and lets the shell suspend the CLI. During
 a question the terminal is in raw mode, so Ctrl+Z reaches the CLI as a key: the
-CLI erases the question, shows the cursor and stops its own process group. On
-`fg` the question is drawn again below what the shell wrote, or the indicator
+CLI erases the question, shows the cursor and stops its own process group. Some
+questions stay on the screen instead, as the paragraphs below describe. On `fg`
+the question is drawn again below what the shell wrote, or the indicator
 returns. The CLI clears the first row of the question alone and the rest from
 the row below it. tmux by default moves the screen into its history when a
 program clears it from the top left corner (`scroll-on-clear`), so this way it
 keeps no copy of a question that starts on the top row of the screen, whether
 the question fills the screen or not. At a text question the CLI clears the same
-way when Clack itself clears from that corner, as when a question taller than
-the screen shrinks: with `scroll-on-clear` on, deleting part of a long value
-leaves one copy of the title in the history, the one that went there when the
-question grew past the screen.
+way when Clack itself clears from that corner, as when a key changes the top row
+of a question that fills a short screen.
 
-The CLI computes its text questions, such as the directory and the title, from
-the state of the question as Clack wraps it at the width of the terminal, so no
-row it draws again comes back old. On Ctrl+Z, and on a stop from outside while
-the CLI owns the terminal, it erases the rows of the question that are on the
-screen. The rows of a question taller than the screen that went above its top
-stay in the history, where no erase reaches, as Clack last wrote them there, so
-they can be old, for example the symbol of the title after a validation error,
-or a row of the value after an edit in its middle. On `fg` it draws again the
-rows it erased, and at least as many rows as fit on the screen now, which are
-the rows Clack counts on screen at its next render: after the window gets taller
-during the stop, the next key that changes the title of a question taller than
-the old screen writes it on the title drawn again. A question that fit on the
-screen comes back whole, also when the screen got shorter than the question
-during the stop: its first rows go to the history. After a resize to another
-width during the stop the question comes back whole at the new width. On a stop
-from outside while the CLI does not own the terminal the question stays as it
-is, the shell writes below it, and on `fg` the CLI draws again the rows of it
-that fit on the screen. When every row that changed is above the screen, Clack
-only moves the cursor up to the top of the screen; the CLI drops that move, so
-the cursor stays at the end of the question. The message of a validation error
-shows only while the question is in error, as in Clack: the next key takes it
-out.
+A text question, such as the directory or the title, is never taller than the
+screen. When its value does not fit, the question shows the rows of the value
+around the row of the cursor, with a row of `...` above and below where rows are
+left out, as Clack does for the options of a selection, and keeps its title and
+its end row, with the message. The CLI counts the rows as the terminal shows
+them: the title and the message wrap on a narrow terminal, a long placeholder
+takes rows of its own, and the question ends with an empty row, where Clack
+leaves the cursor. On a screen too short for the bar above the title, the title,
+one row of the value and the end row, the `...` rows go first, then the bar,
+then the rows of the end row from the last one, then the rows of the title from
+the last one; the row of the cursor stays. So no row of an open text question
+goes to the history, where Clack would leave it as it last wrote it. The message
+of a validation error shows only while the question is in error, as in Clack:
+the next key takes it out.
+
+Enter and Ctrl+C close a text question with its whole value, which can be taller
+than the screen. When the closed question has two rows more than the screen or
+more, Clack writes it only from the first row that changed below the rows that
+go above the screen, so the history keeps the first rows of the open question,
+with the symbol it had and its `...` row, and the first rows of the value are
+drawn nowhere. With fewer rows the whole closed question is drawn. A screen that
+gets shorter while a text question is open moves the first rows of the question
+into the history, as the terminal does with any row, and Clack draws the
+question again at the new height below them, so a copy of those rows stays in
+the history.
+
+The CLI computes its text questions from the state of the question as Clack
+wraps it at the width of the terminal, so no row it draws again comes back old.
+On Ctrl+Z, and on a stop from outside while the CLI owns the terminal, it erases
+the question, and on `fg` it draws the whole question again from the first
+column, at the size the terminal has then, also when the terminal got taller,
+shorter or of another width during the stop. On a stop from outside while the
+CLI does not own the terminal the question stays as it is, the shell writes
+below it, and on `fg` the CLI draws the whole question again below what the
+shell wrote.
 
 The selections, the multiple selection and the confirmations are drawn again
 from the rows Clack wrote of them, which fit on screens of usual sizes: one of
 these questions passes the height of the screen only on a terminal of fewer than
-about ten rows, or a few more when its message or its footer wraps on a narrow
-terminal. The CLI counts that the move up of Clack stops at the top of the
-screen, so the rows it records are the rows on the screen. Such a question
-taller than the screen stays on the screen on Ctrl+Z, the shell writes below it,
-and on `fg` the CLI draws again, below what the shell wrote, the rows of it that
-were on the screen; its rows above them stay in the history. When Clack writes
-it again from the top of the screen, as when it shrinks, Ctrl+Z erases the rows
-of it on the screen. When the screen gets taller during the stop, Clack counts
-on it rows of the question above the ones the CLI drew, where the shell wrote:
-when the title was above the top of the screen before the stop, closing the
-question has Clack write over the last rows the shell wrote. When the screen
-gets shorter during the stop than one of these questions that Ctrl+Z erased, its
-rows above the shorter screen are drawn nowhere. The CLI does not replace the
-erasures of Clack from the top left corner at these questions, so tmux with
-`scroll-on-clear` keeps a copy of the screen each time Clack writes one of them
-taller than the screen again from the top. When every row that changed is above
-the screen, Clack only moves the cursor up to the top of the screen: Ctrl+Z, or
-a stop from outside while the CLI owns the terminal, moves the cursor back to
-the end of the question first, but on a stop from outside while the CLI does not
-own the terminal the shell writes over the question. One of these questions
-whose output holds bytes the CLI does not recognize is left as it is on Ctrl+Z
-and is not drawn again on `fg`. A text question whose value holds a control
+about ten rows, or a few more when its message, an option with a long hint or
+its footer wraps on a narrow terminal. The CLI counts that the move up of Clack
+stops at the top of the screen, so the rows it records are the rows on the
+screen. Such a question taller than the screen stays on the screen on Ctrl+Z and
+on any stop from outside, the shell writes below it, and on `fg` the CLI draws
+again, below what the shell wrote, the rows of it that were on the screen; its
+rows above them stay in the history. When Clack writes it again from the top of
+the screen, as when it shrinks, Ctrl+Z, or a stop from outside while the CLI
+owns the terminal, erases the rows of it on the screen. The screen can get
+taller before, during or after the stop, and Clack then counts on it rows of the
+question above the ones the CLI drew, where the shell wrote: when the title was
+above the top of the screen before the stop, `fg` can draw the question without
+its title, and closing the question, or a key that has Clack write it again from
+the top of the screen, such as one that takes out a `...`, has Clack write over
+the last rows the shell wrote. When the screen gets shorter during the stop than
+one of these questions that Ctrl+Z erased, its rows above the shorter screen are
+drawn nowhere. The CLI does not replace the erasures of Clack from the top left
+corner at these questions, so tmux with `scroll-on-clear` keeps a copy of the
+screen each time Clack writes one of them taller than the screen again from the
+top. When every row that changed is above the screen, Clack only moves the
+cursor up to the top of the screen: Ctrl+Z, or a stop from outside while the CLI
+owns the terminal, moves the cursor back to the end of the question first, but
+on a stop from outside while the CLI does not own the terminal the shell writes
+over the question. After a stop from outside that something other than a shell
+continues, with nothing written in between, the CLI draws one of these questions
+again from the column where Clack left the cursor. One of these questions whose
+output holds bytes the CLI does not recognize is left as it is on any stop and
+is not drawn again on `fg`. A text question whose value holds a control
 character, such as the one Ctrl+\ types at it, is erased and drawn again like
 any other.
 

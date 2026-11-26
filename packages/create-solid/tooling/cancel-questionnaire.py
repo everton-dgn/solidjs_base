@@ -757,14 +757,19 @@ WRITE_RECORD_MODULE = """
 import { appendFileSync, writeFileSync } from 'node:fs';
 for (const [name, output] of [['stdout', process.stdout], ['stderr', process.stderr]]) {
   const write = output.write;
+  let forwardedBytes = 0;
   output.write = function (chunk, ...args) {
     const returned = Reflect.apply(write, this, [chunk, ...args]);
     const kind = typeof chunk === 'string' ? 'text' : 'bytes';
-    appendFileSync(process.env.WRITE_RECORD, `write ${name} ${kind} ${chunk.length} ${returned} ${output.writableLength}\\n`);
+    appendFileSync(process.env.WRITE_RECORD, `write ${name} ${kind} ${chunk.length} ${returned} ${output.writableLength} ${output.writableHighWaterMark}\\n`);
     if (chunk === process.env.RECORD_WAITING_LINE) {
       appendFileSync(process.env.WRITE_RECORD, 'waiting stderr exact\\n');
     }
     if (process.env.PENDING && kind === 'bytes' && output.writableLength > 0) writeFileSync(process.env.PENDING, '1');
+    if (process.env.FORWARD_ACK && name === 'stdout' && kind === 'bytes') {
+      forwardedBytes += chunk.length;
+      writeFileSync(process.env.FORWARD_ACK, String(forwardedBytes));
+    }
     return returned;
   };
   const emit = output.emit;
@@ -3745,76 +3750,130 @@ setInterval(() => {}, 1000);
                         os.close(descriptor)
 
     def test_plain_output_closed_with_a_forward_write_pending(self):
-        # The reader of the output of the CLI stops reading during the install, so a write of the forward waits in the
-        # output, below its high-water mark, and then the reader goes away. That write fails later, with no write of the
-        # forward having returned false. The installer then writes a megabyte, more than the pipes and the buffers hold,
-        # and still ends.
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
-            pending, ready, go, done, record = (root / name for name in ("pending", "ready", "go", "done", "record"))
-            pid_file = root / "installer.pid"
+            pending, ready, begin, go, done, record, ack, pid_file = (
+                root / name for name in ("pending", "ready", "begin", "go", "done", "record", "ack", "installer.pid"))
+            source = root / "installer.py"
+            source.write_text(r"""
+import os
+from pathlib import Path
+import time
+
+def wait(condition):
+    deadline = time.monotonic() + 10
+    while not condition():
+        if time.monotonic() >= deadline:
+            raise RuntimeError('forwarding fixture did not receive the next authorization')
+        time.sleep(.005)
+
+env = os.environ
+ack = Path(env['FORWARD_ACK'])
+pending = Path(env['PENDING'])
+Path(env['PID_FILE']).write_text(str(os.getpid()))
+wait(Path(env['BEGIN']).exists)
+block = b'0' * 1023 + b'\n'
+total = 0
+for _ in range(1024):
+    assert os.write(1, block) == len(block)
+    total += len(block)
+    wait(lambda: ack.exists() and ack.read_text() == str(total))
+    if pending.exists():
+        break
+else:
+    raise RuntimeError('no forwarded write became pending')
+Path(env['READY']).touch()
+wait(Path(env['GO']).exists)
+burst = b'z' * (1024 * 1024)
+offset = 0
+while offset < len(burst):
+    offset += os.write(1, burst[offset:])
+Path(env['DONE']).touch()
+""")
             installer = root / "bun"
-            # Lines of 1 KiB, each its own chunk, until one waits in the output of the CLI.
-            installer.write_text('#!/bin/sh\necho $$ > "$PID_FILE"\ncount=0\n'
-                                 'while [ ! -e "$PENDING" ] && [ $count -lt 1024 ]; do\n'
-                                 '  printf "%01023d\\n" 0\n  count=$((count + 1))\n  sleep .01\ndone\n'
-                                 ': > "$READY"\nwhile [ ! -e "$GO" ]; do sleep .01; done\n'
-                                 f"head -c {1024 * 1024} /dev/zero | tr '\\0' z && : > \"$DONE\"\n")
+            installer.write_text(f"#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(source))}\n")
             installer.chmod(0o755)
             preload = root / "record.mjs"
             preload.write_text(WRITE_RECORD_MODULE)
-            env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + ":" + os.environ["PATH"],
-                       PENDING=str(pending), READY=str(ready), GO=str(go), DONE=str(done), PID_FILE=str(pid_file),
-                       WRITE_RECORD=str(record))
+            env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=str(root) + os.pathsep + os.environ["PATH"],
+                       PENDING=str(pending), READY=str(ready), BEGIN=str(begin), GO=str(go), DONE=str(done),
+                       PID_FILE=str(pid_file), WRITE_RECORD=str(record), FORWARD_ACK=str(ack))
             reader, writer = os.pipe()
+            target = None
             try:
                 with subprocess.Popen([node, "--import", preload.as_uri(), cli, "app", "--yes", "--lang", "en", "--no-git"],
-                                      cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=writer, stderr=subprocess.PIPE) as child:
-                    os.close(writer)
-                    writer = None
-                    try:
-                        printed = bytearray()
-                        deadline = time.monotonic() + 10
-                        while b"Files created\n" not in printed:
-                            self.assertTrue(select.select([reader], [], [], max(0, deadline-time.monotonic()))[0], printed)
-                            printed.extend(os.read(reader, 4096))
-                        deadline = time.monotonic() + 30
-                        while not ready.exists():
-                            self.assertLess(time.monotonic(), deadline)
+                                      cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=writer, stderr=subprocess.PIPE,
+                                      start_new_session=True) as child:
+
+                    def belongs(pid):
+                        try:
+                            return (os.getsid(pid), os.getpgid(pid)) == (child.pid, child.pid)
+                        except ProcessLookupError:
+                            return False
+
+                    def lines():
+                        return record.read_text().splitlines() if record.exists() else []
+
+                    def wait_for(check):
+                        deadline = time.monotonic() + 5
+                        while not check():
+                            self.assertLess(time.monotonic(), deadline, lines()[-5:])
                             time.sleep(.01)
-                        def forward_writes():
-                            return [line.split() for line in record.read_text().splitlines() if line.startswith("write stdout bytes ")]
-                        # The path: a write of the forward waits in the output, and none returned false.
+
+                    def forward_writes():
+                        return [line.split() for line in lines() if line.startswith("write stdout bytes ")]
+
+                    try:
+                        target = recorded(pid_file)
+                        self.assertIsNotNone(target)
+                        self.assertTrue(belongs(child.pid) and belongs(target))
+                        printed = bytearray()
+                        while select.select([reader], [], [], 0)[0]:
+                            printed.extend(os.read(reader, 65536))
+                        self.assertIn(b"Files created\n", printed)
+                        os.set_blocking(writer, False)
+                        filler_bytes = 0
+                        while filler_bytes < 4 * 1024 * 1024:
+                            try:
+                                filler_bytes += os.write(writer, b"!" * 4096)
+                            except BlockingIOError:
+                                break
+                        self.assertGreater(filler_bytes, 0)
+                        self.assertLess(filler_bytes, 4 * 1024 * 1024)
+                        os.close(writer)
+                        writer = None
+                        begin.touch()
+                        wait_for(ready.exists)
                         writes = forward_writes()
-                        self.assertTrue(pending.exists(), writes[-3:])
+                        self.assertTrue(pending.exists(), writes)
+                        self.assertTrue(writes)
+                        self.assertTrue(all(int(write[3]) <= 1024 for write in writes))
                         self.assertNotIn("false", [write[4] for write in writes], writes)
+                        self.assertEqual(int(ack.read_text()), sum(int(write[3]) for write in writes))
+                        self.assertTrue(any(write[4] == "true" and 0 < int(write[5]) < int(write[6]) for write in writes))
                         os.close(reader)
                         reader = None
-                        deadline = time.monotonic() + 5
-                        while "error stdout EPIPE" not in record.read_text().splitlines():
-                            self.assertLess(time.monotonic(), deadline, record.read_text().splitlines()[-3:])
-                            time.sleep(.01)
+                        wait_for(lambda: "error stdout EPIPE" in lines())
                         self.assertNotIn("false", [write[4] for write in forward_writes()])
+                        self.assertFalse(done.exists())
                         go.touch()
-                        deadline = time.monotonic() + 10
+                        deadline = time.monotonic() + 5
                         while not done.exists() and time.monotonic() < deadline:
                             time.sleep(.01)
-                        self.assertTrue(done.exists())
+                        print(f"Forwarding after EPIPE, fill={filler_bytes}, writes={writes!r}, done={done.exists()}", flush=True)
+                        self.assertTrue(done.exists(), "producer blocked after EPIPE")
                         _, errors = child.communicate(timeout=10)
                         self.assertEqual((child.returncode, errors), (0, b""))
                     finally:
-                        if child.poll() is None:
+                        go.touch()
+                        if target is not None and belongs(target):
+                            os.kill(target, signal.SIGKILL)
+                        if child.poll() is None and belongs(child.pid):
                             child.kill()
             finally:
                 for descriptor in (reader, writer):
                     if descriptor is not None:
                         os.close(descriptor)
-                target = recorded(pid_file) if pid_file.exists() else None
-                try:
-                    if target:
-                        os.kill(target, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
 
     def test_plain_output_closed_while_it_asked_for_drain(self):
         # The reader of the output of the CLI stops reading while the installer writes a megabyte, so the output asks for

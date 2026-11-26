@@ -5,7 +5,14 @@ import { it } from 'node:test'
 import { multiselect, text } from '@clack/prompts'
 
 import { questionFrame } from '../src/questionFrame/index.ts'
-import { openTitle, titleFrames, turns, type Pause } from './question-screen.ts'
+import {
+  openPlainText,
+  openText,
+  openTitle,
+  textFrames,
+  turns,
+  type Pause
+} from './question-screen.ts'
 
 const escape = '\u001B'
 const hide = `${escape}[?25l`
@@ -158,17 +165,18 @@ void it('leaves a question as it is when its bytes are unknown', () => {
   }
 })
 
-// The title question of the CLI is the text question the tests stop. The CLI computes it from the state of the prompt, so
-// it draws no old row, and it erases the rows of it that are on the screen.
+// A text question with no limit of rows, registered with the question frame as the CLI registers its text questions, is
+// the question the tests stop past the height of the screen. The question frame computes it from the state of the prompt,
+// so it draws no old row, and it erases the rows of it that are on the screen.
 const firstColumns = 30
 const longest = 260
 type Value = { length: number; columns: number }
 const typedFrames = new Map<number, Promise<string[]>>()
-// The title question after each letter of a value of x typed one by one, as Clack has it.
+// The question after each letter of a value of x typed one by one, as Clack has it.
 async function drawnQuestion({ length, columns }: Value): Promise<string> {
   let frames = typedFrames.get(columns)
   if (!frames) {
-    frames = titleFrames({
+    frames = textFrames({
       columns,
       keys: Array.from({ length: longest }, () => 'x')
     })
@@ -188,13 +196,10 @@ async function valueLengths({ height, columns }: Height): Promise<number[]> {
 }
 type Typing = { columns: number; keys: string[] }
 async function lastFrame(keys: Typing): Promise<string[]> {
-  const frames = await titleFrames(keys)
+  const frames = await textFrames(keys)
   return (frames.at(-1) ?? '').split('\n')
 }
 const backspace = '\u007F'
-const arrowUp = '\u001B[A'
-// Four rows of spaces at 30 columns, which the title question takes for an error.
-const errorSpaces = 100
 // Nine rows of value at 30 columns.
 const tallLength = 240
 type Drawn = {
@@ -223,18 +228,27 @@ function erasedRows({ pause, up }: { pause: Pause; up: number }): string[] {
 }
 const pauseName = (pause: Pause) => (pause === 'erase' ? 'erased' : 'held')
 
+const home = '\u001B[H'
+const right = '\u001B[C'
+// oxlint-disable-next-line no-control-regex
+const moveOnly = /^\u001B\[999D\u001B\[\d+A$/u
 for (const pause of ['erase', 'hold'] as const) {
   // When every row that changed is above the screen Clack moves the cursor up to the top of the screen and writes nothing
-  // more.
+  // more: an arrow to the right after Home moves the cursor inside the first row of the value.
   void it(`erases the rows on screen of a question taller than the screen after Clack wrote only its move up, ${pauseName(pause)}`, async () => {
-    const keys = [' '.repeat(errorSpaces), '\r', arrowUp]
+    const keys = ['x'.repeat(tallLength), home, right]
     const entries = await lastFrame({ columns: firstColumns, keys })
     assert.ok(entries.length > tableRows, String(entries.length))
-    const question = await openTitle({
-      columns: firstColumns,
-      rows: tableRows
-    })
-    for (const key of keys) await question.press(key)
+    const screen = { columns: firstColumns, rows: tableRows }
+    const plain = await openPlainText(screen)
+    const question = await openText(screen)
+    for (const key of keys) {
+      plain.written.length = 0
+      await plain.press(key)
+      await question.press(key)
+    }
+    assert.match(plain.written.join(''), moveOnly)
+    await plain.close()
     const { erased, flushed } = await question.stop(pause)
     await question.close()
     assertDrawn({ entries, flushed, round: 'move up' })
@@ -249,7 +263,7 @@ void it('draws back the rows on screen of a question taller than the screen afte
     keys: [value, 'y']
   })
   assert.ok(entries.length > tableRows, String(entries.length))
-  const question = await openTitle({ columns: firstColumns, rows: tableRows })
+  const question = await openText({ columns: firstColumns, rows: tableRows })
   await question.press(value)
   const { erased, flushed } = await question.stop('erase', async () =>
     question.press('y')
@@ -267,7 +281,7 @@ void it('counts the 20 rows and 80 columns of Clack on a stream that has no size
   const value = 'x'.repeat(valueLength)
   const entries = await lastFrame({ columns: clackColumns, keys: [value] })
   assert.ok(entries.length > clackRows, String(entries.length))
-  const question = await openTitle({})
+  const question = await openText({})
   await question.press(value)
   const { erased, flushed } = await question.stop('erase')
   await question.close()
@@ -281,7 +295,7 @@ void it('draws the rows on screen of a question taller than the screen after the
   const keys = ['x'.repeat(typedLength), 'y']
   const entries = await lastFrame({ columns, keys })
   assert.ok(entries.length > tableRows, String(entries.length))
-  const question = await openTitle({ columns, rows: tableRows })
+  const question = await openText({ columns, rows: tableRows })
   for (const key of keys) await question.press(key)
   const { flushed } = await question.stop('erase')
   await question.close()
@@ -300,7 +314,7 @@ void it('erases a question that was taller than the screen once its value is era
     const typed = ['x'.repeat(typedLength), ...keys]
     const entries = await lastFrame({ columns, keys: typed })
     assert.ok(entries.length <= tableRows, JSON.stringify(entries))
-    const question = await openTitle({ columns, rows: tableRows })
+    const question = await openText({ columns, rows: tableRows })
     for (const key of typed) await question.press(key)
     const { erased, flushed } = await question.stop('erase')
     await question.close()
@@ -342,7 +356,7 @@ type Cell = {
 type Round = { erased: string[]; flushed: string[]; length: number }
 async function stopAround(cell: Cell): Promise<Round[]> {
   const columns = columnsAfter[cell.width]
-  const question = await openTitle({ columns: firstColumns, rows: tableRows })
+  const question = await openText({ columns: firstColumns, rows: tableRows })
   const isGrowing = cell.direction === 'growing'
   const step = isGrowing ? 1 : -1
   const lengths = await valueLengths({ height: cell.height, columns })
@@ -443,7 +457,7 @@ for (const pause of ['erase', 'hold'] as const) {
     const keys = await errorKeys()
     const entries = await lastFrame({ columns: firstColumns, keys })
     assert.ok(entries.length > tableRows, JSON.stringify(entries))
-    const question = await openTitle({
+    const question = await openText({
       columns: firstColumns,
       rows: tableRows
     })
@@ -463,7 +477,7 @@ for (const pause of ['erase', 'hold'] as const) {
     const keys = await errorKeys()
     const entries = await lastFrame({ columns: firstColumns, keys })
     assert.ok(entries.length > tableRows, JSON.stringify(entries))
-    const question = await openTitle({
+    const question = await openText({
       columns: firstColumns,
       rows: tableRows
     })
@@ -487,8 +501,6 @@ for (const pause of ['erase', 'hold'] as const) {
     )
   })
 }
-const home = '\u001B[H'
-const right = '\u001B[C'
 const end = '\u001B[F'
 // The edit lands on the first row of the value, above the screen.
 const editAt = 10
@@ -514,7 +526,7 @@ for (const pause of ['erase', 'hold'] as const) {
   const name = 'an edit in the middle of the value'
   void it(`draws back no old row of a question taller than the screen after ${name}, ${pauseName(pause)}`, async () => {
     const value = await editedValue()
-    const question = await openTitle({
+    const question = await openText({
       columns: firstColumns,
       rows: tableRows
     })
@@ -541,7 +553,7 @@ for (const pause of ['erase', 'hold'] as const) {
     'an edit in the middle of the value, a taller screen during the stop and one more key'
   void it(`draws back no old row of a question taller than the screen after ${name}, ${pauseName(pause)}`, async () => {
     const value = await editedValue()
-    const question = await openTitle({
+    const question = await openText({
       columns: firstColumns,
       rows: tableRows
     })
@@ -583,7 +595,7 @@ for (const pause of ['erase', 'hold'] as const) {
       height: tableRows + rowsAbove,
       columns: firstColumns
     })
-    const question = await openTitle({
+    const question = await openText({
       columns: firstColumns,
       rows: tableRows
     })
@@ -608,7 +620,7 @@ for (const height of [tableRows - 1, tableRows + rowsAbove]) {
         height,
         columns: firstColumns
       })
-      const question = await openTitle({
+      const question = await openText({
         columns: firstColumns,
         rows: tableRows
       })
@@ -644,7 +656,7 @@ for (const isRightAfter of [true, false]) {
       const narrow = await drawnQuestion({ length, columns: narrowColumns })
       const added = narrow.split('\n').length - wide.split('\n').length
       assert.ok(added >= addedRows, String(added))
-      const question = await openTitle({
+      const question = await openText({
         columns: wideColumns,
         rows: tableRows
       })
@@ -681,7 +693,7 @@ for (const height of [tableRows, tableRows + tallerRows]) {
           columns: firstColumns
         })
         const columns = columnsAfter[width]
-        const question = await openTitle({
+        const question = await openText({
           columns: firstColumns,
           rows: tableRows
         })

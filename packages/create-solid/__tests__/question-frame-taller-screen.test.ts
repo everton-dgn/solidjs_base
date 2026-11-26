@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict'
 import { it } from 'node:test'
 
-import { openTitle } from './question-screen.ts'
+import { openText } from './question-screen.ts'
 
 // A terminal that gets taller during a stop.
 const columns = 30
 const firstRows = 6
 const tallerRows = 12
-// Eight rows of spaces at 30 columns, which the title question takes for an error: with the two rows of the error the
+// Eight rows of spaces at 30 columns, which the question takes for an error: with the two rows of the error the
 // question has 13 rows, taller than the first screen, and only its first row is above the taller one.
 const spaceCount = 200
 const spaces = ' '.repeat(spaceCount)
@@ -34,7 +34,7 @@ function reach({ bytes, start, top }: Reach) {
 }
 for (const pause of ['erase', 'hold'] as const) {
   void it(`keeps the writes of Clack on the rows the CLI drew after a stop in which the terminal got taller, when the next key changes the title (${pause === 'erase' ? 'erased' : 'held'})`, async () => {
-    const question = await openTitle({ columns, rows: firstRows })
+    const question = await openText({ columns, rows: firstRows })
     await question.press(spaces)
     // The error changes the symbol of the title, above the screen.
     await question.press('\r')

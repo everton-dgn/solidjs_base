@@ -330,11 +330,14 @@ async function createApplication({ answers, isInteractive }: Creation) {
           if (outputs.canWrite(process.stdout)) progress?.start(title)
           completed = message(language, { code: done[code], values })
         },
-        onWait: () => {
+        onWait: reason => {
           if (task !== 'installTask') return
           const values = { pm: toolNames[profile.pm] }
           // WHY: The CLI cannot tell a SIGINT sent with kill from Ctrl+C, and this line holds after both.
-          const notice = message(language, { code: 'installWait', values })
+          const notice = message(language, {
+            code: reason === 'signal' ? 'installWait' : 'installErrorWait',
+            values
+          })
           // WHY: The indicator draws only on a terminal, and stdout may go elsewhere, as in create-solid app | tee log.
           if (progress && process.stdout.isTTY) progress.wait(notice)
           else process.stderr.write(`${echoBreak(signals)}${notice}\n`)

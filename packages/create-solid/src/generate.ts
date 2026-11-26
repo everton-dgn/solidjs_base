@@ -312,6 +312,7 @@ type Progress = 'creating' | SetupCommand['task']
 type Step = 'creating' | SetupCommand | undefined
 const prepared = { guides: applyPreparedGuides, source: applyPreparedSource }
 type OutputAvailability = (output: NodeJS.WriteStream) => boolean
+type WaitNotice = (reason: 'signal' | 'output-error') => void
 type TerminalOptions = {
   isInteractive?: boolean
   language: Language
@@ -319,14 +320,15 @@ type TerminalOptions = {
   canWrite: OutputAvailability
   warn?: (diagnostic: string) => void
   report: (progress: Progress) => void
-  onWait?: () => void
+  onWait?: WaitNotice
 }
 // WHY: The rollback of npm on its own took about 3 s, and Docker sends SIGKILL 10 s after its SIGTERM. Nobody can press again once the terminal closed, and a supervisor may send its signal only once.
 const cleanupLimitMs = 8000
 // WHY: SIGKILL ends a process at once unless it waits for I/O that nothing interrupts, such as on a network disk that stopped answering.
 const killWaitMs = 1000
-// WHY: npm sends its bin the SIGINT and SIGTERM it gets, so the signal sent to the whole group reaches the CLI twice, 0 to 1 ms apart.
-const forwardedSignals = new Set<string>(['SIGINT', 'SIGTERM'])
+const terminationSignals = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const
+type ExternalSignal = { name: NodeJS.Signals; at: number }
+// WHY: A launcher can forward an INT or TERM to a CLI that already received it from the terminal.
 const repeatWindowMs = 150
 const newline = '\n'.codePointAt(0)
 type Forwarding = { source: Readable | null; target: NodeJS.WriteStream }
@@ -351,7 +353,7 @@ type SetupOptions = {
   signal: AbortSignal
   isInteractive: boolean
   canWrite: OutputAvailability
-  onWait?: () => void
+  onWait?: WaitNotice
 }
 async function executeSetup(
   command: SetupCommand,
@@ -420,19 +422,27 @@ async function executeSetup(
       release()
     }, killWaitMs)
   }
-  let canceledAt = 0
+  let firstExternal: ExternalSignal | undefined
   const forceAgain = (signalName: NodeJS.Signals) => {
-    // WHY: A terminal that closes sends SIGHUP, on Linux twice less than 1 ms apart, and after it nobody can press again, so only the long bound forces.
+    if (!firstExternal) {
+      firstExternal = { name: signalName, at: performance.now() }
+      return
+    }
+    // WHY: A closed terminal can send SIGHUP repeatedly.
     if (signalName === 'SIGHUP') return
     const isRepeat =
-      signalName === signal.reason &&
-      forwardedSignals.has(signalName) &&
-      performance.now() - canceledAt < repeatWindowMs
+      signalName === firstExternal.name &&
+      performance.now() - firstExternal.at < repeatWindowMs
     if (!isRepeat) force()
   }
   const cancel = () => {
-    canceledAt = performance.now()
-    for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+    const initialSignal = terminationSignals.find(
+      name => name === signal.reason
+    )
+    if (initialSignal) {
+      firstExternal = { name: initialSignal, at: performance.now() }
+    }
+    for (const signalName of terminationSignals) {
       process.on(signalName, forceAgain)
     }
     // WHY: Once the installer has exited only the wait for its pipes is left, and the step ends as a cancel after it.
@@ -442,9 +452,9 @@ async function executeSetup(
       delayMs: cleanupLimitMs,
       onExpire: force
     })
-    // WHY: A second key forces only once this window closes, and an installer that ends on the first signal is gone by then.
+    // WHY: By the time the signal notice is visible the duplicate window has elapsed.
     notice = setTimeout(() => {
-      if (isRunning()) onWait?.()
+      if (isRunning()) onWait?.(initialSignal ? 'signal' : 'output-error')
     }, repeatWindowMs)
   }
   signal.addEventListener('abort', cancel, { once: true })
@@ -742,8 +752,7 @@ export async function generateTerminal(
   const stopping = abortSignal
     ? AbortSignal.any([controller.signal, abortSignal])
     : controller.signal
-  const signals = ['SIGINT', 'SIGHUP', 'SIGTERM'] as const
-  for (const signal of signals) process.on(signal, cancel)
+  for (const signal of terminationSignals) process.on(signal, cancel)
   try {
     let current = await advance(() => steps.next())
     while (!current.done) {
@@ -784,7 +793,7 @@ export async function generateTerminal(
     }
     return current.value
   } finally {
-    for (const signal of signals) process.off(signal, cancel)
+    for (const signal of terminationSignals) process.off(signal, cancel)
   }
 }
 export type { Profile } from './types.ts'

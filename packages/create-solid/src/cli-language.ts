@@ -123,6 +123,7 @@ Automation
     gitTask: 'Creating the Git repository',
     installTask: 'Installing dependencies with {pm}',
     installWait: 'Press Ctrl+C to stop {pm} now. Waiting for it to clean up.',
+    installErrorWait: 'Waiting for {pm} to clean up.',
     stdoutFailed: 'Could not write to the standard output: {code}.',
     stderrFailed: 'Could not write to the standard error: {code}.',
     dir: 'Project directory',
@@ -262,6 +263,7 @@ Automação
     installTask: 'Instalando as dependências com o {pm}',
     installWait:
       'Aperte Ctrl+C para parar o {pm} agora. Esperando o fim da limpeza.',
+    installErrorWait: 'Aguardando o {pm} concluir a limpeza.',
     stdoutFailed: 'Não foi possível escrever na saída padrão: {code}.',
     stderrFailed: 'Não foi possível escrever na saída de erro: {code}.',
     dir: 'Pasta do projeto',
@@ -405,6 +407,7 @@ Automatización
     installTask: 'Instalando las dependencias con {pm}',
     installWait:
       'Pulsa Ctrl+C para detener {pm} ya. Esperando el fin de la limpieza.',
+    installErrorWait: 'Esperando a que {pm} termine la limpieza.',
     stdoutFailed: 'No se pudo escribir en la salida estándar: {code}.',
     stderrFailed: 'No se pudo escribir en la salida de error: {code}.',
     dir: 'Carpeta del proyecto',

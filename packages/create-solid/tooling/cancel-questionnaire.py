@@ -154,6 +154,7 @@ PIPE_DRAIN_S = .5
 KILL_WAIT_S = 1
 # The waiting line, the same after any first signal: the CLI cannot tell a SIGINT sent with kill from Ctrl+C.
 WAITING_LINE = "Press Ctrl+C to stop Bun now. Waiting for it to clean up."
+ERROR_WAITING_LINE = "Waiting for Bun to clean up."
 # An entry that runs the CLI and records its exit code, which a launcher that died cannot report. With CLI_SIGNALS it also
 # records each SIGHUP, SIGINT and SIGTERM the CLI gets and when, from a listener that runs before those of the CLI. With
 # CLI_CHILDREN it records each signal the CLI sends to a process it started, and how and when that process ended, with
@@ -456,6 +457,48 @@ if (process.env.OUTPUT_ERROR) {
     return Reflect.apply(write, this, args);
   };
 }
+"""
+
+# Hold the waiting notice until the test releases it and label the timer registrations before the actual installer exit.
+SIGNAL_ORDER_MODULE = """
+import { ChildProcess } from 'node:child_process';
+import { appendFileSync, existsSync, readFileSync } from 'node:fs';
+import { performance } from 'node:perf_hooks';
+const record = (...event) => appendFileSync(process.env.SIGNAL_TRACE, JSON.stringify(event) + '\\n');
+Object.defineProperty(performance, 'now', { value: () => Number(readFileSync(process.env.SIGNAL_CLOCK, 'utf8')) });
+const interval = globalThis.setInterval;
+globalThis.setInterval = (callback, delay, ...args) => {
+  if (delay === 250) record('deadline armed', performance.now());
+  return interval(callback, delay, ...args);
+};
+const timeout = globalThis.setTimeout;
+globalThis.setTimeout = (callback, delay, ...args) => {
+  if (delay !== 150) return timeout(callback, delay, ...args);
+  record('notice armed');
+  const timer = interval(() => {
+    if (!existsSync(process.env.NOTICE_RELEASE)) return;
+    clearInterval(timer);
+    callback(...args);
+  }, 10);
+  return timer;
+};
+const kill = ChildProcess.prototype.kill;
+ChildProcess.prototype.kill = function (signal) {
+  record('child signal', this.pid, signal, performance.now());
+  return kill.call(this, signal);
+};
+const emit = ChildProcess.prototype.emit;
+ChildProcess.prototype.emit = function (event, ...args) {
+  if (event === 'exit' && this.spawnfile === 'bun') record('installer exit', this.pid);
+  return emit.call(this, event, ...args);
+};
+for (const name of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(name, () => {
+    const at = performance.now();
+    setImmediate(() => record('handled', name, at));
+  });
+}
+process.stdout.on('error', error => setImmediate(() => record('output error', error.code)));
 """
 
 # Inject errors only once the selected screen has started writing. The side trace works even when both outputs are lost.
@@ -3257,7 +3300,7 @@ process.stdout.write = (...args) => {
     def test_output_error_during_cleanup(self):
         # A write to a file that fails during the install, with EIO or ENOSPC as on a full disk, stops the CLI as a signal
         # does: the installer gets SIGINT and ends its cleanup of about 1.5 s, and the CLI ends with code 1, the waiting
-        # line, one short line and the commands left to run, on its standard error.
+        # line for an output error, one short line and the commands left to run, on its standard error.
         for code in ("EIO", "ENOSPC"):
             with self.subTest(code=code), tempfile.TemporaryDirectory() as directory:
                 root = pathlib.Path(directory)
@@ -3284,7 +3327,7 @@ process.stdout.write = (...args) => {
                                 child.kill()
                     self.assertTrue(cleaned.exists(), errors)
                     self.assertEqual((child.returncode, errors.decode().splitlines()), (1, [
-                        WAITING_LINE, f"Could not write to the standard output: {code}.",
+                        ERROR_WAITING_LINE, f"Could not write to the standard output: {code}.",
                         "Your project is in app. To finish, run:", "cd app", "bun install"]))
                 finally:
                     target = recorded(pid_file) if pid_file.exists() else None
@@ -3293,6 +3336,105 @@ process.stdout.write = (...args) => {
                             os.kill(target, signal.SIGKILL)
                     except ProcessLookupError:
                         pass
+
+    def test_first_real_signal_after_output_error(self):
+        cases = (
+            ("first INT", (("SIGINT", 100),), None, False),
+            ("first TERM", (("SIGTERM", 100),), None, False),
+            ("first HUP", (("SIGHUP", 100),), None, False),
+            ("same signal at 149 and 150 ms", (("SIGINT", 100), ("SIGINT", 249), ("SIGINT", 250)), 250, False),
+            ("different signal within the window", (("SIGINT", 100), ("SIGTERM", 100)), 100, False),
+            ("HUP first and repeated, then TERM", (("SIGHUP", 100), ("SIGHUP", 249), ("SIGTERM", 249)), 249, False),
+            ("HUP never forces", (("SIGTERM", 100), ("SIGHUP", 250), ("SIGHUP", 251)), None, False),
+            ("fatal error after a signal", (("SIGINT", 100),), None, True),
+        )
+        for case, signals, force_at, signal_first in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                worker_file, trace, errors, clock = (root / name for name in ("installer.pid", "trace", "stderr", "clock"))
+                finish, cleaned, cleaning, failure, notice = (root / name for name in ("finish", "cleaned", "cleaning", "failure", "notice"))
+                clock.write_text("0")
+                installer = root / "bun"
+                (root / "installer.cjs").write_text(CLEANING_INSTALLER)
+                installer.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(root / 'installer.cjs'))}\n")
+                installer.chmod(0o755)
+                preload, control = root / "failure.mjs", root / "signal-order.mjs"
+                preload.write_text(OUTPUT_ERROR_MODULE)
+                control.write_text(SIGNAL_ORDER_MODULE)
+                env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=directory + os.pathsep + os.environ["PATH"],
+                           PID_FILE=str(worker_file), SIGNAL_TRACE=str(trace), SIGNAL_CLOCK=str(clock), NOTICE_RELEASE=str(notice),
+                           OUTPUT_ERROR=str(failure), FINISH=str(finish), CLEANED=str(cleaned), CLEANING=str(cleaning), CLEANUP_MS="")
+                with open(root / "stdout", "wb") as stdout, errors.open("wb") as stderr, subprocess.Popen(
+                        [node, "--import", preload.as_uri(), "--import", control.as_uri(), cli, "app", "--yes",
+                         "--lang", "en", "--no-git"], cwd=root, env=env, start_new_session=True,
+                        stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr) as child:
+                    worker = None
+                    def belongs(pid):
+                        try:
+                            return (os.getsid(pid), os.getpgid(pid)) == (child.pid, child.pid)
+                        except ProcessLookupError:
+                            return False
+                    def entries():
+                        return [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
+                    def wait(check, detail):
+                        deadline = time.monotonic() + 5
+                        while not check():
+                            self.assertLess(time.monotonic(), deadline, (detail, entries()))
+                            time.sleep(.01)
+                    def send(name, at):
+                        self.assertIsNone(child.poll())
+                        self.assertTrue(belongs(child.pid))
+                        staged = clock.with_suffix(".next")
+                        staged.write_text(str(at))
+                        staged.replace(clock)
+                        child.send_signal(getattr(signal, name))
+                        wait(lambda: ["handled", name, at] in entries(), (name, at))
+                    try:
+                        worker = recorded(worker_file)
+                        self.assertIsNotNone(worker)
+                        self.assertTrue(belongs(worker))
+                        first = signals[0]
+                        if signal_first:
+                            send(*first)
+                        else:
+                            failure.write_text("ENOSPC")
+                        wait(cleaning.exists, "cleanup started")
+                        wait(lambda: ["notice armed"] in entries(), "notice armed")
+                        if signal_first:
+                            failure.write_text("ENOSPC")
+                        else:
+                            send(*first)
+                        wait(lambda: ["output error", "ENOSPC"] in entries(), "output error handled")
+                        notice.touch()
+                        wait(lambda: "Waiting" in errors.read_text() or child.poll() is not None, "waiting notice written")
+                        for delivery in signals[1:]:
+                            if child.poll() is not None:
+                                break
+                            send(*delivery)
+                        finish.touch()
+                        status = child.wait(timeout=8)
+                        events = entries()
+                        print(f"Output error and external signal, {case}: {events!r}, cleaned={cleaned.exists()}, exit={status}", flush=True)
+                        exit_index = events.index(["installer exit", worker])
+                        deadlines = [event for event in events[:exit_index] if event[0] == "deadline armed"]
+                        started = first[1] if signal_first else 0
+                        self.assertEqual(deadlines, [["deadline armed", started]])
+                        expected = [["child signal", worker, "SIGINT", started]]
+                        if force_at is not None:
+                            expected.append(["child signal", worker, "SIGKILL", force_at])
+                        self.assertEqual([event for event in events if event[0] == "child signal"], expected)
+                        self.assertEqual(cleaned.exists(), force_at is None)
+                        self.assertEqual(status, 1)
+                        self.assertEqual(errors.read_text().splitlines(), [
+                            WAITING_LINE if signal_first else ERROR_WAITING_LINE,
+                            "Could not write to the standard output: ENOSPC.",
+                            "Your project is in app. To finish, run:", "cd app", "bun install"])
+                    finally:
+                        finish.touch()
+                        if worker and belongs(worker):
+                            os.kill(worker, signal.SIGKILL)
+                        if child.poll() is None and belongs(child.pid):
+                            child.kill()
 
     def test_output_error_at_a_question(self):
         # A write that fails at a question with a code that is no closed terminal ends the CLI with code 1 and one short line

@@ -63,19 +63,21 @@ const writeStep = (title: string) => process.stdout.write(`◇ ${title}\n`)
 type Creation = { answers: Answers; isInteractive: boolean }
 const interruptedExitCode = 130
 function writeCancel() {
-  process.stdout.write(`\n└  ${messages[language].cancel}\n`)
+  if (outputs.canWrite(process.stdout)) {
+    process.stdout.write(`\n└  ${messages[language].cancel}\n`)
+  }
   process.exit(interruptedExitCode)
 }
 let isCanceling = false
 function cancelPrompt() {
   isCanceling = true
-  process.stdout.write(showCursor)
+  if (outputs.canWrite(process.stdout)) process.stdout.write(showCursor)
   process.stdin.setRawMode(false)
   writeCancel()
 }
 function failPrompt() {
   isCanceling = true
-  process.stdout.write(showCursor)
+  if (outputs.canWrite(process.stdout)) process.stdout.write(showCursor)
   process.stdin.setRawMode(false)
   outputs.report({ language, resume: '' })
   process.exit(1)
@@ -84,12 +86,14 @@ function failPrompt() {
 const closedTerminalCodes = new Set(['EIO', 'ENOENT'])
 // WHY: Once the terminal is gone a change of its mode fails with an error of the input, also inside cancelPrompt, so this changes no mode. A write to a closed terminal reports its error on a later tick, after the CLI has ended.
 function closeInput(error: NodeJS.ErrnoException) {
-  process.stdout.write(showCursor)
+  if (outputs.canWrite(process.stdout)) process.stdout.write(showCursor)
   // WHY: An error during a cancel comes from the change of mode of cancelPrompt, so the cancel goes on whatever its code. Any other error of the input that is not a closed terminal is no cancel by the person, so the CLI stops with it as a failure.
   if (!isCanceling && !closedTerminalCodes.has(error.code ?? '')) {
-    process.stdout.write(
-      `\n▲  ${error.message}\n└  ${messages[language].stopped}\n`
-    )
+    if (outputs.canWrite(process.stdout)) {
+      process.stdout.write(
+        `\n▲  ${error.message}\n└  ${messages[language].stopped}\n`
+      )
+    }
     process.exit(1)
   }
   writeCancel()
@@ -168,7 +172,7 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
 type GenerationError = { error: unknown; progress?: typeof frameProgress }
 function rethrowUsageError({ error, progress }: GenerationError): void {
   if (error instanceof UsageError) {
-    progress?.clear()
+    progress?.clear({ shouldWrite: outputs.canWrite(process.stdout) })
     throw error
   }
 }
@@ -226,7 +230,7 @@ function closeGeneration({
   signals
 }: GenerationClosing): void {
   if (outputs.signal.aborted) {
-    frame?.progress.clear()
+    frame?.progress.clear({ shouldWrite: outputs.canWrite(process.stdout) })
     outputs.report({ language, resume: errorMessage(error) })
     return
   }
@@ -234,11 +238,13 @@ function closeGeneration({
   const isCanceled = error instanceof CanceledError
   const reason = errorMessage(error)
   const closing = isCanceled ? labels.cancel : labels.stopped
-  if (frame) {
+  if (frame && !outputs.canWrite(process.stdout)) {
+    frame.progress.clear({ shouldWrite: false })
+  } else if (frame) {
     if (isCanceled) frame.progress.cancel()
     else frame.progress.error(titles.failure)
     frame.closeFrame({ reason, closing })
-  } else {
+  } else if (outputs.canWrite(process.stderr)) {
     const title = isCanceled ? `■ ${titles.active}` : `▲ ${titles.failure}`
     writePlainClosing({
       lines: [...[title, reason].filter(Boolean), '', closing, ''],
@@ -268,7 +274,10 @@ async function createApplication({ answers, isInteractive }: Creation) {
     )
   } else process.stdout.write(`${labels.summary}\n${summary}\n`)
   const progress = frame?.progress
-  const finish = progress?.finish ?? writeStep
+  const finish = (title: string) => {
+    if (outputs.canWrite(process.stdout)) (progress?.finish ?? writeStep)(title)
+    else progress?.clear({ shouldWrite: false })
+  }
   let completed = ''
   let active = ''
   let failureTitle = labels.createFailed as string
@@ -294,8 +303,12 @@ async function createApplication({ answers, isInteractive }: Creation) {
           const title = [labels.gitFailed, diagnostic]
             .filter(Boolean)
             .join('\n')
-          if (progress) progress.warn(title)
-          else process.stderr.write(`▲ ${title}\n`)
+          if (progress && !outputs.canWrite(process.stdout)) {
+            progress.clear({ shouldWrite: false })
+          } else if (progress) progress.warn(title)
+          else if (outputs.canWrite(process.stderr)) {
+            process.stderr.write(`▲ ${title}\n`)
+          }
           completed = ''
         },
         report: code => {
@@ -313,7 +326,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
               ? message(language, { code: 'installFailed', values })
               : labels.createFailed
           active = title
-          progress?.start(title)
+          if (outputs.canWrite(process.stdout)) progress?.start(title)
           completed = message(language, { code: done[code], values })
         },
         onWait: () => {
@@ -340,6 +353,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
     signals.stop()
   }
   if (completed) finish(completed)
+  if (!outputs.canWrite(process.stdout)) return
   if (frame) {
     frame.finishProject({ steps, language })
     return
@@ -489,9 +503,11 @@ try {
   if (terminal.isFramed) {
     const { stopFrame, closeQuestion, progress } =
       await import('./terminal-frame.ts')
-    progress.clear()
-    if (error instanceof CanceledError) closeQuestion(messages[language].cancel)
-    else {
+    const shouldWrite = outputs.canWrite(process.stdout)
+    progress.clear({ shouldWrite })
+    if (shouldWrite && error instanceof CanceledError) {
+      closeQuestion(messages[language].cancel)
+    } else if (shouldWrite) {
       const occupiedDir =
         error instanceof ProfileProblemError && error.code === 'occupied'
           ? error.values.dir
@@ -501,7 +517,9 @@ try {
         closing: messages[language].stopped
       })
     }
-  } else process.stderr.write(`${reason}\n`)
+  } else if (outputs.canWrite(process.stderr)) {
+    process.stderr.write(`${reason}\n`)
+  }
   const isArgumentError =
     error instanceof UsageError ||
     (error instanceof TypeError &&

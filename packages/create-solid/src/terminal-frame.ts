@@ -104,14 +104,17 @@ function refreshSize() {
   process.kill(process.pid, 'SIGWINCH')
 }
 // WHY: Under a launcher its shell may own the terminal by now, and it sees a stop sent only to the CLI once the CLI stops the group.
-function stopStep(): boolean {
+function stopStep(shouldWrite = true): boolean {
   const isCleared = isTerminalOwner()
-  if (isCleared) process.stdout.write(clearIndicatorRows)
-  restoreCursor()
+  if (shouldWrite) {
+    if (isCleared) process.stdout.write(clearIndicatorRows)
+    restoreCursor()
+  }
   process.kill(isCleared ? process.pid : 0, 'SIGTSTP')
   return isCleared
 }
-function clearIndicator() {
+type ClearIndicator = { shouldWrite?: boolean }
+function clearIndicator({ shouldWrite = true }: ClearIndicator = {}) {
   if (!active) return
   clearInterval(indicator)
   if (removeStepListeners) {
@@ -122,9 +125,11 @@ function clearIndicator() {
       // WHY: The step ended before the stop it deferred, and none of its listeners is left to make it.
       clearImmediate(pendingStop)
       pendingStop = undefined
-      if (!stopStep()) process.stdout.write(clearIndicatorRows)
+      if (!stopStep(shouldWrite) && shouldWrite) {
+        process.stdout.write(clearIndicatorRows)
+      }
       refreshSize()
-    } else {
+    } else if (shouldWrite) {
       process.stdout.write(clearIndicatorRows)
       restoreCursor()
     }

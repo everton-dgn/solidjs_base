@@ -458,6 +458,48 @@ if (process.env.OUTPUT_ERROR) {
 }
 """
 
+# Inject errors only once the selected screen has started writing. The side trace works even when both outputs are lost.
+OUTPUT_ORDER_MODULE = """
+import { appendFileSync } from 'node:fs';
+const outputs = { stdout: process.stdout, stderr: process.stderr };
+const events = JSON.parse(process.env.OUTPUT_EVENTS);
+const record = (...values) => appendFileSync(process.env.OUTPUT_TRACE, JSON.stringify(values) + '\\n');
+const fail = ([name, code, isTTY], when) => {
+  const stream = outputs[name];
+  if (isTTY && !stream.isTTY) Object.defineProperty(stream, 'isTTY', { value: true });
+  record(when, name, code);
+  stream.emit('error', Object.assign(new Error(code), { code }));
+};
+let started = false;
+let failing = false;
+for (const [name, stream] of Object.entries(outputs)) {
+  const original = stream.write;
+  stream.write = function (chunk, ...args) {
+    const text = String(chunk);
+    const marker = process.env.OUTPUT_MARK;
+    if (name === 'stdout' && !started && (!marker || text.includes(marker))) {
+      started = true;
+      const accepted = Reflect.apply(original, this, [chunk, ...args]);
+      record('display accepted', accepted);
+      setImmediate(() => {
+        failing = true;
+        for (const event of events) fail(event, 'observed');
+      });
+      return accepted;
+    }
+    if (text.startsWith('Could not write to the standard ')) {
+      record('report attempt', name, text);
+      if (process.env.REPORT_FAILURE) {
+        fail([name, process.env.REPORT_FAILURE, false], 'reported during write');
+        return false;
+      }
+    } else if (failing && marker) record('closing write', name, text);
+    return Reflect.apply(original, this, [chunk, ...args]);
+  };
+}
+process.on('exit', code => record('exit', code));
+"""
+
 # This records in WRITE_RECORD each write to the standard output and error of the CLI, with the output, whether the chunk is
 # bytes, as the forward of the installer writes, or text, as the CLI writes, its size, what the write returned and the bytes
 # then waiting in that output, and each error these outputs emit, with its code. With PENDING it creates that file at the
@@ -3087,6 +3129,60 @@ process.stdout.write = (...args) => {
                         os.kill(target, signal.SIGKILL)
                 except ProcessLookupError:
                     pass
+
+    def test_output_reports_respect_known_stream_failures(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            preload = root / "output-order.mjs"
+            preload.write_text(OUTPUT_ORDER_MODULE)
+            for primary, alternate, label in (("stdout", "stderr", "output"), ("stderr", "stdout", "error")):
+                fatal, lost = (primary, "ENOSPC", False), (alternate, "EPIPE", False)
+                eio_tty = (primary, "EIO", True)
+                cases = (
+                    ("lost before fatal", (lost, fatal), "", 1, False),
+                    ("lost after fatal", (fatal, lost), "", 1, False),
+                    ("second fatal known", (fatal, (alternate, "EIO", False)), "", 1, False),
+                    ("failure during report", (fatal,), "EPIPE", 1, True),
+                    ("fatal after toleration on same output", ((primary, "EPIPE", False), fatal), "", 1, True),
+                    ("only tolerated errors", (eio_tty, lost), "", 0, False),
+                    ("only EPIPE", (lost,), "", 0, False),
+                    ("only EIO on TTY", (eio_tty,), "", 0, False),
+                )
+                for index, (case, events, during_report, status, expects_report) in enumerate(cases):
+                    with self.subTest(primary=primary, case=case):
+                        trace = root / f"{primary}-{index}"
+                        env = dict(os.environ, OUTPUT_EVENTS=json.dumps(events), OUTPUT_TRACE=str(trace),
+                                   OUTPUT_MARK="", REPORT_FAILURE=during_report, NO_COLOR="1", FORCE_COLOR="0")
+                        run = subprocess.run([node, "--import", preload.as_uri(), cli, "--lang", "en", "--help"],
+                                             env=env, capture_output=True, timeout=8)
+                        entries = [json.loads(line) for line in trace.read_text().splitlines()]
+                        outcome = [["display accepted", True], *[["observed", name, code] for name, code, _ in events]]
+                        if expects_report:
+                            outcome.append(["report attempt", alternate, f"Could not write to the standard {label}: ENOSPC.\n"])
+                        if during_report:
+                            outcome.append(["reported during write", alternate, during_report])
+                        outcome.append(["exit", status])
+                        print(f"Output sequence {primary}, {case}: {entries!r}", flush=True)
+                        self.assertEqual(run.returncode, status, run.stderr)
+                        self.assertEqual(entries, outcome)
+
+    def test_prompt_closes_without_writing_after_both_outputs_are_lost(self):
+        for primary, alternate in (("stdout", "stderr"), ("stderr", "stdout")):
+            with self.subTest(primary=primary), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                preload, trace = root / "output-order.mjs", root / "trace"
+                preload.write_text(OUTPUT_ORDER_MODULE)
+                events = ((alternate, "EPIPE", False), (primary, "ENOSPC", False))
+                _, status = question_session(
+                    directory, "en", [("Application title", b"")], errors=root / "stderr", preload=preload,
+                    environment={"OUTPUT_EVENTS": json.dumps(events), "OUTPUT_TRACE": str(trace),
+                                 "OUTPUT_MARK": "Application title", "REPORT_FAILURE": ""})
+                entries = [json.loads(line) for line in trace.read_text().splitlines()]
+                print(f"Closing a prompt with both outputs lost, {primary}: {entries!r}", flush=True)
+                self.assertEqual(status, 1)
+                self.assertEqual(entries, [["display accepted", True], ["observed", alternate, "EPIPE"],
+                                           ["observed", primary, "ENOSPC"], ["exit", 1]])
+                self.assertFalse((root / "app").exists())
 
     def test_output_error_on_a_file(self):
         # On a terminal EIO means that the terminal closed, and the CLI goes on. On a file it is a failure of the disk: the

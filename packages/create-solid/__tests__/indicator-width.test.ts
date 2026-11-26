@@ -5,12 +5,23 @@ import { it } from 'node:test'
 
 // WHY: A child that keeps a real interval never ends, so the test fails in seconds when the frame goes back to the global timers.
 const childTimeoutMs = 10_000
+const simulateLeader = `
+  import childProcess from 'node:child_process'
+  import fs from 'node:fs'
+  const read = fs.readFileSync
+  fs.readFileSync = (file, ...args) => {
+    if (file === '/proc/self/stat') throw new Error('use ps')
+    return read(file, ...args)
+  }
+  childProcess.spawnSync = () => ({ stdout: process.pid + ' ' + process.pid })
+`
 
 void it('draws the indicator at the width of the terminal after a continue, also when the size went back before Node read it', () => {
   const script = `
     import nodeTimers from 'node:timers'
     import tty from 'node:tty'
     import { syncBuiltinESMExports } from 'node:module'
+    ${simulateLeader}
     Object.defineProperty(process.stdout, 'isTTY', { value: true })
     Object.defineProperty(process.stdout, 'columns', { value: 80, writable: true })
     let real = 80
@@ -69,6 +80,7 @@ void it('draws the indicator once at the width of the terminal on a resize, whet
     import nodeTimers from 'node:timers'
     import tty from 'node:tty'
     import { syncBuiltinESMExports } from 'node:module'
+    ${simulateLeader}
     Object.defineProperty(process.stdout, 'isTTY', { value: true })
     Object.defineProperty(process.stdout, 'columns', { value: 80, writable: true })
     let real = 80
@@ -124,6 +136,7 @@ void it('draws the indicator once at the width Node reads on a resize when the s
     import nodeTimers from 'node:timers'
     import tty from 'node:tty'
     import { syncBuiltinESMExports } from 'node:module'
+    ${simulateLeader}
     Object.defineProperty(process.stdout, 'isTTY', { value: true })
     Object.defineProperty(process.stdout, 'columns', { value: 80, writable: true })
     let real = 80

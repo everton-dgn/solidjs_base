@@ -163,7 +163,7 @@ void it('aligns wrapped next steps with the note text', () => {
     Object.defineProperty(process.stdout, 'columns', {value: 40})
     const { finishProject } = await import('./src/terminal-frame.ts')
     const { messages } = await import('./src/cli-language.ts')
-    finishProject({ steps: [messages.en.setUrl], language: 'en' })
+    await finishProject({ steps: [messages.en.setUrl], language: 'en' })
   `
   const output = execFileSync(
     process.execPath,
@@ -188,7 +188,7 @@ void it('keeps commands on one frame line for resuming and starting', () => {
     const { finishProject, closeFrame } = await import('./src/terminal-frame.ts')
     const steps = ${JSON.stringify(commands)}
     closeFrame({reason: steps.join('\\n'), closing: 'end'})
-    finishProject({steps, language: 'en'})
+    await finishProject({steps, language: 'en'})
   `
   const output = execFileSync(
     process.execPath,
@@ -600,9 +600,10 @@ void it('closes each step at the new PTY width before resize is dispatched', () 
     progress.warn('${title}\\nThis diagnostic spans several words and several lines.')
     progress.finish('${title}')
     closeFrame({reason:'This explanation must wrap within the smaller terminal.',closing:'end'})
-    finishProject({steps:['bun run dev','Set the address of this application before publishing it.'],language:'en'})
-    finishProject({steps:['cd a-directory-of-22-chars'],language:'en'})
+    const completion = finishProject({steps:['bun run dev','Set the address of this application before publishing it.'],language:'en'})
     if (process.stdout.columns !== 80) process.exitCode = 1
+    await completion
+    await finishProject({steps:['cd a-directory-of-22-chars'],language:'en'})
   `
   const harness = `
 import os, pty, select, struct, subprocess, sys, termios, fcntl, time

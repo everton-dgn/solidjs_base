@@ -424,11 +424,11 @@ export function stopFrame({
   })
   outro(closing)
 }
-export function finishProject({
+export async function finishProject({
   steps,
   language,
   canAnnounce
-}: Completion): void {
+}: Completion): Promise<void> {
   const output = closingOutput()
   const m = messages[language]
   if (
@@ -445,5 +445,10 @@ export function finishProject({
       output
     })
   } else note(steps.join('\n'), m.next, { ...noteFormat, output })
-  if (canAnnounce?.() ?? true) outro(m.ready, { output })
+  if (canAnnounce?.() === false) return
+  // The write callback runs after the instructions already queued on this stream.
+  const { promise, resolve } = Promise.withResolvers<boolean>()
+  const complete = (error?: Error | null) => resolve(!error)
+  output.write('', complete)
+  if ((await promise) && (canAnnounce?.() ?? true)) outro(m.ready, { output })
 }

@@ -460,6 +460,47 @@ if (process.env.OUTPUT_ERROR) {
 """
 
 # Deliver a failure after the selected final write returns, and record the report on the alternate output.
+FINAL_INSTRUCTIONS_MODULE = """
+import { appendFileSync, existsSync, writeFileSync } from 'node:fs';
+const { FINAL_TRACE, FINAL_HELD, FINAL_RELEASE, FINAL_MARKER, FINAL_FAILURE } = process.env;
+const record = (...entry) => appendFileSync(FINAL_TRACE, JSON.stringify(entry) + '\\n');
+const ready = 'Project created.';
+const output = process.stdout;
+const write = output.write.bind(output);
+const nativeWrite = output._write;
+let held = false;
+output.write = function (chunk, ...args) {
+  if (String(chunk).includes(ready)) record('request success');
+  return write(chunk, ...args);
+};
+output._write = function (chunk, encoding, callback) {
+  const text = String(chunk);
+  if (held || !text.includes(FINAL_MARKER)) {
+    return nativeWrite.call(this, chunk, encoding, callback);
+  }
+  held = true;
+  record('held', FINAL_MARKER);
+  const finish = error => {
+    setImmediate(() => writeFileSync(FINAL_HELD, '1'));
+    const timer = setInterval(() => {
+      if (!existsSync(FINAL_RELEASE)) return;
+      clearInterval(timer);
+      if (FINAL_FAILURE) {
+        record('callback', 'ENOSPC');
+        callback(Object.assign(new Error('fixture ENOSPC'), { code: 'ENOSPC' }));
+      } else {
+        record('callback', 'ok');
+        callback(error);
+      }
+    }, 5);
+  };
+  if (FINAL_FAILURE) finish();
+  else nativeWrite.call(this, chunk, encoding, finish);
+};
+output.on('error', error => record('stream error', error.code));
+process.on('exit', code => record('exit', code));
+"""
+
 LATE_OUTPUT_MODULE = """
 import { appendFileSync } from 'node:fs';
 const { stdout, stderr } = process;
@@ -3637,6 +3678,78 @@ process.stdout.write = (...args) => {
                     for descriptor in (master, slave):
                         if descriptor is not None:
                             os.close(descriptor)
+
+    def test_project_success_waits_for_final_instructions(self):
+        name = "app with a long directory"
+        ready = b"Project created."
+        for columns, stage, fails in (
+                (80, "body", True), (24, "body", True),
+                (80, "body", False), (24, "body", False), (80, "success", True)):
+            with self.subTest(columns=columns, stage=stage, fails=fails), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                trace, held, release, errors, preload = (
+                    root / name for name in ("trace", "held", "release", "stderr", "final-instructions.mjs"))
+                preload.write_text(FINAL_INSTRUCTIONS_MODULE)
+                marker = ready.decode() if stage == "success" else "bun run dev"
+                env = dict(os.environ, CI="false", TERM="xterm", NO_COLOR="1", FORCE_COLOR="0",
+                           FINAL_TRACE=str(trace), FINAL_HELD=str(held), FINAL_RELEASE=str(release),
+                           FINAL_MARKER=marker, FINAL_FAILURE="1" if fails else "")
+                master, slave = pty.openpty()
+                try:
+                    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, columns, 0, 0))
+                    with errors.open("wb") as stderr, subprocess.Popen(
+                            [node, "--import", preload.as_uri(), cli, name, "--lang", "en", "--mode", "server",
+                             "--no-install", "--no-git"],
+                            cwd=root, env=env, stdin=slave, stdout=slave, stderr=stderr, start_new_session=True) as child:
+                        terminal = Reader(self, master)
+                        try:
+                            for prompt in (b"Application title", b"Setup", b"Create the project?"):
+                                terminal.until(prompt)
+                                os.write(master, b"\r")
+                            deadline = time.monotonic() + 8
+                            while not held.exists() and child.poll() is None and time.monotonic() < deadline:
+                                terminal.drain()
+                                time.sleep(.01)
+                            self.assertTrue(held.exists(), (child.poll(), errors.read_text(), terminal.transcript[-800:]))
+                            terminal.drain()
+                            before = [json.loads(line) for line in trace.read_text().splitlines()]
+                            self.assertIsNone(child.poll())
+                            release.touch()
+                            deadline = time.monotonic() + 8
+                            while child.poll() is None:
+                                terminal.drain()
+                                self.assertLess(time.monotonic(), deadline, terminal.transcript)
+                                time.sleep(.01)
+                            terminal.drain()
+                        finally:
+                            release.touch()
+                            if child.poll() is None and (os.getsid(child.pid), os.getpgid(child.pid)) == (child.pid, child.pid):
+                                child.kill()
+                    events = [json.loads(line) for line in trace.read_text().splitlines()]
+                    expected = ([["request success"]] if stage == "success" else []) + [["held", marker]]
+                    diagnostic = errors.read_text().splitlines()
+                    self.assertTrue((root / name / "package.json").is_file())
+                    print(f"Final instructions, {columns}/{stage}/{fails}: pending={before!r}, trace={events!r}, "
+                          f"exit={child.returncode}, diagnostic={diagnostic!r}", flush=True)
+                    self.assertEqual(before, expected)
+                    if fails:
+                        self.assertEqual(events, [*expected, ["callback", "ENOSPC"], ["stream error", "ENOSPC"], ["exit", 1]])
+                        self.assertEqual(child.returncode, 1)
+                        self.assertNotIn(ready, terminal.transcript)
+                        self.assertEqual(diagnostic, [
+                            "Could not write to the standard output: ENOSPC.",
+                            f"Your project is in '{name}'. To finish, run:",
+                            f"cd '{name}'", "bun install", "bun run dev"])
+                    else:
+                        self.assertEqual(events, [*expected, ["callback", "ok"], ["request success"], ["exit", 0]])
+                        self.assertEqual(child.returncode, 0)
+                        self.assertEqual(diagnostic, [])
+                        self.assertEqual(terminal.transcript.count(ready), 1)
+                        self.assertLess(terminal.transcript.rindex(b"bun run dev"), terminal.transcript.index(ready))
+                finally:
+                    os.close(master)
+                    os.close(slave)
+
 
     def test_late_output_error_keeps_recovery_commands(self):
         ready = ("cd app", "bun install", "bun run dev")

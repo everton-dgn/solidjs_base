@@ -419,10 +419,11 @@ async function createApplication({ answers, isInteractive }: Creation) {
   if (completed) finish(completed)
   if (outputs.signal.aborted || !outputs.canWrite(process.stdout)) return
   if (frame) {
-    frame.finishProject({
+    await frame.finishProject({
       steps,
       language,
-      canAnnounce: () => !outputs.signal.aborted
+      canAnnounce: () =>
+        !outputs.signal.aborted && outputs.canWrite(process.stdout)
     })
     return
   }

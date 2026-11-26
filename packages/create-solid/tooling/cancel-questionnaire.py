@@ -1004,9 +1004,65 @@ childProcess.spawn = (...args) => {
 syncBuiltinESMExports();
 """
 
+INSTALLER_CLOCK_MODULE = """
+import { ChildProcess } from 'node:child_process';
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { performance } from 'node:perf_hooks';
+const env = process.env;
+const record = (...entry) => appendFileSync(env.TAIL_TRACE, JSON.stringify(entry) + '\\n');
+const tickMs = 250;
+let ticks = 0;
+let hasExited = false;
+Object.defineProperty(performance, 'now', { value: () => ticks * tickMs });
+const emit = ChildProcess.prototype.emit;
+ChildProcess.prototype.emit = function (event, ...args) {
+  if (event === 'exit' && this.spawnfile === 'bun') {
+    hasExited = true;
+    record('exit', ticks);
+  }
+  return emit.call(this, event, ...args);
+};
+const set = globalThis.setInterval;
+const clear = globalThis.clearInterval;
+const timers = new Map();
+let id = 0;
+globalThis.setInterval = (callback, period, ...args) => {
+  if (period !== tickMs) return set(callback, period, ...args);
+  const token = set(() => {}, 30_000);
+  const timer = { id: ++id, callback: () => callback(...args) };
+  timers.set(token, timer);
+  record('arm', timer.id, hasExited, ticks);
+  return token;
+};
+globalThis.clearInterval = token => {
+  const timer = timers.get(token);
+  if (timer) {
+    timers.delete(token);
+    record('clear', timer.id, hasExited, ticks);
+  }
+  return clear(token);
+};
+process.on('SIGTERM', () => setImmediate(() => record('signal', hasExited, ticks)));
+const driver = set(() => {
+  if (!existsSync(env.TAIL_TICKS)) return;
+  const requested = Number(readFileSync(env.TAIL_TICKS, 'utf8'));
+  if (requested <= ticks) return;
+  while (ticks < requested) {
+    ticks += 1;
+    for (const [token, timer] of [...timers]) {
+      if (timers.has(token)) timer.callback();
+    }
+  }
+  record('advance', ticks);
+  writeFileSync(env.TAIL_ADVANCED, String(ticks));
+}, 5);
+driver.unref();
+"""
+
 INDEPENDENT_PIPES_INSTALLER = r"""
 import os
 from pathlib import Path
+import signal
 import socket
 import time
 
@@ -1027,6 +1083,10 @@ def await_value(check):
     raise RuntimeError('pipe fixture did not reach its next barrier')
 
 
+if 'PIPE_READY' in os.environ:
+    signal.signal(signal.SIGINT, lambda *_: write_status('PIPE_CLEANING', 1))
+    write_status('PIPE_READY', os.getpid())
+    await_value(Path(os.environ['PIPE_FINISH']).exists)
 slow, fast = (1, 2) if os.environ['PIPE_SLOW'] == 'stdout' else (2, 1)
 ack = Path(os.environ['PIPE_ACK'])
 held = Path(os.environ['PIPE_HELD'])
@@ -3439,26 +3499,13 @@ process.stdout.write = (...args) => {
 
 
     def read_installer_tail(self, case):
-        """Run the plain CLI with an installer whose output passes what the pipes and the buffers of the CLI hold, so it
-        exits only while the reader reads. The reader reads slowly until the exit is recorded, then waits as the case
-        says, and then reads the rest, which must hold the whole output of the installer.
-
-        quiet waits longer than the short wait for the pipes, bound longer than the long bound, stop stops the group of
-        the CLI for longer than the long bound, and signal sends SIGTERM to the CLI and waits longer than the long bound.
-        With cleanup the installer writes its output after a cleanup of 4 s that SIGTERM to the CLI starts, and the reader
-        waits until the long bound has passed since that signal."""
+        """Keep a real reader held beyond the selected post-exit interval."""
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             installer = root / "bun"
             size = 512 * 1024
             tail = f"head -c {size} /dev/zero | tr '\\0' t\necho tail-end\n"
-            if case == "cleanup":
-                cleanup = root / "cleanup"
-                cleanup.write_text(f"#!/bin/sh\nsleep 4\n{tail}")
-                cleanup.chmod(0o755)
-                installer.write_text('#!/bin/sh\ntrap \'"$CLEANUP"; exit 130\' INT\necho $$ > "$PID_FILE"\nwhile :; do sleep .05; done\n')
-            else:
-                installer.write_text(f"#!/bin/sh\n{tail}")
+            installer.write_text(f"#!/bin/sh\n{tail}")
             installer.chmod(0o755)
             entry, children_file = root / "entry.mjs", root / "children"
             entry.write_text(EXIT_ENTRY)
@@ -3482,11 +3529,6 @@ process.stdout.write = (...args) => {
                         return next((line.split() for line in lines if line.startswith("exit ")), None)
                     while b"Files created\n" not in printed:
                         read()
-                    sent = time.monotonic()
-                    if case == "cleanup":
-                        # A signal before the step starts would cancel it before the installer runs.
-                        self.assertIsNotNone(recorded(root / "installer.pid"))
-                        child.send_signal(signal.SIGTERM)
                     start = len(printed)
                     while len(printed) - start < 64 * 1024:
                         read()
@@ -3512,28 +3554,119 @@ process.stdout.write = (...args) => {
                             time.sleep(.01)
                         time.sleep(CLEANUP_LIMIT_S + 1)
                         os.killpg(child.pid, signal.SIGCONT)
-                    if case == "signal":
-                        child.send_signal(signal.SIGTERM)
-                        time.sleep(CLEANUP_LIMIT_S + 1)
-                    if case == "cleanup":
-                        time.sleep(max(0, sent + CLEANUP_LIMIT_S + 1 - time.monotonic()))
                     rest, errors = child.communicate(timeout=20)
                     printed.extend(rest)
                     self.assertIn(b"\n" + b"t" * size + b"tail-end\n", printed, (printed.count(b"t"), printed[-300:]))
-                    if is_canceled:
-                        self.assertEqual(child.returncode, 130, errors)
-                        lines = errors.decode().splitlines()
-                        self.assertEqual(lines[-6:], ["■ Installing dependencies with Bun", "Your project is in app. To finish, run:",
-                                                      "cd app", "bun install", "", "Creation canceled."])
-                        if case == "signal":
-                            # The installer was gone, so no line says that the CLI waits for it.
-                            self.assertNotIn("clean up", errors.decode())
-                    else:
-                        self.assertEqual((child.returncode, errors), (0, b""))
-                        self.assertIn(b"tail-end\n" + "◇ Dependencies installed with Bun\n".encode(), printed)
+                    self.assertEqual((child.returncode, errors), (0, b""))
+                    self.assertIn(b"tail-end\n" + "◇ Dependencies installed with Bun\n".encode(), printed)
                 finally:
                     if child.poll() is None:
                         os.killpg(child.pid, signal.SIGKILL)
+
+    def read_installer_tail_across_deadline(self, *, signal_before_exit):
+        marker = b"\nSLOW-END\n"
+        total_ticks = 32
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            source, probe, clock, entry, installer = (
+                root / name for name in ("installer.py", "pipe.mjs", "clock.mjs", "entry.mjs", "bun"))
+            source.write_text(INDEPENDENT_PIPES_INSTALLER)
+            probe.write_text(INDEPENDENT_PIPES_JS)
+            clock.write_text(INSTALLER_CLOCK_MODULE)
+            entry.write_text(EXIT_ENTRY)
+            installer.write_text(f"#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(source))}\n")
+            installer.chmod(0o755)
+            names = ("TRACE", "HELD", "ACK", "EXIT", "PRODUCED", "READY", "CLEANING", "FINISH")
+            paths = {name: root / ("pipe-" + name.lower()) for name in names}
+            ticks, advanced, trace, children = (
+                root / name for name in ("ticks", "advanced", "clock-trace", "children"))
+            env = dict(os.environ, CI="false", LC_ALL="C", TERM="xterm", PATH=directory + os.pathsep + os.environ["PATH"],
+                       PIPE_SLOW="stdout", PIPE_WRITER="", TAIL_TICKS=str(ticks), TAIL_ADVANCED=str(advanced),
+                       TAIL_TRACE=str(trace), EXIT_FILE=str(root / "cli.exit"), CLI_URL=cli.as_uri(),
+                       CLI_CHILDREN=str(children), **{f"PIPE_{name}": str(path) for name, path in paths.items()})
+            if not signal_before_exit:
+                paths["FINISH"].touch()
+            with subprocess.Popen(
+                    [node, "--import", probe.as_uri(), "--import", clock.as_uri(), entry, "app", "--yes",
+                     "--lang", "en", "--no-git", "--install"],
+                    cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    start_new_session=True) as child:
+                worker = None
+
+                def belongs(pid):
+                    try:
+                        return (os.getsid(pid), os.getpgid(pid)) == (child.pid, child.pid)
+                    except ProcessLookupError:
+                        return False
+
+                def entries(path):
+                    return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
+
+                def wait_for(check):
+                    deadline = time.monotonic() + 6
+                    while not check():
+                        self.assertLess(time.monotonic(), deadline, entries(trace))
+                        time.sleep(.01)
+
+                def send_term():
+                    self.assertTrue(belongs(child.pid))
+                    child.send_signal(signal.SIGTERM)
+
+                def advance(to_tick):
+                    staged = ticks.with_suffix(".new")
+                    staged.write_text(str(to_tick))
+                    staged.replace(ticks)
+                    wait_for(lambda: advanced.exists() and advanced.read_text() == str(to_tick))
+
+                try:
+                    worker = recorded(paths["READY"])
+                    self.assertIsNotNone(worker)
+                    self.assertTrue(belongs(worker))
+                    if signal_before_exit:
+                        send_term()
+                        self.assertEqual(recorded(paths["CLEANING"]), 1)
+                        wait_for(lambda: ["arm", 1, False, 0] in entries(trace))
+                        advance(total_ticks - 1)
+                        self.assertFalse(paths["EXIT"].exists())
+                        paths["FINISH"].touch()
+                    produced = recorded(paths["PRODUCED"])
+                    self.assertIsNotNone(produced)
+                    self.assertEqual(recorded(paths["EXIT"]), 1)
+                    stalled = entries(paths["TRACE"])
+                    self.assertEqual(len(stalled), 1, stalled)
+                    self.assertEqual(stalled[0][:3], ["exit", 0, True])
+                    self.assertGreater(stalled[0][3], 0)
+                    if not signal_before_exit:
+                        send_term()
+                        wait_for(lambda: ["signal", True, 0] in entries(trace))
+                    advance(total_ticks)
+                    stdout, stderr = child.communicate(timeout=8)
+                finally:
+                    paths["FINISH"].touch()
+                    for pid in (worker, child.pid if child.poll() is None else None):
+                        if pid is not None and belongs(pid):
+                            os.kill(pid, signal.SIGKILL)
+            events = entries(trace)
+            observed_marker = marker in stdout
+            print(f"Cleanup deadline, before_exit={signal_before_exit}, ticks={events!r}, "
+                  f"held={stalled!r}, expected={produced}, received={stdout.count(bytes([0x81]))}, "
+                  f"marker_delivered={observed_marker}, code={child.returncode}", flush=True)
+            self.assertTrue(bytes([0x81]) * produced + marker in stdout, stdout[-100:])
+            self.assertEqual(entries(paths["TRACE"]), [*stalled, ["slow marker"]])
+            self.assertEqual(stdout.count(bytes([0x81])), produced)
+            self.assertEqual(child.returncode, 130)
+            self.assertNotIn("kill SIGKILL", children.read_text())
+            self.assertEqual(stderr.decode().splitlines()[-6:], [
+                "■ Installing dependencies with Bun", "Your project is in app. To finish, run:",
+                "cd app", "bun install", "", "Creation canceled."])
+            event_names_at_exit = next(index for index, entry in enumerate(events) if entry[0] == "exit")
+            if signal_before_exit:
+                self.assertEqual(events[event_names_at_exit:event_names_at_exit + 2],
+                                 [["exit", total_ticks - 1], ["clear", 1, True, total_ticks - 1]])
+            else:
+                received = events.index(["signal", True, 0])
+                self.assertFalse([entry for entry in events[received + 1:] if entry[0] == "arm"])
+                self.assertNotIn("clean up", stderr.decode())
 
     def test_plain_installer_output_read_after_its_exit(self):
         # The reader stops once the CLI has handled the exit of the installer, for longer than the short wait for the pipes.
@@ -3550,12 +3683,12 @@ process.stdout.write = (...args) => {
     def test_plain_cleanup_ending_near_the_long_bound(self):
         # The long bound exists to force the installer, so once the installer has exited it no longer cuts the wait for a
         # slow reader of its output.
-        self.read_installer_tail("cleanup")
+        self.read_installer_tail_across_deadline(signal_before_exit=True)
 
     def test_plain_first_signal_after_the_installer_exited(self):
         # A first signal once the installer has exited arms no long bound: the CLI waits for the reader as before and then
         # ends as a cancel.
-        self.read_installer_tail("signal")
+        self.read_installer_tail_across_deadline(signal_before_exit=False)
 
     def test_plain_descendant_writing_after_the_installer(self):
         # A process the installer started keeps writing to its stdout after the installer exited. The CLI lets go of the

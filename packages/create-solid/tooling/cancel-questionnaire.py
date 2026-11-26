@@ -459,6 +459,38 @@ if (process.env.OUTPUT_ERROR) {
 }
 """
 
+# Deliver a failure after the selected final write returns, and record the report on the alternate output.
+LATE_OUTPUT_MODULE = """
+import { appendFileSync } from 'node:fs';
+const { stdout, stderr } = process;
+const watched = process.env.LATE_OUTPUT === 'stderr' ? stderr : stdout;
+const marker = process.env.LATE_MARKER;
+let fired = false;
+const record = (...values) => appendFileSync(process.env.LATE_TRACE, JSON.stringify(values) + '\\n');
+for (const [name, output] of [['stdout', stdout], ['stderr', stderr]]) {
+  const write = output.write;
+  output.write = function (chunk, ...args) {
+    const text = String(chunk);
+    if (text.startsWith('Could not write to the standard ')) record('diagnostic', name, text);
+    if (output !== watched || fired || !text.includes(marker)) {
+      return Reflect.apply(write, this, [chunk, ...args]);
+    }
+    fired = true;
+    record('selected write', name, marker);
+    const returned = Reflect.apply(write, this, [chunk, ...args]);
+    record('returned', returned);
+    const fail = () => {
+      record('error', name, 'ENOSPC');
+      output.emit('error', Object.assign(new Error('no space'), { code: 'ENOSPC' }));
+    };
+    if (process.env.LATE_SYNCHRONOUS) fail();
+    else setImmediate(fail);
+    return returned;
+  };
+}
+process.on('exit', code => record('exit', code));
+"""
+
 # Trace the real diagnostic write; hold only its callback in the TTY control, where writes may complete immediately.
 PROMPT_WRITE_MODULE = """
 import { appendFileSync, existsSync } from 'node:fs';
@@ -3601,6 +3633,117 @@ process.stdout.write = (...args) => {
                                 pass
                             if child.poll() is None:
                                 child.kill()
+                finally:
+                    for descriptor in (master, slave):
+                        if descriptor is not None:
+                            os.close(descriptor)
+
+    def test_late_output_error_keeps_recovery_commands(self):
+        ready = ("cd app", "bun install", "bun run dev")
+        plain = ("--yes", "--no-install", "--no-git")
+        framed = ("--no-install", "--no-git")
+        cases = (
+            ("last title", "Files created", "app", plain, ready),
+            ("boxed instructions", "┌─", "app with space", plain, ("cd 'app with space'", *ready[1:])),
+            ("current directory", "┌─", ".", plain, ready[1:]),
+            ("installation completed", "Dependencies installed with Bun", "app", ("--yes", "--install", "--no-git"), ("cd app", "bun run dev")),
+            ("Git retry", "┌─", "app", ("--yes", "--install", "--git"), ("cd app", "git init", "bun run dev")),
+            ("framed note", "Next steps", "app", framed, ready),
+            ("framed outro", "Project created.", "app", framed, ready),
+            ("known failure before success", "Next steps", "app", framed, ready),
+            ("cancel on stderr", "Creation canceled.", "app", ("--yes", "--install", "--no-git"), ("cd app", "bun install")),
+            ("help", "bunx @evertondgn/create-solid@latest", "app", ("--help",), ()),
+            ("initial summary", "Project summary", "app", plain, ()),
+        )
+        for case, marker, dest, flags, commands in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                work, tools = root / "work", root / "tools"
+                work.mkdir()
+                tools.mkdir()
+                preload, trace, errors = root / "late-output.mjs", root / "trace", root / "stderr"
+                preload.write_text(LATE_OUTPUT_MODULE)
+                is_framed = flags == framed
+                is_cancel = case == "cancel on stderr"
+                failing, alternate = ("stderr", "stdout") if is_cancel else ("stdout", "stderr")
+                bun, git = tools / "bun", tools / "git"
+                git.write_text("#!/bin/sh\nexit 1\n")
+                git.chmod(0o755)
+                worker, cleaning, cleaned, finish = (root / name for name in ("worker", "cleaning", "cleaned", "finish"))
+                if is_cancel:
+                    source = root / "installer.cjs"
+                    source.write_text(CLEANING_INSTALLER)
+                    bun.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(source))}\n")
+                else:
+                    bun.write_text("#!/bin/sh\nexit 0\n")
+                bun.chmod(0o755)
+                env = dict(os.environ, CI="false", TERM="xterm", NO_COLOR="1", FORCE_COLOR="0",
+                           PATH=str(tools) + os.pathsep + os.environ["PATH"], LATE_MARKER=marker,
+                           LATE_TRACE=str(trace), LATE_OUTPUT=failing, PID_FILE=str(worker), CLEANUP_MS="",
+                           CLEANING=str(cleaning), CLEANED=str(cleaned), FINISH=str(finish),
+                           LATE_SYNCHRONOUS="1" if case == "known failure before success" else "")
+                master, slave = pty.openpty() if is_framed else (None, None)
+                try:
+                    if is_framed:
+                        fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
+                    with errors.open("wb") as sink, subprocess.Popen(
+                            [node, "--import", preload.as_uri(), cli, dest, "--lang", "en", "--mode", "server", *flags],
+                            cwd=work, env=env, start_new_session=True, stdin=slave if is_framed else subprocess.DEVNULL,
+                            stdout=slave if is_framed else subprocess.PIPE, stderr=sink) as child:
+                        pid = None
+                        try:
+                            if is_framed:
+                                terminal = Reader(self, master)
+                                for prompt in (b"Application title", b"Setup", b"Create the project?"):
+                                    terminal.until(prompt)
+                                    os.write(master, b"\r")
+                                deadline = time.monotonic() + 8
+                                while child.poll() is None:
+                                    self.assertLess(time.monotonic(), deadline, terminal.transcript[-800:])
+                                    terminal.drain()
+                                    time.sleep(.01)
+                                terminal.drain()
+                                if case == "known failure before success":
+                                    self.assertNotIn(b"Project created.", terminal.transcript)
+                            if is_cancel:
+                                pid = recorded(worker)
+                                self.assertIsNotNone(pid)
+                                self.assertEqual((os.getsid(pid), os.getpgid(pid)), (child.pid, child.pid))
+                                self.assertEqual((os.getsid(child.pid), os.getpgid(child.pid)), (child.pid, child.pid))
+                                child.send_signal(signal.SIGTERM)
+                                self.assertEqual(recorded(cleaning), 1)
+                                finish.touch()
+                            child.communicate(timeout=8)
+                        finally:
+                            finish.touch()
+                            try:
+                                if pid and (os.getsid(pid), os.getpgid(pid)) == (child.pid, child.pid):
+                                    os.kill(pid, signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass
+                            if child.poll() is None:
+                                child.kill()
+                    events = [json.loads(line) for line in trace.read_text().splitlines()]
+                    self.assertEqual([event[0] for event in events], ["selected write", "returned", "error", "diagnostic", "exit"], events)
+                    self.assertEqual(events[0], ["selected write", failing, marker])
+                    self.assertEqual(events[2], ["error", failing, "ENOSPC"])
+                    self.assertEqual(events[3][1], alternate)
+                    self.assertEqual((child.returncode, events[-1]), (1, ["exit", 1]))
+                    self.assertEqual((work / dest / "package.json").exists(), bool(commands))
+                    if is_cancel:
+                        self.assertTrue(cleaned.exists())
+                    if dest == ".":
+                        heading = "Your project is in the current directory. To finish, run:"
+                        tail = (heading, *commands)
+                    elif commands:
+                        heading = f"Your project is in {commands[0][3:]}. To finish, run:"
+                        tail = (heading, *commands)
+                    else:
+                        tail = ()
+                    label = "error" if failing == "stderr" else "output"
+                    print(f"Late output failure, {case}: {events!r}", flush=True)
+                    self.assertEqual(events[3][2].splitlines(), [
+                        f"Could not write to the standard {label}: ENOSPC.", *tail])
                 finally:
                     for descriptor in (master, slave):
                         if descriptor is not None:

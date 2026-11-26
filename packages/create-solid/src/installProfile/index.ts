@@ -8,19 +8,36 @@ type InstallOptions = {
   language: Language
   shouldRetryGit?: boolean
 }
+type RecoveryOptions = { dir: string; language: Language; commands: string[] }
+export function recoveryInstructions({
+  dir,
+  language,
+  commands
+}: RecoveryOptions): string {
+  const destination = shellDirectory(dir)
+  return [
+    ...(destination === '.'
+      ? [messages[language].resumeHere]
+      : [
+          message(language, { code: 'resume', values: { dir: destination } }),
+          `cd ${destination}`
+        ]),
+    ...commands
+  ].join('\n')
+}
 export function resumeSteps({
   profile,
   language,
   shouldRetryGit
 }: InstallOptions): string {
-  const dir = shellDirectory(profile.dir)
-  return [
-    ...(dir === '.'
-      ? [messages[language].resumeHere]
-      : [message(language, { code: 'resume', values: { dir } }), `cd ${dir}`]),
-    ...(shouldRetryGit ? ['git init'] : []),
-    ...(profile.shouldInstall ? [`${profile.pm} install`] : [])
-  ].join('\n')
+  return recoveryInstructions({
+    dir: profile.dir,
+    language,
+    commands: [
+      ...(shouldRetryGit ? ['git init'] : []),
+      ...(profile.shouldInstall ? [`${profile.pm} install`] : [])
+    ]
+  })
 }
 export type SetupCommand = {
   task: 'gitTask' | 'installTask'

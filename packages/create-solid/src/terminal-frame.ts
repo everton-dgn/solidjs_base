@@ -33,6 +33,7 @@ import { wrapFrameText } from './wrapFrameText/index.ts'
 type Completion = {
   steps: string[]
   language: Language
+  canAnnounce?: () => boolean
 }
 
 type StopReason = string | { text: string; occupiedDir: string }
@@ -423,7 +424,11 @@ export function stopFrame({
   })
   outro(closing)
 }
-export function finishProject({ steps, language }: Completion): void {
+export function finishProject({
+  steps,
+  language,
+  canAnnounce
+}: Completion): void {
   const output = closingOutput()
   const m = messages[language]
   if (
@@ -440,5 +445,5 @@ export function finishProject({ steps, language }: Completion): void {
       output
     })
   } else note(steps.join('\n'), m.next, { ...noteFormat, output })
-  outro(m.ready, { output })
+  if (canAnnounce?.() ?? true) outro(m.ready, { output })
 }

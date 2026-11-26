@@ -27,9 +27,12 @@ const argumentOffset = 2
 const usageExitCode = 2
 const terminal = { isFramed: false }
 let language: ReturnType<typeof cliLanguage> = 'en'
+let closingResume = ''
 // WHY: A write that failed after the last step, such as one of the closing lines, has nothing left to stop.
 process.on('beforeExit', () => {
-  if (outputs.signal.aborted) outputs.report({ language, resume: '' })
+  if (outputs.signal.aborted) {
+    outputs.report({ language, resume: closingResume })
+  }
 })
 function detectLanguage(options: string[]) {
   const index = options.findLastIndex(
@@ -271,14 +274,15 @@ function closeGeneration({
   titles,
   signals
 }: GenerationClosing): void {
+  const reason = errorMessage(error)
+  closingResume = reason
   if (outputs.signal.aborted) {
     frame?.progress.clear({ shouldWrite: outputs.canWrite(process.stdout) })
-    outputs.report({ language, resume: errorMessage(error) })
+    outputs.report({ language, resume: reason })
     return
   }
   const labels = messages[language]
   const isCanceled = error instanceof CanceledError
-  const reason = errorMessage(error)
   const closing = isCanceled ? labels.cancel : labels.stopped
   if (frame && !outputs.canWrite(process.stdout)) {
     frame.progress.clear({ shouldWrite: false })
@@ -317,17 +321,19 @@ async function createApplication({ answers, isInteractive }: Creation) {
   } else process.stdout.write(`${labels.summary}\n${summary}\n`)
   const progress = frame?.progress
   const finish = (title: string) => {
-    if (outputs.canWrite(process.stdout)) (progress?.finish ?? writeStep)(title)
-    else progress?.clear({ shouldWrite: false })
+    const shouldWrite = outputs.canWrite(process.stdout)
+    if (shouldWrite && !outputs.signal.aborted) {
+      ;(progress?.finish ?? writeStep)(title)
+    } else progress?.clear({ shouldWrite })
   }
   let completed = ''
   let active = ''
   let failureTitle = labels.createFailed as string
   let task = ''
-  let steps: string[]
+  let result: Awaited<ReturnType<typeof generateTerminal>>
   const signals = recordSignals()
   try {
-    steps = await generateTerminal(
+    result = await generateTerminal(
       {
         ...profile,
         ...(frame
@@ -408,10 +414,16 @@ async function createApplication({ answers, isInteractive }: Creation) {
   } finally {
     signals.stop()
   }
+  const { steps, resume } = result
+  closingResume = resume
   if (completed) finish(completed)
-  if (!outputs.canWrite(process.stdout)) return
+  if (outputs.signal.aborted || !outputs.canWrite(process.stdout)) return
   if (frame) {
-    frame.finishProject({ steps, language })
+    frame.finishProject({
+      steps,
+      language,
+      canAnnounce: () => !outputs.signal.aborted
+    })
     return
   }
   const width = Math.max(labels.next.length, ...steps.map(step => step.length))

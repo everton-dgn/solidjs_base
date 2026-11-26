@@ -43,6 +43,7 @@ import { defaultSiteUrl } from './constants/site-url.ts'
 import { editTemplate } from './edit-template.ts'
 import {
   installProfile,
+  recoveryInstructions,
   resumeSteps,
   type SetupCommand
 } from './installProfile/index.ts'
@@ -125,25 +126,29 @@ type NextSteps = {
   siteUrl: URL | undefined
   shouldRetryGit?: boolean
 }
+type GenerationResult = { steps: string[]; resume: string }
 function nextSteps({
   profile,
   language,
   siteUrl,
   shouldRetryGit
-}: NextSteps): string[] {
+}: NextSteps): GenerationResult {
   const dir = shellDirectory(profile.dir)
-  const next = dir === '.' ? [] : [`cd ${dir}`]
+  const commands = [
+    ...(shouldRetryGit ? ['git init'] : []),
+    ...(profile.shouldInstall ? [] : [`${profile.pm} install`]),
+    'bun run dev'
+  ]
+  const next = [...(dir === '.' ? [] : [`cd ${dir}`]), ...commands]
   if (!hasTool('bun')) next.unshift(messages[language].missingBun)
-  if (shouldRetryGit) next.push('git init')
-  if (!profile.shouldInstall) {
-    next.push(`${profile.pm} install`)
-  }
-  next.push('bun run dev')
   if (siteUrl?.origin === defaultSiteUrl) {
     next.push(messages[language].setUrl)
   }
   next.push(messages[language].publishList)
-  return next
+  return {
+    steps: next,
+    resume: recoveryInstructions({ dir: profile.dir, language, commands })
+  }
 }
 function configureReadme({ stage, profile }: StagedContext): void {
   if (
@@ -514,7 +519,7 @@ function* initializeGit({
   }
   return false
 }
-type Advance = () => IteratorResult<Step, string[]>
+type Advance = () => IteratorResult<Step, GenerationResult>
 // WHY: The end of a step removes its signal listeners, so a signal that arrived while the generator ran is read before anything closes the step.
 async function advance(run: Advance): Promise<ReturnType<Advance>> {
   try {
@@ -591,7 +596,7 @@ export function* generation({
   input,
   prepare,
   language
-}: Generation): Generator<Step, string[]> {
+}: Generation): Generator<Step, GenerationResult> {
   const { problems, defaults, languages, title, siteUrl } =
     validateProfile(input)
   if (problems[0]) throw problems[0]
@@ -705,10 +710,8 @@ export function* generation({
   const notices = reportSeededCatalogs({ profile, seeded, language })
   const shouldRetryGit = yield* initializeGit({ profile, language })
   yield* installProfile({ profile, language, shouldRetryGit })
-  return [
-    ...notices,
-    ...nextSteps({ profile, language, siteUrl, shouldRetryGit })
-  ]
+  const next = nextSteps({ profile, language, siteUrl, shouldRetryGit })
+  return { steps: [...notices, ...next.steps], resume: next.resume }
 }
 
 export function generateSource(options: GenerationOptions): string[] {
@@ -728,7 +731,7 @@ export function generateSource(options: GenerationOptions): string[] {
     }
     current = steps.next()
   }
-  return current.value
+  return current.value.steps
 }
 export function generate(input: Profile): string[] {
   return generateSource({ input, prepare: prepared })
@@ -744,7 +747,7 @@ export async function generateTerminal(
     canWrite,
     isInteractive = false
   }: TerminalOptions
-): Promise<string[]> {
+): Promise<GenerationResult> {
   const steps = generation({ input, prepare: prepared, language })
   const controller = new AbortController()
   const cancel = (signalName: NodeJS.Signals) => controller.abort(signalName)

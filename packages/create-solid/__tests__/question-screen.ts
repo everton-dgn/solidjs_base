@@ -68,16 +68,62 @@ type Sequence = { page: Page; parameters: string; final: string }
 function applySequence({ page, parameters, final }: Sequence): void {
   const count = Number(parameters) || 1
   const line = page.rows[page.row] ?? ''
-  if (final === 'A') page.row = Math.max(0, page.row - count)
-  else if (final === 'B') page.row += count
-  else if (final === 'D') page.column = Math.max(0, page.column - count)
-  else if (final === 'G') page.column = count - 1
-  else if (final === 'K' && parameters === '2') page.rows[page.row] = ''
-  else if (final === 'J') {
-    page.rows[page.row] = line.slice(0, page.column)
-    page.rows.length = page.row + 1
-  } else if (final === 'h' || final === 'l') assert.equal(parameters, '?25')
-  else assert.fail(JSON.stringify(`${parameters}${final}`))
+  switch (final) {
+    case 'A': {
+      page.row = Math.max(0, page.row - count)
+      break
+    }
+    case 'B': {
+      page.row += count
+      break
+    }
+    case 'D': {
+      page.column = Math.max(0, page.column - count)
+      break
+    }
+    case 'G': {
+      page.column = count - 1
+      break
+    }
+    case 'K': {
+      assert.equal(parameters, '2')
+      page.rows[page.row] = ''
+      break
+    }
+    case 'J': {
+      page.rows[page.row] = line.slice(0, page.column)
+      page.rows.length = page.row + 1
+      break
+    }
+    case 'h':
+    case 'l': {
+      assert.equal(parameters, '?25')
+      break
+    }
+    default: {
+      assert.fail(JSON.stringify(`${parameters}${final}`))
+    }
+  }
+}
+type Token = { page: Page; match: RegExpMatchArray }
+function applyToken({ page, match }: Token): void {
+  const [whole] = match
+  const { parameters = '', final } = match.groups ?? {}
+  while (page.rows.length <= page.row) page.rows.push('')
+  if (whole === '\n') {
+    page.row += 1
+    page.column = 0
+    return
+  }
+  if (whole === '\r') {
+    page.column = 0
+    return
+  }
+  if (!final || final === 'm') {
+    writeText({ page, text: whole })
+    return
+  }
+  applySequence({ page, parameters, final })
 }
 // The rows of the last question opened in the writes, replayed on a screen tall enough for all of it, from the row where
 // Clack hid the cursor to the row of the cursor.
@@ -85,17 +131,7 @@ function replay(written: string[]): string {
   const start = written.findLastIndex(chunk => chunk.includes(hide))
   const page: Page = { rows: [''], row: 0, column: 0 }
   for (const chunk of written.slice(start + 1)) {
-    for (const match of chunk.matchAll(token)) {
-      const [whole] = match
-      const { parameters = '', final } = match.groups ?? {}
-      while (page.rows.length <= page.row) page.rows.push('')
-      if (whole === '\n') {
-        page.row += 1
-        page.column = 0
-      } else if (whole === '\r') page.column = 0
-      else if (!final || final === 'm') writeText({ page, text: whole })
-      else applySequence({ page, parameters, final })
-    }
+    for (const match of chunk.matchAll(token)) applyToken({ page, match })
   }
   while (page.rows.length <= page.row) page.rows.push('')
   return page.rows.slice(0, page.row + 1).join('\n')
@@ -106,6 +142,57 @@ type Framing = Typing & { ask: Ask }
 
 type Track = { bytes: string; row: number; column?: number; rows: number }
 type Tracked = Cursor & { cornerErasures: number }
+type Moving = { at: Tracked; rows: number; match: RegExpMatchArray }
+function moveCursor({ at, rows, match }: Moving): void {
+  const [whole] = match
+  const { parameters = '', final } = match.groups ?? {}
+  const count = Number(parameters) || 1
+  // A run of text has no final byte, and its letters are no sequence.
+  const isBreak = whole === '\n' || whole === '\r'
+  switch (final ?? (isBreak ? whole : '')) {
+    case 'A': {
+      at.row = Math.max(0, at.row - count)
+      break
+    }
+    case 'B': {
+      at.row = Math.min(rows - 1, at.row + count)
+      break
+    }
+    case 'D': {
+      at.column = Math.max(0, at.column - count)
+      break
+    }
+    case 'G': {
+      at.column = count - 1
+      break
+    }
+    case 'J': {
+      if (at.row === 0 && at.column === 0) at.cornerErasures += 1
+      break
+    }
+    case '\n': {
+      at.row = Math.min(rows - 1, at.row + 1)
+      at.column = 0
+      break
+    }
+    case '\r': {
+      at.column = 0
+      break
+    }
+    default: {
+      if (!final) at.column += whole.length
+    }
+  }
+}
+type Output = PassThrough & { columns: number; rows: number }
+type Terminal = { stream: Output; written: string[] }
+type Stopping = {
+  frame: ReturnType<typeof questionFrame<Output>>
+  written: string[]
+  pause: Pause
+}
+// oxlint-disable-next-line no-control-regex
+const style = /\u001B\[[\d;]*m/gu
 
 const marks: Record<string, string> = { error: '▲', submit: '◇', cancel: '■' }
 // A text question with no limit of rows, shaped like the title question of the CLI. It marks the cursor with a block in
@@ -157,6 +244,34 @@ export const askTitle: Ask = async ({ input, output, follow }) => {
   )
 }
 export type Pause = 'erase' | 'hold'
+export const pauseName = (pause: Pause): string =>
+  pause === 'erase' ? 'erased' : 'held'
+// tmux copies the screen to its history on an erase from the top left corner, so the first row of a question is cleared
+// alone and the rest from the row below it.
+export function erasure(up: number): string {
+  return `${escape}[${up}A${escape}[2K${escape}[B\r${escape}[J${escape}[A`
+}
+// The text without its styles, which a run with FORCE_COLOR set adds.
+export function plain(text: string): string {
+  return text.replaceAll(style, '')
+}
+// A stream of 80 columns and the given rows that keeps every write it takes.
+export function terminal(rows: number): Terminal {
+  const written: string[] = []
+  const stream = Object.assign(new PassThrough(), { columns: 80, rows })
+  stream.on('data', chunk => written.push(String(chunk)))
+  return { stream, written }
+}
+// The bytes the question frame writes on a stop and on the continue right after it.
+export function stop({ frame, written, pause }: Stopping): Stop {
+  written.length = 0
+  if (pause === 'erase') frame.erase()
+  else frame.hold()
+  const erased = [...written]
+  written.length = 0
+  frame.flush()
+  return { erased, flushed: [...written] }
+}
 export async function turns(): Promise<void> {
   const enough = 6
   for (let turn = 0; turn < enough; turn += 1) await setImmediate()
@@ -274,22 +389,7 @@ export async function textFrames(typing: Typing): Promise<string[]> {
 // Follows the cursor of a terminal with this many rows: a move stops at its top and bottom rows, and a new line on its
 // last row scrolls. Counts the erasures to the end of the screen that start from its top left corner.
 export function track({ bytes, row, column = 0, rows }: Track): Tracked {
-  let at = { row, column }
-  let cornerErasures = 0
-  for (const match of bytes.matchAll(token)) {
-    const [whole] = match
-    const { parameters = '', final } = match.groups ?? {}
-    const count = Number(parameters) || 1
-    if (final === 'A') at.row = Math.max(0, at.row - count)
-    else if (final === 'B') at.row = Math.min(rows - 1, at.row + count)
-    else if (final === 'D') at.column = Math.max(0, at.column - count)
-    else if (final === 'G') at.column = count - 1
-    else if (final === 'J' && at.row === 0 && at.column === 0) {
-      cornerErasures += 1
-    } else if (whole === '\n') {
-      at = { row: Math.min(rows - 1, at.row + 1), column: 0 }
-    } else if (whole === '\r') at.column = 0
-    else if (!final) at.column += whole.length
-  }
-  return { ...at, cornerErasures }
+  const at = { row, column, cornerErasures: 0 }
+  for (const match of bytes.matchAll(token)) moveCursor({ at, rows, match })
+  return at
 }

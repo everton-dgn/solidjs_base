@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { it } from 'node:test'
 
-import { openText } from './question-screen.ts'
+import { openText, pauseName } from './question-screen.ts'
 
 // A terminal that gets taller during a stop.
 const columns = 30
@@ -24,16 +24,29 @@ function reach({ bytes, start, top }: Reach) {
   for (const match of bytes.matchAll(tokens)) {
     const { count, move } = match.groups ?? {}
     const amount = count ? Number(count) : 1
-    if (move === 'A') row = Math.max(top, row - amount)
-    else if (move === 'B') row += amount
-    else if (match[0] === '\n') row += 1
-    else if (row < 0) above.push(`${row}: ${JSON.stringify(match[0])}`)
+    switch (move ?? match[0]) {
+      case 'A': {
+        row = Math.max(top, row - amount)
+        break
+      }
+      case 'B': {
+        row += amount
+        break
+      }
+      case '\n': {
+        row += 1
+        break
+      }
+      default: {
+        if (row < 0) above.push(`${row}: ${JSON.stringify(match[0])}`)
+      }
+    }
     lowest = Math.min(lowest, row)
   }
   return { lowest, above }
 }
 for (const pause of ['erase', 'hold'] as const) {
-  void it(`keeps the writes of Clack on the rows the CLI drew after a stop in which the terminal got taller, when the next key changes the title (${pause === 'erase' ? 'erased' : 'held'})`, async () => {
+  void it(`keeps the writes of Clack on the rows the CLI drew after a stop in which the terminal got taller, when the next key changes the title (${pauseName(pause)})`, async () => {
     const question = await openText({ columns, rows: firstRows })
     await question.press(spaces)
     // The error changes the symbol of the title, above the screen.
@@ -56,9 +69,6 @@ for (const pause of ['erase', 'hold'] as const) {
       start: drawnRows - 1 - back,
       top: drawnRows - tallerRows
     })
-    process.stdout.write(
-      `${JSON.stringify({ pause, drawnRows, bytes, lowest, above })}\n`
-    )
     assert.ok(
       lowest >= 0,
       `Clack moved ${-lowest} rows above the ${drawnRows} rows the CLI drew and wrote there: ${above.join(' | ')}`

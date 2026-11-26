@@ -40,7 +40,6 @@ void it('brings the cursor back to the end of a question when Clack only moved i
     'the stop computed no frame from the prompt'
   )
   await question.close()
-  process.stdout.write(`${JSON.stringify({ moved, cursor, held })}\n`)
   assert.deepEqual(
     { row: cursor.row, column: cursor.column },
     { row: rows - 1, column: 0 },

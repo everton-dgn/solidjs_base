@@ -6,9 +6,13 @@ import { multiselect, text } from '@clack/prompts'
 
 import { questionFrame } from '../src/questionFrame/index.ts'
 import {
+  erasure,
   openPlainText,
   openText,
   openTitle,
+  pauseName,
+  plain,
+  terminal,
   textFrames,
   turns,
   type Pause
@@ -20,20 +24,9 @@ const show = `${escape}[?25h`
 const rows = 24
 // The screen of the questions that grow past it, short enough for a value of a few rows.
 const tableRows = 6
-function terminal() {
-  const written: string[] = []
-  const stream = Object.assign(new PassThrough(), { columns: 80, rows })
-  stream.on('data', chunk => written.push(String(chunk)))
-  return { stream, written }
-}
-// tmux copies the screen to its history on an erase from the top left corner, so the first row of a question is cleared
-// alone and the rest from the row below it.
-function erasure(up: number): string {
-  return `${escape}[${up}A${escape}[2K${escape}[B\r${escape}[J${escape}[A`
-}
 
 void it('erases and draws again the text question Clack has on screen', async () => {
-  const { stream, written } = terminal()
+  const { stream, written } = terminal(rows)
   const frame = questionFrame(stream)
   const input = new PassThrough()
   const answer = text({ message: 'Title', input, output: frame.output })
@@ -51,16 +44,22 @@ void it('erases and draws again the text question Clack has on screen', async ()
   await turns()
   assert.deepEqual(written, [erased])
   frame.flush()
-  assert.deepEqual(written, [erased, drawn])
+  assert.deepEqual(
+    written.map(chunk => plain(chunk)),
+    [erased, drawn]
+  )
   frame.flush()
-  assert.deepEqual(written, [erased, drawn])
+  assert.deepEqual(
+    written.map(chunk => plain(chunk)),
+    [erased, drawn]
+  )
   input.write('\r')
   assert.equal(await answer, 'abc')
   assert.equal(frame.isOpen(), false)
 })
 
 void it('draws a held question before the bytes that close it', async () => {
-  const { stream, written } = terminal()
+  const { stream, written } = terminal(rows)
   const frame = questionFrame(stream)
   const input = new PassThrough()
   const answer = text({ message: 'Title', input, output: frame.output })
@@ -71,14 +70,20 @@ void it('draws a held question before the bytes that close it', async () => {
   assert.equal(await answer, 'ab')
   await turns()
   const closed = ['│\n◇  Title\n│  ab\n', show]
-  assert.deepEqual(written, closed)
+  assert.deepEqual(
+    written.map(chunk => plain(chunk)),
+    closed
+  )
   frame.flush()
   frame.erase()
-  assert.deepEqual(written, closed)
+  assert.deepEqual(
+    written.map(chunk => plain(chunk)),
+    closed
+  )
 })
 
 void it('keeps the rows of a multiple selection through its renders', async () => {
-  const { stream, written } = terminal()
+  const { stream, written } = terminal(rows)
   const frame = questionFrame(stream)
   const input = new PassThrough()
   const options = ['one', 'two', 'three'].map(value => ({ value }))
@@ -99,13 +104,13 @@ void it('keeps the rows of a multiple selection through its renders', async () =
   frame.flush()
   const [drawn = ''] = written
   assert.equal(drawn.split('\n').length, first.split('\n').length)
-  assert.match(drawn, /◻ one\n.*◼ two\n.*◼ three\n/su)
+  assert.match(plain(drawn), /◻ one\n.*◼ two\n.*◼ three\n/su)
   input.write('\r')
   assert.deepEqual(await answer, ['two', 'three'])
 })
 
 void it('holds a question without erasing it and draws it again on the flush', () => {
-  const { stream, written } = terminal()
+  const { stream, written } = terminal(rows)
   const frame = questionFrame(stream)
   frame.output.write(hide)
   frame.output.write('one\ntwo\n')
@@ -120,7 +125,7 @@ void it('holds a question without erasing it and draws it again on the flush', (
 
 // When every row that changed is above the screen Clack writes only its move up, and the cursor stays there.
 void it('erases a question from its first row alone when Clack left the cursor on that row', () => {
-  const { stream, written } = terminal()
+  const { stream, written } = terminal(rows)
   const frame = questionFrame(stream)
   frame.output.write(hide)
   frame.output.write('one\ntwo\n')
@@ -153,7 +158,7 @@ void it('forwards every argument of a write and keeps the callback of a held one
 
 void it('leaves a question as it is when its bytes are unknown', () => {
   for (const drawing of [`a${escape}[2;3Hb`, 'a\rb']) {
-    const { stream, written } = terminal()
+    const { stream, written } = terminal(rows)
     const frame = questionFrame(stream)
     frame.output.write(hide)
     frame.output.write(drawing)
@@ -226,10 +231,10 @@ function assertDrawn({
   assert.equal(draw, entries.slice(-rowCount).join('\n'), `${round}: old row`)
   assert.equal(rowCount, drawnRows, `${round}: number of rows`)
 }
-function erasedRows({ pause, up }: { pause: Pause; up: number }): string[] {
+type Erasing = { pause: Pause; up: number }
+function erasedRows({ pause, up }: Erasing): string[] {
   return pause === 'erase' ? [erasure(up)] : []
 }
-const pauseName = (pause: Pause) => (pause === 'erase' ? 'erased' : 'held')
 
 const home = '\u001B[H'
 const right = '\u001B[C'
@@ -243,15 +248,15 @@ for (const pause of ['erase', 'hold'] as const) {
     const entries = await lastFrame({ columns: firstColumns, keys })
     assert.ok(entries.length > tableRows, String(entries.length))
     const screen = { columns: firstColumns, rows: tableRows }
-    const plain = await openPlainText(screen)
+    const direct = await openPlainText(screen)
     const question = await openText(screen)
     for (const key of keys) {
-      plain.written.length = 0
-      await plain.press(key)
+      direct.written.length = 0
+      await direct.press(key)
       await question.press(key)
     }
-    assert.match(plain.written.join(''), moveOnly)
-    await plain.close()
+    assert.match(direct.written.join(''), moveOnly)
+    await direct.close()
     const { erased, flushed } = await question.stop(pause)
     await question.close()
     assertDrawn({ entries, flushed, round: 'move up' })
@@ -338,7 +343,10 @@ void it('draws a held title question before the bytes that close it', async () =
   question.written.length = 0
   await question.press('\r')
   const closed = ['\r│\n◇  Application title\n│  ab\n', show]
-  assert.deepEqual(question.written.slice(0, closed.length), closed)
+  assert.deepEqual(
+    question.written.slice(0, closed.length).map(chunk => plain(chunk)),
+    closed
+  )
   await question.close()
 })
 

@@ -23,9 +23,6 @@ void it('never lets an erasure of Clack start from the top left corner of the sc
   await question.close()
   // The question is taller than the screen, so the cursor starts on the last row of the screen.
   const { cornerErasures } = track({ bytes, row: rows - 1, rows })
-  process.stdout.write(
-    `${JSON.stringify({ writes: bytes.length, cornerErasures })}\n`
-  )
   // tmux with scroll-on-clear copies the screen to its history on an erasure that starts from its top left corner.
   assert.equal(cornerErasures, 0)
 })

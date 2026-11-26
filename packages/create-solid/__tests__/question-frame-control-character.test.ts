@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict'
 import { it } from 'node:test'
 
-import { openTitle, titleFrames, type Pause } from './question-screen.ts'
+import {
+  erasure,
+  openTitle,
+  pauseName,
+  titleFrames
+} from './question-screen.ts'
 
 // In raw mode Ctrl+\ and Ctrl+] reach readline as characters with no name, which it puts in the value of a text question.
 const ctrlBackslash = '\u001C'
@@ -18,10 +23,6 @@ const values = [
   { name: 'a Tab', keys: ['ab', tab, 'c'] },
   { name: 'a Tab and Ctrl+_', keys: ['ab', tab, undo, 'c'] }
 ]
-function erasure(up: number): string {
-  return `\u001B[${up}A\u001B[2K\u001B[B\r\u001B[J\u001B[A`
-}
-const pauseName = (pause: Pause) => (pause === 'erase' ? 'erased' : 'held')
 for (const { name, keys } of values) {
   for (const pause of ['erase', 'hold'] as const) {
     void it(`erases and draws back a title question whose value holds ${name}, ${pauseName(pause)}`, async () => {

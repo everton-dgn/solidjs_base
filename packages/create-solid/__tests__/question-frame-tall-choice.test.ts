@@ -7,7 +7,7 @@ import { confirm, multiselect, select } from '@clack/prompts'
 import { questionFrame } from '../src/questionFrame/index.ts'
 import { questionnaire } from '../src/questionnaire.ts'
 import { CanceledError } from '../src/usage-error.ts'
-import { turns, type Pause } from './question-screen.ts'
+import { pauseName, plain, stop, terminal, turns } from './question-screen.ts'
 
 // A selection, a multiple selection or a confirmation taller than the screen, stopped after a key that changes a row on
 // the screen. Clack moves up only as far as the top of the screen and writes from there, so the rows the question frame
@@ -19,18 +19,7 @@ const down = `${escape}[B`
 const space = ' '
 const enter = '\r'
 const ctrlC = '\u0003'
-const columns = 80
-// oxlint-disable-next-line no-control-regex
-const style = /\u001B\[[\d;]*m/gu
 
-type Output = PassThrough & { columns: number; rows: number }
-type Terminal = { stream: Output; written: string[] }
-function terminal(rows: number): Terminal {
-  const written: string[] = []
-  const stream = Object.assign(new PassThrough(), { columns, rows })
-  stream.on('data', chunk => written.push(String(chunk)))
-  return { stream, written }
-}
 // The rows Clack wrote when it opened the last question of the writes.
 function opening(written: string[]): string[] {
   const start = written.findLastIndex(chunk => chunk.includes(hide))
@@ -39,22 +28,6 @@ function opening(written: string[]): string[] {
     .join('')
     .split('\n')
 }
-type Stop = { erased: string[]; flushed: string[] }
-type Stopping = {
-  frame: ReturnType<typeof questionFrame<Output>>
-  written: string[]
-  pause: Pause
-}
-function stop({ frame, written, pause }: Stopping): Stop {
-  written.length = 0
-  if (pause === 'erase') frame.erase()
-  else frame.hold()
-  const erased = [...written]
-  written.length = 0
-  frame.flush()
-  return { erased, flushed: [...written] }
-}
-const pauseName = (pause: Pause) => (pause === 'erase' ? 'erased' : 'held')
 
 type Prompting = { input: PassThrough; output: Writable; isFinal: boolean }
 type Choice = {
@@ -210,7 +183,7 @@ for (const pause of ['erase', 'hold'] as const) {
     input.write(ctrlC)
     await assert.rejects(answer, CanceledError)
     assert.deepEqual(
-      { erased, flushed: flushed.map(drawn => drawn.replaceAll(style, '')) },
+      { erased, flushed: flushed.map(chunk => plain(chunk)) },
       { erased: [], flushed: [featuresAfterSpace] }
     )
   })

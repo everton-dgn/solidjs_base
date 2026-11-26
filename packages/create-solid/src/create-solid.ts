@@ -182,10 +182,13 @@ type SignalRecord = {
   stop: () => void
 }
 // WHY: The terminal echoes ^C where the cursor is, and a new line keeps that echo off the next line of the CLI.
-function echoBreak({ counts }: SignalRecord): string {
+function echoBreak(
+  { counts }: SignalRecord,
+  output: NodeJS.WriteStream = process.stderr
+): string {
   const hasEcho = counts.interrupts > counts.echoed
   counts.echoed = counts.interrupts
-  return hasEcho && process.stderr.isTTY ? '\n' : ''
+  return hasEcho && output.isTTY ? '\n' : ''
 }
 type PlainClosing = {
   lines: string[]
@@ -339,8 +342,18 @@ async function createApplication({ answers, isInteractive }: Creation) {
             values
           })
           // WHY: The indicator draws only on a terminal, and stdout may go elsewhere, as in create-solid app | tee log.
-          if (progress && process.stdout.isTTY) progress.wait(notice)
-          else process.stderr.write(`${echoBreak(signals)}${notice}\n`)
+          if (
+            progress &&
+            process.stdout.isTTY &&
+            outputs.canWrite(process.stdout)
+          ) {
+            progress.wait(notice)
+            return
+          }
+          const output = [process.stderr, process.stdout].find(candidate =>
+            outputs.canWrite(candidate)
+          )
+          output?.write(`${echoBreak(signals, output)}${notice}\n`)
         }
       }
     )

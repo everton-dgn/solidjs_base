@@ -501,6 +501,39 @@ for (const name of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
 process.stdout.on('error', error => setImmediate(() => record('output error', error.code)));
 """
 
+# Record the destination of a cleanup notice and acknowledge its callback, including when there is nowhere to write.
+NOTICE_OUTPUT_MODULE = """
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+const outputs = { stdout: process.stdout, stderr: process.stderr };
+const record = (...values) => appendFileSync(process.env.NOTICE_TRACE, JSON.stringify(values) + '\\n');
+for (const [name, output] of Object.entries(outputs)) {
+  const write = output.write;
+  output.write = function (chunk, ...args) {
+    if (String(chunk).includes('Waiting for Bun to clean up.')) record('notice', name);
+    return Reflect.apply(write, this, [chunk, ...args]);
+  };
+}
+const timeout = globalThis.setTimeout;
+globalThis.setTimeout = (callback, delay, ...args) => {
+  if (delay !== 150) return timeout(callback, delay, ...args);
+  return timeout(() => {
+    callback(...args);
+    writeFileSync(process.env.NOTICE_DONE, '1');
+  }, delay);
+};
+const timer = setInterval(() => {
+  if (!existsSync(process.env.NOTICE_ERRORS)) return;
+  const events = readFileSync(process.env.NOTICE_ERRORS, 'utf8');
+  if (!events) return;
+  clearInterval(timer);
+  for (const [name, code] of JSON.parse(events)) {
+    record('failure', name, code);
+    outputs[name].emit('error', Object.assign(new Error(code), { code }));
+  }
+}, 10);
+timer.unref();
+"""
+
 # Inject errors only once the selected screen has started writing. The side trace works even when both outputs are lost.
 OUTPUT_ORDER_MODULE = """
 import { appendFileSync } from 'node:fs';
@@ -3435,6 +3468,81 @@ process.stdout.write = (...args) => {
                             os.kill(worker, signal.SIGKILL)
                         if child.poll() is None and belongs(child.pid):
                             child.kill()
+
+    def test_cleanup_notice_uses_an_available_output(self):
+        cases = (
+            ("framed", (("stdout", "ENOSPC"),), "stderr"),
+            ("plain", (("stderr", "ENOSPC"),), "stdout"),
+            ("both lost", (("stdout", "EPIPE"), ("stderr", "ENOSPC")), None),
+        )
+        for case, failures, destination in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                trace, ready, trigger, done = (root / name for name in ("trace", "installer.pid", "trigger", "notice"))
+                finish, cleaning, cleaned = (root / name for name in ("finish", "cleaning", "cleaned"))
+                installer, preload = root / "bun", root / "notice.mjs"
+                (root / "installer.cjs").write_text(CLEANING_INSTALLER)
+                installer.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(root / 'installer.cjs'))}\n")
+                installer.chmod(0o755)
+                preload.write_text(NOTICE_OUTPUT_MODULE)
+                env = dict(os.environ, CI="false", NO_COLOR="1", TERM="xterm", PATH=directory + os.pathsep + os.environ["PATH"],
+                           PID_FILE=str(ready), FINISH=str(finish), CLEANING=str(cleaning), CLEANED=str(cleaned), CLEANUP_MS="",
+                           NOTICE_TRACE=str(trace), NOTICE_DONE=str(done), NOTICE_ERRORS=str(trigger))
+                framed = case == "framed"
+                master, slave = pty.openpty() if framed else (None, None)
+                args = ["--mode", "server"] if framed else ["--yes"]
+                try:
+                    if framed:
+                        fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
+                    with (root / "stdout").open("wb") as stdout, (root / "stderr").open("wb") as stderr, subprocess.Popen(
+                            [node, "--import", preload.as_uri(), cli, "app", "--lang", "en", "--no-git", "--install", *args],
+                            env=env, cwd=root, start_new_session=True, stdout=slave if framed else stdout, stderr=stderr,
+                            stdin=slave if framed else subprocess.DEVNULL) as child:
+                        worker = None
+                        try:
+                            if framed:
+                                reader = Reader(self, master)
+                                for prompt in (b"Application title", b"Setup", b"Create the project?"):
+                                    reader.until(prompt)
+                                    os.write(master, b"\r")
+                                deadline = time.monotonic() + 8
+                                while not ready.exists() and child.poll() is None and time.monotonic() < deadline:
+                                    reader.drain()
+                                    time.sleep(.01)
+                            worker = recorded(ready)
+                            if worker is None and framed:
+                                reader.drain()
+                                self.fail((child.poll(), (root / "stderr").read_text(), reader.transcript[-1200:]))
+                            self.assertIsNotNone(worker)
+                            self.assertEqual((os.getsid(worker), os.getpgid(worker)), (child.pid, child.pid))
+                            staged = trigger.with_suffix(".next")
+                            staged.write_text(json.dumps(failures))
+                            staged.replace(trigger)
+                            self.assertEqual(recorded(cleaning), 1)
+                            self.assertEqual(recorded(done), 1)
+                            finish.touch()
+                            status = child.wait(timeout=8)
+                            entries = [json.loads(line) for line in trace.read_text().splitlines()]
+                            expected = [["failure", name, code] for name, code in failures]
+                            if destination:
+                                expected.append(["notice", destination])
+                            print(f"Cleanup notice destination, {case}: {entries!r}, exit={status}", flush=True)
+                            self.assertEqual(entries, expected)
+                            self.assertTrue(cleaned.exists())
+                            self.assertEqual(status, 1)
+                        finally:
+                            finish.touch()
+                            try:
+                                if worker and (os.getsid(worker), os.getpgid(worker)) == (child.pid, child.pid):
+                                    os.kill(worker, signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass
+                            if child.poll() is None:
+                                child.kill()
+                finally:
+                    for descriptor in (master, slave):
+                        if descriptor is not None:
+                            os.close(descriptor)
 
     def test_output_error_at_a_question(self):
         # A write that fails at a question with a code that is no closed terminal ends the CLI with code 1 and one short line

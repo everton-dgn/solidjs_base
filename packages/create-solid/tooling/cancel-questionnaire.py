@@ -169,6 +169,23 @@ import { appendFileSync, writeFileSync } from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
 const now = () => (performance.timeOrigin + performance.now()).toFixed(1);
 process.on('exit', code => writeFileSync(process.env.EXIT_FILE, String(code)));
+if (process.env.CLI_HANGUP_NOTICE) {
+  let hasLostStdout = false;
+  process.stdout.on('error', error => {
+    hasLostStdout ||= error.code === 'EPIPE' || (process.stdout.isTTY && error.code === 'EIO');
+  });
+  const timeout = globalThis.setTimeout;
+  globalThis.setTimeout = (callback, delay, ...args) => {
+    if (delay !== 150) return timeout(callback, delay, ...args);
+    return timeout(() => {
+      writeFileSync(process.env.CLI_HANGUP_NOTICE, JSON.stringify({
+        hasLostStdout, isTTY: process.stdout.isTTY === true,
+      }));
+      callback(...args);
+    }, delay);
+  };
+}
+
 for (const name of process.env.CLI_SIGNALS ? ['SIGHUP', 'SIGINT', 'SIGTERM'] : []) process.on(name, () => {
   appendFileSync(process.env.CLI_SIGNALS, `${name} ${now()}\\n`);
 });
@@ -5398,7 +5415,7 @@ Path(env['DONE']).touch()
     def test_terminal_closed_or_quit_during_install(self):
         # A person in an interactive bash closes the terminal during the install or at a question, or presses Ctrl+\ under a
         # launcher that dies on SIGQUIT as npx does. Closed during the install, the installer ends a cleanup longer than the
-        # window of a repeated signal and the CLI ends as a cancel, with nothing on its stderr. At a question only the code of
+        # window of a repeated signal. The CLI ends as a cancel and directs the notice to the available output. At a question only the code of
         # a cancel is checked. The signals that reach the CLI and the installer, its stderr and the screen are printed.
         self.assertIsNotNone(shutil.which("tmux"), "The tmux tests of the questionnaire harness need tmux: install it and run again")
         self.assertIsNotNone(bash_path(), "The tmux tests of the questionnaire harness need bash: install it and run again")
@@ -5418,6 +5435,7 @@ Path(env['DONE']).touch()
                 (root / "entry.mjs").write_text(EXIT_ENTRY)
                 signals, cleaned, cli_signals = root / "installer.signals", root / "cleaned", root / "cli.signals"
                 cli_stderr, cli_children, cli_input = root / "cli.stderr", root / "cli.children", root / "cli.input"
+                notice_state = root / "notice-state"
                 socket = str(root / "tmux.sock")
                 # Discard Bash history so shell exit cannot recreate a file during fixture cleanup.
                 tmux_env = {key: os.environ[key] for key in ("HOME", "LANG", "TMPDIR") if key in os.environ} | {
@@ -5427,7 +5445,7 @@ Path(env['DONE']).touch()
                     "CLEANING": str(root / "cleaning"), "CLEANED": str(cleaned), "CLEANUP_MS": str(cleanup_ms),
                     "EXIT_FILE": str(root / "cli.exit"), "CLI_URL": cli.as_uri(), "CLI_STDERR": str(cli_stderr),
                     **({"CLI_SIGNALS": str(cli_signals)} if case != "quit" else {}),
-                    **({"CLI_CHILDREN": str(cli_children)} if case == "hangup" else {}),
+                    **({"CLI_CHILDREN": str(cli_children), "CLI_HANGUP_NOTICE": str(notice_state)} if case == "hangup" else {}),
                     **({"CLI_INPUT": str(cli_input)} if case == "question" else {})}
                 def tmux(*args, check=True):
                     return subprocess.run(["tmux", "-f", "/dev/null", "-S", socket, *args], env=tmux_env, text=True,
@@ -5504,12 +5522,15 @@ Path(env['DONE']).touch()
                                 "cli_to_installer_ms": times(cli_children),
                                 "cleanup_ended_ms": round(float(cleaned.read_text()) - closed * 1000, 1) if cleaned.exists() else None,
                                 "installer_gone_ms": round((ended - closed) * 1000, 1)} if worker else {}),
+                            **({"notice_state": json.loads(notice_state.read_text())} if notice_state.exists() else {}),
                             "processes": table.splitlines()}), flush=True)
                         if case == "question":
                             self.assertEqual(cli_exit, 130, written)
                         else:
                             self.assertTrue(cleaned.exists(), written)
-                            self.assertEqual((cli_exit, written), (130, ""))
+                            route = json.loads(notice_state.read_text())
+                            expects_stderr = route["hasLostStdout"] or not route["isTTY"]
+                            self.assertEqual((cli_exit, written), (130, WAITING_LINE + "\n" if expects_stderr else ""))
                     else:
                         group = os.getpgid(job)
                         names = [system_tool("ps", "-o", "comm=", "-p", member).strip()

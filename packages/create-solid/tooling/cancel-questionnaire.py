@@ -3582,9 +3582,9 @@ process.stdout.write = (...args) => {
                 signals, cleaned, cli_signals = root / "installer.signals", root / "cleaned", root / "cli.signals"
                 cli_stderr, cli_children, cli_input = root / "cli.stderr", root / "cli.children", root / "cli.input"
                 socket = str(root / "tmux.sock")
-                # The shell reads its prompt and the file of its history from these, so nothing reaches the account.
+                # Discard Bash history so shell exit cannot recreate a file during fixture cleanup.
                 tmux_env = {key: os.environ[key] for key in ("HOME", "LANG", "TMPDIR") if key in os.environ} | {
-                    "SHELL": "/bin/sh", "PATH": f"{root}:{os.environ['PATH']}", "PS1": "$ ", "HISTFILE": str(root / "history"),
+                    "SHELL": "/bin/sh", "PATH": f"{root}:{os.environ['PATH']}", "PS1": "$ ", "HISTFILE": os.devnull,
                     "BASH_SILENCE_DEPRECATION_WARNING": "1", "NODE": node, "ENTRY": str(root / "entry.mjs"),
                     "LAUNCHER": DYING_LAUNCHER, "PID_FILE": str(root / "installer.pid"), "SIGNALS": str(signals),
                     "CLEANING": str(root / "cleaning"), "CLEANED": str(cleaned), "CLEANUP_MS": str(cleanup_ms),

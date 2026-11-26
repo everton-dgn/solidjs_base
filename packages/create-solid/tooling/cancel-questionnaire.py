@@ -838,6 +838,131 @@ class Pane:
         self.tmux("kill-server")
 
 
+PENDING_DRAIN_MODULE = """
+import childProcess from 'node:child_process';
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+import { performance } from 'node:perf_hooks';
+const env = process.env;
+const record = (...entry) => appendFileSync(env.DRAIN_TRACE, JSON.stringify(entry) + '\\n');
+const actualNow = performance.now.bind(performance);
+Object.defineProperty(performance, 'now', {
+  value: () => existsSync(env.DRAIN_CLOCK) ? Number(readFileSync(env.DRAIN_CLOCK, 'utf8')) : actualNow(),
+});
+for (const signal of ['SIGTERM', 'SIGHUP']) {
+  process.on(signal, () => setImmediate(() => record('signal', signal, performance.now())));
+}
+const timers = new Map();
+const timeout = globalThis.setTimeout;
+const clear = globalThis.clearTimeout;
+globalThis.setTimeout = (callback, delay, ...args) => {
+  if (delay !== 500) return timeout(callback, delay, ...args);
+  const token = timeout(() => {}, 30_000);
+  timers.set(token, () => callback(...args));
+  return token;
+};
+globalThis.clearTimeout = token => {
+  timers.delete(token);
+  return clear(token);
+};
+let hasFailed = false;
+const clock = setInterval(() => {
+  if (existsSync(env.DRAIN_QUIET) && timers.size) {
+    for (const [token, callback] of [...timers]) {
+      if (!timers.delete(token)) continue;
+      clear(token);
+      record('silence tick');
+      callback();
+    }
+  }
+  if (!hasFailed && existsSync(env.DRAIN_FAILURE)) {
+    hasFailed = true;
+    record('fatal', 'stderr');
+    process.stderr.emit('error', Object.assign(new Error('fixture ENOSPC'), { code: 'ENOSPC' }));
+  }
+}, 5);
+clock.unref();
+for (const [name, output] of Object.entries({ stdout: process.stdout, stderr: process.stderr })) {
+  const write = output.write.bind(output);
+  output.write = (chunk, ...args) => {
+    const result = write(chunk, ...args);
+    const data = String(chunk);
+    if (data.includes('ACCEPTED-MARKER')) {
+      record('accepted', name, result, output.writableLength, output.writableHighWaterMark);
+      writeFileSync(env.DRAIN_ACCEPTED, '1');
+    }
+    if (data.includes('Dependencies installed with Bun') ||
+        data.includes('Creation canceled.') ||
+        data.includes('Could not write to the standard error')) {
+      record('resolved', name, data);
+      writeFileSync(env.DRAIN_RESOLVED, '1');
+    }
+    return result;
+  };
+}
+const spawn = childProcess.spawn;
+childProcess.spawn = (...args) => {
+  const child = spawn(...args);
+  if (args[0].endsWith('bun') || args[0] === 'bun') {
+    const kill = child.kill.bind(child);
+    child.kill = name => {
+      record('child signal', name);
+      return kill(name);
+    };
+    child.on('exit', code => setImmediate(() => {
+      record('child exit', code);
+      writeFileSync(env.DRAIN_EXIT, '1');
+    }));
+  }
+  return child;
+};
+syncBuiltinESMExports();
+process.on('exit', code => record('exit', code));
+"""
+
+PENDING_DRAIN_INSTALLER = r"""
+import os
+from pathlib import Path
+import signal
+import time
+
+env = os.environ
+
+def mark(name, value):
+    path = Path(env['DRAIN_' + name])
+    staged = path.with_suffix('.stage')
+    staged.write_text(str(value))
+    staged.replace(path)
+
+def wait(name):
+    path = Path(env['DRAIN_' + name])
+    deadline = time.monotonic() + 12
+    while not path.exists():
+        if time.monotonic() >= deadline:
+            raise RuntimeError(f'installer did not see {name}')
+        time.sleep(.01)
+
+signal.signal(signal.SIGINT, lambda *_: mark('CLEANING', 1))
+mark('READY', os.getpid())
+wait('WRITE')
+os.write(1, b'ACCEPTED-MARKER\n')
+if env['DRAIN_DESCENDANT'] and os.fork() == 0:
+    mark('WRITER', os.getpid())
+    for ask, echo in (('TEST_OPEN', 'OPEN_RESULT'), ('TEST_CLOSED', 'CLOSED_RESULT')):
+        if ask == 'TEST_OPEN' and env['DRAIN_CHECK_OPEN'] == '0':
+            continue
+        wait(ask)
+        try:
+            os.write(1, b'writer probe\n')
+        except BrokenPipeError:
+            mark(echo, 'EPIPE')
+        else:
+            mark(echo, 'open')
+    os._exit(0)
+wait('FINISH')
+os._exit(0)
+"""
+
 INDEPENDENT_PIPES_JS = """
 import childProcess from 'node:child_process';
 import { appendFileSync, writeFileSync } from 'node:fs';
@@ -3064,6 +3189,164 @@ process.stdout.write = (...args) => {
                             os.kill(grandchild, signal.SIGKILL)
                         except ProcessLookupError:
                             pass
+
+    def test_pipe_release_preserves_bytes_already_accepted(self):
+        marker = b"ACCEPTED-MARKER\n"
+        for case in ("natural EOF", "natural silence", "signal before exit", "signal after exit", "fatal"):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                source, entry, installer = (root / name for name in ("installer.py", "drain.mjs", "bun"))
+                source.write_text(PENDING_DRAIN_INSTALLER)
+                entry.write_text(PENDING_DRAIN_MODULE)
+                installer.write_text(f"#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(source))}\n")
+                installer.chmod(0o755)
+                names = ("TRACE", "CLOCK", "QUIET", "FAILURE", "ACCEPTED", "RESOLVED", "EXIT", "READY", "WRITE",
+                         "CLEANING", "WRITER", "TEST_OPEN", "OPEN_RESULT", "TEST_CLOSED", "CLOSED_RESULT", "FINISH")
+                paths = {name: root / name.lower() for name in names}
+                has_writer = case != "natural EOF"
+                check_open = case == "signal after exit"
+                env = dict(os.environ, CI="false", LC_ALL="C", TERM="xterm", PATH=directory + os.pathsep + os.environ["PATH"],
+                           DRAIN_DESCENDANT="1" if has_writer else "", DRAIN_CHECK_OPEN=str(int(check_open)),
+                           **{f"DRAIN_{name}": str(path) for name, path in paths.items()})
+                observed = paths["TRACE"]
+                reader, writer = os.pipe()
+                stderr_path = root / "stderr"
+                worker = None
+                descendant = None
+                try:
+                    with stderr_path.open("wb") as stderr, subprocess.Popen(
+                            [node, "--import", entry.as_uri(), cli, "app", "--yes", "--lang", "en", "--install", "--no-git"],
+                            cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=writer, stderr=stderr,
+                            start_new_session=True) as child:
+
+                        def belongs(pid):
+                            try:
+                                return (os.getsid(pid), os.getpgid(pid)) == (child.pid, child.pid)
+                            except ProcessLookupError:
+                                return False
+
+                        def events():
+                            return [json.loads(line) for line in observed.read_text().splitlines()] if observed.exists() else []
+
+                        def wait_for(check):
+                            deadline = time.monotonic() + 5
+                            while not check():
+                                self.assertLess(time.monotonic(), deadline, events())
+                                time.sleep(.01)
+
+                        def send(signal_number, at):
+                            self.assertTrue(belongs(child.pid))
+                            clock = paths["CLOCK"]
+                            staged = clock.with_suffix(".new")
+                            staged.write_text(str(at))
+                            staged.replace(clock)
+                            child.send_signal(signal_number)
+                            wait_for(lambda: ["signal", signal_number.name, at] in events())
+
+                        try:
+                            worker = recorded(paths["READY"])
+                            self.assertIsNotNone(worker, stderr_path.read_text())
+                            self.assertTrue(belongs(worker))
+                            before_fill = bytearray()
+                            while select.select([reader], [], [], 0)[0]:
+                                before_fill.extend(os.read(reader, 65536))
+                            os.set_blocking(writer, False)
+                            capacity = 0
+                            while capacity < 4 * 1024 * 1024:
+                                try:
+                                    capacity += os.write(writer, b"!" * 4096)
+                                except BlockingIOError:
+                                    break
+                            self.assertGreater(capacity, 0)
+                            self.assertLess(capacity, 4 * 1024 * 1024)
+                            os.close(writer)
+                            writer = None
+                            self.assertNotIn(marker, before_fill)
+                            paths["WRITE"].touch()
+                            self.assertEqual(recorded(paths["ACCEPTED"]), 1)
+                            accept = next(entry for entry in events() if entry[0] == "accepted")
+                            self.assertEqual(accept[:3], ["accepted", "stdout", True])
+                            self.assertGreater(accept[3], 0)
+                            self.assertLess(accept[3], accept[4])
+                            if case == "signal before exit":
+                                send(signal.SIGTERM, 1000)
+                                self.assertEqual(recorded(paths["CLEANING"]), 1)
+                            if has_writer:
+                                descendant = recorded(paths["WRITER"])
+                                self.assertIsNotNone(descendant)
+                                self.assertTrue(belongs(descendant))
+                            paths["FINISH"].touch()
+                            self.assertEqual(recorded(paths["EXIT"]), 1)
+                            if case == "fatal":
+                                paths["FAILURE"].touch()
+                                wait_for(lambda: ["fatal", "stderr"] in events())
+                            if case in ("signal after exit", "fatal"):
+                                send(signal.SIGTERM, 1000)
+                            if check_open:
+                                send(signal.SIGTERM, 1149)
+                                send(signal.SIGHUP, 1150)
+                                paths["TEST_OPEN"].touch()
+                                wait_for(paths["OPEN_RESULT"].exists)
+                                self.assertEqual(paths["OPEN_RESULT"].read_text(), "open")
+                                self.assertFalse(paths["RESOLVED"].exists())
+                            if case in ("signal before exit", "signal after exit", "fatal"):
+                                send(signal.SIGTERM, 1150)
+                            elif case == "natural silence":
+                                paths["QUIET"].touch()
+                                self.assertEqual(recorded(paths["RESOLVED"]), 1)
+                            if has_writer:
+                                paths["TEST_CLOSED"].touch()
+                                wait_for(paths["CLOSED_RESULT"].exists)
+                                self.assertEqual(paths["CLOSED_RESULT"].read_text(), "EPIPE", events())
+                            self.assertEqual(recorded(paths["RESOLVED"]), 1)
+                            ended_before_drain = child.poll()
+                            collected = bytearray()
+                            deadline = time.monotonic() + 6
+                            while True:
+                                self.assertTrue(select.select([reader], [], [], max(0, deadline-time.monotonic()))[0], events())
+                                block = os.read(reader, 65536)
+                                if not block:
+                                    break
+                                collected.extend(block)
+                            child.wait(timeout=5)
+                        finally:
+                            paths["FINISH"].touch()
+                            if descendant is None and paths["WRITER"].exists():
+                                descendant = recorded(paths["WRITER"])
+                            for pid in (descendant, worker, child.pid if child.poll() is None else None):
+                                if pid is not None and belongs(pid):
+                                    os.kill(pid, signal.SIGKILL)
+                    entries = events()
+                    resolved = next(entry for entry in entries if entry[0] == "resolved")
+                    expected_status = 0 if case.startswith("natural") else (1 if case == "fatal" else 130)
+                    print(f"Pending output, {case}: pid={child.pid}, accepted={accept!r}, fill={capacity}, "
+                          f"events={entries!r}, output_bytes={len(collected)}, code={child.returncode}, "
+                          f"exited_early={ended_before_drain!r}, marker_delivered={marker in collected}", flush=True)
+                    self.assertEqual((child.returncode, entries[-1]), (expected_status, ["exit", expected_status]))
+                    self.assertEqual([entry for entry in entries if entry[0] == "child signal"],
+                                     [["child signal", "SIGINT"]] if case == "signal before exit" else [])
+                    self.assertEqual(any(entry[0] == "silence tick" for entry in entries), case == "natural silence")
+                    self.assertEqual(collected[:capacity], b"!" * capacity)
+                    self.assertTrue(collected[capacity:].startswith(marker), collected[capacity:capacity + 100])
+                    self.assertEqual(collected.count(marker), 1)
+                    self.assertIsNone(ended_before_drain)
+                    if check_open:
+                        self.assertIn(b"writer probe\n", collected)
+                    if expected_status == 0:
+                        self.assertIn(b"Dependencies installed with Bun\n", collected)
+                        self.assertEqual(resolved[1], "stdout")
+                    elif case == "fatal":
+                        self.assertIn(b"Could not write to the standard error: ENOSPC.\n", collected)
+                        self.assertIn(b"\ncd app\nbun install\n", collected)
+                        self.assertEqual(resolved[1], "stdout")
+                    else:
+                        self.assertIn("Creation canceled.", stderr_path.read_text())
+                        self.assertEqual(resolved[1], "stderr")
+                finally:
+                    os.close(reader)
+                    if writer is not None:
+                        os.close(writer)
+
 
     def test_child_pipe_limit_preserves_the_other_tail(self):
         marker = b"\nSLOW-END\n"

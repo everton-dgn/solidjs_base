@@ -252,10 +252,11 @@ during the stop: its first rows go to the history. After a resize to another
 width during the stop the question comes back whole at the new width. On a stop
 from outside while the CLI does not own the terminal the question stays as it
 is, the shell writes below it, and on `fg` the CLI draws again the rows of it
-that fit on the screen. When every row that changed is above the screen, as
-after a key that clears a validation error, Clack only moves the cursor up to
-the top of the screen; the CLI drops that move, so the cursor stays at the end
-of the question.
+that fit on the screen. When every row that changed is above the screen, Clack
+only moves the cursor up to the top of the screen; the CLI drops that move, so
+the cursor stays at the end of the question. The message of a validation error
+shows only while the question is in error, as in Clack: the next key takes it
+out.
 
 The selections, the multiple selection and the confirmations are drawn again
 from the rows Clack wrote of them, which fit on screens of usual sizes: one of

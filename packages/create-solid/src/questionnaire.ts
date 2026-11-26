@@ -158,9 +158,10 @@ function renderText({ label, placeholder, output, wrapError }: TextLabel) {
         styleText('dim', placeholder.slice(1))
       : styleText(['inverse', 'hidden'], '_')
     const value = this.userInput ? this.userInputWithCursor : hint
-    const error = this.error
-      ? `  ${styleText('yellow', wrapError(this.error))}`
-      : ''
+    const error =
+      this.state === 'error' && this.error
+        ? `  ${styleText('yellow', wrapError(this.error))}`
+        : ''
     const bar = `${styleText(color, S_BAR)}  `
     return fitScreen({
       output,

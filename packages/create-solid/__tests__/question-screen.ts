@@ -2,7 +2,13 @@ import assert from 'node:assert/strict'
 import { PassThrough, type Writable } from 'node:stream'
 import { setImmediate } from 'node:timers/promises'
 
-import { isCancel, TextPrompt, wrapTextWithPrefix } from '@clack/core'
+import {
+  getColumns,
+  getRows,
+  isCancel,
+  TextPrompt,
+  wrapTextWithPrefix
+} from '@clack/core'
 
 import { type Follow, questionFrame } from '../src/questionFrame/index.ts'
 import { questionnaire } from '../src/questionnaire.ts'
@@ -126,7 +132,12 @@ const askText: Ask = async ({ input, output, follow }) => {
     validate: value =>
       value?.trim() ? undefined : 'Enter a title that is not only spaces.'
   })
-  follow?.(() => render.call(prompt))
+  follow?.({
+    draw: () => render.call(prompt),
+    rows: () => getRows(output),
+    columns: () => getColumns(output),
+    wrap: text => wrapTextWithPrefix(output, text, '')
+  })
   const value = await prompt.prompt()
   follow?.()
   assert.ok(isCancel(value))
@@ -169,11 +180,13 @@ export async function openQuestion({
   // Counts the frames the question frame computes from the state of the prompt.
   const follow: Follow = next => {
     frame.follow(
-      next &&
-        (() => {
+      next && {
+        ...next,
+        draw() {
           draws += 1
-          return next()
-        })
+          return next.draw()
+        }
+      }
     )
   }
   const answer = ask({

@@ -3,6 +3,7 @@ import type { Writable, Readable } from 'node:stream'
 import { styleText } from 'node:util'
 
 import {
+  getColumns,
   getRows,
   MultiSelectPrompt,
   TextPrompt,
@@ -350,10 +351,16 @@ type TextQuestion = {
   prompt: TextPrompt
   render: (this: TextPrompt) => string
   typing: Typing
+  output: Writable
 }
-async function askText({ prompt, render, typing }: TextQuestion) {
+async function askText({ prompt, render, typing, output }: TextQuestion) {
   typing.field = prompt
-  typing.follow?.(() => render.call(prompt))
+  typing.follow?.({
+    draw: () => render.call(prompt),
+    rows: () => getRows(output),
+    columns: () => getColumns(output),
+    wrap: text => wrapTextWithPrefix(output, text, '')
+  })
   try {
     return await prompt.prompt()
   } finally {
@@ -426,7 +433,7 @@ async function askQuestions({
       }
     })
     result[key] = answer<string>(
-      (await askText({ prompt, render, typing })) ?? initialValue
+      (await askText({ prompt, render, typing, output })) ?? initialValue
     )
   }
   await field({ key: 'name', initialValue: 'solid-app' })

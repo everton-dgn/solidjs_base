@@ -3435,7 +3435,8 @@ process.stdout.write = (...args) => {
             self.assertEqual((dest / "existing").read_text(), "keep")
 
     def test_tall_question_after_fg(self):
-        # A question taller than the screen, stopped and continued by bash with job control in a tmux window of 12 rows.
+        # A text question with a value taller than the screen, stopped and continued by bash with job control in a tmux
+        # window of 12 rows.
         self.assertIsNotNone(shutil.which("tmux"), "The tmux tests of the questionnaire harness need tmux: install it and run again")
         self.assertIsNotNone(bash_path(), "The tmux tests of the questionnaire harness need bash: install it and run again")
         with tempfile.TemporaryDirectory() as directory:
@@ -3473,8 +3474,10 @@ process.stdout.write = (...args) => {
                 value = "x" * 760
                 tmux("send-keys", "-l", value)
                 full = "│  " + "x" * 77
-                # Ten rows of the value, the bar and the line of the cursor do not fit in 12 rows: the first rows left the top.
-                wait_for(lambda lines: lines[-2:] == ["│  " + "x" * 67 + "█", "└"] and lines[0] == full)
+                # Ten rows of the value with the bar, the title, the end row and the line of the cursor do not fit in 12 rows,
+                # so the question shows the last seven rows of the value below a row of ... and stays on the screen.
+                head = ["│", "◆  Application title", "│  ..."]
+                wait_for(lambda lines: lines[-2:] == ["│  " + "x" * 67 + "█", "└"] and lines[:3] == head)
                 [worker] = children(int(tmux("display", "-p", "#{pane_pid}")))
                 tmux("send-keys", "C-z")
                 # bash 5 writes no notice when a job of -c stops, so the stop is read from the state of the CLI.
@@ -3483,20 +3486,44 @@ process.stdout.write = (...args) => {
                     self.assertLess(time.monotonic(), deadline, processes())
                     time.sleep(.04)
                 go.touch()
-                # Ctrl+Z erases the rows of the question on the screen, so only its rows above the screen stay in the history,
-                # with its title, and after fg the rows of it that fill the screen are drawn again below what the shell wrote.
+                # Ctrl+Z erases the question, which is all on the screen, and after fg the whole question is drawn again below
+                # what the shell wrote, so its title is there once.
                 cursor_row = "│  " + "x" * 67 + "█"
                 wait_for(lambda lines: "T" not in state(worker) and lines[-2:] == [cursor_row, "└"]
                          and lines.count(cursor_row) == 1
                          and sum(line == "◆  Application title" for line in lines) == 1, history=True)
                 tmux("send-keys", "-l", "y")
-                # Clack redraws the changed row of a question taller than the screen at the row it expects, so the screen
-                # shows the end of the question once, with the key on its last row of value.
-                wait_for(lambda lines: lines == [full] * 9 + ["│  " + "x" * 67 + "y█", "└"])
+                # Clack redraws the changed row at the row it expects, so the screen shows the question once, with the key on its
+                # last row of value.
+                wait_for(lambda lines: lines == head + [full] * 6 + ["│  " + "x" * 67 + "y█", "└"])
                 tmux("send-keys", "C-c")
                 wait_for(lambda lines: "└  Creation canceled." in lines)
             finally:
                 tmux("kill-server")
+
+    def test_tall_title_shrinking_in_history(self):
+        # 222 Backspace in a title of 760 characters, in a tmux window of 12 rows with scroll-on-clear on.
+        self.assertIsNotNone(shutil.which("tmux"), "The tmux tests of the questionnaire harness need tmux: install it and run again")
+        self.assertIsNotNone(bash_path(), "The tmux tests of the questionnaire harness need bash: install it and run again")
+        with tempfile.TemporaryDirectory() as directory:
+            command = shlex.join(["env", "CI=false", "NO_COLOR=1", "TERM=xterm", node, str(cli),
+                                  "app", "--lang", "en", "--mode", "server", "--no-git", "--no-install"])
+            pane = Pane(self, pathlib.Path(directory), command, 12)
+            try:
+                pane.wait_for(lambda lines: "└" in lines[-1])
+                pane.tmux("send-keys", "-l", "x" * 760)
+                pane.wait_for(lambda lines: lines[-2:] == ["│  " + "x" * 67 + "█", "└"])
+                pane.tmux("send-keys", "-N", "222", "BSpace")
+                pane.wait_for(lambda lines: lines[-2:] == ["│  " + "x" * 76 + "█", "└"])
+                history, screen = pane.split()
+                # No row of the open question reaches the history, so its title is on the screen once.
+                title = "◆  Application title"
+                self.assertEqual((history + screen).count(title), 1, (history, screen))
+                self.assertFalse([line for line in history if line.startswith("│  x")], history)
+                pane.tmux("send-keys", "C-c")
+                pane.wait_for(lambda lines: "└  Creation canceled." in lines)
+            finally:
+                pane.close()
 
     def test_question_outside_stop_after_arrow_up(self):
         # Under a launcher that leaves the terminal to its shell, a stop sent from outside to the group of the job after an

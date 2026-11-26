@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { it } from 'node:test'
 
-import { openTitle, titleFrames } from './question-screen.ts'
+import { openText, textFrames } from './question-screen.ts'
 
 // A terminal that gets shorter during a stop, after Ctrl+Z erased a question that fit.
 const columns = 30
@@ -9,8 +9,8 @@ const rows = 6
 const shorterRows = 3
 void it('draws back whole a question that Ctrl+Z erased when the terminal got shorter than it during the stop', async () => {
   const keys = ['ab']
-  const [entries = ''] = await titleFrames({ columns, keys })
-  const question = await openTitle({ columns, rows })
+  const [entries = ''] = await textFrames({ columns, keys })
+  const question = await openText({ columns, rows })
   for (const key of keys) await question.press(key)
   const { erased, flushed } = await question.stop('erase', async () =>
     question.heighten(shorterRows)

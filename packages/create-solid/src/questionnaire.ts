@@ -2,7 +2,12 @@ import path from 'node:path'
 import type { Writable, Readable } from 'node:stream'
 import { styleText } from 'node:util'
 
-import { MultiSelectPrompt, TextPrompt, wrapTextWithPrefix } from '@clack/core'
+import {
+  getRows,
+  MultiSelectPrompt,
+  TextPrompt,
+  wrapTextWithPrefix
+} from '@clack/core'
 import {
   type CommonOptions,
   confirm,
@@ -42,11 +47,96 @@ type TextLabel = {
   output: Writable
   wrapError: (text: string) => string
 }
+// oxlint-disable-next-line no-control-regex
+const style = /\u001B\[[\d;]*m/gu
+type CursorRow = { rows: string[]; cursor: number; barWidth: number }
+// WHY: The wrap of Clack keeps every character of the value in its order, so the row of the cursor comes from counting
+// them, whatever the words or the width of each character.
+function cursorRow({ rows, cursor, barWidth }: CursorRow): number {
+  let counted = 0
+  for (const [index, row] of rows.entries()) {
+    counted += row.replaceAll(style, '').length - barWidth
+    if (cursor < counted) return index
+  }
+  return rows.length - 1
+}
+// A row of ... above the rows of the value and one below them, and the rows split around the row of the cursor.
+const moreRows = 2
+const halves = 2
+// The bar above the title and the empty row below the question, where Clack leaves the cursor.
+const frameRows = 2
+type Window = { rows: string[]; row: number; room: number; bar: string }
+// The rows of the value around the row of the cursor that fit in the room, with a row of ... where rows are left out, as
+// Clack does for the options of a selection. The ... rows go first when the room is short.
+function valueWindow({ rows, row, room, bar }: Window): string[] {
+  const more = `${bar}${styleText('dim', '...')}`
+  const rest = room - 1
+  if (rest >= 1 && row >= rows.length - rest) {
+    return [more, ...rows.slice(rows.length - rest)]
+  }
+  if (rest >= 1 && row < rest) return [...rows.slice(0, rest), more]
+  const between = room - moreRows
+  if (between < 1) return rows.slice(row, row + 1)
+  const start = Math.min(
+    Math.max(1, row - Math.floor((between - 1) / halves)),
+    rows.length - 1 - between
+  )
+  return [more, ...rows.slice(start, start + between), more]
+}
+type Parts = {
+  output: Writable
+  grayBar: string
+  title: string
+  value: string
+  bar: string
+  cursor: number
+  end: string
+}
+// WHY: A text question is never taller than the screen, so no row of it goes to the history while it is open, where Clack
+// would leave it old. On a screen too short for the bar, the title, one row of the value and the end row, the bar goes
+// first, then the rows of the end row from its last, then the rows of the title from its last; the row of the cursor
+// stays.
+function fitScreen({
+  output,
+  grayBar,
+  title,
+  value,
+  bar,
+  cursor,
+  end
+}: Parts): string {
+  const screenRows = getRows(output)
+  const titleRows = wrapTextWithPrefix(output, title, '').split('\n')
+  const valueRows = value.split('\n')
+  const endRows = wrapTextWithPrefix(output, end, '').split('\n')
+  const room = screenRows - frameRows - titleRows.length - endRows.length
+  if (valueRows.length <= room) {
+    return `${grayBar}\n${title}\n${value}\n${end}\n`
+  }
+  const barWidth = bar.replaceAll(style, '').length
+  const row = cursorRow({ rows: valueRows, cursor, barWidth })
+  if (room >= 1) {
+    const shown = valueWindow({ rows: valueRows, row, room, bar })
+    return [grayBar, ...titleRows, ...shown, ...endRows, ''].join('\n')
+  }
+  const left = Math.max(0, screenRows - frameRows)
+  const keptTitle = titleRows.slice(0, left)
+  const keptEnd = endRows.slice(0, left - keptTitle.length)
+  const isBarKept = left > keptTitle.length + keptEnd.length
+  return [
+    ...(isBarKept ? [grayBar] : []),
+    ...keptTitle,
+    valueRows[row] ?? '',
+    ...keptEnd,
+    ''
+  ].join('\n')
+}
 // WHY: This reproduces Clack's text renderer so a spaces-only cancellation closes with │ and a value longer than the line keeps the guide. Compare both on upgrades.
 function renderText({ label, placeholder, output, wrapError }: TextLabel) {
   return function render(this: TextPrompt): string {
     const grayBar = styleText('gray', S_BAR)
-    const heading = `${grayBar}\n${symbol(this.state)}  ${label}`
+    const title = `${symbol(this.state)}  ${label}`
+    const heading = `${grayBar}\n${title}`
     if (this.state === 'cancel' || this.state === 'submit') {
       const isCanceled = this.state === 'cancel'
       const value = this.value ?? ''
@@ -71,12 +161,16 @@ function renderText({ label, placeholder, output, wrapError }: TextLabel) {
     const error = this.error
       ? `  ${styleText('yellow', wrapError(this.error))}`
       : ''
-    const typed = wrapTextWithPrefix(
+    const bar = `${styleText(color, S_BAR)}  `
+    return fitScreen({
       output,
-      value,
-      `${styleText(color, S_BAR)}  `
-    )
-    return `${heading}\n${typed}\n${styleText(color, S_BAR_END)}${error}\n`
+      grayBar,
+      title,
+      value: wrapTextWithPrefix(output, value, bar),
+      bar,
+      cursor: this.userInput ? this.cursor : 0,
+      end: `${styleText(color, S_BAR_END)}${error}`
+    })
   }
 }
 type FieldOptions = {

@@ -311,10 +311,12 @@ type Generation = GenerationOptions & { language: Language }
 type Progress = 'creating' | SetupCommand['task']
 type Step = 'creating' | SetupCommand | undefined
 const prepared = { guides: applyPreparedGuides, source: applyPreparedSource }
+type OutputAvailability = (output: NodeJS.WriteStream) => boolean
 type TerminalOptions = {
   isInteractive?: boolean
   language: Language
   abortSignal?: AbortSignal
+  canWrite: OutputAvailability
   warn?: (diagnostic: string) => void
   report: (progress: Progress) => void
   onWait?: () => void
@@ -348,11 +350,12 @@ type SetupOptions = {
   cwd: string
   signal: AbortSignal
   isInteractive: boolean
+  canWrite: OutputAvailability
   onWait?: () => void
 }
 async function executeSetup(
   command: SetupCommand,
-  { cwd, signal, isInteractive, onWait }: SetupOptions
+  { cwd, signal, isInteractive, canWrite, onWait }: SetupOptions
 ): Promise<void> {
   const isPlainInstall = command.task === 'installTask' && !isInteractive
   const shouldInheritStderr = isPlainInstall && process.stderr.isTTY
@@ -466,8 +469,12 @@ async function executeSetup(
   } finally {
     printed.stop()
     forwarded.stop()
-    if (printed.shouldAppendNewline) process.stdout.write('\n')
-    if (forwarded.shouldAppendNewline) process.stderr.write('\n')
+    if (printed.shouldAppendNewline && canWrite(process.stdout)) {
+      process.stdout.write('\n')
+    }
+    if (forwarded.shouldAppendNewline && canWrite(process.stderr)) {
+      process.stderr.write('\n')
+    }
     clearInterval(deadline)
     clearTimeout(notice)
     clearTimeout(killWait)
@@ -724,6 +731,7 @@ export async function generateTerminal(
     warn,
     onWait,
     abortSignal,
+    canWrite,
     isInteractive = false
   }: TerminalOptions
 ): Promise<string[]> {
@@ -751,6 +759,7 @@ export async function generateTerminal(
             isInteractive,
             cwd: input.dir,
             signal: stopping,
+            canWrite,
             ...(onWait ? { onWait } : {})
           })
         }

@@ -299,6 +299,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
         language,
         isInteractive,
         abortSignal: outputs.signal,
+        canWrite: outputs.canWrite,
         warn: diagnostic => {
           const title = [labels.gitFailed, diagnostic]
             .filter(Boolean)

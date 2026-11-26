@@ -477,7 +477,8 @@ for (const [name, stream] of Object.entries(outputs)) {
   stream.write = function (chunk, ...args) {
     const text = String(chunk);
     const marker = process.env.OUTPUT_MARK;
-    if (name === 'stdout' && !started && (!marker || text.includes(marker))) {
+    const trigger = process.env.OUTPUT_TRIGGER_STREAM || 'stdout';
+    if (name === trigger && !started && (!marker || text.includes(marker))) {
       started = true;
       const accepted = Reflect.apply(original, this, [chunk, ...args]);
       record('display accepted', accepted);
@@ -3183,6 +3184,34 @@ process.stdout.write = (...args) => {
                 self.assertEqual(entries, [["display accepted", True], ["observed", alternate, "EPIPE"],
                                            ["observed", primary, "ENOSPC"], ["exit", 1]])
                 self.assertFalse((root / "app").exists())
+
+    def test_installer_closes_without_separator_after_both_outputs_are_lost(self):
+        for primary, alternate in (("stdout", "stderr"), ("stderr", "stdout")):
+            with self.subTest(primary=primary), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                preload, trace = root / "output-order.mjs", root / "trace"
+                preload.write_text(OUTPUT_ORDER_MODULE)
+                installer = root / "bun"
+                source = root / "installer.cjs"
+                marker = "partial installer line"
+                source.write_text(
+                    f"process.on('SIGINT', () => process.exit(130)); "
+                    f"process.{primary}.write({json.dumps(marker)}); "
+                    "setTimeout(() => process.exit(23), 3000);")
+                installer.write_text(f"#!/bin/sh\nexec {shlex.quote(node)} {shlex.quote(str(source))}\n")
+                installer.chmod(0o755)
+                events = ((alternate, "EPIPE", False), (primary, "ENOSPC", False))
+                env = dict(os.environ, OUTPUT_EVENTS=json.dumps(events), OUTPUT_TRACE=str(trace), OUTPUT_MARK=marker,
+                           OUTPUT_TRIGGER_STREAM=primary, REPORT_FAILURE="", NO_COLOR="1", FORCE_COLOR="0",
+                           PATH=directory + os.pathsep + os.environ["PATH"])
+                run = subprocess.run(
+                    [node, "--import", preload.as_uri(), cli, "app", "--yes", "--lang", "en", "--no-git"],
+                    cwd=root, env=env, stdin=subprocess.DEVNULL, capture_output=True, timeout=8, start_new_session=True)
+                entries = [json.loads(line) for line in trace.read_text().splitlines()]
+                print(f"Closing an installer with both outputs lost, {primary}: {entries!r}", flush=True)
+                self.assertEqual(run.returncode, 1, run.stderr)
+                self.assertEqual(entries, [["display accepted", True], ["observed", alternate, "EPIPE"],
+                                           ["observed", primary, "ENOSPC"], ["exit", 1]])
 
     def test_output_error_on_a_file(self):
         # On a terminal EIO means that the terminal closed, and the CLI goes on. On a file it is a failure of the disk: the

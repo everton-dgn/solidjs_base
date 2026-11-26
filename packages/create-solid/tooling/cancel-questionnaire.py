@@ -459,6 +459,68 @@ if (process.env.OUTPUT_ERROR) {
 }
 """
 
+# Trace the real diagnostic write; hold only its callback in the TTY control, where writes may complete immediately.
+PROMPT_WRITE_MODULE = """
+import { appendFileSync, existsSync } from 'node:fs';
+const mode = process.env.PROMPT_WRITE_MODE;
+const failed = mode === 'tty' ? process.stderr : process.stdout;
+const alternate = mode === 'tty' ? process.stdout : process.stderr;
+const trace = (...values) => appendFileSync(process.env.PROMPT_WRITE_TRACE, JSON.stringify(values) + '\\n');
+let didFail = false;
+const fail = () => {
+  if (didFail) return;
+  didFail = true;
+  trace('fault');
+  failed.emit('error', Object.assign(new Error('no space'), { code: 'ENOSPC' }));
+};
+if (mode === 'before') {
+  const input = process.stdin;
+  const isTTY = input.isTTY;
+  Object.defineProperty(input, 'isTTY', { get() { fail(); return isTTY; } });
+}
+const write = alternate.write;
+alternate.write = function (chunk, ...args) {
+  if (!String(chunk).startsWith('Could not write to the standard ')) {
+    return Reflect.apply(write, this, [chunk, ...args]);
+  }
+  const callback = args.at(-1);
+  if (typeof callback === 'function') {
+    args[args.length - 1] = error => {
+      trace('write complete', error?.code ?? null);
+      if (mode !== 'tty') {
+        callback(error);
+        return;
+      }
+      const release = setInterval(() => {
+        if (!existsSync(process.env.PROMPT_WRITE_RELEASE)) return;
+        clearInterval(release);
+        callback(error);
+      }, 10);
+    };
+  }
+  const accepted = Reflect.apply(write, this, [chunk, ...args]);
+  trace('diagnostic', accepted, alternate.writableLength);
+  setImmediate(() => trace('turn after request'));
+  return accepted;
+};
+const emit = process.emit;
+process.emit = function (name, ...args) {
+  const result = Reflect.apply(emit, this, [name, ...args]);
+  if (name === 'SIGTERM') trace('signal handled');
+  return result;
+};
+const timer = setInterval(() => {
+  if (existsSync(process.env.PROMPT_WRITE_TRIGGER)) fail();
+  if (!existsSync(process.env.PROMPT_WRITE_EOF)) return;
+  clearInterval(timer);
+  process.stdin.emit('end');
+  process.stdin.emit('error', Object.assign(new Error('closed input'), { code: 'EIO' }));
+  trace('input handled');
+}, 10);
+timer.unref();
+process.on('exit', code => trace('exit', code));
+"""
+
 # Hold the waiting notice until the test releases it and label the timer registrations before the actual installer exit.
 SIGNAL_ORDER_MODULE = """
 import { ChildProcess } from 'node:child_process';
@@ -3555,6 +3617,117 @@ process.stdout.write = (...args) => {
                                          before_answer=lambda label: trigger.write_text("ENOSPC"), errors=errors,
                                          preload=preload, environment={"OUTPUT_ERROR": str(trigger)})
             self.assertEqual((status, errors.read_text()), (1, "Could not write to the standard output: ENOSPC.\n"))
+
+    def test_prompt_failure_completes_required_write(self):
+        for mode in ("read", "close", "tty", "before"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                preload, trace = root / "preload.mjs", root / "trace"
+                trigger, release, eof = root / "fault", root / "release", root / "eof"
+                preload.write_text(PROMPT_WRITE_MODULE)
+                env = dict(os.environ, CI="false", TERM="xterm", NO_COLOR="1", FORCE_COLOR="0",
+                           PROMPT_WRITE_MODE=mode, PROMPT_WRITE_TRACE=str(trace), PROMPT_WRITE_TRIGGER=str(trigger),
+                           PROMPT_WRITE_RELEASE=str(release), PROMPT_WRITE_EOF=str(eof))
+                master, slave = pty.openpty()
+                pipe_input, pipe_output = os.pipe()
+                def events():
+                    return [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
+                def wait_for(*names):
+                    deadline = time.monotonic() + 5
+                    while True:
+                        observed = events()
+                        if any(event[0] in names for event in observed):
+                            return observed
+                        self.assertLess(time.monotonic(), deadline, (names, observed))
+                        time.sleep(.01)
+                def read_pipe():
+                    data = bytearray()
+                    deadline = time.monotonic() + 5
+                    while True:
+                        self.assertTrue(select.select([pipe_input], [], [], max(0, deadline - time.monotonic()))[0])
+                        chunk = os.read(pipe_input, 65536)
+                        if not chunk:
+                            return bytes(data)
+                        data.extend(chunk)
+                def fill_pipe():
+                    os.set_blocking(pipe_output, False)
+                    count, size = 0, 4096
+                    while count < 2 * 1024 * 1024:
+                        try:
+                            count += os.write(pipe_output, b"p" * size)
+                        except BlockingIOError:
+                            if size == 1:
+                                return count
+                            size //= 2
+                    self.fail("The full pipe never returned EAGAIN")
+                try:
+                    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 80, 0, 0))
+                    with subprocess.Popen(
+                            [node, "--import", preload.as_uri(), cli, "app", "--lang", "en", "--mode", "server",
+                             "--no-git", "--no-install"], cwd=root, env=env, start_new_session=True,
+                            stdin=slave, stdout=slave, stderr=pipe_output) as child:
+                        try:
+                            terminal = Reader(self, master)
+                            if mode != "before":
+                                terminal.until(b"Application title")
+                            filled = fill_pipe() if mode in ("read", "close") else 0
+                            os.close(pipe_output)
+                            pipe_output = None
+                            if mode != "before":
+                                trigger.touch()
+                            first = wait_for("turn after request", "exit")
+                            if mode in ("read", "close"):
+                                pending = [event for event in first if event[0] == "diagnostic"]
+                                self.assertEqual(len(pending), 1, first)
+                                self.assertIs(pending[0][1], True, first)
+                                self.assertGreater(pending[0][2], 0, first)
+                                if mode == "read" and ["turn after request"] in first:
+                                    self.assertEqual((os.getsid(child.pid), os.getpgid(child.pid)), (child.pid, child.pid))
+                                    child.send_signal(signal.SIGTERM)
+                                    signal_events = wait_for("signal handled", "exit")
+                                    if ["signal handled"] in signal_events:
+                                        eof.touch()
+                                        wait_for("input handled", "exit")
+                                if mode == "close":
+                                    os.close(pipe_input)
+                                    pipe_input = None
+                            if mode == "tty":
+                                terminal.until(b"Could not write to the standard error: ENOSPC.")
+                                flags = termios.tcgetattr(slave)[3]
+                                cooked = termios.ICANON | termios.ECHO | termios.ISIG
+                                self.assertEqual(flags & cooked, cooked)
+                                self.assertIsNone(child.poll())
+                                before_line = terminal.transcript.split(b"Could not write to the standard error: ENOSPC.")[0]
+                                self.assertIn(b"\x1b[?25h", before_line[before_line.rindex(b"Application title"):])
+                                release.touch()
+                            data = read_pipe() if pipe_input is not None else b""
+                            status = child.wait(timeout=5)
+                            actual = events()
+                            print(f"Prompt error write, {mode}: {actual!r}, filled={filled}, tail={data[filled:]!r}, exit={status}", flush=True)
+                            self.assertEqual(status, 1, actual)
+                            self.assertEqual([event[0] for event in actual].count("diagnostic"), 1, actual)
+                            if mode == "close":
+                                self.assertIn(["write complete", "EPIPE"], actual)
+                            else:
+                                self.assertEqual(data[:filled], b"p" * filled)
+                                self.assertEqual(data[filled:], b"" if mode == "tty" else
+                                                 b"Could not write to the standard output: ENOSPC.\n")
+                                self.assertIn(["write complete", None], actual)
+                            if mode == "read":
+                                self.assertIn(["signal handled"], actual)
+                                self.assertIn(["input handled"], actual)
+                            if mode == "before":
+                                terminal.drain()
+                                self.assertNotIn(b"Application title", terminal.transcript)
+                            self.assertFalse((root / "app").exists())
+                        finally:
+                            release.touch()
+                            if child.poll() is None:
+                                child.kill()
+                finally:
+                    for descriptor in (master, slave, pipe_input, pipe_output):
+                        if descriptor is not None:
+                            os.close(descriptor)
 
     def test_feature_colors(self):
         with tempfile.TemporaryDirectory() as directory:

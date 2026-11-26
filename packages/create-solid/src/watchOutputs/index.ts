@@ -2,7 +2,11 @@ import process from 'node:process'
 
 import { message, type Language } from '../cli-language.ts'
 
-type FailureReport = { language: Language; resume: string }
+type FailureReport = {
+  language: Language
+  resume: string
+  onComplete?: () => void
+}
 type OutputFailure = { output: NodeJS.WriteStream; code: string }
 type OutputWatch = {
   signal: AbortSignal
@@ -31,18 +35,24 @@ export function watchOutputs(): OutputWatch {
   return {
     signal: controller.signal,
     canWrite,
-    report({ language, resume }) {
+    report({ language, resume, onComplete }) {
       process.exitCode = 1
-      if (isReported || !firstFailure) return
+      if (isReported || !firstFailure) {
+        onComplete?.()
+        return
+      }
       isReported = true
       const { output, code } = firstFailure
       const other = output === process.stdout ? process.stderr : process.stdout
-      if (!canWrite(other)) return
+      if (!canWrite(other)) {
+        onComplete?.()
+        return
+      }
       const line = message(language, {
         code: output === process.stdout ? 'stdoutFailed' : 'stderrFailed',
         values: { code }
       })
-      other.write(`${[line, resume].filter(Boolean).join('\n')}\n`)
+      other.write(`${[line, resume].filter(Boolean).join('\n')}\n`, onComplete)
     }
   }
 }

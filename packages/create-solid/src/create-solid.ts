@@ -75,13 +75,6 @@ function cancelPrompt() {
   process.stdin.setRawMode(false)
   writeCancel()
 }
-function failPrompt() {
-  isCanceling = true
-  if (outputs.canWrite(process.stdout)) process.stdout.write(showCursor)
-  process.stdin.setRawMode(false)
-  outputs.report({ language, resume: '' })
-  process.exit(1)
-}
 // WHY: The change of mode of a terminal that closed failed with ENOENT on macOS and with EIO on Linux.
 const closedTerminalCodes = new Set(['EIO', 'ENOENT'])
 // WHY: Once the terminal is gone a change of its mode fails with an error of the input, also inside cancelPrompt, so this changes no mode. A write to a closed terminal reports its error on a later tick, after the CLI has ended.
@@ -98,11 +91,24 @@ function closeInput(error: NodeJS.ErrnoException) {
   }
   writeCancel()
 }
-type Question = { output: NodeJS.WriteStream; follow: Follow }
+type Question = {
+  output: NodeJS.WriteStream
+  follow: Follow
+  onEnd: () => void
+}
 type Prompt<T> = (question: Question) => Promise<T>
 async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
   const frame = questionFrame(process.stdout)
+  const waitForExit = Promise.withResolvers<never>().promise
+  const finalization = { isFailing: false }
+  const cancel = () => {
+    if (!finalization.isFailing) cancelPrompt()
+  }
+  const inputError = (error: NodeJS.ErrnoException) => {
+    if (!finalization.isFailing) closeInput(error)
+  }
   const resume = () => {
+    if (finalization.isFailing) return
     // WHY: A stopped process gets no SIGWINCH, and Node reads the size of the terminal again only on that signal.
     process.kill(process.pid, 'SIGWINCH')
     if (!frame.isOpen()) return
@@ -111,6 +117,7 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
     process.stdin.setRawMode(true)
   }
   const suspend = () => {
+    if (finalization.isFailing) return
     // WHY: On Ctrl+Z readline leaves a one-time SIGCONT listener that pauses stdin and, when no continue comes, turns raw mode on during a later step.
     const fromKey = process
       .listeners('SIGCONT')
@@ -137,36 +144,68 @@ async function withPromptSignals<T>(prompt: Prompt<T>): Promise<T> {
     if (frame.isOpen()) process.stdout.write(hideCursor)
   }
   // WHY: This runs after the listener of Node, which reads the new size and lets Clack render the question at it, so the question is drawn once at the width of the terminal.
-  const draw = () => frame.flush()
+  const draw = () => {
+    if (!finalization.isFailing) frame.flush()
+  }
+  const removeListeners = () => {
+    process.off('SIGINT', cancel)
+    process.off('SIGTERM', cancel)
+    process.off('SIGHUP', cancel)
+    process.off('SIGTSTP', suspend)
+    process.off('SIGCONT', resume)
+    process.off('SIGWINCH', draw)
+    process.stdin.off('end', cancel)
+    process.stdin.off('error', inputError)
+    process.off('beforeExit', cancel)
+  }
+  const fail = () => {
+    if (finalization.isFailing) return
+    finalization.isFailing = true
+    process.exitCode = 1
+    process.stdin.pause()
+    process.stdin.setRawMode(false)
+    if (process.stdout.isTTY && outputs.canWrite(process.stdout)) {
+      process.stdout.write(showCursor)
+    }
+    outputs.report({
+      language,
+      resume: '',
+      onComplete: () => {
+        removeListeners()
+        process.exit(1)
+      }
+    })
+  }
   // WHY: Without a listener Node ends on SIGINT with the cursor hidden. Ctrl+C is a key during a question, so this is a signal sent from outside.
-  process.on('SIGINT', cancelPrompt)
-  process.on('SIGTERM', cancelPrompt)
-  process.on('SIGHUP', cancelPrompt)
+  process.on('SIGINT', cancel)
+  process.on('SIGTERM', cancel)
+  process.on('SIGHUP', cancel)
   process.on('SIGTSTP', suspend)
   process.on('SIGCONT', resume)
   process.on('SIGWINCH', draw)
   // WHY: A terminal that closes during a question ends the input, and on macOS and Linux no SIGHUP came before Node ended with the question still open.
-  process.stdin.on('end', cancelPrompt)
-  process.stdin.on('error', closeInput)
+  process.stdin.on('end', cancel)
+  process.stdin.on('error', inputError)
   // WHY: readline closes on Ctrl+D at an empty line without ending the input, and Clack then waits for a key that can no longer come. Once the loop is empty nothing can answer the question.
-  process.on('beforeExit', cancelPrompt)
-  if (outputs.signal.aborted) failPrompt()
-  outputs.signal.addEventListener('abort', failPrompt)
+  process.on('beforeExit', cancel)
   try {
-    return await prompt({ output: frame.output, follow: frame.follow })
+    if (outputs.signal.aborted) {
+      fail()
+      return await waitForExit
+    }
+    outputs.signal.addEventListener('abort', fail, { once: true })
+    return await prompt({
+      output: frame.output,
+      follow: frame.follow,
+      onEnd: cancel
+    })
   } finally {
     // WHY: A Ctrl+Z read together with the key that closes the question is still pending, and without suspend it would be lost and leave the listener of readline.
     await readPendingSignals()
-    process.off('SIGINT', cancelPrompt)
-    process.off('SIGTERM', cancelPrompt)
-    process.off('SIGHUP', cancelPrompt)
-    process.off('SIGTSTP', suspend)
-    process.off('SIGCONT', resume)
-    process.off('SIGWINCH', draw)
-    process.stdin.off('end', cancelPrompt)
-    process.stdin.off('error', closeInput)
-    process.off('beforeExit', cancelPrompt)
-    outputs.signal.removeEventListener('abort', failPrompt)
+    // WHY: A prompt answer already in flight must not advance the CLI while its error is still being written.
+    if (finalization.isFailing) await waitForExit
+    outputs.signal.removeEventListener('abort', fail)
+    removeListeners()
   }
 }
 type GenerationError = { error: unknown; progress?: typeof frameProgress }
@@ -272,8 +311,8 @@ async function createApplication({ answers, isInteractive }: Creation) {
   const summary = projectSummary({ validated, language })
   const frame = isInteractive ? await import('./terminal-frame.ts') : undefined
   if (frame) {
-    await withPromptSignals(({ output }) =>
-      frame.confirmProject({ summary, language, output, onEnd: cancelPrompt })
+    await withPromptSignals(({ output, onEnd }) =>
+      frame.confirmProject({ summary, language, output, onEnd })
     )
   } else process.stdout.write(`${labels.summary}\n${summary}\n`)
   const progress = frame?.progress
@@ -484,14 +523,14 @@ async function run(): Promise<void> {
   if (isInteractive) {
     terminal.isFramed = true
     const { questionnaire } = await import('./questionnaire.ts')
-    answers = await withPromptSignals(({ output, follow }) =>
+    answers = await withPromptSignals(({ output, follow, onEnd }) =>
       questionnaire({
         answers,
         language,
         input: process.stdin,
         output,
         hasColor,
-        onEnd: cancelPrompt,
+        onEnd,
         follow
       })
     )

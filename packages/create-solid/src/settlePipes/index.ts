@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer'
 import type { ChildProcess } from 'node:child_process'
-import type { Writable } from 'node:stream'
+import type { Readable, Writable } from 'node:stream'
 
 import { setRunningTimeout } from '../setRunningTimeout/index.ts'
 
@@ -9,9 +9,80 @@ const quietMs = 500
 // WHY: Once the installer has exited, what its pipes and the buffers of the CLI still hold of its own output is far below these 4 MiB, so more comes from a process it started.
 const descendantBytes = 4_194_304
 type HeldOutput = Pick<Writable, 'writableNeedDrain' | 'writableLength'>
+type SourceSettling = {
+  source: Readable
+  output: HeldOutput | undefined
+  boundMs: number
+  onSettled: () => void
+}
+function settleSource({
+  source,
+  output,
+  boundMs,
+  onSettled
+}: SourceSettling): () => void {
+  // A failed write can leave the request for drain set with no queued bytes.
+  const isOutputHeld = () =>
+    output !== undefined &&
+    output.writableNeedDrain &&
+    output.writableLength > 0
+  let readBytes = 0
+  let bound: ReturnType<typeof setInterval> | undefined
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let pending: ReturnType<typeof setImmediate> | undefined
+  const finish = () => {
+    if (bound) onSettled()
+  }
+  const cut = () => {
+    source.destroy()
+    finish()
+  }
+  const clearSilence = () => {
+    clearTimeout(timer)
+    clearImmediate(pending)
+  }
+  const wait = () => {
+    clearSilence()
+    timer = setTimeout(() => {
+      if (isOutputHeld()) {
+        wait()
+        return
+      }
+      // Let ready reads run before confirming silence after a delayed timer.
+      pending = setImmediate(() => {
+        if (isOutputHeld()) wait()
+        else cut()
+      })
+    }, quietMs)
+  }
+  const read = (chunk: Buffer | string) => {
+    readBytes += Buffer.byteLength(chunk)
+    if (readBytes > descendantBytes) cut()
+    else wait()
+  }
+  const stop = () => {
+    clearInterval(bound)
+    bound = undefined
+    clearSilence()
+    source.off('data', read)
+    source.off('end', finish)
+    source.off('close', finish)
+  }
+  bound = setRunningTimeout({
+    delayMs: boundMs,
+    onExpire: cut,
+    shouldCount: () => !isOutputHeld()
+  })
+  source.on('data', read)
+  source.once('end', finish)
+  source.once('close', finish)
+  wait()
+  return stop
+}
+
 type PipeSettling = {
   child: ChildProcess
-  outputs: HeldOutput[]
+  outputs: { stdout?: HeldOutput; stderr?: HeldOutput }
   boundMs: number
   onSettled: () => void
 }
@@ -20,54 +91,32 @@ export function settlePipes({
   outputs,
   boundMs,
   onSettled
-}: PipeSettling): void {
-  // WHY: Node clears the request for drain only after a write that succeeds, so an output whose waiting write failed still asks for it with nothing left to write.
-  const isOutputHeld = () =>
-    outputs.some(
-      output => output.writableNeedDrain && output.writableLength > 0
-    )
-  let readBytes = 0
-  let timer: ReturnType<typeof setTimeout> | undefined
-  let isSettled = false
-  const settle = () => {
-    clearTimeout(timer)
-    timer = undefined
-    if (isSettled) return
-    isSettled = true
-    onSettled()
+}: PipeSettling): () => void {
+  const active = new Set<() => void>()
+  const stopAll = () => {
+    child.off('close', stopAll)
+    for (const stop of active) stop()
+    active.clear()
   }
-  // WHY: While the output holds bytes the CLI waits for its reader, however slow or stopped, so only the time the output takes data counts, which is when a process the installer started can keep writing.
-  const bound = setRunningTimeout({
-    delayMs: boundMs,
-    onExpire: settle,
-    shouldCount: () => !isOutputHeld()
-  })
-  const wait = () => {
-    clearTimeout(timer)
-    timer = setTimeout(() => {
-      if (isOutputHeld()) {
-        wait()
-        return
+  const include = (source: Readable | null, output: HeldOutput | undefined) => {
+    if (!source || source.readableEnded || source.destroyed) return
+    const stop = settleSource({
+      source,
+      output,
+      boundMs,
+      onSettled: () => {
+        if (!active.delete(stop)) return
+        stop()
+        if (active.size > 0) return
+        stopAll()
+        onSettled()
       }
-      const settling = timer
-      // WHY: A write that held the loop leaves this timer due before the loop reads the pipes again.
-      setImmediate(() => {
-        if (timer === settling) settle()
-      })
-    }, quietMs)
+    })
+    active.add(stop)
   }
-  const read = (chunk: Buffer | string) => {
-    readBytes += Buffer.byteLength(chunk)
-    if (readBytes > descendantBytes) {
-      settle()
-      return
-    }
-    wait()
-  }
-  for (const source of [child.stdout, child.stderr]) source?.on('data', read)
-  child.once('close', () => {
-    clearTimeout(timer)
-    clearInterval(bound)
-  })
-  wait()
+  include(child.stdout, outputs.stdout)
+  include(child.stderr, outputs.stderr)
+  if (active.size > 0) child.once('close', stopAll)
+  else onSettled()
+  return stopAll
 }

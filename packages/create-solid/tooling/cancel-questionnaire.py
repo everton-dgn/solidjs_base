@@ -838,6 +838,100 @@ class Pane:
         self.tmux("kill-server")
 
 
+INDEPENDENT_PIPES_JS = """
+import childProcess from 'node:child_process';
+import { appendFileSync, writeFileSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+const env = process.env;
+const slow = process[env.PIPE_SLOW];
+const write = slow.write.bind(slow);
+const spawn = childProcess.spawn;
+let received = 0;
+const trace = (...values) => appendFileSync(env.PIPE_TRACE, JSON.stringify(values) + '\\n');
+slow.write = (chunk, ...args) => {
+  const canContinue = write(chunk, ...args);
+  if (Buffer.isBuffer(chunk) && chunk[0] === 0x81) {
+    received += chunk.length;
+    if (!canContinue) writeFileSync(env.PIPE_HELD, '1');
+    writeFileSync(env.PIPE_ACK, String(received));
+  }
+  if (Buffer.isBuffer(chunk) && chunk.includes('SLOW-END')) trace('slow marker');
+  return canContinue;
+};
+childProcess.spawn = (...args) => {
+  const child = spawn(...args);
+  if (args[0].endsWith('bun') || args[0] === 'bun') {
+    child.on('exit', code => setImmediate(() => {
+      trace('exit', code, slow.writableNeedDrain, slow.writableLength);
+      writeFileSync(env.PIPE_EXIT, '1');
+    }));
+  }
+  return child;
+};
+syncBuiltinESMExports();
+"""
+
+INDEPENDENT_PIPES_INSTALLER = r"""
+import os
+from pathlib import Path
+import socket
+import time
+
+
+def write_status(variable, value):
+    path = Path(os.environ[variable])
+    staged = path.with_suffix('.new')
+    staged.write_text(str(value))
+    staged.replace(path)
+
+
+def await_value(check):
+    deadline = time.monotonic() + 6
+    while time.monotonic() < deadline:
+        if check():
+            return
+        time.sleep(.004)
+    raise RuntimeError('pipe fixture did not reach its next barrier')
+
+
+slow, fast = (1, 2) if os.environ['PIPE_SLOW'] == 'stdout' else (2, 1)
+ack = Path(os.environ['PIPE_ACK'])
+held = Path(os.environ['PIPE_HELD'])
+block = bytes([0x81]) * 8192
+total = 0
+for _ in range(256):
+    assert os.write(slow, block) == len(block)
+    total += len(block)
+    await_value(lambda: ack.exists() and ack.read_text() == str(total))
+    if held.exists():
+        break
+else:
+    raise RuntimeError('slow reader did not fill')
+marker = b'\nSLOW-END\n'
+# Node resumes each stdio stream once on exit. The burst leaves the marker behind that read.
+with socket.fromfd(slow, socket.AF_UNIX, socket.SOCK_STREAM) as channel:
+    channel.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 512 * 1024)
+os.set_blocking(slow, False)
+tail = bytes([0x81]) * (128 * 1024)
+assert os.write(slow, tail + marker) == len(tail) + len(marker)
+write_status('PIPE_PRODUCED', total + len(tail))
+if os.environ['PIPE_WRITER'] and os.fork() == 0:
+    os.close(slow)
+    write_status('PIPE_DESCENDANT', os.getpid())
+    await_value(Path(os.environ['PIPE_RELEASE']).exists)
+    block = bytes([0x82]) * 65536
+    count = 0
+    try:
+        while count < 5 * 1024 * 1024:
+            count += os.write(fast, block)
+    except BrokenPipeError:
+        write_status('PIPE_DONE', f'EPIPE {count}')
+    else:
+        write_status('PIPE_DONE', f'complete {count}')
+    os._exit(0)
+os._exit(0)
+"""
+
 class Reader:
     """Collect what the CLI writes to its terminal."""
 
@@ -2970,6 +3064,88 @@ process.stdout.write = (...args) => {
                             os.kill(grandchild, signal.SIGKILL)
                         except ProcessLookupError:
                             pass
+
+    def test_child_pipe_limit_preserves_the_other_tail(self):
+        marker = b"\nSLOW-END\n"
+        for slow, writer in itertools.product(("stdout", "stderr"), (False, True)):
+            with self.subTest(slow=slow, writer=writer), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                source, entry, installer = (root / name for name in ("installer.py", "limit.mjs", "bun"))
+                source.write_text(INDEPENDENT_PIPES_INSTALLER)
+                entry.write_text(INDEPENDENT_PIPES_JS)
+                installer.write_text(f"#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(source))}\n")
+                installer.chmod(0o755)
+                names = ("TRACE", "HELD", "ACK", "EXIT", "PRODUCED", "DESCENDANT", "RELEASE", "DONE")
+                paths = {name: root / name.lower() for name in names}
+                env = dict(os.environ, CI="false", LC_ALL="C", TERM="xterm", PATH=directory + os.pathsep + os.environ["PATH"],
+                           PIPE_SLOW=slow, PIPE_WRITER="1" if writer else "",
+                           **{f"PIPE_{name}": str(path) for name, path in paths.items()})
+                trace = paths["TRACE"]
+                with subprocess.Popen(
+                        [node, "--import", entry.as_uri(), cli, "app", "--yes", "--lang", "en", "--no-git", "--install"],
+                        cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                        start_new_session=True) as child:
+                    descendant = None
+                    try:
+                        produced = recorded(paths["PRODUCED"])
+                        self.assertIsNotNone(produced)
+                        self.assertEqual(recorded(paths["EXIT"]), 1)
+                        before = [json.loads(line) for line in trace.read_text().splitlines()]
+                        self.assertEqual(len(before), 1, before)
+                        self.assertEqual(before[0][:3], ["exit", 0, True])
+                        self.assertGreater(before[0][3], 0)
+                        fast = child.stderr if slow == "stdout" else child.stdout
+                        fast_prefix = bytearray()
+                        outcome = None
+                        if writer:
+                            descendant = recorded(paths["DESCENDANT"])
+                            self.assertIsNotNone(descendant)
+                            self.assertEqual((os.getsid(descendant), os.getpgid(descendant)), (child.pid, child.pid))
+                            paths["RELEASE"].touch()
+                            deadline = time.monotonic() + 10
+                            while not paths["DONE"].exists():
+                                self.assertLess(time.monotonic(), deadline, (len(fast_prefix), trace.read_text()))
+                                if select.select([fast], [], [], .03)[0]:
+                                    block = os.read(fast.fileno(), 65536)
+                                    fast_prefix.extend(block)
+                                    if not block:
+                                        time.sleep(.01)
+                            outcome = paths["DONE"].read_text().split()
+                            self.assertEqual(outcome[0], "EPIPE", outcome)
+                        stdout, stderr = child.communicate(timeout=8)
+                    finally:
+                        paths["RELEASE"].touch()
+                        if descendant is None and paths["DESCENDANT"].exists():
+                            descendant = recorded(paths["DESCENDANT"])
+                        for pid in (descendant, child.pid if child.poll() is None else None):
+                            if pid is not None:
+                                try:
+                                    if (os.getsid(pid), os.getpgid(pid)) == (child.pid, child.pid):
+                                        os.kill(pid, signal.SIGKILL)
+                                except ProcessLookupError:
+                                    pass
+                stalled = stdout if slow == "stdout" else stderr
+                receptive = fast_prefix + (stderr if slow == "stdout" else stdout)
+                after = [json.loads(line) for line in trace.read_text().splitlines()]
+                fast_blocks = re.findall(rb"\x82{8192,}", receptive)
+                fast_bytes = sum(map(len, fast_blocks))
+                print(f"Independent pipes, slow={slow}, writer={writer}: exit={child.returncode}, "
+                      f"slow_expected={produced}, slow_read={stalled.count(bytes([0x81]))}, trace={after!r}, "
+                      f"fast_bytes={fast_bytes}, writer_result={outcome!r}", flush=True)
+                self.assertEqual(child.returncode, 0)
+                self.assertTrue((root / "app/package.json").is_file())
+                if writer:
+                    self.assertGreater(int(outcome[1]), 4194304)
+                    self.assertEqual(len(fast_blocks), 1)
+                    self.assertGreaterEqual(int(outcome[1]), fast_bytes)
+                else:
+                    self.assertEqual(fast_bytes, 0)
+                self.assertIn(bytes([0x81]) * produced + marker, stalled, stalled[-80:])
+                self.assertEqual(stalled.count(bytes([0x81])), produced)
+                self.assertEqual(after, [*before, ["slow marker"]])
+                if writer:
+                    self.assertGreater(fast_bytes, 4194304)
+
 
     def read_installer_tail(self, case):
         """Run the plain CLI with an installer whose output passes what the pipes and the buffers of the CLI hold, so it

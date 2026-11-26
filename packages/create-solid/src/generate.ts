@@ -353,6 +353,18 @@ function forward({ source, target }: Forwarding): Forwarded {
   target.once('error', discard)
   return forwarded
 }
+type FinishingForwarding = {
+  forwarded: Forwarded
+  target: NodeJS.WriteStream
+  canWrite: OutputAvailability
+}
+function finishForwarding({
+  forwarded,
+  target,
+  canWrite
+}: FinishingForwarding): void {
+  if (forwarded.shouldAppendNewline && canWrite(target)) target.write('\n')
+}
 type SetupOptions = {
   cwd: string
   signal: AbortSignal
@@ -393,6 +405,8 @@ async function executeSetup(
   let notice: ReturnType<typeof setTimeout> | undefined
   let killWait: ReturnType<typeof setTimeout> | undefined
   const ended = Promise.withResolvers<typeof child.exitCode>()
+  let stopSettling: (() => void) | undefined
+  let isForced = false
   const release = () => {
     child.stdout?.destroy()
     child.stderr?.destroy()
@@ -404,14 +418,17 @@ async function executeSetup(
   child.once('exit', () => {
     // WHY: The long bound exists to force the installer, which is gone, and the wait for its pipes keeps limits of its own.
     clearInterval(deadline)
-    settlePipes({
+    if (isForced) return
+    stopSettling = settlePipes({
       child,
-      outputs: [process.stdout, process.stderr],
+      outputs: {
+        stdout: process.stdout,
+        ...(isPlainInstall && { stderr: process.stderr })
+      },
       boundMs: cleanupLimitMs,
-      onSettled: release
+      onSettled: () => ended.resolve(child.exitCode)
     })
   })
-  let isForced = false
   const force = () => {
     clearTimeout(notice)
     if (isForced) return
@@ -482,14 +499,11 @@ async function executeSetup(
       })
     }
   } finally {
+    stopSettling?.()
     printed.stop()
     forwarded.stop()
-    if (printed.shouldAppendNewline && canWrite(process.stdout)) {
-      process.stdout.write('\n')
-    }
-    if (forwarded.shouldAppendNewline && canWrite(process.stderr)) {
-      process.stderr.write('\n')
-    }
+    finishForwarding({ forwarded: printed, target: process.stdout, canWrite })
+    finishForwarding({ forwarded, target: process.stderr, canWrite })
     clearInterval(deadline)
     clearTimeout(notice)
     clearTimeout(killWait)

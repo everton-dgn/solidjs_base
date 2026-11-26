@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
 import { ChildProcess } from 'node:child_process'
+import { once } from 'node:events'
 import { stat } from 'node:fs'
 import { performance } from 'node:perf_hooks'
 import { PassThrough } from 'node:stream'
@@ -44,7 +45,7 @@ void it('lets go after a short silence when the write an output waited for faile
   const { child } = exitedChild()
   const started = performance.now()
   const { settledAt, onSettled } = settling(boundMs * limitFactor)
-  settlePipes({ child, outputs: [failed], boundMs, onSettled })
+  settlePipes({ child, outputs: { stdout: failed }, boundMs, onSettled })
   const settled = (await settledAt) ?? Infinity
   child.emit('close')
   assert.ok(settled - started < quietMs * limitFactor)
@@ -59,7 +60,7 @@ void it('counts no time while an output holds bytes for its reader', async () =>
   const state = { isSettled: false }
   settlePipes({
     child,
-    outputs: [output],
+    outputs: { stdout: output },
     boundMs,
     onSettled: () => {
       state.isSettled = true
@@ -82,7 +83,7 @@ void it('lets go once the output took data for the bound while data keeps coming
   const feed = setInterval(() => stdout.emit('data', Buffer.from('x')), feedMs)
   const started = performance.now()
   const { settledAt, onSettled } = settling(boundMs * limitFactor)
-  settlePipes({ child, outputs: [], boundMs, onSettled })
+  settlePipes({ child, outputs: {}, boundMs, onSettled })
   const settled = (await settledAt) ?? Infinity
   clearInterval(feed)
   child.emit('close')
@@ -101,7 +102,7 @@ void it('lets go once more came after the exit than the pipes and the buffers ho
   const state = { sent: 0, settledAfter: 0 }
   settlePipes({
     child,
-    outputs: [output],
+    outputs: { stdout: output },
     boundMs: 60_000,
     onSettled: () => {
       state.settledAfter = state.sent
@@ -123,7 +124,7 @@ void it('lets go once nothing came for a short time', async () => {
   const { child } = exitedChild()
   const started = performance.now()
   const { settledAt, onSettled } = settling(quietMs * limitFactor)
-  settlePipes({ child, outputs: [], boundMs: 60_000, onSettled })
+  settlePipes({ child, outputs: {}, boundMs: 60_000, onSettled })
   const settled = (await settledAt) ?? Infinity
   child.emit('close')
   assert.ok(settled - started >= quietMs - timerSlackMs)
@@ -136,7 +137,7 @@ void it('counts the short time again from each chunk while the output takes data
   const chunks = 2
   const started = performance.now()
   const { settledAt, onSettled } = settling(quietMs * limitFactor * chunks)
-  settlePipes({ child, outputs: [], boundMs: 60_000, onSettled })
+  settlePipes({ child, outputs: {}, boundMs: 60_000, onSettled })
   for (let index = 0; index < chunks; index += 1) {
     await delay(gapMs)
     stdout.emit('data', Buffer.from('x'))
@@ -154,7 +155,7 @@ void it('reads what came while the loop was held before it lets go', async () =>
   const { settledAt, onSettled } = settling(quietMs * limitFactor * limitFactor)
   settlePipes({
     child,
-    outputs: [],
+    outputs: {},
     boundMs: 60_000,
     onSettled: () => {
       events.push('settled')
@@ -175,4 +176,103 @@ void it('reads what came while the loop was held before it lets go', async () =>
   await settledAt
   child.emit('close')
   assert.deepEqual(events, ['data', 'settled'])
+})
+
+void it('counts the post-exit byte limit independently for each source', () => {
+  const { child, stdout } = exitedChild()
+  const stderr = new PassThrough()
+  child.stderr = stderr
+  let releases = 0
+  settlePipes({
+    child,
+    outputs: {},
+    boundMs: 60_000,
+    onSettled: () => {
+      releases += 1
+    }
+  })
+  const chunkBytes = 1_048_576
+  const initialChunks = 3
+  const chunk = Buffer.alloc(chunkBytes)
+  try {
+    for (let index = 0; index < initialChunks; index += 1) {
+      stdout.emit('data', chunk)
+      stderr.emit('data', chunk)
+    }
+    assert.equal(releases, 0)
+    assert.equal(stdout.destroyed, false)
+    assert.equal(stderr.destroyed, false)
+    stdout.emit('data', chunk)
+    assert.equal(stdout.destroyed, false)
+    stdout.emit('data', Buffer.from('x'))
+    assert.equal(stdout.destroyed, true)
+    assert.equal(stderr.destroyed, false)
+    assert.equal(releases, 0)
+    stderr.emit('end')
+    assert.equal(releases, 1)
+  } finally {
+    child.emit('close')
+    stdout.destroy()
+    stderr.destroy()
+  }
+})
+
+const longBoundMs = 60_000
+const watchdogMs = 2500
+for (const [limit, boundMs] of [
+  ['execution', 1],
+  ['silence', longBoundMs]
+] as const) {
+  void it(`cuts only the unblocked source at its ${limit} limit`, async () => {
+    const { child, stdout } = exitedChild()
+    const stderr = new PassThrough()
+    child.stderr = stderr
+    const held = { writableNeedDrain: true, writableLength: 1 }
+    const stdoutClosed = once(stdout, 'close', {
+      signal: AbortSignal.timeout(watchdogMs)
+    })
+    let releases = 0
+    const stop = settlePipes({
+      child,
+      outputs: { stderr: held },
+      boundMs,
+      onSettled: () => {
+        releases += 1
+      }
+    })
+    try {
+      await stdoutClosed
+      assert.equal(stderr.destroyed, false)
+      assert.equal(releases, 0)
+      stop()
+      assert.equal(child.listenerCount('close'), 0)
+      assert.equal(stderr.listenerCount('data'), 0)
+      assert.equal(stderr.listenerCount('end'), 0)
+      assert.equal(stderr.listenerCount('close'), 0)
+      stderr.emit('end')
+      assert.equal(releases, 0)
+    } finally {
+      stop()
+      stderr.destroy()
+    }
+  })
+}
+
+void it('finishes immediately when there are no open sources', () => {
+  const { child, stdout } = exitedChild()
+  stdout.destroy()
+  let releases = 0
+  const stop = settlePipes({
+    child,
+    outputs: {},
+    boundMs: 60_000,
+    onSettled: () => {
+      releases += 1
+    }
+  })
+  assert.equal(releases, 1)
+  assert.equal(child.listenerCount('close'), 0)
+  assert.equal(stdout.listenerCount('data'), 0)
+  stop()
+  assert.equal(releases, 1)
 })

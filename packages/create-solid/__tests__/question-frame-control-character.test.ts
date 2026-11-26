@@ -28,7 +28,10 @@ for (const { name, keys } of values) {
       const up = entries.split('\n').length - 1
       assert.deepEqual(
         { erased, flushed },
-        { erased: pause === 'erase' ? [erasure(up)] : [], flushed: [entries] }
+        {
+          erased: pause === 'erase' ? [erasure(up)] : [],
+          flushed: [`\r${entries}`]
+        }
       )
     })
   }

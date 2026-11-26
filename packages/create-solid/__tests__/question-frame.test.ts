@@ -217,7 +217,10 @@ function assertDrawn({
   round,
   drawnRows = Math.min(entries.length, tableRows)
 }: Drawn): void {
-  const [draw = ''] = flushed
+  const [flush = ''] = flushed
+  // The draw starts from the first column of the row of the cursor.
+  assert.ok(flush.startsWith('\r'), `${round}: first column`)
+  const draw = flush.slice(1)
   const rowCount = draw.split('\n').length
   assert.equal(flushed.length, 1, round)
   assert.equal(draw, entries.slice(-rowCount).join('\n'), `${round}: old row`)
@@ -286,7 +289,7 @@ void it('counts the 20 rows and 80 columns of Clack on a stream that has no size
   const { erased, flushed } = await question.stop('erase')
   await question.close()
   assert.deepEqual(erased, [erasure(clackRows - 1)])
-  assert.deepEqual(flushed, [entries.slice(-clackRows).join('\n')])
+  assert.deepEqual(flushed, [`\r${entries.slice(-clackRows).join('\n')}`])
 })
 
 void it('draws the rows on screen of a question taller than the screen after the renders of Clack', async () => {
@@ -324,7 +327,7 @@ void it('erases a question that was taller than the screen once its value is era
       [erasure(entries.length - 1)],
       JSON.stringify(keys)
     )
-    assert.deepEqual(flushed, [entries.join('\n')], JSON.stringify(keys))
+    assert.deepEqual(flushed, [`\r${entries.join('\n')}`], JSON.stringify(keys))
   }
 })
 
@@ -334,7 +337,7 @@ void it('draws a held title question before the bytes that close it', async () =
   question.frame.erase()
   question.written.length = 0
   await question.press('\r')
-  const closed = ['│\n◇  Application title\n│  ab\n', show]
+  const closed = ['\r│\n◇  Application title\n│  ab\n', show]
   assert.deepEqual(question.written.slice(0, closed.length), closed)
   await question.close()
 })
@@ -607,7 +610,7 @@ for (const pause of ['erase', 'hold'] as const) {
     const drawn = await drawnQuestion({ length: tall, columns: firstColumns })
     const entries = drawn.split('\n')
     const drawnRows = pause === 'erase' ? tableRows : shorterScreen
-    assert.deepEqual(flushed, [entries.slice(-drawnRows).join('\n')])
+    assert.deepEqual(flushed, [`\r${entries.slice(-drawnRows).join('\n')}`])
     assert.deepEqual(erased, erasedRows({ pause, up: tableRows - 1 }), 'erase')
   })
 }

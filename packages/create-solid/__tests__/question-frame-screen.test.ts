@@ -81,6 +81,47 @@ void it('shows on a finite screen what Clack shows without the question frame, a
 
 // The question fills the screen at the stop, so the cursor is on the last row of the screen.
 const stopAfter = 2
+// A stop from outside while the CLI does not own the terminal holds the question, and here the shell writes nothing, as
+// when something other than a shell sends the stop and the continue.
+void it('draws again below a held question on a finite screen what Clack shows with no stop', async () => {
+  const direct = await openRun({ isFramed: false, isScrollOnClear: false })
+  const framed = await openRun({ isFramed: true, isScrollOnClear: false })
+  const runs = [direct, framed]
+  let atStop = direct.display.view()
+  for (const [index, key] of keys.entries()) {
+    if (index === stopAfter) {
+      atStop = direct.display.view()
+      await framed.question.stop('hold')
+      const held = framed.display.view()
+      // The held question stays and the CLI draws it again from the first column of the row of the cursor, so the rows
+      // above that row go to the history. Clack moves to the first column before each render, so the column of the
+      // cursor does not count.
+      assert.deepEqual(
+        { screen: held.screen, history: held.history, row: held.cursor.row },
+        {
+          screen: atStop.screen,
+          history: [
+            ...atStop.history,
+            ...atStop.screen.slice(0, atStop.cursor.row)
+          ],
+          row: atStop.cursor.row
+        }
+      )
+    }
+    await pressAll({ runs, key })
+  }
+  for (const { question } of runs) await question.close()
+  const [plain, shown] = runs.map(run => run.display.view())
+  assert.deepEqual(shown?.screen, plain?.screen)
+  assert.deepEqual(shown?.cursor, plain?.cursor)
+  // The held question stays and the CLI draws it again from the row of the cursor, so its rows above it go to the history.
+  const history = plain?.history ?? []
+  assert.deepEqual(shown?.history, [
+    ...history.slice(0, atStop.history.length),
+    ...atStop.screen.slice(0, atStop.cursor.row),
+    ...history.slice(atStop.history.length)
+  ])
+})
 void it('shows after Ctrl+Z and fg on a finite screen what Clack shows with no stop', async () => {
   const direct = await openRun({ isFramed: false, isScrollOnClear: false })
   const framed = await openRun({ isFramed: true, isScrollOnClear: false })

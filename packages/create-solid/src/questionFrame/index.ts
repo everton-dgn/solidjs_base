@@ -144,7 +144,9 @@ export function questionFrame<Output extends Writable>(
     const fit = Math.min(lines.length, size.rows())
     const isWhole = isErased && (kept === 0 || columns !== size.columns())
     const count = isWhole ? lines.length : Math.max(fit, lines.length - kept)
-    target.write(lines.slice(-count).join('\n'))
+    // WHY: A render of Clack that changes one row leaves the cursor after the text of that row, and a stop from outside may
+    // continue with nothing written by the shell.
+    target.write(`\r${lines.slice(-count).join('\n')}`)
   }
   const flush = (ending = '') => {
     if (!isHeld) return

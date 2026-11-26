@@ -20,5 +20,5 @@ void it('draws back whole a question that Ctrl+Z erased when the terminal got sh
   const up = entries.split('\n').length - 1
   assert.deepEqual(erased, [`\u001B[${up}A\u001B[2K\u001B[B\r\u001B[J\u001B[A`])
   // Its rows above the shorter screen go to the history as the draw scrolls it.
-  assert.deepEqual(flushed, [entries])
+  assert.deepEqual(flushed, [`\r${entries}`])
 })

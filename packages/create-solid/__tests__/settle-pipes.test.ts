@@ -131,20 +131,45 @@ void it('lets go once nothing came for a short time', async () => {
   assert.ok(settled - started < quietMs * limitFactor)
 })
 
-void it('counts the short time again from each chunk while the output takes data', async () => {
+void it('releases exactly once after silence following the last chunk', ({
+  mock
+}) => {
+  mock.timers.enable({ apis: ['setTimeout', 'setImmediate'] })
   const { child, stdout } = exitedChild()
-  const gapMs = 300
-  const chunks = 2
-  const started = performance.now()
-  const { settledAt, onSettled } = settling(quietMs * limitFactor * chunks)
-  settlePipes({ child, outputs: {}, boundMs: 60_000, onSettled })
-  for (let index = 0; index < chunks; index += 1) {
-    await delay(gapMs)
-    stdout.emit('data', Buffer.from('x'))
+  const gapMs = 200
+  let releases = 0
+  const stop = settlePipes({
+    child,
+    outputs: {},
+    boundMs: 60_000,
+    onSettled: () => {
+      releases += 1
+    }
+  })
+  try {
+    mock.timers.tick(gapMs)
+    stdout.emit('data', Buffer.from('first'))
+    mock.timers.tick(gapMs)
+    stdout.emit('data', Buffer.from('last'))
+
+    mock.timers.tick(quietMs - gapMs - gapMs)
+    assert.equal(releases, 0)
+    mock.timers.tick(gapMs)
+    assert.equal(releases, 0)
+    mock.timers.tick(gapMs - 1)
+    assert.equal(releases, 0)
+
+    mock.timers.tick(1)
+    mock.timers.tick(0)
+    assert.equal(releases, 1)
+    assert.equal(stdout.destroyed, true)
+    child.emit('close')
+    mock.timers.tick(quietMs)
+    assert.equal(releases, 1)
+  } finally {
+    stop()
+    stdout.destroy()
   }
-  const settled = (await settledAt) ?? Infinity
-  child.emit('close')
-  assert.ok(settled - started >= gapMs * chunks + quietMs - timerSlackMs)
 })
 
 void it('reads what came while the loop was held before it lets go', async () => {

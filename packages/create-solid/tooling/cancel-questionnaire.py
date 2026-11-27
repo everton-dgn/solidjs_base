@@ -815,14 +815,15 @@ class Pane:
     """A tmux window of 80 columns with scroll-on-clear on, where an interactive bash runs the CLI as a job and continues it
     with fg once the test creates the file go."""
 
-    def __init__(self, case, root, command, rows):
+    def __init__(self, case, root, command, rows, *, report_stopped=False):
         self.case = case
         self.rows = rows
         self.socket = str(root / "tmux.sock")
         self.go = root / "go"
         # SHELL keeps the login shell of the account, and the PATH it sets, out of the commands of tmux.
         self.env = {key: os.environ[key] for key in ("HOME", "PATH", "LANG", "TMPDIR") if key in os.environ} | {"SHELL": "/bin/sh"}
-        script = f"{command}; until [ -e {shlex.quote(str(self.go))} ]; do sleep .05; done; fg"
+        report = "[ $? -gt 128 ] && { echo; jobs -l; }; " if report_stopped else ""
+        script = f"{command}; {report}until [ -e {shlex.quote(str(self.go))} ]; do sleep .05; done; fg"
         self.tmux("new-session", "-d", "-x", "80", "-y", str(rows), "-c", str(root), "/bin/sh")
         self.tmux("set-option", "remain-on-exit", "on")
         self.tmux("set-option", "-g", "scroll-on-clear", "on")
@@ -1078,6 +1079,7 @@ driver.unref();
 """
 
 INDEPENDENT_PIPES_INSTALLER = r"""
+import errno
 import os
 from pathlib import Path
 import signal
@@ -1135,8 +1137,17 @@ if os.environ['PIPE_WRITER'] and os.fork() == 0:
     try:
         while count < 5 * 1024 * 1024:
             count += os.write(fast, block)
-    except BrokenPipeError:
-        write_status('PIPE_DONE', f'EPIPE {count}')
+    except ConnectionResetError:
+        # Linux socketpairs can report the reset before the closed write side.
+        try:
+            os.write(fast, b'\x82')
+        except OSError as error:
+            status = errno.errorcode.get(error.errno, error.errno)
+        else:
+            status = 'open'
+        write_status('PIPE_DONE', f'{status} {count} after ECONNRESET')
+    except OSError as error:
+        write_status('PIPE_DONE', f'{errno.errorcode.get(error.errno, error.errno)} {count}')
     else:
         write_status('PIPE_DONE', f'complete {count}')
     os._exit(0)
@@ -4215,10 +4226,11 @@ Path(env['DONE']).touch()
     @unittest.skipUnless(sys.platform.startswith("linux"), "/dev/full is a Linux check")
     def test_dev_full_reports_a_real_file_write_error(self):
         with tempfile.TemporaryDirectory() as directory, open("/dev/full", "wb", buffering=0) as output:
-            result = subprocess.run([node, cli, "--lang", "pt", "--help"], cwd=directory,
+            result = subprocess.run([node, cli, "--lang", "pt-BR", "--help"], cwd=directory,
                                     stdout=output, stderr=subprocess.PIPE, timeout=8)
         diagnostic = "Não foi possível escrever na saída padrão: ENOSPC.\n"
         self.assertEqual((result.returncode, result.stderr.decode()), (1, diagnostic))
+        print("Measured, /dev/full: exit=1, locale=pt-BR, error=ENOSPC", flush=True)
 
     def test_output_error_preserves_recovery_during_git_and_framed_install(self):
         for task in ("Git", "framed install"):
@@ -5387,7 +5399,7 @@ Path(env['DONE']).touch()
         with tempfile.TemporaryDirectory() as directory:
             command = shlex.join([bash_path(), "-c", shlex.join(["env", "CI=false", "NO_COLOR=1", "TERM=xterm", node, str(cli),
                                   "app", "--lang", "en", "--mode", "server", "--no-git", "--no-install"]) + "; exit 0"])
-            pane = Pane(self, pathlib.Path(directory), command, 12)
+            pane = Pane(self, pathlib.Path(directory), command, 12, report_stopped=True)
             try:
                 pane.wait_for(lambda lines: "└" in lines[-1])
                 pane.tmux("send-keys", "-l", " " * 760)
@@ -5397,7 +5409,9 @@ Path(env['DONE']).touch()
                 pane.tmux("send-keys", "Up")
                 time.sleep(.3)
                 worker = pane.job()
-                os.killpg(os.getpgid(worker), signal.SIGTSTP)
+                shell = int(pane.tmux("display", "-p", "#{pane_pid}"))
+                self.assertEqual((os.getsid(worker), os.getpgid(worker)), (os.getsid(shell), worker))
+                os.killpg(worker, signal.SIGTSTP)
                 pane.wait_stopped(worker)
                 lines = pane.wait_for(lambda lines: any("Stopped" in line for line in lines), history=True)
                 notice = next(index for index, line in enumerate(lines) if "Stopped" in line)

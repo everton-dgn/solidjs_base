@@ -359,7 +359,7 @@ async function createApplication({ answers, isInteractive }: Creation) {
         language,
         isInteractive,
         abortSignal: outputs.signal,
-        canWrite: outputs.canWrite,
+        canWrite: output => outputs.canWrite(process[output]),
         warn: diagnostic => {
           const title = [labels.gitFailed, diagnostic]
             .filter(Boolean)

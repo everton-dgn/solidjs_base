@@ -316,7 +316,8 @@ type Generation = GenerationOptions & { language: Language }
 type Progress = 'creating' | SetupCommand['task']
 type Step = 'creating' | SetupCommand | undefined
 const prepared = { guides: applyPreparedGuides, source: applyPreparedSource }
-type OutputAvailability = (output: NodeJS.WriteStream) => boolean
+type OutputChannel = 'stdout' | 'stderr'
+type OutputAvailability = (output: OutputChannel) => boolean
 type WaitNotice = (reason: 'signal' | 'output-error') => void
 type TerminalOptions = {
   isInteractive?: boolean
@@ -355,15 +356,17 @@ function forward({ source, target }: Forwarding): Forwarded {
 }
 type FinishingForwarding = {
   forwarded: Forwarded
-  target: NodeJS.WriteStream
+  channel: OutputChannel
   canWrite: OutputAvailability
 }
 function finishForwarding({
   forwarded,
-  target,
+  channel,
   canWrite
 }: FinishingForwarding): void {
-  if (forwarded.shouldAppendNewline && canWrite(target)) target.write('\n')
+  if (forwarded.shouldAppendNewline && canWrite(channel)) {
+    process[channel].write('\n')
+  }
 }
 type SetupOptions = {
   cwd: string
@@ -502,8 +505,8 @@ async function executeSetup(
     stopSettling?.()
     printed.stop()
     forwarded.stop()
-    finishForwarding({ forwarded: printed, target: process.stdout, canWrite })
-    finishForwarding({ forwarded, target: process.stderr, canWrite })
+    finishForwarding({ forwarded: printed, channel: 'stdout', canWrite })
+    finishForwarding({ forwarded, channel: 'stderr', canWrite })
     clearInterval(deadline)
     clearTimeout(notice)
     clearTimeout(killWait)

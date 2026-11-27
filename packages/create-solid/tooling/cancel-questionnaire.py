@@ -4764,6 +4764,38 @@ Path(env['DONE']).touch()
                     os.close(slave)
 
 
+    def test_plain_install_failure_reports_recovery_after_stderr_closes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            installer, observed, preload = (root / name for name in ("bun", "observed", "closed-stderr.mjs"))
+            installer.write_text(
+                "#!/bin/sh\nprintf 'installer output\n' >&2\n"
+                'i=0; while [ ! -e "$CLOSED_STDERR" ] && [ "$i" -lt 300 ]; do i=$((i + 1)); sleep .01; done\n'
+                "exit 1\n")
+            installer.chmod(0o755)
+            preload.write_text(
+                "import { writeFileSync } from 'node:fs';\n"
+                "process.stderr.on('error', error => {\n"
+                "  if (error.code === 'EPIPE') writeFileSync(process.env.CLOSED_STDERR, error.code);\n"
+                "});\n")
+            env = dict(os.environ, CI="false", TERM="dumb", NO_COLOR="1",
+                       PATH=str(root) + os.pathsep + os.environ["PATH"], CLOSED_STDERR=str(observed))
+            read_end, write_end = os.pipe()
+            os.close(read_end)
+            with os.fdopen(write_end, "wb") as closed_stderr:
+                result = subprocess.run(
+                    [node, "--import", preload.as_uri(), cli, "app", "--lang", "en", "--mode", "server",
+                     "--pm", "bun", "--yes", "--install", "--no-git"],
+                    cwd=root, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=closed_stderr,
+                    text=True, timeout=8)
+            self.assertEqual(observed.read_text(), "EPIPE")
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertTrue((root / "app" / "package.json").is_file())
+            lines = [line.strip() for line in result.stdout.splitlines()]
+            self.assertIn("Your project is in 'app'. To finish, run:", lines)
+            self.assertIn("cd app", lines)
+            self.assertIn("bun install", lines)
+
     def test_late_output_error_keeps_recovery_commands(self):
         ready = ("cd app", "bun install", "bun run dev")
         plain = ("--yes", "--no-install", "--no-git")

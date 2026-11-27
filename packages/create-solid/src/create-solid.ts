@@ -246,10 +246,14 @@ type PlainClosing = {
   signals: SignalRecord
 }
 function writePlainClosing({ lines, isCanceled, signals }: PlainClosing): void {
+  const output = [process.stderr, process.stdout].find(candidate =>
+    outputs.canWrite(candidate)
+  )
+  if (!output) return
   // WHY: The end of an installer that Ctrl+C interrupted may be read before the SIGINT of the CLI, so a cancellation with no SIGTERM or SIGHUP counts as Ctrl+C.
   if (isCanceled && signals.received.size === 0) signals.counts.interrupts += 1
-  const echo = isCanceled ? echoBreak(signals) : ''
-  process.stderr.write(echo + lines.join('\n'))
+  const echo = isCanceled ? echoBreak(signals, output) : ''
+  output.write(echo + lines.join('\n'))
 }
 function recordSignals(): SignalRecord {
   const names = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const
@@ -298,7 +302,7 @@ function closeGeneration({
     if (isCanceled) frame.progress.cancel()
     else frame.progress.error(titles.failure)
     frame.closeFrame({ reason, closing })
-  } else if (outputs.canWrite(process.stderr)) {
+  } else {
     const title = isCanceled ? `■ ${titles.active}` : `▲ ${titles.failure}`
     writePlainClosing({
       lines: [...[title, reason].filter(Boolean), '', closing, ''],

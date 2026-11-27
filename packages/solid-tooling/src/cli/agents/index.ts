@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
+const byteOrderMark = '\uFEFF'
 const BLOCK = [
   '<!--SOLID BASE START-->',
   'This application uses the Solid Base packages. Before changing code, run `vp run doctor`.',
@@ -55,7 +56,8 @@ function markers({ original, file }: Instructions): MarkerPair | undefined {
   let openerLine = 0
   let offset = 0
   for (const [index, raw] of lines.entries()) {
-    const line = raw.replace(/\r?\n$/u, '')
+    const prefixLength = index === 0 && raw.startsWith(byteOrderMark) ? 1 : 0
+    const line = raw.slice(prefixLength).replace(/\r?\n$/u, '')
     const location = `${file}:${index + 1}`
     const edge = readMarker({ line, location })
     if (edge && openerLine) {
@@ -67,10 +69,11 @@ function markers({ original, file }: Instructions): MarkerPair | undefined {
       throw new Error(`${location}: invalid marker`)
     }
     if (edge === 'START') {
-      pair = { start: offset, end: offset }
+      const start = offset + prefixLength
+      pair = { start, end: start }
       startLine = index + 1
     }
-    if (edge === 'END' && pair) pair.end = offset + line.length
+    if (edge === 'END' && pair) pair.end = offset + prefixLength + line.length
     if (edge) isOpen = edge === 'START'
     if (
       !edge &&
@@ -94,7 +97,7 @@ export async function agents({
   const eol = original.includes('\r\n') ? '\r\n' : '\n'
   const block = BLOCK.join(eol)
   // A new block goes to the top, where no line above it can hide it.
-  const top = original.startsWith('﻿') ? 1 : 0
+  const top = original.startsWith(byteOrderMark) ? 1 : 0
   const updated = pair
     ? original.slice(0, pair.start) + block + original.slice(pair.end)
     : original.slice(0, top) + block + eol + original.slice(top)

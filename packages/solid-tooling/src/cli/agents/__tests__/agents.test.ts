@@ -82,8 +82,22 @@ test('keeps a byte order mark first', async t => {
   const block = await generatedBlock(t)
   const { root, file } = await fixture(t)
   await writeFile(file, '﻿# App')
-  await agents({ root, shouldWrite: true })
+  assert.equal(await agents({ root, shouldWrite: true }), 'missing')
+  assert.equal(await agents({ root, shouldWrite: false }), 'current')
+  assert.equal(await agents({ root, shouldWrite: true }), 'current')
   assert.equal(await readFile(file, 'utf8'), `﻿${block}\n# App`)
+})
+test('keeps the byte order mark when updating an outdated block', async t => {
+  const block = await generatedBlock(t)
+  const { root, file } = await fixture(t)
+  const eol = '\r\n'
+  await writeFile(file, '\uFEFF' + [START, 'old', END, '# App'].join(eol))
+  assert.equal(await agents({ root, shouldWrite: true }), 'outdated')
+  assert.equal(await agents({ root, shouldWrite: false }), 'current')
+  assert.equal(
+    await readFile(file, 'utf8'),
+    '\uFEFF' + block.replaceAll('\n', eol) + eol + '# App'
+  )
 })
 test('replaces the block in place, preserving CRLF and surrounding text', async t => {
   const block = await generatedBlock(t)

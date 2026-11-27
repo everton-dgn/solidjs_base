@@ -4792,7 +4792,7 @@ Path(env['DONE']).touch()
             self.assertEqual(result.returncode, 1, result.stdout)
             self.assertTrue((root / "app" / "package.json").is_file())
             lines = [line.strip() for line in result.stdout.splitlines()]
-            self.assertIn("Your project is in 'app'. To finish, run:", lines)
+            self.assertIn("Your project is in app. To finish, run:", lines)
             self.assertIn("cd app", lines)
             self.assertIn("bun install", lines)
 

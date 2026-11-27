@@ -1,5 +1,14 @@
 import type { ThemeState } from './createTheme/types.ts'
 
+type CookieThemeInput = Omit<ThemeOptions, 'cookieMaxAge' | 'defaultTheme'> & {
+  cookieMaxAge?: number
+  defaultTheme?: Theme
+}
+
+type LocalStorageThemeInput = Omit<LocalStorageThemeOptions, 'defaultTheme'> & {
+  defaultTheme?: Theme
+}
+
 export type Theme = 'light' | 'dark' | 'system'
 export type ResolvedTheme = Exclude<Theme, 'system'>
 
@@ -19,6 +28,8 @@ export type LocalStorageThemeOptions = {
 }
 
 export type ThemeConfig = ThemeOptions | LocalStorageThemeOptions
+
+export type ThemeInput = CookieThemeInput | LocalStorageThemeInput
 
 export type ThemeDefinition = {
   themes: readonly Theme[]

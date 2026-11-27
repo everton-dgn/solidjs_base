@@ -5,15 +5,14 @@
 ## Upgrading Solid
 
 The shared registration and protection live in
-`packages/solid-runtime/src/infra/server/`. The application's
-`src/infra/server/configureServerErrors/index.ts` remains the `serverSetup`
-entry and supplies the catalog callback to the package configurator.
+[`server`](../../../../packages/solid-runtime/src/infra/server). The
+application's `src/infra/server/configureServerErrors/index.ts` remains the
+`serverSetup` entry and supplies the catalog callback to the package
+configurator.
 
-Check the dependencies of [package.json](../../package.json), the `catalog` of
-the [root package.json](../../../../package.json) and the resolution in
-[bun.lock](../../../../bun.lock). `vp toolchain` shows the tools of the active
-installation. Those files and the command replace a list of versions kept in
-this guide.
+Check [package.json](../../package.json) and the installer lockfile.
+`vp toolchain` shows the tools of the active installation. Those files and the
+command replace a list of versions kept in this guide.
 
 The current protection starts from the evaluation of the Solid version resolved
 in the lockfile when the wrapper was reviewed, which already has the
@@ -28,10 +27,7 @@ the published and installed package changed that behavior.
 1. Check the releases, exports and contract of the published packages. Upgrade
    `solid-js` and `@solidjs/web` together, checking the Router, the plugin and
    the lockfile. Keep the previous versions for a rollback; do not adopt
-   internal APIs early. Run `vp run test:tarball` at the monorepo root: the type
-   check of the icons tarball test reads the published types of both packages
-   with `skipLibCheck` off, as the
-   [workspace section](../../../../docs/development.md#workspace) describes.
+   internal APIs early.
 2. Check that the contract of the `configureServerErrors({ onError })` hook that
    the central registration uses is still the same: a synchronous call, the
    return sent without another sanitization, a verdict per object and the

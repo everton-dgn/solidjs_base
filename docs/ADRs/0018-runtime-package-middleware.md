@@ -28,8 +28,9 @@ installed by tarball, moved the middleware steps to the package and measured:
 ## Decision
 
 - `packages/solid-runtime` (`@evertondgn/solid-runtime`) ships TypeScript
-  source, compiled by the application's Vite. It is private, at version `0.0.0`,
-  and stays out of release-please until its first manual publish.
+  source, compiled by the application's Vite. At this step the package was
+  private, at version `0.0.0`, pending its first manual publish. It now takes
+  part in the public release workflow described in [Releasing](../releasing.md).
 - Each module has its own export, with only the `solid` condition pointing to
   the `.ts` file. There is no barrel and no `.` export.
 - `sideEffects` is a list, never `false`. It is empty today; a module with an

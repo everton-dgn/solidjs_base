@@ -1,7 +1,10 @@
 /* oxlint-disable unicorn/no-document-cookie -- The tests exercise the cookie persistence and blocking directly. */
 import { expect, test } from '@playwright/test'
 
-test.use({ locale: 'pt-BR' })
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
+import { themeLabels } from '@/tests/helpers/themeLabels/index.ts'
+
+test.use({ locale: testLanguages.tag(testLanguages.alternate) })
 
 test('propagates the temporary choice when the cookie write is ignored', async ({
   context,
@@ -29,10 +32,20 @@ test('propagates the temporary choice when the cookie write is ignored', async (
   const other = await context.newPage()
   await other.goto('/')
   await expect(
-    other.getByRole('button', { name: 'Selecionar tema' })
+    other.getByRole('button', {
+      name: themeLabels.theme
+    })
   ).toBeEnabled()
-  await page.getByRole('button', { name: 'Selecionar tema' }).click()
-  await page.getByRole('menuitemradio', { name: 'Escuro' }).click()
+  await page
+    .getByRole('button', {
+      name: themeLabels.theme
+    })
+    .click()
+  await page
+    .getByRole('menuitemradio', {
+      name: themeLabels.dark
+    })
+    .click()
   await expect(other.locator('html')).toHaveClass('dark')
   await other.bringToFront()
   await other.evaluate(() => globalThis.dispatchEvent(new FocusEvent('focus')))
@@ -58,7 +71,9 @@ test('goes back to the system after removing the cookie and simulating focus', a
   await other.goto('/')
   for (const tab of [page, other]) {
     await expect(
-      tab.getByRole('button', { name: 'Selecionar tema' })
+      tab.getByRole('button', {
+        name: themeLabels.theme
+      })
     ).toBeEnabled()
   }
   await expect(page.locator('html')).toHaveClass('dark')
@@ -71,9 +86,15 @@ test('goes back to the system after removing the cookie and simulating focus', a
   await expect(page.locator('html')).toHaveClass('dark')
   await page.evaluate(() => globalThis.dispatchEvent(new FocusEvent('focus')))
   await expect(page.locator('html')).toHaveClass('light')
-  await page.getByRole('button', { name: 'Selecionar tema' }).click()
+  await page
+    .getByRole('button', {
+      name: themeLabels.theme
+    })
+    .click()
   await expect(
-    page.getByRole('menuitemradio', { name: 'Sistema' })
+    page.getByRole('menuitemradio', {
+      name: themeLabels.system
+    })
   ).toHaveAttribute('aria-checked', 'true')
 })
 
@@ -94,12 +115,22 @@ test('switches right away when access to document.cookie is blocked', async ({
   })
   await page.emulateMedia({ colorScheme: 'light' })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Selecionar tema' }).click()
-  await page.getByRole('menuitemradio', { name: 'Escuro' }).click()
+  await page
+    .getByRole('button', {
+      name: themeLabels.theme
+    })
+    .click()
+  await page
+    .getByRole('menuitemradio', {
+      name: themeLabels.dark
+    })
+    .click()
   await expect(page.locator('html')).toHaveClass('dark')
   const cookies = await context.cookies(page.url())
   expect(cookies.some(cookie => cookie.name === 'app-theme')).toBe(false)
-  expect(cookies.find(cookie => cookie.name === 'locale')?.value).toBe('pt')
+  expect(cookies.find(cookie => cookie.name === 'locale')?.value).toBe(
+    testLanguages.header(testLanguages.alternate)
+  )
   await page.reload()
   await expect(page.locator('html')).toHaveClass('light')
 })

@@ -1,7 +1,7 @@
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
-
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 // With --headed, the viewport of the per-width blocks would resize the browser window.
 test.use({ headless: true })
 
@@ -11,47 +11,9 @@ const MOBILE_WIDTH = 375
 const DESKTOP_WIDTH = 1280
 const VIEWPORT_HEIGHT = 800
 const SUBHEADING_LEVEL = 2
-const LANGUAGES = [
-  {
-    locale: 'pt',
-    tag: 'pt-BR',
-    theme: 'Selecionar tema',
-    selector: 'Selecionar idioma',
-    dark: 'Escuro',
-    headings: [
-      'SolidJS Boilerplate para aplicações web',
-      'Sobre o SolidJS Boilerplate',
-      'Contato',
-      'Privacidade'
-    ]
-  },
-  {
-    locale: 'en',
-    tag: 'en-US',
-    theme: 'Select theme',
-    selector: 'Select language',
-    dark: 'Dark',
-    headings: [
-      'SolidJS Boilerplate for web applications',
-      'About SolidJS Boilerplate',
-      'Contact',
-      'Privacy'
-    ]
-  },
-  {
-    locale: 'es',
-    tag: 'es-ES',
-    theme: 'Seleccionar tema',
-    selector: 'Seleccionar idioma',
-    dark: 'Oscuro',
-    headings: [
-      'SolidJS Boilerplate para aplicaciones web',
-      'Acerca de SolidJS Boilerplate',
-      'Contacto',
-      'Privacidad'
-    ]
-  }
-]
+const LANGUAGES = testLanguages.locales.map(locale =>
+  testLanguages.labels(locale)
+)
 const PATHS = ['', '/about', '/contact', '/privacy']
 
 function readMainContent(html: string) {
@@ -79,7 +41,7 @@ for (const language of LANGUAGES) {
         page,
         request
       }) => {
-        const pathname = `/${language.locale}${path}`
+        const pathname = testLanguages.path(language.locale, path)
         const response = await request.get(pathname, {
           headers: { accept: 'text/html' },
           maxRedirects: 0
@@ -133,16 +95,21 @@ for (const language of LANGUAGES) {
             page.locator(`head link[hreflang="${alternate.locale}"]`)
           ).toHaveAttribute(
             'href',
-            `${readSiteOrigin()}/${alternate.locale}${path}`
+            `${readSiteOrigin()}${testLanguages.path(alternate.locale, path)}`
           )
         }
         await expect(
           page.locator('head link[hreflang="x-default"]')
-        ).toHaveAttribute('href', `${readSiteOrigin()}/en${path}`)
+        ).toHaveAttribute(
+          'href',
+          `${readSiteOrigin()}${testLanguages.path(testLanguages.base, path)}`
+        )
         for (const destination of PATHS) {
           const link = page
             .locator('header > nav')
-            .locator(`a[href="/${language.locale}${destination}"]`)
+            .locator(
+              `a[href="${testLanguages.path(language.locale, destination)}"]`
+            )
           await expect(link).toHaveCount(1)
           await expect(link).toHaveAccessibleName(/\S/u)
         }
@@ -162,14 +129,17 @@ for (const language of LANGUAGES) {
         pageErrors,
         cspViolations
       }) => {
-        await page.goto(`/${language.locale}`)
+        await page.goto(testLanguages.path(language.locale, ''))
         await expect.poll(() => hydrationFinished(page)).toBe(true)
         const markdownAlternate = page.locator(
           'head link[rel="alternate"][type="text/markdown"]'
         )
         await expect(markdownAlternate).toHaveAttribute(
           'href',
-          new RegExp(`/${language.locale}/index\\.md$`, 'u')
+          new RegExp(
+            testLanguages.path(language.locale, String.raw`/index\.md$`),
+            'u'
+          )
         )
         await page.getByRole('button', { name: language.theme }).click()
         await page
@@ -198,17 +168,20 @@ for (const language of LANGUAGES) {
         for (const [index, path] of PATHS.entries()) {
           const link = page
             .locator('header > nav')
-            .locator(`a[href="/${language.locale}${path}"]`)
+            .locator(`a[href="${testLanguages.path(language.locale, path)}"]`)
           await expect(link).toBeVisible()
           await expect(link).toHaveAccessibleName(/\S/u)
           await link.click()
-          await expect(page).toHaveURL(`/${language.locale}${path}`)
+          await expect(page).toHaveURL(
+            testLanguages.path(language.locale, path)
+          )
+          const markdownPath = testLanguages.path(
+            language.locale,
+            path ? `${path}.md` : '/index.md'
+          )
           await expect(markdownAlternate).toHaveAttribute(
             'href',
-            new RegExp(
-              `/${language.locale}${path ? `${path}\\.md` : String.raw`/index\.md`}$`,
-              'u'
-            )
+            `${readSiteOrigin()}${markdownPath}`
           )
           await expect(page.getByRole('heading', { level: 1 })).toHaveText(
             language.headings[index] ?? ''

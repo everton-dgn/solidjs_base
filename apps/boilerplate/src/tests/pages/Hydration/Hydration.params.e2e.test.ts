@@ -1,6 +1,7 @@
 import { holdRoute } from '@/tests/helpers/holdRoute/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_OK = 200
 const HTTP_BAD_REQUEST = 400
@@ -18,7 +19,7 @@ for (const { encoded, decoded } of PARAMETERS) {
     const scripts = await holdRoute({ page, url: '**/*.js' })
 
     try {
-      const path = `/en/blog/${encoded}`
+      const path = testLanguages.path(testLanguages.base, `/blog/${encoded}`)
       const response = await page.goto(path, { waitUntil: 'commit' })
       expect(response?.status()).toBe(HTTP_OK)
       await scripts.requested
@@ -42,6 +43,8 @@ for (const { encoded, decoded } of PARAMETERS) {
 }
 
 test('rejects a URL with malformed parameter encoding', async ({ request }) => {
-  const response = await request.get('/en/blog/%E0%A4%A')
+  const response = await request.get(
+    testLanguages.path(testLanguages.base, '/blog/%E0%A4%A')
+  )
   expect(response.status()).toBe(HTTP_BAD_REQUEST)
 })

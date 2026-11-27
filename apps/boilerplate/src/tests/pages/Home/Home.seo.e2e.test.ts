@@ -1,19 +1,25 @@
+import { m } from '@paraglide/messages.js'
 import { expect, type Page, test } from '@playwright/test'
 
+import { SITE } from '@/constants/site/title.ts'
 import {
   parseStructuredData,
   type StructuredData
 } from '@/tests/helpers/parseStructuredData/index.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
-test.use({ locale: 'pt-BR' })
+test.use({ locale: testLanguages.tag(testLanguages.alternate) })
 
 const HTTP_OK = 200
-const SITE_TITLE = 'SolidJS Boilerplate'
-const HOME_TITLE = 'SolidJS Boilerplate | Aplicações web com SSR'
-const SITE_DESCRIPTION =
-  'Uma base para aplicações web com SolidJS, TypeScript e Vite+, com renderização no servidor e temas claro e escuro.'
-const SITE_IMAGE_ALT = 'Logo do SolidJS sobre o título SolidJS Boilerplate'
+const SITE_TITLE = SITE.title
+const options = { locale: testLanguages.alternate }
+const HOME_TITLE = m.home_seoTitle({}, { locale: testLanguages.alternate })
+const SITE_DESCRIPTION = m.site_description(
+  {},
+  { locale: testLanguages.alternate }
+)
+const SITE_IMAGE_ALT = m.site_imageAlt({}, { locale: testLanguages.alternate })
 const ROBOTS_INDEX = 'index, follow, max-image-preview:large'
 const SOCIAL_TAGS = 'head meta[property^="og:"], head meta[name^="twitter:"]'
 // Base graph of createSeo plus the own script of the page.
@@ -57,12 +63,15 @@ test.describe('SEO metadata', () => {
     ).toHaveAttribute('content', HOME_TITLE)
 
     const canonical = page.locator('head link[rel="canonical"]')
-    await expect(canonical).toHaveAttribute('href', `${siteUrl}/pt`)
+    await expect(canonical).toHaveAttribute(
+      'href',
+      `${siteUrl}${testLanguages.path(testLanguages.alternate, '')}`
+    )
     const describedBy = page.locator('head link[rel="describedby"]')
     await expect(describedBy).toHaveAttribute('href', '/llms.txt')
     await expect(page.locator('head meta[property="og:url"]')).toHaveAttribute(
       'content',
-      `${siteUrl}/pt`
+      `${siteUrl}${testLanguages.path(testLanguages.alternate, '')}`
     )
     await expect(
       page.locator('head meta[property="og:image"]')
@@ -87,7 +96,11 @@ test.describe('SEO metadata', () => {
     })
     const baseNodes = [
       { '@type': 'WebSite', url: `${siteUrl}/`, name: SITE_TITLE },
-      { '@type': 'WebPage', url: `${siteUrl}/pt`, name: HOME_TITLE },
+      {
+        '@type': 'WebPage',
+        url: `${siteUrl}${testLanguages.path(testLanguages.alternate, '')}`,
+        name: HOME_TITLE
+      },
       {
         '@type': 'Organization',
         url: `${siteUrl}/`,
@@ -111,12 +124,14 @@ test.describe('SEO metadata', () => {
 
     await page.getByRole('link', { name: '404', exact: true }).click()
     await expect(
-      page.getByRole('heading', { name: 'Página não encontrada!' })
+      page.getByRole('heading', {
+        name: m.errorFallback_notFoundTitle({}, options)
+      })
     ).toBeVisible()
-    await expect(page).toHaveTitle('Página não encontrada')
+    await expect(page).toHaveTitle(m.notFound_title({}, options))
     await expect(page.locator('head meta[name="description"]')).toHaveAttribute(
       'content',
-      'A página solicitada não foi encontrada.'
+      m.notFound_description({}, options)
     )
     await expect(page.locator('head meta[name="robots"]')).toHaveAttribute(
       'content',
@@ -128,8 +143,16 @@ test.describe('SEO metadata', () => {
       page.locator('head script[type="application/ld+json"]')
     ).toHaveCount(0)
 
-    await page.getByRole('link', { name: 'Início', exact: true }).click()
-    await expect(canonical).toHaveAttribute('href', `${siteUrl}/pt`)
+    await page
+      .getByRole('link', {
+        name: m.siteLinks_homeLabel({}, options),
+        exact: true
+      })
+      .click()
+    await expect(canonical).toHaveAttribute(
+      'href',
+      `${siteUrl}${testLanguages.path(testLanguages.alternate, '')}`
+    )
     await expect(page).toHaveTitle(HOME_TITLE)
     await expect(page.locator('head meta[name="description"]')).toHaveAttribute(
       'content',
@@ -149,7 +172,10 @@ test.describe('SEO metadata', () => {
       page.locator('head script[type="application/ld+json"]')
     ).toHaveCount(1)
     expect(await readStructuredData(page)).toContainEqual(
-      expect.objectContaining({ '@type': 'WebPage', url: `${siteUrl}/pt` })
+      expect.objectContaining({
+        '@type': 'WebPage',
+        url: `${siteUrl}${testLanguages.path(testLanguages.alternate, '')}`
+      })
     )
   })
 
@@ -167,7 +193,9 @@ test.describe('SEO metadata', () => {
       )
     })
   })
+})
 
+test.describe('structured data', () => {
   test('publishes the type, image and JSON-LD declared by the route', async ({
     page
   }) => {
@@ -200,7 +228,7 @@ test.describe('SEO metadata', () => {
     expect(await readStructuredData(page)).toContainEqual(
       expect.objectContaining({
         '@type': 'Article',
-        url: `${siteUrl}/pt/seo-article`,
+        url: `${siteUrl}${testLanguages.path(testLanguages.alternate, '/seo-article')}`,
         name: 'Sample article',
         datePublished: '2026-09-01',
         dateModified: '2026-09-21',
@@ -208,7 +236,12 @@ test.describe('SEO metadata', () => {
       })
     )
 
-    await page.getByRole('link', { name: 'Início', exact: true }).click()
+    await page
+      .getByRole('link', {
+        name: m.siteLinks_homeLabel({}, options),
+        exact: true
+      })
+      .click()
     await expect(page.locator('head meta[property="og:type"]')).toHaveAttribute(
       'content',
       'website'
@@ -240,7 +273,12 @@ test.describe('SEO metadata', () => {
       texts.filter(text => text.includes('"@type":"FAQPage"'))
     ).toHaveLength(1)
 
-    await page.getByRole('link', { name: 'Início', exact: true }).click()
+    await page
+      .getByRole('link', {
+        name: m.siteLinks_homeLabel({}, options),
+        exact: true
+      })
+      .click()
     await expect(page).toHaveTitle(HOME_TITLE)
     await expect(scripts).toHaveCount(1)
     const remaining = await scripts.allTextContents()

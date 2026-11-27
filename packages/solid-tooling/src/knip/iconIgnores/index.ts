@@ -2,6 +2,7 @@ import { glob, readFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { ICON_TYPES_FILE } from '../../icons/constants.ts'
+import { readDependencies } from '../readDependencies/index.ts'
 
 type ModuleSource = { file: string; source: string }
 
@@ -31,12 +32,6 @@ const ICON_SPECIFIER = /["'`]icon:/u
 // configuration hint.
 const ICON_STRING =
   /^(?:(?<quote>["'])icon:[^"']*\k<quote>|`icon:(?:[^$`]|\$(?!\{))*`)$/u
-const DEPENDENCY_FIELDS = [
-  'dependencies',
-  'devDependencies',
-  'optionalDependencies',
-  'peerDependencies'
-]
 
 // WHY: Knip reads the imports with a parser, so an icon: in a comment or a
 // string has no import that uses the ignore, and the hint of the unused ignore
@@ -83,24 +78,6 @@ async function findImports(root: string): Promise<FoundImports> {
     }
   }
   return found
-}
-
-async function readDependencies(root: string): Promise<string[]> {
-  let manifest: unknown
-  try {
-    manifest = JSON.parse(
-      await readFile(path.join(root, 'package.json'), 'utf8')
-    )
-  } catch {
-    return []
-  }
-  if (manifest === null || typeof manifest !== 'object') return []
-  return DEPENDENCY_FIELDS.flatMap(field => {
-    const versions: unknown = Reflect.get(manifest, field)
-    return versions !== null && typeof versions === 'object'
-      ? Object.keys(versions)
-      : []
-  })
 }
 
 // The icons plugin of the preset resolves the icon: imports and loads each

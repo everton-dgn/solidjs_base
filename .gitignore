@@ -21,3 +21,5 @@ fixtures/apps/*/src/icon-collections.d.ts
 
 # Local planning notes
 /plans/
+/apps/boilerplate/plans/
+/apps/boilerplate/.polyhive/

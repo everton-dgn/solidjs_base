@@ -8,9 +8,10 @@ contract below must be kept through dependency upgrades.
 
 ## Current protection
 
-The shared protection lives in `packages/solid-runtime/src/infra/server/`. Each
-module has its own `@evertondgn/solid-runtime/server/` entry, with the `solid`
-condition and `server-only`. Public errors use
+The shared protection lives in
+[`server`](../../../packages/solid-runtime/src/infra/server). Each module has
+its own `@evertondgn/solid-runtime/server/` entry, with the `solid` condition
+and `server-only`. Public errors use
 `@evertondgn/solid-runtime/server/public-errors`. The application keeps
 `requestJson`, `publication`, `sitemapSources`, the Markdown adapter and
 authored render trees. The runtime owns failure containment, chain composition
@@ -95,7 +96,7 @@ with the single application security instance and Markdown adapter. The package
 adapts the plugin event to the `Request` chain of `filesystem-routing` and
 `composeMiddleware`, handing that chain to `containFailures`. The containment,
 in
-[`packages/solid-runtime/src/middleware/containFailures/index.ts`](../../../packages/solid-runtime/src/middleware/containFailures/index.ts),
+[`index.ts`](../../../packages/solid-runtime/src/middleware/containFailures/index.ts),
 composes the whole chain inside itself, and an exception in the middlewares, in
 the API routes or in the page handler becomes a 500 with the security headers
 and the `[middleware]` log. Only a `Response` without a body and with a status

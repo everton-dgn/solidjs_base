@@ -281,6 +281,18 @@ test('the application installs the packed package and lint applies the plugins',
   const app = path.join(directory, 'app')
   install({ app, tarballs })
 
+  run({
+    file: 'bun',
+    args: [
+      path.resolve(
+        PACKAGE_ROOT,
+        '../../tooling/testing/assert-packed-skill.ts'
+      ),
+      path.join(app, 'node_modules', PACKAGE_NAME),
+      'solid-base-app'
+    ],
+    cwd: app
+  })
   const diagnostics = lint(app)
 
   for (const expected of EXPECTED) {

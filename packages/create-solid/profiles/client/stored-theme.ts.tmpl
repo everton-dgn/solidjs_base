@@ -1,0 +1,40 @@
+import { createHash } from 'node:crypto'
+import path from 'node:path'
+
+import { storedThemeScript } from '@evertondgn/solid-runtime/theme/stored-theme-script'
+import type { Plugin } from 'vite-plus'
+
+import { themeOptions } from '../src/constants/theme-options.ts'
+
+// Applies the stored theme before the first paint, from a classic script that
+// needs no nonce and runs from file://.
+const HASH_LENGTH = 8
+
+export function storedTheme(): Plugin {
+  const source = storedThemeScript(themeOptions)
+  const hash = createHash('sha256')
+    .update(source)
+    .digest('hex')
+    .slice(0, HASH_LENGTH)
+  let fileName = ''
+  let base = '/'
+  return {
+    name: 'app:stored-theme',
+    configResolved(config) {
+      ;({ base } = config)
+      fileName = path.posix.join(config.build.assetsDir, `theme-${hash}.js`)
+    },
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName, source })
+    },
+    transformIndexHtml: (_html, context) => [
+      context.server
+        ? { tag: 'script', children: source, injectTo: 'head-prepend' }
+        : {
+            tag: 'script',
+            attrs: { src: `${base}${fileName}` },
+            injectTo: 'head-prepend'
+          }
+    ]
+  }
+}

@@ -3,15 +3,18 @@ import {
   releaseFixtureGate
 } from '@/tests/helpers/fixtureGate/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_OK = 200
 // A server that stops emitting bytes fails on the read, not on the generic
 // timeout of the runner.
 const REQUEST_TIMEOUT = 15_000
-const PAGE_URL = '/pt/late-redirect'
+const PAGE_URL = testLanguages.path(testLanguages.alternate, '/late-redirect')
 const LOADING_TEXT = 'Loading...'
-const LATE_REDIRECT_SCRIPT =
-  /<script nonce="(?<nonce>[^"]+)">window\.location="\/pt\?from=late-redirect"<\/script>/u
+const LATE_REDIRECT_SCRIPT = new RegExp(
+  String.raw`<script nonce="(?<nonce>[^"]+)">window\.location="${testLanguages.path(testLanguages.alternate, '')}\?from=late-redirect"<\/script>`,
+  'u'
+)
 
 // After the shell the status already went out, and the runtime follows the
 // Location through a script at the end of the document. It needs the CSP nonce of
@@ -50,7 +53,12 @@ test('the browser follows the redirect after the shell without a CSP violation',
   await page.goto(`${PAGE_URL}?id=${id}`, { waitUntil: 'commit' })
   await expect(page.getByText(LOADING_TEXT, { exact: true })).toBeVisible()
   await releaseFixtureGate({ request, id })
-  await expect(page).toHaveURL(/\/pt\?from=late-redirect$/u)
+  await expect(page).toHaveURL(
+    new RegExp(
+      String.raw`${testLanguages.path(testLanguages.alternate, '')}\?from=late-redirect$`,
+      'u'
+    )
+  )
 
   expect(cspViolations).toStrictEqual([])
 })

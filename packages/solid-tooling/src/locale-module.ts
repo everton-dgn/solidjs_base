@@ -4,13 +4,17 @@ import type { Plugin } from 'vite-plus'
 
 import { hasI18n } from './has-i18n.ts'
 
-type LocaleOptions = { root: string; language?: string }
+type LocaleOptions = { root: string; language?: string; output?: string }
 const MODULE_ID = 'virtual:solid-app/locale'
 const RESOLVED_ID = '\0solid-app:locale'
 
-function localeRequestSource({ root }: LocaleOptions): string {
+function localeRequestSource({ root, output }: LocaleOptions): string {
   if (hasI18n(root)) {
-    return `export { shouldRedirect, extractLocaleFromRequest, cookieName, cookieMaxAge, cookieDomain, cookieSameSite, cookieSecure } from ${JSON.stringify(path.join(root, 'paraglide/runtime.js'))}; export { paraglideMiddleware } from ${JSON.stringify(path.join(root, 'paraglide/server.js'))}`
+    const redirect =
+      output === 'static'
+        ? 'export const shouldRedirect = () => undefined; export {'
+        : 'export { shouldRedirect,'
+    return `${redirect} extractLocaleFromRequest, cookieName, cookieMaxAge, cookieDomain, cookieSameSite, cookieSecure } from ${JSON.stringify(path.join(root, 'paraglide/runtime.js'))}; export { paraglideMiddleware } from ${JSON.stringify(path.join(root, 'paraglide/server.js'))}`
   }
   return `const missing = () => { throw new Error('Locale requests require project.inlang/settings.json') }; export { missing as shouldRedirect, missing as extractLocaleFromRequest, missing as paraglideMiddleware }; export const cookieName = '', cookieMaxAge = 0, cookieDomain = '', cookieSameSite = 'lax', cookieSecure = false`
 }

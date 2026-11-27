@@ -1,0 +1,84 @@
+# TypeScript and formatting
+
+[Tooling reference](README.md)
+
+## Usage
+
+```ts
+// vite.config.ts
+import { fmt } from '@evertondgn/solid-tooling/fmt'
+import { lint } from '@evertondgn/solid-tooling/lint'
+import { defineConfig } from 'vite-plus'
+
+export default defineConfig({ fmt, lint })
+```
+
+```json
+// tsconfig.json
+{
+  "extends": "@evertondgn/solid-tooling/tsconfig.base.json",
+  "compilerOptions": {
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["src", "vite.config.ts"]
+}
+```
+
+`vp check`, `vp lint` and `vp fmt` read both configs from `vite.config.ts`.
+
+## Formatter
+
+`fmt` sets 80 columns, single quotes, no semicolons, no trailing commas, wrapped
+prose in Markdown and sorted imports. It ignores `public/`, `src/assets/`,
+generated route types, SVG and lock files.
+
+## TypeScript base
+
+`tsconfig.base.json` targets ES2024 with bundler resolution, keeps JSX for the
+Solid compiler (`jsxImportSource: @solidjs/web`), emits nothing and turns on the
+unused code and unchecked index checks. It has no `paths`, `include` or `types`.
+
+`tsconfig.app.json` extends the base with `files: ["./node-env.d.ts"]`,
+`types: ["@evertondgn/solid-tooling/app-env"]` and an `include` resolved from
+the application folder with `${configDir}`. The Node declaration is loaded
+first; the application references retain their position after application
+declarations, including generated routes and browser matchers. Both
+package-owned declarations resolve references from their own installation,
+including under the isolated linker:
+
+| Packaged reference                          | Package                     |
+| ------------------------------------------- | --------------------------- |
+| `node`                                      | `@types/node`               |
+| `vite-plus/client`                          | `vite-plus`                 |
+| `vite-plus/test/globals`                    | `vite-plus`                 |
+| `@testing-library/jest-dom/vitest`          | `@testing-library/jest-dom` |
+| `@solidjs/vite-plugin/boundary-modules`     | `@solidjs/vite-plugin`      |
+| `@solidjs/vite-plugin/virtual-modules`      | `@solidjs/vite-plugin`      |
+| `@evertondgn/solid-tooling/virtual-modules` | `@evertondgn/solid-tooling` |
+| `@evertondgn/solid-tooling/icon-modules`    | `@evertondgn/solid-tooling` |
+| `filesystem-routing/types`                  | `filesystem-routing`        |
+
+The routing entry declares `virtual:file-routes` even before route types have
+been generated. Minimal applications need this declaration when importing
+runtime middleware that reads the route manifest. The tooling entry declares the
+application locale virtual modules, and its icon entry the `icon:` imports, by
+referencing the declarations of `@evertondgn/vite-plugin-solid-icons`.
+
+It also sets `customConditions` to `solid`, so TypeScript reads the files of a
+package that exports its source under that condition, such as
+`@evertondgn/solid-runtime`.
+
+The application still declares its `paths`:
+
+```json
+{
+  "extends": "@evertondgn/solid-tooling/tsconfig.app.json",
+  "compilerOptions": {
+    "paths": { "@/*": ["./src/*"], "@paraglide/*": ["./paraglide/*"] }
+  }
+}
+```
+
+Playwright reads the `tsconfig.json` of the test files with its own loader,
+which does not expand `${configDir}`, so paths declared in the package would
+break the `@/` imports of the end-to-end tests.

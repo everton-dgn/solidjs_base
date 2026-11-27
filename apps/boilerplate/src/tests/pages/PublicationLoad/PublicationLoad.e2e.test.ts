@@ -9,6 +9,7 @@ import {
   readBackendState,
   releaseFixtureGateQuietly
 } from '@/tests/helpers/fixtureGate/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 type HttpResult = { status: number; headers: Headers; bytes: number }
 type RequestState = { result?: HttpResult; error?: Error }
@@ -69,7 +70,13 @@ async function readRequest({
   state
 }: ReadOptions): Promise<void> {
   try {
-    const url = new URL('/pt/markdown-contract/sample.md', baseURL)
+    const url = new URL(
+      testLanguages.path(
+        testLanguages.alternate,
+        '/markdown-contract/sample.md'
+      ),
+      baseURL
+    )
     url.searchParams.set('id', id)
     const response = await fetch(url, { signal })
     const body = await response.arrayBuffer()
@@ -154,7 +161,9 @@ async function timedPages({
   const durations: number[] = []
   for (let index = 0; index < samples; index += 1) {
     const started = performance.now()
-    const response = await request.get('/pt/about')
+    const response = await request.get(
+      testLanguages.path(testLanguages.alternate, '/about')
+    )
     expect(response.status()).toBe(HTTP_OK)
     expect(response.headers()['content-type']).toContain('text/html')
     durations.push(performance.now() - started)
@@ -257,15 +266,19 @@ test('rejects excess publication before SSR, preserves normal HTML and recovers'
   expect(secondaryIdle.publication.active).toBe(0)
   expect(secondaryIdle.publication.outputs).toBe(0)
   expect(secondaryIdle.publication.reservedBytes).toBe(0)
-  const healthy = await request.get('/en/markdown-contract/sample.md')
+  const healthy = await request.get(
+    testLanguages.path(testLanguages.base, '/markdown-contract/sample.md')
+  )
   expect(healthy.status()).toBe(HTTP_OK)
-  expect(await healthy.text()).toContain('first:en:resolved')
+  expect(await healthy.text()).toContain(`first:${testLanguages.base}:resolved`)
 })
 
 test('measures a large admitted conversion alongside normal SSR', async ({
   request
 }, testInfo) => {
-  const warm = await request.get('/pt/publication-cpu/small.md')
+  const warm = await request.get(
+    testLanguages.path(testLanguages.alternate, '/publication-cpu/small.md')
+  )
   expect(warm.status()).toBe(HTTP_OK)
   const baselineMs = await timedPages({ request, samples: BASELINE_SAMPLES })
   const monitor = await request.post('/publication-probe')
@@ -279,7 +292,9 @@ test('measures a large admitted conversion alongside normal SSR', async ({
       .toBeGreaterThan(0)
     const before = await readProbe({ request })
     const started = performance.now()
-    const largePromise = request.get('/pt/publication-cpu/large.md')
+    const largePromise = request.get(
+      testLanguages.path(testLanguages.alternate, '/publication-cpu/large.md')
+    )
     const loadedMsPromise = timedPages({ request, samples: LOAD_SAMPLES })
     const [large, loadedMs] = await Promise.all([largePromise, loadedMsPromise])
     const body = await large.body()
@@ -366,7 +381,9 @@ test('retains output for a paused HTTP consumer and cancels it at the deadline',
     expect(waiting.publication.active).toBe(0)
     expect(waiting.publication.outputs).toBe(1)
     expect(waiting.publication.reservedBytes).toBe(STREAM_RESERVATION_BYTES)
-    const rejected = await request.get('/pt/publication-cpu/small.md')
+    const rejected = await request.get(
+      testLanguages.path(testLanguages.alternate, '/publication-cpu/small.md')
+    )
     expect(rejected.status()).toBe(HTTP_UNAVAILABLE)
     await expect
       .poll(async () => {
@@ -398,7 +415,9 @@ test('sitemap GET and HEAD preserve independent bodies and metadata concurrently
   ]) {
     expect(head.headers()[header]).toBe(get.headers()[header])
   }
-  expect(await get.text()).toContain('/pt/catalog/a-1')
+  expect(await get.text()).toContain(
+    testLanguages.path(testLanguages.alternate, '/catalog/a-1')
+  )
   expect(await head.body()).toHaveLength(0)
   const idle = await readProbe({ request })
   expect(idle.publication).toMatchObject({
@@ -426,12 +445,16 @@ test('sitemap tolerates removing a partition after its index and then rolling ba
     expect(await current.text()).not.toContain('/sitemaps/catalog/a.xml')
     const retained = await request.get('/sitemaps/catalog/b.xml')
     expect(retained.status()).toBe(HTTP_OK)
-    expect(await retained.text()).toContain('/pt/catalog/b-1')
+    expect(await retained.text()).toContain(
+      testLanguages.path(testLanguages.alternate, '/catalog/b-1')
+    )
   } finally {
     const restored = await request.post('/publication-source?removed=0')
     expect(restored.status()).toBe(HTTP_NO_CONTENT)
   }
   const restored = await request.get('/sitemaps/catalog/a.xml')
   expect(restored.status()).toBe(HTTP_OK)
-  expect(await restored.text()).toContain('/pt/catalog/a-1')
+  expect(await restored.text()).toContain(
+    testLanguages.path(testLanguages.alternate, '/catalog/a-1')
+  )
 })

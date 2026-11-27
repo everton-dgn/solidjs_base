@@ -28,7 +28,6 @@ import {
 } from '../font-scenarios.ts'
 import { smokeMiddleware } from '../middleware-smoke.ts'
 import {
-  assertGuidePlugin,
   checkBrowserCloseFailure,
   checkHandlerFailure,
   checkLaunchFailure,
@@ -62,12 +61,9 @@ import {
   mutateServerErrors,
   smokeServerErrors
 } from '../server-errors.ts'
+import { checkStaticOutput } from '../static-output-scenario.ts'
 import { smokeTheme } from '../theme-smoke.ts'
-import {
-  checkApplicationVersions,
-  checkPackageEngines,
-  readPinned
-} from '../workspace-versions.ts'
+import { readPinned } from '../workspace-versions.ts'
 
 const ROOT = path.resolve(import.meta.dirname, '../../../../..')
 const SCENARIOS = ['client-only', 'ssr-plain', 'ssr-i18n']
@@ -108,6 +104,91 @@ type Target = { app: string; scenario: string }
 type PreviewTarget = Target & { hasInvalidPort?: boolean }
 
 type PackedMutation = { archive: string; deadline: number; name: string }
+
+const skillSchema = v.object({ path: v.string(), package: v.string() })
+const inventorySchema = v.object({ skills: v.array(skillSchema) })
+type DiagnosticsTarget = { app: string; deadline: number }
+
+async function checkDiagnostics({ app, deadline }: DiagnosticsTarget) {
+  const instructions = path.join(app, 'AGENTS.md')
+  const check = (expectedError: RegExp) =>
+    run({
+      cwd: app,
+      deadline,
+      args: ['run', 'agents', '--check'],
+      expectedError,
+      expectedCode: 1
+    })
+  assert.equal(existsSync(instructions), false)
+  await check(/AGENTS\.md: missing/u)
+  for (const [command, option] of [
+    ['agents', '--json'],
+    ['doctor', '--check']
+  ] as const) {
+    await run({
+      deadline,
+      cwd: app,
+      args: ['run', command, option],
+      expectedError: /Unknown option/u
+    })
+  }
+  assert.equal(existsSync(instructions), false)
+  await run({ deadline, cwd: app, args: ['run', 'agents'] })
+  const generated = readFileSync(instructions)
+  await run({ deadline, cwd: app, args: ['run', 'agents', '--check'] })
+  await run({ deadline, cwd: app, args: ['run', 'agents'] })
+  assert.deepEqual(readFileSync(instructions), generated)
+  const stale = generated
+    .toString()
+    .replace('Before changing code', 'Before editing code')
+  writeFileSync(instructions, stale)
+  await check(/AGENTS\.md: outdated/u)
+  assert.deepEqual(readFileSync(instructions), Buffer.from(stale))
+  writeFileSync(instructions, generated)
+  const configured = await run({
+    deadline,
+    cwd: app,
+    args: ['run', 'doctor', '--json']
+  })
+  assert.match(configured, /"vp run check-project"/u)
+  // The direct command remains available even when the preset cannot load.
+  const child = path.join(app, 'nested')
+  mkdirSync(child)
+  writeFileSync(
+    path.join(child, 'package.json'),
+    readFileSync(path.join(app, 'package.json'))
+  )
+  writeFileSync(
+    path.join(child, 'vite.config.ts'),
+    "throw new Error('invalid scenario config')"
+  )
+  const command =
+    /If the Vite config fails to load, run `(?<command>[^`]+)`/u.exec(
+      generated.toString()
+    )?.groups?.command
+  assert.ok(command)
+  const diagnostic = await run({
+    deadline,
+    cwd: child,
+    file: 'sh',
+    args: ['-c', `${command} --json`]
+  })
+  const inventory = v.parse(inventorySchema, JSON.parse(diagnostic))
+  for (const name of [
+    '@evertondgn/solid-tooling',
+    '@evertondgn/solid-runtime',
+    '@evertondgn/vite-plugin-solid-icons',
+    'solid-js'
+  ]) {
+    assert.ok(
+      inventory.skills.some(skill => skill.package === name),
+      name
+    )
+  }
+  for (const skill of inventory.skills) {
+    assert.ok(readFileSync(skill.path, 'utf8').startsWith('---'))
+  }
+}
 
 async function removePackedDependency({
   archive,
@@ -448,10 +529,6 @@ function assertBuild({ app, scenario }: Target): void {
   }
 }
 
-test('the no-server guide shows the plugin of the scenario', () => {
-  const guide = path.join(ROOT, 'docs/tooling/no-server.md')
-  assertGuidePlugin(readFileSync(guide, 'utf8'))
-})
 test('the no-server server serves nothing outside dist', checkServerContainment)
 test(
   'the no-server server closes when the browser does not launch',
@@ -473,13 +550,6 @@ test(
   { timeout: CHECK_TIMEOUT },
   checkProfileFailure
 )
-
-test('the applications pin the versions of the workspace', () => {
-  checkApplicationVersions({ root: ROOT, scenarios: SCENARIOS })
-})
-test('the packages require the Node version of the workspace', () => {
-  checkPackageEngines(ROOT)
-})
 
 async function buildScenario({
   app,
@@ -529,6 +599,7 @@ async function buildScenario({
 for (const scenario of SCENARIOS) {
   for (const linker of [
     ...LINKERS,
+    ...(scenario === 'client-only' ? [] : ['isolated-static']),
     ...(scenario === 'ssr-i18n' ? [] : ['isolated-language']),
     ...(scenario === 'ssr-plain'
       ? [
@@ -633,6 +704,7 @@ for (const scenario of SCENARIOS) {
             linker.startsWith('isolated-') ? 'isolated' : linker
           ]
         })
+        await checkDiagnostics({ app, deadline })
         mutateLocaleStandIn({ app, mutation: MUTATION })
         if (scenario === 'ssr-i18n') {
           // Keep the shared fixture App unchanged while adopting the catalog ID convention.
@@ -664,6 +736,14 @@ for (const scenario of SCENARIOS) {
               "createSecurityHeaders({ headers: { 'x-content-type-options': 'broken' } })"
             )
           )
+        }
+        if (linker === 'isolated-static') {
+          await checkStaticOutput({
+            app,
+            deadline,
+            isTranslated: scenario === 'ssr-i18n'
+          })
+          return
         }
         const envChecks = await prepareEnvScenario({
           app,

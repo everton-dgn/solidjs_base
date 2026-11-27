@@ -2,10 +2,6 @@ import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
 import { m } from '@paraglide/messages.js'
 
 export const seo = {
-  get title() {
-    return m.about_title()
-  },
-  get description() {
-    return m.about_description()
-  }
+  title: m.about_title,
+  description: m.about_description
 } satisfies SeoRouteInfo

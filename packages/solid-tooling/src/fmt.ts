@@ -28,6 +28,8 @@ export const fmt: NonNullable<UserConfig['fmt']> = {
     ICON_TYPES_FILE,
     '**/*.svg',
     '*.lock',
+    // pnpm rewrites this file during installation.
+    'pnpm-workspace.yaml',
     'AGENTS.md',
     '.agents/**',
     '.claude/**'

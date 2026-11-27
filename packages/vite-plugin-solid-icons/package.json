@@ -1,7 +1,7 @@
 {
   "name": "@evertondgn/vite-plugin-solid-icons",
   "version": "0.10.0",
-  "description": "Vite plugin that turns Iconify collections and folders of SVG files into SolidJS 2 components.",
+  "description": "Iconify collections and your own SVG folders as typed SolidJS 2 components, with only the icons you use in the bundle.",
   "author": "Éverton Toffanetto",
   "license": "MIT",
   "repository": {
@@ -25,6 +25,8 @@
   },
   "files": [
     "dist",
+    "docs",
+    "skills",
     "icon-modules.d.ts"
   ],
   "exports": {
@@ -50,17 +52,17 @@
     "magic-string": "1.4.5"
   },
   "peerDependencies": {
-    "@solidjs/web": "2.0.0",
+    "@solidjs/web": "2.0.3",
     "vite-plus": "1.7.0"
   },
   "devDependencies": {
     "@iconify-json/hugeicons": "1.2.36",
     "@solidjs/vite-plugin": "3.0.1",
-    "@solidjs/web": "2.0.0",
+    "@solidjs/web": "2.0.3",
     "@types/node": "26.6.6",
-    "knip": "6.45.1",
+    "knip": "6.47.0",
     "playwright": "1.65.1",
-    "solid-js": "2.0.0",
+    "solid-js": "2.0.3",
     "tsrs": "catalog:",
     "typescript": "7.0.2",
     "vite": "catalog:",

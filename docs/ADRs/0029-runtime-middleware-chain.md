@@ -1,6 +1,7 @@
 # 0029. Middleware composition and entry helpers belong to the runtime
 
-- Status: Accepted
+- Status: Accepted, amended by [0034](0034-runtime-markdown-publication.md) for
+  the Markdown step
 - Date: 2026-11-14
 
 ## Context
@@ -70,7 +71,7 @@ security and API in the factory must fail the runtime order regression. See
 Derived applications remove their local containment and locals declaration and
 configure the package factory. The boilerplate keeps a small binding that lets
 its E2E entry prepend extra steps to the same production chain. Header values,
-Markdown and public message catalogs remain application-owned.
+the Markdown binding and public message catalogs remain application-owned.
 
 Development still rethrows. Production still recognizes cancellation only by
 identity with the aborted request signal. The boundary does not cover failures

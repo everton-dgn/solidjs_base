@@ -1,0 +1,91 @@
+import type { switches } from './profile-answers.ts'
+
+type Replacement = readonly [
+  pattern: string | RegExp,
+  replacement: string,
+  shouldApply?: boolean
+]
+type ApplyEdits = (text: string, edits: readonly Replacement[]) => string
+
+export type LocaleSettings = { locales: string[]; baseLocale: string }
+
+export type Profile = {
+  pm: 'bun' | 'pnpm' | 'npm'
+  dir: string
+  mode?: 'server' | 'static' | 'client'
+  hasSeo?: boolean
+  hasTheme?: boolean
+  hasIcons?: boolean
+  hasFonts?: boolean
+  hasDiagnostics?: boolean
+  locales?: readonly string[]
+  baseLocale?: string
+  hasI18n?: boolean
+  title?: string
+  siteUrl?: string
+  onSeededCatalogs?: (messages: string[]) => void
+  shouldInitGit: boolean
+  shouldInstall: boolean
+}
+
+export type Versions = Record<string, string>
+export type GenerationContext = {
+  profile: Profile
+  pkg: {
+    name: string
+    description?: string
+    packageManager?: string
+    dependencies: Versions
+    devDependencies: Versions
+    scripts: Versions
+    overrides?: Versions
+    patchedDependencies?: Versions
+  }
+  settings: {
+    bunVersion: string
+    catalog: Versions
+    versions: Versions
+    overrides: Versions
+    patches: Versions
+    bunfig: string
+    lefthook: string
+  }
+  write: (output: FileWrite) => void
+}
+
+export type FileWrite = { file: string; content: string }
+
+export type StagedContext = GenerationContext & { stage: string }
+
+export type EditFile = (
+  file: string,
+  transform: (text: string, apply: ApplyEdits) => string
+) => void
+
+export type Answers = Partial<
+  Record<
+    (typeof switches)[number] | `no-${(typeof switches)[number]}` | 'no-i18n',
+    boolean
+  >
+> &
+  Partial<
+    Record<
+      'name' | 'title' | 'locales' | 'base-locale' | 'site-url' | 'pm' | 'mode',
+      string
+    >
+  >
+
+export type ValidationCode =
+  | 'destination'
+  | 'badTitle'
+  | 'origin'
+  | 'needsSeo'
+  | 'clientSeo'
+  | 'tag'
+  | 'list'
+  | 'noTranslations'
+  | 'membership'
+  | 'clientLanguages'
+  | 'conflict'
+  | 'invalid'
+  | 'occupied'

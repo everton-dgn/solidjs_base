@@ -5,12 +5,16 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: '17 6 * * *'
   workflow_dispatch:
 
 permissions: {}
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
+  group:
+    ci-${{ github.event.pull_request.number || (github.event_name == 'schedule'
+    && 'daily') || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -30,89 +34,20 @@ jobs:
       docs: ${{ steps.classify.outputs.docs }}
       packages: ${{ steps.classify.outputs.packages }}
       app: ${{ steps.classify.outputs.app }}
+      generator: ${{ steps.classify.outputs.generator }}
+      consistency: ${{ steps.classify.outputs.consistency }}
+      expected: ${{ steps.classify.outputs.expected }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Classify the changed files
         id: classify
         env:
           GH_TOKEN: ${{ github.token }}
-          EVENT: ${{ github.event_name }}
-          PR: ${{ github.event.pull_request.number }}
-          REPO: ${{ github.repository }}
-          BEFORE: ${{ github.event.before }}
-          SHA: ${{ github.sha }}
-        run: |
-          emit() {
-            printf 'docs=%s\npackages=%s\napp=%s\n' "$1" "$2" "$3" | tee -a "$GITHUB_OUTPUT"
-          }
-          # The compare API lists at most this many files.
-          max_files=300
-          # A renamed file counts in the area it left and in the one it entered.
-          # A removed or renamed file carries the moved: prefix, because a link
-          # can point to it.
-          paths='[] | if .status == "removed" or .status == "renamed" then ("moved:" + .filename), (.previous_filename // empty | "moved:" + .) else .filename end'
-          case "$EVENT" in
-            pull_request)
-              files="$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq ".$paths")"
-              ;;
-            push)
-              read -r tree base head rest <<< "$(gh api "repos/$REPO/commits/$SHA" --jq '[.commit.tree.sha, .parents[].sha] | join(" ")')"
-              if [ -n "${head:-}" ] && [ -z "${rest:-}" ]; then
-                # The pull request run checked the tree of the branch head when
-                # the branch had every commit of main. The merge commit has to
-                # carry that same tree: a merge made by hand can add edits.
-                behind="$(gh api "repos/$REPO/compare/$base...$head" --jq '.behind_by')"
-                head_tree="$(gh api "repos/$REPO/commits/$head" --jq '.commit.tree.sha')"
-                passed="$(gh api "repos/$REPO/commits/$head/check-runs?check_name=CI%20required" --jq '[.check_runs[] | select(.conclusion == "success")] | length')"
-                if [ "$behind" -eq 0 ] && [ "$tree" = "$head_tree" ] && [ "$passed" -gt 0 ]; then
-                  echo "The pull request run of $head already checked this tree."
-                  emit false false false
-                  exit 0
-                fi
-              fi
-              files="$(gh api "repos/$REPO/compare/$BEFORE...$SHA" --jq ".files$paths")"
-              if [ "$(printf '%s\n' "$files" | wc -l)" -ge "$max_files" ]; then
-                emit true true true
-                exit 0
-              fi
-              ;;
-            *)
-              emit true true true
-              exit 0
-              ;;
-          esac
-          docs=false
-          packages=false
-          app=false
-          while IFS= read -r file; do
-            case "$file" in
-              moved:*)
-                docs=true
-                file="${file#moved:}"
-                ;;
-            esac
-            case "$file" in
-              # The root package.json registers these patches for the whole
-              # workspace, the runtime dependencies included.
-              apps/boilerplate/patches/*)
-                packages=true
-                app=true
-                ;;
-              # The link check reads the README and the guides of the app.
-              apps/boilerplate/*.md)
-                docs=true
-                app=true
-                ;;
-              apps/boilerplate/*) app=true ;;
-              *.md | docs/* | LICENSE | .coderabbit.yaml | .github/ISSUE_TEMPLATE/*) docs=true ;;
-              # A README can link any file, so moving one needs the link check.
-              *)
-                docs=true
-                packages=true
-                app=true
-                ;;
-            esac
-          done <<< "$files"
-          emit "$docs" "$packages" "$app"
+        run: node tooling/ci/changes.ts
 
   docs:
     name: Docs
@@ -131,6 +66,7 @@ jobs:
       - name: Set up Vite+
         uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
         with:
+          cache-save: false
           cache: true
           cache-dependency-path: bun.lock
           run-install: false
@@ -155,7 +91,8 @@ jobs:
             '^https://raw\.githubusercontent\.com/everton-dgn/solidjs_base/main/
             file://${{ github.workspace }}/' --offline --include-fragments
             --no-progress README.md AGENTS.md CONTRIBUTING.md SECURITY.md
-            'docs/**/*.md' 'packages/*/README.md' '.github/**/*.md'
+            'docs/**/*.md' 'packages/*/README.md' 'packages/*/docs/**/*.md'
+            'packages/*/skills/**/*.md' '.github/**/*.md'
             'apps/boilerplate/README.md' 'apps/boilerplate/AGENTS.md'
             'apps/boilerplate/docs/**/*.md'
           fail: true
@@ -184,9 +121,119 @@ jobs:
       - name: Install dependencies
         run: vp install --frozen-lockfile
 
-      # Same command as the publish job in release.yml.
+      # The release verification job uses the same package checks.
       - name: Validate
         run: vp run validate
+
+  consistency:
+    name: Consistency
+    needs: changes
+    if: needs.changes.outputs.consistency == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
+        with:
+          cache-save: false
+          cache: true
+          cache-dependency-path: bun.lock
+          run-install: false
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile
+
+      - name: Run checks
+        run: |
+          vp run test:consistency
+          vp run test:ci
+
+  generator:
+    name: Generator
+    needs: changes
+    if: needs.changes.outputs.generator == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
+        with:
+          cache-save: false
+          cache: true
+          cache-dependency-path: bun.lock
+          run-install: false
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile
+
+      # The questionnaire harness of test:tarball resizes a tmux window, and
+      # the software list of the runner image does not include tmux.
+      - name: Install tmux
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes tmux
+
+      - name: Run checks
+        run: |
+          vp run validate:generator
+
+  scenario:
+    name: Generated app (${{ matrix.scenario }})
+    needs: changes
+    if: needs.changes.outputs.generator == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          - bun
+          - pnpm
+          - npm
+          - static-with-seo
+          - server-without-i18n
+          - static-seeded-locales
+          - default-client
+          - server-without-theme
+          - minimal-client
+          - server-without-ui-features
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
+        with:
+          cache-save: false
+          cache: true
+          cache-dependency-path: bun.lock
+          run-install: false
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile
+
+      - name: Run checks
+        run: |
+          vp run build
+          node packages/create-solid/tooling/scenario.ts "${{ matrix.scenario }}"
 
   # The app suites run in two parallel jobs: the end-to-end tests take about
   # half of the time on their own.
@@ -210,6 +257,7 @@ jobs:
       - name: Set up Vite+
         uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
         with:
+          cache-save: false
           cache: true
           cache-dependency-path: bun.lock
           run-install: false
@@ -222,7 +270,9 @@ jobs:
       # and Vite+ loads it before any task, so no task can build them first.
       - name: Build the packages
         working-directory: .
-        run: vp run build
+        run: >-
+          vp run --fail-if-no-match --filter @evertondgn/solid-tooling --filter
+          @evertondgn/vite-plugin-solid-icons build
 
       - name: Check
         run: vp run check:ci
@@ -259,6 +309,7 @@ jobs:
       - name: Set up Vite+
         uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
         with:
+          cache-save: false
           cache: true
           cache-dependency-path: bun.lock
           run-install: false
@@ -269,13 +320,18 @@ jobs:
 
       - name: Build the packages
         working-directory: .
-        run: vp run build
+        run: >-
+          vp run --fail-if-no-match --filter @evertondgn/solid-tooling --filter
+          @evertondgn/vite-plugin-solid-icons build
 
       - name: Build
         run: vp run build
 
       - name: Run end-to-end tests
         run: vp run test:e2e
+
+      - name: Run production end-to-end tests
+        run: vp run test:e2e:production
 
   # WHY: release-please reads the body of a merge commit as one more commit, so
   # the title of a pull request merged with the merge button becomes a changelog
@@ -303,26 +359,36 @@ jobs:
             exit 1
           fi
 
-  # The only check the main ruleset requires. A job skipped by its `if`
-  # reports success, so this passes when every job passed or was skipped.
+  # The ruleset requires this check. Compare each expected leg with its own result.
   required:
     name: CI required
-    needs: [changes, docs, packages, app, app-e2e, merge-message]
+    needs:
+      [
+        changes,
+        docs,
+        packages,
+        consistency,
+        generator,
+        scenario,
+        app,
+        app-e2e,
+        merge-message
+      ]
     if: always()
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions: {}
+    permissions:
+      actions: read
+      contents: read
     steps:
-      - name: Check the job results
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check every job in this attempt
         env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
-        run: |
-          for result in $RESULTS; do
-            case "$result" in
-              success | skipped) ;;
-              *)
-                echo "A job this check depends on ended as $result." >&2
-                exit 1
-                ;;
-            esac
-          done
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED: ${{ needs.changes.outputs.expected }}
+          NEEDS: ${{ toJSON(needs) }}
+        run: node tooling/ci/required.ts

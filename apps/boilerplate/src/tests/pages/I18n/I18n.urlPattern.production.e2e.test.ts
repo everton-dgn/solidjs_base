@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test'
 
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 import { watchCspViolations } from '@/tests/helpers/watchCspViolations/index.ts'
 
 type UrlPatternKind = 'native' | 'polyfill' | 'missing'
@@ -25,10 +26,10 @@ async function loadHome(page: Page): Promise<LoadedPage> {
       scripts.add(new URL(request.url()).pathname)
     }
   })
-  await page.goto('/pt')
+  await page.goto(testLanguages.path(testLanguages.alternate, ''))
   await expect.poll(() => hydrationFinished(page)).toBe(true)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'SolidJS Boilerplate para aplicações web'
+    testLanguages.labels(testLanguages.alternate).title
   )
   // The copy ends the collection at the same point on both pages.
   return {
@@ -72,17 +73,32 @@ test('loads the URLPattern polyfill only without the native API and keeps the lo
   }
 
   await page.getByRole('link', { name: '404', exact: true }).click()
-  await expect(page).toHaveURL('/pt/404')
-  await expect(page).toHaveTitle('Página não encontrada')
-  await page.getByRole('link', { name: 'Voltar ao início' }).click()
-  await expect(page).toHaveURL('/pt')
-  await page.getByRole('button', { name: 'Selecionar idioma' }).click()
+  await expect(page).toHaveURL(
+    testLanguages.path(testLanguages.alternate, '/404')
+  )
+  await expect(page).toHaveTitle(
+    testLanguages.labels(testLanguages.alternate).missing
+  )
   await page
-    .getByRole('menuitemradio', { name: 'English', exact: true })
+    .getByRole('link', {
+      name: testLanguages.labels(testLanguages.alternate).home
+    })
     .click()
-  await expect(page).toHaveURL('/en')
+  await expect(page).toHaveURL(testLanguages.path(testLanguages.alternate, ''))
+  await page
+    .getByRole('button', {
+      name: testLanguages.labels(testLanguages.alternate).selector
+    })
+    .click()
+  await page
+    .getByRole('menuitemradio', {
+      name: testLanguages.labels(testLanguages.base).name,
+      exact: true
+    })
+    .click()
+  await expect(page).toHaveURL(testLanguages.path(testLanguages.base, ''))
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'SolidJS Boilerplate for web applications'
+    testLanguages.labels(testLanguages.base).title
   )
   await expect.poll(() => hydrationFinished(page)).toBe(true)
   expect(await readUrlPatternKind(page)).toBe('polyfill')

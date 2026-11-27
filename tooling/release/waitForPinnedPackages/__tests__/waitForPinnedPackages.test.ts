@@ -87,6 +87,38 @@ function stoppedWithin(duration: string): CommandResult {
 }
 
 describe('waitForPinnedPackages', () => {
+  it('waits for template pins of any packed workspace', async context => {
+    const folder = await makeFolder(context)
+    const root = await makeWorkspace({
+      folder,
+      workspaces: ['packages/*'],
+      packages: PACKAGES
+    })
+    const tarball = await writeTarball({
+      folder,
+      entries: [
+        {
+          name: 'package/package.json',
+          content: JSON.stringify({ name: '@x/extra', version: '0.8.0' })
+        },
+        {
+          name: 'package/dist/settings.json',
+          content: JSON.stringify({ versions: { '@x/runtime': '0.8.0' } })
+        }
+      ]
+    })
+    const fake = fakeEnvironment({ registry: { [RUNTIME]: [found('0.8.0')] } })
+    await waitForPinnedPackages({
+      root,
+      tarball,
+      timing: { interval: INTERVAL, timeout: ONE_MINUTE },
+      environment: fake.environment
+    })
+    assert.deepEqual(
+      fake.calls.map(call => call.args[1]),
+      [RUNTIME]
+    )
+  })
   it('passes without a call to npm when the tarball pins no package of this repository', async context => {
     const { result, calls, lines } = await runWait({
       context,

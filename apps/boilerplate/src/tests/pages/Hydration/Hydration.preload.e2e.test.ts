@@ -6,13 +6,14 @@ import * as v from 'valibot'
 import { holdRoute } from '@/tests/helpers/holdRoute/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 import { watchEntryLoad } from '@/tests/helpers/watchEntryLoad/index.ts'
 
 const chunkSchema = v.object({
   file: v.string()
 })
 const manifestSchema = v.record(v.string(), chunkSchema)
-const HOME_TITLE = 'SolidJS Boilerplate for web applications'
+const HOME_TITLE = testLanguages.labels(testLanguages.base).title
 
 async function readHomeModule(request: APIRequestContext): Promise<string> {
   const json = await readFile(
@@ -28,7 +29,7 @@ async function readHomeModule(request: APIRequestContext): Promise<string> {
   )
   if (!entry) throw new Error('Missing home module in build manifest')
   const path = `/${entry[1].file}`
-  const response = await request.get('/en')
+  const response = await request.get(testLanguages.path(testLanguages.base, ''))
   expect(await response.text()).toContain(path)
   return path
 }
@@ -42,7 +43,9 @@ test('waits for the route module after the entry runs', async ({
   await watchEntryLoad(page)
   const homeModule = await holdRoute({ page, url: `**${path}` })
   try {
-    await page.goto('/en', { waitUntil: 'commit' })
+    await page.goto(testLanguages.path(testLanguages.base, ''), {
+      waitUntil: 'commit'
+    })
     await homeModule.requested
     await expect(page.locator('html')).toHaveAttribute('data-entry-loaded')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(HOME_TITLE)
@@ -50,7 +53,11 @@ test('waits for the route module after the entry runs', async ({
 
     await homeModule.release()
     await expect.poll(() => hydrationFinished(page)).toBe(true)
-    await page.getByRole('button', { name: 'Select theme' }).click()
+    await page
+      .getByRole('button', {
+        name: testLanguages.labels(testLanguages.base).theme
+      })
+      .click()
     await expect(page.getByRole('menu')).toBeVisible()
     expect(pageErrors).toStrictEqual([])
   } finally {
@@ -70,14 +77,16 @@ test('keeps the HTML without the marker when the root preload fails', async ({
   )
   await watchEntryLoad(page)
   await page.route(`**${path}`, route => route.abort('failed'))
-  await page.goto('/en')
+  await page.goto(testLanguages.path(testLanguages.base, ''))
   await failed
   await expect(page.locator('html')).toHaveAttribute('data-entry-loaded')
   await expect.poll(() => pageErrors.length).toBeGreaterThan(0)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(HOME_TITLE)
   expect(await hydrationFinished(page)).toBe(false)
   await expect(
-    page.getByRole('button', { name: 'Select theme' })
+    page.getByRole('button', {
+      name: testLanguages.labels(testLanguages.base).theme
+    })
   ).toBeDisabled()
   await expect(page.getByRole('menu')).toHaveCount(0)
 })

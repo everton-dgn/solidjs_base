@@ -70,33 +70,32 @@ import { m } from '@paraglide/messages.js'
 import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
 
 export const seo = {
-  get title() {
-    return m.about_title()
-  },
-  get description() {
-    return m.about_description()
-  }
+  title: m.about_title,
+  description: m.about_description
 } satisfies SeoRouteInfo
 ```
 
 In `index.tsx`, import `seo` and use `info: { seo }` in the route definition,
-together with the other controls the page declares. Getters keep the locale of
-the request; do not copy the translated texts into values at the top of the
-module. The catalogs are in `i18n/{pt,en,es}.json` next to those files. The data
-that the component renders stays in `index.tsx`, in a non-exported constant with
-getters (the pages that use `SiteArticle` type it with `satisfies SitePage`), or
-in calls to `m` in the JSX itself. The route manifest imports the `route` of
-each page in the initial bundle, and everything that `seo.ts` imports goes with
-it. That is why the `seo` getters call the messages directly, without reading
-the page object, and the body stays only in the route module, downloaded on
-navigation. A page that still exports `content` from `seo.ts` should move it to
-`index.tsx` and replace the reads of `seo` with the messages. The
-`project/seo-module` lint rule reports a `seo.ts` that exports something other
-than `seo` or that imports a local module as a value, through a relative path,
-through an alias of the `src/routes` tree, through `import()` or through
-`import.meta.glob`, and the production i18n test checks that each body stays
-only in the route module. It is UI data: the Markdown does not read it, because
-it comes from the rendered HTML.
+together with the other controls the page declares. `title`, `description` and
+`image.alt` accept a message function, which the runtime calls each time it
+resolves the metadata, so the text follows the locale of the request. A message
+with parameters goes in a getter, such as
+`get title() { return m.post_title({ name }) }`. Do not copy the translated
+texts into values at the top of the module. The catalogs are in
+`i18n/{pt,en,es}.json` next to those files. The data that the component renders
+stays in `index.tsx`, in a non-exported constant with getters (the pages that
+use `SiteArticle` type it with `satisfies SitePage`), or in calls to `m` in the
+JSX itself. The route manifest imports the `route` of each page in the initial
+bundle, and everything that `seo.ts` imports goes with it. That is why `seo`
+points to the messages directly, without reading the page object, and the body
+stays only in the route module, downloaded on navigation. A page that still
+exports `content` from `seo.ts` should move it to `index.tsx` and replace the
+reads of `seo` with the messages. The `project/seo-module` lint rule reports a
+`seo.ts` that exports something other than `seo` or that imports a local module
+as a value, through a relative path, through an alias of the `src/routes` tree,
+through `import()` or through `import.meta.glob`, and the production i18n test
+checks that each body stays only in the route module. It is UI data: the
+Markdown does not read it, because it comes from the rendered HTML.
 
 `type` accepts `website` and `article`. It sets `og:type` and the page node in
 the JSON-LD: `WebPage` by default, or `Article` with `headline`, `author` (a
@@ -137,7 +136,8 @@ The runtime requires explicit site title, description, URL, locale and image.
 Author, organization, logo and social fields are optional. Without an
 organization it omits the Organization node and publisher references; without an
 author it omits Person and `twitter:creator`. There are no example identities in
-the package defaults. This copy supplies all its existing editorial fields.
+the package defaults. The application supplies all its existing editorial
+fields.
 
 ## Structured data per page
 
@@ -185,7 +185,8 @@ export default function FaqPage() {
 ```
 
 An `article` page, with its own image and a section in `llms.txt`, declares the
-type and the image in `seo.ts`, with the alternative text in a getter too:
+type and the image in `seo.ts`, with the alternative text as a message function
+too:
 
 ```ts
 import { m } from '@paraglide/messages.js'
@@ -193,20 +194,14 @@ import { m } from '@paraglide/messages.js'
 import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
 
 export const seo = {
-  get title() {
-    return m.team_title()
-  },
-  get description() {
-    return m.team_description()
-  },
+  title: m.team_title,
+  description: m.team_description,
   type: 'article',
   image: {
     path: '/images/team.png',
     width: 1200,
     height: 800,
-    get alt() {
-      return m.team_imageAlt()
-    }
+    alt: m.team_imageAlt
   }
 } satisfies SeoRouteInfo
 ```

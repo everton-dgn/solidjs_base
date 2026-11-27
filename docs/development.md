@@ -29,9 +29,9 @@ download another Chromium build.
 
 The root `package.json` lists two workspace folders:
 
-- `packages/*`: the packages published to npm, `@evertondgn/solid-tooling`,
-  `@evertondgn/solid-runtime` and `@evertondgn/vite-plugin-solid-icons`, which
-  the tooling depends on.
+- `packages/*`: the private application generator and the published packages
+  `@evertondgn/solid-tooling`, `@evertondgn/solid-runtime` and
+  `@evertondgn/vite-plugin-solid-icons`, which the tooling depends on.
 - `apps/*`: applications that use the packages through the workspace. They are
   never published.
 
@@ -48,7 +48,7 @@ runtime owns the routing helpers it imports and exports `StartMiddleware` from
 `./middleware/types`, without depending on the Solid plugin. The copy keeps
 routing and Playwright Test because its own code imports them; it neither
 declares nor imports Nitro, which comes with the tooling. See
-[requirements](tooling/limits.md#requirements) and
+[requirements](../packages/solid-tooling/docs/limits.md#requirements) and
 [ADR 0027](ADRs/0027-packaged-tool-dependencies.md).
 
 Bun's default trust list runs Lefthook's postinstall even as a transitive
@@ -95,26 +95,50 @@ application links the `@solidjs` folder of the workspace, so it reads the
 published types of `solid-js` and `@solidjs/web` and fails on an error inside
 them, such as a name that the types of `@solidjs/web` import and the types of
 `solid-js` leave out. The tsconfig of the tooling preset sets `skipLibCheck`, so
-an application on the preset does not see those errors; one without it does. The
-[Solid upgrade steps](../apps/boilerplate/docs/server-errors/solid-upgrades.md#upgrading-solid)
-run that check.
+an application on the preset does not see those errors; one without it does.
+After following the
+[Solid upgrade steps](../apps/boilerplate/docs/server-errors/solid-upgrades.md#upgrading-solid),
+run `vp run test:tarball` at the monorepo root to check the published types.
 
 ## Package commands
 
-Run them from the root. Package commands select `./packages/*`. The publish job
-runs `vp run validate`, including the minimal installed application matrix. The
-full boilerplate application suites remain separate.
+Run them from the root. Package commands select `./packages/*`. The release
+verification job runs `vp run validate`, including installed tooling fixtures.
+The full boilerplate application suites remain separate.
 
-| Command                 | What it does                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------- |
-| `vp run build`          | Compile the packages to `dist/`                                                                   |
-| `vp run check`          | Check format, lint and types at the root, then lint the runtime package in its folder             |
-| `vp run dead-code`      | Find unused files, exports and dependencies of the runtime and icons packages with Knip           |
-| `vp run test`           | Run the rule tests with `node:test`, the runtime and icons plugin tests and `vp run test:release` |
-| `vp run test:release`   | Run the tests of the release commands in `tooling/release/` with `node:test`                      |
-| `vp run test:tarball`   | Pack each package and install it in a temporary folder                                            |
-| `vp run test:scenarios` | Install and build three minimal applications with both Bun linkers                                |
-| `vp run validate`       | Build, check, dead code, package tests, tarball tests and application scenarios, in this order    |
+| Command                                                 | What it does                                                                                           |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `vp run build`                                          | Compile the packages to `dist/`                                                                        |
+| `vp run check`                                          | Check format, lint and types at the root, then lint the runtime package in its folder                  |
+| `vp run dead-code`                                      | Find unused files, exports and dependencies of the runtime and icons packages with Knip                |
+| `vp run test`                                           | Run the rule tests with `node:test`, the runtime and icons plugin tests and `vp run test:release`      |
+| `vp run test:release`                                   | Run the tests of the release commands in `tooling/release/` with `node:test`                           |
+| `vp run test:tarball`                                   | Check installed tarballs and compare generated profiles with the tracked app                           |
+| `vp run test:scenarios`                                 | Exercise installed fixtures with both Bun linkers and run generated app scenarios                      |
+| `node packages/create-solid/tooling/scenario.ts [name]` | Install and test one generated scenario or all when the name is omitted                                |
+| `vp run test:consistency`                               | Check workspace consistency                                                                            |
+| `vp run test:ci`                                        | Test job selection, results and workflow contracts                                                     |
+| `vp run validate`                                       | Validate published packages, workspace consistency and installed tooling fixtures                      |
+| `vp run validate:generator`                             | Build the other packages, check the workspace, build the generator, test profiles and packed templates |
+
+`vp run test:tarball` and `vp run validate:generator` run the questionnaire
+harness of the generator, which needs Python 3, bash, tmux, `ps` and `pgrep`. A
+test that does not find bash, tmux, `ps` or `pgrep` fails with a message that
+names the missing tool. On macOS a run may leave crash reports in
+`~/Library/Logs/DiagnosticReports` for the processes that `test_step_quit_key`
+ends with SIGQUIT (`node`, the `bash` behind the `sh` of the fake installer, and
+its `sleep`): macOS keeps at most 25 reports for each name. On Linux each
+process that the Ctrl+\ cases end with SIGQUIT may leave a core dump where the
+`core_pattern` of the system sends it; in the CI, bash reported the launcher of
+the terminal-close test as `Quit (core dumped)`.
+
+`vp run test:scenarios` and `node packages/create-solid/tooling/scenario.ts` run
+`test:browser:install` in each generated static and client application, which
+downloads the browser of Playwright: Chrome for Testing, Chrome Headless Shell
+and FFmpeg, as the CI log of the scenarios shows. Outside CI they go to the
+Playwright cache of the user (`~/Library/Caches/ms-playwright` on macOS,
+`~/.cache/ms-playwright` on Linux), about 615 MB on macOS, and stay there after
+the run.
 
 The rule tests that go through the Oxlint CLI load the plugins from `dist/`, so
 `vp run test` builds the package first. The runtime tests run in the Vitest of
@@ -156,6 +180,14 @@ rules, formatter settings and TypeScript base, and runs the full suites of the
 original. A change to a package that breaks the application fails here, before
 it becomes a version. [ADR 0009](ADRs/0009-boilerplate-app-in-the-monorepo.md)
 explains why the copy exists.
+
+The tracked app includes E2E fixture routes and examples for SSR, hydration, CSP
+and Markdown negotiation. Its UI components stay in the app. For a minimal
+starting point, choose an
+[installed fixture](../README.md#start-a-new-app-from-a-fixture). For an
+individual feature, the
+[application guide](../apps/boilerplate/README.md#what-each-page-and-feature-shows)
+links its binding and tests.
 
 Run its commands from `apps/boilerplate`:
 
@@ -358,44 +390,67 @@ Update the image, alt text and README together whenever those numbers change.
 
 ## CI
 
-`.github/workflows/ci.yml` runs on pull requests, on pushes to `main` and by
-hand. The `Changes` job reads the list of changed files and starts only the jobs
-those files affect. A push to `main` that merges an up-to-date pull request with
-a passed `CI required` starts no job, because the pull request run checked the
-same tree ([ADR 0017](ADRs/0017-main-reuses-the-pull-request-run.md)). Manual
-runs start every job.
+Every pull request runs Changes, Consistency and CI required. Consistency checks
+the workspace pins, the no-server guide and the workflow contracts. Generator
+runs its tests and parity checks. Ten Generated app jobs each install and build
+one generated project. The app jobs first build the tooling and icons.
 
-| Changed files                                                             | Jobs                                                 |
-| ------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `apps/boilerplate/patches/`                                               | Packages, Boilerplate app, Boilerplate app E2E       |
-| Markdown of `apps/boilerplate/`                                           | Docs, Boilerplate app, Boilerplate app E2E           |
-| Anything else in `apps/boilerplate/`                                      | Boilerplate app, Boilerplate app E2E                 |
-| Other Markdown, `docs/`, `LICENSE`, issue templates or `.coderabbit.yaml` | Docs                                                 |
-| Anything else: packages, fixtures, root config, lockfile, workflows       | Docs, Packages, Boilerplate app, Boilerplate app E2E |
+| Changed files                                                                     | Additional jobs                                 |
+| --------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Root Markdown, docs/, GitHub Markdown or published package READMEs and changelogs | Docs                                            |
+| Generator files except its manifest                                               | Docs, Generator, Generated app                  |
+| Boilerplate sources                                                               | Both boilerplate jobs, Generator, Generated app |
+| Boilerplate Markdown                                                              | Same as boilerplate sources, plus Docs          |
+| Boilerplate patches or manifest                                                   | Same as boilerplate sources, plus Packages      |
+| Published package guides and skills                                               | Docs, Packages, Generator, Generated app        |
+| Package code, generator manifest, root config or lockfile                         | All                                             |
 
-A pull request that touches more than one group runs the jobs of each. The last
-group runs the Docs job too, because a README can link any file and moving one
-breaks the link. For the same reason, removing or renaming a file of any group
-runs the Docs job, which checks the root, package and app guides, the
-`AGENTS.md` of the app included. The root `package.json` registers the patches
-of `apps/boilerplate/patches/` for the whole workspace, so a patch change also
-runs the package validation.
+Changes combines both paths of a rename and enables Docs for removals. Release
+pull requests, manual runs, the daily schedule, forced pushes and pull requests
+with at least 3,000 files run all suites. A checked merge tree reuses its pull
+request results ([ADR 0017](ADRs/0017-main-reuses-the-pull-request-run.md)).
+Pushes also check the merge commit body. CI required compares the direct
+dependencies and individual job results for its run attempt. In the `CI`
+workflow only, re-run all jobs when a partial rerun lacks an expected result.
 
-| Job                 | What it runs                                                                                                                                                                                                |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Docs                | `vp fmt --check`, and an offline link check (lychee) over the Markdown of the repository, anchors included; the absolute links to the `main` branch that the npm pages use are checked against the checkout |
-| Packages            | `vp run validate`, the same command as the publish job                                                                                                                                                      |
-| Boilerplate app     | `vp run build` at the root, then check, Node type check, dead code, tests with coverage and tooling tests                                                                                                   |
-| Boilerplate app E2E | `vp run build` at the root, then the application build and the end-to-end tests                                                                                                                             |
-| Merge commit body   | On a push to `main`, fails when the merge commit has a body, which release-please reads as one more commit                                                                                                  |
-| CI required         | Fails when any job above failed or was cancelled                                                                                                                                                            |
+Add each new job to the `required.needs` list in `ci.yml` and the expected job
+map in the classifier.
 
-`CI required` is the only check the `main` ruleset requires. A job skipped by
-its `if`
-[reports success](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-jobs-with-conditions),
-so a skipped job never blocks a merge, and a new job only needs to be added to
-the `needs` of `CI required`.
-[ADR 0010](ADRs/0010-ci-runs-what-a-change-affects.md) explains the choices.
+### Measuring the first push
+
+Open the CI run for the pull request and record each job's start and finish, the
+slowest installed scenario, and the elapsed time until CI required. Record queue
+time separately. Compare Changes, CI required and Merge commit body with their
+five-minute limits, Docs with ten minutes, Packages, Consistency, Generator and
+each scenario with fifteen, and each boilerplate job with twenty. On the first
+release, also time Verify and every installed scenario against fifteen minutes
+and Publish against thirty, including its ten-minute registry wait. Break down
+the slowest job by installation, build and tests. If Packages exceeds its limit,
+split installed tooling fixtures by profile with an assertion on the case count.
+If a generator or app job runs over, isolate its slow step and split independent
+suites while preserving the required-job inventory. Investigate queue time
+separately from runner limits.
+
+Record the run URL and measurements in the first push's pull request. Use
+`gh run view <run-id> --json jobs` for start and completion times. Flag jobs
+above 60% of their timeout. The historical hosted Packages job took 4 min 5 s (3
+min 50 s for validate). Compare the full critical path with the local baseline
+of 737 s and target of about 292 s, and the slowest generator leg with the local
+155 to 175 s range. Aim for Packages near the historical hosted duration. For
+docs alone, compare the former 180 s locally with Docs and Consistency. For
+generator-only changes, compare 737 s plus the app jobs with the slowest
+generator leg. For app-only changes, compare 737 s with the slower of the app
+jobs and the generator legs. Record the setup-vp restore key from
+`Cache restored from key:` or the cache miss for a cold run. `Cache mode: write`
+identifies the writer.
+
+After the full run passes, re-run one scenario with
+`gh run rerun <run-id> --job <job-id>`. Check that CI required passes on attempt
+2 and inspect
+`gh api --paginate repos/{owner}/{repo}/actions/runs/<run-id>/attempts/2/jobs`
+for the successful jobs from attempt 1 that were not re-run. Record both
+observations in the same pull request. If inherited jobs are missing, keep the
+gate closed and use the workflow-specific recovery instructions.
 
 The browser and end-to-end tests use the Chrome installed on the GitHub runner,
 as in the original repository.
@@ -412,14 +467,14 @@ someone comments `@codex review`.
 
 ## Installed application scenarios
 
-Run `vp run build && vp run test:scenarios` from the root. The matrix is also
-the final step of `vp run validate`. It copies `fixtures/apps/` outside the
-workspace and installs freshly packed tooling and runtime packages with Bun's
-hoisted and isolated linkers. The packed tooling pins the version of the icons
-plugin of this tree, which npm may not have yet or may hold with other code, so
-an `overrides` entry installs the packed icons plugin in its place. Every case
-runs node and dom tests, the `icons-generate` task, lint, TypeScript, build and
-output checks. SSR cases also request the local preview.
+Run `vp run build && vp run test:scenarios` from the root. Published package
+validation includes the tooling fixture matrix. It copies `fixtures/apps/`
+outside the workspace and installs freshly packed tooling and runtime packages
+with Bun's hoisted and isolated linkers. The packed tooling pins the version of
+the icons plugin of this tree, which npm may not have yet or may hold with other
+code, so an `overrides` entry installs the packed icons plugin in its place.
+Every case runs node and dom tests, the `icons-generate` task, lint, TypeScript,
+build and output checks. SSR cases also request the local preview.
 
 Each fixture maps a folder of SVG files with the `icons` option, and the
 client-only one also installs an Iconify collection. A type probe imports an
@@ -437,9 +492,12 @@ override or the engines differ from the workspace. It also fails when the
 `engines` or `devEngines` of `apps/boilerplate` differ from the root, since
 Nitro picks the runtime of the Vercel function from `engines.node`. The test
 after it fails when a package of `packages/` does not declare `>=` and the
-`devEngines` Node version of the root in `engines.node`. No browser download or
-remote page request belongs to this suite; only dependency installation uses the
-network. Paraglide uses a local project without remote modules.
+`devEngines` Node version of the root in `engines.node`. Install Playwright
+Chromium before running the matrix locally: the client-only isolated case opens
+the build in that browser, or in the runner's Chrome on CI. The suite downloads
+no browser, and its browser checks use local HTTP and files; only dependency
+installation uses the network. Paraglide uses a local project without remote
+modules.
 
 To select a case, use Node's `--test-name-pattern` with
 `packages/solid-tooling/src/tarball/__tests__/tarball.scenarios.test.ts`. For
@@ -473,10 +531,10 @@ client-only fixture uses `createLocalizedNavigate` and `localeTag` while its
 bundle audit keeps rejecting translation modules. It tests unprefixed DOM
 navigation, query, hash, state, history and the single-language `setLocale`
 no-op. Its additional `isolated-language` case sets `language: 'zh-Hant-TW'`.
-The matrix has 14 application cases plus the version-alignment test: 3
-client-only, 9 SSR plain and 2 SSR i18n. The alignment check also resolves and
-compares every runtime production dependency against the workspace catalog and
-application/tooling pins.
+The matrix has 14 installed application cases: 3 client-only, 9 SSR plain and 2
+SSR i18n. The runner also registers two version checks and six fast no-server
+checks. The alignment check also resolves and compares every runtime production
+dependency against the workspace catalog and application/tooling pins.
 
 The locale negative probes use `SCENARIO_MUTATION=locale-provider` or
 `locale-node` with `ssr-plain / isolated$`, and `locale-prefix` with
@@ -647,14 +705,15 @@ instrumented build checks the bundle graph.
 
 The preview smoke reads the application's server variable through an `extra`
 step of the middleware factory and checks a value different from the build
-environment. The public value is baked into the HTML. Each SSR plain case then
-starts preview with `PORT=abc`, requests the lazy server and requires HTTP 500
-plus the boot diagnostic naming `PORT`. It also injects a used server env import
-into the client entry and requires the plugin's boundary error, restores the
-entry, and retains the existing runtime server-only probe. These negative checks
-run in normal `validate`, including both linkers. See
+environment. The public value is baked into the HTML. The default
+`ssr-plain / isolated` case also starts preview with `PORT=abc`, requests the
+lazy server and requires HTTP 500 plus the boot diagnostic naming `PORT`. It
+then injects a used server env import into the client entry and requires the
+plugin's boundary error, restores the entry, and runs the existing runtime
+server-only probe. These negative checks run in normal `validate`, in the
+`isolated` linker only; the `hoisted` case runs the plain smoke. See
 [ADR 0030](ADRs/0030-packaged-environment-schemas.md) and the
-[environment API](tooling/app-config.md#optional-environment-validation).
+[environment API](../packages/solid-tooling/docs/app-config.md#optional-environment-validation).
 
 ## Packaged fonts
 
@@ -675,7 +734,8 @@ Use `SCENARIO_MUTATION=fonts-href` or `fonts-inline` with
 prove the corresponding audit fails. These mutate only the temporary
 installation. Run the copy's test suites separately from package builds and the
 matrix; its production E2E checks the real CSP. See
-[ADR 0032](ADRs/0032-packaged-fonts.md) and the [font API](tooling/fonts.md).
+[ADR 0032](ADRs/0032-packaged-fonts.md) and the
+[font API](../packages/solid-tooling/docs/fonts.md).
 
 ## Markdown and llms publication
 
@@ -687,9 +747,42 @@ pipeline.
 
 The installed matrix adds four SSR plain profiles under the isolated linker:
 `isolated-markdown-only`, `isolated-llms-only`, `isolated-publication-off` and
-`isolated-dynamic-only`. The all-enabled cases still run with both linkers and
-with/without i18n. There are fifteen cases including version alignment.
-`SCENARIO_MUTATION=llms-budget` on `ssr-plain / isolated$` must fail the build;
-`llms-link` and `llms-module` on `ssr-plain / isolated-publication-off$` must
-fail the bundle/config audit. See
+`isolated-dynamic-only`. The all-enabled cases still run with both linkers, with
+and without i18n. See
+[Installed application scenarios](#installed-application-scenarios) for the full
+matrix and its separate checks. `SCENARIO_MUTATION=llms-budget` on
+`ssr-plain / isolated$` must fail the build; `llms-link` and `llms-module` on
+`ssr-plain / isolated-publication-off$` must fail the bundle/config audit. See
 [ADR 0034](ADRs/0034-runtime-markdown-publication.md).
+
+## Updating the generator template
+
+Assign each new tracked app path and its external imports in
+`packages/create-solid/features.json`. Review whole-file variants against
+`packages/create-solid/variant-sources.json`. Stage the app changes first, then
+record the Git tree from the index in the same commit. From the repository root:
+
+```sh
+tree=$(git write-tree)
+git rev-parse "$tree:apps/boilerplate" > packages/create-solid/app-tree.txt
+```
+
+After committing the app and its digest, run `vp run build`. In
+`packages/create-solid`, run `node tooling/parity.ts --update` and review the
+changes in `expected.<manager>.diff` before committing them. The parity test
+reads the app from the current commit and generates the comparison tree from the
+packed CLI.
+
+Each reduced profile differs from its parent by one named feature or mode. The
+fast matrix checks each changed Markdown section and section order against
+`packages/create-solid/guide-edits.txt`. After reviewing a change to the guide
+edits, run `node tooling/review-guide-ownership.ts` in the generator package and
+review the affected owners, documents and sections before committing the list.
+
+The tracked application exercises the workspace source. Run package tests at the
+root when editing lint policies in `packages/solid-tooling/src/` or runtime
+helpers in `packages/solid-runtime/src/`. Root validation also checks the
+tarballs against installed applications. The generated application installs
+registry pins and configures its own hooks. While the generator is private,
+template changes cannot release it. Once it joins the group, a `fix` or `feat`
+that updates its template digest will trigger a linked release.

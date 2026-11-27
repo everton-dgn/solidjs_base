@@ -43,32 +43,32 @@ upgrade are in
 [server errors](../server-errors/ssr-integrity.md#ssr-integrity-for-markdown).
 
 The build prerender goes through the same adapter. The compiled
-`packages/solid-tooling/src/publication/markdownPrerender/` module asks the
-middleware for the list of static pages (`/_markdown/static.json`), prerenders
-each `.md` and publishes the list as a static file, together with `llms.txt`.
-The middleware only builds the list in the prerender worker, which gets the
-phase from the process environment and from the `x-nitro-prerender` header. In
-production, any client reads the published file, and the header alone does not
-rebuild the inventory: it authenticates nothing. That is why the list can only
-hold public pages, the same ones that the build publishes as `.md`; on a
-redirect, the header only replaces the response with a public 500. A page that
-fails or is not written, or a list that is invalid or does not go through the
-prerender, stops the build. Nitro only fails per route with a recorded error; a
-rejection in the fetch or in the write would leave the file out without failing,
-which is why the module checks at the end that each `.md` of the list was
-written. The status stays with the adapter: only a 200 response becomes
-Markdown, and a redirect in the prerender becomes a 500, which stops the build.
-The validation of the written artifact checks the MIME, the real `fileName`,
-UTF-8 and the content. A redirect or an HTML document written as `.md.html` does
-not satisfy the expected publication. A short page or a legitimate example of
-HTML inside the Markdown are still valid; there is no universal minimum of
-characters and no ban on isolated tags. The result is in
+[`markdownPrerender`](../../../../packages/solid-tooling/src/publication/markdownPrerender)
+module asks the middleware for the list of static pages
+(`/_markdown/static.json`), prerenders each `.md` and publishes the list as a
+static file, together with `llms.txt`. The middleware only builds the list in
+the prerender worker, which gets the phase from the process environment and from
+the `x-nitro-prerender` header. In production, any client reads the published
+file, and the header alone does not rebuild the inventory: it authenticates
+nothing. That is why the list can only hold public pages, the same ones that the
+build publishes as `.md`; on a redirect, the header only replaces the response
+with a public 500. A page that fails or is not written, or a list that is
+invalid or does not go through the prerender, stops the build. Nitro only fails
+per route with a recorded error; a rejection in the fetch or in the write would
+leave the file out without failing, which is why the module checks at the end
+that each `.md` of the list was written. The status stays with the adapter: only
+a 200 response becomes Markdown, and a redirect in the prerender becomes a 500,
+which stops the build. The validation of the written artifact checks the MIME,
+the real `fileName`, UTF-8 and the content. A redirect or an HTML document
+written as `.md.html` does not satisfy the expected publication. A short page or
+a legitimate example of HTML inside the Markdown are still valid; there is no
+universal minimum of characters and no ban on isolated tags. The result is in
 `.vercel/output/static`.
 
 ### llms-full.txt aggregate
 
 The reader of the index is in
-`packages/solid-tooling/src/publication/markdownPrerender/helpers/readLlmsIndex/`,
+[`readLlmsIndex`](../../../../packages/solid-tooling/src/publication/markdownPrerender/helpers/readLlmsIndex),
 next to the generator that uses it. Its tests use the Node runner of the
 tooling.
 
@@ -135,41 +135,26 @@ value against the public origin. In `details`, `summary`, `dl`, `dt`, `dd` and
 plugin also drops, like `data-md-exclude`, images without text in `alt` or
 `title` when every ancestor is a common container: sections, paragraphs,
 headings, lists, tables, quotes, figures, `span` and the `strong`, `b`, `em`,
-`i`, `del` and `s` emphases. The emphases depend on the patch described below,
-which takes the space out of the delimiter. In links, `mark`, captions and other
-elements with their own syntax or HTML, the image stays, because removing it
-could empty the link or bring raw HTML to the start of the line. Images do not
-use `aria-label` or `aria-labelledby`, which `jsx-a11y/alt-text` accepts; use
-`alt=""` only on decorative images. Contextual footers inside main stay.
-Computed CSS and content created only in the browser are not interpreted. Use
-semantic markup for content that must not appear.
+`i`, `del` and `s` emphases. The converter moves the space outside emphasis
+delimiters. In links, `mark`, captions and other elements with their own syntax
+or HTML, the image stays, because removing it could empty the link or bring raw
+HTML to the start of the line. Images do not use `aria-label` or
+`aria-labelledby`, which `jsx-a11y/alt-text` accepts; use `alt=""` only on
+decorative images. Contextual footers inside main stay. Computed CSS and content
+created only in the browser are not interpreted. Use semantic markup for content
+that must not appear.
 
-The Bun patch of `@mdream/js` fixes the conversion of spaces and of link names
-with those filters. An emphasis whose start was removed, such as an SVG icon,
-kept the space inside the delimiter (`** Warning:**`). A link with an
-`aria-label` whose only content is removed, such as an icon with
-`aria-hidden="true"`, came out without text (`[](/cart)`). The fix also keeps
-separators between words in inline wrappers, including before a non-breaking
-space; emphasis wrappers and captions keep their delimiters together. Links keep
-the visible text inside blocks and use the accessible name after removed icons,
-without losing the trailing space or moving out the space between two icons.
-Empty headings in list items and lines made only of `===` or `--` after a break
-already come out right in the published version, without the patch.
+The published converter preserves separators around inline wrappers and keeps
+emphasis delimiters next to their content after an icon is removed. The Bun
+patch still supplies an accessible name when filters remove a link's only
+visible content. It preserves the space after that link and gives visible text
+inside nested blocks precedence over a fallback title.
 
-The patch changes only the `dist` of the package. It is the build of the
-installed tag with the PRs
-[harlan-zw/mdream#385](https://github.com/harlan-zw/mdream/pull/385) (spaces)
-and [#390](https://github.com/harlan-zw/mdream/pull/390) (link names) merged.
-The two conflict in `parse.ts` and in `tags.ts`. In `parse.ts`, #385 keeps the
-leading space inside inline elements, and #390 only recorded the space of a link
-when the parser dropped it: the combination records that space in both cases. In
-`tags.ts`, both change the comparison of the title with the text of the link:
-the combination keeps the one from #385 and drops the `else if (title)` block of
-#390. In that combination, one case of the #385 suite differs: an empty link
-with a title ending in a space, inside code and followed by a `figcaption`,
-loses the space before the caption, which each PR alone keeps. Remove the patch
-when a published version covers those behaviors and the `convertHtml` regression
-tests pass without it.
+The patch ports the JavaScript link handling from
+[mdream#390](https://github.com/harlan-zw/mdream/pull/390). It records a
+trailing blank after filtered text and preserves the converter's whitespace
+inside code spans. Run the `convertHtml` regressions and Markdown E2E suites
+against the unpatched package when updating the converter.
 
 A GET with `Accept: text/markdown` gets Markdown directly, without a redirect to
 a file. The negotiation respects weights and specificity, with HTML on a tie. An
@@ -209,7 +194,7 @@ The responses converted on the request get `text/markdown; charset=utf-8`,
 `Link: </llms.txt>; rel="describedby"`, keeping the `Link` values received from
 the render. GET and HEAD keep the same metadata. The build files are served by
 the static layer, without going through the function: `vercel.json` sets the
-`Content-Type`, the Nitro `routeRules` set `nosniff` and
+`Content-Type`, the Nitro `routeRules` set HSTS, `X-Content-Type-Options` and
 `Cross-Origin-Resource-Policy` ([security](../security.md)), and the cache
 follows the Vercel default for static files. They write neither a locale cookie
 nor `Content-Language`; the locale comes from the URL. The local preview
@@ -298,28 +283,8 @@ shared publication controller into `createMarkdownContent` from
 configures limits and enables static generation with `static: true`.
 `seo.llmsFull` requires both static Markdown and `seo.llms`.
 
-The runtime declares published `@mdream/js` as its own dependency. The root
-monorepo patch also applies to that resolved copy. A derived application
-installed from tarballs gets the published converter. In the runtime's 67
-conversion fixtures, the patch passes all cases and published `@mdream/js@2.1.0`
-differs in 29. These cover separators in nested inline wrappers, spaces around
-links and emphasis, accessible link names after filtering, and link titles
-entering visible text. For example, `<p>a<span> <span>b</span></span></p>`
-produces `ab` without the patch and `a b` with it. The installed HTTP matrix
-expects the published `ab` result. Icon removal can also leave a space inside
-emphasis or an empty link despite its accessible label. To adopt the same
-optional Bun patch, copy `patches/@mdream%2Fjs@2.1.0.patch` from this
-application, then add this entry to the derived application's root manifest and
-install:
-
-```json
-{
-  "patchedDependencies": {
-    "@mdream/js@2.1.0": "patches/@mdream%2Fjs@2.1.0.patch"
-  }
-}
-```
-
-Keep the exact dependency version while applying the patch and retain the
-conversion regressions. It is optional and is not included in the runtime
-tarball.
+The runtime depends on the published converter. It preserves word separators
+inside nested inline wrappers. The optional patch preserves accessible names
+after filtering link content. Bun and pnpm apply the patch in generated
+applications. npm installs the published converter. The runtime tarball ships
+without the patch.

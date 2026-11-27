@@ -6,6 +6,7 @@ export type DependencyField =
   | 'dependencies'
   | 'optionalDependencies'
   | 'peerDependencies'
+  | 'versions'
 
 export type PinnedPackage = {
   name: string

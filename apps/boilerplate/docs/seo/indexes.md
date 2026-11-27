@@ -23,7 +23,8 @@ child can leave with `llms: false` or override only the field it declares, and
 section and optional mark. `noindex: true` excludes the page from the sitemap
 and from llms.txt, even with the flag. The filter looks at the effective setting
 of the page, including inheritance and the child index route. The resolver is
-colocated in `packages/solid-runtime/src/seo/llms/helpers/resolveRouteLlms/`.
+colocated in
+[`resolveRouteLlms`](../../../../packages/solid-runtime/src/seo/llms/helpers/resolveRouteLlms).
 The index is in the base locale. Routes with a parameter stay out even with
 `llms`, and the sources of `route.info.sitemap` do not feed this index. Markdown
 publication is controlled separately by `seo.markdown` and

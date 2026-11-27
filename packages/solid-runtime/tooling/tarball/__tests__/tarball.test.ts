@@ -230,6 +230,18 @@ test('the packed package installs as a dependency', async context => {
   const app = await temporaryFolder('solid-runtime-app-')
   context.after(() => rm(app, { recursive: true, force: true }))
   const installation = await install({ tarball: await pack(destination), app })
+  await run({
+    file: 'bun',
+    args: [
+      path.resolve(
+        PACKAGE_ROOT,
+        '../../tooling/testing/assert-packed-skill.ts'
+      ),
+      installation.packageFolder,
+      'solid-base-runtime'
+    ],
+    cwd: app
+  })
 
   await context.test('the header constants load in plain Node', () =>
     assertConstantsLoad(installation)

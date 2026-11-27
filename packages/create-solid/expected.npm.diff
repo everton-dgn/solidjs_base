@@ -1,0 +1,2163 @@
+diff --git a/example/.commitlintrc b/example/.commitlintrc
+new file mode 100644
+--- /dev/null
++++ b/example/.commitlintrc
+@@ -0,0 +1,5 @@
++{
++  "extends": [
++    "@evertondgn/solid-tooling/commitlint"
++  ]
++}
+diff --git a/source/.env b/example/.env
+--- a/source/.env
++++ b/example/.env
+@@ -1,3 +1,3 @@
+ HOST=127.0.0.1
+ PORT=3000
+-VITE_SITE_URL=https://boilerplate-solidjs.devinsights.dev
++VITE_SITE_URL=https://example.com
+diff --git a/example/.lefthook.yml b/example/.lefthook.yml
+new file mode 100644
+--- /dev/null
++++ b/example/.lefthook.yml
+@@ -0,0 +1,2 @@
++extends:
++  - node_modules/@evertondgn/solid-tooling/lefthook.yml
+diff --git a/source/AGENTS.md b/example/AGENTS.md
+--- a/source/AGENTS.md
++++ b/example/AGENTS.md
+@@ -98,8 +98,7 @@ release. Add a tool name to select part of the graph. For example, run
+ ## Dependency documentation
+ 
+ - Do not repeat dependency version numbers in guides, instructions or comments.
+-  Check `package.json`, `bun.lock` and the workflow responsible for the tools
+-  installed in the CI.
++  Check `package.json` and the lockfile of the selected package manager.
+ - Document the contract, the limits and the validation commands. When updating
+   dependencies, review the behavior and keep the numbers in the files that
+   control the installation.
+@@ -149,7 +148,7 @@ release. Add a tool name to select part of the graph. For example, run
+ ## Translations
+ 
+ - Generation, catalog validation and the Vite plugin belong to
+-  [`i18n`](../../packages/solid-tooling/src/i18n). `defineSolidApp` enables them from
++  [`i18n`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/i18n). `defineSolidApp` enables them from
+   `project.inlang/settings.json`; the default application needs no local generator
+   or i18n plugin. Custom pipelines can set `i18nPlugin: false`, supply a plugin
+   through `extend` and replace `i18n-generate` by name through `tasks`.
+@@ -198,7 +197,7 @@ release. Add a tool name to select part of the graph. For example, run
+ - Use `type` to declare object, props and contract types in code and tests. The
+   lint applies `typescript/consistent-type-definitions` with `type`.
+ - Keep `interface` when declaration merging is needed: `RequestEventLocals` in the runtime package
+-  [`solid.d.ts`](../../packages/solid-runtime/src/@types/solid.d.ts), `ImportMetaEnv` in `src/@types/env.d.ts` and
++  [`solid.d.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/@types/solid.d.ts), `ImportMetaEnv` in `src/@types/env.d.ts` and
+   `RouteInfo` in the runtime `seo/{sitemap,markdown,llms}/router.d.ts` modules
+   extend third-party interfaces. Keep
+   the lint exception restricted to the files that need that behavior.
+@@ -325,7 +324,7 @@ release. Add a tool name to select part of the graph. For example, run
+   initial bundle. `seo` points to the messages directly, without reading the
+   page object. Do not move `content` to `seo.ts`, to a module `seo.ts`
+   imports or to another one the `route` reaches. The `project/seo-module` rule
+-  ([`index.ts`](../../packages/solid-tooling/src/seoModule/index.ts)) refuses in the lint any
++  ([`index.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/seoModule/index.ts)) refuses in the lint any
+   export other than `seo` and any local value import in `seo.ts`, and
+   `I18n.production.e2e` checks the result in the build; details in
+   [SEO](docs/seo.md).
+@@ -407,11 +406,11 @@ release. Add a tool name to select part of the graph. For example, run
+ - `import/exports-last` requires the exports at the end of the file. Declare the
+   private types, constants and helpers before them. When an exported value needs
+   to exist before the private code that consumes it, move it to a module of its
+-  own, such as [`constants.ts`](../../packages/solid-tooling/src/backendPolicy/constants.ts), instead
++  own, such as [`constants.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/backendPolicy/constants.ts), instead
+   of exporting the helpers.
+ - The `project/no-export-list` rule
+-  ([`index.ts`](../../packages/solid-tooling/src/noExportList/index.ts), registered in the plugin
+-  of [`project-plugin.ts`](../../packages/solid-tooling/src/project-plugin.ts)) applies the convention.
++  ([`index.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/noExportList/index.ts), registered in the plugin
++  of [`project-plugin.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/project-plugin.ts)) applies the convention.
+   Validate with `vp run check:ci`.
+ 
+ ## Functions that return a Promise
+@@ -480,7 +479,7 @@ release. Add a tool name to select part of the graph. For example, run
+   size classes live at the top level, outside the base class.
+ - Import CSS Modules as `S`. Stylelint requires snake_case in `src/**/*.css`;
+   validate changes with `vp run lint:css`. The CSS policy lives in
+-  [`stylelint`](../../packages/solid-tooling/src/stylelint).
++  [`stylelint`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/stylelint).
+ - The tokens of `src/theme/tokens/` are the palette of the boilerplate for the
+   derived applications. Do not flag or remove a token for having no consumer in
+   the demo; review only a wrong value, name or use.
+@@ -496,7 +495,7 @@ release. Add a tool name to select part of the graph. For example, run
+ ## Dependencies between layers
+ 
+ - Keep `architecture/layer-imports` in
+-  [`index.ts`](../../packages/solid-tooling/src/architecturePolicy/index.ts). `helpers`,
++  [`index.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/architecturePolicy/index.ts). `helpers`,
+   `constants`, `@types`, `data`, `infra`, `theme`, `i18n` and `paraglide` do not
+   depend on UI, primitives, routes or entries (`App`, `Document`,
+   `entry-server`, `entry-client`, `router`, `middleware`). Global primitives do
+@@ -583,7 +582,7 @@ release. Add a tool name to select part of the graph. For example, run
+ - Do not log the original error, headers, cookies, arguments, bodies or
+   credentials; detailed logs require a removal of sensitive data defined
+   beforehand. The `console` is reserved for `logServerFailure`.
+-- Keep the restrictions of [`backendPolicy`](../../packages/solid-tooling/src/backendPolicy). A new SDK
++- Keep the restrictions of [`backendPolicy`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/backendPolicy). A new SDK
+   requires restricting the package in the lint, with an exception only for the
+   adapter. Do not work around the contract with disable comments, computed
+   imports or the other gaps listed in the guide.
+@@ -605,7 +604,7 @@ release. Add a tool name to select part of the graph. For example, run
+ 
+ The single theme configuration is `src/constants/theme.ts`, using
+ `@evertondgn/solid-runtime/theme/define-theme`. Theme adapters, types and
+-`createTheme` now live under [`theme`](../../packages/solid-runtime/src/theme), with their
++`createTheme` now live under [`theme`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/theme), with their
+ tests. Keep the context, Provider, ThemeToggle and CSS in the application.
+ Document owns the script element and its request nonce.
+ 
+diff --git a/source/README.md b/example/README.md
+--- a/source/README.md
++++ b/example/README.md
+@@ -1,6 +1,18 @@
+-# Solid Base application
++# SolidJS Boilerplate
++
++This application was created with Solid Base.
++
++## Before publishing
+ 
+-This SolidJS application uses the Solid Base tooling and runtime.
++- Fill in the site identity and public links in `src/constants/site/index.ts`.
++- Update the about and contact pages with your own information.
++- Describe your data practices on the privacy page.
++- Rewrite the home page texts for your application.
++- To rename the app, update `src/constants/site/title.ts` and the page messages.
++- Set `VITE_SITE_URL` to your public origin in `.env`.
++- Replace `public/images/og.png` and update its `site_imageAlt` text.
++- Update the site description in `site_description`.
++- Rewrite the `llms.txt` notes in `src/routes/(seo)/llms.txt/constants.ts`.
+ 
+ > [!NOTE]
+ > This app pins SolidJS 2 in its [package manifest](package.json) to the version
+@@ -9,9 +21,9 @@ This SolidJS application uses the Solid Base tooling and runtime.
+ The home page, captured from the production build at 750 px wide:
+ 
+ <picture>
+-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/app-home-dark.webp" />
+-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/app-home-light.webp" />
+-  <img src="../../docs/assets/readme/app-home-light.webp" alt="The boilerplate app's home page at /en, captured from its production build." width="800" />
++  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-dark.webp" />
++  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-light.webp" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-home-light.webp" alt="The boilerplate app's home page at /en, captured from its production build." width="800" />
+ </picture>
+ 
+ [See it work](#see-it-work) · [Running it](#running-it) ·
+@@ -38,9 +50,9 @@ content-type: text/markdown; charset=utf-8
+ link: </llms.txt>; rel="describedby"
+ vary: Cookie, Accept
+ 
+-# About SolidJS Boilerplate
++# About the application
+ 
+-SolidJS Boilerplate is an open source project maintained by Éverton Toffanetto. ...
++The application provides localized pages and navigation.
+ 
+ ## Purpose and features
+ ...
+@@ -55,15 +67,15 @@ the HTML and the Markdown of the same URL apart.
+ 
+ ```text
+ $ curl -s http://127.0.0.1:4419/llms.txt
+-# SolidJS Boilerplate
++# Application title
+ 
+ > A foundation for web applications with SolidJS, TypeScript and Vite+, with server-side rendering and light and dark themes.
+ ...
+ ## When to use
+ ## Pages
+-- [About SolidJS Boilerplate](https://boilerplate-solidjs.devinsights.dev/en/about.md): ...
++- [About the application](https://example.com/en/about.md): ...
+ ## Optional
+-- [Full Markdown of the static pages](https://boilerplate-solidjs.devinsights.dev/llms-full.txt): ...
++- [Full Markdown of the static pages](https://example.com/llms-full.txt): ...
+ ```
+ 
+ This excerpt keeps the title, the summary, the section headings and one link
+@@ -85,7 +97,7 @@ and `llms-full.txt` of the production build. CI does not run it
+ ## Running it
+ 
+ Install the global [Vite+](https://viteplus.dev/guide/) CLI and Bun. Install
+-dependencies with `vp install`. Install Chromium once for the browser tests:
++dependencies with `npm install`. Install Chromium once for the browser tests:
+ 
+ ```bash
+ vp run test:browser:install
+@@ -107,9 +119,9 @@ HOST=127.0.0.1 PORT=3000 NODE_ENV=production vp run start
+ ```
+ 
+ <picture>
+-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/security-headers-dark.webp" />
+-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/security-headers-light.webp" />
+-  <img src="../../docs/assets/readme/security-headers-light.webp" alt="curl -sI on the boilerplate app's production preview: eight security headers and a CSP whose script-src carries a nonce." width="800" />
++  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/security-headers-dark.webp" />
++  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/security-headers-light.webp" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/security-headers-light.webp" alt="curl -sI on the boilerplate app's production preview: eight security headers and a CSP whose script-src carries a nonce." width="800" />
+ </picture>
+ 
+ `curl -sI http://127.0.0.1:3000/en` then shows the security headers and a CSP
+@@ -145,9 +157,9 @@ both suites.
+ ### The same page in three languages
+ 
+ <picture>
+-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/app-locales-dark.webp" />
+-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/app-locales-light.webp" />
+-  <img src="../../docs/assets/readme/app-locales-light.webp" alt="The boilerplate app's home page at /pt, /en and /es, with the navigation, the title and the language button in each locale." width="800" />
++  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-locales-dark.webp" />
++  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-locales-light.webp" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/app-locales-light.webp" alt="The boilerplate app's home page at /pt, /en and /es, with the navigation, the title and the language button in each locale." width="800" />
+ </picture>
+ 
+ Every page lives under `/pt`, `/en` or `/es`, with `lang`, the navigation and
+@@ -170,9 +182,9 @@ z-index values, counted as the custom properties declared in each file.
+ ### Outdated pages after a deploy
+ 
+ <picture>
+-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/outdated-page-dark.webp" />
+-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/outdated-page-light.webp" />
+-  <img src="../../docs/assets/readme/outdated-page-light.webp" alt="A tab from the previous build marks the page as outdated and loads a fresh document on the next navigation." width="800" />
++  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/outdated-page-dark.webp" />
++  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/outdated-page-light.webp" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/outdated-page-light.webp" alt="A tab from the previous build marks the page as outdated and loads a fresh document on the next navigation." width="800" />
+ </picture>
+ 
+ `installOutdatedPageDetection` marks the page when a chunk of the previous build
+@@ -216,16 +228,16 @@ refuses, so it never shares a run with the other suites. See
+ [publication load](docs/testing.md#publication-load).
+ 
+ <picture>
+-  <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/readme/e2e-coverage-dark.webp" />
+-  <source media="(prefers-color-scheme: light)" srcset="../../docs/assets/readme/e2e-coverage-light.webp" />
+-  <img src="../../docs/assets/readme/e2e-coverage-light.webp" alt="The boilerplate app's Playwright cases by area, split between the E2E build that CI runs and the production build." width="800" />
++  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/e2e-coverage-dark.webp" />
++  <source media="(prefers-color-scheme: light)" srcset="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/e2e-coverage-light.webp" />
++  <img src="https://github.com/everton-dgn/solidjs_base/raw/create-solid@{version}/docs/assets/readme/e2e-coverage-light.webp" alt="The boilerplate app's Playwright cases by area, split between the E2E build that CI runs and the production build." width="800" />
+ </picture>
+ 
+ The upstream CI runs the app's check, Node type check, dead code, Vitest with
+ coverage, tooling tests and the `e2e` suite on every pull request that changes
+ the app, a package, a fixture or the root configuration
+-([CI coverage](../../docs/development.md#ci)). The
+-[reference](#playwright-cases-by-area) lists the cases by area.
++([CI coverage](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci)).
++The [reference](#playwright-cases-by-area) lists the cases by area.
+ 
+ ## Limits
+ 
+@@ -236,18 +248,22 @@ the app, a package, a fixture or the root configuration
+   not prove production capacity. The thresholds of `PublicationLoad` are a local
+   starting point and set no production SLO
+   ([publication load](docs/testing.md#publication-load)).
+-- The installer determines whether the Markdown converter patch is applied.
++- npm installs the upstream Markdown converter.
+ - The interactive controls need JavaScript. The tests check the server-rendered
+   HTML without JavaScript, and the app makes no promise to work without it.
+ 
+ ## Reference
+ 
++Set the author, organization, social profiles and contact information in
++`src/constants/site/index.ts`. Bun runs all application tasks. npm and pnpm only
++install dependencies. Server mode deploys to Vercel.
++
+ ### How it uses the packages
+ 
+ It takes its lint preset, lint rules, formatter settings, TypeScript configs,
+ Vitest projects, Playwright config, Knip and Stylelint configs and the Vite and
+ Nitro config (`defineSolidApp`) from `@evertondgn/solid-tooling`. See the
+-[configuration comparison](../../packages/solid-tooling/README.md#the-configuration-you-stop-maintaining)
++[configuration comparison](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/README.md#the-configuration-you-stop-maintaining)
+ of the tooling README for the line counts by area.
+ 
+ The package supplies tools that the application does not import itself. Its
+diff --git a/example/bunfig.toml b/example/bunfig.toml
+new file mode 100644
+--- /dev/null
++++ b/example/bunfig.toml
+@@ -0,0 +1,5 @@
++env = false
++
++[install]
++exact = true
++linker = "isolated"
+diff --git a/source/docs/architecture.md b/example/docs/architecture.md
+--- a/source/docs/architecture.md
++++ b/example/docs/architecture.md
+@@ -85,12 +85,12 @@ CSS Module imports use the name `S`, for example,
+ 
+ The split follows the
+ [cohesion rule of AGENTS.md](../AGENTS.md#cohesion-and-size-of-modules).
+-[`lint.ts`](../../../packages/solid-tooling/src/lint.ts), builds the
+-configuration and its overrides. The groups in
+-[`rules`](../../../packages/solid-tooling/src/lint/rules) gather the rules for
+-JavaScript, imports, TypeScript, Unicorn, tests and integrations with the
+-environment. The values of the rules and the order of the overrides belong to
+-the same contract, even when they live in different modules.
++[`lint.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/lint.ts),
++builds the configuration and its overrides. The groups in
++[`rules`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/lint/rules)
++gather the rules for JavaScript, imports, TypeScript, Unicorn, tests and
++integrations with the environment. The values of the rules and the order of the
++overrides belong to the same contract, even when they live in different modules.
+ 
+ ## Data and infrastructure
+ 
+@@ -104,7 +104,7 @@ and their helpers live in the runtime package.
+ `data/errorApi/` (normalization of domain errors from APIs) are conventions for
+ the first consumers and do not have modules yet. Public errors that only the
+ server uses are in
+-[`@evertondgn/solid-runtime/server/public-errors`](../../../packages/solid-runtime/src/infra/server/publicErrors/index.ts),
++[`@evertondgn/solid-runtime/server/public-errors`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/publicErrors/index.ts),
+ next to the protection of the backend operations; requests and persistence live
+ in `infra/`.
+ 
+@@ -142,7 +142,7 @@ imports.
+ ## Dependencies between layers
+ 
+ `architecture/layer-imports`, in
+-[`index.ts`](../../../packages/solid-tooling/src/architecturePolicy/index.ts),
++[`index.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/architecturePolicy/index.ts),
+ checks the direct dependencies of imports and re-exports through the local
+ paths. The restrictions are:
+ 
+diff --git a/source/docs/development.md b/example/docs/development.md
+--- a/source/docs/development.md
++++ b/example/docs/development.md
+@@ -38,7 +38,7 @@ Use `vp run tsrs`, `vp run knip`, `vp run playwright`, `vp run lefthook` and
+ `vp run commitlint` for the package's executables. Scripts such as `test:e2e`,
+ `test:browser:install` and `dead-code:fix` use these tasks. The standalone
+ command pattern is documented in the
+-[tooling guide](../../../packages/solid-tooling/docs/limits.md#packaged-commands-and-types).
++[tooling guide](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/limits.md#packaged-commands-and-types).
+ The prepare script controls hook installation.
+ 
+ ## Environment and preview
+@@ -54,7 +54,7 @@ generated `solid-env.d.ts` types cover the virtual modules, not
+ `import.meta.env`; keep `src/@types/env.d.ts` for the application's
+ `PUBLICATION_BUILD_ID` declaration. `SITE.url` imports the runtime SEO origin.
+ See the
+-[environment guide](../../../packages/solid-tooling/docs/app-config.md#optional-environment-validation).
++[environment guide](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/app-config.md#optional-environment-validation).
+ 
+ To install and start the project, follow [running it](../README.md#running-it).
+ 
+@@ -124,25 +124,7 @@ runtime, plus the complete E2E tests.
+ 
+ ### Publication
+ 
+-> The following workflow is an example from the upstream application.
+-
+-The production deploy comes from the `deploy` job of the
+-[CI workflow](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/.github/workflows/ci.yml),
+-only on a push to `main`, and publishes with `vercel deploy --prebuilt --prod`
+-the same build the production E2E tested, without recompiling. The complete
+-flow, the credentials registered on GitHub and the configuration of the remote
+-project are in the
+-[Vercel integration](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md#integração-com-a-vercel).
+-`vercel.json` turns off the deploys through the Git integration
+-(`git.deploymentEnabled: false`) and keeps only the `Content-Type` of the `.md`
+-files generated in the build. The immutable cache of `/images/` (a replaced
+-image needs a new name, as the [SEO guide](seo.md) explains) and the `nosniff`
+-and `Cross-Origin-Resource-Policy` headers of the static files come from the
+-`publicAssets` and the Nitro `routeRules` that `defineSolidApp` builds from
+-`vite.config.ts`, as the [security](security.md) guide describes; the other
+-security headers come from the middleware. The Vercel configuration and the
+-automatic release flow are in the
+-[release guide](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md).
++Configure the deployment for your own hosting account and domain.
+ 
+ Nitro is defined in [package.json](../package.json). When updating it, check the
+ Vercel build, the local preview and the E2E tests. The generated `.output/`,
+@@ -253,18 +235,18 @@ record the whole environment.
+ 
+ The automatic tracking records the files the type-aware lint reads, the types in
+ `node_modules` included. `typecheck-node` declares its inputs explicitly,
+-including sources, declarations, TypeScript configs, `package.json`, `bun.lock`
+-and `patches/**`, because the tracking of the `tsrs` reads was only checked on
+-macOS. From `src/` only the `.ts`, `.tsx` and `.json` files enter, which `tsrs`
+-reads; CSS, images and fonts come in through module declarations and do not
+-invalidate the check. The lockfile represents the dependencies that
+-`vp install --frozen-lockfile` installs, but keeps only the path of each patch;
+-that is why the content of `patches/` enters separately, also in the inputs of
+-`lint-project` and `check-project`. When creating a task that reads installed
+-types, include `patches/**`. Knip combines the automatic tracking with explicit
+-inputs for sources, tools and dependencies, the discovery of new routes
+-included. When creating a cached task, check with two runs that a change in a
+-file it reads invalidates the result.
++including sources, declarations, TypeScript configs, `package.json`, the
++installer lockfile and `patches/**`, because the tracking of the `tsrs` reads
++was only checked on macOS. From `src/` only the `.ts`, `.tsx` and `.json` files
++enter, which `tsrs` reads; CSS, images and fonts come in through module
++declarations and do not invalidate the check. The lockfile represents the
++dependencies that `vp install --frozen-lockfile` installs, but keeps only the
++path of each patch; that is why the content of `patches/` enters separately,
++also in the inputs of `lint-project` and `check-project`. When creating a task
++that reads installed types, include `patches/**`. Knip combines the automatic
++tracking with explicit inputs for sources, tools and dependencies, the discovery
++of new routes included. When creating a cached task, check with two runs that a
++change in a file it reads invalidates the result.
+ 
+ The cache keeps `typeAware` and `typeCheck` on and tells in the output when it
+ replays an earlier result. To run everything again, use `vp run --no-cache lint`
+@@ -281,194 +263,15 @@ as a document for scripts. To find out why a task missed the cache, run it with
+ included; `-vv` adds the unchanged inputs and the outputs a hit restores. The
+ plan does not replace the invalidation check described above.
+ 
+-## Runtimes and CI
+-
+-> The following workflow is an example from the upstream application.
+-
+-In the CI and in the release automation, `setup-vp` provides the Node and the
+-Bun declared in the project and reuses the package cache.
+-`vp install --frozen-lockfile` installs with Bun without allowing changes to the
+-lockfile. The `dev` and `build` scripts call the local Vite+ CLI explicitly with
+-Bun, because the global `vp` and the children of `vp run` can select Node again.
+-Use `vp run dev` and `vp run build` to run those scripts. The release automation
+-and its tests (`vp run test:release`) run in Bun. Node stays in the application
+-tests, in the other tooling tests and in the production SSR: the Oxlint
+-`RuleTester` refuses Bun, and the Vitest suite showed incompatibilities when
+-loading the Solid modules. The `Quality` job restores
+-`node_modules/.vite/task-cache`, `node_modules/.vitest-cache` and `.tsbuild`,
+-with one key per run and a restore prefix restricted to the operating system,
+-architecture, Node, Bun and lockfile. Vite Task, Vitest and TypeScript check
+-their inputs before reusing the data. After the tests with coverage, the cache
+-is uploaded to GitHub, even when an earlier check fails. Vite Task only keeps
+-successful results and Vitest keeps transformations, so a failure does not
+-become a reused test result. The workflow waits for the upload before ending;
+-cache failures neither waive nor fail the checks. A run without cache does the
+-same checks. Reusing Vite Task between runners is experimental: check the hits
+-in the logs and compare the time saved with the cost of transferring the cache.
+-
+-In the CI, only `Quality` uploads the package cache, and only when the lockfile
+-key does not exist and the job ends successfully. The `setup-project` action
+-only restores by default (`cache-save: 'false'`), and `Quality` is the only job
+-that passes `cache-save: 'true'`. `Quality`, `Tooling` and the two E2E jobs also
+-pass `cache-toolchain: 'true'`: `setup-vp` keeps Vite+, Node and Bun in the
+-Actions cache, and only `Quality` uploads that cache. The project trusts the
+-cache scope of `main`: on `main` only caches written by `main` itself are
+-restored, because GitHub writes the caches of a PR to the merge ref, which
+-`main` does not read. That is why `E2E (production)`, which receives the
+-`VERCEL_TOKEN` only on the push to `main` and generates the deploy artifact,
+-restores packages and toolchain like the other E2E jobs. `Reuse proof`, the
+-deploy and the release automation do not pass `cache-toolchain` and prepare the
+-toolchain without that cache. `Reuse proof` and the deploy also pass
+-`install-dependencies: false`: the action prepares Vite+, Node and Bun from
+-`package.json`, without a package cache or `vp install`. The deploy only runs
+-`vp dlx` on the tested artifact. With `cache: false`, `setup-vp` neither
+-restores nor saves the cache, and `cache-save` and `cache-dependency-path` have
+-no effect. The release automation uses the same action: the plan job, without
+-write permission, installs the dependencies and restores the package cache of
+-`main` without uploading it; the jobs with write permission pass
+-`install-dependencies: false` and neither install nor import packages, according
+-to the
+-[release guide](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md#ativação-no-github).
+-
+-The `lint-css` task combines the files read automatically with explicit inputs
+-for CSS, CSS tooling, `package.json`, `bun.lock` and `bunfig.toml`. That way,
+-the invalidation of the CSS lint does not depend on the tracking of runtime
+-reads on each operating system. `lint-project` and `check-project` declare
+-sources, declarations, TypeScript configs and the dependency files. Bun uses the
+-isolated linker defined in `bunfig.toml`; only the packages of
+-`trustedDependencies` can run the authorized install scripts. The documented
+-commands use `vp`, and Vite keeps its per-mode variable loading. `env = false`
+-in `bunfig.toml` also stops `bun run` from reading `.env` early, before those
+-tools start. The `bunfig.toml` of the project does not define
+-`minimumReleaseAge`, which is off by default in Bun: a version quarantine
+-configured in the global bunfig of the developer still applies, and the local
+-bunfig would only override it by repeating the key. With that quarantine,
+-versions published more recently than the limit stay out of the updates.
+-
+-The CI spreads the checks over four independent runners: `Quality`, `Tooling`,
+-E2E with fixtures and production E2E. On the push to `main`, the first three can
+-be waived by the proof described below. `Quality` runs formatting, lint, types,
+-unused code (Knip) and coverage, plus the release tests in Bun when there are
+-relevant changes. On PRs, it also checks with the commitlint of the project the
+-messages of every commit between the base and the head. `Tooling` runs the other
+-tooling tests in Node after the installation, without waiting for the `Quality`
+-checks or sharing CPU with the coverage. The four jobs run in parallel, each one
+-with its own checkout, ports and build artifacts; on the push to `main`, the
+-three reusable ones start after `Reuse proof`, and the production E2E does not
+-wait for it. The local `setup-project` action holds the toolchain preparation:
+-the validation jobs also install the dependencies, and the deploy does not. That
+-parallelism cuts the wait, but repeats the preparation on the runners and can
+-increase the GitHub Actions minutes used. The production build approved in the
+-E2E tests is handed to the deploy in the same CI run. The PR builds two
+-applications, one with fixtures and another with the real routes, and the
+-tooling tests build their own smaller fixtures. On the push to `main` with the
+-proof approved, only the production application is built.
+-
+-`CI required` waits for every job and requires success from `Quality`,
+-`Tooling`, `E2E (fixtures)` and `E2E (production)`; failures, cancellations and
+-skipped jobs block its approval. The result of `Reuse proof` is not required as
+-a job: it is skipped on every PR and, on the push to `main`, only allows
+-accepting as `skipped` the jobs that the approved proof waived. The deploy
+-depends on that result. The release reuses the approved CI of `main` and only
+-checks the version and changelog commit, according to the
+-[release guide](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md).
+-The release filter only gates one step of `Quality`, keeping the job and the
+-aggregator required. The application tests and the other tooling tests run in
+-every CI run, except when the proof described below waives them; the Vitest
+-cache keeps module transformations. With `CI=true`, Vitest uses at most two
+-workers and the Node runner of the tooling tests, at most three.
+-
+-### Reusing the PR validation on main
+-
+-> The following workflow is an example from the upstream application.
+-
+-The push to `main` is a merge commit created by GitHub from a PR updated with
+-the base, which the branch protection requires. When the run of that PR already
+-tested the same tree, the `Reuse proof` job waives `Quality`, `Tooling` and
+-`E2E (fixtures)`. `E2E (production)`, the artifact build and the deploy always
+-run, without depending on the proof.
+-
+-On the PR, `Quality` publishes the `ci-reuse-evidence-<attempt>` artifact with
+-the SHA of the synthetic merge the checkout tested. On the push,
+-`tooling/ciReuse/prove-reuse.ts` runs on the Node declared in the project,
+-without installing dependencies, and approves the reuse only when all of these
+-conditions hold:
+-
+-- the `main` commit has exactly two parents and does not change `.github/` or
+-  `tooling/ciReuse/`, a rename out of those folders included. That way, the run
+-  of the PR used the same workflow as `main` and ran the tests of the verifier;
+-  the PR does not run the proof, which only runs on the push to `main`;
+-- there is a single PR merged with that merge commit, from the repository
+-  itself, with base `main` and with base and head equal to the parents;
+-- there is a single `pull_request` run of `ci.yml` for the head, completed
+-  successfully, from the same repository and branch;
+-- in the attempt of that run, `Quality`, `Tooling` and `E2E (fixtures)` exist,
+-  belong to the same attempt and ended successfully. A partial re-run that does
+-  not repeat the three jobs does not count as proof;
+-- the evidence of the same attempt belongs to the run and to the head, and the
+-  synthetic commit it points to, looked up in the GitHub API, has the same
+-  parents and the same tree as the merge on `main`. A run from before a base
+-  change, or from another PR with the same head and another base, tested other
+-  parents and fails this check.
+-
+-Any absence, ambiguity, timeout, API error, PR older than the evidence or
+-evidence of another version results in a full CI. The gate accepts `skipped`
+-only with the proof approved in the same run. Checks synthesized by the release
+-do not count as proof.
+-
+-`Quality` also runs when the merge changes `bun.lock`, `package.json` or
+-`bunfig.toml`, or when `main` does not have the package cache and validation
+-entries for the current lockfile and toolchain. It is the only job that writes
+-those caches. The proof builds the package key in the format documented in the
+-`setup-vp` README; if that format changes, the lookup stops finding it and
+-`Quality` starts running on `main` on every merge, without losing validation.
+-The package key and the restore prefix of the validation only change in those
+-cases; with `Quality` waived, the PRs keep restoring the last validation entry
+-of `main` with the same prefix, which ages as the tree changes and can lower the
+-Vite Task and Vitest hits until the next lockfile change.
+-
+-The verifier and the workflow are still reviewed code of `main`: a merge that
+-changes `.github/` or `tooling/ciReuse/` always runs the full CI. The reuse also
+-removes the second run that sometimes failed, on `main`, a flaky test that had
+-passed on the PR with the same tree. To repeat the whole validation of a commit,
+-trigger the workflow by hand (`workflow_dispatch`). That mode does not publish
+-to Vercel and uses another concurrency group, so it does not replace a pending
+-push.
+-
+-### How to measure a CI optimization
+-
+-> The following workflow is an example from the upstream application.
+-
+-Separate runner usage from waiting time. The first is the sum of the job
+-durations, computed between `started_at` and `completed_at`, divided by 60;
+-`skipped` jobs do not enter that sum. The waiting time goes from the creation of
+-the run to the end of the last job. Parallel jobs count separately in the usage,
+-but their times must not be added up to compute the wait. When computing the
+-daily usage, include re-run attempts and jobs that failed or were canceled after
+-starting; counting only the last green run underestimates the runner usage.
+-
+-To attribute a gain to the change, compare base and candidate on the same
+-runner, with frozen installs and the same suite, alternating the runs of each
+-side.
+-
+-To check the reuse after a merge, check the source run recorded by
+-`Reuse proof`, the waived jobs and the results of `CI required` and
+-`E2E (production)`. Also check that the `Deploy tested production artifact` step
+-really ran: the global green status, alone, does not prove the publication, and
+-a deploy job that refused an old commit through the freshness guard did not
+-publish that commit. A run without publication does not count as savings of the
+-complete flow.
+-
+-A change to the workflow itself forces the full CI and includes the cost of the
+-proof. Measure that path separately from the merges eligible for reuse. When
+-projecting minutes per day, report the observed window and frequency; do not add
+-the savings of a faster job to the savings of waiving that same job in the same
+-run.
++## Task runtimes
++
++Bun runs the application tasks with any supported installer. Node runs the
++tooling tests.
+ 
+ ## Git hooks
+ 
+ The generated application installs Lefthook through its prepare script. See the
+-[hook commands](../../../packages/solid-tooling/docs/commits-and-hooks.md).
++[hook commands](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/commits-and-hooks.md).
+ 
+ ## Maintenance conventions
+ 
+@@ -496,8 +299,8 @@ The generated application installs Lefthook through its prepare script. See the
+ - The CI, the pre-push and `vp run validate` combine `check:ci` with
+   `typecheck:node`, which runs `tsrs` with `tsconfig.node.json` and checks the
+   tooling without the DOM types.
+-- Use the Node and Bun versions defined in `package.json`. `bun.lock` is the
+-  only lockfile of the project.
++- Use the Node and Bun versions defined in `package.json`. Keep the lockfile of
++  the selected package manager.
+ 
+ ## External references
+ 
+diff --git a/source/docs/i18n.md b/example/docs/i18n.md
+--- a/source/docs/i18n.md
++++ b/example/docs/i18n.md
+@@ -123,7 +123,7 @@ The cost of the generation grows with the whole set: each preparation reads and
+ validates again every catalog of every locale, and the Paraglide compiler loads
+ all of them at once. In development, this repeats on every saved catalog. None
+ of it runs on requests. The `CATALOGS_MAX_BYTES` limit, in
+-[`constants.ts`](../../../packages/solid-tooling/src/i18n/readCatalogs/constants.ts),
++[`constants.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/i18n/readCatalogs/constants.ts),
+ limits the sum of the catalog files: past it, the generation fails on the file
+ that crossed the limit, before reading it, instead of degrading the build. In
+ measurements with synthetic catalogs in three locales, 1 MiB (5,000 messages per
+@@ -218,7 +218,7 @@ isolation between the locales. The locale and the content of those files come
+ from the URL, regardless of cookies and `Accept-Language`; direct access does
+ not go through the localization of pages.
+ 
+-[`requestClassification`](../../../packages/solid-runtime/src/middleware/requestClassification)
++[`requestClassification`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/requestClassification)
+ gathers the page criteria used by the localization and by the failure
+ containment. The localization of GET and HEAD pages looks at the path,
+ regardless of `Accept`, so that pages excluded from the Markdown negotiation
+diff --git a/source/docs/security.md b/example/docs/security.md
+--- a/source/docs/security.md
++++ b/example/docs/security.md
+@@ -14,7 +14,7 @@ sets `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`,
+ responses also get the `Content-Security-Policy`. The values are in
+ [`src/middleware/securityHeaders/constants.ts`](../src/middleware/securityHeaders/constants.ts),
+ which spreads the defaults of the runtime package
+-([`constants.js`](../../../packages/solid-runtime/src/middleware/securityHeaders/constants.js));
++([`constants.js`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/securityHeaders/constants.js));
+ change a header or a CSP directive there.
+ [`src/middleware/securityHeaders/index.ts`](../src/middleware/securityHeaders/index.ts)
+ passes them to `createSecurityHeaders` once, and the chain, the failure
+@@ -87,7 +87,7 @@ take away the subdomain coverage that the function response had just declared.
+ 
+ The nonce has 16 bytes of `crypto.getRandomValues` in base64 and is created for
+ each request by
+-[`requestNonce`](../../../packages/solid-runtime/src/middleware/securityHeaders/index.ts),
++[`requestNonce`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/securityHeaders/index.ts),
+ on the first access to `event.nonce`. That field belongs to the native contract
+ of the Solid plugin. `securityHeaders` fills it before the render, and the
+ containment also creates it when a failure happens before that middleware, so
+diff --git a/source/docs/seo/indexes.md b/example/docs/seo/indexes.md
+--- a/source/docs/seo/indexes.md
++++ b/example/docs/seo/indexes.md
+@@ -24,7 +24,7 @@ section and optional mark. `noindex: true` excludes the page from the sitemap
+ and from llms.txt, even with the flag. The filter looks at the effective setting
+ of the page, including inheritance and the child index route. The resolver is
+ colocated in
+-[`resolveRouteLlms`](../../../../packages/solid-runtime/src/seo/llms/helpers/resolveRouteLlms).
++[`resolveRouteLlms`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/seo/llms/helpers/resolveRouteLlms).
+ The index is in the base locale. Routes with a parameter stay out even with
+ `llms`, and the sources of `route.info.sitemap` do not feed this index. Markdown
+ publication is controlled separately by `seo.markdown` and
+diff --git a/source/docs/seo/markdown.md b/example/docs/seo/markdown.md
+--- a/source/docs/seo/markdown.md
++++ b/example/docs/seo/markdown.md
+@@ -43,7 +43,7 @@ upgrade are in
+ [server errors](../server-errors/ssr-integrity.md#ssr-integrity-for-markdown).
+ 
+ The build prerender goes through the same adapter. The compiled
+-[`markdownPrerender`](../../../../packages/solid-tooling/src/publication/markdownPrerender)
++[`markdownPrerender`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/publication/markdownPrerender)
+ module asks the middleware for the list of static pages
+ (`/_markdown/static.json`), prerenders each `.md` and publishes the list as a
+ static file, together with `llms.txt`. The middleware only builds the list in
+@@ -68,7 +68,7 @@ universal minimum of characters and no ban on isolated tags. The result is in
+ ### llms-full.txt aggregate
+ 
+ The reader of the index is in
+-[`readLlmsIndex`](../../../../packages/solid-tooling/src/publication/markdownPrerender/helpers/readLlmsIndex),
++[`readLlmsIndex`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/publication/markdownPrerender/helpers/readLlmsIndex),
+ next to the generator that uses it. Its tests use the Node runner of the
+ tooling.
+ 
+diff --git a/source/docs/seo.md b/example/docs/seo.md
+--- a/source/docs/seo.md
++++ b/example/docs/seo.md
+@@ -259,5 +259,5 @@ See
+ The runtime now owns Markdown and llms services; this application retains their
+ thin bindings and editorial values. `seo` in `vite.config.ts` selects the
+ compiled publication pipeline. See
+-[ADR 0034](../../../docs/ADRs/0034-runtime-markdown-publication.md) for the
+-independent options and the single-language configuration.
++[ADR 0034](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/ADRs/0034-runtime-markdown-publication.md)
++for the independent options and the single-language configuration.
+diff --git a/source/docs/server-errors/backend.md b/example/docs/server-errors/backend.md
+--- a/source/docs/server-errors/backend.md
++++ b/example/docs/server-errors/backend.md
+@@ -96,7 +96,7 @@ integration.
+ 
+ ## What the lint covers
+ 
+-[backendPolicy](../../../../packages/solid-tooling/src/backendPolicy/index.ts)
++[backendPolicy](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/backendPolicy/index.ts)
+ configures the native Oxlint rules `no-restricted-globals`,
+ `no-restricted-properties` and `no-console`, plus the packaged
+ `backend/restricted-imports` rule, in `src`, fixtures included, for the `.ts`,
+@@ -114,7 +114,7 @@ configures the native Oxlint rules `no-restricted-globals`,
+   that module, `publicErrors` included: each call replaces the global server
+   error hook.
+ - Reserves `observeRenderFailures`, from
+-  [renderIntegrity](../../../../packages/solid-runtime/src/infra/server/renderIntegrity/index.ts),
++  [renderIntegrity](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/renderIntegrity/index.ts),
+   for `configureServerErrors`, through an alias, namespace or re-export too:
+   after that call the render state starts without errors, and only the
+   registration installs the hook that marks it.
+@@ -128,7 +128,7 @@ configures the native Oxlint rules `no-restricted-globals`,
+ 
+ `backend/restricted-imports` checks literal dynamic imports for module-wide
+ restrictions.
+-[backend/static-solid-imports](../../../../packages/solid-tooling/src/backendPolicy/plugin.ts)
++[backend/static-solid-imports](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/backendPolicy/plugin.ts)
+ requires static imports of Solid web modules and the runtime configurator, in
+ `publicErrors` and `configureServerErrors` too.
+ `backend/static-render-integrity-imports` requires static imports of the local
+@@ -151,9 +151,9 @@ require review. It does not check the content of the log arguments in
+ `logServerFailure`. The setter and control-enabled protection are private
+ package modules, not AST conventions. Do not use these gaps or a disable comment
+ to get around the contract. The pattern of relative imports is shared with
+-[`javascript.ts`](../../../../packages/solid-tooling/src/lint/rules/javascript.ts)
++[`javascript.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/lint/rules/javascript.ts)
+ through the `RELATIVE_IMPORT_RESTRICTION` constant, in
+-[`constants.ts`](../../../../packages/solid-tooling/src/backendPolicy/constants.ts).
++[`constants.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/backendPolicy/constants.ts).
+ 
+ The same exact path exceptions apply when lint runs from the runtime package.
+ `server-only` is allowed in `src/infra/server/**/index.ts`, and the Node import
+diff --git a/source/docs/server-errors/recovery.md b/example/docs/server-errors/recovery.md
+--- a/source/docs/server-errors/recovery.md
++++ b/example/docs/server-errors/recovery.md
+@@ -46,7 +46,7 @@ new line with the fixed `[middleware]` message.
+ 
+ The Playwright `webServer` writes the preview output to
+ `test-results/server-<mode>.log`. The
+-[global teardown](../../../../packages/solid-tooling/src/playwright/teardown.ts)
++[global teardown](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/playwright/teardown.ts)
+ checks that the file recorded the preview address and refuses any private
+ marker.
+ 
+diff --git a/source/docs/server-errors/solid-upgrades.md b/example/docs/server-errors/solid-upgrades.md
+--- a/source/docs/server-errors/solid-upgrades.md
++++ b/example/docs/server-errors/solid-upgrades.md
+@@ -5,8 +5,8 @@
+ ## Upgrading Solid
+ 
+ The shared registration and protection live in
+-[`server`](../../../../packages/solid-runtime/src/infra/server). The
+-application's `src/infra/server/configureServerErrors/index.ts` remains the
++[`server`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server).
++The application's `src/infra/server/configureServerErrors/index.ts` remains the
+ `serverSetup` entry and supplies the catalog callback to the package
+ configurator.
+ 
+diff --git a/source/docs/server-errors/ssr-integrity.md b/example/docs/server-errors/ssr-integrity.md
+--- a/source/docs/server-errors/ssr-integrity.md
++++ b/example/docs/server-errors/ssr-integrity.md
+@@ -7,7 +7,7 @@
+ The entry calls `createRenderOptions()` from
+ `@evertondgn/solid-runtime/server/create-render-options` before rendering. That
+ helper creates the state with `createRenderIntegrity()`, from
+-[renderIntegrity](../../../../packages/solid-runtime/src/infra/server/renderIntegrity/index.ts),
++[renderIntegrity](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/renderIntegrity/index.ts),
+ and stores it in `event.locals.ssrRenderState` before the entry calls
+ `renderToStream`. Its returned options carry the request nonce, signal and
+ completion callback; the authored Document/App tree stays in the application.
+diff --git a/source/docs/server-errors.md b/example/docs/server-errors.md
+--- a/source/docs/server-errors.md
++++ b/example/docs/server-errors.md
+@@ -9,9 +9,9 @@ contract below must be kept through dependency upgrades.
+ ## Current protection
+ 
+ The shared protection lives in
+-[`server`](../../../packages/solid-runtime/src/infra/server). Each module has
+-its own `@evertondgn/solid-runtime/server/` entry, with the `solid` condition
+-and `server-only`. Public errors use
++[`server`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server).
++Each module has its own `@evertondgn/solid-runtime/server/` entry, with the
++`solid` condition and `server-only`. Public errors use
+ `@evertondgn/solid-runtime/server/public-errors`. The application keeps
+ `requestJson`, `publication`, `sitemapSources`, the Markdown adapter and
+ authored render trees. The runtime owns failure containment, chain composition
+@@ -31,13 +31,13 @@ production.
+ - [requestJson](../src/infra/server/requestJson/index.ts) checks the HTTP
+   status, reads the success JSON and applies the output schema inside the
+   protection.
+-- [protectServerOperation](../../../packages/solid-runtime/src/infra/server/protectServerOperation/index.ts)
++- [protectServerOperation](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/protectServerOperation/index.ts)
+   catches throws and rejections and checks the structure of the result.
+-- [publicErrors](../../../packages/solid-runtime/src/infra/server/publicErrors/index.ts)
++- [publicErrors](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/publicErrors/index.ts)
+   creates a new error with the public message supplied by the application's
+   setup, in the locale of the request, as described in
+   [Locale of the public message](#locale-of-the-public-message).
+-- [logServerFailure](../../../packages/solid-runtime/src/infra/server/logServerFailure/index.ts)
++- [logServerFailure](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/logServerFailure/index.ts)
+   is the only log point: it writes the fixed message of the source and, for an
+   `Error`, only the class and the filtered frames described in
+   [Failure log](server-errors/logging.md#failure-log).
+@@ -96,14 +96,14 @@ with the single application security instance and Markdown adapter. The package
+ adapts the plugin event to the `Request` chain of `filesystem-routing` and
+ `composeMiddleware`, handing that chain to `containFailures`. The containment,
+ in
+-[`index.ts`](../../../packages/solid-runtime/src/middleware/containFailures/index.ts),
++[`index.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/containFailures/index.ts),
+ composes the whole chain inside itself, and an exception in the middlewares, in
+ the API routes or in the page handler becomes a 500 with the security headers
+ and the `[middleware]` log. Only a `Response` without a body and with a status
+ other than 0 passes as a control, and it goes out with the same headers; a
+ thrown `Response` with a body becomes a 500, because it may carry upstream data.
+ The middleware, the hook and the wrapper use the same classification,
+-[`isControlResponse`](../../../packages/solid-runtime/src/infra/server/isControlResponse/index.ts).
++[`isControlResponse`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/infra/server/isControlResponse/index.ts).
+ The headers of a returned `Response.redirect()` are immutable, so they go on a
+ copy without a body; the raw return of `fetch()`, with immutable headers and an
+ upstream body, is not copied and becomes a 500. In development the original
+@@ -116,7 +116,7 @@ call the default export, a unit test requires it to contain failures, and the
+ The responses of the containment do not go back through `securityHeaders`, so
+ the containment itself writes the security headers and the
+ Content-Security-Policy with the nonce of the request, read by
+-[`requestNonce`](../../../packages/solid-runtime/src/middleware/securityHeaders/index.ts),
++[`requestNonce`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/securityHeaders/index.ts),
+ which uses the native `event.nonce` field. A failure before `securityHeaders`
+ can find the request without a nonce; the containment creates it before
+ rendering the error page, so that its scripts, the plugin handler and the CSP
+@@ -127,7 +127,7 @@ use the same value. Without a request event, the text 500 goes out with
+ In a navigation, the 500 shows the error page of the app. A navigation is a
+ `GET` or `HEAD` on a page path whose `Accept` allows HTML or Markdown, wildcards
+ and a missing header included, according to `isPageRequest` in
+-[`requestClassification`](../../../packages/solid-runtime/src/middleware/requestClassification/index.ts);
++[`requestClassification`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-runtime/src/middleware/requestClassification/index.ts);
+ a client that asks only for Markdown also gets the error page in HTML. This
+ criterion is broader than the one of the plugin development server, which only
+ considers HTML, `*/*` or a missing `accept`. `containFailures` writes a
+diff --git a/source/docs/testing.md b/example/docs/testing.md
+--- a/source/docs/testing.md
++++ b/example/docs/testing.md
+@@ -9,7 +9,7 @@ Test files live in `__tests__` folders next to the code they exercise
+ the exception and live in `src/tests/pages/`, outside the Vitest projects.
+ 
+ The `project/test-filename` lint rule, in
+-[`test-filename.ts`](../../../packages/solid-tooling/src/test-filename.ts),
++[`test-filename.ts`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/test-filename.ts),
+ checks the names: `Name[.qualifier].environment.test.ts(x)` in `src`, with the
+ `node`, `dom`, `browser` or `e2e` environment; `Name[.qualifier].test-d.ts(x)`
+ for type-only tests; and `Name[.qualifier].test.ts` in `tooling`. `Name` is the
+@@ -151,8 +151,9 @@ error and success, each one in the initial SSR, in a call from the browser and
+ in streaming, plus a reload that still fails, recovery after the backend comes
+ back and the isolation of the client bundle. The initial SSR is also checked
+ with JavaScript disabled. See [server errors](server-errors.md) for the failure
+-scenarios and [CI](../../../docs/development.md#ci) for when upstream CI runs
+-the fixture suite.
++scenarios and
++[CI](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/docs/development.md#ci)
++for when upstream CI runs the fixture suite.
+ 
+ ### Publication load
+ 
+@@ -359,7 +360,7 @@ production routes. If an earlier `vp run test:e2e` left an E2E fixture build in
+ `.vercel/output`, Playwright stops before the preview and reports
+ `TEST_PREBUILT found an e2e build`; run `vp run build` in the app to replace it
+ with a production build, then run the prebuilt command again. The
+-[tooling package tests](../../../packages/solid-tooling/src/playwright/__tests__/playwright.test.ts)
++[tooling package tests](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/playwright/__tests__/playwright.test.ts)
+ cover the startup commands and reject an E2E fixture build in prebuilt mode.
+ 
+ Use `vp run test:e2e:ui` to open the interactive Playwright interface. With
+diff --git a/source/docs/ui.md b/example/docs/ui.md
+--- a/source/docs/ui.md
++++ b/example/docs/ui.md
+@@ -144,10 +144,10 @@ would fall back to the system font. Check the coverage of a file with
+ `fc-query --format='%{charset}\n' <file>`.
+ 
+ The font loading contract and complete examples are in the tooling package’s
+-[font guide](../../../packages/solid-tooling/docs/fonts.md). Keep the CSS
+-fallback stack, weights and sizes in the application theme. Remove handwritten
+-font faces and preload imports when adopting this mechanism; no inline CSS is
+-required.
++[font guide](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/docs/fonts.md).
++Keep the CSS fallback stack, weights and sizes in the application theme. Remove
++handwritten font faces and preload imports when adopting this mechanism; no
++inline CSS is required.
+ 
+ ## CSS rules
+ 
+@@ -273,9 +273,9 @@ command reuses that validation for every CSS file in `src/`, those without
+ imports in JS/TS included.
+ 
+ The rules and the name check come from `checkCss` in `@evertondgn/solid-tooling`
+-([`stylelint`](../../../packages/solid-tooling/src/stylelint)), called by
+-`tooling/css/check.ts`. The lint of the real CSS is still automatic, and its
+-violations block the validation until they are fixed.
++([`stylelint`](https://github.com/everton-dgn/solidjs_base/blob/create-solid@{version}/packages/solid-tooling/src/stylelint)),
++called by `tooling/css/check.ts`. The lint of the real CSS is still automatic,
++and its violations block the validation until they are fixed.
+ 
+ ## CSS processing
+ 
+diff --git a/source/package.json b/example/package.json
+--- a/source/package.json
++++ b/example/package.json
+@@ -1,9 +1,7 @@
+ {
+-  "name": "boilerplate",
++  "name": "example",
+   "version": "0.0.0",
+-  "private": true,
+-  "description": "Copy of boilerplate_solidjs that tests the packages of this repository in a complete application.",
+-  "type": "module",
++  "description": "SolidJS application built with Vite+.",
+   "scripts": {
+     "dev": "bun --bun node_modules/vite-plus/bin/vp dev",
+     "dev:phone": "bun --bun node_modules/vite-plus/bin/vp dev --host 0.0.0.0",
+@@ -35,10 +33,11 @@
+     "dead-code": "vp run i18n:generate && vp run dead-code-project",
+     "dead-code:fix": "vp run i18n:generate && vp run knip --config tooling/knip.ts --fix && vp fmt",
+     "scan:secrets": "kingfisher scan . --git-history none --no-validate --redact --exclude node_modules --exclude dist --exclude dist-ssr --exclude .nitro --exclude .output --exclude .vercel --exclude .tsbuild --exclude playwright-report --exclude test-results --exclude coverage --exclude .vitest",
+-    "validate": "vp run check:ci && vp run typecheck:node && vp run dead-code && vp run test:coverage && vp run test:tooling && vp run build"
++    "validate": "vp run check:ci && vp run typecheck:node && vp run dead-code && vp run test:coverage && vp run test:tooling && vp run build",
++    "prepare": "if [ \"$(git rev-parse --show-toplevel 2>/dev/null)\" = \"$(pwd -P)\" ]; then vp exec node node_modules/@evertondgn/solid-tooling/dist/cli.mjs lefthook install; fi"
+   },
+   "dependencies": {
+-    "@evertondgn/solid-runtime": "workspace:*",
++    "@evertondgn/solid-runtime": "{version}",
+     "@inlang/paraglide-js": "3.2.2",
+     "@solidjs/router": "2.0.1",
+     "@solidjs/web": "2.0.3",
+@@ -47,15 +46,18 @@
+     "valibot": "1.5.0"
+   },
+   "devDependencies": {
+-    "@evertondgn/solid-tooling": "workspace:*",
++    "@evertondgn/solid-tooling": "{version}",
+     "@iconify-json/hugeicons": "1.2.36",
+     "@inlang/plugin-message-format": "4.6.0",
+     "@playwright/test": "1.65.1",
+     "@solidjs/diagnostics": "2.0.3",
+-    "schema-dts": "catalog:",
+-    "vite": "catalog:",
+-    "vite-plus": "catalog:"
++    "schema-dts": "2.1.0",
++    "vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
++    "vite-plus": "1.7.0",
++    "lefthook": "2.2.2"
+   },
++  "private": true,
++  "type": "module",
+   "engines": {
+     "node": ">=26.13.1 <27"
+   },
+@@ -66,5 +68,12 @@
+       "onFail": "download"
+     }
+   },
+-  "trustedDependencies": []
++  "trustedDependencies": [],
++  "packageManager": "npm@12.2.3",
++  "overrides": {
++    "@solidjs/compiler": "2.0.2",
++    "@solidjs/signals": "2.0.3",
++    "vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
++    "vitest": "5.1.0"
++  }
+ }
+diff --git a/source/patches/@mdream%2Fjs@2.2.0.patch b/source/patches/@mdream%2Fjs@2.2.0.patch
+deleted file mode 100644
+--- a/source/patches/@mdream%2Fjs@2.2.0.patch
++++ /dev/null
+@@ -1,433 +0,0 @@
+-diff --git a/dist/_chunks/markdown-processor.mjs b/dist/_chunks/markdown-processor.mjs
+-index 2f5bc04c0113ca0372e6d57317ee269c4d769ec9..acd5727a79e11bf92dfaa91853942c92160b1e19 100644
+---- a/dist/_chunks/markdown-processor.mjs
+-+++ b/dist/_chunks/markdown-processor.mjs
+-@@ -1,5 +1,5 @@
+- import { BLOCKQUOTE_SPACING, DEFAULT_BLOCK_SPACING, LIST_ITEM_SPACING, NO_SPACING, TABLE_ROW_SPACING, isInsideRawHtmlBlock } from "./const.mjs";
+--import { blockOpenPrefix, dropSourceLead, endsAtHardBreak, figcaptionOwnsBlockSpacing, getLanguageFromAttributes, hasNonWhitespace, isBlockChildOfOpenVoid, isCharacterReferenceTail, isDataUrl, isEmptyLinkHref, isInsideHeading, isInsideTableCell, isOpenVoidTag, lastOutputChar, listMarkerLineStart, markRenderedChildContent, needsSpacing, noteBufferRewrite, orderedItemNumber, outputLeadLength, parseUnsignedInteger, parserTagHandlers, pendingMarkerIndent, resolveUrl, safeAnchorOutput, suppressesFormattingInPre, traverseUpToFirstBlockNode, trimOutputStart, trimTextAtLineStart } from "./url.mjs";
+-+import { blockOpenPrefix, dropSourceLead, endsAtHardBreak, figcaptionOwnsBlockSpacing, getLanguageFromAttributes, hasNonWhitespace, isBlankLinkText, isBlockChildOfOpenVoid, isCharacterReferenceTail, isDataUrl, isEmptyLinkHref, isInsideHeading, isInsideTableCell, isOpenVoidTag, lastOutputChar, listMarkerLineStart, markRenderedChildContent, needsSpacing, noteBufferRewrite, orderedItemNumber, outputLeadLength, parseUnsignedInteger, parserTagHandlers, pendingMarkerIndent, resolveUrl, safeAnchorOutput, suppressesFormattingInPre, traverseUpToFirstBlockNode, trimOutputStart, trimTextAtLineStart } from "./url.mjs";
+- function serializeMarkdownDestination(destination) {
+- 	if (!/[\t\n\f\r ()\\<>]/.test(destination)) return destination;
+- 	return `<${/[\\<>]/.test(destination) ? destination.replace(/[\\<>]/g, "\\$&") : destination}>`;
+-@@ -503,6 +503,7 @@ const tagHandlers = {
+- 					return "";
+- 				}
+- 			}
+-+			if (!node.childTextNodeIndex && !state.depthMap?.[34]) markRenderedChildContent(node);
+- 			return `]${serializeMarkdownResource(href, title)}`;
+- 		},
+- 		collapsesInnerWhiteSpace: true,
+-@@ -1527,6 +1528,30 @@ function resetRetractedCaptionFrames(frames, count, fragment) {
+- 		}
+- 	}
+- }
+-+function dropBlankLinkText(state, openFragment, label, trailingBlank, captionOwnsSpace) {
+-+	const buffer = state.buffer;
+-+	const bracket = openFragment < 0 ? void 0 : buffer[openFragment];
+-+	if (!bracket || bracket.charCodeAt(bracket.length - 1) !== 91 || !hasNonWhitespace(label)) return false;
+-+	let text = "";
+-+	for (let index = openFragment + 1; index < buffer.length; index++) {
+-+		const fragment = buffer[index];
+-+		if (!isBlankLinkText(fragment)) return false;
+-+		text += fragment;
+-+	}
+-+	const hardBreak = text.lastIndexOf("  \n");
+-+	let keep = hardBreak < 0 ? 0 : hardBreak + 3;
+-+	const indent = state.listIndent;
+-+	if (hardBreak >= 0 && indent && text.startsWith(indent, keep)) keep += indent.length;
+-+	const kept = text.slice(0, keep);
+-+	if (kept.length === text.length && (hardBreak >= 0 || !(state.pendingInlineWhitespace && !captionOwnsSpace) && !trailingBlank)) return false;
+-+	const replacement = kept ? [kept] : [];
+-+	state.outputPositions?.replace(openFragment + 1, buffer.length, replacement);
+-+	buffer.length = openFragment + 1;
+-+	if (kept) buffer.push(kept);
+-+	noteBufferRewrite(state);
+-+	if (!captionOwnsSpace) state.pendingInlineWhitespace = false;
+-+	return true;
+-+}
+- function dropEmptyLinkText(buffer, openFragment, positions) {
+- 	for (let index = openFragment + 1; index < buffer.length; index++) if (hasNonWhitespace(buffer[index])) return false;
+- 	positions?.replace(openFragment, buffer.length, []);
+-@@ -2654,6 +2679,7 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 				} else if (consumePendingPreChild(state, node, eventType, preparePendingPreFence)) return;
+- 			} else if (consumePendingPreChild(state, node, eventType, preparePendingPreFence)) return;
+- 		}
+-+		const movesBlankPastLink = node.type === 2 && !gfmLifecycle.openCodeSpans.length && node.isLinkLabel === true && dropBlankLinkText(state, openLinkFragment < -1 ? -openLinkFragment - 2 : openLinkFragment, node.value, node.parent?.trailingBlankAt !== void 0 && node.parent.trailingBlankAt === node.parent.currentWalkIndex, captionNeedsPreparation());
+- 		let lastBuffEntry = buff.at(-1);
+- 		let lastChar = lastBuffEntry?.charAt(lastBuffEntry.length - 1) || "";
+- 		if (!lastChar && buff.length > 1) {
+-@@ -2662,6 +2688,7 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 		}
+- 		if (node.type === 2 && eventType === 0) {
+- 			processTextNode(node, lastNode, lastChar);
+-+			if (movesBlankPastLink) state.pendingInlineWhitespace = true;
+- 			return;
+- 		}
+- 		if (node.type !== 1) return;
+-@@ -2824,7 +2851,7 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 				openLinkFragment = -1;
+- 				return;
+- 			}
+--			if (eventType === 1 && tagId === 26 && openLinkFragment !== -1 && !handler.literalExit && !insideRawHtmlRegion && !gfmLifecycle.openCodeSpans.length && lastChar === " ") {
+-+			if (eventType === 1 && tagId === 26 && openLinkFragment !== -1 && handler.exit === tagHandlers[26].exit && !handler.literalExit && !insideRawHtmlRegion && !gfmLifecycle.openCodeSpans.length && lastOutputChar(buff) === 32) {
+- 				const bracket = openLinkFragment < -1 ? -openLinkFragment - 2 : openLinkFragment;
+- 				let removed = 0;
+- 				for (let index = buff.length - 1; index > bracket; index--) {
+-@@ -2833,7 +2860,8 @@ function createMarkdownProcessor(options = {}, createStream) {
+- 					while (end > 0 && fragment.charCodeAt(end - 1) === 32) end--;
+- 					removed += fragment.length - end;
+- 					if (end === 0) continue;
+--					if (removed && !isAsciiWhitespace(fragment.charCodeAt(end - 1))) {
+-+					const code = fragment.charCodeAt(end - 1);
+-+					if (removed && (code < 9 || code === 11 || code > 13)) {
+- 						trimTrailingSpaces(buff);
+- 						const cache = state.lastContentCache;
+- 						if (cache) state.lastContentCache = cache.slice(0, Math.max(0, cache.length - removed));
+-diff --git a/dist/_chunks/output-runner.mjs b/dist/_chunks/output-runner.mjs
+-index 4a70a66cb6a6d2093b509c3b10d0ca10323605b5..85e8926efa1e26c5bf2119ec27711cffad7b1dba 100644
+---- a/dist/_chunks/output-runner.mjs
+-+++ b/dist/_chunks/output-runner.mjs
+-@@ -5,6 +5,7 @@ function createParseState(processor, options) {
+- 		depthMap: processor.state.depthMap,
+- 		depth: 0,
+- 		resolvedPlugins: options.plugins,
+-+		outputEvent: processor.processEvent,
+- 		tagHandlers: options.tagHandlers,
+- 		tagOverrideHandlers: options.tagOverrideHandlers,
+- 		plainText: options.plainText,
+-diff --git a/dist/_chunks/parse.mjs b/dist/_chunks/parse.mjs
+-index 2f700711a8706cd652397c82aeef03d80d882ca2..30818fe9a7a5411d03089098fbfba57a422e0aba 100644
+---- a/dist/_chunks/parse.mjs
+-+++ b/dist/_chunks/parse.mjs
+-@@ -1,5 +1,5 @@
+- import { NO_SPACING, TagIdMap, isInsideRawHtmlBlock } from "./const.mjs";
+--import { decodeHTMLEntities, hasNonWhitespace, leadingWhitespaceLength, parserTagHandlers, resolveUrl, traverseUpToFirstBlockNode } from "./url.mjs";
+-+import { countContentInEnclosingLink, decodeHTMLEntities, hasNonWhitespace, isBlankLinkText, isBlankLinkTextIn, leadingWhitespaceLength, parserTagHandlers, resolveUrl, traverseUpToFirstBlockNode } from "./url.mjs";
+- const HTTP_BASE_RE = /^https?:\/\/(?:[^/?#]*@)?(?![^/?#]*@)[^:/?#]/i;
+- const MAX_BASE_HREF_LENGTH = 2048;
+- const MAX_ELEMENT_DEPTH = 512;
+-@@ -353,7 +353,10 @@ var ParsedElementNode = class {
+- 	tagHandler;
+- 	currentWalkIndex;
+- 	childTextNodeIndex;
+--	containsWhitespace;
+-+	linkContentCounted;
+-+	enterSkipped;
+-+	hiddenTextNodes;
+-+	trailingBlankAt;
+- 	pluginOutput;
+- 	context;
+- 	cachedDepthMap;
+-@@ -507,7 +510,8 @@ function parseHtml(html, options = {}) {
+- 		depthMap: /* @__PURE__ */ new Uint16Array(113),
+- 		depth: 0,
+- 		resolvedPlugins: options.resolvedPlugins || [],
+--		tagHandlers: options.tagHandlers
+-+		tagHandlers: options.tagHandlers,
+-+		outputEvent: (event) => events.push(event)
+- 	};
+- 	let remainingHtml = parseHtmlInternal(html, state, (event) => {
+- 		events.push(event);
+-@@ -944,7 +948,8 @@ function processTextBuffer(textBuffer, state, handleEvent) {
+- 	}
+- 	const excludesTextNodes = (state.flattenedOpaqueDepth || 0) > 0 || state.flattenedRawExcludesText || state.currentNode?.tagHandler?.excludesTextNodes || state.currentNode?.excludedFromMarkdown;
+- 	const inPreTag = (state.depthMap[34] || 0) > 0;
+--	const isLeadingBlank = !inPreTag && !containsNonWhitespace && !state.currentNode.childTextNodeIndex;
+-+	const isLeadingBlank = !inPreTag && !containsNonWhitespace && (!state.currentNode.childTextNodeIndex || linkHasOnlyNestedContent(state.currentNode));
+-+	if (isLeadingBlank && state.currentNode.tagId === 26 && state.currentNode.currentWalkIndex) state.currentNode.trailingBlankAt = state.currentNode.currentWalkIndex;
+- 	if (isLeadingBlank && (state.plainText && !state.keepLeadingBlanks || !keepsLeadingBlank(state.currentNode))) return;
+- 	let text = textBuffer;
+- 	if (text.length === 0) return;
+-@@ -1006,12 +1011,43 @@ function processTextBuffer(textBuffer, state, handleEvent) {
+- 	if (sourceLead !== 0) textNode.sourceLead = sourceLead;
+- 	state.endTagClosedNothing = false;
+- 	for (const parent of parentsToIncrement) parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+-+	let hasText = false;
+-+	let wasBlank = false;
+-+	if (state.depthMap[26]) {
+-+		hasText = !isBlankLinkTextIn(textNode.value, state.currentNode);
+-+		wasBlank = !hasText && !inPreTag;
+-+	}
+- 	handleEvent({
+- 		type: 0,
+- 		node: textNode
+- 	});
+-+	if (state.depthMap[26]) {
+-+		const isBlank = textNode.rewrittenBlank ?? wasBlank;
+-+		if (isBlank && !textNode.excludedFromMarkdown && state.currentNode.tagId === 26 && state.currentNode.hiddenTextNodes) state.currentNode.trailingBlankAt = state.currentNode.currentWalkIndex;
+-+		const hidden = textNode.excludedFromMarkdown || isBlank && !wasBlank;
+-+		if (hidden || isBlank) countHiddenLinkText(parentsToIncrement, hidden);
+-+		else if ((hasText || textNode.rewrittenBlank === false) && (state.depthMap[26] > 1 || !hasAnchorParent(parentsToIncrement))) countContentInEnclosingLink(firstBlockParent);
+-+	}
+- 	state.lastTextNode = textNode;
+- }
+-+function linkHasOnlyNestedContent(node) {
+-+	return node.tagId === 26 && node.childTextNodeIndex === 1 && node.linkContentCounted === true;
+-+}
+-+function hasAnchorParent(parents) {
+-+	for (let i = 0; i < parents.length; i++) if (parents[i].tagId === 26) return true;
+-+	return false;
+-+}
+-+function countHiddenLinkText(parents, excluded) {
+-+	for (const parent of parents) {
+-+		if (parent.tagId !== 26 || parent.excludedFromMarkdown || parent.enterSkipped) continue;
+-+		const hidden = parent.hiddenTextNodes || 0;
+-+		if (excluded || hidden + 1 === parent.childTextNodeIndex) parent.hiddenTextNodes = hidden + 1;
+-+	}
+-+}
+-+function linkLabelTarget(node, state, handleEvent) {
+-+	if (!node.childTextNodeIndex) return handleEvent;
+-+	if (node.childTextNodeIndex === node.hiddenTextNodes && !node.excludedFromMarkdown && !node.enterSkipped) return state.outputEvent;
+-+}
+- function processClosingTag(htmlChunk, position, state, handleEvent) {
+- 	let i = position + 2;
+- 	const tagNameStart = i;
+-@@ -1148,21 +1184,27 @@ function processClosingTag(htmlChunk, position, state, handleEvent) {
+- }
+- function closeNode(node, state, handleEvent) {
+- 	if (!node) return;
+--	if (node.tagId === 26 && !node.childTextNodeIndex) {
+-+	const emitLabel = node.tagId === 26 ? linkLabelTarget(node, state, handleEvent) : void 0;
+-+	if (emitLabel) {
+- 		const prefix = node.attributes?.title || node.attributes?.["aria-label"] || "";
+--		if (prefix) {
+-+		if (prefix && (!node.childTextNodeIndex || !isBlankLinkText(prefix))) {
+- 			node.childTextNodeIndex = 1;
+--			handleEvent({
+-+			const textNode = {
+-+				type: 2,
+-+				value: prefix,
+-+				parent: node,
+-+				index: 0,
+-+				depth: node.depth + 1,
+-+				isLinkLabel: true
+-+			};
+-+			if (state.endTagClosedNothing) textNode.joinsPrevious = true;
+-+			emitLabel({
+- 				type: 0,
+--				node: {
+--					type: 2,
+--					value: prefix,
+--					parent: node,
+--					index: 0,
+--					depth: node.depth + 1
+--				}
+-+				node: textNode
+- 			});
+--			for (const parent of traverseUpToFirstBlockNode(node)) parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+-+			const parents = traverseUpToFirstBlockNode(node);
+-+			for (const parent of parents) parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+-+			if (state.depthMap[26] > 1 && !node.excludedFromMarkdown && !node.enterSkipped) countContentInEnclosingLink(parents.at(-1));
+- 		}
+- 	}
+- 	const tagId = node.tagId;
+-diff --git a/dist/_chunks/src.mjs b/dist/_chunks/src.mjs
+-index 78b4b8cf9f71f3aefaddcda86f429c957a8d6d81..55b4f17b7c18e8b788278fee8809413a72e562ee 100644
+---- a/dist/_chunks/src.mjs
+-+++ b/dist/_chunks/src.mjs
+-@@ -263,6 +263,7 @@ async function* streamHtmlToMarkdown$1(htmlStream, options = {}, resolvedPlugins
+- 		depthMap: processor.state.depthMap,
+- 		depth: 0,
+- 		resolvedPlugins,
+-+		outputEvent: processor.processEvent,
+- 		tagHandlers,
+- 		tagOverrideHandlers,
+- 		plainText: false,
+-@@ -305,6 +306,7 @@ function htmlToMarkdown(html, options = {}) {
+- 		depthMap: processor.state.depthMap,
+- 		depth: 0,
+- 		resolvedPlugins: plugins,
+-+		outputEvent: processor.processEvent,
+- 		tagHandlers,
+- 		tagOverrideHandlers,
+- 		plainText: false,
+-diff --git a/dist/_chunks/tag-overrides.mjs b/dist/_chunks/tag-overrides.mjs
+-index d5a5c95c560f30c4589a1114c07b9a6794dfd0a1..1a603a3c054d6473523432a864a45196a84a29d5 100644
+---- a/dist/_chunks/tag-overrides.mjs
+-+++ b/dist/_chunks/tag-overrides.mjs
+-@@ -1,4 +1,5 @@
+- import { TagIdMap } from "./const.mjs";
+-+import { countContentInEnclosingLink, isBlankLinkText, isBlankLinkTextIn } from "./url.mjs";
+- function checkClean(options) {
+- 	const clean = options.clean;
+- 	if (clean && typeof clean.apply !== "function") throw new TypeError("The clean option needs cleanup rules from clean(). Import it from '@mdream/js/clean'.");
+-@@ -51,9 +52,14 @@ function assertEngineOptions(options, entry = "converter") {
+- 	const plugins = options.plugins;
+- 	if (plugins != null && !Array.isArray(plugins)) throw new TypeError("@mdream/js takes `plugins` as an array, such as { plugins: [frontmatterPlugin()] } with frontmatterPlugin from '@mdream/js/plugins'.");
+- }
+-+function isBlankText(value, inPreTag) {
+-+	if (!value) return true;
+-+	return !inPreTag && isBlankLinkText(value);
+-+}
+- function processPluginsForEvent(event, plugins, state, processEvent, onSkipped) {
+- 	state.depth = event.node.depth;
+- 	if (plugins?.length) {
+-+		const text = event.node.type === 2 ? event.node.value : void 0;
+- 		if (event.node.type === 1 && event.type === 0) {
+- 			const element = event.node;
+- 			let hasCheckedAttributes = false;
+-@@ -78,6 +84,8 @@ function processPluginsForEvent(event, plugins, state, processEvent, onSkipped)
+- 		}
+- 		if (shouldSkip) {
+- 			onSkipped?.(event);
+-+			if (event.node.type === 2) event.node.excludedFromMarkdown = true;
+-+			else if (event.type === 0 && event.node.tagId === 26) event.node.enterSkipped = true;
+- 			return true;
+- 		}
+- 		if (event.node.type === 1) {
+-@@ -92,7 +100,10 @@ function processPluginsForEvent(event, plugins, state, processEvent, onSkipped)
+- 					if (result) (pluginOutputs ??= []).push(result);
+- 				}
+- 			}
+--			if (pluginOutputs) element.pluginOutput = element.pluginOutput ? element.pluginOutput.concat(pluginOutputs) : pluginOutputs;
+-+			if (pluginOutputs) {
+-+				element.pluginOutput = element.pluginOutput ? element.pluginOutput.concat(pluginOutputs) : pluginOutputs;
+-+				if (state.depthMap?.[26] && pluginOutputs.some((output) => !isBlankText(output, (state.depthMap?.[34] || 0) > 0))) countContentInEnclosingLink(element.tagId === 26 ? element.parent : element);
+-+			}
+- 		} else if (event.node.type === 2 && event.type === 0) {
+- 			const textNode = event.node;
+- 			for (let index = 0; index < plugins.length; index++) {
+-@@ -109,6 +120,7 @@ function processPluginsForEvent(event, plugins, state, processEvent, onSkipped)
+- 					}
+- 				}
+- 			}
+-+			if (state.depthMap?.[26] && textNode.value !== text) textNode.rewrittenBlank = !textNode.value || !state.depthMap[34] && isBlankLinkTextIn(textNode.value, textNode.parent);
+- 		}
+- 	}
+- 	processEvent(event);
+-diff --git a/dist/_chunks/text.mjs b/dist/_chunks/text.mjs
+-index 4bd843b3640a57cbb590572018c5b4b6db2fb98e..2a725d40e57de631b9849218fbb9a3d6a47156d9 100644
+---- a/dist/_chunks/text.mjs
+-+++ b/dist/_chunks/text.mjs
+-@@ -236,7 +236,7 @@ function appendOutput(state, element, eventType, output, hasVisiblePluginOutput
+- 		const firstOutput = output?.[0] || "";
+- 		const owed = !!state.pendingDecodedBlank && !(eventType === 0 && element.tagId === 22);
+- 		if (eventType === 0) {
+--			if (!isInline && !owed || element.tagId === 6 || missingNewlines > 0 || firstOutput === "\n" || firstOutput === "\r") state.pendingInlineWhitespace = false;
+-+			if (!isInline && (element.tagId !== 36 || firstOutput) && !owed || element.tagId === 6 || missingNewlines > 0 || firstOutput === "\n" || firstOutput === "\r") state.pendingInlineWhitespace = false;
+- 			else if (firstOutput) {
+- 				const last = charOf(lastOutputChar(buffer));
+- 				if (last && !" \n	\r".includes(last) && !" \n	\r".includes(firstOutput) && !afterLiteralOpener) buffer.push(" ");
+-diff --git a/dist/_chunks/types.d.mts b/dist/_chunks/types.d.mts
+-index 33c0ae8fb7f57faa9aa0744183539fc9e4dabf37..82a88c4ecfd7e12311c8c15f64ef5f9e3df66bff 100644
+---- a/dist/_chunks/types.d.mts
+-+++ b/dist/_chunks/types.d.mts
+-@@ -197,6 +197,14 @@ export interface ElementNode extends Node {
+-   pluginOutput?: string[];
+-   /** Whether this element's enter event wrote an inline wrapper. */
+-   hasEnterOutput?: boolean;
+-+  /** Content below this node already counts for the nearest link at or above it. */
+-+  linkContentCounted?: boolean;
+-+  /** A plugin skipped this link's start, so it takes no title or aria-label text. */
+-+  enterSkipped?: boolean;
+-+  /** Text counted in this link that never shows: excluded text and the blank text after it. */
+-+  hiddenTextNodes?: number;
+-+  /** The child count when this link dropped a blank after other content, as the space in `<a><svg></svg> </a>`. */
+-+  trailingBlankAt?: number;
+- }
+- export interface TextNode extends Node {
+-   /** Text content (for TEXT_NODE) */
+-@@ -226,6 +234,10 @@ export interface TextNode extends Node {
+-    * decoded from a character reference is content and is not counted.
+-    */
+-   sourceLead?: number;
+-+  /** Set when a hook changed this text inside a link: whether the new value shows nothing. */
+-+  rewrittenBlank?: boolean;
+-+  /** The title or aria-label written for a link with no visible text. */
+-+  isLinkLabel?: boolean;
+- }
+- /**
+-  * Base DOM node interface
+-diff --git a/dist/_chunks/url.mjs b/dist/_chunks/url.mjs
+-index 2ae5786214856746c9952a36b3eca880d8ded950..78a5aed9c4aa029b5ef2d0d410f17bfe9bbcea0c 100644
+---- a/dist/_chunks/url.mjs
+-+++ b/dist/_chunks/url.mjs
+-@@ -318,6 +318,19 @@ function getLanguageFromDataAttribute(value) {
+- function getLanguageFromAttributes(attributes) {
+- 	return getLanguageFromClass(attributes?.class) || getLanguageFromDataAttribute(attributes?.["data-language"]) || getLanguageFromDataAttribute(attributes?.["data-lang"]);
+- }
+-+function isBlankLinkText(value) {
+-+	for (let i = 0; i < value.length; i++) {
+-+		const c = value.charCodeAt(i);
+-+		if (c <= 32 ? c !== 32 && (c < 9 || c > 13) : c !== 133 && c !== 160 && c !== 5760 && (c < 8192 || c > 8202) && c !== 8232 && c !== 8233 && c !== 8239 && c !== 8287 && c !== 12288) return false;
+-+	}
+-+	return true;
+-+}
+-+function isBlankLinkTextIn(value, parent) {
+-+	if (!hasNonWhitespace(value)) return true;
+-+	if (!isBlankLinkText(value)) return false;
+-+	for (let node = parent; node && node.tagId !== 26; node = node.parent) if (isInlineNode(node)) return false;
+-+	return true;
+-+}
+- function hasNonWhitespace(value) {
+- 	for (let i = 0; i < value.length; i++) {
+- 		const c = value.charCodeAt(i);
+-@@ -581,23 +594,27 @@ function traverseUpToFirstBlockNode(node) {
+- }
+- function markRenderedChildContent(node) {
+- 	let parent = node.parent;
+--	let anchorInScope = false;
+- 	while (parent) {
+- 		parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+--		if (parent.tagId === 26) anchorInScope = true;
+- 		if (!isInlineNode(parent)) break;
+- 		parent = parent.parent;
+- 	}
+--	if (anchorInScope) return;
+--	let anchorFound = false;
+--	while (parent?.parent) {
+--		parent = parent.parent;
+--		if (!anchorFound) {
+--			if (parent.tagId !== 26) continue;
+--			anchorFound = true;
+-+	countContentInEnclosingLink(parent);
+-+}
+-+function countContentInEnclosingLink(block) {
+-+	let parent = block;
+-+	while (parent && !parent.linkContentCounted) {
+-+		parent.linkContentCounted = true;
+-+		if (parent.tagId !== 26) {
+-+			parent = parent.parent;
+-+			continue;
+-+		}
+-+		while (isInlineNode(parent)) {
+-+			parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+-+			if (!parent.parent) return;
+-+			parent = parent.parent;
+- 		}
+- 		parent.childTextNodeIndex = (parent.childTextNodeIndex || 0) + 1;
+--		if (!isInlineNode(parent)) return;
+- 	}
+- }
+- const URL_SCHEME_RE = /^[A-Z][\dA-Z+.-]*:/i;
+-@@ -688,4 +705,4 @@ function safeAnchorOutput(node, options, entering, protectMarkdown = false) {
+- 	if (!entering) return "</a>";
+- 	return `<a href="${escapeHtml(resolved, true, protectMarkdown)}"${node.attributes?.title === void 0 ? "" : ` title="${escapeHtml(node.attributes.title, true, protectMarkdown)}"`}>`;
+- }
+--export { blockOpenPrefix, decodeHTMLEntities, dropSourceLead, endsAtHardBreak, escapeHtml, figcaptionOwnsBlockSpacing, getLanguageFromAttributes, hasNonWhitespace, isBlockChildOfOpenVoid, isCharacterReferenceTail, isDataUrl, isEmptyLinkHref, isInsideHeading, isInsideTableCell, isOpenVoidTag, isSafeHtmlUrl, lastOutputChar, leadingWhitespaceLength, listMarkerLineStart, markRenderedChildContent, needsSpacing, noteBufferRewrite, orderedItemNumber, outputLeadLength, parseUnsignedInteger, parserTagHandlers, pendingMarkerIndent, resolveUrl, safeAnchorOutput, suppressesFormattingInPre, traverseUpToFirstBlockNode, trimOutputStart, trimTextAtLineStart, trimUrl };
+-+export { blockOpenPrefix, countContentInEnclosingLink, decodeHTMLEntities, dropSourceLead, endsAtHardBreak, escapeHtml, figcaptionOwnsBlockSpacing, getLanguageFromAttributes, hasNonWhitespace, isBlankLinkText, isBlankLinkTextIn, isBlockChildOfOpenVoid, isCharacterReferenceTail, isDataUrl, isEmptyLinkHref, isInsideHeading, isInsideTableCell, isOpenVoidTag, isSafeHtmlUrl, lastOutputChar, leadingWhitespaceLength, listMarkerLineStart, markRenderedChildContent, needsSpacing, noteBufferRewrite, orderedItemNumber, outputLeadLength, parseUnsignedInteger, parserTagHandlers, pendingMarkerIndent, resolveUrl, safeAnchorOutput, suppressesFormattingInPre, traverseUpToFirstBlockNode, trimOutputStart, trimTextAtLineStart, trimUrl };
+-diff --git a/dist/parse.d.mts b/dist/parse.d.mts
+-index 4738e6d006d318e779427beac26b183a03b62269..006bef3cb2724dff9dea8c5730cf72c50e90c01b 100644
+---- a/dist/parse.d.mts
+-+++ b/dist/parse.d.mts
+-@@ -63,6 +63,8 @@ export interface ParseState {
+-   lastTextNode?: Node;
+-   /** Resolved plugin instances for event processing */
+-   resolvedPlugins?: TransformPlugin[];
+-+  /** Hands an event to the output past plugins and the splitter, as Rust writes a link label. */
+-+  outputEvent?: (event: NodeEvent) => void;
+-   /** Output-specific tag behavior. Parsing metadata is used when absent. */
+-   tagHandlers?: Record<number, TagHandler>;
+-   /** Tag override handlers built from declarative tagOverrides config */
+-diff --git a/dist/splitter.mjs b/dist/splitter.mjs
+-index f1996e236d4c27a22d3739dca663a65896c88da3..02f6b310a8b8a707e888af4745a8a712187146ff 100644
+---- a/dist/splitter.mjs
+-+++ b/dist/splitter.mjs
+-@@ -263,6 +263,7 @@ function* htmlToMarkdownSplitChunksStream(html, options = {}) {
+- 		depthMap: processor.state.depthMap,
+- 		depth: 0,
+- 		resolvedPlugins: opts.resolvedPlugins,
+-+		outputEvent: processor.processEvent,
+- 		tagHandlers,
+- 		tagOverrideHandlers: opts.tagOverrideHandlers,
+- 		urlBaseTarget: processor.state
+diff --git a/source/src/Document.tsx b/example/src/Document.tsx
+--- a/source/src/Document.tsx
++++ b/example/src/Document.tsx
+@@ -27,7 +27,7 @@ export default function Document(props: ParentProps) {
+       <head>
+         <meta charset="utf-8" />
+         <title>{SITE.title}</title>
+-        <meta name="author" content={SITE.author.name} />
++        {SITE.author.name && <meta name="author" content={SITE.author.name} />}
+         <meta
+           name="viewport"
+           content="minimum-scale=1, initial-scale=1, width=device-width"
+diff --git a/source/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx b/example/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx
+--- a/source/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx
++++ b/example/src/components/molecules/SiteContent/__tests__/SiteContent.dom.test.tsx
+@@ -1,7 +1,6 @@
+ import { baseLocale } from '@paraglide/runtime.js'
+ 
+ import type { SitePage } from '@/@types/site-page.ts'
+-import { SITE } from '@/constants/site/index.ts'
+ import { SITE_LINKS } from '@/constants/siteLinks/index.ts'
+ import { renderComponent } from '@/tests/providers/renderComponent/index.tsx'
+ 
+@@ -15,8 +14,8 @@ describe('content of the institutional pages', () => {
+       sections: [],
+       links: [
+         ...SITE_LINKS.pages,
+-        { label: 'Repository', href: SITE.repositoryUrl },
+-        { label: 'Documentation', href: `${SITE.repositoryUrl}#readme` }
++        { label: 'Repository', href: 'https://example.com' },
++        { label: 'Documentation', href: 'https://example.com#readme' }
+       ]
+     }
+     const host = renderComponent(() => <SiteContent page={page} />, {
+@@ -31,8 +30,8 @@ describe('content of the institutional pages', () => {
+       `/${baseLocale}/about`,
+       `/${baseLocale}/contact`,
+       `/${baseLocale}/privacy`,
+-      SITE.repositoryUrl,
+-      `${SITE.repositoryUrl}#readme`
++      'https://example.com',
++      'https://example.com#readme'
+     ])
+   })
+ })
+diff --git a/source/src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx b/example/src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx
+--- a/source/src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx
++++ b/example/src/components/organisms/ErrorFallback/__tests__/ErrorFallback.dom.test.tsx
+@@ -33,7 +33,7 @@ describe('failure metadata', () => {
+       { hasProviders: false }
+     )
+     await expect.poll(() => readMeta('robots')).toBe('noindex')
+-    expect(document.title).toBe(m.errorFallback_runtimeTitle())
++    expect(document.title).toBe(m.errorFallback_runtimePageTitle())
+     expect(readMeta('description')).toBe(m.errorFallback_runtimeDescription())
+     expect(host.querySelector('h1')).toHaveTextContent(
+       m.errorFallback_runtimeTitle()
+diff --git a/source/src/components/organisms/ErrorFallback/i18n/en.json b/example/src/components/organisms/ErrorFallback/i18n/en.json
+--- a/source/src/components/organisms/ErrorFallback/i18n/en.json
++++ b/example/src/components/organisms/ErrorFallback/i18n/en.json
+@@ -5,5 +5,6 @@
+   "errorFallback_badge": "Error!",
+   "errorFallback_runtimeTitle": "Something went wrong!",
+   "errorFallback_runtimeDescription": "We could not complete your request. Please try again.",
+-  "errorFallback_reload": "Reload page"
++  "errorFallback_reload": "Reload page",
++  "errorFallback_runtimePageTitle": "Something went wrong! | SolidJS Boilerplate"
+ }
+diff --git a/source/src/components/organisms/ErrorFallback/i18n/es.json b/example/src/components/organisms/ErrorFallback/i18n/es.json
+--- a/source/src/components/organisms/ErrorFallback/i18n/es.json
++++ b/example/src/components/organisms/ErrorFallback/i18n/es.json
+@@ -5,5 +5,6 @@
+   "errorFallback_badge": "¡Error!",
+   "errorFallback_runtimeTitle": "¡Algo salió mal!",
+   "errorFallback_runtimeDescription": "No se pudo completar tu solicitud. Inténtalo de nuevo.",
+-  "errorFallback_reload": "Recargar página"
++  "errorFallback_reload": "Recargar página",
++  "errorFallback_runtimePageTitle": "¡Algo salió mal! | SolidJS Boilerplate"
+ }
+diff --git a/source/src/components/organisms/ErrorFallback/i18n/pt.json b/example/src/components/organisms/ErrorFallback/i18n/pt.json
+--- a/source/src/components/organisms/ErrorFallback/i18n/pt.json
++++ b/example/src/components/organisms/ErrorFallback/i18n/pt.json
+@@ -5,5 +5,6 @@
+   "errorFallback_badge": "Erro!",
+   "errorFallback_runtimeTitle": "Algo deu errado!",
+   "errorFallback_runtimeDescription": "Não foi possível concluir sua solicitação. Tente novamente.",
+-  "errorFallback_reload": "Recarregar página"
++  "errorFallback_reload": "Recarregar página",
++  "errorFallback_runtimePageTitle": "Algo deu errado! | SolidJS Boilerplate"
+ }
+diff --git a/source/src/components/organisms/ErrorFallback/index.tsx b/example/src/components/organisms/ErrorFallback/index.tsx
+--- a/source/src/components/organisms/ErrorFallback/index.tsx
++++ b/example/src/components/organisms/ErrorFallback/index.tsx
+@@ -1,3 +1,4 @@
++import { m } from '@paraglide/messages.js'
+ import { httpStatus, useHead } from '@solidjs/web'
+ import { createUniqueId, dynamicComponent, untrack } from 'solid-js'
+ 
+@@ -31,10 +32,11 @@ export function ErrorFallback(props: ErrorFallbackProps) {
+   const content = () => ERROR_FALLBACK_CONTENT[props.kind]
+   const Icon = dynamicComponent(() => content().icon)
+ 
++  const pageTitle = m.errorFallback_runtimePageTitle
+   useHead(() =>
+     props.kind === 'runtime'
+       ? [
+-          { tag: 'title', props: { children: content().title } },
++          { tag: 'title', props: { children: pageTitle() } },
+           {
+             tag: 'meta',
+             props: { name: 'description', content: content().description }
+diff --git a/source/src/components/organisms/Topbar/index.tsx b/example/src/components/organisms/Topbar/index.tsx
+--- a/source/src/components/organisms/Topbar/index.tsx
++++ b/example/src/components/organisms/Topbar/index.tsx
+@@ -34,14 +34,16 @@ export function Topbar(props: TopbarProps) {
+ 
+       <div class={S.actions}>
+         {props.children}
+-        <a
+-          class={S.github_link}
+-          href={SITE_LINKS.repository.href}
+-          aria-label={SITE_LINKS.repository.label}
+-          title={SITE_LINKS.repository.label}
+-        >
+-          <IconGithub />
+-        </a>
++        {SITE.repositoryUrl && (
++          <a
++            class={S.github_link}
++            href={SITE_LINKS.repository.href}
++            aria-label={SITE_LINKS.repository.label}
++            title={SITE_LINKS.repository.label}
++          >
++            <IconGithub />
++          </a>
++        )}
+         <LocaleSwitcher />
+         <ThemeToggle />
+       </div>
+diff --git a/source/src/constants/site/index.ts b/example/src/constants/site/index.ts
+--- a/source/src/constants/site/index.ts
++++ b/example/src/constants/site/index.ts
+@@ -15,56 +15,24 @@ type SiteOrganization = {
+   address?: PostalAddressNode
+ }
+ 
+-const REPOSITORY_URL = 'https://github.com/everton-dgn/boilerplate_solidjs'
+-
+-const AUTHOR_PROFILES = [
+-  'https://x.com/toffanettodev',
+-  'https://www.linkedin.com/in/everton-toffanetto/',
+-  'https://www.youtube.com/@toffanettodev'
+-]
+-
+-// Fictional demo values, published in the JSON-LD of the Organization. A missing
+-// field leaves the JSON-LD.
+-const ORGANIZATION: SiteOrganization = {
+-  contactPoint: {
+-    '@type': 'ContactPoint',
+-    contactType: 'demo',
+-    email: 'contato@example.com',
+-    telephone: '0000000000',
+-    description:
+-      'Placeholder values for this boilerplate demonstration. Do not use them to contact the maintainer.'
+-  },
+-  address: {
+-    '@type': 'PostalAddress',
+-    streetAddress: 'Rua de exemplo, 123',
+-    addressLocality: 'Cidade de exemplo',
+-    addressRegion: 'Estado de exemplo',
+-    postalCode: '00000-000',
+-    addressCountry: 'BR',
+-    description: 'Placeholder address for this boilerplate demonstration.'
+-  }
+-}
++const ORGANIZATION: SiteOrganization = {}
++const AUTHOR = { name: '', url: '', twitter: '', sameAs: [] as string[] }
+ 
+ export const SITE = {
+   title: identity.title,
+   get description(): string {
+     return m.site_description()
+   },
+-  author: {
+-    name: 'Éverton Toffanetto',
+-    url: 'https://github.com/everton-dgn',
+-    twitter: '@toffanettodev',
+-    sameAs: AUTHOR_PROFILES
+-  },
+-  twitter: '@toffanettodev',
++  author: AUTHOR,
++  twitter: '',
+   // BCP 47: the `lang` of the document and the `inLanguage` of the JSON-LD;
+   // `og:locale` derives from it by replacing the hyphen with an underscore.
+   get locale(): string {
+     return localeTag(getLocale(), LOCALE_TAG_OVERRIDES)
+   },
+   url: origin,
+-  repositoryUrl: REPOSITORY_URL,
+-  socialLinks: [REPOSITORY_URL, ...AUTHOR_PROFILES],
++  repositoryUrl: '',
++  socialLinks: [] as string[],
+   organization: ORGANIZATION,
+   // Path of the publisher logo in the JSON-LD; Google asks for at least 112x112.
+   logo: '/favicon/apple-touch-icon.png',
+diff --git a/source/src/constants/site/title.ts b/example/src/constants/site/title.ts
+--- a/source/src/constants/site/title.ts
++++ b/example/src/constants/site/title.ts
+@@ -1,3 +1,5 @@
+ export const SITE = {
+-  title: 'SolidJS Boilerplate'
++  get title(): string {
++    return 'SolidJS Boilerplate'
++  }
+ }
+diff --git a/source/src/primitives/createSeo/index.ts b/example/src/primitives/createSeo/index.ts
+--- a/source/src/primitives/createSeo/index.ts
++++ b/example/src/primitives/createSeo/index.ts
+@@ -20,9 +20,15 @@ type Options =
+ 
+ export function createSeo(options: Options): void {
+   if (options.route) {
++    const { author, organization, socialLinks, ...site } = SITE
+     createRuntimeSeo({
+       ...options,
+-      site: SITE,
++      site: {
++        ...site,
++        ...(author.name && { author }),
++        ...(Object.keys(organization).length > 0 && { organization }),
++        ...(socialLinks.length > 0 && { socialLinks })
++      },
+       localeTagOverrides: LOCALE_TAG_OVERRIDES,
+       markdownHref: (
+         pathname: string,
+diff --git a/source/src/routes/(base)/(home)/i18n/en.json b/example/src/routes/(base)/(home)/i18n/en.json
+--- a/source/src/routes/(base)/(home)/i18n/en.json
++++ b/example/src/routes/(base)/(home)/i18n/en.json
+@@ -1,6 +1,6 @@
+ {
+-  "home_title": "SolidJS Boilerplate for web applications",
+-  "home_description": "Start your next project with {framework}, {toolchain} and {language}. Server-side rendering and light, dark or system theme preferences are already configured.",
+-  "home_seoTitle": "SolidJS Boilerplate | Web applications with SSR",
+-  "home_features": "You start with pages in Portuguese, English and Spanish, SEO defined per route and user interface components ready to adapt. Automated unit, component and browser tests accompany the source code, while backend calls handle errors without exposing server details."
++  "home_title": "SolidJS Boilerplate",
++  "home_description": "Start your next project with {framework}, {toolchain} and {language}. Bookmark any page or share its address with someone else.",
++  "home_seoTitle": "SolidJS Boilerplate",
++  "home_features": "This application was built with Solid Base. Use the navigation links to open the about, contact and privacy pages. Each page has its own address, so you can bookmark it or share a direct link. The about page describes the project and the tools used to build it. The contact page explains what information to include when reporting a problem. The privacy page describes browser preferences and what happens when you follow an external link. Use the home link in the navigation to return to this page."
+ }
+diff --git a/source/src/routes/(base)/(home)/i18n/es.json b/example/src/routes/(base)/(home)/i18n/es.json
+--- a/source/src/routes/(base)/(home)/i18n/es.json
++++ b/example/src/routes/(base)/(home)/i18n/es.json
+@@ -1,6 +1,6 @@
+ {
+-  "home_title": "SolidJS Boilerplate para aplicaciones web",
+-  "home_description": "Empieza tu próximo proyecto con {framework}, {toolchain} y {language}. El renderizado en el servidor y las preferencias de tema claro, oscuro o del sistema ya están configurados.",
+-  "home_seoTitle": "SolidJS Boilerplate | Aplicaciones web con SSR",
+-  "home_features": "Ya cuentas con páginas en portugués, inglés y español, SEO definido por ruta y componentes de interfaz listos para adaptar. El código incluye pruebas unitarias, de componentes y de navegador, y las llamadas al backend gestionan errores sin exponer detalles del servidor."
++  "home_title": "SolidJS Boilerplate",
++  "home_description": "Empieza tu proyecto con {framework}, {toolchain} y {language}. Puedes guardar las páginas en tus favoritos o compartir su dirección.",
++  "home_seoTitle": "SolidJS Boilerplate",
++  "home_features": "Esta aplicación se creó con Solid Base. Usa los enlaces de navegación para abrir las páginas de información, contacto y privacidad. Cada página tiene su propia dirección, que puedes guardar en tus favoritos o compartir con otra persona. La página de información presenta el proyecto y las herramientas utilizadas para crearlo. La página de contacto explica qué detalles incluir al comunicar un problema. La página de privacidad describe las preferencias del navegador y los enlaces externos. El enlace de inicio te permite volver a esta página."
+ }
+diff --git a/source/src/routes/(base)/(home)/i18n/pt.json b/example/src/routes/(base)/(home)/i18n/pt.json
+--- a/source/src/routes/(base)/(home)/i18n/pt.json
++++ b/example/src/routes/(base)/(home)/i18n/pt.json
+@@ -1,6 +1,6 @@
+ {
+-  "home_title": "SolidJS Boilerplate para aplicações web",
+-  "home_description": "Comece seu próximo projeto com {framework}, {toolchain} e {language}. Renderização no servidor e tema claro, escuro ou do sistema já vêm configurados.",
+-  "home_seoTitle": "SolidJS Boilerplate | Aplicações web com SSR",
+-  "home_features": "Você já parte de páginas em português, inglês e espanhol, SEO definido por rota e componentes de interface prontos para adaptar. Testes de unidade, de componentes e de navegador acompanham o código, e as chamadas ao backend tratam erros sem expor detalhes do servidor."
++  "home_title": "SolidJS Boilerplate",
++  "home_description": "Comece seu projeto com {framework}, {toolchain} e {language}. Você pode salvar as páginas nos favoritos ou compartilhar o endereço delas.",
++  "home_seoTitle": "SolidJS Boilerplate",
++  "home_features": "Esta aplicação foi criada com Solid Base. Use os links de navegação para abrir as páginas sobre o projeto, de contato e de privacidade. Cada página tem um endereço próprio que você pode salvar nos favoritos ou compartilhar com outra pessoa. A página sobre o projeto apresenta as ferramentas usadas no desenvolvimento. A página de contato explica quais informações incluir ao relatar um problema. A página de privacidade descreve as preferências do navegador e os links externos. Use o link de início para voltar a esta página."
+ }
+diff --git a/source/src/routes/(base)/[...404]/i18n/en.json b/example/src/routes/(base)/[...404]/i18n/en.json
+--- a/source/src/routes/(base)/[...404]/i18n/en.json
++++ b/example/src/routes/(base)/[...404]/i18n/en.json
+@@ -1,4 +1,4 @@
+ {
+-  "notFound_title": "Page not found",
++  "notFound_title": "Page not found | SolidJS Boilerplate",
+   "notFound_description": "The requested page was not found."
+ }
+diff --git a/source/src/routes/(base)/[...404]/i18n/es.json b/example/src/routes/(base)/[...404]/i18n/es.json
+--- a/source/src/routes/(base)/[...404]/i18n/es.json
++++ b/example/src/routes/(base)/[...404]/i18n/es.json
+@@ -1,4 +1,4 @@
+ {
+-  "notFound_title": "Página no encontrada",
++  "notFound_title": "Página no encontrada | SolidJS Boilerplate",
+   "notFound_description": "No se encontró la página solicitada."
+ }
+diff --git a/source/src/routes/(base)/[...404]/i18n/pt.json b/example/src/routes/(base)/[...404]/i18n/pt.json
+--- a/source/src/routes/(base)/[...404]/i18n/pt.json
++++ b/example/src/routes/(base)/[...404]/i18n/pt.json
+@@ -1,4 +1,4 @@
+ {
+-  "notFound_title": "Página não encontrada",
++  "notFound_title": "Página não encontrada | SolidJS Boilerplate",
+   "notFound_description": "A página solicitada não foi encontrada."
+ }
+diff --git a/source/src/routes/(base)/about/i18n/en.json b/example/src/routes/(base)/about/i18n/en.json
+--- a/source/src/routes/(base)/about/i18n/en.json
++++ b/example/src/routes/(base)/about/i18n/en.json
+@@ -1,10 +1,11 @@
+ {
+   "about_title": "About SolidJS Boilerplate",
+-  "about_description": "Learn about the open source project maintained by Éverton Toffanetto and its web application features.",
+-  "about_intro": "SolidJS Boilerplate is an open source project maintained by Éverton Toffanetto. It provides a foundation for building web applications with SolidJS, TypeScript and Vite+, with source code available on GitHub under the MIT license.",
++  "about_description": "Learn about the application and its features.",
++  "about_intro": "This page describes SolidJS Boilerplate and the tools used to build it.",
+   "about_purposeTitle": "Purpose and features",
+-  "about_purpose": "The project brings together the initial integrations for an application: server-side rendering, route organization, translated content, themes and automated tests. This website demonstrates the foundation in use. Its examples and documentation help explain the project choices before you adapt it for another product.",
++  "about_purpose": "Solid Base provides routing, reusable components and automated tests. You can adapt the pages and components to your project. Each page has its own route, so you can share its address or open it directly. The contact page explains what to include when reporting a problem. The privacy page describes how your browser handles preferences and what happens when you follow a link to another website.",
+   "about_sourceTitle": "Source code and documentation",
+-  "about_source": "The repository is the reference for installation, development commands and implementation details. Its guides cover architecture, testing, SEO and server error handling. You can freely use, modify, distribute and sell the code, including in commercial and closed-source projects.",
+-  "about_documentationLabel": "Documentation"
++  "about_source": "The application includes guides to its architecture and development tasks.",
++  "about_documentationLabel": "Documentation",
++  "about_pageTitle": "About | SolidJS Boilerplate"
+ }
+diff --git a/source/src/routes/(base)/about/i18n/es.json b/example/src/routes/(base)/about/i18n/es.json
+--- a/source/src/routes/(base)/about/i18n/es.json
++++ b/example/src/routes/(base)/about/i18n/es.json
+@@ -1,10 +1,11 @@
+ {
+   "about_title": "Acerca de SolidJS Boilerplate",
+-  "about_description": "Conoce el proyecto de código abierto mantenido por Éverton Toffanetto y sus recursos para aplicaciones web.",
+-  "about_intro": "SolidJS Boilerplate es un proyecto de código abierto mantenido por Éverton Toffanetto. Ofrece una base para desarrollar aplicaciones web con SolidJS, TypeScript y Vite+, con el código disponible en GitHub bajo la licencia MIT.",
++  "about_description": "Conoce la aplicación y sus funciones.",
++  "about_intro": "Esta página describe SolidJS Boilerplate y las herramientas de desarrollo que utiliza.",
+   "about_purposeTitle": "Propósito y recursos",
+-  "about_purpose": "El proyecto reúne las integraciones iniciales de una aplicación: renderizado en el servidor, organización de rutas, traducción del contenido, temas y pruebas automatizadas. Este sitio demuestra la base en funcionamiento. Los ejemplos y la documentación ayudan a entender las decisiones del proyecto antes de adaptarlo a otro producto.",
++  "about_purpose": "Solid Base ofrece rutas, componentes reutilizables y pruebas automatizadas. Puedes adaptar las páginas y los componentes a tu proyecto. Cada página tiene su propia ruta, de modo que puedes compartir su dirección o abrirla directamente. La página de contacto explica qué información incluir al comunicar un problema. La página de privacidad describe cómo gestiona el navegador tus preferencias y qué ocurre al seguir un enlace a otro sitio.",
+   "about_sourceTitle": "Código y documentación",
+-  "about_source": "El repositorio es la referencia para la instalación, los comandos de desarrollo y los detalles de implementación. Sus guías explican la arquitectura, las pruebas, el SEO y el tratamiento de errores en el servidor. Puedes usar, modificar, distribuir y vender el código libremente, incluso en proyectos comerciales y de código cerrado.",
+-  "about_documentationLabel": "Documentación"
++  "about_source": "La aplicación incluye guías sobre su arquitectura y las tareas de desarrollo.",
++  "about_documentationLabel": "Documentación",
++  "about_pageTitle": "Acerca de | SolidJS Boilerplate"
+ }
+diff --git a/source/src/routes/(base)/about/i18n/pt.json b/example/src/routes/(base)/about/i18n/pt.json
+--- a/source/src/routes/(base)/about/i18n/pt.json
++++ b/example/src/routes/(base)/about/i18n/pt.json
+@@ -1,10 +1,11 @@
+ {
+-  "about_title": "Sobre o SolidJS Boilerplate",
+-  "about_description": "Conheça o projeto aberto mantido por Éverton Toffanetto e os recursos desta base para aplicações web.",
+-  "about_intro": "O SolidJS Boilerplate é um projeto de código aberto mantido por Éverton Toffanetto. Ele oferece uma base para desenvolver aplicações web com SolidJS, TypeScript e Vite+, com o código disponível no GitHub sob a licença MIT.",
++  "about_title": "Sobre SolidJS Boilerplate",
++  "about_description": "Conheça a aplicação e seus recursos.",
++  "about_intro": "Esta página apresenta SolidJS Boilerplate e as ferramentas usadas no desenvolvimento.",
+   "about_purposeTitle": "Propósito e recursos",
+-  "about_purpose": "A proposta é reunir as integrações iniciais de um projeto: renderização no servidor, organização de rotas, tradução de conteúdo, temas e testes automatizados. Este site demonstra a base em funcionamento. Os exemplos e a documentação ajudam a entender as escolhas do projeto antes de adaptá-lo para outro produto.",
++  "about_purpose": "Solid Base oferece rotas, componentes reutilizáveis e testes automatizados. Você pode adaptar as páginas e os componentes ao seu projeto. Cada página tem sua própria rota. Você pode compartilhar o endereço ou abri-lo diretamente no navegador. A página de contato explica quais informações incluir ao relatar um problema. Na página de privacidade, você encontra informações sobre as preferências do navegador e os links para outros sites.",
+   "about_sourceTitle": "Código e documentação",
+-  "about_source": "O repositório é a referência para instalação, comandos de desenvolvimento e detalhes da implementação. Os guias descrevem arquitetura, testes, SEO e tratamento de erros no servidor. Você pode usar, modificar, distribuir e vender o código livremente, inclusive em projetos comerciais e de código fechado.",
+-  "about_documentationLabel": "Documentação"
++  "about_source": "A aplicação inclui guias sobre sua arquitetura e as tarefas de desenvolvimento.",
++  "about_documentationLabel": "Documentação",
++  "about_pageTitle": "Sobre | SolidJS Boilerplate"
+ }
+diff --git a/source/src/routes/(base)/about/index.tsx b/example/src/routes/(base)/about/index.tsx
+--- a/source/src/routes/(base)/about/index.tsx
++++ b/example/src/routes/(base)/about/index.tsx
+@@ -30,11 +30,15 @@ const content = {
+   get links() {
+     return [
+       ...SITE_LINKS.pages,
+-      SITE_LINKS.repository,
+-      {
+-        label: m.about_documentationLabel(),
+-        href: `${SITE.repositoryUrl}#readme`
+-      }
++      ...(SITE.repositoryUrl
++        ? [
++            SITE_LINKS.repository,
++            {
++              label: m.about_documentationLabel(),
++              href: `${SITE.repositoryUrl}#readme`
++            }
++          ]
++        : [])
+     ]
+   }
+ } satisfies SitePage
+diff --git a/source/src/routes/(base)/about/seo.ts b/example/src/routes/(base)/about/seo.ts
+--- a/source/src/routes/(base)/about/seo.ts
++++ b/example/src/routes/(base)/about/seo.ts
+@@ -2,6 +2,6 @@ import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
+ import { m } from '@paraglide/messages.js'
+ 
+ export const seo = {
+-  title: m.about_title,
++  title: m.about_pageTitle,
+   description: m.about_description
+ } satisfies SeoRouteInfo
+diff --git a/source/src/routes/(base)/contact/i18n/en.json b/example/src/routes/(base)/contact/i18n/en.json
+--- a/source/src/routes/(base)/contact/i18n/en.json
++++ b/example/src/routes/(base)/contact/i18n/en.json
+@@ -1,11 +1,12 @@
+ {
+   "contact_title": "Contact",
+-  "contact_description": "Find the repository and public maintainer channels for SolidJS Boilerplate.",
+-  "contact_intro": "For questions about SolidJS Boilerplate, start with its public GitHub repository. It contains the source code, documentation and issue tracker for reporting problems and suggesting changes related to the project.",
++  "contact_description": "Contact information for SolidJS Boilerplate.",
++  "contact_intro": "Use this page to prepare a question or report a problem.",
+   "contact_issuesTitle": "Problems and suggestions",
+-  "contact_issues": "Before opening an issue, check the README and existing discussions. To report a problem, describe the observed behavior, the expected result and the steps needed to reproduce it. Include the relevant environment and dependencies so others can investigate. Do not publish passwords, tokens, personal data or configuration files containing secrets.",
+-  "contact_maintainerTitle": "Maintainer",
+-  "contact_maintainer": "Éverton Toffanetto maintains this project. His public GitHub profile is linked on this page. Issues are public and can be read by anyone, so choose what to include with that visibility in mind. The project does not publish a response deadline or offer a contracted support channel through this demonstration.",
++  "contact_issues": "When reporting a problem, describe what happened and the steps needed to reproduce it. Leave out private information.",
++  "contact_maintainerTitle": "Details to include",
++  "contact_maintainer": "Use the contact details listed on this page when they are available. Describe the page you visited and the result you expected. If you include an example, use fictional data and remove personal details from any screenshots. Keep a copy of the report so that you can add information if the problem happens again.",
+   "contact_issuesLabel": "Project issues",
+-  "contact_maintainerLabel": "Maintainer profile"
++  "contact_maintainerLabel": "Maintainer profile",
++  "contact_pageTitle": "Contact | SolidJS Boilerplate"
+ }
+diff --git a/source/src/routes/(base)/contact/i18n/es.json b/example/src/routes/(base)/contact/i18n/es.json
+--- a/source/src/routes/(base)/contact/i18n/es.json
++++ b/example/src/routes/(base)/contact/i18n/es.json
+@@ -1,11 +1,12 @@
+ {
+   "contact_title": "Contacto",
+-  "contact_description": "Encuentra el repositorio y los canales públicos del responsable de SolidJS Boilerplate.",
+-  "contact_intro": "Para consultas sobre SolidJS Boilerplate, empieza por el repositorio público en GitHub. Allí se encuentran el código, la documentación y el espacio de issues para informar de problemas y proponer cambios relacionados con el proyecto.",
++  "contact_description": "Información de contacto de SolidJS Boilerplate.",
++  "contact_intro": "Usa esta página para preparar una consulta o informar de un problema.",
+   "contact_issuesTitle": "Problemas y sugerencias",
+-  "contact_issues": "Antes de abrir una issue, consulta el README y las conversaciones existentes. Para informar de un problema, describe el comportamiento observado, el resultado esperado y los pasos para reproducirlo. Incluye el entorno y las dependencias relevantes para que otras personas puedan investigarlo. No publiques contraseñas, tokens, datos personales ni archivos de configuración con secretos.",
+-  "contact_maintainerTitle": "Responsable del proyecto",
+-  "contact_maintainer": "Éverton Toffanetto mantiene este proyecto. Su perfil público en GitHub aparece en los enlaces de esta página. Las issues son públicas y cualquier persona puede leerlas; elige el contenido del mensaje teniendo en cuenta esa visibilidad. El proyecto no publica un plazo de respuesta ni ofrece un canal de soporte contratado en esta demostración.",
++  "contact_issues": "Al informar de un problema, describe qué pasó y cómo reproducirlo. Omite los datos privados.",
++  "contact_maintainerTitle": "Detalles que puedes incluir",
++  "contact_maintainer": "Utiliza los datos de contacto de esta página cuando estén disponibles. Indica qué página visitaste y qué resultado esperabas. Si incluyes un ejemplo, utiliza datos ficticios y elimina la información personal de las capturas de pantalla. Guarda una copia del informe para añadir detalles si el problema vuelve a ocurrir.",
+   "contact_issuesLabel": "Issues del proyecto",
+-  "contact_maintainerLabel": "Perfil del responsable"
++  "contact_maintainerLabel": "Perfil del responsable",
++  "contact_pageTitle": "Contacto | SolidJS Boilerplate"
+ }
+diff --git a/source/src/routes/(base)/contact/i18n/pt.json b/example/src/routes/(base)/contact/i18n/pt.json
+--- a/source/src/routes/(base)/contact/i18n/pt.json
++++ b/example/src/routes/(base)/contact/i18n/pt.json
+@@ -1,11 +1,12 @@
+ {
+   "contact_title": "Contato",
+-  "contact_description": "Encontre o repositório e os canais públicos do mantenedor do SolidJS Boilerplate.",
+-  "contact_intro": "O contato sobre o SolidJS Boilerplate começa pelo repositório público no GitHub. Ele reúne o código, a documentação e o espaço de issues para relatos de problemas e sugestões relacionadas ao projeto.",
++  "contact_description": "Informações de contato de SolidJS Boilerplate.",
++  "contact_intro": "Use esta página para preparar uma pergunta ou relatar um problema.",
+   "contact_issuesTitle": "Problemas e sugestões",
+-  "contact_issues": "Antes de abrir uma issue, consulte o README e as discussões já registradas. Para relatar um problema, descreva o comportamento observado, o resultado esperado e os passos necessários para reproduzi-lo. Informe o ambiente e as dependências relevantes para que outras pessoas consigam investigar o caso. Não publique senhas, tokens, dados pessoais ou arquivos de configuração com segredos.",
+-  "contact_maintainerTitle": "Mantenedor",
+-  "contact_maintainer": "Éverton Toffanetto mantém este projeto. Seu perfil público no GitHub está disponível nos links desta página. As issues são públicas e podem ser lidas por qualquer pessoa; escolha o conteúdo da mensagem considerando essa visibilidade. O projeto não publica um prazo de resposta nem oferece um canal de suporte contratado nesta demonstração.",
++  "contact_issues": "Ao relatar um problema, descreva o que aconteceu e os passos para reproduzi-lo. Omita os dados privados.",
++  "contact_maintainerTitle": "Detalhes do relato",
++  "contact_maintainer": "Use os dados de contato desta página quando estiverem disponíveis. Informe a página visitada e o resultado esperado. Se incluir um exemplo, use dados fictícios e remova informações pessoais das capturas de tela. Guarde uma cópia do relato para acrescentar detalhes caso o problema volte a ocorrer.",
+   "contact_issuesLabel": "Issues do projeto",
+-  "contact_maintainerLabel": "Perfil do mantenedor"
++  "contact_maintainerLabel": "Perfil do mantenedor",
++  "contact_pageTitle": "Contato | SolidJS Boilerplate"
+ }
+diff --git a/source/src/routes/(base)/contact/index.tsx b/example/src/routes/(base)/contact/index.tsx
+--- a/source/src/routes/(base)/contact/index.tsx
++++ b/example/src/routes/(base)/contact/index.tsx
+@@ -30,8 +30,17 @@ const content = {
+   get links() {
+     return [
+       ...SITE_LINKS.pages,
+-      { label: m.contact_issuesLabel(), href: `${SITE.repositoryUrl}/issues` },
+-      { label: m.contact_maintainerLabel(), href: SITE.author.url }
++      ...(SITE.repositoryUrl
++        ? [
++            {
++              label: m.contact_issuesLabel(),
++              href: `${SITE.repositoryUrl}/issues`
++            }
++          ]
++        : []),
++      ...(SITE.author.url
++        ? [{ label: m.contact_maintainerLabel(), href: SITE.author.url }]
++        : [])
+     ]
+   }
+ } satisfies SitePage
+diff --git a/source/src/routes/(base)/contact/seo.ts b/example/src/routes/(base)/contact/seo.ts
+--- a/source/src/routes/(base)/contact/seo.ts
++++ b/example/src/routes/(base)/contact/seo.ts
+@@ -2,6 +2,6 @@ import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
+ import { m } from '@paraglide/messages.js'
+ 
+ export const seo = {
+-  title: m.contact_title,
++  title: m.contact_pageTitle,
+   description: m.contact_description
+ } satisfies SeoRouteInfo
+diff --git a/source/src/routes/(base)/privacy/i18n/en.json b/example/src/routes/(base)/privacy/i18n/en.json
+--- a/source/src/routes/(base)/privacy/i18n/en.json
++++ b/example/src/routes/(base)/privacy/i18n/en.json
+@@ -1,9 +1,10 @@
+ {
+   "privacy_title": "Privacy",
+-  "privacy_description": "Learn how this demonstration uses language and theme preferences and where to find its public channels.",
+-  "privacy_intro": "This page describes the privacy features observable in the source code of this SolidJS Boilerplate demonstration. Its public pages do not provide account registration, checkout or a form for submitting personal data.",
++  "privacy_description": "Learn about browser preferences and links to external sites.",
++  "privacy_intro": "This page describes how this application handles privacy.",
+   "privacy_preferencesTitle": "Browser preferences",
+-  "privacy_preferences": "The interface uses cookies to remember the language and theme preference. The language also appears in the page address, such as /pt, /en or /es. These preferences keep the presentation consistent between visits. You can delete or block cookies through your browser settings; a choice may then stop persisting on your next visit.",
++  "privacy_preferences": "Use your browser settings to review or clear the data this application stores on your device.",
+   "privacy_hostingTitle": "Accessing the site and external links",
+-  "privacy_hosting": "When you access this site, your browser sends technical information needed for the HTTP connection to the hosting infrastructure. This notice does not establish a retention period for that infrastructure's logs. Links to GitHub and other services lead to websites with their own policies. Information posted in a public issue is available to other people on that service."
++  "privacy_hosting": "When you access this site, your browser sends technical information needed for the HTTP connection to the hosting infrastructure. This notice does not establish a retention period for that infrastructure's logs. Links to GitHub and other services lead to websites with their own policies. Information posted in a public issue is available to other people on that service.",
++  "privacy_pageTitle": "Privacy | SolidJS Boilerplate"
+ }
+diff --git a/source/src/routes/(base)/privacy/i18n/es.json b/example/src/routes/(base)/privacy/i18n/es.json
+--- a/source/src/routes/(base)/privacy/i18n/es.json
++++ b/example/src/routes/(base)/privacy/i18n/es.json
+@@ -1,9 +1,10 @@
+ {
+   "privacy_title": "Privacidad",
+-  "privacy_description": "Conoce cómo esta demostración usa las preferencias de idioma y tema y dónde encontrar sus canales públicos.",
+-  "privacy_intro": "Esta página describe las funciones de privacidad observables en el código de esta demostración de SolidJS Boilerplate. Sus páginas públicas no ofrecen registro de cuentas, compras ni formularios para enviar datos personales.",
++  "privacy_description": "Consulta información sobre las preferencias del navegador y los enlaces a sitios externos.",
++  "privacy_intro": "Esta página describe cómo se gestiona la privacidad en esta aplicación.",
+   "privacy_preferencesTitle": "Preferencias en el navegador",
+-  "privacy_preferences": "La interfaz usa cookies para recordar el idioma y la preferencia de tema. El idioma también aparece en la dirección de la página, como /pt, /en o /es. Estas preferencias mantienen la presentación entre visitas. Puedes borrar o bloquear las cookies en los ajustes del navegador; en ese caso, una elección puede dejar de guardarse para la siguiente visita.",
++  "privacy_preferences": "Usa los ajustes del navegador para revisar o borrar los datos que esta aplicación guarda en tu dispositivo.",
+   "privacy_hostingTitle": "Acceso al sitio y enlaces externos",
+-  "privacy_hosting": "Al acceder al sitio, tu navegador envía la información técnica necesaria para la conexión HTTP a la infraestructura de alojamiento. Este aviso no establece un plazo de conservación para los registros de esa infraestructura. Los enlaces a GitHub y otros servicios llevan a sitios con políticas propias. Los datos publicados en una issue pública quedan disponibles para otras personas en ese servicio."
++  "privacy_hosting": "Al acceder al sitio, tu navegador envía la información técnica necesaria para la conexión HTTP a la infraestructura de alojamiento. Este aviso no establece un plazo de conservación para los registros de esa infraestructura. Los enlaces a GitHub y otros servicios llevan a sitios con políticas propias. Los datos publicados en una issue pública quedan disponibles para otras personas en ese servicio.",
++  "privacy_pageTitle": "Privacidad | SolidJS Boilerplate"
+ }
+diff --git a/source/src/routes/(base)/privacy/i18n/pt.json b/example/src/routes/(base)/privacy/i18n/pt.json
+--- a/source/src/routes/(base)/privacy/i18n/pt.json
++++ b/example/src/routes/(base)/privacy/i18n/pt.json
+@@ -1,9 +1,10 @@
+ {
+   "privacy_title": "Privacidade",
+-  "privacy_description": "Saiba como esta demonstração usa preferências de idioma e tema e como acessar seus canais públicos.",
+-  "privacy_intro": "Esta página descreve os recursos de privacidade observáveis no código desta demonstração do SolidJS Boilerplate. As páginas públicas não oferecem cadastro, checkout ou formulário para enviar dados pessoais.",
++  "privacy_description": "Saiba mais sobre as preferências do navegador e os links para sites externos.",
++  "privacy_intro": "Esta página descreve como esta aplicação trata a privacidade.",
+   "privacy_preferencesTitle": "Preferências no navegador",
+-  "privacy_preferences": "A interface usa cookies para lembrar o idioma e a preferência de tema. O idioma também aparece no endereço da página, como /pt, /en ou /es. Essas preferências permitem manter a apresentação entre navegações. Você pode apagar ou bloquear os cookies nas configurações do navegador; nesse caso, uma escolha pode deixar de persistir na próxima visita.",
++  "privacy_preferences": "Use as configurações do navegador para consultar ou apagar os dados que esta aplicação guarda no seu dispositivo.",
+   "privacy_hostingTitle": "Acesso ao site e links externos",
+-  "privacy_hosting": "Ao acessar o site, seu navegador envia informações técnicas necessárias à conexão HTTP para a infraestrutura de hospedagem. Este aviso não estabelece um prazo de retenção para registros dessa infraestrutura. Os links para GitHub e outros serviços levam a sites com políticas próprias. Se publicar dados em uma issue pública, eles ficam disponíveis a outras pessoas nesse serviço."
++  "privacy_hosting": "Ao acessar o site, seu navegador envia informações técnicas necessárias à conexão HTTP para a infraestrutura de hospedagem. Este aviso não estabelece um prazo de retenção para registros dessa infraestrutura. Os links para GitHub e outros serviços levam a sites com políticas próprias. Se publicar dados em uma issue pública, eles ficam disponíveis a outras pessoas nesse serviço.",
++  "privacy_pageTitle": "Privacidade | SolidJS Boilerplate"
+ }
+diff --git a/source/src/routes/(base)/privacy/seo.ts b/example/src/routes/(base)/privacy/seo.ts
+--- a/source/src/routes/(base)/privacy/seo.ts
++++ b/example/src/routes/(base)/privacy/seo.ts
+@@ -2,6 +2,6 @@ import type { SeoRouteInfo } from '@evertondgn/solid-runtime/seo/types'
+ import { m } from '@paraglide/messages.js'
+ 
+ export const seo = {
+-  title: m.privacy_title,
++  title: m.privacy_pageTitle,
+   description: m.privacy_description
+ } satisfies SeoRouteInfo
+diff --git a/source/src/tests/pages/Home/Home.seo.e2e.test.ts b/example/src/tests/pages/Home/Home.seo.e2e.test.ts
+--- a/source/src/tests/pages/Home/Home.seo.e2e.test.ts
++++ b/example/src/tests/pages/Home/Home.seo.e2e.test.ts
+@@ -24,8 +24,8 @@ const ROBOTS_INDEX = 'index, follow, max-image-preview:large'
+ const SOCIAL_TAGS = 'head meta[property^="og:"], head meta[name^="twitter:"]'
+ // Base graph of createSeo plus the own script of the page.
+ const SCRIPTS_WITH_PAGE_DATA = 2
+-// WebSite, page and Organization; the order does not matter in JSON-LD.
+-const BASE_GRAPH_NODES = 3
++// The application publishes its site and page before an organization is configured.
++const BASE_GRAPH_NODES = 2
+ 
+ // Only the fields that identify each node; the full format is covered by the
+ // unit tests of `buildStructuredData`.
+@@ -91,22 +91,12 @@ test.describe('SEO metadata', () => {
+       page.locator('head script[type="application/ld+json"]')
+     ).toHaveCount(1)
+     const graph = await readStructuredData(page)
+-    const logoNode = expect.objectContaining({
+-      url: `${siteUrl}/favicon/apple-touch-icon.png`
+-    })
+     const baseNodes = [
+       { '@type': 'WebSite', url: `${siteUrl}/`, name: SITE_TITLE },
+       {
+         '@type': 'WebPage',
+         url: `${siteUrl}${testLanguages.path(testLanguages.alternate, '')}`,
+         name: HOME_TITLE
+-      },
+-      {
+-        '@type': 'Organization',
+-        url: `${siteUrl}/`,
+-        name: SITE_TITLE,
+-        description: SITE_DESCRIPTION,
+-        logo: logoNode
+       }
+     ].map(node => expect.objectContaining(node))
+     expect(graph).toHaveLength(BASE_GRAPH_NODES)
+@@ -225,14 +215,17 @@ test.describe('structured data', () => {
+     await expect(
+       page.locator('head meta[property="article:modified_time"]')
+     ).toHaveAttribute('content', '2026-09-21')
+-    expect(await readStructuredData(page)).toContainEqual(
++    const graph = await readStructuredData(page)
++    const article = graph.find(node => node['@type'] === 'Article')
++    expect(article).not.toHaveProperty('publisher')
++    expect(article).not.toHaveProperty('author')
++    expect(graph).toContainEqual(
+       expect.objectContaining({
+         '@type': 'Article',
+         url: `${siteUrl}${testLanguages.path(testLanguages.alternate, '/seo-article')}`,
+         name: 'Sample article',
+         datePublished: '2026-09-01',
+-        dateModified: '2026-09-21',
+-        publisher: { '@id': `${siteUrl}/#organization` }
++        dateModified: '2026-09-21'
+       })
+     )
+ 
+diff --git a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
+--- a/source/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
++++ b/example/src/tests/pages/I18n/I18n.seo.production.e2e.test.ts
+@@ -122,27 +122,8 @@ for (const { locale, tag, messages } of LANGUAGES) {
+         inLanguage: LANGUAGES.map(language => language.tag)
+       })
+     )
+-    expect(graph).toContainEqual(
+-      expect.objectContaining({
+-        '@type': 'Organization',
+-        contactPoint: {
+-          '@type': 'ContactPoint',
+-          contactType: 'demo',
+-          email: 'contato@example.com',
+-          telephone: '0000000000',
+-          description:
+-            'Placeholder values for this boilerplate demonstration. Do not use them to contact the maintainer.'
+-        },
+-        address: {
+-          '@type': 'PostalAddress',
+-          streetAddress: 'Rua de exemplo, 123',
+-          addressLocality: 'Cidade de exemplo',
+-          addressRegion: 'Estado de exemplo',
+-          postalCode: '00000-000',
+-          addressCountry: 'BR',
+-          description: 'Placeholder address for this boilerplate demonstration.'
+-        }
+-      })
++    expect(graph).not.toContainEqual(
++      expect.objectContaining({ '@type': 'Organization' })
+     )
+     const missing = await page.goto(`/${locale}/missing`)
+     expect(missing?.status()).toBe(HTTP_NOT_FOUND)
+diff --git a/source/tooling/__tests__/patched-dependencies.test.ts b/example/tooling/__tests__/patched-dependencies.test.ts
+--- a/source/tooling/__tests__/patched-dependencies.test.ts
++++ b/example/tooling/__tests__/patched-dependencies.test.ts
+@@ -3,29 +3,16 @@ import { access, readFile } from 'node:fs/promises'
+ import path from 'node:path'
+ import { it } from 'node:test'
+ 
+-import * as v from 'valibot'
++const ROOT = path.resolve(import.meta.dirname, '../..')
+ 
+-// In the monorepo, Bun reads the patches and bun.lock at the workspace root.
+-const ROOT = path.resolve(import.meta.dirname, '../../../..')
+-const patchesSchema = v.record(v.string(), v.string())
+-const manifestSchema = v.object({
+-  patchedDependencies: v.optional(patchesSchema, {})
+-})
+-
+-// Bun only warns, without failing the install, when the key of a patch does not
+-// match the resolved version: updating the package without regenerating the
+-// patch would lose the fix.
+-it('keeps every patch keyed to a version resolved in bun.lock', async () => {
+-  const packageJson = await readFile(path.join(ROOT, 'package.json'), 'utf8')
+-  const manifest = v.parse(manifestSchema, JSON.parse(packageJson))
+-  const lock = await readFile(path.join(ROOT, 'bun.lock'), 'utf8')
+-  const patches = Object.entries(manifest.patchedDependencies)
+-
+-  for (const [key] of patches) {
+-    assert.ok(
+-      lock.includes(`: ["${key}",`),
+-      `${key} is not resolved in bun.lock`
+-    )
+-  }
+-  await Promise.all(patches.map(([, file]) => access(path.join(ROOT, file))))
++it('checks the installed Markdown converter patch policy', async () => {
++  const manifest: unknown = JSON.parse(
++    await readFile(path.join(ROOT, 'package.json'), 'utf8')
++  )
++  assert.ok(
++    typeof manifest === 'object' &&
++      manifest !== null &&
++      !('patchedDependencies' in manifest)
++  )
++  await assert.rejects(access(path.join(ROOT, 'patches')), { code: 'ENOENT' })
+ })
+diff --git a/source/tooling/knip.ts b/example/tooling/knip.ts
+--- a/source/tooling/knip.ts
++++ b/example/tooling/knip.ts
+@@ -30,9 +30,5 @@ export default defineKnipConfig({
+   ignoreBinaries: ['kingfisher', 'vp!'],
+   // server-only is virtual. Inlang loads the message-format plugin by its
+   // node_modules path in settings.json, outside Knip's import graph.
+-  ignoreDependencies: ['server-only', '@inlang/plugin-message-format'],
+-  // In the monorepo, the version catalog lives in the root package.json, which
+-  // Knip does not read when it runs in this folder. bun install already refuses
+-  // a reference to an entry missing from the catalog.
+-  exclude: ['catalogReferences']
++  ignoreDependencies: ['server-only', '@inlang/plugin-message-format']
+ })
+diff --git a/source/vite.config.ts b/example/vite.config.ts
+--- a/source/vite.config.ts
++++ b/example/vite.config.ts
+@@ -32,23 +32,5 @@ export default defineSolidApp({
+       maxAge: 31_536_000
+     }
+   ],
+-  staticPaths: ['/favicon/**'],
+-  // In the monorepo, bun.lock, bunfig.toml and the build of the tooling and icons
+-  // packages live at the root, outside the application folder.
+-  workspace: {
+-    dependsOn: [
+-      '@evertondgn/solid-tooling#build',
+-      '@evertondgn/vite-plugin-solid-icons#build'
+-    ],
+-    // The runtime package is source code outside the application folder, and
+-    // its manifest holds the exports that resolve each import.
+-    inputs: [
+-      'packages/solid-tooling/dist/**',
+-      'packages/solid-tooling/tsconfig*.json',
+-      'packages/solid-tooling/node-env.d.ts',
+-      'packages/vite-plugin-solid-icons/dist/**',
+-      'packages/solid-runtime/package.json',
+-      'packages/solid-runtime/src/**'
+-    ]
+-  }
++  staticPaths: ['/favicon/**']
+ })

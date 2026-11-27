@@ -5,12 +5,16 @@ import {
   releaseFixtureGate,
   waitForGate
 } from '@/tests/helpers/fixtureGate/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_OK = 200
 const HTTP_REDIRECT = 307
 const HTTP_INTERNAL_SERVER_ERROR = 500
 
-const PAGE = '/pt/markdown-contract/sample'
+const PAGE = testLanguages.path(
+  testLanguages.alternate,
+  '/markdown-contract/sample'
+)
 const REQUEST_TIMEOUT = 15_000
 type Gate = { request: APIRequestContext; id: string }
 
@@ -41,11 +45,11 @@ test('waits for both fragments and publishes them in DOM order', async ({
   const response = await responsePromise
   expect(response.status()).toBe(HTTP_OK)
   const body = await response.text()
-  expect(body).toContain('first:pt:resolved')
-  expect(body).toContain('second:pt:resolved')
-  expect(body.indexOf('first:pt:resolved')).toBeLessThan(
-    body.indexOf('second:pt:resolved')
-  )
+  expect(body).toContain(`first:${testLanguages.alternate}:resolved`)
+  expect(body).toContain(`second:${testLanguages.alternate}:resolved`)
+  expect(
+    body.indexOf(`first:${testLanguages.alternate}:resolved`)
+  ).toBeLessThan(body.indexOf(`second:${testLanguages.alternate}:resolved`))
   expect(body).not.toMatch(/FALLBACK|<template|<script/u)
 })
 
@@ -114,7 +118,7 @@ test('failed async fragment returns a public 500 instead of partial Markdown', a
   const body = await response.text()
   expect(body).not.toContain(marker)
   expect(JSON.stringify(response.headers())).not.toContain(marker)
-  expect(body).not.toContain('second:pt:resolved')
+  expect(body).not.toContain(`second:${testLanguages.alternate}:resolved`)
   expect(body).not.toContain('HTML Markdown contract: sample')
   const healthy = await request.get(`${PAGE}.md`)
   expect(healthy.status()).toBe(HTTP_OK)
@@ -134,7 +138,9 @@ test('late same-origin redirect preserves explicit Markdown intent', async ({
   }
   const response = await responsePromise
   expect(response.status()).toBe(HTTP_REDIRECT)
-  expect(response.headers().location).toBe('/pt/about.md')
+  expect(response.headers().location).toBe(
+    testLanguages.path(testLanguages.alternate, '/about.md')
+  )
   expect(await response.text()).not.toContain('HTML Markdown contract: sample')
 })
 
@@ -162,9 +168,11 @@ test('a cancelled pending render does not contaminate the next request', async (
     controller.abort()
     await releaseGates({ request, id })
   }
-  const healthy = await request.get('/en/markdown-contract/sample.md')
+  const healthy = await request.get(
+    testLanguages.path(testLanguages.base, '/markdown-contract/sample.md')
+  )
   expect(healthy.status()).toBe(HTTP_OK)
-  expect(await healthy.text()).toContain('first:en:resolved')
+  expect(await healthy.text()).toContain(`first:${testLanguages.base}:resolved`)
 })
 
 test('the same Error instance fails both sequential Markdown requests publicly', async ({
@@ -193,7 +201,7 @@ test('the same Error instance fails both sequential Markdown requests publicly',
     const body = await response.text()
     expect(body).not.toContain(marker)
     expect(body).not.toContain('HTML Markdown contract: sample')
-    expect(body).not.toContain('second:pt:resolved')
+    expect(body).not.toContain(`second:${testLanguages.alternate}:resolved`)
   }
 })
 
@@ -225,16 +233,16 @@ test('propagated server-function rejection fails Markdown while caught rejection
         'text/markdown'
       )
       expect(body).not.toContain('HTML Markdown contract: sample')
-      expect(body).not.toContain('second:pt:resolved')
+      expect(body).not.toContain(`second:${testLanguages.alternate}:resolved`)
       continue
     }
     expect(response.status()).toBe(HTTP_OK)
     expect(response.headers()['content-type']).toContain('text/markdown')
     expect(body).toContain('# HTML Markdown contract: sample')
     expect(body).toContain('Recovered server function content')
-    expect(body).toContain('second:pt:resolved')
+    expect(body).toContain(`second:${testLanguages.alternate}:resolved`)
     expect(body.indexOf('Recovered server function content')).toBeLessThan(
-      body.indexOf('second:pt:resolved')
+      body.indexOf(`second:${testLanguages.alternate}:resolved`)
     )
   }
 })

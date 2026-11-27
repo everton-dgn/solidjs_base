@@ -11,6 +11,8 @@ import {
 } from '@solidjs/router'
 import { createMemo, createSignal, Loading, untrack } from 'solid-js'
 
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
+
 import { redirectLocale } from '../../i18n/redirectLocale/index.ts'
 import { redirectRelative } from '../../i18n/redirectRelative/index.ts'
 
@@ -34,7 +36,12 @@ export default function I18nRedirect() {
     untrack(() => params.initial === '1')
   )
   const result = createMemo(() =>
-    isRequested() ? readRedirect({ locale: 'es', source: 'query' }) : ''
+    isRequested()
+      ? readRedirect({
+          locale: testLanguages.other(getLocale()),
+          source: 'query'
+        })
+      : ''
   )
   return (
     <main>
@@ -43,16 +50,19 @@ export default function I18nRedirect() {
       <p data-testid="message">{m.home_title()}</p>
       <output data-testid="state">{JSON.stringify(location.state)}</output>
       <form
-        action={submitRedirect.with({ locale: 'es', source: 'action' })}
+        action={submitRedirect.with({
+          locale: testLanguages.other(getLocale()),
+          source: 'action'
+        })}
         method="post"
       >
-        <button type="submit">Spanish action redirect</button>
+        <button type="submit">Alternate action redirect</button>
       </form>
       <form
-        action={submitRedirect.with({ locale: 'pt', source: 'action' })}
+        action={submitRedirect.with({ locale: getLocale(), source: 'action' })}
         method="post"
       >
-        <button type="submit">Portuguese action redirect</button>
+        <button type="submit">Same locale action redirect</button>
       </form>
       <form action={submitRelative.with('query')} method="post">
         <button type="submit">Relative query redirect</button>
@@ -67,7 +77,7 @@ export default function I18nRedirect() {
         <button type="submit">Relative empty redirect</button>
       </form>
       <button type="button" onClick={() => setIsRequested(true)}>
-        Spanish query redirect
+        Alternate query redirect
       </button>
       <button
         type="button"
@@ -81,7 +91,7 @@ export default function I18nRedirect() {
       <button
         type="button"
         onClick={() =>
-          navigate('/pt/i18n-redirect?from=state#target', {
+          navigate(`/${getLocale()}/i18n-redirect?from=state#target`, {
             state: { marker: 'kept' }
           })
         }

@@ -24,18 +24,19 @@ layout. The E2E fixtures have their own tree and re-export that layout for the
 pages, home and 404 included.
 
 API routes are modules of `src/routes` that export `GET`, `POST` or another HTTP
-method instead of `export default`. `createAPIHandler` in
-`src/middleware/index.ts` answers those requests before the SSR and lets the
-others through. After it, `restrictPageMethods` answers 405, with
-`Allow: GET, HEAD`, to any other method, such as POST or OPTIONS, on page paths
-without a handler: the render would treat the request as a GET in the base
-locale. On an API route without a handler for the method, such as
-`POST /robots.txt`, the 405 lists in `Allow` the methods the route serves. The
-path relative to `src/routes` becomes the URL without the extension, the `index`
-segment and the groups in parentheses. So `(seo)/sitemap.xml/index.ts` serves
-`/sitemap.xml`; brackets still mark dynamic parameters. A route can return
-`Response.redirect()`: since the headers of that response are immutable, the
-middleware writes the security headers on a copy.
+method instead of `export default`. The application middleware in
+`src/middleware/index.ts` delegates to the runtime chain, which runs its API
+route adapter before the SSR and passes unmatched requests on to the page method
+restriction. `restrictPageMethods` answers 405, with `Allow: GET, HEAD`, to any
+other method, such as POST or OPTIONS, on page paths without a handler: the
+render would treat the request as a GET in the base locale. On an API route
+without a handler for the method, such as `POST /robots.txt`, the 405 lists in
+`Allow` the methods the route serves. The path relative to `src/routes` becomes
+the URL without the extension, the `index` segment and the groups in
+parentheses. So `(seo)/sitemap.xml/index.ts` serves `/sitemap.xml`; brackets
+still mark dynamic parameters. A route can return `Response.redirect()`: since
+the headers of that response are immutable, the middleware writes the security
+headers on a copy.
 
 To correlate the events of a request, use `getTraceContext()` from
 `@solidjs/web`: it continues the W3C `traceparent` it receives or creates a
@@ -84,34 +85,20 @@ CSS Module imports use the name `S`, for example,
 
 The split follows the
 [cohesion rule of AGENTS.md](../AGENTS.md#cohesion-and-size-of-modules).
-`packages/solid-tooling/src/lint.ts`, at the monorepo root, builds the
+[`lint.ts`](../../../packages/solid-tooling/src/lint.ts), builds the
 configuration and its overrides. The groups in
-`packages/solid-tooling/src/lint/rules/` gather the rules for JavaScript,
-imports, TypeScript, Unicorn, tests and integrations with the environment. The
-values of the rules and the order of the overrides belong to the same contract,
-even when they live in different modules.
-
-`tooling/release/automatic-release.ts` coordinates the preparation and the
-publication. The modules and the limits of the jobs are in the
-[release guide](https://github.com/everton-dgn/boilerplate_solidjs/blob/61454937472d0faa1b4fab985fd7c5da968aa9a6/tooling/release/README.md).
-In `tooling/ciReuse/decideReuse/`, the validation of the evidence stays in the
-entry; `hasMainCaches/` checks that the caches are available, and `types.ts`
-holds the long contracts used in that decision.
+[`rules`](../../../packages/solid-tooling/src/lint/rules) gather the rules for
+JavaScript, imports, TypeScript, Unicorn, tests and integrations with the
+environment. The values of the rules and the order of the overrides belong to
+the same contract, even when they live in different modules.
 
 ## Data and infrastructure
 
-The content publication keeps the coordination in the entries of the modules.
-`middleware/markdownContent/` decides the representation of the request; its
-local helpers handle the Markdown routing, the rendering, the HTTP responses and
-the static inventory. In `routes/(seo)/sitemap/helpers/sitemapService/`, the
-helpers gather the registry of the sources, the read and validation of the
-entries, the planning of the index and the publication of the responses. The
-cache stays next to the registry that uses it.
-
-`infra/server/publication/` keeps together the counters and the lifecycle that
-holds capacity until the producer and the child operations end. Consuming and
-cancelling the HTTP bodies is in a local helper. The small limits used only by
-the controller stay in the file itself.
+The application binds the Markdown adapter in
+`src/middleware/markdownContent/index.ts` and the sitemap handlers in
+`src/infra/server/sitemap/index.ts`, and `src/infra/server/publication/index.ts`
+creates the publication controller they share. The Markdown and sitemap services
+and their helpers live in the runtime package.
 
 `data/formatters/` (formatting of dates, currencies and numbers) and
 `data/errorApi/` (normalization of domain errors from APIs) are conventions for
@@ -155,9 +142,9 @@ imports.
 ## Dependencies between layers
 
 `architecture/layer-imports`, in
-`packages/solid-tooling/src/architecturePolicy/index.ts`, checks the direct
-dependencies of imports and re-exports through the local paths. The restrictions
-are:
+[`index.ts`](../../../packages/solid-tooling/src/architecturePolicy/index.ts),
+checks the direct dependencies of imports and re-exports through the local
+paths. The restrictions are:
 
 | Source                                                                          | Forbidden dependencies                                       |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -188,7 +175,4 @@ contract.
 
 The implementation uses `defineRule` and `definePlugin` from
 `vite-plus/lint/plugins`, with `RuleTester` from `vite-plus/lint/plugins-dev`,
-without an extra dependency. Run the commands from the project root.
-`vp run check:ci` checks the current code; `vp run test:tooling` tests the
-policy, its registration in the lint and the backend restrictions. Both commands
-run in CI.
+without an extra dependency. Run `vp run check:ci` in the application.

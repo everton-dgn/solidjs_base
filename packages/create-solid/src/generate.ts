@@ -1,0 +1,819 @@
+import { execFileSync, spawn } from 'node:child_process'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  renameSync,
+  rmdirSync,
+  readdirSync,
+  rmSync,
+  readFileSync,
+  writeFileSync,
+  cpSync
+} from 'node:fs'
+import path from 'node:path'
+import { performance } from 'node:perf_hooks'
+import process from 'node:process'
+import type { Readable } from 'node:stream'
+import { setImmediate } from 'node:timers/promises'
+import { URL } from 'node:url'
+
+import { parse } from 'valibot'
+
+import { addProfileBrowserTest } from './addProfileBrowserTest/index.ts'
+import { message, messages, type Language } from './cli-language.ts'
+import { configureAppTitle } from './configureAppTitle/index.ts'
+import { configureClient } from './configureClient/index.ts'
+import { configureFileHostGuides } from './configureFileHostGuides/index.ts'
+import { configureFonts } from './configureFonts/index.ts'
+import { configureBrowserPaths } from './configureLocales/configure-browser-paths.ts'
+import { configureLocaleCopy } from './configureLocales/configure-locale-copy.ts'
+import { configureLocaleGuides } from './configureLocales/configure-locale-guides.ts'
+import { configureSingleLocaleTests } from './configureLocales/configure-single-locale-tests.ts'
+import { configureLocales } from './configureLocales/index.ts'
+import { configureLocaleUi } from './configureLocaleUi/index.ts'
+import { configurePageTitles } from './configurePageTitles/index.ts'
+import { configurePlainApp } from './configurePlainApp/index.ts'
+import { removeCatalogTasks } from './configurePlainApp/remove-catalog-tasks.ts'
+import { configureSeo } from './configureSeo/index.ts'
+import { configureSiteIdentity } from './configureSiteIdentity/index.ts'
+import { configureStandaloneGuides } from './configureStandaloneGuides/index.ts'
+import { configureStatic } from './configureStatic/index.ts'
+import { defaultSiteUrl } from './constants/site-url.ts'
+import { editTemplate } from './edit-template.ts'
+import {
+  installProfile,
+  recoveryInstructions,
+  resumeSteps,
+  type SetupCommand
+} from './installProfile/index.ts'
+import { isDestinationEntry } from './isDestinationEntry/index.ts'
+import { applyPreparedGuides } from './prepared-guides.ts'
+import { applyPreparedSource } from './prepared-source.ts'
+import { readPendingSignals } from './readPendingSignals/index.ts'
+import { removeFeatureFiles } from './removeFeatureFiles/index.ts'
+import { rewriteKnip, rewriteVite } from './rewrite.ts'
+import { manifestSchema, settingsSchema } from './schema.ts'
+import { setRunningTimeout } from './setRunningTimeout/index.ts'
+import { settlePipes } from './settlePipes/index.ts'
+import { shellDirectory } from './shellDirectory/index.ts'
+import { checkTools, hasRepository, hasTool } from './tools.ts'
+import type {
+  FileWrite,
+  GenerationContext,
+  Profile,
+  StagedContext,
+  Versions
+} from './types.ts'
+import { CanceledError, ReportedInstallError } from './usage-error.ts'
+import { validateProfile } from './validateProfile/index.ts'
+
+const maxPackageNameLength = 214
+const jsonIndent = 2
+function section(name: string, entries: Versions) {
+  return `${name}:\n${Object.entries(entries)
+    .map(([key, value]) => `  '${key}': '${value}'`)
+    .join('\n')}\n`
+}
+
+function resolveVersion(
+  settings: GenerationContext['settings'],
+  [name, spec]: [string, string]
+) {
+  let resolved: string | undefined = spec
+  if (spec === 'catalog:') {
+    resolved = settings.catalog[name]
+  }
+  if (spec === 'workspace:*') {
+    resolved = settings.versions[name]
+  }
+  if (resolved === undefined) {
+    throw new Error(`Missing version for ${name}`)
+  }
+  return resolved
+}
+type Publication = { stage: string; destination: string }
+function publishTree({ stage, destination }: Publication): void {
+  if (!existsSync(destination)) {
+    renameSync(stage, destination)
+    return
+  }
+  if (
+    readdirSync(destination).some(
+      file =>
+        isDestinationEntry(file) && path.resolve(destination, file) !== stage
+    )
+  ) {
+    throw new Error('Destination must be empty')
+  }
+  const moved: string[] = []
+  try {
+    for (const file of readdirSync(stage)) {
+      renameSync(path.join(stage, file), path.join(destination, file))
+      moved.push(file)
+    }
+    rmdirSync(stage)
+  } catch (error) {
+    for (const file of moved) {
+      renameSync(path.join(destination, file), path.join(stage, file))
+    }
+    throw error
+  }
+}
+type NextSteps = {
+  profile: Profile
+  language: Language
+  siteUrl: URL | undefined
+  shouldRetryGit?: boolean
+}
+type GenerationResult = { steps: string[]; resume: string }
+function nextSteps({
+  profile,
+  language,
+  siteUrl,
+  shouldRetryGit
+}: NextSteps): GenerationResult {
+  const dir = shellDirectory(profile.dir)
+  const commands = [
+    ...(shouldRetryGit ? ['git init'] : []),
+    ...(profile.shouldInstall ? [] : [`${profile.pm} install`]),
+    'bun run dev'
+  ]
+  const next = [...(dir === '.' ? [] : [`cd ${dir}`]), ...commands]
+  if (!hasTool('bun')) next.unshift(messages[language].missingBun)
+  if (siteUrl?.origin === defaultSiteUrl) {
+    next.push(messages[language].setUrl)
+  }
+  next.push(messages[language].publishList)
+  return {
+    steps: next,
+    resume: recoveryInstructions({ dir: profile.dir, language, commands })
+  }
+}
+function configureReadme({ stage, profile }: StagedContext): void {
+  if (
+    profile.hasIcons !== false &&
+    profile.hasFonts !== false &&
+    profile.hasTheme !== false
+  ) {
+    return
+  }
+  const variant = `icons-${profile.hasIcons !== false}-fonts-${profile.hasFonts !== false}-theme-${profile.hasTheme !== false}`
+  const source = new URL(
+    `../dist/readmes/${profile.pm}/${variant}/README.md`,
+    import.meta.url
+  )
+  cpSync(source, path.join(stage, 'README.md'))
+}
+
+function configureTheme({ stage, profile }: StagedContext): void {
+  if (profile.hasTheme !== false) return
+  cpSync(new URL('../dist/without-theme/files/', import.meta.url), stage, {
+    recursive: true
+  })
+  if (profile.hasIcons === false) {
+    cpSync(
+      new URL('../dist/without-theme/without-icons/', import.meta.url),
+      stage,
+      { recursive: true }
+    )
+  }
+  removeFeatureFiles({ stage, disabled: ['theme'] })
+}
+
+function configureIcons(context: StagedContext): void {
+  const { stage } = context
+  if (context.profile.hasIcons !== false) return
+  const variants = new URL('../dist/without-icons/files/', import.meta.url)
+  cpSync(variants, stage, { recursive: true })
+  renameSync(path.join(stage, '_gitignore'), path.join(stage, '.gitignore'))
+  removeFeatureFiles({ stage, disabled: ['icons'] })
+  delete context.pkg.devDependencies['@iconify-json/hugeicons']
+}
+
+function configureDiagnostics(context: StagedContext): void {
+  const { stage } = context
+  if (context.profile.hasDiagnostics !== false) return
+  delete context.pkg.devDependencies['@solidjs/diagnostics']
+  const file = 'docs/development.md'
+  const guide = readFileSync(path.join(stage, file), 'utf8')
+  const withoutGuide = editTemplate({
+    file,
+    text: guide,
+    pattern: /^## Reactivity diagnostics in development\n[\s\S]*?(?=^## )/mu,
+    replacement: ''
+  })
+  context.write({
+    file,
+    content: editTemplate({
+      file,
+      text: withoutGuide,
+      pattern:
+        '`solid-js`, `@solidjs/web` and `@solidjs/diagnostics`, respecting the\n  compatibility of the Vite plugin.',
+      replacement:
+        '`solid-js` and `@solidjs/web`, respecting the compatibility of the Vite\n  plugin.'
+    })
+  })
+}
+
+function removeEmptyFolders(folder: string): void {
+  for (const entry of readdirSync(folder, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const child = path.join(folder, entry.name)
+    removeEmptyFolders(child)
+    if (readdirSync(child).length === 0) rmdirSync(child)
+  }
+}
+type TranslationOptions = {
+  context: StagedContext
+  prepare: typeof applyPreparedSource
+}
+function configureTranslationProfile({
+  context,
+  prepare
+}: TranslationOptions): void {
+  const { profile, stage, pkg } = context
+  if (profile.hasI18n === false) {
+    removeCatalogTasks(pkg)
+    configurePlainApp(context)
+    prepare({ stage })
+    return
+  }
+  if ((profile.mode ?? 'server') === 'server') {
+    prepare({
+      stage,
+      files: [
+        ...configureBrowserPaths(context),
+        ...configureSingleLocaleTests(context)
+      ]
+    })
+  } else {
+    prepare({ stage, files: configureSingleLocaleTests(context) })
+  }
+}
+
+type CatalogNotice = Pick<StagedContext, 'stage' | 'write'> & {
+  seeded: string[]
+}
+function recordSeededCatalogs({ stage, write, seeded }: CatalogNotice): void {
+  if (seeded.length > 0) {
+    const file = 'README.md'
+    const text = readFileSync(path.join(stage, file), 'utf8')
+    const pattern = '## Before publishing\n\n'
+    const lines = seeded.map(
+      tag => `- Translate the seeded catalog for \`${tag}\`.`
+    )
+    write({
+      file,
+      content: editTemplate({
+        file,
+        text,
+        pattern,
+        replacement: () => `${pattern}${lines.join('\n')}\n`
+      })
+    })
+  }
+}
+
+type ReportCatalogs = { profile: Profile; seeded: string[]; language: Language }
+function reportSeededCatalogs({
+  profile,
+  seeded,
+  language
+}: ReportCatalogs): string[] {
+  const notices = seeded.map(tag =>
+    message(language, { code: 'seed', values: { tag } })
+  )
+  if (notices.length > 0) profile.onSeededCatalogs?.(notices)
+  return profile.onSeededCatalogs ? [] : notices
+}
+
+type Preparation = {
+  templateGuides?: (stage: string) => void
+  guides: (stage: string) => void
+  source: typeof applyPreparedSource
+}
+type GuidePreparation = {
+  context: StagedContext
+  hasTemplateLanguageSettings: boolean
+  prepare: Preparation
+}
+function prepareLocaleGuides({
+  context,
+  hasTemplateLanguageSettings,
+  prepare
+}: GuidePreparation): void {
+  // The build records both template and rewritten guides. At runtime the prepared
+  // template already has the right wording when its language settings are unchanged.
+  if (hasTemplateLanguageSettings) prepare.templateGuides?.(context.stage)
+  if (!hasTemplateLanguageSettings || prepare.templateGuides) {
+    configureLocaleGuides(context)
+  }
+  prepare.guides(context.stage)
+}
+type GenerationOptions = { input: Profile; prepare: Preparation }
+type Generation = GenerationOptions & { language: Language }
+type Progress = 'creating' | SetupCommand['task']
+type Step = 'creating' | SetupCommand | undefined
+const prepared = { guides: applyPreparedGuides, source: applyPreparedSource }
+type OutputChannel = 'stdout' | 'stderr'
+type OutputAvailability = (output: OutputChannel) => boolean
+type WaitNotice = (reason: 'signal' | 'output-error') => void
+type TerminalOptions = {
+  isInteractive?: boolean
+  language: Language
+  abortSignal?: AbortSignal
+  canWrite: OutputAvailability
+  warn?: (diagnostic: string) => void
+  report: (progress: Progress) => void
+  onWait?: WaitNotice
+}
+// WHY: The rollback of npm on its own took about 3 s, and Docker sends SIGKILL 10 s after its SIGTERM. Nobody can press again once the terminal closed, and a supervisor may send its signal only once.
+const cleanupLimitMs = 8000
+// WHY: SIGKILL ends a process at once unless it waits for I/O that nothing interrupts, such as on a network disk that stopped answering.
+const killWaitMs = 1000
+const terminationSignals = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const
+type ExternalSignal = { name: NodeJS.Signals; at: number }
+// WHY: A launcher can forward an INT or TERM to a CLI that already received it from the terminal.
+const repeatWindowMs = 150
+const newline = '\n'.codePointAt(0)
+type Forwarding = { source: Readable | null; target: NodeJS.WriteStream }
+type Forwarded = { shouldAppendNewline: boolean; stop: () => void }
+// WHY: pipe forwards the bytes as they are and pauses the installer while the reader of this output is slower than it.
+function forward({ source, target }: Forwarding): Forwarded {
+  // WHY: When its target fails, pipe stops reading and resumes only when one of its own writes waited for drain. After a write of the CLI that failed, or one of its own that failed while it waited with room left, an installer that still writes would block on a full pipe.
+  const discard = () => source?.resume()
+  const forwarded = {
+    shouldAppendNewline: false,
+    stop: () => target.off('error', discard)
+  }
+  source?.on('data', (chunk: Buffer) => {
+    forwarded.shouldAppendNewline = chunk.at(-1) !== newline
+  })
+  source?.pipe(target, { end: false })
+  target.once('error', discard)
+  return forwarded
+}
+type FinishingForwarding = {
+  forwarded: Forwarded
+  channel: OutputChannel
+  canWrite: OutputAvailability
+}
+function finishForwarding({
+  forwarded,
+  channel,
+  canWrite
+}: FinishingForwarding): void {
+  if (forwarded.shouldAppendNewline && canWrite(channel)) {
+    process[channel].write('\n')
+  }
+}
+type SetupOptions = {
+  cwd: string
+  signal: AbortSignal
+  isInteractive: boolean
+  canWrite: OutputAvailability
+  onWait?: WaitNotice
+}
+async function executeSetup(
+  command: SetupCommand,
+  { cwd, signal, isInteractive, canWrite, onWait }: SetupOptions
+): Promise<void> {
+  const isPlainInstall = command.task === 'installTask' && !isInteractive
+  const shouldInheritStderr = isPlainInstall && process.stderr.isTTY
+  // WHY: An installer keeps its progress display only on a terminal, so its stdout is forwarded only when it is not one.
+  const plainStdout = process.stdout.isTTY ? 'inherit' : 'pipe'
+  const child = spawn(command.executable, command.args, {
+    cwd,
+    stdio: [
+      'ignore',
+      isPlainInstall ? plainStdout : 'ignore',
+      shouldInheritStderr ? 'inherit' : 'pipe'
+    ]
+  })
+  const tailLimit = 8192
+  const diagnosticLines = 6
+  let diagnostic = ''
+  const forwarded = forward({
+    source: isPlainInstall ? child.stderr : null,
+    target: process.stderr
+  })
+  if (!isPlainInstall) {
+    child.stderr?.setEncoding('utf8').on('data', (chunk: string) => {
+      diagnostic = (diagnostic + chunk).slice(-tailLimit)
+    })
+  }
+  const printed = forward({ source: child.stdout, target: process.stdout })
+  let deadline: ReturnType<typeof setInterval> | undefined
+  let notice: ReturnType<typeof setTimeout> | undefined
+  let killWait: ReturnType<typeof setTimeout> | undefined
+  const ended = Promise.withResolvers<typeof child.exitCode>()
+  let stopSettling: (() => void) | undefined
+  let isForced = false
+  const release = () => {
+    child.stdout?.destroy()
+    child.stderr?.destroy()
+    ended.resolve(child.exitCode)
+  }
+  const isRunning = () => child.exitCode === null && child.signalCode === null
+  child.once('error', ended.reject)
+  child.once('close', ended.resolve)
+  child.once('exit', () => {
+    // WHY: The long bound exists to force the installer, which is gone, and the wait for its pipes keeps limits of its own.
+    clearInterval(deadline)
+    if (isForced) return
+    stopSettling = settlePipes({
+      child,
+      outputs: {
+        stdout: process.stdout,
+        ...(isPlainInstall && { stderr: process.stderr })
+      },
+      boundMs: cleanupLimitMs,
+      onSettled: () => ended.resolve(child.exitCode)
+    })
+  })
+  const force = () => {
+    clearTimeout(notice)
+    if (isForced) return
+    isForced = true
+    if (!isRunning()) {
+      release()
+      return
+    }
+    child.once('exit', release)
+    child.kill('SIGKILL')
+    killWait = setTimeout(() => {
+      child.unref()
+      release()
+    }, killWaitMs)
+  }
+  let firstExternal: ExternalSignal | undefined
+  const forceAgain = (signalName: NodeJS.Signals) => {
+    if (!firstExternal) {
+      firstExternal = { name: signalName, at: performance.now() }
+      return
+    }
+    // WHY: A closed terminal can send SIGHUP repeatedly.
+    if (signalName === 'SIGHUP') return
+    const isRepeat =
+      signalName === firstExternal.name &&
+      performance.now() - firstExternal.at < repeatWindowMs
+    if (!isRepeat) force()
+  }
+  const cancel = () => {
+    const initialSignal = terminationSignals.find(
+      name => name === signal.reason
+    )
+    if (initialSignal) {
+      firstExternal = { name: initialSignal, at: performance.now() }
+    }
+    for (const signalName of terminationSignals) {
+      process.on(signalName, forceAgain)
+    }
+    // WHY: Once the installer has exited only the wait for its pipes is left, and the step ends as a cancel after it.
+    if (!isRunning()) return
+    child.kill('SIGINT')
+    deadline = setRunningTimeout({
+      delayMs: cleanupLimitMs,
+      onExpire: force
+    })
+    // WHY: By the time the signal notice is visible the duplicate window has elapsed.
+    notice = setTimeout(() => {
+      if (isRunning()) onWait?.(initialSignal ? 'signal' : 'output-error')
+    }, repeatWindowMs)
+  }
+  signal.addEventListener('abort', cancel, { once: true })
+  try {
+    await ended.promise
+    // WHY: A signal sent to the group ends the installer too, by the signal or with the code its own handler chose, and its end may be read before the signal of the CLI.
+    if (child.exitCode !== 0) await readPendingSignals()
+    if (signal.aborted || child.signalCode === 'SIGINT') {
+      throw new CanceledError()
+    }
+    if (child.exitCode !== 0) {
+      const tail = diagnostic
+        .trimEnd()
+        .split('\n')
+        .slice(-diagnosticLines)
+        .join('\n')
+      const Failure = isPlainInstall ? ReportedInstallError : Error
+      throw new Failure(tail, {
+        cause: child.signalCode ?? child.exitCode
+      })
+    }
+  } finally {
+    stopSettling?.()
+    printed.stop()
+    forwarded.stop()
+    finishForwarding({ forwarded: printed, channel: 'stdout', canWrite })
+    finishForwarding({ forwarded, channel: 'stderr', canWrite })
+    clearInterval(deadline)
+    clearTimeout(notice)
+    clearTimeout(killWait)
+    for (const signalName of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+      process.off(signalName, forceAgain)
+    }
+    signal.removeEventListener('abort', cancel)
+  }
+}
+type GitOptions = { profile: Profile; language: Language }
+function* initializeGit({
+  profile,
+  language
+}: GitOptions): Generator<SetupCommand, boolean> {
+  if (profile.shouldInitGit && !hasRepository(profile.dir)) {
+    try {
+      yield { task: 'gitTask', executable: 'git', args: ['init'] }
+    } catch (error) {
+      if (error instanceof CanceledError) {
+        throw new CanceledError(
+          resumeSteps({ profile, language, shouldRetryGit: true }),
+          { cause: error }
+        )
+      }
+      return true
+    }
+  }
+  return false
+}
+type Advance = () => IteratorResult<Step, GenerationResult>
+// WHY: The end of a step removes its signal listeners, so a signal that arrived while the generator ran is read before anything closes the step.
+async function advance(run: Advance): Promise<ReturnType<Advance>> {
+  try {
+    return run()
+  } finally {
+    await readPendingSignals()
+  }
+}
+export function resolveGroup(
+  { settings }: GenerationContext,
+  group: Versions
+): Versions {
+  return Object.fromEntries(
+    Object.entries(group).map(([name, spec]) => [
+      name,
+      resolveVersion(settings, [name, spec])
+    ])
+  )
+}
+export function configureInstaller(context: GenerationContext): void {
+  const { profile, settings, write, pkg } = context
+  const versions = { bun: settings.bunVersion, pnpm: '12.21.0', npm: '12.2.3' }
+
+  const { pm } = profile
+  pkg.packageManager = `${pm}@${versions[pm]}`
+  const overrides = resolveGroup(context, settings.overrides)
+  if (pm === 'pnpm') {
+    write({
+      file: 'pnpm-workspace.yaml',
+      content: `${
+        section('overrides', overrides) +
+        section('patchedDependencies', settings.patches)
+      }allowBuilds:\n  lefthook: false\n`
+    })
+  } else pkg.overrides = overrides
+  if (pm === 'bun') {
+    pkg.patchedDependencies = settings.patches
+  }
+  write({ file: 'bunfig.toml', content: settings.bunfig })
+}
+export function configureHooks({
+  pkg,
+  settings,
+  write
+}: GenerationContext): void {
+  pkg.devDependencies.lefthook = settings.lefthook
+  pkg.scripts.prepare =
+    'if [ "$(git rev-parse --show-toplevel 2>/dev/null)" = "$(pwd -P)" ]; then vp exec node node_modules/@evertondgn/solid-tooling/dist/cli.mjs lefthook install; fi'
+  write({
+    file: '.lefthook.yml',
+    content:
+      'extends:\n  - node_modules/@evertondgn/solid-tooling/lefthook.yml\n'
+  })
+  write({
+    file: '.commitlintrc',
+    content: `${JSON.stringify(
+      { extends: ['@evertondgn/solid-tooling/commitlint'] },
+      null,
+      jsonIndent
+    )}\n`
+  })
+}
+export function rewriteIdentity({ pkg, profile }: GenerationContext): void {
+  pkg.name =
+    path
+      .basename(path.resolve(profile.dir))
+      .toLowerCase()
+      .replaceAll(/[^a-z0-9-]+/gu, '-')
+      .replaceAll(/^-+|-+$/gu, '')
+      .slice(0, maxPackageNameLength) || 'solid-app'
+  pkg.description = 'SolidJS application built with Vite+.'
+}
+export function* generation({
+  input,
+  prepare,
+  language
+}: Generation): Generator<Step, GenerationResult> {
+  const { problems, defaults, languages, title, siteUrl } =
+    validateProfile(input)
+  if (problems[0]) throw problems[0]
+  const profile = input.mode === 'client' ? { ...input, hasSeo: false } : input
+  const template = path.resolve(import.meta.dirname, '../template')
+  const seeded = languages.locales.filter(
+    tag => !defaults.locales.includes(tag) && profile.hasI18n !== false
+  )
+  const settingsFile = new URL('../dist/settings.json', import.meta.url)
+  const settings = parse(
+    settingsSchema,
+    JSON.parse(readFileSync(settingsFile, 'utf8'))
+  )
+  checkTools({ profile, language })
+  yield 'creating'
+  const parent = path.dirname(path.resolve(profile.dir))
+  const firstParent = mkdirSync(parent, { recursive: true })
+  const stageParent = existsSync(profile.dir)
+    ? path.resolve(profile.dir)
+    : parent
+  const stage = mkdtempSync(path.join(stageParent, '.create-solid-'))
+  const write = ({ file, content }: FileWrite) =>
+    writeFileSync(path.join(stage, file), content)
+  try {
+    for (const file of readdirSync(template)) {
+      if (
+        file === 'package.json' ||
+        (profile.pm === 'npm' && file === 'patches')
+      ) {
+        continue
+      }
+      cpSync(
+        path.join(template, file),
+        path.join(stage, file === '_gitignore' ? '.gitignore' : file),
+        { recursive: true }
+      )
+    }
+    const env = readFileSync(path.join(template, '.env'), 'utf8')
+    write({
+      file: '.env',
+      content: editTemplate({
+        file: '.env',
+        text: env,
+        pattern: /^VITE_SITE_URL=.*\n/mu,
+        replacement: () =>
+          siteUrl === undefined ? '' : `VITE_SITE_URL=${siteUrl.origin}\n`
+      })
+    })
+    const manifestFile = path.join(template, 'package.json')
+    const pkg = parse(
+      manifestSchema,
+      JSON.parse(readFileSync(manifestFile, 'utf8'))
+    )
+    const context = { stage, profile, settings, pkg, write }
+    configureIcons(context)
+    configureTheme(context)
+    rewriteVite(stage)
+    configureDiagnostics(context)
+    rewriteIdentity(context)
+    pkg.dependencies = resolveGroup(context, pkg.dependencies)
+    pkg.devDependencies = resolveGroup(context, pkg.devDependencies)
+    configureInstaller(context)
+    configureHooks(context)
+    rewriteKnip(stage)
+    const installerFiles = path.resolve(
+      import.meta.dirname,
+      '../dist/profiles',
+      profile.pm
+    )
+    cpSync(installerFiles, stage, { recursive: true })
+    configureReadme(context)
+    configureLocales({ stage, settings: languages })
+    configureStatic(context)
+    configureFonts({ stage, hasFonts: profile.hasFonts })
+    configureSeo(context)
+    configureClient(context)
+    const hasTemplateLocales =
+      JSON.stringify(languages.locales) === JSON.stringify(defaults.locales)
+    configureLocaleUi({ ...context, hasTemplateLocales })
+    configureFileHostGuides(context)
+    configureStandaloneGuides(context)
+    mkdirSync(path.join(stage, 'src/tests/pages/Home'), { recursive: true })
+    addProfileBrowserTest(context)
+    configureSiteIdentity(context)
+    configureLocaleCopy(context)
+    const hasTemplateLanguageSettings =
+      hasTemplateLocales && languages.baseLocale === defaults.baseLocale
+    prepareLocaleGuides({ context, hasTemplateLanguageSettings, prepare })
+    recordSeededCatalogs({ stage, write, seeded })
+    configureAppTitle({ context, title })
+    configurePageTitles({ context, title })
+    configureTranslationProfile({ context, prepare: prepare.source })
+    write({
+      file: 'package.json',
+      content: `${JSON.stringify(pkg, null, jsonIndent)}\n`
+    })
+    removeEmptyFolders(stage)
+    yield
+    publishTree({ stage, destination: profile.dir })
+  } catch (error) {
+    rmSync(stage, { recursive: true, force: true })
+    if (firstParent) {
+      for (let current = parent; ; current = path.dirname(current)) {
+        if (readdirSync(current).length > 0) break
+        rmdirSync(current)
+        if (current === firstParent) break
+      }
+    }
+    throw error
+  }
+  const notices = reportSeededCatalogs({ profile, seeded, language })
+  const shouldRetryGit = yield* initializeGit({ profile, language })
+  yield* installProfile({ profile, language, shouldRetryGit })
+  const next = nextSteps({ profile, language, siteUrl, shouldRetryGit })
+  return { steps: [...notices, ...next.steps], resume: next.resume }
+}
+
+export function generateSource(options: GenerationOptions): string[] {
+  const steps = generation({ ...options, language: 'en' })
+  let current = steps.next()
+  while (!current.done) {
+    if (typeof current.value === 'object') {
+      try {
+        execFileSync(current.value.executable, current.value.args, {
+          cwd: options.input.dir,
+          stdio: 'inherit'
+        })
+      } catch (error) {
+        current = steps.throw(error)
+        continue
+      }
+    }
+    current = steps.next()
+  }
+  return current.value.steps
+}
+export function generate(input: Profile): string[] {
+  return generateSource({ input, prepare: prepared })
+}
+export async function generateTerminal(
+  input: Profile,
+  {
+    language,
+    report,
+    warn,
+    onWait,
+    abortSignal,
+    canWrite,
+    isInteractive = false
+  }: TerminalOptions
+): Promise<GenerationResult> {
+  const steps = generation({ input, prepare: prepared, language })
+  const controller = new AbortController()
+  const cancel = (signalName: NodeJS.Signals) => controller.abort(signalName)
+  // WHY: A write the CLI cannot drop stops the generation as a signal does.
+  const stopping = abortSignal
+    ? AbortSignal.any([controller.signal, abortSignal])
+    : controller.signal
+  for (const signal of terminationSignals) process.on(signal, cancel)
+  try {
+    let current = await advance(() => steps.next())
+    while (!current.done) {
+      const step = current.value
+      if (step !== undefined) {
+        report(typeof step === 'string' ? step : step.task)
+      }
+      await setImmediate()
+      try {
+        stopping.throwIfAborted()
+        if (typeof step === 'object') {
+          await executeSetup(step, {
+            isInteractive,
+            cwd: input.dir,
+            signal: stopping,
+            canWrite,
+            ...(onWait ? { onWait } : {})
+          })
+        }
+      } catch (error) {
+        const hasGitWarning =
+          typeof step === 'object' &&
+          step.task === 'gitTask' &&
+          !stopping.aborted &&
+          !(error instanceof CanceledError)
+        const failure = stopping.aborted ? new CanceledError() : error
+        current = await advance(() => steps.throw(failure))
+        if (hasGitWarning) {
+          warn?.(
+            error instanceof Error
+              ? (error.message.split('\n').at(-1) ?? '')
+              : ''
+          )
+        }
+        continue
+      }
+      current = await advance(() => steps.next())
+    }
+    return current.value
+  } finally {
+    for (const signal of terminationSignals) process.off(signal, cancel)
+  }
+}
+export type { Profile } from './types.ts'

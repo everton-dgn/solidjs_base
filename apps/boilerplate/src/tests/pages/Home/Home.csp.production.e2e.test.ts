@@ -2,8 +2,9 @@ import type { APIRequestContext } from '@playwright/test'
 
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
-test.use({ locale: 'pt-BR' })
+test.use({ locale: testLanguages.tag(testLanguages.alternate) })
 
 const HTTP_OK = 200
 // Inline theme script, HydrationScript and the client entry; the data scripts of
@@ -96,7 +97,11 @@ test.describe('CSP with a nonce on the production entry', () => {
     expect(response?.status()).toBe(HTTP_OK)
     await expect.poll(async () => hydrationFinished(page)).toBe(true)
     // The theme menu only opens with hydrated JavaScript.
-    await page.getByRole('button', { name: 'Selecionar tema' }).click()
+    await page
+      .getByRole('button', {
+        name: testLanguages.labels(testLanguages.alternate).theme
+      })
+      .click()
     await expect(page.getByRole('menu')).toBeVisible()
 
     expect(cspViolations).toStrictEqual([])

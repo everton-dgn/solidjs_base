@@ -8,6 +8,7 @@ import { hasI18n, I18N_SETTINGS } from '../has-i18n.ts'
 import { localeModule } from '../locale-module.ts'
 import type { publicationBuild } from '../publication/index.ts'
 import { seoModule } from '../seo-module.ts'
+import { staticOutput, staticBuildPlugin } from './static-output.ts'
 import { staticFilePaths } from './static-paths.ts'
 import type {
   ExtensionContext,
@@ -55,10 +56,18 @@ async function readExtension({
   return (await options.extend?.({ target, mode })) ?? {}
 }
 
+// Left out, the Solid plugin serves /__solid/diagnostics in development when
+// the application declares @solidjs/diagnostics.
+function diagnosticsOption({ diagnostics }: SolidAppOptions) {
+  return diagnostics === undefined ? {} : { diagnostics }
+}
+
 async function i18nPlugins(options: SolidAppOptions): Promise<PluginOption[]> {
   if (options.i18nPlugin === false || !hasI18n(options.root)) return []
   const { i18nPlugin } = await import('../i18n/i18nPlugin/index.ts')
-  return i18nPlugin()
+  return i18nPlugin({
+    isStatic: options.ssr !== false && options.output === 'static'
+  })
 }
 
 // The locales come from the same file as the Paraglide compiler, so the rules
@@ -118,7 +127,9 @@ function iconsPlugin({ modules, options }: IconsInput) {
   })
 }
 
-function staticHeaders({ securityHeaders }: ServerAppOptions) {
+function staticHeaders(
+  securityHeaders: NonNullable<ServerAppOptions['securityHeaders']>
+) {
   return {
     'strict-transport-security': securityHeaders['strict-transport-security'],
     'x-content-type-options': securityHeaders['x-content-type-options'],
@@ -127,6 +138,22 @@ function staticHeaders({ securityHeaders }: ServerAppOptions) {
   }
 }
 
+type ServerRulesInput = { options: ServerAppOptions; locales: string[] }
+
+function serverRouteRules({ options, locales }: ServerRulesInput) {
+  if (options.output === 'static') return {}
+  const { securityHeaders } = options
+  const headers = staticHeaders(securityHeaders)
+  return {
+    ...Object.fromEntries(
+      staticFilePaths({ options, locales }).map(staticPath => [
+        staticPath,
+        { headers }
+      ])
+    ),
+    ...options.routeRules
+  }
+}
 function clientPlugins({
   i18n,
   modules,
@@ -141,7 +168,7 @@ function clientPlugins({
     ...(extension.plugins ?? []),
     ...i18n,
     iconsPlugin({ modules, options }),
-    modules.solid({ ssr: false }),
+    modules.solid({ ssr: false, ...diagnosticsOption(options) }),
     modules.fileRoutes(
       e2eRoutes
         ? { dir: e2eRoutes, httpMethods: true }
@@ -166,7 +193,10 @@ async function createPublication(options: ServerAppOptions) {
   let publication: ReturnType<typeof publicationBuild> | undefined
   if (enabled) {
     const { publicationBuild } = await import('../publication/index.ts')
-    publication = publicationBuild(features)
+    publication = publicationBuild({
+      features,
+      isStatic: options.output === 'static'
+    })
   }
   return publication
 }
@@ -178,7 +208,9 @@ async function serverPlugins({
     loadPluginModules(),
     import('nitro/vite'),
     readExtension({ options, target: 'app', mode }),
-    hasStaticMarkdown(options) ? readLocales(options.root) : [],
+    options.output === 'static' || hasStaticMarkdown(options)
+      ? readLocales(options.root)
+      : [],
     i18nPlugins(options)
   ])
   const isE2e = mode === 'e2e'
@@ -186,22 +218,28 @@ async function serverPlugins({
     ? (options.e2e?.middleware ?? options.middleware)
     : options.middleware
   const e2eRoutes = isE2e ? options.e2e?.routes : undefined
-  const headers = staticHeaders(options)
+  // WHY: Solid checks this path exists before the static plugin substitutes its wrapper.
+  const startMiddleware =
+    middleware ?? (options.output === 'static' ? 'package.json' : undefined)
   const publication = await createPublication(options)
   return [
     localeModule(options),
     fontsPlugin(options),
     seoModule({ root: options.root, mode, seo: options.seo }),
     ...(publication ? [publication.plugin] : []),
+    ...(options.output === 'static'
+      ? [staticBuildPlugin({ root: options.root, middleware })]
+      : []),
     ...(extension.plugins ?? []),
     ...i18n,
     iconsPlugin({ modules, options }),
     modules.solid({
-      start: middleware ? { middleware } : {},
+      start: startMiddleware ? { middleware: startMiddleware } : {},
       ssr: true,
       serverFunctions: options.serverSetup
         ? { serverSetup: options.serverSetup }
-        : true
+        : true,
+      ...diagnosticsOption(options)
     }),
     modules.fileRoutes(
       e2eRoutes
@@ -212,25 +250,17 @@ async function serverPlugins({
     // Node until Bun keeps the contracts of Response and of the failure log.
     nitro({
       serverEntry: false,
-      preset: 'vercel',
+      preset: options.output ?? 'vercel',
+      ...(await staticOutput({ options, locales, directory: e2eRoutes, mode })),
       modules: [
         ...(publication ? [publication.module] : []),
         ...(extension.nitroModules ?? [])
       ],
       // Nitro already registers the assetsDir of Vite, which serves /assets/.
       publicAssets: options.publicAssets ?? [],
-      // The static files leave the CDN without going through the middleware,
-      // so these rules give them the headers the middleware writes on the
-      // responses of the function.
-      routeRules: {
-        ...Object.fromEntries(
-          staticFilePaths({ options, locales }).map(staticPath => [
-            staticPath,
-            { headers }
-          ])
-        ),
-        ...options.routeRules
-      }
+      // Vercel serves assets outside the response middleware. Static hosts
+      // supply their own headers at deployment.
+      routeRules: serverRouteRules({ options, locales })
     })
   ]
 }
@@ -273,7 +303,10 @@ export function testPlugins({
       ...(extension.plugins ?? []),
       ...i18n,
       iconsPlugin({ modules, options }),
-      modules.solid(options.ssr === false ? {} : { serverFunctions: true }),
+      modules.solid({
+        ...(options.ssr === false ? {} : { serverFunctions: true }),
+        ...diagnosticsOption(options)
+      }),
       modules.fileRoutes({ types: ROUTE_TYPES, httpMethods: true })
     ]
   })

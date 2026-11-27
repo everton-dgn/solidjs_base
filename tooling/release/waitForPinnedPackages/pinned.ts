@@ -117,3 +117,18 @@ export function findPinnedPackages({
     )
   }
 }
+
+export function findTemplatePins({
+  manifest,
+  names
+}: PinnedSearch): PinnedPackage[] {
+  if (!isRecord(manifest) || !isRecord(manifest.versions)) {
+    throw new Error('The generator tarball has no template package versions.')
+  }
+  return readSection({
+    manifest,
+    names,
+    field: 'versions',
+    packed: 'the generated application'
+  })
+}

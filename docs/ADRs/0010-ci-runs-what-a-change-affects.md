@@ -42,7 +42,7 @@ GitHub offers two ways to skip work:
 ## Consequences
 
 - A pull request that changes only documentation runs the format and link
-  checks, without the app suites.
+  checks. Markdown under `apps/boilerplate/` also runs the application jobs.
 - Adding, splitting or renaming a job does not touch the ruleset; the new job
   only needs to be listed in the `needs` of `CI required`.
 - Pushes to `main` still run everything, so `main` keeps a full result for every

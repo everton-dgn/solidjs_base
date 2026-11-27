@@ -6,6 +6,8 @@ import type { ContactPoint, PostalAddress } from 'schema-dts'
 
 import { LOCALE_TAG_OVERRIDES } from '@/i18n/localeTagOverrides/index.ts'
 
+import { SITE as identity } from './title.ts'
+
 type ContactPointNode = Extract<ContactPoint, { '@type': 'ContactPoint' }>
 type PostalAddressNode = Extract<PostalAddress, { '@type': 'PostalAddress' }>
 type SiteOrganization = {
@@ -44,7 +46,7 @@ const ORGANIZATION: SiteOrganization = {
 }
 
 export const SITE = {
-  title: 'SolidJS Boilerplate',
+  title: identity.title,
   get description(): string {
     return m.site_description()
   },

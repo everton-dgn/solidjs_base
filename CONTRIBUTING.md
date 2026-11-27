@@ -5,6 +5,10 @@ pull request. The [development guide](docs/development.md) has the details of
 the workspace, and the [architecture guide](docs/architecture.md) explains what
 belongs in each package.
 
+The workspace also contains the private application generator in
+`packages/create-solid`. It joins the linked release group after its first
+manual registry release.
+
 ## Before you start
 
 - Report bugs and propose changes in
@@ -47,7 +51,7 @@ installed fixtures exercise both Bun linkers with reduced manifests. Keep
 application-owned imports and Vite+ overrides aligned with the package versions.
 Use `vp run tsrs`, `vp run knip` and `vp run playwright` in applications using
 `defineSolidApp`; their executables resolve from the tooling package. See
-[the dependency contract](docs/tooling/limits.md).
+[the dependency contract](packages/solid-tooling/docs/limits.md).
 
 ## Where things live
 
@@ -67,12 +71,17 @@ docs/                               guides and architecture decision records (AD
 
 ## Checking your change
 
-| You changed             | Run from the root                                                                      |
-| ----------------------- | -------------------------------------------------------------------------------------- |
-| Anything in `packages/` | `vp run validate`: build, check, dead code, package tests, tarball tests and scenarios |
-| Only a lint rule        | `vp run test` while you work, then `vp run validate`                                   |
-| `apps/boilerplate`      | The commands in [the boilerplate app section](docs/development.md#the-boilerplate-app) |
-| Only documentation      | `vp fmt`                                                                               |
+| You changed        | Run from the root                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| Published packages | `vp run validate`: build, check, dead code, package tests, tarball tests and scenarios          |
+| Generator          | `vp run validate:generator` and `node packages/create-solid/tooling/scenario.ts [name]`         |
+| Only a lint rule   | `vp run test` while you work, then `vp run validate`                                            |
+| `apps/boilerplate` | The commands in [the boilerplate app section](docs/development.md#the-boilerplate-app)          |
+| Only documentation | `vp fmt`, plus `vp fmt` inside `apps/boilerplate` for its files, which the root formatter skips |
+| CI and workspace   | `vp run test:ci` and `vp run test:consistency`                                                  |
+
+Add each new job to `required.needs` in `ci.yml` and the classifier's expected
+job map.
 
 The CI runs the same commands and skips the jobs your files do not affect.
 
@@ -87,7 +96,7 @@ The CI runs the same commands and skips the jobs your files do not affect.
    `packages/solid-tooling/src/tarball/__tests__/tarball.test.ts`. The tarball
    test then proves that the published package reports it.
 4. List the rule in the
-   [lint guide](docs/tooling/lint.md#rules-of-this-package).
+   [lint guide](packages/solid-tooling/docs/lint.md#rules-of-this-package).
 
 ## Conventions
 

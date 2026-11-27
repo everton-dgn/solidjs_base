@@ -1,0 +1,10 @@
+## Publishing
+
+Publish the contents of `.output/public` to a static host with directory
+indexes enabled. Each localized URL serves its own HTML. For an unknown path,
+serve `404.html` with status 404. Under a locale prefix, serve the corresponding
+error page, such as `/pt/404.html`.
+
+The build writes `.output/csp-hashes.json` outside the public directory. Use
+the hashes in `pages` for the actual HTML file served, including error pages.
+Regenerate the host headers on every build.

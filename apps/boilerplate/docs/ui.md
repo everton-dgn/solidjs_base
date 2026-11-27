@@ -143,10 +143,11 @@ visitor would download characters the page does not use, or the common text
 would fall back to the system font. Check the coverage of a file with
 `fc-query --format='%{charset}\n' <file>`.
 
-The font loading contract and complete examples are in the monorepo's
-[font guide](../../../docs/tooling/fonts.md). Keep the CSS fallback stack,
-weights and sizes in the application theme. Remove handwritten font faces and
-preload imports when adopting this mechanism; no inline CSS is required.
+The font loading contract and complete examples are in the tooling package’s
+[font guide](../../../packages/solid-tooling/docs/fonts.md). Keep the CSS
+fallback stack, weights and sizes in the application theme. Remove handwritten
+font faces and preload imports when adopting this mechanism; no inline CSS is
+required.
 
 ## CSS rules
 
@@ -272,10 +273,9 @@ command reuses that validation for every CSS file in `src/`, those without
 imports in JS/TS included.
 
 The rules and the name check come from `checkCss` in `@evertondgn/solid-tooling`
-(`packages/solid-tooling/src/stylelint/`), called by `tooling/css/check.ts`. The
-in-memory cases that check the policy run with `vp run test` at the monorepo
-root. The lint of the real CSS is still automatic, and its violations block the
-validation until they are fixed.
+([`stylelint`](../../../packages/solid-tooling/src/stylelint)), called by
+`tooling/css/check.ts`. The lint of the real CSS is still automatic, and its
+violations block the validation until they are fixed.
 
 ## CSS processing
 
@@ -338,7 +338,7 @@ The typed names of each collection, for
 `import { Solid } from 'icon:my-images'`, live in `src/icon-collections.d.ts`.
 The dev server and the build write it, and the `icons-generate` task writes it
 before `check:ci` and `lint`. The file is generated: it stays out of Git, of the
-formatter and of the linter. The copy imports each icon by its path.
+formatter and of the linter. The application imports each icon by its path.
 
 The
 [Solid SVG comes from the official Vite template](https://github.com/vitejs/vite/blob/main/packages/create-vite/template-solid/src/assets/solid.svg).

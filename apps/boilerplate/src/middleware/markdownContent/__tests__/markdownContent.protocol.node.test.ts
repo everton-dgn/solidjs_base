@@ -2,6 +2,7 @@ import { createRequestEvent } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
 
 import { Router } from '@/router.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 import middleware from '../../index.ts'
 
@@ -12,6 +13,8 @@ const HTTP_REDIRECT = 307
 const HTTP_NOT_FOUND = 404
 const HTTP_NOT_ACCEPTABLE = 406
 const ORIGIN = 'https://example.com'
+
+const { alternate } = testLanguages
 
 type RequestOptions = { path: string; method?: string }
 
@@ -31,7 +34,7 @@ function request({ path, method = 'GET' }: RequestOptions) {
   return createRequestEvent(
     new Request(new URL(path, ORIGIN), {
       method,
-      headers: { accept: 'application/json', 'accept-language': 'es' }
+      headers: { accept: 'application/json', 'accept-language': alternate }
     })
   )
 }
@@ -61,8 +64,8 @@ describe('markdown request protocol boundaries', () => {
         middleware(initial, render)
       )
       expect(redirect.status).toBe(HTTP_REDIRECT)
-      expect(redirect.headers.get('location')).toBe(`${ORIGIN}/es`)
-      const localized = request({ path: '/es', method })
+      expect(redirect.headers.get('location')).toBe(`${ORIGIN}/${alternate}`)
+      const localized = request({ path: `/${alternate}`, method })
       const response = await provideRequestEvent(localized, () =>
         middleware(localized, render)
       )
@@ -71,7 +74,7 @@ describe('markdown request protocol boundaries', () => {
         ...Object.fromEntries(response.headers)
       }).toMatchObject({
         status: HTTP_NOT_ACCEPTABLE,
-        'content-language': 'es',
+        'content-language': alternate,
         'cache-control': 'private, no-store'
       })
       await expect(response.text()).resolves.toBe(

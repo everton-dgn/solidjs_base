@@ -1,0 +1,10 @@
+import { defineParaglideConfig } from '@evertondgn/solid-tooling/paraglide'
+
+import settings from './settings.json'
+
+const config = {
+  ...defineParaglideConfig(settings.locales),
+  strategy: ['url', 'baseLocale']
+}
+
+export default config

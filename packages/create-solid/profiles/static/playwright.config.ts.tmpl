@@ -1,0 +1,11 @@
+import { defineConfig } from '@playwright/test'
+
+export default defineConfig({
+  testDir: './src/tests/pages',
+  testMatch: '**/*.e2e.test.ts',
+  use: { baseURL: 'http://127.0.0.1:4317', headless: true },
+  webServer: {
+    command: 'node tooling/testing/serve-public.ts',
+    url: 'http://127.0.0.1:4317'
+  }
+})

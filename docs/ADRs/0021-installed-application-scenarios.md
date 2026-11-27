@@ -9,8 +9,8 @@
   [0030](0030-packaged-environment-schemas.md),
   [0031](0031-runtime-seo-core.md), [0032](0032-packaged-fonts.md),
   [0033](0033-runtime-sitemap-publication.md),
-  [0034](0034-runtime-markdown-publication.md) and
-  [0036](0036-no-server-mode.md)
+  [0034](0034-runtime-markdown-publication.md), [0036](0036-no-server-mode.md)
+  and [0037](0037-icons-vite-plugin-package.md)
 - Date: 2026-11-13
 
 ## Context
@@ -32,11 +32,15 @@ Keep three applications under `fixtures/apps`, outside the workspace:
 
 Each runs with Bun's `hoisted` and `isolated` linkers. The node:test executor
 packs both packages for every case, copies the fixture into an owned temporary
-folder and injects the tarball paths. It runs lint over authored files,
-TypeScript, the node and dom Vitest projects and the build. The dom assertion
-uses `/` or `/fr` without overriding the preset default. An audit plugin records
-resolved plugin names and bundled module IDs to check disabled features. SSR
-preview is bound to loopback on a free port and checked for HTML and headers.
+folder and injects the tarball paths. Since
+[0037](0037-icons-vite-plugin-package.md), it packs all three workspace
+packages, installs the tooling and runtime tarballs as dependencies and
+overrides the tooling's icons dependency with the icons tarball. It runs lint
+over authored files, TypeScript, the node and dom Vitest projects and the build.
+The dom assertion uses `/` or `/fr` without overriding the preset default. An
+audit plugin records resolved plugin names and bundled module IDs to check
+disabled features. SSR preview is bound to loopback on a free port and checked
+for HTML and headers.
 
 `test:scenarios` runs last in root `validate`, keeping the existing CI command.
 It stays separate from rule tests and tarball lint tests. Commands have a

@@ -1,0 +1,155 @@
+import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import {
+  mkdtempSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+  rmSync
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { performance } from 'node:perf_hooks'
+import process from 'node:process'
+
+import { parse } from 'valibot'
+
+import { manifestSchema } from '../src/schema.ts'
+import scenarios from './scenarios.json' with { type: 'json' }
+
+const jsonIndent = 2
+const precision = 2
+const seconds = 1000
+const cliOffset = 2
+const packTimeout = 60_000
+const sandbox = mkdtempSync(path.join(tmpdir(), 'full-solid-'))
+const packages = [
+  'solid-runtime',
+  'solid-tooling',
+  'vite-plugin-solid-icons',
+  'create-solid'
+]
+try {
+  const archives: Record<string, string> = {}
+  for (const name of packages) {
+    const output = path.join(sandbox, name)
+    mkdirSync(output)
+    execFileSync('vp', ['pm', 'pack', '--pack-destination', output], {
+      cwd: path.join(import.meta.dirname, '../..', name),
+      timeout: packTimeout
+    })
+    const [archive] = readdirSync(output)
+    assert.ok(archive)
+    archives[name] = path.join(output, archive)
+  }
+  assert.ok(archives['create-solid'])
+  execFileSync('tar', ['xf', archives['create-solid']], { cwd: sandbox })
+  const [selected] = process.argv.slice(cliOffset)
+  if (selected && !scenarios.some(item => item.name === selected)) {
+    throw new Error(`Unknown scenario: ${selected}`)
+  }
+  for (const { name, pm, flags, tasks } of scenarios.filter(
+    item => !selected || item.name === selected
+  )) {
+    const cwd = path.join(sandbox, name)
+    execFileSync(
+      process.execPath,
+      [
+        path.join(sandbox, 'package/dist/create-solid.mjs'),
+        cwd,
+        '--lang',
+        'en',
+        '--pm',
+        pm,
+        '--no-install',
+        ...flags
+      ],
+      { stdio: 'inherit' }
+    )
+    const file = path.join(cwd, 'package.json')
+    const manifest = parse(
+      manifestSchema,
+      JSON.parse(readFileSync(file, 'utf8'))
+    )
+    manifest.dependencies['@evertondgn/solid-runtime'] =
+      `file:${archives['solid-runtime']}`
+    manifest.devDependencies['@evertondgn/solid-tooling'] =
+      `file:${archives['solid-tooling']}`
+    const icons = `file:${archives['vite-plugin-solid-icons']}`
+    if (pm === 'pnpm') {
+      const yaml = path.join(cwd, 'pnpm-workspace.yaml')
+      writeFileSync(
+        yaml,
+        readFileSync(yaml, 'utf8').replace(
+          'overrides:',
+          `overrides:\n  '@evertondgn/vite-plugin-solid-icons': '${icons}'`
+        )
+      )
+    } else {
+      assert.ok(manifest.overrides)
+      manifest.overrides['@evertondgn/vite-plugin-solid-icons'] = icons
+    }
+    writeFileSync(file, `${JSON.stringify(manifest, null, jsonIndent)}\n`)
+    const installStart = performance.now()
+    execFileSync(pm, ['install'], { cwd, stdio: 'inherit', timeout: 120_000 })
+    const taskStart = performance.now()
+    process.stdout.write(
+      `${name} install: ${((taskStart - installStart) / seconds).toFixed(precision)}s\n`
+    )
+    if (pm === 'pnpm') {
+      execFileSync(path.join(cwd, 'node_modules/.bin/vp'), ['fmt', '--check'], {
+        cwd
+      })
+    }
+    if (!flags.includes('--no-seo') && !flags.includes('client')) {
+      execFileSync(
+        process.execPath,
+        ['--test', 'tooling/__tests__/patched-dependencies.test.ts'],
+        { cwd, stdio: 'inherit', timeout: 30_000 }
+      )
+    }
+    const failedTasks: string[] = []
+    for (const task of tasks) {
+      try {
+        execFileSync('vp', ['run', task], {
+          cwd,
+          stdio: 'inherit',
+          timeout: 180_000
+        })
+      } catch {
+        failedTasks.push(task)
+      }
+    }
+    assert.deepEqual(failedTasks, [], `Failed tasks: ${failedTasks.join(', ')}`)
+    if (flags.length > 0) {
+      // WHY: The Playwright config of a static or client application launches the browser of its own Playwright, which the CI runner does not have. The preset of a server application uses the Chrome of the runner under CI.
+      if (flags.includes('static') || flags.includes('client')) {
+        execFileSync('vp', ['run', 'test:browser:install'], {
+          cwd,
+          stdio: 'inherit',
+          timeout: 180_000
+        })
+      }
+      execFileSync(
+        'vp',
+        ['run', 'playwright', 'test', 'Home.profile.production.e2e.test.ts'],
+        {
+          cwd,
+          stdio: 'inherit',
+          timeout: 120_000,
+          env: {
+            ...process.env,
+            TEST_PREBUILT: 'true',
+            TEST_PRODUCTION_ROUTES: 'true'
+          }
+        }
+      )
+    }
+    process.stdout.write(
+      `${name} tasks passed in ${((performance.now() - taskStart) / seconds).toFixed(precision)}s\n`
+    )
+  }
+} finally {
+  rmSync(sandbox, { recursive: true, force: true })
+}

@@ -1,7 +1,9 @@
 # 0003. The runtime package will ship TypeScript source
 
 - Status: Accepted, implemented in part by
-  [ADR 0018](0018-runtime-package-middleware.md)
+  [ADR 0018](0018-runtime-package-middleware.md).
+  [ADR 0022](0022-runtime-locale-seam.md) replaces the locale integration of
+  this decision with `virtual:solid-app/locale`.
 - Date: 2026-11-11
 
 ## Context

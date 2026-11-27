@@ -1,11 +1,13 @@
 import { isPublicError } from '@evertondgn/solid-runtime/server/public-errors'
 import { MAX_HTML_BYTES } from '@evertondgn/solid-runtime/server/publication-protocol'
+import { m } from '@paraglide/messages.js'
 import { getLocale, shouldRedirect } from '@paraglide/runtime.js'
 import { createRequestEvent, type RequestEvent } from '@solidjs/web'
 import { provideRequestEvent } from '@solidjs/web/storage'
 
 import { Router } from '@/router.ts'
 import { readLog } from '@/tests/helpers/readLog/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 import middleware, { createMiddleware } from '../index.ts'
 
@@ -20,8 +22,14 @@ const HTTP_METHOD_NOT_ALLOWED = 405
 const HTTP_INTERNAL_SERVER_ERROR = 500
 // The inner chain answers in the locale of the page. The outer containments and
 // the Markdown adapter, outside the locale context, answer in the base locale.
-const PUBLIC_MESSAGE_PT = 'Não foi possível concluir a solicitação.'
-const PUBLIC_MESSAGE_EN = 'The request could not be completed.'
+const alternateMessage = m.configureServerErrors_message(
+  {},
+  { locale: testLanguages.alternate }
+)
+const baseMessage = m.configureServerErrors_message(
+  {},
+  { locale: testLanguages.base }
+)
 const LOG_MESSAGE = '[middleware] Unexpected failure; private details omitted'
 const ERROR_PAGE_LOG =
   '[error-page] Unexpected failure; private details omitted'
@@ -80,7 +88,9 @@ function writeEvent(path: string): RequestEvent {
   )
 }
 
-function pageEvent(path = '/pt'): RequestEvent {
+function pageEvent(
+  path = testLanguages.path(testLanguages.alternate, '')
+): RequestEvent {
   const request = new Request(new URL(path, TEST_ORIGIN), {
     headers: { accept: 'text/html,application/xhtml+xml' }
   })
@@ -103,7 +113,9 @@ describe('default export of the middleware', () => {
   it('composes the production chain inside the containment', async () => {
     const response = new Response('page')
     const next = vi.fn<() => Promise<Response>>().mockResolvedValue(response)
-    const event = pageEvent('/pt/pagina')
+    const event = pageEvent(
+      testLanguages.path(testLanguages.alternate, '/pagina')
+    )
 
     await expect(
       provideRequestEvent(event, () => middleware(event, next))
@@ -125,7 +137,7 @@ describe('default export of the middleware', () => {
     )
 
     expect(response.status).toBe(HTTP_INTERNAL_SERVER_ERROR)
-    await expect(response.text()).resolves.toBe(PUBLIC_MESSAGE_PT)
+    await expect(response.text()).resolves.toBe(alternateMessage)
     expect(Object.fromEntries(response.headers)).toMatchObject({
       'x-content-type-options': 'nosniff',
       'referrer-policy': 'strict-origin-when-cross-origin'
@@ -144,13 +156,13 @@ describe('containment of the Markdown adapter', () => {
 
   beforeEach(mockProductionLog)
 
-  it.each(['pt', 'en', 'es'])(
+  it.each(testLanguages.locales)(
     'contains a Markdown matching failure before the render in the %s locale',
     async locale => {
       vi.spyOn(Router, 'match').mockImplementation(() => {
         throw new Error('PRIVATE_MATCH', { cause: 'PRIVATE_CAUSE' })
       })
-      const event = pageEvent(`/${locale}/about`)
+      const event = pageEvent(testLanguages.path(locale, '/about'))
       const next = vi.fn<() => Promise<Response>>().mockImplementation(() => {
         expect(isPublicError(event.locals.serverFailure)).toBe(true)
         return Promise.resolve(
@@ -183,7 +195,9 @@ describe('containment of the Markdown adapter', () => {
       throw new Error('PRIVATE_MATCH')
     })
     vi.mocked(shouldRedirect).mockRejectedValueOnce(new Error('PRIVATE_LOCALE'))
-    const event = pageEvent('/pt/about')
+    const event = pageEvent(
+      testLanguages.path(testLanguages.alternate, '/about')
+    )
     const next = vi.fn<() => Promise<Response>>()
 
     const response = await provideRequestEvent(event, () =>
@@ -192,7 +206,7 @@ describe('containment of the Markdown adapter', () => {
 
     expect(next).not.toHaveBeenCalled()
     expect(response.status).toBe(HTTP_INTERNAL_SERVER_ERROR)
-    await expect(response.text()).resolves.toBe(PUBLIC_MESSAGE_EN)
+    await expect(response.text()).resolves.toBe(baseMessage)
     expect(readLog(console.error)).toStrictEqual({
       heads: [
         [LOG_MESSAGE, 'Error'],
@@ -212,7 +226,7 @@ describe('containment of the Markdown adapter', () => {
         info: { markdown: true }
       }
     ])
-    const event = pageEvent('/en/about')
+    const event = pageEvent(testLanguages.path(testLanguages.base, '/about'))
     const page = new Response('PRIVATE_RENDERED_BODY', {
       headers: { 'content-type': 'text/html' }
     })
@@ -231,7 +245,7 @@ describe('containment of the Markdown adapter', () => {
 
     expect(next).toHaveBeenCalledExactlyOnceWith()
     expect(response.status).toBe(HTTP_INTERNAL_SERVER_ERROR)
-    await expect(response.text()).resolves.toBe(PUBLIC_MESSAGE_EN)
+    await expect(response.text()).resolves.toBe(baseMessage)
     expect(response.headers.get('x-content-type-options')).toBe('nosniff')
     expect(readLog(console.error)).toStrictEqual({
       heads: [[LOG_MESSAGE, 'Error']],
@@ -240,7 +254,7 @@ describe('containment of the Markdown adapter', () => {
   })
 
   it('keeps the locale during the render of the inner fallback', async () => {
-    const event = pageEvent('/en/about')
+    const event = pageEvent(testLanguages.path(testLanguages.base, '/about'))
     const fail = vi
       .fn<() => Promise<Response>>()
       .mockRejectedValue(new Error('PRIVATE_MIDDLEWARE'))
@@ -257,8 +271,10 @@ describe('containment of the Markdown adapter', () => {
 
     expect(next).toHaveBeenCalledExactlyOnceWith()
     expect(response.status).toBe(HTTP_INTERNAL_SERVER_ERROR)
-    expect(response.headers.get('content-language')).toBe('en')
-    await expect(response.text()).resolves.toBe('en')
+    expect(response.headers.get('content-language') ?? undefined).toBe(
+      testLanguages.header(testLanguages.base)
+    )
+    await expect(response.text()).resolves.toBe(testLanguages.base)
     expect(readLog(console.error)).toStrictEqual({
       heads: [[LOG_MESSAGE, 'Error']],
       leaks: []
@@ -275,14 +291,18 @@ describe('containment of the Markdown adapter', () => {
         info: { markdown: true }
       }
     ])
-    const event = pageEvent('/en/about.md?version=2')
+    const event = pageEvent(
+      testLanguages.path(testLanguages.base, '/about.md?version=2')
+    )
     event.request = new Request(event.request, {
       headers: { accept: 'text/markdown' }
     })
     const next = vi.fn<() => Promise<Response>>().mockImplementation(() => {
-      expect(event.request.url).toBe(`${TEST_ORIGIN}/en/about?version=2`)
+      expect(event.request.url).toBe(
+        `${TEST_ORIGIN}${testLanguages.path(testLanguages.base, '/about?version=2')}`
+      )
       expect(event.request.headers.get('accept')).toBe('text/html')
-      expect(getLocale()).toBe('en')
+      expect(getLocale()).toBe(testLanguages.base)
       event.locals.ssrRenderState = { hasCompleted: true, hasErrors: false }
       return Promise.resolve(
         new Response('<main><h1>Public content</h1></main>', {
@@ -296,7 +316,9 @@ describe('containment of the Markdown adapter', () => {
     )
 
     expect(next).toHaveBeenCalledExactlyOnceWith()
-    expect(response.headers.get('content-language')).toBe('en')
+    expect(response.headers.get('content-language') ?? undefined).toBe(
+      testLanguages.header(testLanguages.base)
+    )
     expect(response.headers.get('content-type')).toBe(
       'text/markdown; charset=utf-8'
     )
@@ -326,7 +348,7 @@ describe('failures of the Markdown adapter itself', () => {
 
     expect(next).not.toHaveBeenCalled()
     expect(response.status).toBe(HTTP_INTERNAL_SERVER_ERROR)
-    await expect(response.text()).resolves.toBe(PUBLIC_MESSAGE_EN)
+    await expect(response.text()).resolves.toBe(baseMessage)
     expect(response.headers.has('location')).toBe(false)
     expect(readLog(console.error)).toStrictEqual({
       heads: [[LOG_MESSAGE, 'Error']],
@@ -344,7 +366,7 @@ describe('failures of the Markdown adapter itself', () => {
         info: { markdown: true }
       }
     ])
-    const event = pageEvent('/en/about.md')
+    const event = pageEvent(testLanguages.path(testLanguages.base, '/about.md'))
     event.request = new Request(event.request, {
       headers: { accept: 'text/markdown' }
     })
@@ -363,7 +385,7 @@ describe('failures of the Markdown adapter itself', () => {
 
     expect(next).toHaveBeenCalledExactlyOnceWith()
     expect(response.status).toBe(HTTP_INTERNAL_SERVER_ERROR)
-    await expect(response.text()).resolves.toBe(PUBLIC_MESSAGE_EN)
+    await expect(response.text()).resolves.toBe(baseMessage)
     expect(readLog(console.error)).toStrictEqual({
       heads: [[LOG_MESSAGE, 'Error']],
       leaks: []
@@ -380,7 +402,9 @@ describe('responses with immutable headers', () => {
 
   // Response.redirect() arrives with immutable headers and without a body.
   it('writes the chain headers on a redirect without replacing it with a 500', async () => {
-    const event = pageEvent('/pt/pagina')
+    const event = pageEvent(
+      testLanguages.path(testLanguages.alternate, '/pagina')
+    )
     const next = vi
       .fn<() => Promise<Response>>()
       .mockResolvedValue(
@@ -406,7 +430,9 @@ describe('responses with immutable headers', () => {
   // The raw return of fetch() has immutable headers and an upstream body; the
   // chain does not pass it along.
   it('replaces the raw fetch() response with a public 500', async () => {
-    const event = pageEvent('/pt/pagina')
+    const event = pageEvent(
+      testLanguages.path(testLanguages.alternate, '/pagina')
+    )
     const next = vi
       .fn<() => Promise<Response>>()
       .mockReturnValue(fetch('data:text/plain,PRIVATE_UPSTREAM'))
@@ -416,7 +442,7 @@ describe('responses with immutable headers', () => {
     )
 
     expect(response.status).toBe(HTTP_INTERNAL_SERVER_ERROR)
-    await expect(response.text()).resolves.toBe(PUBLIC_MESSAGE_PT)
+    await expect(response.text()).resolves.toBe(alternateMessage)
     // Immutable headers throw a TypeError; the upstream body stays out of the log.
     expect(readLog(console.error)).toStrictEqual({
       heads: [[LOG_MESSAGE, 'TypeError']],
@@ -463,7 +489,9 @@ describe('production chain', () => {
   // Dispatching the API routes belongs to filesystem-routing and the E2E suite
   // covers sitemap.xml and robots.txt; here only the chaining matters.
   it('hands the requests without an API route to the next handler', async () => {
-    const event = pageEvent('/pt/pagina')
+    const event = pageEvent(
+      testLanguages.path(testLanguages.alternate, '/pagina')
+    )
     const response = new Response('page')
     const next = vi.fn<() => Promise<Response>>().mockImplementation(() => {
       expect(event.nonce).toBeDefined()
@@ -479,7 +507,9 @@ describe('production chain', () => {
   // The plugin handler would render the page with any method, in the base locale
   // and with status 200.
   it('answers 405 to a POST on a page without calling the render', async () => {
-    const event = writeEvent('/pt/about')
+    const event = writeEvent(
+      testLanguages.path(testLanguages.alternate, '/about')
+    )
     const next = vi.fn<() => Promise<Response>>()
 
     const response = await provideRequestEvent(event, () =>

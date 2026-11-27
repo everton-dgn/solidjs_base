@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test'
 import { releaseFixtureGate } from '@/tests/helpers/fixtureGate/index.ts'
 import { hydrationFinished } from '@/tests/helpers/hydrationFinished/index.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_OK = 200
 const HTTP_REDIRECT = 307
@@ -12,8 +13,11 @@ const HTTP_METHOD_NOT_ALLOWED = 405
 const HTTP_NOT_ACCEPTABLE = 406
 const HTTP_INTERNAL_SERVER_ERROR = 500
 
-const PAGE = '/pt/markdown-contract/sample'
-const LOCALES = ['pt', 'en', 'es']
+const PAGE = testLanguages.path(
+  testLanguages.alternate,
+  '/markdown-contract/sample'
+)
+const LOCALES = testLanguages.locales
 const LOCALE_REQUESTS = 12
 const CONCURRENT_MARKDOWN_REQUESTS = 2
 // The order of the attributes is not part of the HTML contract.
@@ -26,11 +30,11 @@ function expectPublicMarkdown(body: string) {
   expect(body.indexOf('Before the title')).toBeLessThan(
     body.indexOf('# HTML Markdown')
   )
-  expect(body).toContain('first:pt:resolved')
-  expect(body).toContain('second:pt:resolved')
-  expect(body.indexOf('first:pt:resolved')).toBeLessThan(
-    body.indexOf('second:pt:resolved')
-  )
+  expect(body).toContain(`first:${testLanguages.alternate}:resolved`)
+  expect(body).toContain(`second:${testLanguages.alternate}:resolved`)
+  expect(
+    body.indexOf(`first:${testLanguages.alternate}:resolved`)
+  ).toBeLessThan(body.indexOf(`second:${testLanguages.alternate}:resolved`))
   expect(body.replaceAll(String.raw`\_`, '_')).not.toMatch(
     /MENU_NOISE|BUTTON_NOISE|HIDDEN_NOISE|DECORATIVE_NOISE|EXCLUDED_NOISE|TEMPLATE_NOISE|FALLBACK/u
   )
@@ -51,7 +55,9 @@ test('converts only native public HTML and resolves links against the public doc
   const response = await request.get(`${PAGE}.md`)
   expect(response.status()).toBe(HTTP_OK)
   expect(response.headers()['content-type']).toContain('text/markdown')
-  expect(response.headers()['content-language']).toBe('pt')
+  expect(response.headers()['content-language']).toBe(
+    testLanguages.header(testLanguages.alternate)
+  )
   expect(response.headers()['cache-control']).toBe('private, no-store')
   expect(response.headers()['content-security-policy']).toContain(
     "script-src 'none'"
@@ -69,8 +75,8 @@ test('normal HTML hydrates the same ordered fragments and preserves controls', a
   await page.goto(PAGE)
   await expect.poll(() => hydrationFinished(page)).toBe(true)
   await expect(page.locator('[data-fragment]')).toHaveText([
-    'first:pt:resolved',
-    'second:pt:resolved'
+    `first:${testLanguages.alternate}:resolved`,
+    `second:${testLanguages.alternate}:resolved`
   ])
   await page.getByRole('button', { name: 'BUTTON_NOISE 0' }).click()
   await expect(
@@ -134,7 +140,9 @@ test('matches unenumerated parameter values without a Markdown producer', async 
   request
 }) => {
   const slug = `unlisted-${crypto.randomUUID()}`
-  const response = await request.get(`/pt/markdown-contract/${slug}.md`)
+  const response = await request.get(
+    testLanguages.path(testLanguages.alternate, `/markdown-contract/${slug}.md`)
+  )
   expect(response.status()).toBe(HTTP_OK)
   expect(await response.text()).toContain(`# HTML Markdown contract: ${slug}`)
 })
@@ -143,7 +151,7 @@ for (const locale of LOCALES) {
   test(`preserves the index slug and home Markdown aliases in ${locale}`, async ({
     request
   }) => {
-    const pathname = `/${locale}/markdown-contract/index`
+    const pathname = testLanguages.path(locale, '/markdown-contract/index')
     const markdownPath = `${pathname}/index.md`
     const html = await request.get(pathname, {
       headers: { accept: 'text/html' }
@@ -156,15 +164,17 @@ for (const locale of LOCALES) {
     const markdown = await request.get(`${markdownPath}?version=2`)
     expect(markdown.status()).toBe(HTTP_OK)
     expect(markdown.headers()['content-type']).toContain('text/markdown')
-    expect(markdown.headers()['content-language']).toBe(locale)
+    expect(markdown.headers()['content-language']).toBe(
+      testLanguages.header(locale)
+    )
     expect(await markdown.text()).toContain('# HTML Markdown contract: index')
 
     // The home page is static: the file generated in the build skips the function.
-    const home = await request.get(`/${locale}/index.md`)
+    const home = await request.get(testLanguages.path(locale, '/index.md'))
     expect(home.status()).toBe(HTTP_OK)
     expect(home.headers()['set-cookie']).toBeUndefined()
     const homeBody = await home.text()
-    expect(homeBody).toContain('# SolidJS Boilerplate')
+    expect(homeBody).toContain(`# ${testLanguages.labels(locale).title}`)
     expect(homeBody).not.toContain('# HTML Markdown contract: index')
   })
 }
@@ -183,23 +193,26 @@ test('isolates simultaneous locale cookies in settled content', async ({
         async (_, position) => {
           const index = offset + position
           const locale = LOCALES[index % LOCALES.length]
+          if (!locale) throw new Error('Missing configured test locale')
           const other = LOCALES[(index + 1) % LOCALES.length]
           const id = crypto.randomUUID()
           for (const label of ['first', 'second']) {
             await releaseFixtureGate({ request, id: `${id}:${label}` })
           }
           const response = await request.get(
-            `/${locale}/markdown-contract/sample.md?id=${id}`,
+            testLanguages.path(locale, `/markdown-contract/sample.md?id=${id}`),
             {
               headers: { cookie: `locale=${other}` }
             }
           )
           expect(response.status()).toBe(HTTP_OK)
-          expect(response.headers()['content-language']).toBe(locale)
+          expect(response.headers()['content-language']).toBe(
+            testLanguages.header(locale)
+          )
           const body = await response.text()
           expect(body).toContain(`first:${locale}:resolved`)
           expect(body).toContain(`second:${locale}:resolved`)
-          expect(body).not.toContain(`:${other}:resolved`)
+          if (other !== locale) expect(body).not.toContain(`:${other}:resolved`)
         }
       )
     )
@@ -211,16 +224,24 @@ test('localizes explicit Markdown URLs without losing their suffix', async ({
   baseURL
 }) => {
   const response = await request.get('/markdown-contract/sample.md', {
-    headers: { 'accept-language': 'es', cookie: '' },
+    headers: { 'accept-language': testLanguages.third, cookie: '' },
     maxRedirects: 0
   })
+  if (!testLanguages.hasPrefix) {
+    expect(response.status()).toBe(HTTP_OK)
+    expect(response.headers()['content-type']).toContain('text/markdown')
+    return
+  }
   expect(response.status()).toBe(HTTP_REDIRECT)
   expect(new URL(response.headers().location ?? '', baseURL).pathname).toBe(
-    '/es/markdown-contract/sample.md'
+    testLanguages.path(testLanguages.third, '/markdown-contract/sample.md')
   )
 })
 
-for (const path of ['/pt/markdown-noindex', '/pt/markdown-optout']) {
+for (const path of [
+  testLanguages.path(testLanguages.alternate, '/markdown-noindex'),
+  testLanguages.path(testLanguages.alternate, '/markdown-optout')
+]) {
   test(`does not publish ${path}`, async ({ request }) => {
     const html = await request.get(path, { headers: { accept: 'text/html' } })
     expect(html.status()).toBe(HTTP_OK)
@@ -241,9 +262,9 @@ test('keeps unknown and invalid paths outside successful Markdown', async ({
   request
 }) => {
   for (const path of [
-    '/pt/nonexistent-contract.md',
-    '/pt/%ZZ.md',
-    '/pt/markdown-contract/a/b.md'
+    testLanguages.path(testLanguages.alternate, '/nonexistent-contract.md'),
+    testLanguages.path(testLanguages.alternate, '/%ZZ.md'),
+    testLanguages.path(testLanguages.alternate, '/markdown-contract/a/b.md')
   ]) {
     const response = await request.get(path, { maxRedirects: 0 })
     expect(response.status()).toBeGreaterThanOrEqual(HTTP_BAD_REQUEST)

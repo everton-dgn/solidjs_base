@@ -6,6 +6,10 @@ owns, what stays in an application, how the packages depend on each other and
 how the copy and the fixture apps test them. Each package README holds its API,
 its entry points and its test counts.
 
+The workspace also contains the private application generator in
+`packages/create-solid`. It joins the linked release group after its first
+manual registry release.
+
 ## Where code lives
 
 An application built on the packages takes code from four places.
@@ -97,7 +101,7 @@ production dependencies, `@mdream/js`, `filesystem-routing`, `schema-dts` and
 `packages/solid-tooling/vite.config.ts`, with its type declarations, and writes
 the `exports` map from those entries. The map adds the two TypeScript configs,
 the declaration files of the app environment, the virtual modules and the icon
-modules, `lefthook.yml` and `package.json`: 26 entry points in all, which the
+modules, `lefthook.yml` and `package.json`: 27 entry points in all, which the
 [package README](../packages/solid-tooling/README.md#entry-points) lists.
 
 The lint preset registers the plugins in `lint.jsPlugins` by package specifier,
@@ -127,7 +131,8 @@ Paraglide task, test setup and lint plugin follow the presence of Paraglide
 The rules read import specifiers and file paths as text, and they expect the
 boilerplate layout: `src/` with `components/atoms`, `molecules` and `organisms`,
 `helpers`, `infra` and the other layers, and `tooling/` for build and test code.
-The [lint guide](tooling/lint.md) lists each rule and its limits.
+The [lint guide](../packages/solid-tooling/docs/lint.md) lists each rule and its
+limits.
 
 ## `@evertondgn/solid-runtime`
 
@@ -218,10 +223,10 @@ from npm.
 | Installed application scenarios | The three apps of `fixtures/apps/` install the three tarballs with both Bun linkers, then test, lint, type check and build. SSR cases request the preview, and a disabled feature must leave no module in the bundle                                                                    | `vp run test:scenarios`                               |
 | Boilerplate application         | A complete application passes its check, Node type check, dead code, Vitest, build and end-to-end suites                                                                                                                                                                                | See [Development](development.md#the-boilerplate-app) |
 
-`vp run validate` runs the build, the checks, the dead code check, the package
-tests, the tarball tests and the scenarios, in this order. The Packages job of
-CI and the publish job run it, and a package change also runs the boilerplate
-app jobs ([CI](development.md#ci)). Each README gives its test counts and the CI
+`vp run validate` verifies the published packages, installed tooling fixtures
+and workspace consistency. Release runs it once before publication, alongside
+the generated application installations. The Generator job checks profiles and
+parity ([CI](development.md#ci)). Each README gives its test counts and the CI
 run they come from: the
 [tooling](../packages/solid-tooling/README.md#how-it-is-tested),
 [runtime](../packages/solid-runtime/README.md#how-it-is-tested),

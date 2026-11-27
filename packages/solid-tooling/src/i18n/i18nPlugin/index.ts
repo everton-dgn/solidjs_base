@@ -111,9 +111,13 @@ function catalogPreparation(): Plugin {
   }
 }
 
-export function i18nPlugin(): PluginOption[] {
+export function i18nPlugin({ isStatic = false } = {}): PluginOption[] {
   return [
     catalogPreparation(),
-    paraglideVitePlugin({ project: PROJECT, devErrorResponse: true })
+    paraglideVitePlugin({
+      project: PROJECT,
+      devErrorResponse: true,
+      ...(isStatic ? { strategy: ['url', 'baseLocale'] } : {})
+    })
   ]
 }

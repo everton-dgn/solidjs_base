@@ -1,15 +1,34 @@
-import { expect, test } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
 
-import english from '@/components/organisms/ErrorFallback/i18n/en.json' with { type: 'json' }
-import spanish from '@/components/organisms/ErrorFallback/i18n/es.json' with { type: 'json' }
-import portuguese from '@/components/organisms/ErrorFallback/i18n/pt.json' with { type: 'json' }
+import { expect, test } from '@playwright/test'
+import { array, object, optional, parse, string } from 'valibot'
+
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_INTERNAL_SERVER_ERROR = 500
-const LANGUAGES = [
-  { locale: 'pt', messages: portuguese },
-  { locale: 'en', messages: english },
-  { locale: 'es', messages: spanish }
-]
+const settingsSchema = object({
+  baseLocale: string(),
+  locales: array(string())
+})
+const settings = parse(
+  settingsSchema,
+  JSON.parse(await readFile('project.inlang/settings.json', 'utf8'))
+)
+const schema = object({
+  errorFallback_runtimeTitle: string(),
+  errorFallback_runtimeDescription: string(),
+  errorFallback_runtimePageTitle: optional(string())
+})
+
+const LANGUAGES = await Promise.all(
+  settings.locales.map(async locale => {
+    const source = await readFile(
+      `src/components/organisms/ErrorFallback/i18n/${locale}.json`,
+      'utf8'
+    )
+    return { locale, messages: parse(schema, JSON.parse(source)) }
+  })
+)
 
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false })
@@ -19,10 +38,16 @@ test.describe('without JavaScript', () => {
       page
     }) => {
       const response = await page.goto(
-        `/${locale}/outside-error?case=render-root&id=${crypto.randomUUID()}`
+        testLanguages.path(
+          locale,
+          `/outside-error?case=render-root&id=${crypto.randomUUID()}`
+        )
       )
       expect(response?.status()).toBe(HTTP_INTERNAL_SERVER_ERROR)
-      await expect(page).toHaveTitle(messages.errorFallback_runtimeTitle)
+      await expect(page).toHaveTitle(
+        messages.errorFallback_runtimePageTitle ??
+          messages.errorFallback_runtimeTitle
+      )
       await expect(
         page.locator('head meta[name="description"]')
       ).toHaveAttribute('content', messages.errorFallback_runtimeDescription)
@@ -43,19 +68,35 @@ test('a server function keeps the page locale when the cookie disagrees', async 
   baseURL
 }) => {
   if (!baseURL) throw new Error('Missing test URL')
-  await context.addCookies([{ name: 'locale', value: 'es', url: baseURL }])
-  await page.goto('/en/i18n-action')
-  await expect(page.getByRole('button', { name: 'Select theme' })).toBeEnabled()
-  await context.addCookies([{ name: 'locale', value: 'es', url: baseURL }])
+  await context.addCookies([
+    { name: 'locale', value: testLanguages.third, url: baseURL }
+  ])
+  await page.goto(testLanguages.path(testLanguages.base, '/i18n-action'))
+  await expect(
+    page.getByRole('button', {
+      name: testLanguages.labels(testLanguages.base).theme
+    })
+  ).toBeEnabled()
+  await context.addCookies([
+    { name: 'locale', value: testLanguages.third, url: baseURL }
+  ])
   const response = page.waitForResponse(candidate =>
     new URL(candidate.url()).pathname.startsWith('/_server/')
   )
   await page.getByRole('button', { name: 'Read server locale' }).focus()
   await page.keyboard.press('Enter')
   await expect(
-    page.getByText('SolidJS Boilerplate for web applications', { exact: true })
+    page
+      .locator('main')
+      .getByText(testLanguages.labels(testLanguages.base).title, {
+        exact: true
+      })
   ).toBeVisible()
   const actionResponse = await response
-  expect(actionResponse.headers()['content-language']).toBe('en')
-  await expect(page).toHaveURL('/en/i18n-action')
+  expect(actionResponse.headers()['content-language']).toBe(
+    testLanguages.header(testLanguages.base)
+  )
+  await expect(page).toHaveURL(
+    testLanguages.path(testLanguages.base, '/i18n-action')
+  )
 })

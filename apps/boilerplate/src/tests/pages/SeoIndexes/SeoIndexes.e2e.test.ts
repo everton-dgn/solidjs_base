@@ -1,14 +1,16 @@
 import { expect, test } from '@playwright/test'
 
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_OK = 200
 const HTTP_NOT_FOUND = 404
 // Entries published by the source of `blog/[slug]`.
 const BLOG_ENTRIES = 2
-const HOME_TITLE = 'SolidJS Boilerplate | Web applications with SSR'
-const SITE_DESCRIPTION =
-  'A foundation for web applications with SolidJS, TypeScript and Vite+, with server-side rendering and light and dark themes.'
+const HOME_TITLE = testLanguages.labels(testLanguages.base).pageTitle
+const SITE_DESCRIPTION = testLanguages.labels(
+  testLanguages.base
+).siteDescription
 
 test.describe('indexes generated from the route manifest', () => {
   for (const method of ['GET', 'HEAD']) {
@@ -34,6 +36,10 @@ test.describe('indexes generated from the route manifest', () => {
     request
   }) => {
     const siteUrl = readSiteOrigin()
+    const baseUrl = (suffix: string) =>
+      siteUrl + testLanguages.path(testLanguages.base, suffix)
+    const alternateUrl = (suffix: string) =>
+      siteUrl + testLanguages.path(testLanguages.alternate, suffix)
     const cacheControl =
       'public, max-age=0, s-maxage=3600, stale-if-error=86400'
 
@@ -54,8 +60,9 @@ test.describe('indexes generated from the route manifest', () => {
         return response.text()
       })
     )
+    const alternateLink = testLanguages.hasPrefix ? '<xhtml:link' : '</url>'
     const xml = bodies.join('\n')
-    expect(xml).toContain(`<loc>${siteUrl}/pt/catalog/a-1</loc>`)
+    expect(xml).toContain(`<loc>${alternateUrl('/catalog/a-1')}</loc>`)
     const missingPart = await request.get('/sitemaps/catalog/removed.xml')
     expect(missingPart.status()).toBe(HTTP_NOT_FOUND)
     expect(missingPart.headers()['cache-control']).toBe('no-store')
@@ -67,20 +74,20 @@ test.describe('indexes generated from the route manifest', () => {
       headers: { 'x-nitro-prerender': '/sitemaps/static.json' }
     })
     expect(inventory.status()).toBe(HTTP_NOT_FOUND)
-    expect(xml).toContain(`<loc>${siteUrl}/pt</loc>`)
-    expect(xml).toContain(`<loc>${siteUrl}/pt/backend-error</loc>`)
-    expect(xml).toContain(`<loc>${siteUrl}/pt/seo-public</loc>`)
-    expect(xml).toContain(`<loc>${siteUrl}/pt/seo-sitemap-only</loc>`)
+    expect(xml).toContain(`<loc>${alternateUrl('')}</loc>`)
+    expect(xml).toContain(`<loc>${alternateUrl('/backend-error')}</loc>`)
+    expect(xml).toContain(`<loc>${alternateUrl('/seo-public')}</loc>`)
+    expect(xml).toContain(`<loc>${alternateUrl('/seo-sitemap-only')}</loc>`)
     expect(xml).toContain(
-      `<url><loc>${siteUrl}/pt/seo-article</loc><lastmod>2026-09-21</lastmod><xhtml:link`
+      `<url><loc>${alternateUrl('/seo-article')}</loc><lastmod>2026-09-21</lastmod>${alternateLink}`
     )
-    expect(xml).toContain(`<url><loc>${siteUrl}/pt</loc><xhtml:link`)
+    expect(xml).toContain(`<url><loc>${alternateUrl('')}</loc>${alternateLink}`)
     // Source of `blog/[slug]`: normalized trailing slash and the invalid date left out.
     expect(xml).toContain(
-      `<url><loc>${siteUrl}/pt/blog/first-post</loc><lastmod>2026-09-10</lastmod><xhtml:link`
+      `<url><loc>${alternateUrl('/blog/first-post')}</loc><lastmod>2026-09-10</lastmod>${alternateLink}`
     )
     expect(xml).toContain(
-      `<url><loc>${siteUrl}/pt/blog/second-post</loc><xhtml:link`
+      `<url><loc>${alternateUrl('/blog/second-post')}</loc>${alternateLink}`
     )
     expect(xml).not.toContain('yesterday')
     expect(xml).not.toContain('/private')
@@ -97,25 +104,25 @@ test.describe('indexes generated from the route manifest', () => {
     const markdown = await llms.text()
     expect(markdown.startsWith('# ')).toBe(true)
     expect(markdown).toContain(
-      `> ${SITE_DESCRIPTION}\n\n- Content is available in English (/en), Portuguese (/pt), and Spanish (/es). This index uses English.\n`
+      `> ${SITE_DESCRIPTION}\n\n- ${testLanguages.availability}\n`
     )
-    expect(markdown.indexOf('- Content is available')).toBeLessThan(
+    expect(markdown.indexOf(`- ${testLanguages.availability}`)).toBeLessThan(
       markdown.indexOf('## ')
     )
     const useCases = markdown.split('## When to use\n\n')[1]?.split('\n## ')[0]
-    expect(useCases).toContain(`](${siteUrl}/en/index.md): `)
-    expect(useCases).toContain(`](${siteUrl}/en/about.md): `)
+    expect(useCases).toContain(`](${baseUrl('/index.md')}): `)
+    expect(useCases).toContain(`](${baseUrl('/about.md')}): `)
     expect(markdown.indexOf('## When to use\n')).toBeLessThan(
       markdown.indexOf('## Pages\n')
     )
     expect(markdown).toContain(
-      `- [${HOME_TITLE}](${siteUrl}/en/index.md): ${SITE_DESCRIPTION}\n`
+      `- [${HOME_TITLE}](${baseUrl('/index.md')}): ${SITE_DESCRIPTION}\n`
     )
     expect(markdown).toContain(
-      `## Guides\n\n- [Public guide](${siteUrl}/en/seo-public): Public content of the guide.\n`
+      `## Guides\n\n- [Public guide](${baseUrl('/seo-public')}): Public content of the guide.\n`
     )
     expect(markdown).toContain(
-      `## Optional\n\n- [Backend data](${siteUrl}/en/backend-error): Test page for the backend response states.\n`
+      `## Optional\n\n- [Backend data](${baseUrl('/backend-error')}): Test page for the backend response states.\n`
     )
     expect(markdown.indexOf('## Optional')).toBeGreaterThan(
       markdown.indexOf('## Guides')
@@ -128,28 +135,28 @@ test.describe('indexes generated from the route manifest', () => {
       ...indexedPages.matchAll(/^- \[[^\]]+\]\((?<url>[^)]+)\)/gmu)
     ].map(match => match.groups?.url)
     const markdownUrls = new Map([
-      [`${siteUrl}/en`, `${siteUrl}/en/index.md`],
-      [`${siteUrl}/en/about`, `${siteUrl}/en/about.md`],
-      [`${siteUrl}/en/contact`, `${siteUrl}/en/contact.md`],
-      [`${siteUrl}/en/privacy`, `${siteUrl}/en/privacy.md`]
+      [baseUrl(''), baseUrl('/index.md')],
+      [baseUrl('/about'), baseUrl('/about.md')],
+      [baseUrl('/contact'), baseUrl('/contact.md')],
+      [baseUrl('/privacy'), baseUrl('/privacy.md')]
     ])
     // Indexable pages without `route.info.llms`: only in the sitemap.
     const sitemapOnly = new Set([
-      `${siteUrl}/en/seo-sitemap-only`,
-      `${siteUrl}/en/seo-article`,
-      `${siteUrl}/en/structured-data-stream`,
-      `${siteUrl}/en/fragment-css`,
-      `${siteUrl}/en/markdown-optout`
+      baseUrl('/seo-sitemap-only'),
+      baseUrl('/seo-article'),
+      baseUrl('/structured-data-stream'),
+      baseUrl('/fragment-css'),
+      baseUrl('/markdown-optout')
     ])
     expect(new Set(llmsUrls)).toStrictEqual(
       new Set([
         ...sitemapUrls
           .filter(
             url =>
-              String(url).startsWith(`${siteUrl}/en`) &&
+              String(url).startsWith(baseUrl('')) &&
               !sitemapOnly.has(String(url)) &&
-              !String(url).startsWith(`${siteUrl}/en/blog/`) &&
-              !String(url).startsWith(`${siteUrl}/en/catalog/`)
+              !String(url).startsWith(baseUrl('/blog/')) &&
+              !String(url).startsWith(baseUrl('/catalog/'))
           )
           .map(url => markdownUrls.get(String(url)) ?? url),
         `${siteUrl}/llms-full.txt`
@@ -159,7 +166,9 @@ test.describe('indexes generated from the route manifest', () => {
     // URLs use the public origin; the test server answers by the path.
     const blogPaths = sitemapUrls
       .map(url => String(url).slice(siteUrl.length))
-      .filter(path => path.startsWith('/pt/blog/'))
+      .filter(path =>
+        path.startsWith(testLanguages.path(testLanguages.alternate, '/blog/'))
+      )
     expect(blogPaths).toHaveLength(BLOG_ENTRIES)
     for (const path of blogPaths) {
       const page = await request.get(path)

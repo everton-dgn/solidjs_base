@@ -7,8 +7,9 @@ import {
   releaseFixtureGate
 } from '@/tests/helpers/fixtureGate/index.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
-test.use({ locale: 'pt-BR' })
+test.use({ locale: testLanguages.tag(testLanguages.alternate) })
 
 const HTTP_OK = 200
 const PAGE_URL = '/structured-data-stream'
@@ -110,7 +111,9 @@ test('inserts the late JSON-LD in the head before loading the JavaScript of the 
   await visitGated({ page, request })
   await expect(page.getByRole('heading', { name: PRODUCT_NAME })).toBeVisible()
   await expect(
-    page.getByRole('button', { name: 'Selecionar tema' })
+    page.getByRole('button', {
+      name: testLanguages.labels(testLanguages.alternate).theme
+    })
   ).toBeDisabled()
   await expect(page.locator(`head ${JSON_LD}`)).toHaveCount(
     SCRIPTS_WITH_PRODUCT
@@ -139,8 +142,15 @@ test('hydrates without duplicating the JSON-LD and removes it when leaving the r
   await expectSafeProduct(page)
   await expect(page.locator(`body ${JSON_LD}`)).toHaveCount(0)
 
-  await page.getByRole('link', { name: 'Início', exact: true }).click()
-  await expect(page).toHaveTitle('SolidJS Boilerplate | Aplicações web com SSR')
+  await page
+    .getByRole('link', {
+      name: testLanguages.labels(testLanguages.alternate).homeLink,
+      exact: true
+    })
+    .click()
+  await expect(page).toHaveTitle(
+    testLanguages.labels(testLanguages.alternate).pageTitle
+  )
   await expect(page.locator(`head ${JSON_LD}`)).toHaveCount(1)
   const remaining = await page.locator(JSON_LD).allTextContents()
   expect(remaining.join('')).not.toContain(PRODUCT_NAME)

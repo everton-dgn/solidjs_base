@@ -1,24 +1,26 @@
+import { m } from '@paraglide/messages.js'
 import { expect, test } from '@playwright/test'
 
-import english from '@/constants/site/i18n/en.json' with { type: 'json' }
-import spanish from '@/constants/site/i18n/es.json' with { type: 'json' }
-import portuguese from '@/constants/site/i18n/pt.json' with { type: 'json' }
 import { parseStructuredData } from '@/tests/helpers/parseStructuredData/index.ts'
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const HTTP_OK = 200
 const HTTP_NOT_FOUND = 404
 const PAGE_PATHS = ['', '/about', '/contact', '/privacy']
-const LANGUAGES = [
-  { locale: 'pt', tag: 'pt-BR', messages: portuguese },
-  { locale: 'en', tag: 'en-US', messages: english },
-  { locale: 'es', tag: 'es-ES', messages: spanish }
-]
+const LANGUAGES = testLanguages.locales.map(locale => ({
+  locale,
+  tag: testLanguages.tag(locale),
+  messages: {
+    site_description: m.site_description({}, { locale }),
+    site_imageAlt: m.site_imageAlt({}, { locale })
+  }
+}))
 const ALTERNATES = Object.fromEntries<string>([
   ...LANGUAGES.map(
     ({ locale }) => [locale, `${readSiteOrigin()}/${locale}`] as const
   ),
-  ['x-default', `${readSiteOrigin()}/en`]
+  ['x-default', `${readSiteOrigin()}/${testLanguages.base}`]
 ])
 
 type SitemapRecord = { loc: string; alternates: Record<string, string> }
@@ -159,7 +161,11 @@ for (const { locale, tag, messages } of LANGUAGES) {
     request
   }) => {
     const response = await request.get(`/${locale}`, {
-      headers: { 'sec-fetch-dest': 'empty', accept: '*/*', cookie: 'locale=pt' }
+      headers: {
+        'sec-fetch-dest': 'empty',
+        accept: '*/*',
+        cookie: `locale=${testLanguages.other(locale)}`
+      }
     })
     expect(response.status()).toBe(HTTP_OK)
     expect(response.headers()['content-language']).toBe(locale)
@@ -182,7 +188,7 @@ test('sitemap alternates are reciprocal and every localized URL resolves without
         ({ locale }) =>
           [locale, `${readSiteOrigin()}/${locale}${path}`] as const
       ),
-      ['x-default', `${readSiteOrigin()}/en${path}`]
+      ['x-default', `${readSiteOrigin()}/${testLanguages.base}${path}`]
     ])
     return LANGUAGES.map(({ locale }) => ({
       loc: `${readSiteOrigin()}/${locale}${path}`,

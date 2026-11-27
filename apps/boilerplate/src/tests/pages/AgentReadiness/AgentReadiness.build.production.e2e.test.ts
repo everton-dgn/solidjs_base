@@ -13,6 +13,7 @@ import { expect, test, type APIRequestContext } from '@playwright/test'
 import * as v from 'valibot'
 
 import { readSiteOrigin } from '@/tests/helpers/readSiteOrigin/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 type Destination = { url: URL; fragments: Set<string> }
 type CheckOptions = {
@@ -27,7 +28,7 @@ const SITEMAP_INVENTORY_PATH = '/sitemaps/static.json'
 const FETCH_CONCURRENCY = 4
 const PRERENDER_HEADERS = { 'x-nitro-prerender': '/_markdown/static.json' }
 
-const LOCALES = ['pt', 'en', 'es']
+const LOCALES = testLanguages.locales
 const PAGES = ['', '/about', '/contact', '/privacy']
 const STATIC_OUTPUT = new URL(
   '../../../../.vercel/output/static/',
@@ -47,8 +48,8 @@ const STATIC_FILES = [
   '/assets/entry.js',
   '/images/og.png',
   '/favicon/favicon.ico',
-  '/pt/index.md',
-  '/en/about.md',
+  testLanguages.path(testLanguages.alternate, '/index.md'),
+  testLanguages.path(testLanguages.base, '/about.md'),
   '/llms.txt',
   '/llms-full.txt',
   '/sitemap.xml',
@@ -209,7 +210,10 @@ test('routes HTML home pages before static Markdown directory indexes', async ()
   )
   const routes = config.routes.slice(0, firstPhase)
   for (const locale of LOCALES) {
-    for (const pathname of [`/${locale}`, `/${locale}/`]) {
+    for (const pathname of [
+      testLanguages.path(locale, ''),
+      testLanguages.path(locale, '/')
+    ]) {
       const route = routes.find(
         candidate =>
           candidate.src !== undefined &&
@@ -218,7 +222,7 @@ test('routes HTML home pages before static Markdown directory indexes', async ()
       )
       expect(route?.dest, pathname).toBe('/__server')
     }
-    const markdown = `/${locale}/index.md`
+    const markdown = testLanguages.path(locale, '/index.md')
     expect(
       routes.some(
         route =>
@@ -255,8 +259,8 @@ for (const locale of LOCALES) {
       request,
       page
     }) => {
-      const pathname = `/${locale}${path}`
-      const href = path ? `${pathname}.md` : `${pathname}/index.md`
+      const pathname = testLanguages.path(locale, path)
+      const href = testLanguages.path(locale, path ? `${path}.md` : '/index.md')
       const markdown = await readFile(
         new URL(href.slice(1), STATIC_OUTPUT),
         'utf8'
@@ -425,7 +429,9 @@ test('declares the security headers of the static files in the Vercel artifact',
   expect(headersOf('/images/og.png')).toMatchObject({
     'cache-control': 'public, max-age=31536000, immutable'
   })
-  expect(headersOf('/pt/about')).not.toHaveProperty('x-content-type-options')
+  expect(
+    headersOf(testLanguages.path(testLanguages.alternate, '/about'))
+  ).not.toHaveProperty('x-content-type-options')
 })
 
 test('serves every internal destination of llms.txt without redirects', async ({
@@ -551,7 +557,10 @@ test('declares the describedby Link for static Markdown in the Vercel artifact',
   const { paths } = await readManifest(request)
   for (const path of paths) expect(pattern.test(path), path).toBe(true)
   for (const page of PAGES) {
-    expect(pattern.test(`/pt${page}`), page).toBe(false)
+    expect(
+      pattern.test(testLanguages.path(testLanguages.alternate, page)),
+      page
+    ).toBe(false)
   }
   const hasAggregate = await hasStaticFile(LLMS_FULL_PATH)
   expect(pattern.test(LLMS_FULL_PATH)).toBe(hasAggregate)

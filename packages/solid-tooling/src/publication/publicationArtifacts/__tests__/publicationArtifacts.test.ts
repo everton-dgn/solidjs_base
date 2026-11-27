@@ -434,3 +434,30 @@ it('the prerender instance has no artifacts to write', async () => {
   await publicationArtifacts({ buildId: BUILD_ID }).writeServer(serverDir)
   await assert.rejects(readManifest({ serverDir }), { code: 'ENOENT' })
 })
+
+it('refuses array and partitioned sources only for static output', () => {
+  for (const source of [
+    { hasArraySources: true, identities: { urls: [], entries: [] } },
+    { hasPartitionSources: true }
+  ]) {
+    for (const isStatic of [true, false]) {
+      const route: PrerenderRoute = {
+        route: SITEMAP_INVENTORY_PATH,
+        contents: inventory(source)
+      }
+      generate({
+        publication: publicationArtifacts({ buildId: BUILD_ID, isStatic }),
+        route,
+        queue: new Set()
+      })
+      if (isStatic) {
+        assert.match(
+          route.error?.message ?? '',
+          /cannot publish array or partitioned sitemap sources/u
+        )
+      } else {
+        assert.equal(route.error, undefined)
+      }
+    }
+  }
+})

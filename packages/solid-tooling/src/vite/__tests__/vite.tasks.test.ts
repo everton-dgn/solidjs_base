@@ -115,3 +115,10 @@ it('quotes the root and the folders in the command of the shell', () => {
     `node '${ICONS_SCRIPT}' '${json.replaceAll("'", String.raw`'\''`)}'`
   )
 })
+
+it('tracks root TypeScript imports of the Node configuration', () => {
+  const tasks = createTasks({ root: ROOT, isCi: false, hasI18n: false })
+  const cache = tasks['typecheck-node']?.cache
+  assert.ok(typeof cache === 'object')
+  assert.ok(cache.input?.includes('*.ts'))
+})

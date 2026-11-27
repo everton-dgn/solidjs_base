@@ -36,8 +36,9 @@ A probe measured:
   `src/` overrides to it. Each file is linted by one run: 56 files at the root,
   20 in the package.
 - Formatting stays at the root, which still covers the package, and the package
-  runs no formatter. The Docs job of the CI runs only `vp fmt --check` at the
-  root, and a change to the package README alone starts only that job.
+  runs no formatter. The Docs job of the CI runs `vp fmt --check` at the root,
+  and a change to the package README alone starts only that job. The job now
+  also checks the internal links and their anchors.
 - The package `vite.config.ts` loads the plugins from
   `packages/solid-tooling/src`, as the root does. The two configs repeat that
   map, because each writes the paths from its own folder.
@@ -58,13 +59,16 @@ A probe measured:
   the preset treats as tooling. The suite packs the package with `vp pm pack`,
   extracts it to `node_modules/@evertondgn/solid-runtime` of a temporary folder,
   without the network and without the peers, and removes both folders at the
-  end. Node does not run the TypeScript of the package, so the suite proves
-  three things and only them:
+  end. Node does not run the TypeScript of the package, so at this step the
+  suite proved three things and only them:
   - `constants.js` loads in plain Node from the installed package, through
     `@evertondgn/solid-runtime/middleware/security-headers/constants`, with the
     values of the source;
   - every target of `exports` is in the tarball;
   - no `__tests__` folder is published.
+
+  The suite now also calls the stored theme script in plain Node and fails when
+  a build tool reaches a production section of the published manifest.
 
 This replaces the point of ADR 0018 on the root lint and its consequence that
 the moved files lost the architecture rule and Knip.

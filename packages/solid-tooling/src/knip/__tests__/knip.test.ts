@@ -153,6 +153,28 @@ it('ignores the icon imports and the Iconify collections of an application', asy
   ])
 })
 
+it('ignores the Solid diagnostics package only when the application declares it', async context => {
+  const [declared, bare] = await Promise.all([
+    createAppFixture({
+      context,
+      files: {
+        ...BARE_APP,
+        'package.json': JSON.stringify({
+          devDependencies: { '@solidjs/diagnostics': '*' }
+        })
+      }
+    }),
+    createAppFixture({ context, files: BARE_APP })
+  ])
+  const options = { packagedTestTools: false }
+  const [withPackage, withoutPackage] = await Promise.all([
+    readConfig({ root: declared, options }),
+    readConfig({ root: bare, options })
+  ])
+  assert.deepEqual(withPackage.ignoreDependencies, ['@solidjs/diagnostics'])
+  assert.deepEqual(withoutPackage.ignoreDependencies, [])
+})
+
 it('keeps application-owned test dependencies visible to Knip', async context => {
   const root = await createAppFixture({ context, files: BARE_APP })
   const config = await readConfig({

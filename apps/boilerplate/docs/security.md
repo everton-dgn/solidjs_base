@@ -7,11 +7,11 @@
 The security headers of the function responses come from the middleware. For
 static files, the Nitro `routeRules` set `Strict-Transport-Security`,
 `X-Content-Type-Options` and `Cross-Origin-Resource-Policy`, as described in the
-[known limits](#known-limits). `securityHeaders` writes on every response of the
-chain `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`,
+[known limits](#known-limits). For the responses it handles, `securityHeaders`
+sets `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`,
 `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`,
-`Cross-Origin-Embedder-Policy`, `Cross-Origin-Resource-Policy` and the
-`Content-Security-Policy`. The values are in
+`Cross-Origin-Embedder-Policy` and `Cross-Origin-Resource-Policy`. Production
+responses also get the `Content-Security-Policy`. The values are in
 [`src/middleware/securityHeaders/constants.ts`](../src/middleware/securityHeaders/constants.ts),
 which spreads the defaults of the runtime package
 ([`constants.js`](../../../packages/solid-runtime/src/middleware/securityHeaders/constants.js));
@@ -176,10 +176,11 @@ changing the HTML of the application.
   the preset writes the `.md` files as `/<locale>/**.md`, with the locales of
   `project.inlang/settings.json`, and refuses a static path of the application
   inside the folder of a locale. This depends on the `urlPatterns` of
-  `project.inlang/paraglide.config.ts` prefixing every locale: an application
-  that serves a locale without a prefix needs its own pattern for the `.md`
-  files of that locale, or they go out from the CDN without these headers.
-  `AgentReadiness` checks the headers of each published `.md`.
+  `defineParaglideConfig`, in `project.inlang/paraglide.config.ts`, prefixing
+  every locale: an application that serves a locale without a prefix needs its
+  own pattern for the `.md` files of that locale, or they go out from the CDN
+  without these headers. `AgentReadiness` checks the headers of each published
+  `.md`.
 - On the Vercel CDN, the routes of `config.json` compare the path still encoded,
   and the static file is found by the decoded path. A percent-encoded spelling
   of a static path, such as `/%70t/index.md` or

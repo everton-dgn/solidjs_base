@@ -1,6 +1,7 @@
 # 0033: Sitemap and publication admission belong to the runtime
 
-- Status: Accepted
+- Status: Accepted, amended by [0034](0034-runtime-markdown-publication.md) for
+  compiled publication and the replacement of the publication flag
 - Date: 2026-11-14
 
 ## Context

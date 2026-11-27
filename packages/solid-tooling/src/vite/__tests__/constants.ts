@@ -1,6 +1,8 @@
 export const LOCALES = ['en', 'pt']
 export const SOURCE_PACKAGE = '@scope/source'
 export const TASKS = [
+  'agents',
+  'doctor',
   'knip',
   'tsrs',
   'playwright',
@@ -25,4 +27,10 @@ export const ALL_PUBLICATION_SEO = {
   markdown: { static: true },
   llms: {},
   llmsFull: {}
+}
+
+export const HEADERS = {
+  'strict-transport-security': 'max-age=63072000; includeSubDomains',
+  'x-content-type-options': 'nosniff',
+  'cross-origin-resource-policy': 'same-origin'
 }

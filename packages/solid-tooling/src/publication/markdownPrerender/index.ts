@@ -40,6 +40,7 @@ type PrerenderOptions = {
   failOnError?: boolean
 }
 type MarkdownPrerenderOptions = {
+  isStatic?: boolean
   buildId: string
   hasMarkdown?: boolean
   hasSitemap?: boolean
@@ -182,6 +183,7 @@ async function publishLlmsFull({
 // sitemap artifacts follow the same cycle. The build phase reaches the worker
 // through its inherited environment, never a public header. Any failure aborts.
 export function markdownPrerender({
+  isStatic = false,
   buildId,
   hasMarkdown = true,
   hasSitemap = true,
@@ -196,7 +198,7 @@ export function markdownPrerender({
     let llmsText: string | undefined
     let hasLlmsFull = false
     const approved = new Map<string, ArtifactDigest>()
-    const publication = publicationArtifacts({ buildId, hasSitemap })
+    const publication = publicationArtifacts({ buildId, hasSitemap, isStatic })
     nitro.options.prerender.failOnError = true
     nitro.options.prerender.routes = [
       ...new Set([
@@ -239,7 +241,8 @@ export function markdownPrerender({
           return
         }
         for (const path of paths) queue.add(path)
-        publication.approve({ route })
+        if (isStatic) route.skip = true
+        else publication.approve({ route })
         return
       }
       if (hasLlms && route.route === LLMS_PATH) {
@@ -296,6 +299,7 @@ export function markdownPrerender({
         }
       }
     )
+    if (isStatic) return
     nitro.hooks.hook('compiled', async () => {
       await writeVercelRoutes({
         outputDir: nitro.options.output.dir,

@@ -44,7 +44,7 @@ type SeoPlugin = {
   load: (id: string) => string | null
 }
 
-function readOrigin({ root, mode, key }: OriginOptions): string {
+export function readOrigin({ root, mode, key }: OriginOptions): string {
   const value = loadEnv(mode, root, key)[key]
   if (!value) throw new Error(`Missing site origin: ${key}`)
   let origin: URL

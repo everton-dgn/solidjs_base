@@ -3,6 +3,7 @@ import * as v from 'valibot'
 import { UNSAFE_JSON_LD_TEXT } from '@/tests/fixtures/structured-data.ts'
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
 import { parseStructuredData } from '@/tests/helpers/parseStructuredData/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 const JSON_LD = 'script[type="application/ld+json"]'
 const EXPECTED_SCRIPTS = 2
@@ -12,7 +13,10 @@ const FAQ = v.object({ mainEntity: v.array(QUESTION) })
 
 for (const javaScriptEnabled of [false, true]) {
   test.describe(`initial JSON-LD with JavaScript ${javaScriptEnabled ? 'enabled' : 'disabled'}`, () => {
-    test.use({ javaScriptEnabled, locale: 'pt-BR' })
+    test.use({
+      javaScriptEnabled,
+      locale: testLanguages.tag(testLanguages.alternate)
+    })
 
     test('keeps malicious HTML as data in the base graph and in the JSON of the page', async ({
       page,
@@ -45,7 +49,9 @@ for (const javaScriptEnabled of [false, true]) {
       ).toBeUndefined()
       if (javaScriptEnabled) {
         await expect(
-          page.getByRole('button', { name: 'Selecionar tema' })
+          page.getByRole('button', {
+            name: testLanguages.labels(testLanguages.alternate).theme
+          })
         ).toBeEnabled()
       }
       expect(cspViolations).toStrictEqual([])

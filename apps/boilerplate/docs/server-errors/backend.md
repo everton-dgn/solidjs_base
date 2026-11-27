@@ -98,9 +98,9 @@ integration.
 
 [backendPolicy](../../../../packages/solid-tooling/src/backendPolicy/index.ts)
 configures the native Oxlint rules `no-restricted-globals`,
-`no-restricted-properties`, `no-restricted-imports` and `no-console` in `src`,
-fixtures included, for the `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`
-and `.cjs` extensions:
+`no-restricted-properties` and `no-console`, plus the packaged
+`backend/restricted-imports` rule, in `src`, fixtures included, for the `.ts`,
+`.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs` and `.cjs` extensions:
 
 - Restricts `fetch` to the transport and bars direct access to `XMLHttpRequest`,
   `WebSocket` and `EventSource`, static global properties included.
@@ -126,24 +126,23 @@ and `.cjs` extensions:
   carries no message, `cause` or properties of the error. Aliases of `console`
   and other loggers require review.
 
-The regression tests require `no-restricted-imports` to also refuse
-`import("package")` when the whole package is restricted. The policy does not
-rely on `importNames` restrictions for that loading. That is why
+`backend/restricted-imports` checks literal dynamic imports for module-wide
+restrictions.
 [backend/static-solid-imports](../../../../packages/solid-tooling/src/backendPolicy/plugin.ts)
-requires static imports of `@solidjs/web`, its subpaths and the runtime
-configurator, in `publicErrors` and `configureServerErrors` too;
-`backend/static-render-integrity-imports` does the same with local
-`renderIntegrity` and the package's `server/render-integrity`, because a
-restriction by name does not reach `import()`. The rule checks strings and
-templates without interpolation; the public APIs of that package stay available
-through a static import.
+requires static imports of Solid web modules and the runtime configurator, in
+`publicErrors` and `configureServerErrors` too.
+`backend/static-render-integrity-imports` requires static imports of the local
+and packaged render integrity modules, so the named restriction on
+`observeRenderFailures` can be enforced. The rules check strings and templates
+without interpolation; the public APIs of that package stay available through a
+static import.
 
 Named imports with an alias, re-exports and direct access through a namespace
 are checked too. Visual libraries, local methods called `fetch` and local
-parameters with that name are allowed. Tests and type declarations are outside
-these backend restrictions. The exceptions of the adapters use exact paths;
-copying a privileged module to another extension does not grant the same
-permission.
+parameters with that name are allowed. Tests and type declarations are exempt
+from the backend restrictions except for the relative import depth limit. The
+exceptions of the adapters use exact paths; copying a privileged module to
+another extension does not grant the same permission.
 
 The lint does not do a full flow analysis: aliases of the global object, such as
 `const g = globalThis`, computed import sources, templates of packages outside
@@ -152,9 +151,9 @@ require review. It does not check the content of the log arguments in
 `logServerFailure`. The setter and control-enabled protection are private
 package modules, not AST conventions. Do not use these gaps or a disable comment
 to get around the contract. The pattern of relative imports is shared with
-`packages/solid-tooling/src/lint/rules/javascript.ts` through the
-`RELATIVE_IMPORT_RESTRICTION` constant, in
-`packages/solid-tooling/src/backendPolicy/constants.ts`.
+[`javascript.ts`](../../../../packages/solid-tooling/src/lint/rules/javascript.ts)
+through the `RELATIVE_IMPORT_RESTRICTION` constant, in
+[`constants.ts`](../../../../packages/solid-tooling/src/backendPolicy/constants.ts).
 
 The same exact path exceptions apply when lint runs from the runtime package.
 `server-only` is allowed in `src/infra/server/**/index.ts`, and the Node import

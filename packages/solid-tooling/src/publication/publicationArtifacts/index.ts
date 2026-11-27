@@ -15,7 +15,11 @@ import { assertPublishedArtifacts } from './helpers/assertPublishedArtifacts/ind
 import { writeServerArtifacts } from './helpers/writeServerArtifacts/index.ts'
 import type { PublishedOptions, SitemapInventory } from './types.ts'
 
-type PublicationOptions = { buildId: string; hasSitemap?: boolean }
+type PublicationOptions = {
+  buildId: string
+  hasSitemap?: boolean
+  isStatic?: boolean
+}
 type InspectOptions = { route: PrerenderRoute; queue: Set<string> | undefined }
 type ApproveOptions = { route: PrerenderRoute; maxBytes?: number }
 type XmlProblemOptions = { route: PrerenderRoute; byteBudget: number }
@@ -88,6 +92,7 @@ function findXmlProblem({
 // Only prerender-approved artifacts with matching published bytes enter the manifest.
 export function publicationArtifacts({
   buildId,
+  isStatic = false,
   hasSitemap = true
 }: PublicationOptions): PublicationArtifacts {
   const approved = new Map<string, ArtifactDigest>()
@@ -108,6 +113,15 @@ export function publicationArtifacts({
     // instead of producing a 503 on every production request.
     if (inventory.buildId !== buildId) {
       route.error = new Error('Sitemap inventory belongs to another build')
+      return
+    }
+    if (
+      isStatic &&
+      (inventory.hasArraySources || inventory.hasPartitionSources)
+    ) {
+      route.error = new Error(
+        'output: static cannot publish array or partitioned sitemap sources'
+      )
       return
     }
     if (inventory.identities) {

@@ -7,7 +7,12 @@ import { baseLocale, locales, type Locale } from '@paraglide/runtime.js'
 const LANGUAGE_NAMES = new Intl.DisplayNames(['en'], { type: 'language' })
 
 function languageName(locale: Locale): string {
-  return LANGUAGE_NAMES.of(locale) ?? locale
+  try {
+    return LANGUAGE_NAMES.of(locale) ?? locale
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error
+    return locale
+  }
 }
 
 const INDEX_LANGUAGE = languageName(baseLocale)

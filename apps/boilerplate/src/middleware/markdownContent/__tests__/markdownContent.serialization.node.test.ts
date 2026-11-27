@@ -1,5 +1,7 @@
 import type { StartMiddleware } from '@evertondgn/solid-runtime/middleware/types'
 import { createRenderIntegrity } from '@evertondgn/solid-runtime/server/render-integrity'
+import { m } from '@paraglide/messages.js'
+import { baseLocale, localizeHref } from '@paraglide/runtime.js'
 import {
   configureServerErrors,
   createComponent,
@@ -50,8 +52,16 @@ type ContainedCase = {
 }
 
 const PRIVATE_MARKER = 'PRIVATE_SERIALIZATION_FAILURE'
-// The adapter takes the locale from the request, and the requests use /en.
-const PUBLIC_MESSAGE = 'The request could not be completed.'
+const PUBLIC_MESSAGE = m.configureServerErrors_message(
+  {},
+  { locale: baseLocale }
+)
+function requestUrl(path: string): URL {
+  return new URL(
+    localizeHref(path, { locale: baseLocale }),
+    'https://example.com'
+  )
+}
 const LOG_MESSAGE = '[server-error] Unexpected failure; private details omitted'
 const FAILURE_LOG_CLASSES = {
   parse: 'Error',
@@ -109,7 +119,7 @@ function makeProbe({
 }: ProbeOptions) {
   const controller = new AbortController()
   const event: Event = createRequestEvent(
-    new Request('https://example.com/en/about.md', {
+    new Request(requestUrl('/about.md'), {
       headers: { accept: 'text/markdown' },
       signal: controller.signal
     })
@@ -325,7 +335,7 @@ describe('markdown with the installed SSR serializer', () => {
     }
     const controller = new AbortController()
     const event: Event = createRequestEvent(
-      new Request('https://example.com/en/about', {
+      new Request(requestUrl('/about'), {
         headers: { accept: 'text/html' },
         signal: controller.signal
       })

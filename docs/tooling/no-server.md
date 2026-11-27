@@ -1,6 +1,6 @@
 # Applications with no server
 
-[Tooling reference](README.md)
+[Tooling reference](../../packages/solid-tooling/docs/README.md)
 
 `ssr: false` builds an application that needs no server at run time: no Nitro,
 no server functions and no server bundle. The build is an `index.html` with its
@@ -17,9 +17,9 @@ cookie theme builds exactly as before.
 ## Base path
 
 Set the base with `mergeConfig`, as in
-[Changing the result](app-config.md#changing-the-result), or pass `--base` to
-`vp build`. A folder base such as `/my-repo/` applies to `vp dev` too; `./` is
-for the build only, and `vp dev` serves it from `/`.
+[Changing the result](../../packages/solid-tooling/docs/app-config.md#changing-the-result),
+or pass `--base` to `vp build`. A folder base such as `/my-repo/` applies to
+`vp dev` too; `./` is for the build only, and `vp dev` serves it from `/`.
 
 | Where the build runs                       | Base        | Router                                                |
 | ------------------------------------------ | ----------- | ----------------------------------------------------- |
@@ -68,11 +68,11 @@ folder on your own host.
 
 ## Fonts
 
-The [`fonts`](fonts.md) option works with every base above. With `./`, the
-generated CSS names each font by its file name, relative to the stylesheet, and
-`index.html` links the stylesheet and the preloads as `./assets/...`, so both
-resolve to the same file. A relative base with SSR is refused. `FontLinks`
-renders links for an SSR document only.
+The [`fonts`](../../packages/solid-tooling/docs/fonts.md) option works with
+every base above. With `./`, the generated CSS names each font by its file name,
+relative to the stylesheet, and `index.html` links the stylesheet and the
+preloads as `./assets/...`, so both resolve to the same file. A relative base
+with SSR is refused. `FontLinks` renders links for an SSR document only.
 
 ## Theme
 
@@ -235,3 +235,11 @@ approaches a shell and does not replace a test in one. It does not cover a
 custom protocol such as `app://`, the context isolation or the session
 partitions of Electron, a CSP set by the shell, or the WebKit and Android
 WebViews of Tauri and Capacitor. Test the built application in your shell.
+
+## Prerendered pages
+
+For HTML metadata, multiple languages or static SEO publication, keep SSR
+enabled for the build and set `output: 'static'`. Deploy `.output/public` with
+directory indexes enabled. Use the localStorage theme described above. The
+static root serves the base locale. See
+[ADR 0041](../ADRs/0041-static-output.md) for the hosting and security contract.

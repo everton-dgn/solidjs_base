@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
+
 const HTTP_OK = 200
 const HTTP_NOT_FOUND = 404
 const MENU_TRIGGERS = 2
@@ -8,12 +10,14 @@ test.describe('layout in the production tree', () => {
   test.use({ javaScriptEnabled: false })
 
   test('renders Home and 404 with the bar in the SSR', async ({ page }) => {
-    const home = await page.goto('/pt')
+    const home = await page.goto(
+      testLanguages.path(testLanguages.alternate, '')
+    )
     expect(home?.status()).toBe(HTTP_OK)
     await expect(page.getByRole('banner')).toHaveCount(1)
     await expect(
       page.getByRole('heading', {
-        name: 'SolidJS Boilerplate para aplicações web'
+        name: testLanguages.labels(testLanguages.alternate).title
       })
     ).toBeVisible()
     const menuTriggers = page
@@ -22,10 +26,14 @@ test.describe('layout in the production tree', () => {
     await expect(menuTriggers).toHaveCount(MENU_TRIGGERS)
     await expect(page.locator('head link[rel="canonical"]')).toHaveCount(1)
 
-    const missing = await page.goto('/pt/pagina-inexistente')
+    const missing = await page.goto(
+      testLanguages.path(testLanguages.alternate, '/pagina-inexistente')
+    )
     expect(missing?.status()).toBe(HTTP_NOT_FOUND)
     await expect(page.getByRole('banner')).toHaveCount(1)
-    await expect(page).toHaveTitle('Página não encontrada')
+    await expect(page).toHaveTitle(
+      testLanguages.labels(testLanguages.alternate).missing
+    )
     await expect(page.locator('head meta[name="robots"]')).toHaveAttribute(
       'content',
       'noindex'

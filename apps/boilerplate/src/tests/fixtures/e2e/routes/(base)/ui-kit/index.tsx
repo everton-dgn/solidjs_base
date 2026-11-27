@@ -8,8 +8,11 @@ import { LocalizedLink } from '@/components/atoms/LocalizedLink/index.tsx'
 import { Textarea } from '@/components/atoms/Textarea/index.tsx'
 import { useToast } from '@/components/atoms/ToastProvider/useToast/index.ts'
 import { Dialog } from '@/components/molecules/Dialog/index.tsx'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 import S from './styles.module.css'
+
+const { alternate } = testLanguages
 
 export const route = {
   info: { seo: { noindex: true } }
@@ -27,8 +30,8 @@ export default function UiKit() {
       <h1>UI fixture</h1>
       <nav aria-label="Fixture navigation" class={S.actions}>
         <LocalizedLink href="?source=link#target">Localized page</LocalizedLink>
-        <LocalizedLink href="/ui-kit?source=language#target" locale="es">
-          Spanish page
+        <LocalizedLink href="/ui-kit?source=language#target" locale={alternate}>
+          Alternate language page
         </LocalizedLink>
         <LocalizedLink href="/robots.txt" shouldLocalize={false}>
           Robots file

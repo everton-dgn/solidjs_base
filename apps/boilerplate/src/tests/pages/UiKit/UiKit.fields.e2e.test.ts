@@ -1,11 +1,12 @@
 import { expect, test } from '@/tests/helpers/pageWatchers/index.ts'
+import { testLanguages } from '@/tests/helpers/testLanguages/index.ts'
 
 test.use({ javaScriptEnabled: false })
 
 test('server HTML keeps controlled field values over defaults', async ({
   page
 }) => {
-  await page.goto('/en/ui-kit/fields')
+  await page.goto(testLanguages.path(testLanguages.base, '/ui-kit/fields'))
   const field = (name: string) => page.getByLabel(name, { exact: true })
 
   await expect(field('Value')).toHaveValue('controlled')

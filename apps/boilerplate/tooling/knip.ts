@@ -21,10 +21,7 @@ export default defineKnipConfig({
     'src/components/atoms/ToastProvider/useToast/index.ts!',
     'src/primitives/createOutdatedPageGuard/index.ts!',
     // Middleware chain of the E2E build, chosen by mode in vite.config.ts.
-    'src/tests/fixtures/e2e/middleware/index.ts',
-    // Scripts of the vp run tasks. Knip only reads the run.tasks commands written
-    // in vite.config.ts, and the tasks come from the preset.
-    'tooling/css/check.ts'
+    'src/tests/fixtures/e2e/middleware/index.ts'
   ],
   // Kingfisher is external. The vp of the start script comes from a
   // devDependency, which production mode (turned on by --strict) does not

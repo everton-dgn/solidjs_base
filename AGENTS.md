@@ -23,11 +23,15 @@ parameters", "Events in JSX", "Conditionals and control flow", "Exports",
 "Functions that return a Promise", "Code comments", "Boolean names" and "Signal
 names".
 
+The workspace also contains the private application generator in
+`packages/create-solid`. It joins the linked release group after its first
+manual registry release.
+
 ## Validation
 
-- Run `vp run validate` at the root. It runs the build, check, dead code,
-  package tests, tarball tests and installed application scenarios, as the
-  publish job does.
+- Run `vp run validate` for the published packages and workspace consistency.
+  Run `vp run validate:generator` for the generator. Release verification also
+  installs each generated application in its own job.
 - A change in `apps/boilerplate` also runs the commands of
   [the boilerplate app section](docs/development.md#the-boilerplate-app). The CI
   runs them for a package change too, so run them when the change reaches a
@@ -84,3 +88,26 @@ names".
 - The first automated release of a package needs a trusted publisher, which only
   the maintainer can create on npm
   ([First automated release](docs/releasing.md#first-automated-release-of-a-package)).
+
+## Maintaining the boilerplate copy
+
+- `apps/boilerplate` is a copy of `boilerplate_solidjs` at commit `6145493`, used to
+  test the packages of the monorepo in a complete application. The
+  [development guide](docs/development.md#what-changed-from-the-original) lists
+  what changed from the original.
+- The lint rules, the formatter, the tsconfigs, the Vite and Nitro config
+  (`defineSolidApp`), the Vitest projects (`solidTest`), the Playwright config
+  (`definePlaywrightConfig`) and the Knip (`defineKnipConfig`) and Stylelint
+  (`checkCss`) configs come from the `@evertondgn/solid-tooling` package.
+  The app configures these tools in `apps/boilerplate/tooling/knip.ts` and
+  `apps/boilerplate/tooling/css/check.ts`. To change a shared rule, edit
+  `packages/solid-tooling/src/` and run `vp run test` at the repository root.
+- The application guides describe upstream release automation, CI, Git hooks
+  and deployment. Those sections do not apply to the tracked copy, which has
+  no Git hooks. Keep its package pins at `workspace:*` and exclude them from
+  `vp update`. After upgrading Solid, run `vp run test:tarball` at the root.
+- This file, the guides in `docs/`, the code comments and the test titles are in
+  English. The tests check the interface in its three languages. When bringing a
+  change from the original, translate its documentation, comments and test
+  titles.
+

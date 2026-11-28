@@ -195,7 +195,10 @@ jobs:
     name: Release pull request
     needs: release-please
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # WHY: release-please fetches missing file lists through the GitHub API.
+    # The 500-commit scan took over three minutes, so the larger search can
+    # exceed the previous five-minute limit.
+    timeout-minutes: 10
     # WHY: the environment admits only main and the release branches, and the
     # App key belongs in its secrets (docs/releasing.md#one-time-setup). The job
     # deploys nothing, so it creates no deployment.

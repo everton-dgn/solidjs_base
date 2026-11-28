@@ -343,6 +343,12 @@ so the published package does not change.
   `linked-versions` group. `release-as` under every package sets the next
   version by hand; remove it after that release, or release-please keeps
   proposing it.
+- `commit-search-depth` limits how far back release-please looks for the last
+  release commits in `main`. If it stops before finding all of them, the
+  `Release pull request` job logs how many release commits it expected and
+  found. The proposed version and changelogs can then omit older changes. When
+  increasing the depth, allow time in that job for GitHub API calls to fetch
+  missing file lists.
 - `.release-please-manifest.json` holds the last released version of each
   package. release-please updates it. Edit it by hand only to add a package that
   already has a published version.

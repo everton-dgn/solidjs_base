@@ -1,6 +1,6 @@
 {
   "name": "@evertondgn/solid-tooling",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "The whole vite.config.ts, lint rules, test projects and Git hooks of a SolidJS 2 app on Vite+, as one dev dependency.",
   "author": "Éverton Toffanetto",
   "license": "MIT",

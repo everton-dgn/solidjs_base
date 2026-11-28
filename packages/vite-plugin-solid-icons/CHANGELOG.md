@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.11.0](https://github.com/everton-dgn/solidjs_base/compare/vite-plugin-solid-icons@0.10.0...vite-plugin-solid-icons@0.11.0) (2026-11-28)
+
+
+### Features
+
+* **icons:** cover imports, collections and names in the icons skill ([ff1778c](https://github.com/everton-dgn/solidjs_base/commit/ff1778c997a18cac07b19da46ee471ec6ef001cb))
+* **icons:** ship the icon import skill ([91f4711](https://github.com/everton-dgn/solidjs_base/commit/91f4711bb4b21abb70b3514359d5023f76602990))
+
+
+### Bug Fixes
+
+* **icons:** accept Solid Web 2.0.3 ([e8ec396](https://github.com/everton-dgn/solidjs_base/commit/e8ec39688a10eaa83028ccaca5a09009a71a4954))
+* **icons:** document local imports and conditional suggestions ([caba01a](https://github.com/everton-dgn/solidjs_base/commit/caba01afe5fbc9fea59f8d3e6f04b7b48f1576e5))
+
 ## [0.10.0](https://github.com/everton-dgn/solidjs_base/compare/vite-plugin-solid-icons@0.9.0...vite-plugin-solid-icons@0.10.0) (2026-11-18)
 
 

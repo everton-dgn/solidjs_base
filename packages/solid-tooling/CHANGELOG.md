@@ -15,7 +15,6 @@
 
 ### Bug Fixes
 
-* **create:** recognize direct doctor instructions in standalone guides ([bf27db2](https://github.com/everton-dgn/solidjs_base/commit/bf27db27bf1197cdd299ad533e98d2ed5b278195))
 * **tooling:** align static build types with package conventions ([3021d34](https://github.com/everton-dgn/solidjs_base/commit/3021d348550654bce521e56c8dcb6cadc4187ba9))
 * **tooling:** allow undefined server settings in static output ([3ac0a02](https://github.com/everton-dgn/solidjs_base/commit/3ac0a02c8abd3d762b37ca0ee632924973cf8abf))
 * **tooling:** buffer only prerender requests ([dee0890](https://github.com/everton-dgn/solidjs_base/commit/dee0890eca29f9db52481f2123cd53a5b9dbd501))
@@ -41,11 +40,6 @@
 * **tooling:** validate static pages and emit their CSP hashes ([6ef4276](https://github.com/everton-dgn/solidjs_base/commit/6ef42769820b02f3d16c46311361e5d1cd3f7db1))
 * **tooling:** warn about oversized static CSP unions ([2ada0ee](https://github.com/everton-dgn/solidjs_base/commit/2ada0eeab667825058c17187d2fe95d4c9b1d5eb))
 * **tooling:** write the pointer block at the top of AGENTS.md ([2d9609b](https://github.com/everton-dgn/solidjs_base/commit/2d9609b44a35a50bddfdfb7657b1039d6413acc1))
-
-
-### Reverts
-
-* **tooling:** restore the canonical agents block check ([d05861a](https://github.com/everton-dgn/solidjs_base/commit/d05861ae83324d99caa48054ab87910878b68a78))
 
 ## [0.10.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.9.0...solid-tooling@0.10.0) (2026-11-18)
 

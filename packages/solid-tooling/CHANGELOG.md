@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.11.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.10.0...solid-tooling@0.11.0) (2026-11-28)
+
+
+### Features
+
+* **tooling:** cover the preset features, tasks and lint in the application skill ([0227e2e](https://github.com/everton-dgn/solidjs_base/commit/0227e2e0f4db1c8577ca5ac51841dcd24a4f2f5d))
+* **tooling:** diagnose installations and maintain application instructions ([e181baa](https://github.com/everton-dgn/solidjs_base/commit/e181baa3bd7fdb80ec823cec40bc17607cea9464))
+* **tooling:** export the Paraglide compiler profile of the boilerplate ([25ac4b6](https://github.com/everton-dgn/solidjs_base/commit/25ac4b674803bf5a772148cfb4b429bcd60b74f8))
+* **tooling:** prerender SSR applications for static hosting ([ea6781f](https://github.com/everton-dgn/solidjs_base/commit/ea6781fa0f4a9b963630eca93887471938f68e5f))
+* **tooling:** print the doctor report in sections ([4ef167b](https://github.com/everton-dgn/solidjs_base/commit/4ef167b48d7d614c0f9edaf58bde7c6755e2a1c3))
+* **tooling:** take the Solid diagnostics choice in the preset ([394eee8](https://github.com/everton-dgn/solidjs_base/commit/394eee849e9144046ae3ef355a68ef0ad3281b03))
+
+
+### Bug Fixes
+
+* **tooling:** align static build types with package conventions ([3021d34](https://github.com/everton-dgn/solidjs_base/commit/3021d348550654bce521e56c8dcb6cadc4187ba9))
+* **tooling:** allow undefined server settings in static output ([3ac0a02](https://github.com/everton-dgn/solidjs_base/commit/3ac0a02c8abd3d762b37ca0ee632924973cf8abf))
+* **tooling:** buffer only prerender requests ([dee0890](https://github.com/everton-dgn/solidjs_base/commit/dee0890eca29f9db52481f2123cd53a5b9dbd501))
+* **tooling:** check the compiler against its declared range ([f4ec3aa](https://github.com/everton-dgn/solidjs_base/commit/f4ec3aabe9bbe7a2f00d8ccd4570d1bf7ccd2e58))
+* **tooling:** distinguish prerender integrity failures ([ff5c9df](https://github.com/everton-dgn/solidjs_base/commit/ff5c9df474477de49c80d8ac1a227bc2c04d8893))
+* **tooling:** document backend and route lint exceptions ([59c89d3](https://github.com/everton-dgn/solidjs_base/commit/59c89d3ad3bb893972c976e90a118482ecd31b33))
+* **tooling:** hash scripts in nested template contents ([4781d4b](https://github.com/everton-dgn/solidjs_base/commit/4781d4bd2e0a27836262e734152bfba443b4e2f4))
+* **tooling:** ignore workspace settings rewritten by pnpm ([54e0c89](https://github.com/everton-dgn/solidjs_base/commit/54e0c89b1c2bd9c90baaa36daf9953f46da6c897))
+* **tooling:** inspect public files after prerender completes ([4cb9f98](https://github.com/everton-dgn/solidjs_base/commit/4cb9f98cffe2e34b1c0479963a95bd3d54d54f95))
+* **tooling:** prerender localized error pages ([d1b6fc8](https://github.com/everton-dgn/solidjs_base/commit/d1b6fc8b413de2a734b3c3df472621daf24f4704))
+* **tooling:** preserve diagnostic evidence across partial reads ([f1f8b26](https://github.com/everton-dgn/solidjs_base/commit/f1f8b26c9cbb53fb69e9084b27214b9b862f62e5))
+* **tooling:** preserve the instructions BOM when checking managed markers ([d6cff97](https://github.com/everton-dgn/solidjs_base/commit/d6cff9783df54b956931095d59ae3fc9abbb8a78))
+* **tooling:** put the pointer at the top when Vite+ appended its block ([58b6c48](https://github.com/everton-dgn/solidjs_base/commit/58b6c486afedddcbaf9079210ad4fc437fc687c3))
+* **tooling:** refuse block markers below any code fence ([ca45603](https://github.com/everton-dgn/solidjs_base/commit/ca4560331a58db4d743d7b8a57924c2ea08f6b18))
+* **tooling:** require a 404 response from the root catch-all ([6791820](https://github.com/everton-dgn/solidjs_base/commit/679182063d5b6b08e8eaf8b4f8ff1502adad86d6))
+* **tooling:** resolve recovery commands from the application ([ff4259d](https://github.com/everton-dgn/solidjs_base/commit/ff4259ddcbb06006b33cf3fd77f88b8a6a272062))
+* **tooling:** resolve static page locales from the URL ([936701d](https://github.com/everton-dgn/solidjs_base/commit/936701deaef451547ba1db772a2cf6f95c9a22a3))
+* **tooling:** satisfy static output lint checks ([d56b6af](https://github.com/everton-dgn/solidjs_base/commit/d56b6af8d69ecb581ba559ae8180e5356e5cedef))
+* **tooling:** skip prerender parsing for nonce-free markup ([b3ffb5c](https://github.com/everton-dgn/solidjs_base/commit/b3ffb5ccb9000fd6ccf9c941eee8913e7dbae6f1))
+* **tooling:** track root TypeScript files in the Node type check ([1b6fe33](https://github.com/everton-dgn/solidjs_base/commit/1b6fe33e9d0465a35a024d85775529099adfd3cc))
+* **tooling:** update DOM matchers and Knip ([abcb3ae](https://github.com/everton-dgn/solidjs_base/commit/abcb3ae6e44841e54ef697e63a2e0360e7660696))
+* **tooling:** update Knip and stylesheet and Solid lint dependencies ([f4f1c53](https://github.com/everton-dgn/solidjs_base/commit/f4f1c537998b3f25147ca1ea0178267dab7a96cb))
+* **tooling:** validate static pages and emit their CSP hashes ([6ef4276](https://github.com/everton-dgn/solidjs_base/commit/6ef42769820b02f3d16c46311361e5d1cd3f7db1))
+* **tooling:** warn about oversized static CSP unions ([2ada0ee](https://github.com/everton-dgn/solidjs_base/commit/2ada0eeab667825058c17187d2fe95d4c9b1d5eb))
+* **tooling:** write the pointer block at the top of AGENTS.md ([2d9609b](https://github.com/everton-dgn/solidjs_base/commit/2d9609b44a35a50bddfdfb7657b1039d6413acc1))
+
 ## [0.10.0](https://github.com/everton-dgn/solidjs_base/compare/solid-tooling@0.9.0...solid-tooling@0.10.0) (2026-11-18)
 
 

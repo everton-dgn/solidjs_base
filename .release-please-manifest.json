@@ -1,5 +1,5 @@
 {
-  "packages/solid-tooling": "0.10.0",
-  "packages/solid-runtime": "0.10.0",
-  "packages/vite-plugin-solid-icons": "0.10.0"
+  "packages/solid-tooling": "0.11.0",
+  "packages/solid-runtime": "0.11.0",
+  "packages/vite-plugin-solid-icons": "0.11.0"
 }

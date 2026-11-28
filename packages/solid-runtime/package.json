@@ -1,6 +1,6 @@
 {
   "name": "@evertondgn/solid-runtime",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Security headers with a nonce CSP, private server errors, links that keep the language, a theme set before hydration and SEO for SolidJS 2 apps on Vite+.",
   "author": "Éverton Toffanetto",
   "license": "MIT",

@@ -1,6 +1,6 @@
 {
   "name": "@evertondgn/vite-plugin-solid-icons",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Iconify collections and your own SVG folders as typed SolidJS 2 components, with only the icons you use in the bundle.",
   "author": "Éverton Toffanetto",
   "license": "MIT",

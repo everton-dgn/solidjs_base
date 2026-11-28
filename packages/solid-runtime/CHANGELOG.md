@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.11.0](https://github.com/everton-dgn/solidjs_base/compare/solid-runtime@0.10.0...solid-runtime@0.11.0) (2026-11-28)
+
+
+### Features
+
+* **runtime:** accept message functions in route SEO ([beb66b7](https://github.com/everton-dgn/solidjs_base/commit/beb66b7b9f7e2ae7b44f9fc47eaba14a163df840))
+* **runtime:** cover the runtime features in the application skill ([d805bd2](https://github.com/everton-dgn/solidjs_base/commit/d805bd24c285b4090a4e343f4dd0cca871f0d336))
+* **runtime:** default the theme cookie lifetime and the initial theme ([6af49bc](https://github.com/everton-dgn/solidjs_base/commit/6af49bccd54b673fdfd4c590baf68b86d06be6e9))
+* **runtime:** ship the application runtime skill ([5b830d1](https://github.com/everton-dgn/solidjs_base/commit/5b830d1b9c5d3924ed7f549dab6beda3c1c7f113))
+
+
+### Bug Fixes
+
+* **runtime:** accept Solid Web 2.0.3 ([2bbd40e](https://github.com/everton-dgn/solidjs_base/commit/2bbd40e00ee28236a956dd7ca48a600eabd96a34))
+* **runtime:** clarify policy and sitemap source contracts ([0200df2](https://github.com/everton-dgn/solidjs_base/commit/0200df21a564716f3df7566559a4e2f762579d89))
+* **runtime:** update Markdown conversion for accessible links ([4acbace](https://github.com/everton-dgn/solidjs_base/commit/4acbacedc2df3fbdf01713136f6aa69aabe98dcf))
+
 ## [0.10.0](https://github.com/everton-dgn/solidjs_base/compare/solid-runtime@0.9.0...solid-runtime@0.10.0) (2026-11-18)
 
 
